@@ -4,4 +4,6 @@ A minimal, open GPU interface for graphics, compute, and machine learning, built
 
 Start with [the design document](docs/design.md).
 
+The first Rust/C device probe is available; see [building and testing](docs/development.md).
+
 Licensed under the [MIT License](LICENSE).

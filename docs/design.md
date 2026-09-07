@@ -53,6 +53,13 @@ Hardware-oriented tensor layouts can belong in kernel code without introducing r
 
 ### First experiments
 
+The first implementation baseline is a Rust Vulkan device/capability probe behind
+an experimental C ABI. Vulkan declarations are generated directly from pinned
+Khronos headers using Rust bindgen and checked in; the runtime does not depend on
+ash or Vulkanalia. This chooses Rust for the initial backend without freezing the
+eventual programming model. See [building and testing](development.md) for scope,
+reproducibility, and ABI checks. No logical device or GPU execution exists yet.
+
 1. Specify one allocation's CPU/GPU visibility and lifetime, one dispatch's argument and executable contract, and one submission's completion semantics.
 2. Exercise the common model with a compute-produced vertex array and indirect arguments consumed by a draw. Then add an image-processing or small neural graphics workload to test texture/linear-memory boundaries.
 3. Run a reduction, a matrix kernel, and a short dispatch chain. Separate numerical correctness, runtime overhead, kernel throughput, and compilation costs in the results.

@@ -1,0 +1,102 @@
+# Building the first probe
+
+The initial backend is Rust with directly generated Vulkan declarations and a small
+C ABI. It does not use ash, Vulkanalia, C++, or Kotlin. Only Linux x86-64 is currently
+supported and tested. The ABI is experimental, not a specification of the eventual
+execution interface.
+
+## Build and run
+
+Requirements: Rust 1.85+ with Cargo, a C11 compiler/linker, and a Vulkan loader with
+Vulkan 1.1+ support. A GPU is not required to compile or run the mock tests.
+
+```sh
+cargo build --locked
+cargo xtask smoke
+```
+
+The first command builds `target/debug/libogpu.so` using checked-in bindings. It
+needs neither the headers submodule nor Clang/libclang. The second builds and runs
+[the C caller](../examples/probe.c) against [our header](../include/ogpu.h).
+`CC` may select a C compiler executable. Test tools currently use the repository's
+`target/` directory; leave `CARGO_TARGET_DIR` unset.
+
+By default the runtime loads `libvulkan.so.1`. For an unusual loader installation:
+
+```sh
+OGPU_VULKAN_LIBRARY=/absolute/path/to/libvulkan.so.1 cargo xtask smoke
+```
+
+This override loads executable code, so use only a trusted library. Vulkan's normal
+driver-selection environment variables remain available through the loader. The
+probe does not change driver configuration or require a display/window.
+
+The probe owns one Vulkan instance and an immutable device-information snapshot.
+Creation queries devices, queues, and supported feature bits; it creates no logical
+device, enables no device features, and submits no GPU work. An empty enumeration
+is successful. Optional accelerators never gate startup.
+
+Capability bits are queried features, **not simply advertised extension names**.
+Promoted core features are queried using the effective instance/device API version;
+extension features are queried only when advertised. Storage access and shader
+arithmetic types remain separate. Cooperative-matrix support does not establish
+specific shapes/types, performance, or shader-compiler support; those queries come
+with the kernel experiments. This report is preliminary Vulkan support information,
+not negotiation of a portable graphics or ML profile.
+
+## Reproduce and test the bindings
+
+```sh
+git submodule update --init vendor/Vulkan-Headers
+cargo xtask bindings --check
+cargo test --locked
+cargo xtask abi
+cargo xtask mock
+cargo xtask smoke
+```
+
+`bindings` uses **bindgen 0.72.1**, pinned in the Rust tooling crate and Cargo.lock,
+with Khronos Vulkan-Headers **1.4.357**, revision
+`e3b1eec08173d6b825cd3ac88c885a63b621504a`, pinned as a submodule. This is the audited
+baseline, not a floating request for the latest SDK. The command rejects a different
+revision or modified tracked header files.
+
+Only regeneration requires libclang and its C system headers. Formatting uses the
+Rust `prettyplease` dependency pinned by Cargo.lock, not an external rustfmt. Set
+`LIBCLANG_PATH` if libclang is not discoverable; bindgen also accepts
+`BINDGEN_EXTRA_CLANG_ARGS` for system include paths. The initial generation was
+tested with Clang 21.1.8. No generator runs during normal library builds.
+
+`cargo xtask bindings` writes generated declarations; `--check` compares without
+writing. The allowlist includes only the loader/query commands and feature
+structures used by this probe, plus their dependencies. To extend it, edit
+[the type list](../tools/vulkan-types.txt) or command allowlist in the tooling crate,
+regenerate, inspect the diff, and extend [ABI coverage](../tests/abi.txt).
+
+`abi` independently compiles C and Rust programs and compares sizes, alignments,
+and selected field offsets, covering every feature structure used here and every
+public data field. Generated assertions also validate the generated declarations.
+This is target-specific ABI evidence, not a proof of Vulkan semantic correctness.
+
+`mock` builds a tiny test-only Vulkan loader and exercises the real C boundary.
+It checks core promotion without extension advertisements, an advertised extension
+whose feature is false, absent optional extensions, zero devices, loader failure,
+and instance cleanup on a Vulkan error. Rust unit tests additionally exercise
+changing enumeration counts, bounded `VK_INCOMPLETE` retries, diagnostics, and panic
+containment. `smoke` uses the real loader and available drivers.
+
+## Boundary and next step
+
+The C header documents ownership, pointer validity, immutable concurrent queries,
+version checks, output behavior, and destruction. Errors are returned directly;
+there is no shared last-error buffer. Rust panics are contained at fallible C entry
+points, but invalid caller pointers, driver faults, and allocation aborts are not
+recoverable API errors.
+
+The next vertical slice is allocation → upload → compute dispatch → completion →
+readback verification. Memory lifetime and synchronization semantics must be defined
+with that implementation. Graphics shares those foundations; this probe does not
+yet settle the graphics profile, shader language, executable format, or ML profile.
+
+The project code is MIT licensed. Khronos headers retain their upstream licenses in
+the submodule; third-party Rust dependencies retain their own licenses.

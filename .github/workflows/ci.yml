@@ -1,0 +1,28 @@
+name: Check
+on: [push, pull_request]
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: sudo apt-get update && sudo apt-get install -y libclang-dev
+      - run: cargo fmt --all --check
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo xtask bindings --check
+      - run: cargo xtask abi
+      - run: cargo xtask mock
+
+  minimum-rust:
+    runs-on: ubuntu-24.04
+    steps:
+      # A normal build must work without the headers submodule or generation tools.
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: cargo test --locked

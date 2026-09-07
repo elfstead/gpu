@@ -1,0 +1,10 @@
+[workspace]
+members = ["crates/ogpu", "crates/vulkan-sys", "tools/xtask"]
+default-members = ["crates/ogpu", "crates/vulkan-sys"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.85"
+license = "MIT"
+version = "0.1.0"
