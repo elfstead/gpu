@@ -1,4 +1,70 @@
-# Toward a Minimal Open GPU Compute and ML Interface
+# Toward a Minimal Open GPU Interface
+
+## Current design direction — 2026-09-07
+
+This is an exploratory design document, not a specification or a claim of a stable ABI. The project now considers graphics, general compute, and ML together. The original compute-focused analysis below remains background material; this section supersedes its compute-only scope and records proposals for the next revision. The original document is preserved in the initial Git commit.
+
+### Scope: a common GPU programming model
+
+Graphics should influence the design from the start. The proposed architecture has one common model for devices, allocations, addresses, executable code, command submission, synchronization, capabilities, and diagnostics. Graphics and matrix acceleration extend that model through capability profiles. A compute-only device or application should not need presentation or rasterization support.
+
+The first graphics profile should describe textures and samplers, rasterization and attachments, graphics entry points, indirect work, and their interaction with compute. Presentation should have a separate platform boundary. Ray tracing and other specialized facilities need a place in capability negotiation without requiring their complete specification in the first iteration.
+
+This is a proposal for a GPU programming model and interface. Whether it eventually needs a new source language is a separate question. A host API, shader execution contract, and implementation language serve different purposes. Initially, an existing shader language and compiler can test the model.
+
+The differentiating experiment is shared execution across workloads: compute creates scene data, graphics renders it, a kernel processes the output, and graphics consumes the result, with explicit dependencies and without unnecessary host round trips. Images still have specialized layouts and access rules; shared ownership does not imply that an image is an ordinary linear pointer or that every representation change is free.
+
+### Aaltonen as a design basis
+
+Use [Aaltonen's article](https://www.sebastianaaltonen.com/blog/no-graphics-api) and [NoGraphicsAPI implementation](https://github.com/sebbbi/NoGraphicsAPI) as primary design references. Compare three things separately: the intended hardware model, choices made by the Vulkan implementation, and requirements introduced by our workloads. Its [design comparison](https://github.com/sebbbi/NoGraphicsAPI/blob/main/docs/no-graphics-api-comparison.md) already distinguishes those first two categories.
+
+The current implementation copies a small CPU root payload and leaves larger structures behind GPU pointers. Its [shader contract](https://github.com/sebbbi/NoGraphicsAPI/blob/main/docs/slang.md) also documents absent specialization-constant support and no enabled support for 8-bit root or BDA members. These are concrete integration gaps to investigate. They do not establish what the author has considered or what every shader operation can express.
+
+Audit the following against actual kernels before choosing the ML profile: subgroup operations and size control; shared-memory layout and synchronization; matrix operations and supported shape/type combinations; narrow storage and conversion; specialization and compilation caching; asynchronous data movement where available; reusable command execution; and allocation/completion interoperability. Multi-device communication is a further profile.
+
+### C ABI, implementation language, and shader language
+
+The intended public host boundary is a small C header with opaque ownership handles, fixed-width values, explicit device addresses, status codes, and documented lifetime rules. Device addresses must be distinguishable from CPU-dereferenceable pointers. A future header should define ownership and synchronization alongside each operation.
+
+The runtime implementation is expected to use Rust or Zig; the choice remains open. Both can export a C ABI ([Rust FFI](https://doc.rust-lang.org/nomicon/ffi.html), [Zig C libraries](https://ziglang.org/documentation/master/#Exporting-a-C-Library)). Rust is the current recommendation for runtime ownership and concurrency; Zig remains a candidate for a deliberately explicit allocation and C-interoperability style. Neither choice determines the language used for GPU kernels.
+
+Rust ownership alone cannot prove completion of asynchronous GPU access through raw addresses. A Rust implementation still needs explicit completion tracking, a reviewed unsafe boundary, and defined panic/error behavior at the C interface. A Zig implementation needs the same GPU lifetime and concurrency contract.
+
+### Proposed resolutions to the initial review
+
+These are design candidates for discussion and experiments, not settled guarantees.
+
+| Issue | Proposed direction | Evidence needed |
+|---|---|---|
+| API versus ABI | Specify the host C ABI, kernel data/execution ABI, and executable package format separately | C caller and host/shader layout checks; version mismatch diagnostics |
+| Root arguments | Start by comparing copied inline bytes and a GPU-resident argument block; an inline block can carry the latter's address | Lifetime tests, GPU-produced arguments, and launch/argument-load measurements |
+| Queue semantics | Use explicit command batches and dependencies as the low-level candidate; an ordered convenience layer can insert dependencies | Upload → kernel → readback and compute → graphics examples, including multiple queues |
+| Allocation lifetime | Separate owning allocation handles from non-owning device ranges; tie reuse and deferred destruction to completion points | Cross-queue reuse, pending destruction, and non-coherent host access tests |
+| Kernel variants | Make workgroup sizing, specialization, and required capabilities explicit at executable preparation | Several tuned variants with observable compilation and cache costs |
+| ML types and matrices | Define optional profiles and query exact supported combinations of storage, arithmetic, conversion, and accumulation | Correctness and performance on more than one GPU vendor |
+| Tensors and graphs | Keep ML operators above the runtime; permit kernel layout descriptors and reusable command sequences | A fused kernel and replayed dispatch chain without runtime-owned tensor semantics |
+| Portability | Start on Vulkan, then test a second backend for the common compute contract | Document unsupported features and semantic differences without silent weakening |
+| Tooling | Design diagnostics, timestamps, allocation tracking, and address-aware capture/replay alongside raw pointers | Reproduce a faulty access, an asynchronous error, and a captured pointer-containing workload |
+| Adoption | Integrate one real compiler/runtime consumer early, including imported allocations and completion signaling | Reduced integration work and no avoidable data copies |
+
+Do not infer a new standard is needed from a small function count. [oneAPI Unified Runtime](https://oneapi-src.github.io/unified-runtime/core/INTRO.html) occupies a similar boundary beneath higher-level runtimes, and [IREE's HAL is publicly usable](https://iree.dev/reference/bindings/c-api/). The comparison must identify a concrete benefit over adapting those interfaces. Including graphics makes shared graphics/compute execution a more central hypothesis, but Vulkan and Aaltonen's own project must remain comparison points too.
+
+Hardware-oriented tensor layouts can belong in kernel code without introducing runtime tensor ownership. For example, [the cooperative matrix 2 proposal](https://docs.vulkan.org/features/latest/features/proposals/VK_NV_cooperative_matrix2.html) uses structured layouts to assist optimized addressing and staging. Similarly, excluding ML graph semantics does not exclude recording and replaying low-level commands.
+
+### First experiments
+
+1. Specify one allocation's CPU/GPU visibility and lifetime, one dispatch's argument and executable contract, and one submission's completion semantics.
+2. Exercise the common model with a compute-produced vertex array and indirect arguments consumed by a draw. Then add an image-processing or small neural graphics workload to test texture/linear-memory boundaries.
+3. Run a reduction, a matrix kernel, and a short dispatch chain. Separate numerical correctness, runtime overhead, kernel throughput, and compilation costs in the results.
+4. Integrate a compiler/runtime consumer and implement the common compute subset on a second backend before treating the ABI as stable.
+
+The working hypothesis is that one compact, pointer-based GPU contract can reduce integration work across graphics and compute while retaining useful access to specialized hardware. Scope, language choice, argument passing, and profile contents should be revised as the experiments expose their costs.
+
+---
+
+## Original compute-focused analysis
+
+The following analysis motivated the project. Its claims about novelty and removal of graphics are provisional and subject to the broader scope and review above.
 
 ## Aaltonen’s “No Graphics API” as the basis for a post-OpenCL, open-CUDA-style runtime
 
