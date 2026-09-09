@@ -39,6 +39,7 @@ vk VkPhysicalDeviceMemoryProperties memoryTypeCount memoryTypes memoryHeapCount 
 vk VkBufferCreateInfo sType pNext flags size usage sharingMode queueFamilyIndexCount pQueueFamilyIndices
 vk VkMemoryRequirements size alignment memoryTypeBits
 vk VkMemoryAllocateFlagsInfo sType pNext flags deviceMask
+vk VkMemoryDedicatedAllocateInfo sType pNext image buffer
 vk VkMemoryAllocateInfo sType pNext allocationSize memoryTypeIndex
 vk VkMappedMemoryRange sType pNext memory offset size
 vk VkBufferDeviceAddressInfo sType pNext buffer

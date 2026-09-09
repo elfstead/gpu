@@ -16,6 +16,7 @@ VkQueueFlagBits
 VkBufferUsageFlagBits
 VkMemoryPropertyFlagBits
 VkMemoryAllocateFlagsInfo
+VkMemoryDedicatedAllocateInfo
 VkMemoryAllocateFlagBits
 VkShaderStageFlagBits
 VkPipelineStageFlagBits

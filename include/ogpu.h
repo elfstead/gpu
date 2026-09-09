@@ -2,6 +2,7 @@
 #define OGPU_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,6 +93,66 @@ void ogpu_probe_destroy(OgpuProbe *probe);
  * No output contains borrowed pointers: copied information outlives the probe. */
 OgpuResult ogpu_probe_device_count(const OgpuProbe *probe, uint32_t *out_count);
 OgpuResult ogpu_probe_device_info(const OgpuProbe *probe, uint32_t index, OgpuDeviceInfo *out_info);
+
+/* Experimental execution slice: Linux x86-64, Vulkan 1.2 device + BDA + compute queue.
+ * Discovery remains independent: unsupported execution devices are still listed.
+ * These opaque objects have independent ownership. Buffers/kernels retain their
+ * device; a device retains its instance. Destroying a probe or device handle does
+ * not invalidate its surviving children. Each handle must still be destroyed once.
+ *
+ * All operations on ONE device and ALL its children must be externally serialized,
+ * including destruction. Independent devices may operate concurrently. The same
+ * pointer-validity, non-overlap, and panic/OOM rules as the probe API apply.
+ * out_error is optional, written on failure and cleared on success. Creation
+ * outputs are required and set to NULL on failure. Destruction accepts NULL. */
+typedef struct OgpuDevice OgpuDevice;
+typedef struct OgpuBuffer OgpuBuffer;
+typedef struct OgpuKernel OgpuKernel;
+
+OgpuResult ogpu_device_create(const OgpuProbe *probe, uint32_t index, OgpuDevice **out_device, OgpuError *out_error);
+void ogpu_device_destroy(OgpuDevice *device);
+
+/* Dedicated host-visible allocation. size_bytes must be nonzero and <= INTPTR_MAX.
+ * Contents start unspecified. Transfers are checked CPU copies, not GPU commands.
+ * Zero-length transfers allow NULL data and offset == size_bytes. Read destinations
+ * are unchanged on error. No persistent host mapping is exposed. */
+OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, OgpuBuffer **out_buffer, OgpuError *out_error);
+void ogpu_buffer_destroy(OgpuBuffer *buffer);
+OgpuResult ogpu_buffer_write(OgpuBuffer *buffer, uint64_t offset, const void *data, uint64_t size_bytes, OgpuError *out_error);
+OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *data, uint64_t size_bytes, OgpuError *out_error);
+
+/* Returns a NON-OWNING GPU address, valid only on this buffer's device until buffer
+ * destruction or device loss. Never dereference it on the CPU. Output unchanged
+ * on error. Keep the buffer alive for every dispatch that can reach this address. */
+OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_address, OgpuError *out_error);
+
+/* words is a 4-byte-aligned SPIR-V module, copied/consumed before return. The caller
+ * must provide VALID Vulkan 1.2 SPIR-V with a compute entry named "main", no
+ * descriptors, and only core-required capabilities plus bufferDeviceAddress.
+ * push_size_bytes must be a multiple of 4 within maxPushConstantsSize; zero is legal.
+ * All shader push accesses must fit this range. Header checks are NOT validation
+ * or sandboxing; malformed/incompatible shaders may cause driver faults. */
+OgpuResult ogpu_kernel_create(OgpuDevice *device, const uint32_t *words, uint64_t word_count,
+    uint32_t push_size_bytes, OgpuKernel **out_kernel, OgpuError *out_error);
+void ogpu_kernel_destroy(OgpuKernel *kernel);
+
+/* One-dimensional dispatch: groups_x workgroups; the shader defines local size.
+ * groups_x must be nonzero and within the device limit. Argument byte count must
+ * exactly match the kernel's push size (NULL allowed only for zero bytes).
+ * The caller defines the argument layout, including initialized padding bytes.
+ * Arguments are copied into the command buffer. Every referenced GPU allocation
+ * must be live, on this kernel's device, and accessed in bounds with correct
+ * alignment and race-free shader behavior. The runtime cannot inspect pointers
+ * embedded in arbitrary arguments to enforce these requirements.
+ *
+ * This call blocks until completion or device loss, with no timeout. Host writes
+ * from buffer_write are visible to the shader; completed shader writes are visible
+ * to subsequent buffer_read or dispatch calls. Even on error, submitted work is
+ * drained/lost before return so resources can be destroyed. Non-loss wait errors
+ * are retried until draining is established; persistent failures may block forever.
+ * After device loss, only destruction is supported. This is NOT an async API. */
+OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, const void *arguments,
+    uint32_t argument_bytes, OgpuError *out_error);
 
 #ifdef __cplusplus
 }

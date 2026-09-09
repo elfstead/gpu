@@ -38,6 +38,12 @@ pub(crate) struct Instance {
     _library: Library,
 }
 
+// SAFETY: the instance is immutable after creation. Vulkan permits these physical-device
+// queries and procedure lookups concurrently. Arc ownership prevents destruction while
+// a device/query retains it, and the library outlives every procedure pointer.
+unsafe impl Send for Instance {}
+unsafe impl Sync for Instance {}
+
 impl Drop for Instance {
     fn drop(&mut self) {
         // SAFETY: this owns a live instance, no device children exist, and the library is
@@ -49,13 +55,11 @@ impl Drop for Instance {
 }
 
 impl Instance {
-    #[cfg(test)]
     pub(crate) fn proc(&self, name: &CStr) -> vk::PFN_vkVoidFunction {
         // SAFETY: the retained library owns get and this live instance.
         unsafe { (self.get)(self.handle, name.as_ptr()) }
     }
 
-    #[cfg(test)]
     pub(crate) fn physical_devices(&self) -> Result<Vec<vk::VkPhysicalDevice>, Error> {
         let f = command!(
             self.get,
@@ -141,23 +145,6 @@ impl Instance {
             api_version,
             _library: library,
         })
-    }
-
-    pub(crate) fn devices(&self) -> Result<Vec<OgpuDeviceInfo>, Error> {
-        let enumerate_devices = command!(
-            self.get,
-            self.handle,
-            "vkEnumeratePhysicalDevices",
-            vk::PFN_vkEnumeratePhysicalDevices
-        );
-        // SAFETY: enumerate supplies properly sized, initialized output storage.
-        let devices = enumerate("vkEnumeratePhysicalDevices", |count, data| unsafe {
-            enumerate_devices(self.handle, count, data)
-        })?;
-        devices
-            .into_iter()
-            .map(|device| self.device_info(device))
-            .collect()
     }
 
     pub(crate) fn device_info(

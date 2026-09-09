@@ -53,12 +53,16 @@ Hardware-oriented tensor layouts can belong in kernel code without introducing r
 
 ### First experiments
 
-The first implementation baseline is a Rust Vulkan device/capability probe behind
-an experimental C ABI. Vulkan declarations are generated directly from pinned
+The first implementation baseline is a Rust Vulkan device/capability probe and
+small address-based compute round trip behind an experimental C ABI. Vulkan declarations are generated directly from pinned
 Khronos headers using Rust bindgen and checked in; the runtime does not depend on
 ash or Vulkanalia. This chooses Rust for the initial backend without freezing the
 eventual programming model. See [building and testing](development.md) for scope,
-reproducibility, and ABI checks. No logical device or GPU execution exists yet.
+reproducibility, and ABI checks. The [execution contract](execution.md) records the
+first ownership and visibility decisions: separate execution devices, dedicated
+host-visible buffers, descriptor-free SPIR-V kernels, copied root bytes, and one
+blocking dispatch at a time. These are experiment constraints, not a frozen API
+or a decision to exclude graphics or asynchronous execution.
 
 1. Specify one allocation's CPU/GPU visibility and lifetime, one dispatch's argument and executable contract, and one submission's completion semantics.
 2. Exercise the common model with a compute-produced vertex array and indirect arguments consumed by a draw. Then add an image-processing or small neural graphics workload to test texture/linear-memory boundaries.

@@ -1,14 +1,16 @@
 //! Experimental C ABI. Ownership and pointer requirements are defined in include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
 
-#[cfg(test)]
 mod compute;
+mod execution_api;
+pub use execution_api::*;
 mod vulkan;
 
 use std::{
     ffi::c_char,
     panic::{catch_unwind, AssertUnwindSafe},
     ptr,
+    sync::Arc,
 };
 
 pub type OgpuResult = i32;
@@ -74,8 +76,9 @@ pub struct OgpuDeviceInfo {
 /// Opaque C ownership handle. Device information is immutable after construction.
 pub struct OgpuProbe {
     devices: Vec<OgpuDeviceInfo>,
+    physical_devices: Vec<ogpu_vulkan_sys::VkPhysicalDevice>,
     // Keeps the instance and its dynamic library alive until the probe is destroyed.
-    _vulkan: vulkan::Instance,
+    _vulkan: Arc<vulkan::Instance>,
 }
 
 #[derive(Debug)]
@@ -145,10 +148,15 @@ pub unsafe extern "C" fn ogpu_probe_create(
         return ABI_MISMATCH;
     }
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let instance = vulkan::Instance::new()?;
-        let devices = instance.devices()?;
+        let instance = Arc::new(vulkan::Instance::new()?);
+        let physical_devices = instance.physical_devices()?;
+        let devices = physical_devices
+            .iter()
+            .map(|&device| instance.device_info(device))
+            .collect::<Result<_, _>>()?;
         Ok::<_, Error>(Box::new(OgpuProbe {
             devices,
+            physical_devices,
             _vulkan: instance,
         }))
     }));

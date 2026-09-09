@@ -4379,6 +4379,44 @@ pub type VkMemoryAllocateFlagBits = ::std::os::raw::c_uint;
 pub type VkMemoryAllocateFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkMemoryDedicatedAllocateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub image: VkImage,
+    pub buffer: VkBuffer,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryDedicatedAllocateInfo",
+    ][::std::mem::size_of::<VkMemoryDedicatedAllocateInfo>() - 32usize];
+    [
+        "Alignment of VkMemoryDedicatedAllocateInfo",
+    ][::std::mem::align_of::<VkMemoryDedicatedAllocateInfo>() - 8usize];
+    [
+        "Offset of field: VkMemoryDedicatedAllocateInfo::sType",
+    ][::std::mem::offset_of!(VkMemoryDedicatedAllocateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryDedicatedAllocateInfo::pNext",
+    ][::std::mem::offset_of!(VkMemoryDedicatedAllocateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryDedicatedAllocateInfo::image",
+    ][::std::mem::offset_of!(VkMemoryDedicatedAllocateInfo, image) - 16usize];
+    [
+        "Offset of field: VkMemoryDedicatedAllocateInfo::buffer",
+    ][::std::mem::offset_of!(VkMemoryDedicatedAllocateInfo, buffer) - 24usize];
+};
+impl Default for VkMemoryDedicatedAllocateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkMemoryAllocateFlagsInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,

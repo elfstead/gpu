@@ -265,6 +265,32 @@ fn mock(root: &Path) -> Result {
     Ok(())
 }
 
+fn compute(root: &Path) -> Result {
+    build(root)?;
+    let target = root.join("target/debug");
+    let executable = target.join("ogpu-compute-c");
+    run(compiler()
+        .args(["-std=c11", "-DNDEBUG", "-Wall", "-Wextra", "-Werror"])
+        .arg("-I")
+        .arg(root.join("include"))
+        .arg(root.join("examples/compute.c"))
+        .arg("-L")
+        .arg(&target)
+        .arg(format!("-Wl,-rpath,{}", target.display()))
+        .arg("-logpu")
+        .arg("-o")
+        .arg(&executable))?;
+    let output = run(Command::new(executable).arg(root.join("examples/shaders/roundtrip.spv")))?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    print!("{stdout}");
+    eprint!("{stderr}");
+    if stdout.contains("Validation Error:") || stderr.contains("Validation Error:") {
+        return Err("Vulkan validation reported an error during the C compute test".into());
+    }
+    Ok(())
+}
+
 fn main() -> Result {
     let root = root();
     // These tasks use a predictable location for the C/Rust test artifacts.
@@ -283,9 +309,10 @@ fn main() -> Result {
         }
         Some("abi") if args.len() == 1 => abi(&root),
         Some("mock") if args.len() == 1 => mock(&root),
+        Some("compute") if args.len() == 1 => compute(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | compute | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

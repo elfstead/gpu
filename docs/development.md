@@ -1,4 +1,4 @@
-# Building the first probe
+# Building the prototype
 
 The initial backend is Rust with directly generated Vulkan declarations and a small
 C ABI. It does not use ash, Vulkanalia, C++, or Kotlin. Only Linux x86-64 is currently
@@ -13,11 +13,16 @@ Vulkan 1.1+ support. A GPU is not required to compile or run the mock tests.
 ```sh
 cargo build --locked
 cargo xtask smoke
+cargo xtask compute
 ```
 
 The first command builds `target/debug/libogpu.so` using checked-in bindings. It
 needs neither the headers submodule nor Clang/libclang. The second builds and runs
-[the C caller](../examples/probe.c) against [our header](../include/ogpu.h).
+[the discovery caller](../examples/probe.c) against [our header](../include/ogpu.h).
+`compute` builds and runs [the C execution example](../examples/compute.c), which
+requires a Vulkan 1.2 device with buffer device addresses and a compute queue.
+It verifies upload → dispatch → blocking completion → readback, including repeated
+dispatches and releasing parent handles before using their children.
 `CC` may select a C compiler executable. Test tools currently use the repository's
 `target/` directory; leave `CARGO_TARGET_DIR` unset.
 
@@ -53,6 +58,7 @@ cargo test --locked
 cargo xtask abi
 cargo xtask mock
 cargo xtask smoke
+cargo xtask compute
 ```
 
 `bindings` uses **bindgen 0.72.1**, pinned in the Rust tooling crate and Cargo.lock,
@@ -68,9 +74,9 @@ Rust `prettyplease` dependency pinned by Cargo.lock, not an external rustfmt. Se
 tested with Clang 21.1.8. No generator runs during normal library builds.
 
 `cargo xtask bindings` writes generated declarations; `--check` compares without
-writing. The allowlist includes only the loader/query commands and feature
-structures used by this probe, plus their dependencies. To extend it, edit
-[the type list](../tools/vulkan-types.txt) or command allowlist in the tooling crate,
+writing. The allowlist includes the loader/query/execution commands and feature
+structures used by the prototype, plus their dependencies. To extend it, edit
+[the type list](../tools/vulkan-types.txt) or [command list](../tools/vulkan-commands.txt),
 regenerate, inspect the diff, and extend [ABI coverage](../tests/abi.txt).
 
 `abi` independently compiles C and Rust programs and compares sizes, alignments,
@@ -79,10 +85,11 @@ public data field. Generated assertions also validate the generated declarations
 This is target-specific ABI evidence, not a proof of Vulkan semantic correctness.
 
 `mock` builds a tiny test-only Vulkan loader and exercises the real C boundary.
-It checks a Vulkan 1.1 instance with a 1.3 device, core promotion without extension advertisements, an advertised extension
+It checks a Vulkan 1.1 instance with a 1.3 device, core promotion without extension
+advertisements, an advertised extension
 whose feature is false, absent optional extensions, zero devices, loader failure,
 and instance cleanup on a Vulkan error. The C caller is compiled with `NDEBUG` to
-ensure its checks and API calls also work in release builds. Rust unit tests additionally exercise
+ensure its checks and API calls also work in release builds. Rust unit tests exercise
 changing enumeration counts, bounded `VK_INCOMPLETE` retries, diagnostics, and panic
 containment. `smoke` uses the real loader and available drivers.
 
@@ -94,9 +101,9 @@ there is no shared last-error buffer. Rust panics are contained at fallible C en
 points, but invalid caller pointers, driver faults, and allocation aborts are not
 recoverable API errors.
 
-An [internal Rust execution experiment](execution.md) now exercises allocation →
-upload → compute dispatch → completion → readback verification, while the public
-C API remains discovery-only at this checkpoint. Graphics shares those foundations; this probe does not
+The [execution experiment](execution.md) now exposes allocation → upload → compute
+dispatch → completion → readback through C as well as testing the Rust backend.
+Graphics shares those foundations; this prototype does not
 yet settle the graphics profile, shader language, executable format, or ML profile.
 
 The project code is MIT licensed. Khronos headers retain their upstream licenses in

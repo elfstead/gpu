@@ -1,20 +1,46 @@
 # First execution experiment
 
-The initial internal Rust round trip allocates one host-visible, GPU-addressable
+The initial Rust round trip allocates one host-visible, GPU-addressable
 buffer, uploads 4099 integers, dispatches `x = x * 3 + 7` twice, makes a partial CPU
 update, and reads back and verifies every result. The count deliberately isn't a
 multiple of the shader's 64-thread workgroup size.
 
 ```sh
+cargo xtask compute
 cargo test --locked gpu_roundtrip -- --ignored --nocapture
 ```
 
-This test needs a real Vulkan loader (or Mesa lavapipe). It runs on every eligible
-device and fails if none can execute. Discovery still requires only a Vulkan 1.1
+The C example runs three dispatches on the first eligible device and verifies a
+partial CPU update between dispatches. It destroys the probe and device handles
+before dispatch to test retained ownership. The Rust test runs on every eligible
+device. Both need a Vulkan loader/driver (hardware or Mesa lavapipe) and fail if
+none can execute. Discovery still requires only a Vulkan 1.1
 instance implementation; execution requires a Vulkan 1.2 device, buffer device
 addresses, and a compute queue. No descriptor-heap or matrix extension is required.
 
-## Contract exercised internally
+## C API and ownership
+
+The public header now adds three opaque types:
+
+| Object | Created from | Operations | Retains |
+|---|---|---|---|
+| `OgpuDevice` | Probe + stable device index | Create buffers and kernels | Vulkan instance |
+| `OgpuBuffer` | Device + byte size | Write, read, query GPU address | Device |
+| `OgpuKernel` | Device + SPIR-V + push byte count | Dispatch and wait | Device |
+
+Each handle is destroyed exactly once. Destroying a parent handle does not destroy
+the implementation object while children retain it. Device creation uses the
+probe's original physical handles, not a fresh enumeration with potentially changed
+indices. Independent devices may be used concurrently, but all calls involving a
+device or any of its children must be externally serialized, including destruction.
+
+The kernel API accepts copied argument bytes rather than a hard-coded integer
+operation. It currently fixes the entry name to `main` and dispatch dimensions to
+`groups_x, 1, 1`. The shader declares its own local workgroup size. Adding these
+functions does not change existing layouts/signatures, so the discovery ABI version
+remains 1. No execution-facing Vulkan types are exposed.
+
+## Memory and execution contract
 
 - One logical device owns one compute-capable queue. Operations are serialized.
 - Each buffer owns a dedicated allocation, bound at offset zero and mapped for
@@ -60,6 +86,22 @@ spirv-val --target-env vulkan1.2 examples/shaders/roundtrip.spv
 
 The choice of GLSL for this test does not select the project's eventual shader
 language. The runtime consumes SPIR-V; later experiments can use other compilers.
+
+## Validation
+
+With Khronos validation layers installed:
+
+```sh
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation cargo xtask compute
+```
+
+The C compute task fails on reported validation errors, not just API return codes.
+CI is configured to run the example with Mesa's software Vulkan driver and validate the checked-in
+SPIR-V. Local development has also verified it on the RX 5700 XT and llvmpipe.
+The non-coherent memory selector and wait-error draining have unit coverage;
+actual non-coherent cache behavior still needs a device exposing a suitable memory
+type. Tests can exercise the explicit flush/invalidate calls on coherent memory,
+but that is not equivalent to hardware coverage of non-coherent memory.
 
 This is a correctness experiment, not a performance baseline: no device-local
 staging, suballocation, pipeline caching, persistent command pools, or overlapping

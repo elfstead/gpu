@@ -2,7 +2,7 @@
 //! buffers, descriptor-free compute pipelines, copied push arguments, and blocking submission.
 use crate::{vulkan::Instance, Error, INVALID_ARGUMENT, LOADER_ERROR, OUT_OF_RANGE, UNSUPPORTED};
 use ogpu_vulkan_sys as vk;
-use std::{cell::Cell, ptr, rc::Rc};
+use std::{cell::Cell, ptr, rc::Rc, sync::Arc};
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -64,7 +64,7 @@ pub(crate) struct Device {
     limits: vk::VkPhysicalDeviceLimits,
     lost: Cell<bool>,
     f: Functions,
-    _instance: Rc<Instance>,
+    _instance: Arc<Instance>,
 }
 
 impl Drop for Device {
@@ -79,7 +79,7 @@ impl Drop for Device {
 
 impl Device {
     pub(crate) fn new(
-        instance: Rc<Instance>,
+        instance: Arc<Instance>,
         physical: vk::VkPhysicalDevice,
     ) -> Result<Rc<Self>, Error> {
         let info = instance.device_info(physical)?;
@@ -273,8 +273,16 @@ impl Buffer {
             let (index, coherent) = memory_type(&d.memory, requirements.memoryTypeBits)
                 .ok_or_else(|| Error::new(UNSUPPORTED, "No compatible host-visible memory type"))?;
             result.coherent = coherent;
+            // Declare the one-buffer allocation as dedicated as well as owning it that
+            // way, satisfying implementations that require dedicated buffer allocations.
+            let dedicated = vk::VkMemoryDedicatedAllocateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+                buffer: result.buffer,
+                ..Default::default()
+            };
             let flags = vk::VkMemoryAllocateFlagsInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+                pNext: (&dedicated as *const vk::VkMemoryDedicatedAllocateInfo).cast(),
                 flags: vk::VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
                 ..Default::default()
             };
@@ -320,11 +328,12 @@ impl Buffer {
         Ok(result)
     }
 
-    pub(crate) fn address(&self) -> u64 {
-        self.address
+    pub(crate) fn address(&self) -> Result<u64, Error> {
+        self.device.ready()?;
+        Ok(self.address)
     }
 
-    fn range(&self, offset: usize, length: usize) -> Result<(), Error> {
+    pub(crate) fn range(&self, offset: usize, length: usize) -> Result<(), Error> {
         if offset > self.size || length > self.size - offset {
             Err(Error::new(
                 OUT_OF_RANGE,
@@ -379,16 +388,24 @@ impl Buffer {
         self.cache(true)
     }
 
-    pub(crate) fn read(&self, offset: usize, bytes: &mut [u8]) -> Result<(), Error> {
+    /// # Safety
+    /// destination must be writable for length bytes, independent of this allocation.
+    /// Unlike a Rust byte slice, a C destination may initially be uninitialized.
+    pub(crate) unsafe fn read(
+        &self,
+        offset: usize,
+        destination: *mut u8,
+        length: usize,
+    ) -> Result<(), Error> {
         self.device.ready()?;
-        self.range(offset, bytes.len())?;
-        if bytes.is_empty() {
+        self.range(offset, length)?;
+        if length == 0 {
             return Ok(());
         }
         self.cache(false)?;
         // SAFETY: checked range and no pending work; destination is an independent slice.
         unsafe {
-            ptr::copy_nonoverlapping(self.mapped.add(offset), bytes.as_mut_ptr(), bytes.len());
+            ptr::copy_nonoverlapping(self.mapped.add(offset), destination, length);
         }
         Ok(())
     }
@@ -728,7 +745,7 @@ mod tests {
     #[test]
     #[ignore = "requires a real Vulkan loader/device; run with --ignored --nocapture"]
     fn gpu_roundtrip() {
-        let instance = Rc::new(Instance::new().unwrap());
+        let instance = Arc::new(Instance::new().unwrap());
         let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
             .chunks_exact(4)
             .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
@@ -743,11 +760,14 @@ mod tests {
             };
             let count = 4099u32;
             let mut buffer = Buffer::new(device.clone(), count as usize * 4).unwrap();
+            // Exercise the explicit maintenance calls even on coherent memory (legal in
+            // Vulkan). This tests their ranges/lifetimes, not non-coherent hardware effects.
+            buffer.coherent = false;
             let mut expected: Vec<u32> = (0..count).collect();
             let input: Vec<u8> = expected.iter().flat_map(|v| v.to_ne_bytes()).collect();
             buffer.write(0, &input).unwrap();
             let mut root = [0u8; 16];
-            root[..8].copy_from_slice(&buffer.address().to_ne_bytes());
+            root[..8].copy_from_slice(&buffer.address().unwrap().to_ne_bytes());
             root[8..12].copy_from_slice(&count.to_ne_bytes());
             let kernel = unsafe { Kernel::new(device, &words, 16).unwrap() };
             for _ in 0..2 {
@@ -761,7 +781,9 @@ mod tests {
             buffer.write(4, &123u32.to_ne_bytes()).unwrap();
             expected[1] = 123;
             let mut output = vec![0u8; input.len()];
-            buffer.read(0, &mut output).unwrap();
+            unsafe {
+                buffer.read(0, output.as_mut_ptr(), output.len()).unwrap();
+            }
             for (bytes, value) in output.chunks_exact(4).zip(expected) {
                 assert_eq!(u32::from_ne_bytes(bytes.try_into().unwrap()), value);
             }
