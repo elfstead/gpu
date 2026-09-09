@@ -1,0 +1,18 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) buffer Data {
+    uint values[];
+};
+layout(push_constant, std430) uniform Root {
+    Data data;   // Device address at byte 0, NOT a host pointer.
+    uint count;  // Byte 8. The host supplies a 16-byte block, including padding.
+} root;
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i < root.count) {
+        root.data.values[i] = root.data.values[i] * 3u + 7u;
+    }
+}

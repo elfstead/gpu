@@ -49,6 +49,24 @@ impl Drop for Instance {
 }
 
 impl Instance {
+    #[cfg(test)]
+    pub(crate) fn proc(&self, name: &CStr) -> vk::PFN_vkVoidFunction {
+        // SAFETY: the retained library owns get and this live instance.
+        unsafe { (self.get)(self.handle, name.as_ptr()) }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn physical_devices(&self) -> Result<Vec<vk::VkPhysicalDevice>, Error> {
+        let f = command!(
+            self.get,
+            self.handle,
+            "vkEnumeratePhysicalDevices",
+            vk::PFN_vkEnumeratePhysicalDevices
+        );
+        enumerate("vkEnumeratePhysicalDevices", |count, data| unsafe {
+            f(self.handle, count, data)
+        })
+    }
     pub(crate) fn new() -> Result<Self, Error> {
         // Deliberate developer override. Treat it like any executable/library search path:
         // callers must not accept it from an untrusted party.
@@ -142,7 +160,10 @@ impl Instance {
             .collect()
     }
 
-    fn device_info(&self, device: vk::VkPhysicalDevice) -> Result<OgpuDeviceInfo, Error> {
+    pub(crate) fn device_info(
+        &self,
+        device: vk::VkPhysicalDevice,
+    ) -> Result<OgpuDeviceInfo, Error> {
         let properties = command!(
             self.get,
             self.handle,

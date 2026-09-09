@@ -1,0 +1,791 @@
+//! First execution experiment: one externally synchronized queue, addressable host-visible
+//! buffers, descriptor-free compute pipelines, copied push arguments, and blocking submission.
+use crate::{vulkan::Instance, Error, INVALID_ARGUMENT, LOADER_ERROR, OUT_OF_RANGE, UNSUPPORTED};
+use ogpu_vulkan_sys as vk;
+use std::{cell::Cell, ptr, rc::Rc};
+
+macro_rules! functions {
+    ($($name:ident: $ty:ident),* $(,)?) => {
+        #[allow(non_snake_case)]
+        struct Functions { $($name: vk::$ty,)* }
+        impl Functions {
+            #[allow(non_snake_case)]
+            fn load(instance: &Instance) -> Result<Self, Error> {
+                $(
+                    // SAFETY: command spelling and its generated PFN are paired here.
+                    let $name: vk::$ty = unsafe { std::mem::transmute(instance.proc(
+                        std::ffi::CStr::from_bytes_with_nul(concat!(stringify!($name), "\0").as_bytes()).unwrap()
+                    )) };
+                    if $name.is_none() { return Err(Error::new(LOADER_ERROR, concat!("Missing ", stringify!($name)))); }
+                )*
+                Ok(Self { $($name,)* })
+            }
+        }
+    };
+}
+functions! {
+    vkGetPhysicalDeviceMemoryProperties: PFN_vkGetPhysicalDeviceMemoryProperties,
+    vkGetPhysicalDeviceProperties: PFN_vkGetPhysicalDeviceProperties,
+    vkGetPhysicalDeviceQueueFamilyProperties: PFN_vkGetPhysicalDeviceQueueFamilyProperties,
+    vkCreateDevice: PFN_vkCreateDevice, vkDestroyDevice: PFN_vkDestroyDevice,
+    vkGetDeviceQueue: PFN_vkGetDeviceQueue,
+    vkCreateBuffer: PFN_vkCreateBuffer, vkDestroyBuffer: PFN_vkDestroyBuffer,
+    vkGetBufferMemoryRequirements: PFN_vkGetBufferMemoryRequirements,
+    vkAllocateMemory: PFN_vkAllocateMemory, vkFreeMemory: PFN_vkFreeMemory,
+    vkBindBufferMemory: PFN_vkBindBufferMemory,
+    vkMapMemory: PFN_vkMapMemory, vkUnmapMemory: PFN_vkUnmapMemory,
+    vkFlushMappedMemoryRanges: PFN_vkFlushMappedMemoryRanges,
+    vkInvalidateMappedMemoryRanges: PFN_vkInvalidateMappedMemoryRanges,
+    vkGetBufferDeviceAddress: PFN_vkGetBufferDeviceAddress,
+    vkCreateShaderModule: PFN_vkCreateShaderModule, vkDestroyShaderModule: PFN_vkDestroyShaderModule,
+    vkCreatePipelineLayout: PFN_vkCreatePipelineLayout, vkDestroyPipelineLayout: PFN_vkDestroyPipelineLayout,
+    vkCreateComputePipelines: PFN_vkCreateComputePipelines, vkDestroyPipeline: PFN_vkDestroyPipeline,
+    vkCreateCommandPool: PFN_vkCreateCommandPool, vkDestroyCommandPool: PFN_vkDestroyCommandPool,
+    vkAllocateCommandBuffers: PFN_vkAllocateCommandBuffers,
+    vkBeginCommandBuffer: PFN_vkBeginCommandBuffer, vkEndCommandBuffer: PFN_vkEndCommandBuffer,
+    vkCmdBindPipeline: PFN_vkCmdBindPipeline, vkCmdPushConstants: PFN_vkCmdPushConstants,
+    vkCmdDispatch: PFN_vkCmdDispatch, vkCmdPipelineBarrier: PFN_vkCmdPipelineBarrier,
+    vkQueueSubmit: PFN_vkQueueSubmit, vkQueueWaitIdle: PFN_vkQueueWaitIdle,
+}
+
+fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
+    if result == vk::VkResult_VK_SUCCESS {
+        Ok(())
+    } else {
+        Err(Error::vulkan(operation, result))
+    }
+}
+
+pub(crate) struct Device {
+    handle: vk::VkDevice,
+    queue: vk::VkQueue,
+    family: u32,
+    memory: vk::VkPhysicalDeviceMemoryProperties,
+    limits: vk::VkPhysicalDeviceLimits,
+    lost: Cell<bool>,
+    f: Functions,
+    _instance: Rc<Instance>,
+}
+
+impl Drop for Device {
+    fn drop(&mut self) {
+        // SAFETY: all child resources retain this device; every submission is drained before
+        // returning, including on errors. The instance/library still live.
+        unsafe {
+            (self.f.vkDestroyDevice.unwrap())(self.handle, ptr::null());
+        }
+    }
+}
+
+impl Device {
+    pub(crate) fn new(
+        instance: Rc<Instance>,
+        physical: vk::VkPhysicalDevice,
+    ) -> Result<Rc<Self>, Error> {
+        let info = instance.device_info(physical)?;
+        if info.vulkan_api_major < 1
+            || (info.vulkan_api_major == 1 && info.vulkan_api_minor < 2)
+            || info.capabilities.buffer_device_address == 0
+            || info.capabilities.compute_queue == 0
+        {
+            return Err(Error::new(
+                UNSUPPORTED,
+                "Execution requires Vulkan 1.2, buffer device addresses, and a compute queue",
+            ));
+        }
+        let f = Functions::load(&instance)?;
+        // SAFETY: the physical handle belongs to the retained instance. Each query has
+        // initialized, appropriately sized outputs; creation enables only the BDA feature.
+        unsafe {
+            let mut count = 0;
+            (f.vkGetPhysicalDeviceQueueFamilyProperties.unwrap())(
+                physical,
+                &mut count,
+                ptr::null_mut(),
+            );
+            let mut families = vec![vk::VkQueueFamilyProperties::default(); count as usize];
+            if count != 0 {
+                (f.vkGetPhysicalDeviceQueueFamilyProperties.unwrap())(
+                    physical,
+                    &mut count,
+                    families.as_mut_ptr(),
+                );
+            }
+            let family = families
+                .iter()
+                .take(count as usize)
+                .position(|p| {
+                    p.queueCount > 0 && p.queueFlags & vk::VkQueueFlagBits_VK_QUEUE_COMPUTE_BIT != 0
+                })
+                .ok_or_else(|| Error::new(UNSUPPORTED, "No compute queue"))?
+                as u32;
+            let mut properties = vk::VkPhysicalDeviceProperties::default();
+            (f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
+            let mut memory = vk::VkPhysicalDeviceMemoryProperties::default();
+            (f.vkGetPhysicalDeviceMemoryProperties.unwrap())(physical, &mut memory);
+            let priority = 1.0;
+            let queue_info = vk::VkDeviceQueueCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                queueFamilyIndex: family,
+                queueCount: 1,
+                pQueuePriorities: &priority,
+                ..Default::default()
+            };
+            let bda = vk::VkPhysicalDeviceBufferDeviceAddressFeatures { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+                bufferDeviceAddress: vk::VK_TRUE, ..Default::default() };
+            let create = vk::VkDeviceCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                pNext: (&bda as *const vk::VkPhysicalDeviceBufferDeviceAddressFeatures).cast(),
+                queueCreateInfoCount: 1,
+                pQueueCreateInfos: &queue_info,
+                ..Default::default()
+            };
+            let mut handle = ptr::null_mut();
+            check(
+                "vkCreateDevice",
+                (f.vkCreateDevice.unwrap())(physical, &create, ptr::null(), &mut handle),
+            )?;
+            // No fallible operation between successful creation and wrapping ownership.
+            let mut queue = ptr::null_mut();
+            (f.vkGetDeviceQueue.unwrap())(handle, family, 0, &mut queue);
+            Ok(Rc::new(Self {
+                handle,
+                queue,
+                family,
+                memory,
+                limits: properties.limits,
+                lost: Cell::new(false),
+                f,
+                _instance: instance,
+            }))
+        }
+    }
+
+    fn ready(&self) -> Result<(), Error> {
+        if self.lost.get() {
+            Err(Error::vulkan(
+                "device is lost",
+                vk::VkResult_VK_ERROR_DEVICE_LOST,
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn result(&self, op: &str, status: vk::VkResult) -> Result<(), Error> {
+        if status == vk::VkResult_VK_ERROR_DEVICE_LOST {
+            self.lost.set(true);
+        }
+        check(op, status)
+    }
+}
+
+pub(crate) struct Buffer {
+    device: Rc<Device>,
+    buffer: vk::VkBuffer,
+    memory: vk::VkDeviceMemory,
+    mapped: *mut u8,
+    size: usize,
+    address: u64,
+    coherent: bool,
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        // SAFETY: there is no pending submission when API control returns to the caller.
+        // Destroy the bound buffer before freeing its memory; partial construction is valid.
+        unsafe {
+            let d = &self.device;
+            if !self.mapped.is_null() {
+                (d.f.vkUnmapMemory.unwrap())(d.handle, self.memory);
+            }
+            if !self.buffer.is_null() {
+                (d.f.vkDestroyBuffer.unwrap())(d.handle, self.buffer, ptr::null());
+            }
+            if !self.memory.is_null() {
+                (d.f.vkFreeMemory.unwrap())(d.handle, self.memory, ptr::null());
+            }
+        }
+    }
+}
+
+fn memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -> Option<(u32, bool)> {
+    (0..memory.memoryTypeCount)
+        .filter_map(|i| {
+            let flags = memory.memoryTypes[i as usize].propertyFlags;
+            if mask & (1 << i) == 0
+                || flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT == 0
+                || flags
+                    & (vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD
+                        | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_PROTECTED_BIT)
+                    != 0
+            {
+                return None;
+            }
+            Some((
+                i,
+                flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT != 0,
+            ))
+        })
+        .max_by_key(|&(_, coherent)| coherent)
+}
+
+impl Buffer {
+    pub(crate) fn new(device: Rc<Device>, size: usize) -> Result<Self, Error> {
+        device.ready()?;
+        if size == 0 || size > isize::MAX as usize {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Buffer size must be in 1..=isize::MAX",
+            ));
+        }
+        let mut result = Self {
+            device,
+            buffer: ptr::null_mut(),
+            memory: ptr::null_mut(),
+            mapped: ptr::null_mut(),
+            size,
+            address: 0,
+            coherent: false,
+        };
+        let d = &result.device;
+        // SAFETY: initialized Vulkan structures. The result owns each handle immediately,
+        // ensuring cleanup on every later failure. Offset zero satisfies memory alignment.
+        unsafe {
+            let create = vk::VkBufferCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                size: size as u64,
+                usage: vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                sharingMode: vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE,
+                ..Default::default()
+            };
+            d.result(
+                "vkCreateBuffer",
+                (d.f.vkCreateBuffer.unwrap())(d.handle, &create, ptr::null(), &mut result.buffer),
+            )?;
+            let mut requirements = vk::VkMemoryRequirements::default();
+            (d.f.vkGetBufferMemoryRequirements.unwrap())(
+                d.handle,
+                result.buffer,
+                &mut requirements,
+            );
+            let (index, coherent) = memory_type(&d.memory, requirements.memoryTypeBits)
+                .ok_or_else(|| Error::new(UNSUPPORTED, "No compatible host-visible memory type"))?;
+            result.coherent = coherent;
+            let flags = vk::VkMemoryAllocateFlagsInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+                flags: vk::VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+                ..Default::default()
+            };
+            let allocate = vk::VkMemoryAllocateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+                pNext: (&flags as *const vk::VkMemoryAllocateFlagsInfo).cast(),
+                allocationSize: requirements.size,
+                memoryTypeIndex: index,
+            };
+            d.result(
+                "vkAllocateMemory",
+                (d.f.vkAllocateMemory.unwrap())(
+                    d.handle,
+                    &allocate,
+                    ptr::null(),
+                    &mut result.memory,
+                ),
+            )?;
+            d.result(
+                "vkBindBufferMemory",
+                (d.f.vkBindBufferMemory.unwrap())(d.handle, result.buffer, result.memory, 0),
+            )?;
+            let mut mapping = ptr::null_mut();
+            d.result(
+                "vkMapMemory",
+                (d.f.vkMapMemory.unwrap())(
+                    d.handle,
+                    result.memory,
+                    0,
+                    vk::VK_WHOLE_SIZE as vk::VkDeviceSize,
+                    0,
+                    &mut mapping,
+                ),
+            )?;
+            result.mapped = mapping.cast();
+            let address_info = vk::VkBufferDeviceAddressInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                buffer: result.buffer,
+                ..Default::default()
+            };
+            result.address = (d.f.vkGetBufferDeviceAddress.unwrap())(d.handle, &address_info);
+        }
+        Ok(result)
+    }
+
+    pub(crate) fn address(&self) -> u64 {
+        self.address
+    }
+
+    fn range(&self, offset: usize, length: usize) -> Result<(), Error> {
+        if offset > self.size || length > self.size - offset {
+            Err(Error::new(
+                OUT_OF_RANGE,
+                "Buffer transfer exceeds allocation",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn cache(&self, flush: bool) -> Result<(), Error> {
+        if self.coherent {
+            return Ok(());
+        }
+        let d = &self.device;
+        // Map and maintain the entire dedicated allocation: offset zero / WHOLE_SIZE also
+        // satisfy nonCoherentAtomSize requirements when the logical buffer is unaligned.
+        let range = vk::VkMappedMemoryRange {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+            memory: self.memory,
+            offset: 0,
+            size: vk::VK_WHOLE_SIZE as vk::VkDeviceSize,
+            ..Default::default()
+        };
+        unsafe {
+            if flush {
+                d.result(
+                    "vkFlushMappedMemoryRanges",
+                    (d.f.vkFlushMappedMemoryRanges.unwrap())(d.handle, 1, &range),
+                )
+            } else {
+                d.result(
+                    "vkInvalidateMappedMemoryRanges",
+                    (d.f.vkInvalidateMappedMemoryRanges.unwrap())(d.handle, 1, &range),
+                )
+            }
+        }
+    }
+
+    pub(crate) fn write(&mut self, offset: usize, bytes: &[u8]) -> Result<(), Error> {
+        self.device.ready()?;
+        self.range(offset, bytes.len())?;
+        if bytes.is_empty() {
+            return Ok(());
+        }
+        // Preserve GPU-written bytes outside a partial CPU update before whole-range flush.
+        self.cache(false)?;
+        // SAFETY: checked range in a live mapping, with an independent caller-owned slice.
+        unsafe {
+            ptr::copy_nonoverlapping(bytes.as_ptr(), self.mapped.add(offset), bytes.len());
+        }
+        self.cache(true)
+    }
+
+    pub(crate) fn read(&self, offset: usize, bytes: &mut [u8]) -> Result<(), Error> {
+        self.device.ready()?;
+        self.range(offset, bytes.len())?;
+        if bytes.is_empty() {
+            return Ok(());
+        }
+        self.cache(false)?;
+        // SAFETY: checked range and no pending work; destination is an independent slice.
+        unsafe {
+            ptr::copy_nonoverlapping(self.mapped.add(offset), bytes.as_mut_ptr(), bytes.len());
+        }
+        Ok(())
+    }
+}
+
+pub(crate) struct Kernel {
+    device: Rc<Device>,
+    module: vk::VkShaderModule,
+    layout: vk::VkPipelineLayout,
+    pipeline: vk::VkPipeline,
+    push_size: u32,
+}
+
+impl Drop for Kernel {
+    fn drop(&mut self) {
+        // SAFETY: all submitted work has drained; handles are either owned or NULL.
+        unsafe {
+            let d = &self.device;
+            if !self.pipeline.is_null() {
+                (d.f.vkDestroyPipeline.unwrap())(d.handle, self.pipeline, ptr::null());
+            }
+            if !self.layout.is_null() {
+                (d.f.vkDestroyPipelineLayout.unwrap())(d.handle, self.layout, ptr::null());
+            }
+            if !self.module.is_null() {
+                (d.f.vkDestroyShaderModule.unwrap())(d.handle, self.module, ptr::null());
+            }
+        }
+    }
+}
+
+impl Kernel {
+    /// # Safety
+    /// SPIR-V must be valid for this device with only BDA enabled, a compute entry named
+    /// main, no descriptors, and no push-constant accesses outside push_size bytes.
+    pub(crate) unsafe fn new(
+        device: Rc<Device>,
+        words: &[u32],
+        push_size: u32,
+    ) -> Result<Self, Error> {
+        device.ready()?;
+        if words.len() < 5
+            || words[0] != 0x07230203
+            || push_size % 4 != 0
+            || push_size > device.limits.maxPushConstantsSize
+        {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Invalid SPIR-V header or push-constant size",
+            ));
+        }
+        let mut result = Self {
+            device,
+            module: ptr::null_mut(),
+            layout: ptr::null_mut(),
+            pipeline: ptr::null_mut(),
+            push_size,
+        };
+        let d = &result.device;
+        // SAFETY: shader semantics are the caller's contract; the remaining Vulkan objects
+        // and pointers are initialized locally, with cleanup for partial pipeline creation.
+        unsafe {
+            let module = vk::VkShaderModuleCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                codeSize: std::mem::size_of_val(words),
+                pCode: words.as_ptr(),
+                ..Default::default()
+            };
+            d.result(
+                "vkCreateShaderModule",
+                (d.f.vkCreateShaderModule.unwrap())(
+                    d.handle,
+                    &module,
+                    ptr::null(),
+                    &mut result.module,
+                ),
+            )?;
+            let range = vk::VkPushConstantRange {
+                stageFlags: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
+                offset: 0,
+                size: push_size,
+            };
+            let layout = vk::VkPipelineLayoutCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                pushConstantRangeCount: u32::from(push_size != 0),
+                pPushConstantRanges: if push_size == 0 { ptr::null() } else { &range },
+                ..Default::default()
+            };
+            d.result(
+                "vkCreatePipelineLayout",
+                (d.f.vkCreatePipelineLayout.unwrap())(
+                    d.handle,
+                    &layout,
+                    ptr::null(),
+                    &mut result.layout,
+                ),
+            )?;
+            let stage = vk::VkPipelineShaderStageCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                stage: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
+                module: result.module,
+                pName: c"main".as_ptr(),
+                ..Default::default()
+            };
+            let pipeline = vk::VkComputePipelineCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                stage,
+                layout: result.layout,
+                basePipelineIndex: -1,
+                ..Default::default()
+            };
+            d.result(
+                "vkCreateComputePipelines",
+                (d.f.vkCreateComputePipelines.unwrap())(
+                    d.handle,
+                    ptr::null_mut(),
+                    1,
+                    &pipeline,
+                    ptr::null(),
+                    &mut result.pipeline,
+                ),
+            )?;
+        }
+        Ok(result)
+    }
+
+    /// # Safety
+    /// All device addresses reachable by the kernel must refer to live allocations on
+    /// this device. Accesses must be in bounds, correctly aligned, and race-free. No
+    /// other operation on the device or its children may run concurrently.
+    pub(crate) unsafe fn dispatch_wait(&self, groups: u32, root: &[u8]) -> Result<(), Error> {
+        let d = &self.device;
+        d.ready()?;
+        if groups == 0
+            || groups > d.limits.maxComputeWorkGroupCount[0]
+            || root.len() != self.push_size as usize
+        {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Invalid dispatch size or argument byte count",
+            ));
+        }
+        let mut commands = Commands {
+            device: d,
+            pool: ptr::null_mut(),
+        };
+        // SAFETY: the caller supplies valid shader addresses; everything else is a local
+        // owned Vulkan object. Commands are not destroyed until the queue is drained/lost.
+        unsafe {
+            let create = vk::VkCommandPoolCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                queueFamilyIndex: d.family,
+                ..Default::default()
+            };
+            d.result(
+                "vkCreateCommandPool",
+                (d.f.vkCreateCommandPool.unwrap())(
+                    d.handle,
+                    &create,
+                    ptr::null(),
+                    &mut commands.pool,
+                ),
+            )?;
+            let allocate = vk::VkCommandBufferAllocateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                commandPool: commands.pool,
+                level: vk::VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                commandBufferCount: 1,
+                ..Default::default()
+            };
+            let mut command = ptr::null_mut();
+            d.result(
+                "vkAllocateCommandBuffers",
+                (d.f.vkAllocateCommandBuffers.unwrap())(d.handle, &allocate, &mut command),
+            )?;
+            let begin = vk::VkCommandBufferBeginInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                ..Default::default()
+            };
+            d.result(
+                "vkBeginCommandBuffer",
+                (d.f.vkBeginCommandBuffer.unwrap())(command, &begin),
+            )?;
+            let before = vk::VkMemoryBarrier {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                srcAccessMask: vk::VkAccessFlagBits_VK_ACCESS_HOST_WRITE_BIT
+                    | vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+                dstAccessMask: vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT
+                    | vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+                ..Default::default()
+            };
+            (d.f.vkCmdPipelineBarrier.unwrap())(
+                command,
+                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT
+                    | vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                0,
+                1,
+                &before,
+                0,
+                ptr::null(),
+                0,
+                ptr::null(),
+            );
+            (d.f.vkCmdBindPipeline.unwrap())(
+                command,
+                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE,
+                self.pipeline,
+            );
+            if self.push_size != 0 {
+                (d.f.vkCmdPushConstants.unwrap())(
+                    command,
+                    self.layout,
+                    vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
+                    0,
+                    self.push_size,
+                    root.as_ptr().cast(),
+                );
+            }
+            (d.f.vkCmdDispatch.unwrap())(command, groups, 1, 1);
+            let after = vk::VkMemoryBarrier {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                srcAccessMask: vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+                dstAccessMask: vk::VkAccessFlagBits_VK_ACCESS_HOST_READ_BIT,
+                ..Default::default()
+            };
+            (d.f.vkCmdPipelineBarrier.unwrap())(
+                command,
+                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT,
+                0,
+                1,
+                &after,
+                0,
+                ptr::null(),
+                0,
+                ptr::null(),
+            );
+            d.result(
+                "vkEndCommandBuffer",
+                (d.f.vkEndCommandBuffer.unwrap())(command),
+            )?;
+            let submit = vk::VkSubmitInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                commandBufferCount: 1,
+                pCommandBuffers: &command,
+                ..Default::default()
+            };
+            d.result(
+                "vkQueueSubmit",
+                (d.f.vkQueueSubmit.unwrap())(d.queue, 1, &submit, ptr::null_mut()),
+            )?;
+            let status = drain(|| (d.f.vkQueueWaitIdle.unwrap())(d.queue));
+            d.result("vkQueueWaitIdle", status)
+        }
+    }
+}
+
+/// A wait allocation error does not establish completion. Preserve resources and retry
+/// until completion or device loss, then report the first error. This API has no timeout.
+fn drain(mut wait: impl FnMut() -> vk::VkResult) -> vk::VkResult {
+    let mut first_error = vk::VkResult_VK_SUCCESS;
+    loop {
+        let status = wait();
+        if status == vk::VkResult_VK_ERROR_DEVICE_LOST {
+            return status;
+        }
+        if status == vk::VkResult_VK_SUCCESS {
+            return first_error;
+        }
+        if first_error == vk::VkResult_VK_SUCCESS {
+            first_error = status;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+}
+
+struct Commands<'a> {
+    device: &'a Device,
+    pool: vk::VkCommandPool,
+}
+impl Drop for Commands<'_> {
+    fn drop(&mut self) {
+        // SAFETY: dispatch drains all submitted commands before reaching this destructor.
+        if !self.pool.is_null() {
+            unsafe {
+                (self.device.f.vkDestroyCommandPool.unwrap())(
+                    self.device.handle,
+                    self.pool,
+                    ptr::null(),
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn wait_error_does_not_release_pending_resources() {
+        let mut calls = 0;
+        assert_eq!(
+            drain(|| {
+                calls += 1;
+                if calls == 1 {
+                    vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY
+                } else {
+                    vk::VkResult_VK_SUCCESS
+                }
+            }),
+            vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY
+        );
+        assert_eq!(calls, 2);
+        assert_eq!(
+            drain(|| vk::VkResult_VK_ERROR_DEVICE_LOST),
+            vk::VkResult_VK_ERROR_DEVICE_LOST
+        );
+    }
+    #[test]
+    fn memory_selection_prefers_coherent_but_accepts_noncoherent() {
+        let mut memory = vk::VkPhysicalDeviceMemoryProperties {
+            memoryTypeCount: 2,
+            ..Default::default()
+        };
+        memory.memoryTypes[0].propertyFlags =
+            vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        memory.memoryTypes[1].propertyFlags = memory.memoryTypes[0].propertyFlags
+            | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        assert_eq!(memory_type(&memory, 3), Some((1, true)));
+        assert_eq!(memory_type(&memory, 1), Some((0, false)));
+        assert_eq!(memory_type(&memory, 0), None);
+        memory.memoryTypes[1].propertyFlags |=
+            vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD;
+        assert_eq!(memory_type(&memory, 3), Some((0, false)));
+    }
+    #[test]
+    #[ignore = "requires a real Vulkan loader/device; run with --ignored --nocapture"]
+    fn gpu_roundtrip() {
+        let instance = Rc::new(Instance::new().unwrap());
+        let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
+            .chunks_exact(4)
+            .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+            .collect();
+        let mut tested = 0;
+        for physical in instance.physical_devices().unwrap() {
+            let info = instance.device_info(physical).unwrap();
+            let device = match Device::new(instance.clone(), physical) {
+                Ok(device) => device,
+                Err(e) if e.status == UNSUPPORTED => continue,
+                Err(e) => panic!("{e:?}"),
+            };
+            let count = 4099u32;
+            let mut buffer = Buffer::new(device.clone(), count as usize * 4).unwrap();
+            let mut expected: Vec<u32> = (0..count).collect();
+            let input: Vec<u8> = expected.iter().flat_map(|v| v.to_ne_bytes()).collect();
+            buffer.write(0, &input).unwrap();
+            let mut root = [0u8; 16];
+            root[..8].copy_from_slice(&buffer.address().to_ne_bytes());
+            root[8..12].copy_from_slice(&count.to_ne_bytes());
+            let kernel = unsafe { Kernel::new(device, &words, 16).unwrap() };
+            for _ in 0..2 {
+                unsafe {
+                    kernel.dispatch_wait(count.div_ceil(64), &root).unwrap();
+                }
+                expected
+                    .iter_mut()
+                    .for_each(|v| *v = v.wrapping_mul(3).wrapping_add(7));
+            }
+            buffer.write(4, &123u32.to_ne_bytes()).unwrap();
+            expected[1] = 123;
+            let mut output = vec![0u8; input.len()];
+            buffer.read(0, &mut output).unwrap();
+            for (bytes, value) in output.chunks_exact(4).zip(expected) {
+                assert_eq!(u32::from_ne_bytes(bytes.try_into().unwrap()), value);
+            }
+            assert_eq!(
+                buffer.write(input.len(), &[1]).unwrap_err().status,
+                OUT_OF_RANGE
+            );
+            assert_eq!(
+                unsafe { kernel.dispatch_wait(0, &root) }
+                    .unwrap_err()
+                    .status,
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                unsafe { kernel.dispatch_wait(1, &[]) }.unwrap_err().status,
+                INVALID_ARGUMENT
+            );
+            buffer.write(input.len(), &[]).unwrap();
+            println!(
+                "Verified two dispatches and partial update on {}",
+                unsafe { std::ffi::CStr::from_ptr(info.name.as_ptr()) }.to_string_lossy()
+            );
+            tested += 1;
+        }
+        assert!(tested > 0, "No execution-capable Vulkan device found");
+    }
+}

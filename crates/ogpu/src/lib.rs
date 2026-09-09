@@ -1,6 +1,8 @@
 //! Experimental C ABI. Ownership and pointer requirements are defined in include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
 
+#[cfg(test)]
+mod compute;
 mod vulkan;
 
 use std::{
@@ -76,6 +78,7 @@ pub struct OgpuProbe {
     _vulkan: vulkan::Instance,
 }
 
+#[derive(Debug)]
 struct Error {
     status: OgpuResult,
     vk: i32,

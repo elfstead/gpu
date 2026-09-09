@@ -94,9 +94,9 @@ there is no shared last-error buffer. Rust panics are contained at fallible C en
 points, but invalid caller pointers, driver faults, and allocation aborts are not
 recoverable API errors.
 
-The next vertical slice is allocation → upload → compute dispatch → completion →
-readback verification. Memory lifetime and synchronization semantics must be defined
-with that implementation. Graphics shares those foundations; this probe does not
+An [internal Rust execution experiment](execution.md) now exercises allocation →
+upload → compute dispatch → completion → readback verification, while the public
+C API remains discovery-only at this checkpoint. Graphics shares those foundations; this probe does not
 yet settle the graphics profile, shader language, executable format, or ML profile.
 
 The project code is MIT licensed. Khronos headers retain their upstream licenses in

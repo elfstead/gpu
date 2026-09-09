@@ -24,3 +24,32 @@ vk VkPhysicalDeviceCooperativeMatrixFeaturesKHR sType pNext cooperativeMatrix co
 vk VkPhysicalDeviceShaderBfloat16FeaturesKHR sType pNext shaderBFloat16Type shaderBFloat16DotProduct shaderBFloat16CooperativeMatrix
 vk VkPhysicalDeviceShaderFloat8FeaturesEXT sType pNext shaderFloat8 shaderFloat8CooperativeMatrix
 vk VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT sType pNext shaderFloat4 shaderFloat6 shaderFloat8UnsignedE8M0 shaderMXInt8
+vk VkDevice
+vk VkBuffer
+vk VkDeviceMemory
+vk VkQueue
+vk VkShaderModule
+vk VkPipeline
+vk VkPipelineLayout
+vk VkCommandPool
+vk VkCommandBuffer
+vk VkDeviceQueueCreateInfo sType pNext flags queueFamilyIndex queueCount pQueuePriorities
+vk VkDeviceCreateInfo sType pNext flags queueCreateInfoCount pQueueCreateInfos enabledLayerCount ppEnabledLayerNames enabledExtensionCount ppEnabledExtensionNames pEnabledFeatures
+vk VkPhysicalDeviceMemoryProperties memoryTypeCount memoryTypes memoryHeapCount memoryHeaps
+vk VkBufferCreateInfo sType pNext flags size usage sharingMode queueFamilyIndexCount pQueueFamilyIndices
+vk VkMemoryRequirements size alignment memoryTypeBits
+vk VkMemoryAllocateFlagsInfo sType pNext flags deviceMask
+vk VkMemoryAllocateInfo sType pNext allocationSize memoryTypeIndex
+vk VkMappedMemoryRange sType pNext memory offset size
+vk VkBufferDeviceAddressInfo sType pNext buffer
+vk VkShaderModuleCreateInfo sType pNext flags codeSize pCode
+vk VkPushConstantRange stageFlags offset size
+vk VkPipelineLayoutCreateInfo sType pNext flags setLayoutCount pSetLayouts pushConstantRangeCount pPushConstantRanges
+vk VkPipelineShaderStageCreateInfo sType pNext flags stage module pName pSpecializationInfo
+vk VkComputePipelineCreateInfo sType pNext flags stage layout basePipelineHandle basePipelineIndex
+vk VkCommandPoolCreateInfo sType pNext flags queueFamilyIndex
+vk VkCommandBufferAllocateInfo sType pNext commandPool level commandBufferCount
+vk VkCommandBufferBeginInfo sType pNext flags pInheritanceInfo
+vk VkMemoryBarrier sType pNext srcAccessMask dstAccessMask
+vk VkSubmitInfo sType pNext waitSemaphoreCount pWaitSemaphores pWaitDstStageMask commandBufferCount pCommandBuffers signalSemaphoreCount pSignalSemaphores
+const VK_WHOLE_SIZE

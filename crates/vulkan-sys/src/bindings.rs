@@ -7,8 +7,10 @@
 pub const VK_HEADER_VERSION: u32 = 357;
 pub const VK_FALSE: u32 = 0;
 pub const VK_TRUE: u32 = 1;
+pub const VK_WHOLE_SIZE: i32 = -1;
 pub const VK_MAX_PHYSICAL_DEVICE_NAME_SIZE: u32 = 256;
 pub type VkBool32 = u32;
+pub type VkDeviceAddress = u64;
 pub type VkDeviceSize = u64;
 pub type VkFlags = u32;
 #[repr(C)]
@@ -23,6 +25,102 @@ pub struct VkPhysicalDevice_T {
     _unused: [u8; 0],
 }
 pub type VkPhysicalDevice = *mut VkPhysicalDevice_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDevice_T {
+    _unused: [u8; 0],
+}
+pub type VkDevice = *mut VkDevice_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkQueue_T {
+    _unused: [u8; 0],
+}
+pub type VkQueue = *mut VkQueue_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSemaphore_T {
+    _unused: [u8; 0],
+}
+pub type VkSemaphore = *mut VkSemaphore_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBuffer_T {
+    _unused: [u8; 0],
+}
+pub type VkCommandBuffer = *mut VkCommandBuffer_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkFence_T {
+    _unused: [u8; 0],
+}
+pub type VkFence = *mut VkFence_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDeviceMemory_T {
+    _unused: [u8; 0],
+}
+pub type VkDeviceMemory = *mut VkDeviceMemory_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBuffer_T {
+    _unused: [u8; 0],
+}
+pub type VkBuffer = *mut VkBuffer_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImage_T {
+    _unused: [u8; 0],
+}
+pub type VkImage = *mut VkImage_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandPool_T {
+    _unused: [u8; 0],
+}
+pub type VkCommandPool = *mut VkCommandPool_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderPass_T {
+    _unused: [u8; 0],
+}
+pub type VkRenderPass = *mut VkRenderPass_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkFramebuffer_T {
+    _unused: [u8; 0],
+}
+pub type VkFramebuffer = *mut VkFramebuffer_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkShaderModule_T {
+    _unused: [u8; 0],
+}
+pub type VkShaderModule = *mut VkShaderModule_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineCache_T {
+    _unused: [u8; 0],
+}
+pub type VkPipelineCache = *mut VkPipelineCache_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipeline_T {
+    _unused: [u8; 0],
+}
+pub type VkPipeline = *mut VkPipeline_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineLayout_T {
+    _unused: [u8; 0],
+}
+pub type VkPipelineLayout = *mut VkPipelineLayout_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorSetLayout_T {
+    _unused: [u8; 0],
+}
+pub type VkDescriptorSetLayout = *mut VkDescriptorSetLayout_T;
 pub const VkResult_VK_SUCCESS: VkResult = 0;
 pub const VkResult_VK_NOT_READY: VkResult = 1;
 pub const VkResult_VK_TIMEOUT: VkResult = 2;
@@ -1590,8 +1688,81 @@ pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: VkPhysicalDe
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_CPU: VkPhysicalDeviceType = 4;
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM: VkPhysicalDeviceType = 2147483647;
 pub type VkPhysicalDeviceType = ::std::os::raw::c_uint;
+pub const VkSharingMode_VK_SHARING_MODE_EXCLUSIVE: VkSharingMode = 0;
+pub const VkSharingMode_VK_SHARING_MODE_CONCURRENT: VkSharingMode = 1;
+pub const VkSharingMode_VK_SHARING_MODE_MAX_ENUM: VkSharingMode = 2147483647;
+pub type VkSharingMode = ::std::os::raw::c_uint;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_UNDEFINED: VkImageLayout = 0;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_GENERAL: VkImageLayout = 1;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: VkImageLayout = 2;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL: VkImageLayout = 3;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL: VkImageLayout = 4;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: VkImageLayout = 5;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL: VkImageLayout = 6;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL: VkImageLayout = 7;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_PREINITIALIZED: VkImageLayout = 8;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL: VkImageLayout = 1000117000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL: VkImageLayout = 1000117001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL: VkImageLayout = 1000241000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL: VkImageLayout = 1000241001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL: VkImageLayout = 1000241002;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL: VkImageLayout = 1000241003;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL: VkImageLayout = 1000314000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL: VkImageLayout = 1000314001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ: VkImageLayout = 1000232000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: VkImageLayout = 1000001002;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR: VkImageLayout = 1000024000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_DECODE_SRC_KHR: VkImageLayout = 1000024001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR: VkImageLayout = 1000024002;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR: VkImageLayout = 1000111000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT: VkImageLayout = 1000218000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR: VkImageLayout = 1000164003;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_ENCODE_DST_KHR: VkImageLayout = 1000299000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR: VkImageLayout = 1000299001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR: VkImageLayout = 1000299002;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT: VkImageLayout = 1000339000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_TENSOR_ALIASING_ARM: VkImageLayout = 1000460000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_VIDEO_ENCODE_QUANTIZATION_MAP_KHR: VkImageLayout = 1000553000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_ZERO_INITIALIZED_EXT: VkImageLayout = 1000620000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL_KHR: VkImageLayout = 1000117000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL_KHR: VkImageLayout = 1000117001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV: VkImageLayout = 1000164003;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR: VkImageLayout = 1000232000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR: VkImageLayout = 1000241000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR: VkImageLayout = 1000241001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL_KHR: VkImageLayout = 1000241002;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR: VkImageLayout = 1000241003;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR: VkImageLayout = 1000314000;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR: VkImageLayout = 1000314001;
+pub const VkImageLayout_VK_IMAGE_LAYOUT_MAX_ENUM: VkImageLayout = 2147483647;
+pub type VkImageLayout = ::std::os::raw::c_uint;
+pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY: VkCommandBufferLevel = 0;
+pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_SECONDARY: VkCommandBufferLevel = 1;
+pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_MAX_ENUM: VkCommandBufferLevel = 2147483647;
+pub type VkCommandBufferLevel = ::std::os::raw::c_uint;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS: VkPipelineBindPoint = 0;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE: VkPipelineBindPoint = 1;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: VkPipelineBindPoint = 1000165000;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_SUBPASS_SHADING_HUAWEI: VkPipelineBindPoint = 1000369003;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_DATA_GRAPH_ARM: VkPipelineBindPoint = 1000507000;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_RAY_TRACING_NV: VkPipelineBindPoint = 1000165000;
+pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_MAX_ENUM: VkPipelineBindPoint = 2147483647;
+pub type VkPipelineBindPoint = ::std::os::raw::c_uint;
 pub type VkSampleCountFlags = VkFlags;
 pub type VkInstanceCreateFlags = VkFlags;
+pub type VkMemoryHeapFlags = VkFlags;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT: VkMemoryPropertyFlagBits = 1;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT: VkMemoryPropertyFlagBits = 2;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT: VkMemoryPropertyFlagBits = 4;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_CACHED_BIT: VkMemoryPropertyFlagBits = 8;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT: VkMemoryPropertyFlagBits = 16;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_PROTECTED_BIT: VkMemoryPropertyFlagBits = 32;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD: VkMemoryPropertyFlagBits = 64;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD: VkMemoryPropertyFlagBits = 128;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV: VkMemoryPropertyFlagBits = 256;
+pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_FLAG_BITS_MAX_ENUM: VkMemoryPropertyFlagBits = 2147483647;
+pub type VkMemoryPropertyFlagBits = ::std::os::raw::c_uint;
+pub type VkMemoryPropertyFlags = VkFlags;
 pub const VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT: VkQueueFlagBits = 1;
 pub const VkQueueFlagBits_VK_QUEUE_COMPUTE_BIT: VkQueueFlagBits = 2;
 pub const VkQueueFlagBits_VK_QUEUE_TRANSFER_BIT: VkQueueFlagBits = 4;
@@ -1604,6 +1775,157 @@ pub const VkQueueFlagBits_VK_QUEUE_DATA_GRAPH_BIT_ARM: VkQueueFlagBits = 1024;
 pub const VkQueueFlagBits_VK_QUEUE_FLAG_BITS_MAX_ENUM: VkQueueFlagBits = 2147483647;
 pub type VkQueueFlagBits = ::std::os::raw::c_uint;
 pub type VkQueueFlags = VkFlags;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT: VkShaderStageFlagBits = 1;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: VkShaderStageFlagBits = 2;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: VkShaderStageFlagBits = 4;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_GEOMETRY_BIT: VkShaderStageFlagBits = 8;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT: VkShaderStageFlagBits = 16;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT: VkShaderStageFlagBits = 32;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_ALL_GRAPHICS: VkShaderStageFlagBits = 31;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_ALL: VkShaderStageFlagBits = 2147483647;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_RAYGEN_BIT_KHR: VkShaderStageFlagBits = 256;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_ANY_HIT_BIT_KHR: VkShaderStageFlagBits = 512;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR: VkShaderStageFlagBits = 1024;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_MISS_BIT_KHR: VkShaderStageFlagBits = 2048;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_INTERSECTION_BIT_KHR: VkShaderStageFlagBits = 4096;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_CALLABLE_BIT_KHR: VkShaderStageFlagBits = 8192;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_EXT: VkShaderStageFlagBits = 64;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_EXT: VkShaderStageFlagBits = 128;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI: VkShaderStageFlagBits = 16384;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI: VkShaderStageFlagBits = 524288;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_RAYGEN_BIT_NV: VkShaderStageFlagBits = 256;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_ANY_HIT_BIT_NV: VkShaderStageFlagBits = 512;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV: VkShaderStageFlagBits = 1024;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_MISS_BIT_NV: VkShaderStageFlagBits = 2048;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_INTERSECTION_BIT_NV: VkShaderStageFlagBits = 4096;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_CALLABLE_BIT_NV: VkShaderStageFlagBits = 8192;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_NV: VkShaderStageFlagBits = 64;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_NV: VkShaderStageFlagBits = 128;
+pub const VkShaderStageFlagBits_VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM: VkShaderStageFlagBits = 2147483647;
+pub type VkShaderStageFlagBits = ::std::os::raw::c_uint;
+pub type VkShaderStageFlags = VkFlags;
+pub type VkDeviceCreateFlags = VkFlags;
+pub type VkDeviceQueueCreateFlags = VkFlags;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT: VkPipelineStageFlagBits = 1;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT: VkPipelineStageFlagBits = 2;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_VERTEX_INPUT_BIT: VkPipelineStageFlagBits = 4;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_VERTEX_SHADER_BIT: VkPipelineStageFlagBits = 8;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT: VkPipelineStageFlagBits = 16;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT: VkPipelineStageFlagBits = 32;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT: VkPipelineStageFlagBits = 64;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT: VkPipelineStageFlagBits = 128;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT: VkPipelineStageFlagBits = 256;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT: VkPipelineStageFlagBits = 512;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT: VkPipelineStageFlagBits = 1024;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT: VkPipelineStageFlagBits = 2048;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFER_BIT: VkPipelineStageFlagBits = 4096;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT: VkPipelineStageFlagBits = 8192;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT: VkPipelineStageFlagBits = 16384;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT: VkPipelineStageFlagBits = 32768;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_COMMANDS_BIT: VkPipelineStageFlagBits = 65536;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_NONE: VkPipelineStageFlagBits = 0;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFORM_FEEDBACK_BIT_EXT: VkPipelineStageFlagBits = 16777216;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_CONDITIONAL_RENDERING_BIT_EXT: VkPipelineStageFlagBits = 262144;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR: VkPipelineStageFlagBits = 33554432;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR: VkPipelineStageFlagBits = 2097152;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT: VkPipelineStageFlagBits = 8388608;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkPipelineStageFlagBits = 4194304;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TASK_SHADER_BIT_EXT: VkPipelineStageFlagBits = 524288;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT: VkPipelineStageFlagBits = 1048576;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_EXT: VkPipelineStageFlagBits = 131072;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_SHADING_RATE_IMAGE_BIT_NV: VkPipelineStageFlagBits = 4194304;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV: VkPipelineStageFlagBits = 2097152;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV: VkPipelineStageFlagBits = 33554432;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV: VkPipelineStageFlagBits = 524288;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV: VkPipelineStageFlagBits = 1048576;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV: VkPipelineStageFlagBits = 131072;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_NONE_KHR: VkPipelineStageFlagBits = 0;
+pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM: VkPipelineStageFlagBits = 2147483647;
+pub type VkPipelineStageFlagBits = ::std::os::raw::c_uint;
+pub type VkPipelineStageFlags = VkFlags;
+pub type VkMemoryMapFlags = VkFlags;
+pub type VkImageAspectFlags = VkFlags;
+pub type VkQueryPipelineStatisticFlags = VkFlags;
+pub type VkBufferCreateFlags = VkFlags;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_SRC_BIT: VkBufferUsageFlagBits = 1;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT: VkBufferUsageFlagBits = 2;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT: VkBufferUsageFlagBits = 4;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT: VkBufferUsageFlagBits = 8;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT: VkBufferUsageFlagBits = 16;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT: VkBufferUsageFlagBits = 32;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDEX_BUFFER_BIT: VkBufferUsageFlagBits = 64;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT: VkBufferUsageFlagBits = 128;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT: VkBufferUsageFlagBits = 256;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT: VkBufferUsageFlagBits = 131072;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_VIDEO_DECODE_SRC_BIT_KHR: VkBufferUsageFlagBits = 8192;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_VIDEO_DECODE_DST_BIT_KHR: VkBufferUsageFlagBits = 16384;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT: VkBufferUsageFlagBits = 2048;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT: VkBufferUsageFlagBits = 4096;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT: VkBufferUsageFlagBits = 512;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT: VkBufferUsageFlagBits = 268435456;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR: VkBufferUsageFlagBits = 524288;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR: VkBufferUsageFlagBits = 1048576;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR: VkBufferUsageFlagBits = 1024;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_VIDEO_ENCODE_DST_BIT_KHR: VkBufferUsageFlagBits = 32768;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_VIDEO_ENCODE_SRC_BIT_KHR: VkBufferUsageFlagBits = 65536;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT: VkBufferUsageFlagBits = 2097152;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT: VkBufferUsageFlagBits = 4194304;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER_BIT_EXT: VkBufferUsageFlagBits = 67108864;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_MICROMAP_BUILD_INPUT_READ_ONLY_BIT_EXT: VkBufferUsageFlagBits = 8388608;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_MICROMAP_STORAGE_BIT_EXT: VkBufferUsageFlagBits = 16777216;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TILE_MEMORY_BIT_QCOM: VkBufferUsageFlagBits = 134217728;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_RAY_TRACING_BIT_NV: VkBufferUsageFlagBits = 1024;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_EXT: VkBufferUsageFlagBits = 131072;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR: VkBufferUsageFlagBits = 131072;
+pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM: VkBufferUsageFlagBits = 2147483647;
+pub type VkBufferUsageFlagBits = ::std::os::raw::c_uint;
+pub type VkBufferUsageFlags = VkFlags;
+pub const VkAccessFlagBits_VK_ACCESS_INDIRECT_COMMAND_READ_BIT: VkAccessFlagBits = 1;
+pub const VkAccessFlagBits_VK_ACCESS_INDEX_READ_BIT: VkAccessFlagBits = 2;
+pub const VkAccessFlagBits_VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT: VkAccessFlagBits = 4;
+pub const VkAccessFlagBits_VK_ACCESS_UNIFORM_READ_BIT: VkAccessFlagBits = 8;
+pub const VkAccessFlagBits_VK_ACCESS_INPUT_ATTACHMENT_READ_BIT: VkAccessFlagBits = 16;
+pub const VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT: VkAccessFlagBits = 32;
+pub const VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT: VkAccessFlagBits = 64;
+pub const VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_READ_BIT: VkAccessFlagBits = 128;
+pub const VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT: VkAccessFlagBits = 256;
+pub const VkAccessFlagBits_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT: VkAccessFlagBits = 512;
+pub const VkAccessFlagBits_VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT: VkAccessFlagBits = 1024;
+pub const VkAccessFlagBits_VK_ACCESS_TRANSFER_READ_BIT: VkAccessFlagBits = 2048;
+pub const VkAccessFlagBits_VK_ACCESS_TRANSFER_WRITE_BIT: VkAccessFlagBits = 4096;
+pub const VkAccessFlagBits_VK_ACCESS_HOST_READ_BIT: VkAccessFlagBits = 8192;
+pub const VkAccessFlagBits_VK_ACCESS_HOST_WRITE_BIT: VkAccessFlagBits = 16384;
+pub const VkAccessFlagBits_VK_ACCESS_MEMORY_READ_BIT: VkAccessFlagBits = 32768;
+pub const VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT: VkAccessFlagBits = 65536;
+pub const VkAccessFlagBits_VK_ACCESS_NONE: VkAccessFlagBits = 0;
+pub const VkAccessFlagBits_VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT: VkAccessFlagBits = 33554432;
+pub const VkAccessFlagBits_VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT: VkAccessFlagBits = 67108864;
+pub const VkAccessFlagBits_VK_ACCESS_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT: VkAccessFlagBits = 134217728;
+pub const VkAccessFlagBits_VK_ACCESS_CONDITIONAL_RENDERING_READ_BIT_EXT: VkAccessFlagBits = 1048576;
+pub const VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT: VkAccessFlagBits = 524288;
+pub const VkAccessFlagBits_VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR: VkAccessFlagBits = 2097152;
+pub const VkAccessFlagBits_VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR: VkAccessFlagBits = 4194304;
+pub const VkAccessFlagBits_VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT: VkAccessFlagBits = 16777216;
+pub const VkAccessFlagBits_VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR: VkAccessFlagBits = 8388608;
+pub const VkAccessFlagBits_VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_EXT: VkAccessFlagBits = 131072;
+pub const VkAccessFlagBits_VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_EXT: VkAccessFlagBits = 262144;
+pub const VkAccessFlagBits_VK_ACCESS_SHADING_RATE_IMAGE_READ_BIT_NV: VkAccessFlagBits = 8388608;
+pub const VkAccessFlagBits_VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV: VkAccessFlagBits = 2097152;
+pub const VkAccessFlagBits_VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV: VkAccessFlagBits = 4194304;
+pub const VkAccessFlagBits_VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV: VkAccessFlagBits = 131072;
+pub const VkAccessFlagBits_VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV: VkAccessFlagBits = 262144;
+pub const VkAccessFlagBits_VK_ACCESS_NONE_KHR: VkAccessFlagBits = 0;
+pub const VkAccessFlagBits_VK_ACCESS_FLAG_BITS_MAX_ENUM: VkAccessFlagBits = 2147483647;
+pub type VkAccessFlagBits = ::std::os::raw::c_uint;
+pub type VkAccessFlags = VkFlags;
+pub type VkDependencyFlags = VkFlags;
+pub type VkCommandPoolCreateFlags = VkFlags;
+pub type VkQueryControlFlags = VkFlags;
+pub type VkCommandBufferUsageFlags = VkFlags;
+pub type VkShaderModuleCreateFlags = VkFlags;
+pub type VkPipelineCreateFlags = VkFlags;
+pub type VkPipelineLayoutCreateFlags = VkFlags;
+pub type VkPipelineShaderStageCreateFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkExtent3D {
@@ -1813,6 +2135,40 @@ impl Default for VkInstanceCreateInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkMemoryHeap {
+    pub size: VkDeviceSize,
+    pub flags: VkMemoryHeapFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkMemoryHeap"][::std::mem::size_of::<VkMemoryHeap>() - 16usize];
+    ["Alignment of VkMemoryHeap"][::std::mem::align_of::<VkMemoryHeap>() - 8usize];
+    [
+        "Offset of field: VkMemoryHeap::size",
+    ][::std::mem::offset_of!(VkMemoryHeap, size) - 0usize];
+    [
+        "Offset of field: VkMemoryHeap::flags",
+    ][::std::mem::offset_of!(VkMemoryHeap, flags) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkMemoryType {
+    pub propertyFlags: VkMemoryPropertyFlags,
+    pub heapIndex: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkMemoryType"][::std::mem::size_of::<VkMemoryType>() - 8usize];
+    ["Alignment of VkMemoryType"][::std::mem::align_of::<VkMemoryType>() - 4usize];
+    [
+        "Offset of field: VkMemoryType::propertyFlags",
+    ][::std::mem::offset_of!(VkMemoryType, propertyFlags) - 0usize];
+    [
+        "Offset of field: VkMemoryType::heapIndex",
+    ][::std::mem::offset_of!(VkMemoryType, heapIndex) - 4usize];
+};
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkPhysicalDeviceFeatures {
@@ -2589,6 +2945,37 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
+pub struct VkPhysicalDeviceMemoryProperties {
+    pub memoryTypeCount: u32,
+    pub memoryTypes: [VkMemoryType; 32usize],
+    pub memoryHeapCount: u32,
+    pub memoryHeaps: [VkMemoryHeap; 16usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMemoryProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceMemoryProperties>() - 520usize];
+    [
+        "Alignment of VkPhysicalDeviceMemoryProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceMemoryProperties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties::memoryTypeCount",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties, memoryTypeCount)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties::memoryTypes",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties, memoryTypes) - 4usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties::memoryHeapCount",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties, memoryHeapCount)
+        - 260usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties::memoryHeaps",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties, memoryHeaps) - 264usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct VkPhysicalDeviceSparseProperties {
     pub residencyStandard2DBlockShape: VkBool32,
     pub residencyStandard2DMultisampleBlockShape: VkBool32,
@@ -2719,6 +3106,114 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkDeviceQueueCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkDeviceQueueCreateFlags,
+    pub queueFamilyIndex: u32,
+    pub queueCount: u32,
+    pub pQueuePriorities: *const f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceQueueCreateInfo",
+    ][::std::mem::size_of::<VkDeviceQueueCreateInfo>() - 40usize];
+    [
+        "Alignment of VkDeviceQueueCreateInfo",
+    ][::std::mem::align_of::<VkDeviceQueueCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkDeviceQueueCreateInfo::sType",
+    ][::std::mem::offset_of!(VkDeviceQueueCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkDeviceQueueCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkDeviceQueueCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkDeviceQueueCreateInfo::flags",
+    ][::std::mem::offset_of!(VkDeviceQueueCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkDeviceQueueCreateInfo::queueFamilyIndex",
+    ][::std::mem::offset_of!(VkDeviceQueueCreateInfo, queueFamilyIndex) - 20usize];
+    [
+        "Offset of field: VkDeviceQueueCreateInfo::queueCount",
+    ][::std::mem::offset_of!(VkDeviceQueueCreateInfo, queueCount) - 24usize];
+    [
+        "Offset of field: VkDeviceQueueCreateInfo::pQueuePriorities",
+    ][::std::mem::offset_of!(VkDeviceQueueCreateInfo, pQueuePriorities) - 32usize];
+};
+impl Default for VkDeviceQueueCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDeviceCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkDeviceCreateFlags,
+    pub queueCreateInfoCount: u32,
+    pub pQueueCreateInfos: *const VkDeviceQueueCreateInfo,
+    pub enabledLayerCount: u32,
+    pub ppEnabledLayerNames: *const *const ::std::os::raw::c_char,
+    pub enabledExtensionCount: u32,
+    pub ppEnabledExtensionNames: *const *const ::std::os::raw::c_char,
+    pub pEnabledFeatures: *const VkPhysicalDeviceFeatures,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceCreateInfo",
+    ][::std::mem::size_of::<VkDeviceCreateInfo>() - 72usize];
+    [
+        "Alignment of VkDeviceCreateInfo",
+    ][::std::mem::align_of::<VkDeviceCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::sType",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::flags",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::queueCreateInfoCount",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, queueCreateInfoCount) - 20usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::pQueueCreateInfos",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, pQueueCreateInfos) - 24usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::enabledLayerCount",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, enabledLayerCount) - 32usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::ppEnabledLayerNames",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, ppEnabledLayerNames) - 40usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::enabledExtensionCount",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, enabledExtensionCount) - 48usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::ppEnabledExtensionNames",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, ppEnabledExtensionNames) - 56usize];
+    [
+        "Offset of field: VkDeviceCreateInfo::pEnabledFeatures",
+    ][::std::mem::offset_of!(VkDeviceCreateInfo, pEnabledFeatures) - 64usize];
+};
+impl Default for VkDeviceCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkExtensionProperties {
     pub extensionName: [::std::os::raw::c_char; 256usize],
     pub specVersion: u32,
@@ -2739,6 +3234,862 @@ const _: () = {
     ][::std::mem::offset_of!(VkExtensionProperties, specVersion) - 256usize];
 };
 impl Default for VkExtensionProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSubmitInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub waitSemaphoreCount: u32,
+    pub pWaitSemaphores: *const VkSemaphore,
+    pub pWaitDstStageMask: *const VkPipelineStageFlags,
+    pub commandBufferCount: u32,
+    pub pCommandBuffers: *const VkCommandBuffer,
+    pub signalSemaphoreCount: u32,
+    pub pSignalSemaphores: *const VkSemaphore,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkSubmitInfo"][::std::mem::size_of::<VkSubmitInfo>() - 72usize];
+    ["Alignment of VkSubmitInfo"][::std::mem::align_of::<VkSubmitInfo>() - 8usize];
+    [
+        "Offset of field: VkSubmitInfo::sType",
+    ][::std::mem::offset_of!(VkSubmitInfo, sType) - 0usize];
+    [
+        "Offset of field: VkSubmitInfo::pNext",
+    ][::std::mem::offset_of!(VkSubmitInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSubmitInfo::waitSemaphoreCount",
+    ][::std::mem::offset_of!(VkSubmitInfo, waitSemaphoreCount) - 16usize];
+    [
+        "Offset of field: VkSubmitInfo::pWaitSemaphores",
+    ][::std::mem::offset_of!(VkSubmitInfo, pWaitSemaphores) - 24usize];
+    [
+        "Offset of field: VkSubmitInfo::pWaitDstStageMask",
+    ][::std::mem::offset_of!(VkSubmitInfo, pWaitDstStageMask) - 32usize];
+    [
+        "Offset of field: VkSubmitInfo::commandBufferCount",
+    ][::std::mem::offset_of!(VkSubmitInfo, commandBufferCount) - 40usize];
+    [
+        "Offset of field: VkSubmitInfo::pCommandBuffers",
+    ][::std::mem::offset_of!(VkSubmitInfo, pCommandBuffers) - 48usize];
+    [
+        "Offset of field: VkSubmitInfo::signalSemaphoreCount",
+    ][::std::mem::offset_of!(VkSubmitInfo, signalSemaphoreCount) - 56usize];
+    [
+        "Offset of field: VkSubmitInfo::pSignalSemaphores",
+    ][::std::mem::offset_of!(VkSubmitInfo, pSignalSemaphores) - 64usize];
+};
+impl Default for VkSubmitInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMappedMemoryRange {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub memory: VkDeviceMemory,
+    pub offset: VkDeviceSize,
+    pub size: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMappedMemoryRange",
+    ][::std::mem::size_of::<VkMappedMemoryRange>() - 40usize];
+    [
+        "Alignment of VkMappedMemoryRange",
+    ][::std::mem::align_of::<VkMappedMemoryRange>() - 8usize];
+    [
+        "Offset of field: VkMappedMemoryRange::sType",
+    ][::std::mem::offset_of!(VkMappedMemoryRange, sType) - 0usize];
+    [
+        "Offset of field: VkMappedMemoryRange::pNext",
+    ][::std::mem::offset_of!(VkMappedMemoryRange, pNext) - 8usize];
+    [
+        "Offset of field: VkMappedMemoryRange::memory",
+    ][::std::mem::offset_of!(VkMappedMemoryRange, memory) - 16usize];
+    [
+        "Offset of field: VkMappedMemoryRange::offset",
+    ][::std::mem::offset_of!(VkMappedMemoryRange, offset) - 24usize];
+    [
+        "Offset of field: VkMappedMemoryRange::size",
+    ][::std::mem::offset_of!(VkMappedMemoryRange, size) - 32usize];
+};
+impl Default for VkMappedMemoryRange {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMemoryAllocateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub allocationSize: VkDeviceSize,
+    pub memoryTypeIndex: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryAllocateInfo",
+    ][::std::mem::size_of::<VkMemoryAllocateInfo>() - 32usize];
+    [
+        "Alignment of VkMemoryAllocateInfo",
+    ][::std::mem::align_of::<VkMemoryAllocateInfo>() - 8usize];
+    [
+        "Offset of field: VkMemoryAllocateInfo::sType",
+    ][::std::mem::offset_of!(VkMemoryAllocateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryAllocateInfo::pNext",
+    ][::std::mem::offset_of!(VkMemoryAllocateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryAllocateInfo::allocationSize",
+    ][::std::mem::offset_of!(VkMemoryAllocateInfo, allocationSize) - 16usize];
+    [
+        "Offset of field: VkMemoryAllocateInfo::memoryTypeIndex",
+    ][::std::mem::offset_of!(VkMemoryAllocateInfo, memoryTypeIndex) - 24usize];
+};
+impl Default for VkMemoryAllocateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkMemoryRequirements {
+    pub size: VkDeviceSize,
+    pub alignment: VkDeviceSize,
+    pub memoryTypeBits: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryRequirements",
+    ][::std::mem::size_of::<VkMemoryRequirements>() - 24usize];
+    [
+        "Alignment of VkMemoryRequirements",
+    ][::std::mem::align_of::<VkMemoryRequirements>() - 8usize];
+    [
+        "Offset of field: VkMemoryRequirements::size",
+    ][::std::mem::offset_of!(VkMemoryRequirements, size) - 0usize];
+    [
+        "Offset of field: VkMemoryRequirements::alignment",
+    ][::std::mem::offset_of!(VkMemoryRequirements, alignment) - 8usize];
+    [
+        "Offset of field: VkMemoryRequirements::memoryTypeBits",
+    ][::std::mem::offset_of!(VkMemoryRequirements, memoryTypeBits) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBufferCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkBufferCreateFlags,
+    pub size: VkDeviceSize,
+    pub usage: VkBufferUsageFlags,
+    pub sharingMode: VkSharingMode,
+    pub queueFamilyIndexCount: u32,
+    pub pQueueFamilyIndices: *const u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBufferCreateInfo",
+    ][::std::mem::size_of::<VkBufferCreateInfo>() - 56usize];
+    [
+        "Alignment of VkBufferCreateInfo",
+    ][::std::mem::align_of::<VkBufferCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkBufferCreateInfo::sType",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkBufferCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkBufferCreateInfo::flags",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkBufferCreateInfo::size",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, size) - 24usize];
+    [
+        "Offset of field: VkBufferCreateInfo::usage",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, usage) - 32usize];
+    [
+        "Offset of field: VkBufferCreateInfo::sharingMode",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, sharingMode) - 36usize];
+    [
+        "Offset of field: VkBufferCreateInfo::queueFamilyIndexCount",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, queueFamilyIndexCount) - 40usize];
+    [
+        "Offset of field: VkBufferCreateInfo::pQueueFamilyIndices",
+    ][::std::mem::offset_of!(VkBufferCreateInfo, pQueueFamilyIndices) - 48usize];
+};
+impl Default for VkBufferCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkImageSubresourceRange {
+    pub aspectMask: VkImageAspectFlags,
+    pub baseMipLevel: u32,
+    pub levelCount: u32,
+    pub baseArrayLayer: u32,
+    pub layerCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageSubresourceRange",
+    ][::std::mem::size_of::<VkImageSubresourceRange>() - 20usize];
+    [
+        "Alignment of VkImageSubresourceRange",
+    ][::std::mem::align_of::<VkImageSubresourceRange>() - 4usize];
+    [
+        "Offset of field: VkImageSubresourceRange::aspectMask",
+    ][::std::mem::offset_of!(VkImageSubresourceRange, aspectMask) - 0usize];
+    [
+        "Offset of field: VkImageSubresourceRange::baseMipLevel",
+    ][::std::mem::offset_of!(VkImageSubresourceRange, baseMipLevel) - 4usize];
+    [
+        "Offset of field: VkImageSubresourceRange::levelCount",
+    ][::std::mem::offset_of!(VkImageSubresourceRange, levelCount) - 8usize];
+    [
+        "Offset of field: VkImageSubresourceRange::baseArrayLayer",
+    ][::std::mem::offset_of!(VkImageSubresourceRange, baseArrayLayer) - 12usize];
+    [
+        "Offset of field: VkImageSubresourceRange::layerCount",
+    ][::std::mem::offset_of!(VkImageSubresourceRange, layerCount) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandPoolCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkCommandPoolCreateFlags,
+    pub queueFamilyIndex: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandPoolCreateInfo",
+    ][::std::mem::size_of::<VkCommandPoolCreateInfo>() - 24usize];
+    [
+        "Alignment of VkCommandPoolCreateInfo",
+    ][::std::mem::align_of::<VkCommandPoolCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkCommandPoolCreateInfo::sType",
+    ][::std::mem::offset_of!(VkCommandPoolCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkCommandPoolCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkCommandPoolCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkCommandPoolCreateInfo::flags",
+    ][::std::mem::offset_of!(VkCommandPoolCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkCommandPoolCreateInfo::queueFamilyIndex",
+    ][::std::mem::offset_of!(VkCommandPoolCreateInfo, queueFamilyIndex) - 20usize];
+};
+impl Default for VkCommandPoolCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferAllocateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub commandPool: VkCommandPool,
+    pub level: VkCommandBufferLevel,
+    pub commandBufferCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferAllocateInfo",
+    ][::std::mem::size_of::<VkCommandBufferAllocateInfo>() - 32usize];
+    [
+        "Alignment of VkCommandBufferAllocateInfo",
+    ][::std::mem::align_of::<VkCommandBufferAllocateInfo>() - 8usize];
+    [
+        "Offset of field: VkCommandBufferAllocateInfo::sType",
+    ][::std::mem::offset_of!(VkCommandBufferAllocateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkCommandBufferAllocateInfo::pNext",
+    ][::std::mem::offset_of!(VkCommandBufferAllocateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkCommandBufferAllocateInfo::commandPool",
+    ][::std::mem::offset_of!(VkCommandBufferAllocateInfo, commandPool) - 16usize];
+    [
+        "Offset of field: VkCommandBufferAllocateInfo::level",
+    ][::std::mem::offset_of!(VkCommandBufferAllocateInfo, level) - 24usize];
+    [
+        "Offset of field: VkCommandBufferAllocateInfo::commandBufferCount",
+    ][::std::mem::offset_of!(VkCommandBufferAllocateInfo, commandBufferCount) - 28usize];
+};
+impl Default for VkCommandBufferAllocateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferInheritanceInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub renderPass: VkRenderPass,
+    pub subpass: u32,
+    pub framebuffer: VkFramebuffer,
+    pub occlusionQueryEnable: VkBool32,
+    pub queryFlags: VkQueryControlFlags,
+    pub pipelineStatistics: VkQueryPipelineStatisticFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferInheritanceInfo",
+    ][::std::mem::size_of::<VkCommandBufferInheritanceInfo>() - 56usize];
+    [
+        "Alignment of VkCommandBufferInheritanceInfo",
+    ][::std::mem::align_of::<VkCommandBufferInheritanceInfo>() - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::sType",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, sType) - 0usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::pNext",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::renderPass",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, renderPass) - 16usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::subpass",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, subpass) - 24usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::framebuffer",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, framebuffer) - 32usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::occlusionQueryEnable",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, occlusionQueryEnable)
+        - 40usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::queryFlags",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, queryFlags) - 44usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceInfo::pipelineStatistics",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceInfo, pipelineStatistics)
+        - 48usize];
+};
+impl Default for VkCommandBufferInheritanceInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferBeginInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkCommandBufferUsageFlags,
+    pub pInheritanceInfo: *const VkCommandBufferInheritanceInfo,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferBeginInfo",
+    ][::std::mem::size_of::<VkCommandBufferBeginInfo>() - 32usize];
+    [
+        "Alignment of VkCommandBufferBeginInfo",
+    ][::std::mem::align_of::<VkCommandBufferBeginInfo>() - 8usize];
+    [
+        "Offset of field: VkCommandBufferBeginInfo::sType",
+    ][::std::mem::offset_of!(VkCommandBufferBeginInfo, sType) - 0usize];
+    [
+        "Offset of field: VkCommandBufferBeginInfo::pNext",
+    ][::std::mem::offset_of!(VkCommandBufferBeginInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkCommandBufferBeginInfo::flags",
+    ][::std::mem::offset_of!(VkCommandBufferBeginInfo, flags) - 16usize];
+    [
+        "Offset of field: VkCommandBufferBeginInfo::pInheritanceInfo",
+    ][::std::mem::offset_of!(VkCommandBufferBeginInfo, pInheritanceInfo) - 24usize];
+};
+impl Default for VkCommandBufferBeginInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBufferMemoryBarrier {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcAccessMask: VkAccessFlags,
+    pub dstAccessMask: VkAccessFlags,
+    pub srcQueueFamilyIndex: u32,
+    pub dstQueueFamilyIndex: u32,
+    pub buffer: VkBuffer,
+    pub offset: VkDeviceSize,
+    pub size: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBufferMemoryBarrier",
+    ][::std::mem::size_of::<VkBufferMemoryBarrier>() - 56usize];
+    [
+        "Alignment of VkBufferMemoryBarrier",
+    ][::std::mem::align_of::<VkBufferMemoryBarrier>() - 8usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::sType",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, sType) - 0usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::pNext",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, pNext) - 8usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::srcAccessMask",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, srcAccessMask) - 16usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::dstAccessMask",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, dstAccessMask) - 20usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::srcQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, srcQueueFamilyIndex) - 24usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::dstQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, dstQueueFamilyIndex) - 28usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::buffer",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, buffer) - 32usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::offset",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, offset) - 40usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier::size",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier, size) - 48usize];
+};
+impl Default for VkBufferMemoryBarrier {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageMemoryBarrier {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcAccessMask: VkAccessFlags,
+    pub dstAccessMask: VkAccessFlags,
+    pub oldLayout: VkImageLayout,
+    pub newLayout: VkImageLayout,
+    pub srcQueueFamilyIndex: u32,
+    pub dstQueueFamilyIndex: u32,
+    pub image: VkImage,
+    pub subresourceRange: VkImageSubresourceRange,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageMemoryBarrier",
+    ][::std::mem::size_of::<VkImageMemoryBarrier>() - 72usize];
+    [
+        "Alignment of VkImageMemoryBarrier",
+    ][::std::mem::align_of::<VkImageMemoryBarrier>() - 8usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::sType",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, sType) - 0usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::pNext",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, pNext) - 8usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::srcAccessMask",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, srcAccessMask) - 16usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::dstAccessMask",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, dstAccessMask) - 20usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::oldLayout",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, oldLayout) - 24usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::newLayout",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, newLayout) - 28usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::srcQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, srcQueueFamilyIndex) - 32usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::dstQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, dstQueueFamilyIndex) - 36usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::image",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, image) - 40usize];
+    [
+        "Offset of field: VkImageMemoryBarrier::subresourceRange",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier, subresourceRange) - 48usize];
+};
+impl Default for VkImageMemoryBarrier {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMemoryBarrier {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcAccessMask: VkAccessFlags,
+    pub dstAccessMask: VkAccessFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkMemoryBarrier"][::std::mem::size_of::<VkMemoryBarrier>() - 24usize];
+    ["Alignment of VkMemoryBarrier"][::std::mem::align_of::<VkMemoryBarrier>() - 8usize];
+    [
+        "Offset of field: VkMemoryBarrier::sType",
+    ][::std::mem::offset_of!(VkMemoryBarrier, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryBarrier::pNext",
+    ][::std::mem::offset_of!(VkMemoryBarrier, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryBarrier::srcAccessMask",
+    ][::std::mem::offset_of!(VkMemoryBarrier, srcAccessMask) - 16usize];
+    [
+        "Offset of field: VkMemoryBarrier::dstAccessMask",
+    ][::std::mem::offset_of!(VkMemoryBarrier, dstAccessMask) - 20usize];
+};
+impl Default for VkMemoryBarrier {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkShaderModuleCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkShaderModuleCreateFlags,
+    pub codeSize: usize,
+    pub pCode: *const u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkShaderModuleCreateInfo",
+    ][::std::mem::size_of::<VkShaderModuleCreateInfo>() - 40usize];
+    [
+        "Alignment of VkShaderModuleCreateInfo",
+    ][::std::mem::align_of::<VkShaderModuleCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkShaderModuleCreateInfo::sType",
+    ][::std::mem::offset_of!(VkShaderModuleCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkShaderModuleCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkShaderModuleCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkShaderModuleCreateInfo::flags",
+    ][::std::mem::offset_of!(VkShaderModuleCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkShaderModuleCreateInfo::codeSize",
+    ][::std::mem::offset_of!(VkShaderModuleCreateInfo, codeSize) - 24usize];
+    [
+        "Offset of field: VkShaderModuleCreateInfo::pCode",
+    ][::std::mem::offset_of!(VkShaderModuleCreateInfo, pCode) - 32usize];
+};
+impl Default for VkShaderModuleCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkSpecializationMapEntry {
+    pub constantID: u32,
+    pub offset: u32,
+    pub size: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSpecializationMapEntry",
+    ][::std::mem::size_of::<VkSpecializationMapEntry>() - 16usize];
+    [
+        "Alignment of VkSpecializationMapEntry",
+    ][::std::mem::align_of::<VkSpecializationMapEntry>() - 8usize];
+    [
+        "Offset of field: VkSpecializationMapEntry::constantID",
+    ][::std::mem::offset_of!(VkSpecializationMapEntry, constantID) - 0usize];
+    [
+        "Offset of field: VkSpecializationMapEntry::offset",
+    ][::std::mem::offset_of!(VkSpecializationMapEntry, offset) - 4usize];
+    [
+        "Offset of field: VkSpecializationMapEntry::size",
+    ][::std::mem::offset_of!(VkSpecializationMapEntry, size) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSpecializationInfo {
+    pub mapEntryCount: u32,
+    pub pMapEntries: *const VkSpecializationMapEntry,
+    pub dataSize: usize,
+    pub pData: *const ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSpecializationInfo",
+    ][::std::mem::size_of::<VkSpecializationInfo>() - 32usize];
+    [
+        "Alignment of VkSpecializationInfo",
+    ][::std::mem::align_of::<VkSpecializationInfo>() - 8usize];
+    [
+        "Offset of field: VkSpecializationInfo::mapEntryCount",
+    ][::std::mem::offset_of!(VkSpecializationInfo, mapEntryCount) - 0usize];
+    [
+        "Offset of field: VkSpecializationInfo::pMapEntries",
+    ][::std::mem::offset_of!(VkSpecializationInfo, pMapEntries) - 8usize];
+    [
+        "Offset of field: VkSpecializationInfo::dataSize",
+    ][::std::mem::offset_of!(VkSpecializationInfo, dataSize) - 16usize];
+    [
+        "Offset of field: VkSpecializationInfo::pData",
+    ][::std::mem::offset_of!(VkSpecializationInfo, pData) - 24usize];
+};
+impl Default for VkSpecializationInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineShaderStageCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineShaderStageCreateFlags,
+    pub stage: VkShaderStageFlagBits,
+    pub module: VkShaderModule,
+    pub pName: *const ::std::os::raw::c_char,
+    pub pSpecializationInfo: *const VkSpecializationInfo,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineShaderStageCreateInfo",
+    ][::std::mem::size_of::<VkPipelineShaderStageCreateInfo>() - 48usize];
+    [
+        "Alignment of VkPipelineShaderStageCreateInfo",
+    ][::std::mem::align_of::<VkPipelineShaderStageCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::stage",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, stage) - 20usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::module",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, module) - 24usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::pName",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, pName) - 32usize];
+    [
+        "Offset of field: VkPipelineShaderStageCreateInfo::pSpecializationInfo",
+    ][::std::mem::offset_of!(VkPipelineShaderStageCreateInfo, pSpecializationInfo)
+        - 40usize];
+};
+impl Default for VkPipelineShaderStageCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkComputePipelineCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineCreateFlags,
+    pub stage: VkPipelineShaderStageCreateInfo,
+    pub layout: VkPipelineLayout,
+    pub basePipelineHandle: VkPipeline,
+    pub basePipelineIndex: i32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkComputePipelineCreateInfo",
+    ][::std::mem::size_of::<VkComputePipelineCreateInfo>() - 96usize];
+    [
+        "Alignment of VkComputePipelineCreateInfo",
+    ][::std::mem::align_of::<VkComputePipelineCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::sType",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::flags",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::stage",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, stage) - 24usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::layout",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, layout) - 72usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::basePipelineHandle",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, basePipelineHandle) - 80usize];
+    [
+        "Offset of field: VkComputePipelineCreateInfo::basePipelineIndex",
+    ][::std::mem::offset_of!(VkComputePipelineCreateInfo, basePipelineIndex) - 88usize];
+};
+impl Default for VkComputePipelineCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkPushConstantRange {
+    pub stageFlags: VkShaderStageFlags,
+    pub offset: u32,
+    pub size: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPushConstantRange",
+    ][::std::mem::size_of::<VkPushConstantRange>() - 12usize];
+    [
+        "Alignment of VkPushConstantRange",
+    ][::std::mem::align_of::<VkPushConstantRange>() - 4usize];
+    [
+        "Offset of field: VkPushConstantRange::stageFlags",
+    ][::std::mem::offset_of!(VkPushConstantRange, stageFlags) - 0usize];
+    [
+        "Offset of field: VkPushConstantRange::offset",
+    ][::std::mem::offset_of!(VkPushConstantRange, offset) - 4usize];
+    [
+        "Offset of field: VkPushConstantRange::size",
+    ][::std::mem::offset_of!(VkPushConstantRange, size) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineLayoutCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineLayoutCreateFlags,
+    pub setLayoutCount: u32,
+    pub pSetLayouts: *const VkDescriptorSetLayout,
+    pub pushConstantRangeCount: u32,
+    pub pPushConstantRanges: *const VkPushConstantRange,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineLayoutCreateInfo",
+    ][::std::mem::size_of::<VkPipelineLayoutCreateInfo>() - 48usize];
+    [
+        "Alignment of VkPipelineLayoutCreateInfo",
+    ][::std::mem::align_of::<VkPipelineLayoutCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::setLayoutCount",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, setLayoutCount) - 20usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::pSetLayouts",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pSetLayouts) - 24usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::pushConstantRangeCount",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pushConstantRangeCount)
+        - 32usize];
+    [
+        "Offset of field: VkPipelineLayoutCreateInfo::pPushConstantRanges",
+    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pPushConstantRanges) - 40usize];
+};
+impl Default for VkPipelineLayoutCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -2777,11 +4128,28 @@ pub type PFN_vkGetPhysicalDeviceQueueFamilyProperties = ::std::option::Option<
         pQueueFamilyProperties: *mut VkQueueFamilyProperties,
     ),
 >;
+pub type PFN_vkGetPhysicalDeviceMemoryProperties = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pMemoryProperties: *mut VkPhysicalDeviceMemoryProperties,
+    ),
+>;
 pub type PFN_vkGetInstanceProcAddr = ::std::option::Option<
     unsafe extern "C" fn(
         instance: VkInstance,
         pName: *const ::std::os::raw::c_char,
     ) -> PFN_vkVoidFunction,
+>;
+pub type PFN_vkCreateDevice = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pCreateInfo: *const VkDeviceCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pDevice: *mut VkDevice,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyDevice = ::std::option::Option<
+    unsafe extern "C" fn(device: VkDevice, pAllocator: *const VkAllocationCallbacks),
 >;
 pub type PFN_vkEnumerateDeviceExtensionProperties = ::std::option::Option<
     unsafe extern "C" fn(
@@ -2791,6 +4159,262 @@ pub type PFN_vkEnumerateDeviceExtensionProperties = ::std::option::Option<
         pProperties: *mut VkExtensionProperties,
     ) -> VkResult,
 >;
+pub type PFN_vkGetDeviceQueue = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        queueFamilyIndex: u32,
+        queueIndex: u32,
+        pQueue: *mut VkQueue,
+    ),
+>;
+pub type PFN_vkQueueSubmit = ::std::option::Option<
+    unsafe extern "C" fn(
+        queue: VkQueue,
+        submitCount: u32,
+        pSubmits: *const VkSubmitInfo,
+        fence: VkFence,
+    ) -> VkResult,
+>;
+pub type PFN_vkQueueWaitIdle = ::std::option::Option<
+    unsafe extern "C" fn(queue: VkQueue) -> VkResult,
+>;
+pub type PFN_vkAllocateMemory = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pAllocateInfo: *const VkMemoryAllocateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pMemory: *mut VkDeviceMemory,
+    ) -> VkResult,
+>;
+pub type PFN_vkFreeMemory = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        memory: VkDeviceMemory,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkMapMemory = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        memory: VkDeviceMemory,
+        offset: VkDeviceSize,
+        size: VkDeviceSize,
+        flags: VkMemoryMapFlags,
+        ppData: *mut *mut ::std::os::raw::c_void,
+    ) -> VkResult,
+>;
+pub type PFN_vkUnmapMemory = ::std::option::Option<
+    unsafe extern "C" fn(device: VkDevice, memory: VkDeviceMemory),
+>;
+pub type PFN_vkFlushMappedMemoryRanges = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        memoryRangeCount: u32,
+        pMemoryRanges: *const VkMappedMemoryRange,
+    ) -> VkResult,
+>;
+pub type PFN_vkInvalidateMappedMemoryRanges = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        memoryRangeCount: u32,
+        pMemoryRanges: *const VkMappedMemoryRange,
+    ) -> VkResult,
+>;
+pub type PFN_vkBindBufferMemory = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        buffer: VkBuffer,
+        memory: VkDeviceMemory,
+        memoryOffset: VkDeviceSize,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetBufferMemoryRequirements = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        buffer: VkBuffer,
+        pMemoryRequirements: *mut VkMemoryRequirements,
+    ),
+>;
+pub type PFN_vkCreateBuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkBufferCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pBuffer: *mut VkBuffer,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyBuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        buffer: VkBuffer,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCreateCommandPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkCommandPoolCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pCommandPool: *mut VkCommandPool,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyCommandPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        commandPool: VkCommandPool,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkAllocateCommandBuffers = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pAllocateInfo: *const VkCommandBufferAllocateInfo,
+        pCommandBuffers: *mut VkCommandBuffer,
+    ) -> VkResult,
+>;
+pub type PFN_vkBeginCommandBuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pBeginInfo: *const VkCommandBufferBeginInfo,
+    ) -> VkResult,
+>;
+pub type PFN_vkEndCommandBuffer = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer) -> VkResult,
+>;
+pub type PFN_vkCmdPipelineBarrier = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        srcStageMask: VkPipelineStageFlags,
+        dstStageMask: VkPipelineStageFlags,
+        dependencyFlags: VkDependencyFlags,
+        memoryBarrierCount: u32,
+        pMemoryBarriers: *const VkMemoryBarrier,
+        bufferMemoryBarrierCount: u32,
+        pBufferMemoryBarriers: *const VkBufferMemoryBarrier,
+        imageMemoryBarrierCount: u32,
+        pImageMemoryBarriers: *const VkImageMemoryBarrier,
+    ),
+>;
+pub type PFN_vkCreateShaderModule = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkShaderModuleCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pShaderModule: *mut VkShaderModule,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyShaderModule = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        shaderModule: VkShaderModule,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCreateComputePipelines = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipelineCache: VkPipelineCache,
+        createInfoCount: u32,
+        pCreateInfos: *const VkComputePipelineCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pPipelines: *mut VkPipeline,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyPipeline = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipeline: VkPipeline,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCreatePipelineLayout = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkPipelineLayoutCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pPipelineLayout: *mut VkPipelineLayout,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyPipelineLayout = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipelineLayout: VkPipelineLayout,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCmdBindPipeline = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pipelineBindPoint: VkPipelineBindPoint,
+        pipeline: VkPipeline,
+    ),
+>;
+pub type PFN_vkCmdDispatch = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        groupCountX: u32,
+        groupCountY: u32,
+        groupCountZ: u32,
+    ),
+>;
+pub type PFN_vkCmdPushConstants = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        layout: VkPipelineLayout,
+        stageFlags: VkShaderStageFlags,
+        offset: u32,
+        size: u32,
+        pValues: *const ::std::os::raw::c_void,
+    ),
+>;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT: VkMemoryAllocateFlagBits = 1;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT: VkMemoryAllocateFlagBits = 2;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT: VkMemoryAllocateFlagBits = 4;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_ZERO_INITIALIZE_BIT_EXT: VkMemoryAllocateFlagBits = 8;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT_KHR: VkMemoryAllocateFlagBits = 1;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR: VkMemoryAllocateFlagBits = 2;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR: VkMemoryAllocateFlagBits = 4;
+pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_FLAG_BITS_MAX_ENUM: VkMemoryAllocateFlagBits = 2147483647;
+pub type VkMemoryAllocateFlagBits = ::std::os::raw::c_uint;
+pub type VkMemoryAllocateFlags = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMemoryAllocateFlagsInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkMemoryAllocateFlags,
+    pub deviceMask: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryAllocateFlagsInfo",
+    ][::std::mem::size_of::<VkMemoryAllocateFlagsInfo>() - 24usize];
+    [
+        "Alignment of VkMemoryAllocateFlagsInfo",
+    ][::std::mem::align_of::<VkMemoryAllocateFlagsInfo>() - 8usize];
+    [
+        "Offset of field: VkMemoryAllocateFlagsInfo::sType",
+    ][::std::mem::offset_of!(VkMemoryAllocateFlagsInfo, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryAllocateFlagsInfo::pNext",
+    ][::std::mem::offset_of!(VkMemoryAllocateFlagsInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryAllocateFlagsInfo::flags",
+    ][::std::mem::offset_of!(VkMemoryAllocateFlagsInfo, flags) - 16usize];
+    [
+        "Offset of field: VkMemoryAllocateFlagsInfo::deviceMask",
+    ][::std::mem::offset_of!(VkMemoryAllocateFlagsInfo, deviceMask) - 20usize];
+};
+impl Default for VkMemoryAllocateFlagsInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceFeatures2 {
@@ -2974,6 +4598,40 @@ impl Default for VkPhysicalDeviceBufferDeviceAddressFeatures {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkBufferDeviceAddressInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub buffer: VkBuffer,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBufferDeviceAddressInfo",
+    ][::std::mem::size_of::<VkBufferDeviceAddressInfo>() - 24usize];
+    [
+        "Alignment of VkBufferDeviceAddressInfo",
+    ][::std::mem::align_of::<VkBufferDeviceAddressInfo>() - 8usize];
+    [
+        "Offset of field: VkBufferDeviceAddressInfo::sType",
+    ][::std::mem::offset_of!(VkBufferDeviceAddressInfo, sType) - 0usize];
+    [
+        "Offset of field: VkBufferDeviceAddressInfo::pNext",
+    ][::std::mem::offset_of!(VkBufferDeviceAddressInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkBufferDeviceAddressInfo::buffer",
+    ][::std::mem::offset_of!(VkBufferDeviceAddressInfo, buffer) - 16usize];
+};
+impl Default for VkBufferDeviceAddressInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDevice8BitStorageFeatures {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -3059,6 +4717,12 @@ impl Default for VkPhysicalDeviceShaderFloat16Int8Features {
         }
     }
 }
+pub type PFN_vkGetBufferDeviceAddress = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkBufferDeviceAddressInfo,
+    ) -> VkDeviceAddress,
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceSynchronization2Features {

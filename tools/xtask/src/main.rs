@@ -51,15 +51,22 @@ fn check_headers(root: &Path) -> Result {
 fn bindings(root: &Path, check: bool) -> Result {
     check_headers(root)?;
     let mut builder = bindgen::Builder::default()
-        .header(root.join("vendor/Vulkan-Headers/include/vulkan/vulkan_core.h").to_string_lossy())
-        .clang_arg(format!("-I{}", root.join("vendor/Vulkan-Headers/include").display()))
+        .header(
+            root.join("vendor/Vulkan-Headers/include/vulkan/vulkan_core.h")
+                .to_string_lossy(),
+        )
+        .clang_arg(format!(
+            "-I{}",
+            root.join("vendor/Vulkan-Headers/include").display()
+        ))
         .clang_arg("-DVK_NO_PROTOTYPES")
         .clang_arg("--target=x86_64-unknown-linux-gnu")
-        .allowlist_type("PFN_vk(GetInstanceProcAddr|EnumerateInstanceVersion|CreateInstance|DestroyInstance|EnumeratePhysicalDevices|GetPhysicalDeviceProperties|EnumerateDeviceExtensionProperties|GetPhysicalDeviceFeatures2|GetPhysicalDeviceQueueFamilyProperties)")
-        .allowlist_var("VK_(TRUE|FALSE|HEADER_VERSION|MAX_PHYSICAL_DEVICE_NAME_SIZE)")
+        .allowlist_var("VK_(TRUE|FALSE|HEADER_VERSION|MAX_PHYSICAL_DEVICE_NAME_SIZE|WHOLE_SIZE)")
         .derive_default(true)
         .formatter(bindgen::Formatter::Prettyplease)
-        .raw_line("// Derived from Vulkan-Headers 1.4.357, e3b1eec08173d6b825cd3ac88c885a63b621504a.")
+        .raw_line(
+            "// Derived from Vulkan-Headers 1.4.357, e3b1eec08173d6b825cd3ac88c885a63b621504a.",
+        )
         .raw_line("// Copyright 2015-2026 The Khronos Group Inc. See LICENSE-KHRONOS.")
         .raw_line("// SPDX-License-Identifier: MIT")
         .generate_comments(false)
@@ -68,6 +75,11 @@ fn bindings(root: &Path, check: bool) -> Result {
     for line in fs::read_to_string(root.join("tools/vulkan-types.txt"))?.lines() {
         if !line.is_empty() && !line.starts_with('#') {
             builder = builder.allowlist_type(line);
+        }
+    }
+    for line in fs::read_to_string(root.join("tools/vulkan-commands.txt"))?.lines() {
+        if !line.is_empty() && !line.starts_with('#') {
+            builder = builder.allowlist_type(format!("PFN_{line}"));
         }
     }
     let generated = builder.generate()?.to_string();
@@ -112,6 +124,15 @@ fn abi(root: &Path) -> Result {
         let mut words = line.split_whitespace();
         let namespace = words.next().ok_or("missing namespace")?;
         let name = words.next().ok_or("missing type")?;
+        if namespace == "const" {
+            c.push_str(&format!(
+                "printf(\"{name} %llu\\n\", (unsigned long long)({name}));\n"
+            ));
+            rust.push_str(&format!(
+                "println!(\"{name} {{}}\", ogpu_vulkan_sys::{name} as u64);\n"
+            ));
+            continue;
+        }
         let ty = format!(
             "{}::{name}",
             if namespace == "vk" {
