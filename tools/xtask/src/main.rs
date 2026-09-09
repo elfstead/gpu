@@ -188,7 +188,7 @@ fn smoke_executable(root: &Path) -> Result<PathBuf> {
     let target = root.join("target/debug");
     let executable = target.join("ogpu-probe-c");
     run(compiler()
-        .args(["-std=c11", "-Wall", "-Wextra", "-Werror"])
+        .args(["-std=c11", "-DNDEBUG", "-Wall", "-Wextra", "-Werror"])
         .arg("-I")
         .arg(root.join("include"))
         .arg(root.join("examples/probe.c"))
@@ -223,6 +223,7 @@ fn mock(root: &Path) -> Result {
         .arg(&library))?;
     for (mode, argument) in [
         ("normal", "--expect-mock"),
+        ("instance11", "--expect-mock"),
         ("empty", "--expect-empty"),
         ("error", "--expect-vulkan-error"),
     ] {

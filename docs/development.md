@@ -37,7 +37,7 @@ device, enables no device features, and submits no GPU work. An empty enumeratio
 is successful. Optional accelerators never gate startup.
 
 Capability bits are queried features, **not simply advertised extension names**.
-Promoted core features are queried using the effective instance/device API version;
+Promoted core features are queried using the application ceiling and device API version;
 extension features are queried only when advertised. Storage access and shader
 arithmetic types remain separate. Cooperative-matrix support does not establish
 specific shapes/types, performance, or shader-compiler support; those queries come
@@ -79,9 +79,10 @@ public data field. Generated assertions also validate the generated declarations
 This is target-specific ABI evidence, not a proof of Vulkan semantic correctness.
 
 `mock` builds a tiny test-only Vulkan loader and exercises the real C boundary.
-It checks core promotion without extension advertisements, an advertised extension
+It checks a Vulkan 1.1 instance with a 1.3 device, core promotion without extension advertisements, an advertised extension
 whose feature is false, absent optional extensions, zero devices, loader failure,
-and instance cleanup on a Vulkan error. Rust unit tests additionally exercise
+and instance cleanup on a Vulkan error. The C caller is compiled with `NDEBUG` to
+ensure its checks and API calls also work in release builds. Rust unit tests additionally exercise
 changing enumeration counts, bounded `VK_INCOMPLETE` retries, diagnostics, and panic
 containment. `smoke` uses the real loader and available drivers.
 

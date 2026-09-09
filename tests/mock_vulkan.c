@@ -9,7 +9,8 @@ static int instance_token, device_token;
 static unsigned live_instances;
 
 VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceVersion(uint32_t *version) {
-    *version = VK_API_VERSION_1_3;
+    const char *mode = getenv("OGPU_MOCK_MODE");
+    *version = mode && !strcmp(mode, "instance11") ? VK_API_VERSION_1_1 : VK_API_VERSION_1_3;
     return VK_SUCCESS;
 }
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo *info, const VkAllocationCallbacks *allocator, VkInstance *instance) {

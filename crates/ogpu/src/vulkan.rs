@@ -92,7 +92,9 @@ impl Instance {
                 "Vulkan 1.1 or newer loader required",
             ));
         }
-        let api_version = supported.min(V1_3);
+        // apiVersion declares our application ceiling, not the loader's ceiling.
+        // A 1.1+ instance implementation may expose newer physical devices.
+        let api_version = V1_3;
         let create = command!(
             get,
             ptr::null_mut(),
