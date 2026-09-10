@@ -266,21 +266,33 @@ fn mock(root: &Path) -> Result {
 }
 
 fn compute(root: &Path) -> Result {
+    c_execution(root, "compute", &["roundtrip"])
+}
+
+fn batch(root: &Path) -> Result {
+    c_execution(root, "batch", &["produce", "consume"])
+}
+
+fn c_execution(root: &Path, name: &str, shaders: &[&str]) -> Result {
     build(root)?;
     let target = root.join("target/debug");
-    let executable = target.join("ogpu-compute-c");
+    let executable = target.join(format!("ogpu-{name}-c"));
     run(compiler()
         .args(["-std=c11", "-DNDEBUG", "-Wall", "-Wextra", "-Werror"])
         .arg("-I")
         .arg(root.join("include"))
-        .arg(root.join("examples/compute.c"))
+        .arg(root.join(format!("examples/{name}.c")))
         .arg("-L")
         .arg(&target)
         .arg(format!("-Wl,-rpath,{}", target.display()))
         .arg("-logpu")
         .arg("-o")
         .arg(&executable))?;
-    let output = run(Command::new(executable).arg(root.join("examples/shaders/roundtrip.spv")))?;
+    let output = run(Command::new(executable).args(
+        shaders
+            .iter()
+            .map(|name| root.join(format!("examples/shaders/{name}.spv"))),
+    ))?;
     checked_vulkan_output(output)
 }
 
@@ -327,10 +339,11 @@ fn main() -> Result {
         Some("abi") if args.len() == 1 => abi(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
+        Some("batch") if args.len() == 1 => batch(&root),
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | compute | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

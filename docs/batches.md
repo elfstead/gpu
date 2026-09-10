@@ -6,6 +6,20 @@ device and the existing host-visible allocations. Graphics and additional queues
 remain follow-up experiments; the dependency vocabulary below currently covers
 only compute accesses.
 
+Run the [C example](../examples/batch.c) with `cargo xtask batch`. It uploads 4099
+integers, dispatches [a producer](../examples/shaders/produce.comp) into an
+intermediate allocation, then [a consumer](../examples/shaders/consume.comp) into
+a separate output allocation. The consumer reads adjacent intermediate elements,
+including across workgroup boundaries. One explicit WRITE → READ barrier connects
+the kernels; one submission and one CPU wait precede the final readback. There is
+no intermediate host readback or upload.
+
+The application-defined 24-byte root block contains two GPU addresses at bytes 0
+and 8, the element count at byte 16, and four initialized padding bytes. Both
+kernels use 64 invocations per workgroup and guard excess invocations. All output
+elements are compared against a separate CPU calculation. This is correctness
+evidence, not a dispatch-overhead or overlap benchmark.
+
 ## Recording and submission
 
 `ogpu_batch_create` creates an empty recording. `ogpu_batch_dispatch` copies inline
@@ -94,3 +108,26 @@ authorize host access to buffers still used by later submissions.
 
 Not included: completion polling/timeouts, reusable recordings, multiple queues,
 GPU transfer commands, device-local staging, graphics commands, or tensor semantics.
+
+## Reproduction
+
+The shader binaries are checked in; normal builds do not invoke a shader compiler.
+They were generated with glslang 16.4.0 and validated with SPIRV-Tools 1.4.357.0:
+
+```sh
+glslangValidator -V --target-env vulkan1.2 examples/shaders/produce.comp -o examples/shaders/produce.spv
+glslangValidator -V --target-env vulkan1.2 examples/shaders/consume.comp -o examples/shaders/consume.spv
+spirv-val --target-env vulkan1.2 examples/shaders/produce.spv
+spirv-val --target-env vulkan1.2 examples/shaders/consume.spv
+cargo xtask batch
+cargo xtask gpu-tests
+```
+
+`gpu-tests` also exercises discarded/empty batches, multiple outstanding
+submissions, cross-submission dependencies, copied arguments, wrong-device
+kernels, terminal batch state, parent/kernel retention, and draining destruction.
+Failure injection covers fence/pool/command preparation, rejected/unknown
+submissions, transient waits, and simulated device loss. Simulated wait-time loss
+is reported only after actual work has drained; it is not a real device-loss test.
+Both runners reject reported Vulkan validation errors. See [development](development.md)
+for enabling validation and choosing a Vulkan loader.

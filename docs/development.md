@@ -14,6 +14,7 @@ Vulkan 1.1+ support. A GPU is not required to compile or run the mock tests.
 cargo build --locked
 cargo xtask smoke
 cargo xtask compute
+cargo xtask batch
 ```
 
 The first command builds `target/debug/libogpu.so` using checked-in bindings. It
@@ -23,12 +24,19 @@ needs neither the headers submodule nor Clang/libclang. The second builds and ru
 requires a Vulkan 1.2 device with buffer device addresses and a compute queue.
 It verifies upload → dispatch → blocking completion → readback, including repeated
 dispatches and releasing parent handles before using their children.
+
+`batch` runs [the asynchronous C example](../examples/batch.c): two different
+kernels linked by an explicit memory dependency, one submission, and one final
+wait/readback. See the [batch contract](batches.md) for lifetime rules and shader
+regeneration commands.
+
 `cargo xtask gpu-tests` runs the Vulkan-backed Rust tests, including asynchronous
 batch lifetimes, dependencies across submissions, and injected preparation,
 submission, and wait errors. Like the C runner, it fails on Vulkan validation
 errors even when the test process exits successfully. To enable synchronization
 validation, set `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and
 `VK_LAYER_VALIDATE_SYNC=1` (requires installed validation layers).
+
 `CC` may select a C compiler executable. Test tools currently use the repository's
 `target/` directory; leave `CARGO_TARGET_DIR` unset.
 
@@ -65,6 +73,8 @@ cargo xtask abi
 cargo xtask mock
 cargo xtask smoke
 cargo xtask compute
+cargo xtask batch
+cargo xtask gpu-tests
 ```
 
 `bindings` uses **bindgen 0.72.1**, pinned in the Rust tooling crate and Cargo.lock,

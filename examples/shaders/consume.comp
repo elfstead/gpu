@@ -1,0 +1,25 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input {
+    uint values[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output {
+    uint values[];
+};
+layout(push_constant, std430) uniform Root {
+    Input input_data;
+    Output output_data;
+    uint count;
+} root;
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i < root.count) {
+        // Read a neighboring invocation's result, including across workgroup edges.
+        uint neighbor = (i + 1u) % root.count;
+        root.output_data.values[i] = root.input_data.values[i]
+            + root.input_data.values[neighbor] * 5u + 11u;
+    }
+}

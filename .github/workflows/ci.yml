@@ -19,6 +19,12 @@ jobs:
       - run: cargo xtask abi
       - run: cargo xtask mock
       - run: spirv-val --target-env vulkan1.2 examples/shaders/roundtrip.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/produce.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/consume.spv
+      - run: cargo xtask batch
+        env:
+          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+          VK_LAYER_VALIDATE_SYNC: '1'
       - run: cargo xtask compute
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation

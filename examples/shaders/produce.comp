@@ -1,0 +1,22 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input {
+    uint values[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output {
+    uint values[];
+};
+layout(push_constant, std430) uniform Root {
+    Input input_data;   // GPU address, byte 0.
+    Output output_data; // GPU address, byte 8.
+    uint count;        // Byte 16; host block is 24 bytes including padding.
+} root;
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i < root.count) {
+        root.output_data.values[i] = root.input_data.values[i] * 3u + 7u;
+    }
+}
