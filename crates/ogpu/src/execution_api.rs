@@ -1,6 +1,6 @@
-//! C ownership boundary for the first, synchronous execution slice.
+//! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
 use crate::{
-    compute::{Buffer, Device, Kernel},
+    compute::{Batch, Buffer, Completion, Device, Kernel},
     Error, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
     SUCCESS,
 };
@@ -18,7 +18,13 @@ pub struct OgpuBuffer {
     inner: Buffer,
 }
 pub struct OgpuKernel {
-    inner: Kernel,
+    inner: Rc<Kernel>,
+}
+pub struct OgpuBatch {
+    inner: Batch,
+}
+pub struct OgpuCompletion {
+    inner: Completion,
 }
 
 // SAFETY (for callers of these private helpers): error, when non-NULL, is writable
@@ -240,7 +246,7 @@ pub unsafe extern "C" fn ogpu_kernel_create(
             }
             let words = std::slice::from_raw_parts(words, word_count as usize);
             Ok(OgpuKernel {
-                inner: Kernel::new((*device).inner.clone(), words, push_size)?,
+                inner: Rc::new(Kernel::new((*device).inner.clone(), words, push_size)?),
             })
         })
     }
@@ -282,9 +288,175 @@ pub unsafe extern "C" fn ogpu_dispatch_wait(
     }
 }
 
+/// # Safety
+/// See include/ogpu.h: live device, valid creation outputs, external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_create(
+    device: *mut OgpuDevice,
+    out_batch: *mut *mut OgpuBatch,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out_batch, error, || {
+            required(device)?;
+            Ok(OgpuBatch {
+                inner: Batch::new((*device).inner.clone())?,
+            })
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL; no concurrent calls on this device/children.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_destroy(batch: *mut OgpuBatch) {
+    if !batch.is_null() {
+        unsafe {
+            drop(Box::from_raw(batch));
+        }
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: readable arguments; referenced allocations must outlive their
+/// recorded use. Handles and outputs must be valid, non-overlapping, and serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dispatch(
+    batch: *mut OgpuBatch,
+    kernel: *mut OgpuKernel,
+    groups: u32,
+    arguments: *const c_void,
+    argument_bytes: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(kernel)?;
+            let root = if argument_bytes == 0 {
+                &[]
+            } else {
+                required(arguments)?;
+                std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
+            };
+            (*batch)
+                .inner
+                .dispatch((*kernel).inner.clone(), groups, root)
+        })
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: valid batch/error pointers and external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_barrier(
+    batch: *mut OgpuBatch,
+    source: u32,
+    destination: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            (*batch).inner.barrier(source, destination)
+        })
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: valid shader addresses and explicit race-free dependencies;
+/// allocations remain live without host access until GPU uses complete. Valid outputs
+/// and external serialization are required. Submission does not wait for completion.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_submit(
+    batch: *mut OgpuBatch,
+    out_completion: *mut *mut OgpuCompletion,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out_completion, error, || {
+            required(batch)?;
+            Ok(OgpuCompletion {
+                inner: (*batch).inner.submit()?,
+            })
+        })
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: live completion, writable error, external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_completion_wait(
+    completion: *mut OgpuCompletion,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(completion)?;
+            (*completion).inner.wait()
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL, externally serialized. Referenced allocations
+/// must remain alive until this call returns; pending work is drained, not cancelled.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_completion_destroy(completion: *mut OgpuCompletion) {
+    if !completion.is_null() {
+        unsafe {
+            drop(Box::from_raw(completion));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn invalid_batch_arguments_need_no_driver() {
+        unsafe {
+            let mut batch = ptr::dangling_mut::<OgpuBatch>();
+            let mut completion = ptr::dangling_mut::<OgpuCompletion>();
+            assert_eq!(
+                ogpu_batch_create(ptr::null_mut(), &mut batch, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(batch.is_null());
+            assert_eq!(
+                ogpu_batch_dispatch(
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    1,
+                    ptr::null(),
+                    0,
+                    ptr::null_mut()
+                ),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_barrier(ptr::null_mut(), 2, 1, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_submit(ptr::null_mut(), &mut completion, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(completion.is_null());
+            assert_eq!(
+                ogpu_completion_wait(ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            // A NULL creation output must be checked before dereferencing input handles.
+            assert_eq!(
+                ogpu_batch_submit(ptr::dangling_mut(), ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            ogpu_batch_destroy(ptr::null_mut());
+            ogpu_completion_destroy(ptr::null_mut());
+        }
+    }
+
     #[test]
     fn invalid_execution_arguments_need_no_driver() {
         unsafe {

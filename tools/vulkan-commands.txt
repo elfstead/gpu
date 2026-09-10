@@ -39,3 +39,6 @@ vkCmdDispatch
 vkCmdPipelineBarrier
 vkQueueSubmit
 vkQueueWaitIdle
+vkCreateFence
+vkDestroyFence
+vkWaitForFences

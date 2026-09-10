@@ -1845,6 +1845,7 @@ pub type VkPipelineStageFlagBits = ::std::os::raw::c_uint;
 pub type VkPipelineStageFlags = VkFlags;
 pub type VkMemoryMapFlags = VkFlags;
 pub type VkImageAspectFlags = VkFlags;
+pub type VkFenceCreateFlags = VkFlags;
 pub type VkQueryPipelineStatisticFlags = VkFlags;
 pub type VkBufferCreateFlags = VkFlags;
 pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_SRC_BIT: VkBufferUsageFlagBits = 1;
@@ -3403,6 +3404,38 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkFenceCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkFenceCreateFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkFenceCreateInfo"][::std::mem::size_of::<VkFenceCreateInfo>() - 24usize];
+    [
+        "Alignment of VkFenceCreateInfo",
+    ][::std::mem::align_of::<VkFenceCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkFenceCreateInfo::sType",
+    ][::std::mem::offset_of!(VkFenceCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkFenceCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkFenceCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkFenceCreateInfo::flags",
+    ][::std::mem::offset_of!(VkFenceCreateInfo, flags) - 16usize];
+};
+impl Default for VkFenceCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkBufferCreateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -4234,6 +4267,30 @@ pub type PFN_vkGetBufferMemoryRequirements = ::std::option::Option<
         buffer: VkBuffer,
         pMemoryRequirements: *mut VkMemoryRequirements,
     ),
+>;
+pub type PFN_vkCreateFence = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkFenceCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pFence: *mut VkFence,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyFence = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        fence: VkFence,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkWaitForFences = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        fenceCount: u32,
+        pFences: *const VkFence,
+        waitAll: VkBool32,
+        timeout: u64,
+    ) -> VkResult,
 >;
 pub type PFN_vkCreateBuffer = ::std::option::Option<
     unsafe extern "C" fn(

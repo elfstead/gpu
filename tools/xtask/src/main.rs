@@ -281,12 +281,29 @@ fn compute(root: &Path) -> Result {
         .arg("-o")
         .arg(&executable))?;
     let output = run(Command::new(executable).arg(root.join("examples/shaders/roundtrip.spv")))?;
+    checked_vulkan_output(output)
+}
+
+fn gpu_tests(root: &Path) -> Result {
+    let output = run(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "ogpu",
+        "--",
+        "--ignored",
+        "--nocapture",
+    ]))?;
+    checked_vulkan_output(output)
+}
+
+fn checked_vulkan_output(output: Output) -> Result {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     print!("{stdout}");
     eprint!("{stderr}");
     if stdout.contains("Validation Error:") || stderr.contains("Validation Error:") {
-        return Err("Vulkan validation reported an error during the C compute test".into());
+        return Err("Vulkan validation reported an error during execution".into());
     }
     Ok(())
 }
@@ -310,9 +327,10 @@ fn main() -> Result {
         Some("abi") if args.len() == 1 => abi(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
+        Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | compute | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | compute | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

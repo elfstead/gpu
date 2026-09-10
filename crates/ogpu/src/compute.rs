@@ -1,8 +1,12 @@
 //! First execution experiment: one externally synchronized queue, addressable host-visible
-//! buffers, descriptor-free compute pipelines, copied push arguments, and blocking submission.
+//! buffers, descriptor-free compute pipelines, and one-shot asynchronous submission.
 use crate::{vulkan::Instance, Error, INVALID_ARGUMENT, LOADER_ERROR, OUT_OF_RANGE, UNSUPPORTED};
 use ogpu_vulkan_sys as vk;
 use std::{cell::Cell, ptr, rc::Rc, sync::Arc};
+
+#[path = "batch.rs"]
+mod batch;
+pub(crate) use batch::{Batch, Completion};
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -46,6 +50,8 @@ functions! {
     vkCmdBindPipeline: PFN_vkCmdBindPipeline, vkCmdPushConstants: PFN_vkCmdPushConstants,
     vkCmdDispatch: PFN_vkCmdDispatch, vkCmdPipelineBarrier: PFN_vkCmdPipelineBarrier,
     vkQueueSubmit: PFN_vkQueueSubmit, vkQueueWaitIdle: PFN_vkQueueWaitIdle,
+    vkCreateFence: PFN_vkCreateFence, vkDestroyFence: PFN_vkDestroyFence,
+    vkWaitForFences: PFN_vkWaitForFences,
 }
 
 fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
@@ -69,8 +75,8 @@ pub(crate) struct Device {
 
 impl Drop for Device {
     fn drop(&mut self) {
-        // SAFETY: all child resources retain this device; every submission is drained before
-        // returning, including on errors. The instance/library still live.
+        // SAFETY: all children retain this device; completions drain before releasing it.
+        // The instance/library still live.
         unsafe {
             (self.f.vkDestroyDevice.unwrap())(self.handle, ptr::null());
         }
@@ -192,7 +198,7 @@ pub(crate) struct Buffer {
 
 impl Drop for Buffer {
     fn drop(&mut self) {
-        // SAFETY: there is no pending submission when API control returns to the caller.
+        // SAFETY: the caller must complete all GPU access before destroying this allocation.
         // Destroy the bound buffer before freeing its memory; partial construction is valid.
         unsafe {
             let d = &self.device;
@@ -536,131 +542,21 @@ impl Kernel {
     /// All device addresses reachable by the kernel must refer to live allocations on
     /// this device. Accesses must be in bounds, correctly aligned, and race-free. No
     /// other operation on the device or its children may run concurrently.
-    pub(crate) unsafe fn dispatch_wait(&self, groups: u32, root: &[u8]) -> Result<(), Error> {
-        let d = &self.device;
-        d.ready()?;
-        if groups == 0
-            || groups > d.limits.maxComputeWorkGroupCount[0]
-            || root.len() != self.push_size as usize
-        {
-            return Err(Error::new(
-                INVALID_ARGUMENT,
-                "Invalid dispatch size or argument byte count",
-            ));
-        }
-        let mut commands = Commands {
-            device: d,
-            pool: ptr::null_mut(),
-        };
-        // SAFETY: the caller supplies valid shader addresses; everything else is a local
-        // owned Vulkan object. Commands are not destroyed until the queue is drained/lost.
-        unsafe {
-            let create = vk::VkCommandPoolCreateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                queueFamilyIndex: d.family,
-                ..Default::default()
-            };
-            d.result(
-                "vkCreateCommandPool",
-                (d.f.vkCreateCommandPool.unwrap())(
-                    d.handle,
-                    &create,
-                    ptr::null(),
-                    &mut commands.pool,
-                ),
-            )?;
-            let allocate = vk::VkCommandBufferAllocateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                commandPool: commands.pool,
-                level: vk::VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                commandBufferCount: 1,
-                ..Default::default()
-            };
-            let mut command = ptr::null_mut();
-            d.result(
-                "vkAllocateCommandBuffers",
-                (d.f.vkAllocateCommandBuffers.unwrap())(d.handle, &allocate, &mut command),
-            )?;
-            let begin = vk::VkCommandBufferBeginInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                ..Default::default()
-            };
-            d.result(
-                "vkBeginCommandBuffer",
-                (d.f.vkBeginCommandBuffer.unwrap())(command, &begin),
-            )?;
-            let before = vk::VkMemoryBarrier {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-                srcAccessMask: vk::VkAccessFlagBits_VK_ACCESS_HOST_WRITE_BIT
-                    | vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
-                dstAccessMask: vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT
-                    | vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
-                ..Default::default()
-            };
-            (d.f.vkCmdPipelineBarrier.unwrap())(
-                command,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT
-                    | vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                0,
-                1,
-                &before,
-                0,
-                ptr::null(),
-                0,
-                ptr::null(),
-            );
-            (d.f.vkCmdBindPipeline.unwrap())(
-                command,
-                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE,
-                self.pipeline,
-            );
-            if self.push_size != 0 {
-                (d.f.vkCmdPushConstants.unwrap())(
-                    command,
-                    self.layout,
-                    vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
-                    0,
-                    self.push_size,
-                    root.as_ptr().cast(),
-                );
-            }
-            (d.f.vkCmdDispatch.unwrap())(command, groups, 1, 1);
-            let after = vk::VkMemoryBarrier {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-                srcAccessMask: vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
-                dstAccessMask: vk::VkAccessFlagBits_VK_ACCESS_HOST_READ_BIT,
-                ..Default::default()
-            };
-            (d.f.vkCmdPipelineBarrier.unwrap())(
-                command,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT,
-                0,
-                1,
-                &after,
-                0,
-                ptr::null(),
-                0,
-                ptr::null(),
-            );
-            d.result(
-                "vkEndCommandBuffer",
-                (d.f.vkEndCommandBuffer.unwrap())(command),
-            )?;
-            let submit = vk::VkSubmitInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                commandBufferCount: 1,
-                pCommandBuffers: &command,
-                ..Default::default()
-            };
-            d.result(
-                "vkQueueSubmit",
-                (d.f.vkQueueSubmit.unwrap())(d.queue, 1, &submit, ptr::null_mut()),
-            )?;
-            let status = drain(|| (d.f.vkQueueWaitIdle.unwrap())(d.queue));
-            d.result("vkQueueWaitIdle", status)
-        }
+    pub(crate) unsafe fn dispatch_wait(
+        self: &Rc<Self>,
+        groups: u32,
+        root: &[u8],
+    ) -> Result<(), Error> {
+        let mut batch = Batch::new(self.device.clone())?;
+        // Preserve the ordered convenience API's dependency on prior compute work.
+        batch.barrier(
+            batch::COMPUTE_READ | batch::COMPUTE_WRITE,
+            batch::COMPUTE_READ | batch::COMPUTE_WRITE,
+        )?;
+        batch.dispatch(self.clone(), groups, root)?;
+        // SAFETY: the caller supplies valid addresses and keeps their allocations live
+        // through this synchronous call. The completion also drains on unwinding.
+        unsafe { batch.submit()?.wait() }
     }
 }
 
@@ -676,29 +572,10 @@ fn drain(mut wait: impl FnMut() -> vk::VkResult) -> vk::VkResult {
         if status == vk::VkResult_VK_SUCCESS {
             return first_error;
         }
-        if first_error == vk::VkResult_VK_SUCCESS {
+        if status != vk::VkResult_VK_TIMEOUT && first_error == vk::VkResult_VK_SUCCESS {
             first_error = status;
         }
         std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-}
-
-struct Commands<'a> {
-    device: &'a Device,
-    pool: vk::VkCommandPool,
-}
-impl Drop for Commands<'_> {
-    fn drop(&mut self) {
-        // SAFETY: dispatch drains all submitted commands before reaching this destructor.
-        if !self.pool.is_null() {
-            unsafe {
-                (self.device.f.vkDestroyCommandPool.unwrap())(
-                    self.device.handle,
-                    self.pool,
-                    ptr::null(),
-                );
-            }
-        }
     }
 }
 
@@ -723,6 +600,18 @@ mod tests {
         assert_eq!(
             drain(|| vk::VkResult_VK_ERROR_DEVICE_LOST),
             vk::VkResult_VK_ERROR_DEVICE_LOST
+        );
+        let mut responses = [vk::VkResult_VK_TIMEOUT, vk::VkResult_VK_SUCCESS].into_iter();
+        assert_eq!(drain(|| responses.next().unwrap()), vk::VkResult_VK_SUCCESS);
+        let mut responses = [
+            vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY,
+            vk::VkResult_VK_TIMEOUT,
+            vk::VkResult_VK_SUCCESS,
+        ]
+        .into_iter();
+        assert_eq!(
+            drain(|| responses.next().unwrap()),
+            vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY
         );
     }
     #[test]
@@ -769,7 +658,7 @@ mod tests {
             let mut root = [0u8; 16];
             root[..8].copy_from_slice(&buffer.address().unwrap().to_ne_bytes());
             root[8..12].copy_from_slice(&count.to_ne_bytes());
-            let kernel = unsafe { Kernel::new(device, &words, 16).unwrap() };
+            let kernel = Rc::new(unsafe { Kernel::new(device, &words, 16).unwrap() });
             for _ in 0..2 {
                 unsafe {
                     kernel.dispatch_wait(count.div_ceil(64), &root).unwrap();

@@ -74,6 +74,8 @@ errors leave submitted resources unaffected; device loss permits cleanup. For an
 unexpected submission error, conservatively drain the queue before releasing
 command resources. Failure of this attempt does not establish completion of other
 outstanding submissions; their completion handles still govern their lifetimes.
+The backend follows the [Vulkan submission failure guarantees](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit.html)
+and [fence wait semantics](https://docs.vulkan.org/refpages/latest/refpages/source/vkWaitForFences.html).
 
 `ogpu_dispatch_wait` remains an ordered convenience operation built on a batch,
 an initial compute-read/write → compute-read/write dependency, and a completion

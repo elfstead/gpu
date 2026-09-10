@@ -97,7 +97,8 @@ OgpuResult ogpu_probe_device_info(const OgpuProbe *probe, uint32_t index, OgpuDe
 /* Experimental execution slice: Linux x86-64, Vulkan 1.2 device + BDA + compute queue.
  * Discovery remains independent: unsupported execution devices are still listed.
  * These opaque objects have independent ownership. Buffers/kernels retain their
- * device; a device retains its instance. Destroying a probe or device handle does
+ * device; a device retains its instance. Batches/completions retain recorded kernels.
+ * Destroying a probe or device handle does
  * not invalidate its surviving children. Each handle must still be destroyed once.
  *
  * All operations on ONE device and ALL its children must be externally serialized,
@@ -114,6 +115,8 @@ void ogpu_device_destroy(OgpuDevice *device);
 
 /* Dedicated host-visible allocation. size_bytes must be nonzero and <= INTPTR_MAX.
  * Contents start unspecified. Transfers are checked CPU copies, not GPU commands.
+ * Wait for ALL submitted uses of this entire buffer before reading, writing, or
+ * destroying it (cache maintenance may touch the whole allocation).
  * Zero-length transfers allow NULL data and offset == size_bytes. Read destinations
  * are unchanged on error. No persistent host mapping is exposed. */
 OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, OgpuBuffer **out_buffer, OgpuError *out_error);
@@ -150,9 +153,57 @@ void ogpu_kernel_destroy(OgpuKernel *kernel);
  * to subsequent buffer_read or dispatch calls. Even on error, submitted work is
  * drained/lost before return so resources can be destroyed. Non-loss wait errors
  * are retried until draining is established; persistent failures may block forever.
- * After device loss, only destruction is supported. This is NOT an async API. */
+ * After device loss, only destruction and draining existing completions are supported.
+ * This ordered convenience call uses a batch and completion internally. */
 OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, const void *arguments,
     uint32_t argument_bytes, OgpuError *out_error);
+
+/* One-shot asynchronous recordings on the device's single queue. All calls remain
+ * externally serialized with this device and its children; GPU execution may run
+ * between calls. These access bits are ours, not Vulkan flags. Currently only compute
+ * dependencies are expressible; this does not specify the future graphics profile. */
+typedef struct OgpuBatch OgpuBatch;
+typedef struct OgpuCompletion OgpuCompletion;
+#define OGPU_ACCESS_COMPUTE_READ UINT32_C(1)
+#define OGPU_ACCESS_COMPUTE_WRITE UINT32_C(2)
+
+OgpuResult ogpu_batch_create(OgpuDevice *device, OgpuBatch **out_batch, OgpuError *out_error);
+/* Discards an unsubmitted recording; never waits. NULL is a no-op. */
+void ogpu_batch_destroy(OgpuBatch *batch);
+
+/* Copies arguments during recording and retains the kernel, which must belong to
+ * the batch's device. Other argument/grid/shader rules match dispatch_wait.
+ * Allocation addresses are NOT retained: keep all reachable allocations alive from
+ * recording through completion, or until the unsubmitted recording is discarded.
+ * Invalid recording arguments leave the recording unchanged. */
+OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t groups_x,
+    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+
+/* Global dependency from earlier to later compute commands on this queue, including
+ * earlier submissions. Each mask must be a nonzero combination of the access bits
+ * above. No dependency is inferred from GPU pointers or dispatch order. */
+OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
+    uint32_t destination_access, OgpuError *out_error);
+
+/* Attempts submission once; success means accepted, NOT completed. Empty batches
+ * are legal. After an attempt (even preparation/submission failure), the batch is
+ * terminal: only destruction is valid. Invalid required pointers do not consume it.
+ * out_completion is required, NULL on failure. On success the completion retains
+ * command resources and kernels; the original batch/kernel/device handles may be
+ * destroyed. Referenced buffers must still outlive GPU access.
+ * Host writes before submission become visible to compute, and completed compute
+ * writes to subsequent host reads. GPU-to-GPU dependencies remain explicit.
+ * Failed submission does not establish completion of other outstanding work. */
+OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, OgpuError *out_error);
+
+/* Waits for this submission, not queue idle. No timeout. Repeated waits preserve
+ * the wait outcome. Non-loss wait errors are reported only AFTER draining; device
+ * loss also permits cleanup. Persistent wait failures can block indefinitely.
+ * Completion does not imply correctness of the shader or its output. */
+OgpuResult ogpu_completion_wait(OgpuCompletion *completion, OgpuError *out_error);
+/* Waits if pending, then destroys; does NOT cancel. Explicitly wait first for error
+ * diagnostics. Destroy completions before referenced buffers. NULL is a no-op. */
+void ogpu_completion_destroy(OgpuCompletion *completion);
 
 #ifdef __cplusplus
 }

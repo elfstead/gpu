@@ -1,5 +1,9 @@
 # First execution experiment
 
+The synchronous experiment below now runs on the [one-shot batch implementation](batches.md).
+The asynchronous API separates recording, submission, and completion; this page
+describes the original blocking convenience path and its buffer/shader baseline.
+
 The initial Rust round trip allocates one host-visible, GPU-addressable
 buffer, uploads 4099 integers, dispatches `x = x * 3 + 7` twice, makes a partial CPU
 update, and reads back and verifies every result. The count deliberately isn't a
@@ -55,18 +59,18 @@ remains 1. No execution-facing Vulkan types are exposed.
   16-byte argument block contains a device address at byte 0, an element count at
   byte 8, and four padding bytes. This block is an example contract, not a universal
   kernel ABI; the backend supports a caller-specified push-constant byte count.
-- Each dispatch records host/prior-compute → compute and compute → host memory
-  dependencies, then submits and blocks until the queue is idle. Arguments are
+- Each blocking dispatch records host/prior-compute → compute and compute → host memory
+  dependencies, then submits and waits on its completion fence. Arguments are
   copied into the command buffer. Readback invalidates non-coherent CPU caches.
 - Buffers and kernels retain their device, and devices retain their Vulkan instance.
   A caller must keep every allocation referenced by shader addresses alive during
   dispatch. The runtime cannot infer those references from arbitrary argument bytes.
-- There is no timeout or asynchronous completion handle yet. If queue waiting
+- The blocking helper has no timeout. If completion waiting
   reports a transient error, the backend continues draining until completion or
   device loss before reporting an error. It must not release pending command
   buffers or return permission to destroy allocations prematurely. Persistent
   wait failures can therefore block indefinitely. Device loss poisons execution;
-  resource destruction remains allowed.
+  resource destruction and draining existing completions remain allowed.
 
 SPIR-V and shader memory accesses are trusted inputs. Checking a SPIR-V header is
 not full validation or sandboxing: programs must use only enabled device features,

@@ -64,6 +64,11 @@ host-visible buffers, descriptor-free SPIR-V kernels, copied root bytes, and one
 blocking dispatch at a time. These are experiment constraints, not a frozen API
 or a decision to exclude graphics or asynchronous execution.
 
+The next slice adds [one-shot asynchronous batches](batches.md): copied arguments,
+explicit compute access dependencies, and per-submission completion handles.
+The blocking dispatch remains a convenience built on those primitives. This still
+uses one queue and host-visible allocations; graphics has not yet been exercised.
+
 1. Specify one allocation's CPU/GPU visibility and lifetime, one dispatch's argument and executable contract, and one submission's completion semantics.
 2. Exercise the common model with a compute-produced vertex array and indirect arguments consumed by a draw. Then add an image-processing or small neural graphics workload to test texture/linear-memory boundaries.
 3. Run a reduction, a matrix kernel, and a short dispatch chain. Separate numerical correctness, runtime overhead, kernel throughput, and compilation costs in the results.

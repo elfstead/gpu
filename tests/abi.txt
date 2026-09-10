@@ -28,6 +28,8 @@ vk VkDevice
 vk VkBuffer
 vk VkDeviceMemory
 vk VkQueue
+vk VkFence
+vk VkFenceCreateInfo sType pNext flags
 vk VkShaderModule
 vk VkPipeline
 vk VkPipelineLayout

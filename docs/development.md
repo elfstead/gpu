@@ -23,6 +23,12 @@ needs neither the headers submodule nor Clang/libclang. The second builds and ru
 requires a Vulkan 1.2 device with buffer device addresses and a compute queue.
 It verifies upload → dispatch → blocking completion → readback, including repeated
 dispatches and releasing parent handles before using their children.
+`cargo xtask gpu-tests` runs the Vulkan-backed Rust tests, including asynchronous
+batch lifetimes, dependencies across submissions, and injected preparation,
+submission, and wait errors. Like the C runner, it fails on Vulkan validation
+errors even when the test process exits successfully. To enable synchronization
+validation, set `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and
+`VK_LAYER_VALIDATE_SYNC=1` (requires installed validation layers).
 `CC` may select a C compiler executable. Test tools currently use the repository's
 `target/` directory; leave `CARGO_TARGET_DIR` unset.
 
@@ -103,6 +109,8 @@ recoverable API errors.
 
 The [execution experiment](execution.md) now exposes allocation → upload → compute
 dispatch → completion → readback through C as well as testing the Rust backend.
+The [batch contract](batches.md) extends this with explicit dependencies and
+one-shot asynchronous submissions; the blocking helper uses that implementation.
 Graphics shares those foundations; this prototype does not
 yet settle the graphics profile, shader language, executable format, or ML profile.
 
