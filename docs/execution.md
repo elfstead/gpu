@@ -1,8 +1,10 @@
-# First execution experiment
+# Linear memory and compute baseline
 
 The synchronous experiment below now runs on the [one-shot batch implementation](batches.md).
 The asynchronous API separates recording, submission, and completion; this page
-describes the original blocking convenience path and its buffer/shader baseline.
+describes the implemented buffer/shader baseline and its blocking convenience example.
+See [the design overview](design.md) for direction and [the experiment ledger](experiments.md)
+for the current evidence and gaps.
 
 The initial Rust round trip allocates one host-visible, GPU-addressable
 buffer, uploads 4099 integers, dispatches `x = x * 3 + 7` twice, makes a partial CPU
@@ -24,7 +26,8 @@ addresses, and a compute queue. No descriptor-heap or matrix extension is requir
 
 ## C API and ownership
 
-The public header now adds three opaque types:
+The baseline uses these opaque types; batches/completions and graphics objects are
+documented in their respective contracts:
 
 | Object | Created from | Operations | Retains |
 |---|---|---|---|
@@ -107,7 +110,7 @@ actual non-coherent cache behavior still needs a device exposing a suitable memo
 type. Tests can exercise the explicit flush/invalidate calls on coherent memory,
 but that is not equivalent to hardware coverage of non-coherent memory.
 
-This is a correctness experiment, not a performance baseline: no device-local
-staging, suballocation, pipeline caching, persistent command pools, or overlapping
-submissions. Its purpose is to expose ownership and visibility decisions before
-growing the public API.
+This is a correctness experiment, not a performance baseline. Linear memory still
+lacks device-local staging and suballocation, and executable/command preparation
+lacks caching and persistent pools. This blocking example does not overlap
+submissions; the asynchronous batch API permits multiple outstanding submissions.

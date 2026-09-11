@@ -1,11 +1,10 @@
 # One-shot asynchronous batches
 
-This is the next execution experiment, not a stable API. It separates recording,
-submission, and completion while keeping one externally serialized queue per
-device and the existing host-visible allocations. Graphics and additional queues
-remain follow-up experiments; the dependency vocabulary below currently covers
-compute accesses. The [offscreen graphics profile](graphics.md) now extends this
-same recording/submission model with raster draws, images, and image readback.
+This is the implemented one-shot submission contract, not a stable API. It separates
+recording, submission, and completion while keeping one externally serialized queue
+per device. The [offscreen graphics profile](graphics.md) uses this same model for
+raster draws, images, and image readback. Additional queues remain future work.
+See [the design overview](design.md) and [experiment ledger](experiments.md).
 
 Run the [C example](../examples/batch.c) with `cargo xtask batch`. It uploads 4099
 integers, dispatches [a producer](../examples/shaders/produce.comp) into an
@@ -100,7 +99,7 @@ an initial compute-read/write → compute-read/write dependency, and a completio
 wait. This preserves its prior synchronous visibility contract. It does not
 authorize host access to buffers still used by later submissions.
 
-## Evidence required
+## Validation coverage
 
 - Two different kernels, an intermediate allocation, an explicit WRITE → READ
   dependency, one submission, and one final CPU wait/readback.
@@ -108,7 +107,7 @@ authorize host access to buffers still used by later submissions.
 - Rejected wrong-device kernels, invalid masks, invalid dispatches, and batch reuse.
 - Empty/discarded batches, repeated waits, and destruction without an explicit wait.
 - Wait-error draining and device-loss behavior, including partial construction.
-- Existing synchronous examples and ABI/binding reproducibility remain passing.
+- Regression checks for synchronous examples and ABI/binding reproducibility.
 
 Not included in this first compute slice: completion polling/timeouts, reusable
 recordings, multiple queues, device-local staging, or tensor semantics. The graphics
