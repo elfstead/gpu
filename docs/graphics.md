@@ -3,6 +3,8 @@
 This narrow optional profile tests shared allocation, argument, submission, and
 completion rules. It does not define a complete graphics API or add presentation.
 
+Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
+
 ## Device and executable
 
 `ogpu_device_create_graphics` requires a single queue family supporting both
@@ -75,9 +77,9 @@ serialization, one-shot state, failure cleanup, and draining-destruction rules a
 
 ## Evidence and limits
 
-The runnable example will generate three vertex positions and a draw record on
-the GPU, draw into a 64×64 target, copy to a readback buffer, and wait once.
-It will check opaque-black background and solid-color interior pixels away from
+The runnable example generates three vertex positions and a draw record on
+the GPU, draws into a 64×64 target, copies to a readback buffer, and waits once.
+It checks opaque-black background and solid-red interior pixels away from
 rasterization boundaries. No CPU readback of vertices or draw arguments is needed.
 
 Tests cover graphics queue selection without breaking compute-only selection,
@@ -93,6 +95,35 @@ that do not require a GPU.
 Not included: windows, surfaces, swapchains, sampling, general image uploads,
 depth/stencil, blending, indexing, mesh shaders, or multiple queues. Classic Vulkan
 render passes/pipelines are backend details, not public objects.
+
+## Shader reproduction and verification
+
+The three checked-in shader binaries were generated with glslang 16.4.0 and
+validated with SPIRV-Tools 1.4.357.0. Normal builds do not invoke a shader compiler.
+The compute root contains two GPU addresses at offsets 0 and 8; the vertex shader
+uses only the first. Positions are three 16-byte-aligned vec4 values. The producer
+runs once and writes the entire 16-byte indirect record, with first_instance = 0.
+
+```sh
+glslangValidator -V --target-env vulkan1.2 examples/shaders/triangle.comp -o examples/shaders/triangle.comp.spv
+glslangValidator -V --target-env vulkan1.2 examples/shaders/triangle.vert -o examples/shaders/triangle.vert.spv
+glslangValidator -V --target-env vulkan1.2 examples/shaders/triangle.frag -o examples/shaders/triangle.frag.spv
+spirv-val --target-env vulkan1.2 examples/shaders/triangle.comp.spv
+spirv-val --target-env vulkan1.2 examples/shaders/triangle.vert.spv
+spirv-val --target-env vulkan1.2 examples/shaders/triangle.frag.spv
+cargo xtask graphics
+cargo xtask gpu-tests
+```
+
+The image checks are correctness evidence, not a performance measurement or proof
+of cross-vendor rasterization equivalence. Actual hardware device loss and arbitrary
+shader faults are not exercised. See [development](development.md) for validation
+layer settings and loader selection.
+
+The C example and Rust graphics/reuse/failure tests have passed locally on the
+RX 5700 XT (RADV) and llvmpipe with synchronization validation enabled. Existing
+compute examples still pass. CI is configured to run the examples, Vulkan-backed
+tests, and SPIR-V validation; local execution is not a claim that hosted CI has run.
 
 Backend references: [indirect draws](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDrawIndirect.html),
 [attachment dependencies](https://docs.vulkan.org/refpages/latest/refpages/source/VkSubpassDependency.html),

@@ -278,6 +278,14 @@ fn batch(root: &Path) -> Result {
     c_execution(root, "batch", &["produce", "consume"])
 }
 
+fn graphics(root: &Path) -> Result {
+    c_execution(
+        root,
+        "graphics",
+        &["triangle.comp", "triangle.vert", "triangle.frag"],
+    )
+}
+
 fn c_execution(root: &Path, name: &str, shaders: &[&str]) -> Result {
     build(root)?;
     let target = root.join("target/debug");
@@ -345,10 +353,11 @@ fn main() -> Result {
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
         Some("batch") if args.len() == 1 => batch(&root),
+        Some("graphics") if args.len() == 1 => graphics(&root),
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | graphics | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

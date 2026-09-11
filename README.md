@@ -4,7 +4,7 @@ A minimal, open GPU interface for graphics, compute, and machine learning, built
 
 Start with [the design document](docs/design.md).
 
-The Rust/C prototype supports device discovery and address-based compute, including
-[asynchronous batches](docs/batches.md). See [building and testing](docs/development.md).
+The Rust/C prototype supports address-based compute and [offscreen graphics](docs/graphics.md)
+in shared asynchronous batches. See [building and testing](docs/development.md).
 
 Licensed under the [MIT License](LICENSE).

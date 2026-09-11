@@ -15,6 +15,7 @@ cargo build --locked
 cargo xtask smoke
 cargo xtask compute
 cargo xtask batch
+cargo xtask graphics
 ```
 
 The first command builds `target/debug/libogpu.so` using checked-in bindings. It
@@ -30,9 +31,16 @@ kernels linked by an explicit memory dependency, one submission, and one final
 wait/readback. See the [batch contract](batches.md) for lifetime rules and shader
 regeneration commands.
 
+`graphics` runs [the offscreen C example](../examples/graphics.c): compute generates
+vertices and indirect arguments, graphics draws a triangle, and the same batch
+copies the target for CPU verification after one wait. It requires a shared
+graphics+compute queue and a supported RGBA8 attachment/readback image. No display
+or presentation system is needed. See the [graphics contract](graphics.md).
+
 `cargo xtask gpu-tests` runs the Vulkan-backed Rust tests, including asynchronous
 batch lifetimes, dependencies across submissions, and injected preparation,
-submission, and wait errors. Like the C runner, it fails on Vulkan validation
+submission, and wait errors, plus graphics image reuse, ownership, and partial
+creation failures. Like the C runner, it fails on Vulkan validation
 errors even when the test process exits successfully. To enable synchronization
 validation, set `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and
 `VK_LAYER_VALIDATE_SYNC=1` (requires installed validation layers).
@@ -75,6 +83,7 @@ cargo xtask smoke
 cargo xtask compute
 cargo xtask batch
 cargo xtask gpu-tests
+cargo xtask graphics
 ```
 
 `bindings` uses **bindgen 0.72.1**, pinned in the Rust tooling crate and Cargo.lock,
@@ -121,8 +130,8 @@ The [execution experiment](execution.md) now exposes allocation → upload → c
 dispatch → completion → readback through C as well as testing the Rust backend.
 The [batch contract](batches.md) extends this with explicit dependencies and
 one-shot asynchronous submissions; the blocking helper uses that implementation.
-Graphics shares those foundations; this prototype does not
-yet settle the graphics profile, shader language, executable format, or ML profile.
+The offscreen graphics experiment now exercises those shared foundations; it does
+not settle a complete graphics profile, shader language, executable format, or ML profile.
 
 The project code is MIT licensed. Khronos headers retain their upstream licenses in
 the submodule; third-party Rust dependencies retain their own licenses.
