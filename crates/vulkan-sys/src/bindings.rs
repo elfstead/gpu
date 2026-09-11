@@ -9,10 +9,12 @@ pub const VK_FALSE: u32 = 0;
 pub const VK_TRUE: u32 = 1;
 pub const VK_WHOLE_SIZE: i32 = -1;
 pub const VK_MAX_PHYSICAL_DEVICE_NAME_SIZE: u32 = 256;
+pub const VK_SUBPASS_EXTERNAL: i32 = -1;
 pub type VkBool32 = u32;
 pub type VkDeviceAddress = u64;
 pub type VkDeviceSize = u64;
 pub type VkFlags = u32;
+pub type VkSampleMask = u32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkInstance_T {
@@ -73,6 +75,12 @@ pub struct VkImage_T {
     _unused: [u8; 0],
 }
 pub type VkImage = *mut VkImage_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageView_T {
+    _unused: [u8; 0],
+}
+pub type VkImageView = *mut VkImageView_T;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkCommandPool_T {
@@ -1681,6 +1689,373 @@ pub type VkSystemAllocationScope = ::std::os::raw::c_uint;
 pub const VkInternalAllocationType_VK_INTERNAL_ALLOCATION_TYPE_EXECUTABLE: VkInternalAllocationType = 0;
 pub const VkInternalAllocationType_VK_INTERNAL_ALLOCATION_TYPE_MAX_ENUM: VkInternalAllocationType = 2147483647;
 pub type VkInternalAllocationType = ::std::os::raw::c_uint;
+pub const VkFormat_VK_FORMAT_UNDEFINED: VkFormat = 0;
+pub const VkFormat_VK_FORMAT_R4G4_UNORM_PACK8: VkFormat = 1;
+pub const VkFormat_VK_FORMAT_R4G4B4A4_UNORM_PACK16: VkFormat = 2;
+pub const VkFormat_VK_FORMAT_B4G4R4A4_UNORM_PACK16: VkFormat = 3;
+pub const VkFormat_VK_FORMAT_R5G6B5_UNORM_PACK16: VkFormat = 4;
+pub const VkFormat_VK_FORMAT_B5G6R5_UNORM_PACK16: VkFormat = 5;
+pub const VkFormat_VK_FORMAT_R5G5B5A1_UNORM_PACK16: VkFormat = 6;
+pub const VkFormat_VK_FORMAT_B5G5R5A1_UNORM_PACK16: VkFormat = 7;
+pub const VkFormat_VK_FORMAT_A1R5G5B5_UNORM_PACK16: VkFormat = 8;
+pub const VkFormat_VK_FORMAT_R8_UNORM: VkFormat = 9;
+pub const VkFormat_VK_FORMAT_R8_SNORM: VkFormat = 10;
+pub const VkFormat_VK_FORMAT_R8_USCALED: VkFormat = 11;
+pub const VkFormat_VK_FORMAT_R8_SSCALED: VkFormat = 12;
+pub const VkFormat_VK_FORMAT_R8_UINT: VkFormat = 13;
+pub const VkFormat_VK_FORMAT_R8_SINT: VkFormat = 14;
+pub const VkFormat_VK_FORMAT_R8_SRGB: VkFormat = 15;
+pub const VkFormat_VK_FORMAT_R8G8_UNORM: VkFormat = 16;
+pub const VkFormat_VK_FORMAT_R8G8_SNORM: VkFormat = 17;
+pub const VkFormat_VK_FORMAT_R8G8_USCALED: VkFormat = 18;
+pub const VkFormat_VK_FORMAT_R8G8_SSCALED: VkFormat = 19;
+pub const VkFormat_VK_FORMAT_R8G8_UINT: VkFormat = 20;
+pub const VkFormat_VK_FORMAT_R8G8_SINT: VkFormat = 21;
+pub const VkFormat_VK_FORMAT_R8G8_SRGB: VkFormat = 22;
+pub const VkFormat_VK_FORMAT_R8G8B8_UNORM: VkFormat = 23;
+pub const VkFormat_VK_FORMAT_R8G8B8_SNORM: VkFormat = 24;
+pub const VkFormat_VK_FORMAT_R8G8B8_USCALED: VkFormat = 25;
+pub const VkFormat_VK_FORMAT_R8G8B8_SSCALED: VkFormat = 26;
+pub const VkFormat_VK_FORMAT_R8G8B8_UINT: VkFormat = 27;
+pub const VkFormat_VK_FORMAT_R8G8B8_SINT: VkFormat = 28;
+pub const VkFormat_VK_FORMAT_R8G8B8_SRGB: VkFormat = 29;
+pub const VkFormat_VK_FORMAT_B8G8R8_UNORM: VkFormat = 30;
+pub const VkFormat_VK_FORMAT_B8G8R8_SNORM: VkFormat = 31;
+pub const VkFormat_VK_FORMAT_B8G8R8_USCALED: VkFormat = 32;
+pub const VkFormat_VK_FORMAT_B8G8R8_SSCALED: VkFormat = 33;
+pub const VkFormat_VK_FORMAT_B8G8R8_UINT: VkFormat = 34;
+pub const VkFormat_VK_FORMAT_B8G8R8_SINT: VkFormat = 35;
+pub const VkFormat_VK_FORMAT_B8G8R8_SRGB: VkFormat = 36;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_UNORM: VkFormat = 37;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_SNORM: VkFormat = 38;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_USCALED: VkFormat = 39;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_SSCALED: VkFormat = 40;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_UINT: VkFormat = 41;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_SINT: VkFormat = 42;
+pub const VkFormat_VK_FORMAT_R8G8B8A8_SRGB: VkFormat = 43;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_UNORM: VkFormat = 44;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_SNORM: VkFormat = 45;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_USCALED: VkFormat = 46;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_SSCALED: VkFormat = 47;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_UINT: VkFormat = 48;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_SINT: VkFormat = 49;
+pub const VkFormat_VK_FORMAT_B8G8R8A8_SRGB: VkFormat = 50;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_UNORM_PACK32: VkFormat = 51;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_SNORM_PACK32: VkFormat = 52;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_USCALED_PACK32: VkFormat = 53;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_SSCALED_PACK32: VkFormat = 54;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_UINT_PACK32: VkFormat = 55;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_SINT_PACK32: VkFormat = 56;
+pub const VkFormat_VK_FORMAT_A8B8G8R8_SRGB_PACK32: VkFormat = 57;
+pub const VkFormat_VK_FORMAT_A2R10G10B10_UNORM_PACK32: VkFormat = 58;
+pub const VkFormat_VK_FORMAT_A2R10G10B10_SNORM_PACK32: VkFormat = 59;
+pub const VkFormat_VK_FORMAT_A2R10G10B10_USCALED_PACK32: VkFormat = 60;
+pub const VkFormat_VK_FORMAT_A2R10G10B10_SSCALED_PACK32: VkFormat = 61;
+pub const VkFormat_VK_FORMAT_A2R10G10B10_UINT_PACK32: VkFormat = 62;
+pub const VkFormat_VK_FORMAT_A2R10G10B10_SINT_PACK32: VkFormat = 63;
+pub const VkFormat_VK_FORMAT_A2B10G10R10_UNORM_PACK32: VkFormat = 64;
+pub const VkFormat_VK_FORMAT_A2B10G10R10_SNORM_PACK32: VkFormat = 65;
+pub const VkFormat_VK_FORMAT_A2B10G10R10_USCALED_PACK32: VkFormat = 66;
+pub const VkFormat_VK_FORMAT_A2B10G10R10_SSCALED_PACK32: VkFormat = 67;
+pub const VkFormat_VK_FORMAT_A2B10G10R10_UINT_PACK32: VkFormat = 68;
+pub const VkFormat_VK_FORMAT_A2B10G10R10_SINT_PACK32: VkFormat = 69;
+pub const VkFormat_VK_FORMAT_R16_UNORM: VkFormat = 70;
+pub const VkFormat_VK_FORMAT_R16_SNORM: VkFormat = 71;
+pub const VkFormat_VK_FORMAT_R16_USCALED: VkFormat = 72;
+pub const VkFormat_VK_FORMAT_R16_SSCALED: VkFormat = 73;
+pub const VkFormat_VK_FORMAT_R16_UINT: VkFormat = 74;
+pub const VkFormat_VK_FORMAT_R16_SINT: VkFormat = 75;
+pub const VkFormat_VK_FORMAT_R16_SFLOAT: VkFormat = 76;
+pub const VkFormat_VK_FORMAT_R16G16_UNORM: VkFormat = 77;
+pub const VkFormat_VK_FORMAT_R16G16_SNORM: VkFormat = 78;
+pub const VkFormat_VK_FORMAT_R16G16_USCALED: VkFormat = 79;
+pub const VkFormat_VK_FORMAT_R16G16_SSCALED: VkFormat = 80;
+pub const VkFormat_VK_FORMAT_R16G16_UINT: VkFormat = 81;
+pub const VkFormat_VK_FORMAT_R16G16_SINT: VkFormat = 82;
+pub const VkFormat_VK_FORMAT_R16G16_SFLOAT: VkFormat = 83;
+pub const VkFormat_VK_FORMAT_R16G16B16_UNORM: VkFormat = 84;
+pub const VkFormat_VK_FORMAT_R16G16B16_SNORM: VkFormat = 85;
+pub const VkFormat_VK_FORMAT_R16G16B16_USCALED: VkFormat = 86;
+pub const VkFormat_VK_FORMAT_R16G16B16_SSCALED: VkFormat = 87;
+pub const VkFormat_VK_FORMAT_R16G16B16_UINT: VkFormat = 88;
+pub const VkFormat_VK_FORMAT_R16G16B16_SINT: VkFormat = 89;
+pub const VkFormat_VK_FORMAT_R16G16B16_SFLOAT: VkFormat = 90;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_UNORM: VkFormat = 91;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_SNORM: VkFormat = 92;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_USCALED: VkFormat = 93;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_SSCALED: VkFormat = 94;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_UINT: VkFormat = 95;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_SINT: VkFormat = 96;
+pub const VkFormat_VK_FORMAT_R16G16B16A16_SFLOAT: VkFormat = 97;
+pub const VkFormat_VK_FORMAT_R32_UINT: VkFormat = 98;
+pub const VkFormat_VK_FORMAT_R32_SINT: VkFormat = 99;
+pub const VkFormat_VK_FORMAT_R32_SFLOAT: VkFormat = 100;
+pub const VkFormat_VK_FORMAT_R32G32_UINT: VkFormat = 101;
+pub const VkFormat_VK_FORMAT_R32G32_SINT: VkFormat = 102;
+pub const VkFormat_VK_FORMAT_R32G32_SFLOAT: VkFormat = 103;
+pub const VkFormat_VK_FORMAT_R32G32B32_UINT: VkFormat = 104;
+pub const VkFormat_VK_FORMAT_R32G32B32_SINT: VkFormat = 105;
+pub const VkFormat_VK_FORMAT_R32G32B32_SFLOAT: VkFormat = 106;
+pub const VkFormat_VK_FORMAT_R32G32B32A32_UINT: VkFormat = 107;
+pub const VkFormat_VK_FORMAT_R32G32B32A32_SINT: VkFormat = 108;
+pub const VkFormat_VK_FORMAT_R32G32B32A32_SFLOAT: VkFormat = 109;
+pub const VkFormat_VK_FORMAT_R64_UINT: VkFormat = 110;
+pub const VkFormat_VK_FORMAT_R64_SINT: VkFormat = 111;
+pub const VkFormat_VK_FORMAT_R64_SFLOAT: VkFormat = 112;
+pub const VkFormat_VK_FORMAT_R64G64_UINT: VkFormat = 113;
+pub const VkFormat_VK_FORMAT_R64G64_SINT: VkFormat = 114;
+pub const VkFormat_VK_FORMAT_R64G64_SFLOAT: VkFormat = 115;
+pub const VkFormat_VK_FORMAT_R64G64B64_UINT: VkFormat = 116;
+pub const VkFormat_VK_FORMAT_R64G64B64_SINT: VkFormat = 117;
+pub const VkFormat_VK_FORMAT_R64G64B64_SFLOAT: VkFormat = 118;
+pub const VkFormat_VK_FORMAT_R64G64B64A64_UINT: VkFormat = 119;
+pub const VkFormat_VK_FORMAT_R64G64B64A64_SINT: VkFormat = 120;
+pub const VkFormat_VK_FORMAT_R64G64B64A64_SFLOAT: VkFormat = 121;
+pub const VkFormat_VK_FORMAT_B10G11R11_UFLOAT_PACK32: VkFormat = 122;
+pub const VkFormat_VK_FORMAT_E5B9G9R9_UFLOAT_PACK32: VkFormat = 123;
+pub const VkFormat_VK_FORMAT_D16_UNORM: VkFormat = 124;
+pub const VkFormat_VK_FORMAT_X8_D24_UNORM_PACK32: VkFormat = 125;
+pub const VkFormat_VK_FORMAT_D32_SFLOAT: VkFormat = 126;
+pub const VkFormat_VK_FORMAT_S8_UINT: VkFormat = 127;
+pub const VkFormat_VK_FORMAT_D16_UNORM_S8_UINT: VkFormat = 128;
+pub const VkFormat_VK_FORMAT_D24_UNORM_S8_UINT: VkFormat = 129;
+pub const VkFormat_VK_FORMAT_D32_SFLOAT_S8_UINT: VkFormat = 130;
+pub const VkFormat_VK_FORMAT_BC1_RGB_UNORM_BLOCK: VkFormat = 131;
+pub const VkFormat_VK_FORMAT_BC1_RGB_SRGB_BLOCK: VkFormat = 132;
+pub const VkFormat_VK_FORMAT_BC1_RGBA_UNORM_BLOCK: VkFormat = 133;
+pub const VkFormat_VK_FORMAT_BC1_RGBA_SRGB_BLOCK: VkFormat = 134;
+pub const VkFormat_VK_FORMAT_BC2_UNORM_BLOCK: VkFormat = 135;
+pub const VkFormat_VK_FORMAT_BC2_SRGB_BLOCK: VkFormat = 136;
+pub const VkFormat_VK_FORMAT_BC3_UNORM_BLOCK: VkFormat = 137;
+pub const VkFormat_VK_FORMAT_BC3_SRGB_BLOCK: VkFormat = 138;
+pub const VkFormat_VK_FORMAT_BC4_UNORM_BLOCK: VkFormat = 139;
+pub const VkFormat_VK_FORMAT_BC4_SNORM_BLOCK: VkFormat = 140;
+pub const VkFormat_VK_FORMAT_BC5_UNORM_BLOCK: VkFormat = 141;
+pub const VkFormat_VK_FORMAT_BC5_SNORM_BLOCK: VkFormat = 142;
+pub const VkFormat_VK_FORMAT_BC6H_UFLOAT_BLOCK: VkFormat = 143;
+pub const VkFormat_VK_FORMAT_BC6H_SFLOAT_BLOCK: VkFormat = 144;
+pub const VkFormat_VK_FORMAT_BC7_UNORM_BLOCK: VkFormat = 145;
+pub const VkFormat_VK_FORMAT_BC7_SRGB_BLOCK: VkFormat = 146;
+pub const VkFormat_VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK: VkFormat = 147;
+pub const VkFormat_VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK: VkFormat = 148;
+pub const VkFormat_VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK: VkFormat = 149;
+pub const VkFormat_VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK: VkFormat = 150;
+pub const VkFormat_VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK: VkFormat = 151;
+pub const VkFormat_VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: VkFormat = 152;
+pub const VkFormat_VK_FORMAT_EAC_R11_UNORM_BLOCK: VkFormat = 153;
+pub const VkFormat_VK_FORMAT_EAC_R11_SNORM_BLOCK: VkFormat = 154;
+pub const VkFormat_VK_FORMAT_EAC_R11G11_UNORM_BLOCK: VkFormat = 155;
+pub const VkFormat_VK_FORMAT_EAC_R11G11_SNORM_BLOCK: VkFormat = 156;
+pub const VkFormat_VK_FORMAT_ASTC_4x4_UNORM_BLOCK: VkFormat = 157;
+pub const VkFormat_VK_FORMAT_ASTC_4x4_SRGB_BLOCK: VkFormat = 158;
+pub const VkFormat_VK_FORMAT_ASTC_5x4_UNORM_BLOCK: VkFormat = 159;
+pub const VkFormat_VK_FORMAT_ASTC_5x4_SRGB_BLOCK: VkFormat = 160;
+pub const VkFormat_VK_FORMAT_ASTC_5x5_UNORM_BLOCK: VkFormat = 161;
+pub const VkFormat_VK_FORMAT_ASTC_5x5_SRGB_BLOCK: VkFormat = 162;
+pub const VkFormat_VK_FORMAT_ASTC_6x5_UNORM_BLOCK: VkFormat = 163;
+pub const VkFormat_VK_FORMAT_ASTC_6x5_SRGB_BLOCK: VkFormat = 164;
+pub const VkFormat_VK_FORMAT_ASTC_6x6_UNORM_BLOCK: VkFormat = 165;
+pub const VkFormat_VK_FORMAT_ASTC_6x6_SRGB_BLOCK: VkFormat = 166;
+pub const VkFormat_VK_FORMAT_ASTC_8x5_UNORM_BLOCK: VkFormat = 167;
+pub const VkFormat_VK_FORMAT_ASTC_8x5_SRGB_BLOCK: VkFormat = 168;
+pub const VkFormat_VK_FORMAT_ASTC_8x6_UNORM_BLOCK: VkFormat = 169;
+pub const VkFormat_VK_FORMAT_ASTC_8x6_SRGB_BLOCK: VkFormat = 170;
+pub const VkFormat_VK_FORMAT_ASTC_8x8_UNORM_BLOCK: VkFormat = 171;
+pub const VkFormat_VK_FORMAT_ASTC_8x8_SRGB_BLOCK: VkFormat = 172;
+pub const VkFormat_VK_FORMAT_ASTC_10x5_UNORM_BLOCK: VkFormat = 173;
+pub const VkFormat_VK_FORMAT_ASTC_10x5_SRGB_BLOCK: VkFormat = 174;
+pub const VkFormat_VK_FORMAT_ASTC_10x6_UNORM_BLOCK: VkFormat = 175;
+pub const VkFormat_VK_FORMAT_ASTC_10x6_SRGB_BLOCK: VkFormat = 176;
+pub const VkFormat_VK_FORMAT_ASTC_10x8_UNORM_BLOCK: VkFormat = 177;
+pub const VkFormat_VK_FORMAT_ASTC_10x8_SRGB_BLOCK: VkFormat = 178;
+pub const VkFormat_VK_FORMAT_ASTC_10x10_UNORM_BLOCK: VkFormat = 179;
+pub const VkFormat_VK_FORMAT_ASTC_10x10_SRGB_BLOCK: VkFormat = 180;
+pub const VkFormat_VK_FORMAT_ASTC_12x10_UNORM_BLOCK: VkFormat = 181;
+pub const VkFormat_VK_FORMAT_ASTC_12x10_SRGB_BLOCK: VkFormat = 182;
+pub const VkFormat_VK_FORMAT_ASTC_12x12_UNORM_BLOCK: VkFormat = 183;
+pub const VkFormat_VK_FORMAT_ASTC_12x12_SRGB_BLOCK: VkFormat = 184;
+pub const VkFormat_VK_FORMAT_G8B8G8R8_422_UNORM: VkFormat = 1000156000;
+pub const VkFormat_VK_FORMAT_B8G8R8G8_422_UNORM: VkFormat = 1000156001;
+pub const VkFormat_VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM: VkFormat = 1000156002;
+pub const VkFormat_VK_FORMAT_G8_B8R8_2PLANE_420_UNORM: VkFormat = 1000156003;
+pub const VkFormat_VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM: VkFormat = 1000156004;
+pub const VkFormat_VK_FORMAT_G8_B8R8_2PLANE_422_UNORM: VkFormat = 1000156005;
+pub const VkFormat_VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM: VkFormat = 1000156006;
+pub const VkFormat_VK_FORMAT_R10X6_UNORM_PACK16: VkFormat = 1000156007;
+pub const VkFormat_VK_FORMAT_R10X6G10X6_UNORM_2PACK16: VkFormat = 1000156008;
+pub const VkFormat_VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16: VkFormat = 1000156009;
+pub const VkFormat_VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16: VkFormat = 1000156010;
+pub const VkFormat_VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16: VkFormat = 1000156011;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16: VkFormat = 1000156012;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16: VkFormat = 1000156013;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16: VkFormat = 1000156014;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16: VkFormat = 1000156015;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16: VkFormat = 1000156016;
+pub const VkFormat_VK_FORMAT_R12X4_UNORM_PACK16: VkFormat = 1000156017;
+pub const VkFormat_VK_FORMAT_R12X4G12X4_UNORM_2PACK16: VkFormat = 1000156018;
+pub const VkFormat_VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16: VkFormat = 1000156019;
+pub const VkFormat_VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16: VkFormat = 1000156020;
+pub const VkFormat_VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16: VkFormat = 1000156021;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16: VkFormat = 1000156022;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16: VkFormat = 1000156023;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16: VkFormat = 1000156024;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16: VkFormat = 1000156025;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16: VkFormat = 1000156026;
+pub const VkFormat_VK_FORMAT_G16B16G16R16_422_UNORM: VkFormat = 1000156027;
+pub const VkFormat_VK_FORMAT_B16G16R16G16_422_UNORM: VkFormat = 1000156028;
+pub const VkFormat_VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM: VkFormat = 1000156029;
+pub const VkFormat_VK_FORMAT_G16_B16R16_2PLANE_420_UNORM: VkFormat = 1000156030;
+pub const VkFormat_VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM: VkFormat = 1000156031;
+pub const VkFormat_VK_FORMAT_G16_B16R16_2PLANE_422_UNORM: VkFormat = 1000156032;
+pub const VkFormat_VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM: VkFormat = 1000156033;
+pub const VkFormat_VK_FORMAT_G8_B8R8_2PLANE_444_UNORM: VkFormat = 1000330000;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16: VkFormat = 1000330001;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16: VkFormat = 1000330002;
+pub const VkFormat_VK_FORMAT_G16_B16R16_2PLANE_444_UNORM: VkFormat = 1000330003;
+pub const VkFormat_VK_FORMAT_A4R4G4B4_UNORM_PACK16: VkFormat = 1000340000;
+pub const VkFormat_VK_FORMAT_A4B4G4R4_UNORM_PACK16: VkFormat = 1000340001;
+pub const VkFormat_VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK: VkFormat = 1000066000;
+pub const VkFormat_VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK: VkFormat = 1000066001;
+pub const VkFormat_VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK: VkFormat = 1000066002;
+pub const VkFormat_VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK: VkFormat = 1000066003;
+pub const VkFormat_VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK: VkFormat = 1000066004;
+pub const VkFormat_VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK: VkFormat = 1000066005;
+pub const VkFormat_VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK: VkFormat = 1000066006;
+pub const VkFormat_VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK: VkFormat = 1000066007;
+pub const VkFormat_VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK: VkFormat = 1000066008;
+pub const VkFormat_VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK: VkFormat = 1000066009;
+pub const VkFormat_VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK: VkFormat = 1000066010;
+pub const VkFormat_VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK: VkFormat = 1000066011;
+pub const VkFormat_VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK: VkFormat = 1000066012;
+pub const VkFormat_VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK: VkFormat = 1000066013;
+pub const VkFormat_VK_FORMAT_A1B5G5R5_UNORM_PACK16: VkFormat = 1000470000;
+pub const VkFormat_VK_FORMAT_A8_UNORM: VkFormat = 1000470001;
+pub const VkFormat_VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG: VkFormat = 1000054000;
+pub const VkFormat_VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG: VkFormat = 1000054001;
+pub const VkFormat_VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG: VkFormat = 1000054002;
+pub const VkFormat_VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG: VkFormat = 1000054003;
+pub const VkFormat_VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG: VkFormat = 1000054004;
+pub const VkFormat_VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG: VkFormat = 1000054005;
+pub const VkFormat_VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG: VkFormat = 1000054006;
+pub const VkFormat_VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: VkFormat = 1000054007;
+pub const VkFormat_VK_FORMAT_ASTC_3x3x3_UNORM_BLOCK_EXT: VkFormat = 1000288000;
+pub const VkFormat_VK_FORMAT_ASTC_3x3x3_SRGB_BLOCK_EXT: VkFormat = 1000288001;
+pub const VkFormat_VK_FORMAT_ASTC_3x3x3_SFLOAT_BLOCK_EXT: VkFormat = 1000288002;
+pub const VkFormat_VK_FORMAT_ASTC_4x3x3_UNORM_BLOCK_EXT: VkFormat = 1000288003;
+pub const VkFormat_VK_FORMAT_ASTC_4x3x3_SRGB_BLOCK_EXT: VkFormat = 1000288004;
+pub const VkFormat_VK_FORMAT_ASTC_4x3x3_SFLOAT_BLOCK_EXT: VkFormat = 1000288005;
+pub const VkFormat_VK_FORMAT_ASTC_4x4x3_UNORM_BLOCK_EXT: VkFormat = 1000288006;
+pub const VkFormat_VK_FORMAT_ASTC_4x4x3_SRGB_BLOCK_EXT: VkFormat = 1000288007;
+pub const VkFormat_VK_FORMAT_ASTC_4x4x3_SFLOAT_BLOCK_EXT: VkFormat = 1000288008;
+pub const VkFormat_VK_FORMAT_ASTC_4x4x4_UNORM_BLOCK_EXT: VkFormat = 1000288009;
+pub const VkFormat_VK_FORMAT_ASTC_4x4x4_SRGB_BLOCK_EXT: VkFormat = 1000288010;
+pub const VkFormat_VK_FORMAT_ASTC_4x4x4_SFLOAT_BLOCK_EXT: VkFormat = 1000288011;
+pub const VkFormat_VK_FORMAT_ASTC_5x4x4_UNORM_BLOCK_EXT: VkFormat = 1000288012;
+pub const VkFormat_VK_FORMAT_ASTC_5x4x4_SRGB_BLOCK_EXT: VkFormat = 1000288013;
+pub const VkFormat_VK_FORMAT_ASTC_5x4x4_SFLOAT_BLOCK_EXT: VkFormat = 1000288014;
+pub const VkFormat_VK_FORMAT_ASTC_5x5x4_UNORM_BLOCK_EXT: VkFormat = 1000288015;
+pub const VkFormat_VK_FORMAT_ASTC_5x5x4_SRGB_BLOCK_EXT: VkFormat = 1000288016;
+pub const VkFormat_VK_FORMAT_ASTC_5x5x4_SFLOAT_BLOCK_EXT: VkFormat = 1000288017;
+pub const VkFormat_VK_FORMAT_ASTC_5x5x5_UNORM_BLOCK_EXT: VkFormat = 1000288018;
+pub const VkFormat_VK_FORMAT_ASTC_5x5x5_SRGB_BLOCK_EXT: VkFormat = 1000288019;
+pub const VkFormat_VK_FORMAT_ASTC_5x5x5_SFLOAT_BLOCK_EXT: VkFormat = 1000288020;
+pub const VkFormat_VK_FORMAT_ASTC_6x5x5_UNORM_BLOCK_EXT: VkFormat = 1000288021;
+pub const VkFormat_VK_FORMAT_ASTC_6x5x5_SRGB_BLOCK_EXT: VkFormat = 1000288022;
+pub const VkFormat_VK_FORMAT_ASTC_6x5x5_SFLOAT_BLOCK_EXT: VkFormat = 1000288023;
+pub const VkFormat_VK_FORMAT_ASTC_6x6x5_UNORM_BLOCK_EXT: VkFormat = 1000288024;
+pub const VkFormat_VK_FORMAT_ASTC_6x6x5_SRGB_BLOCK_EXT: VkFormat = 1000288025;
+pub const VkFormat_VK_FORMAT_ASTC_6x6x5_SFLOAT_BLOCK_EXT: VkFormat = 1000288026;
+pub const VkFormat_VK_FORMAT_ASTC_6x6x6_UNORM_BLOCK_EXT: VkFormat = 1000288027;
+pub const VkFormat_VK_FORMAT_ASTC_6x6x6_SRGB_BLOCK_EXT: VkFormat = 1000288028;
+pub const VkFormat_VK_FORMAT_ASTC_6x6x6_SFLOAT_BLOCK_EXT: VkFormat = 1000288029;
+pub const VkFormat_VK_FORMAT_R8_BOOL_ARM: VkFormat = 1000460000;
+pub const VkFormat_VK_FORMAT_R16_SFLOAT_FPENCODING_BFLOAT16_ARM: VkFormat = 1000460001;
+pub const VkFormat_VK_FORMAT_R8_SFLOAT_FPENCODING_FLOAT8E4M3_ARM: VkFormat = 1000460002;
+pub const VkFormat_VK_FORMAT_R8_SFLOAT_FPENCODING_FLOAT8E5M2_ARM: VkFormat = 1000460003;
+pub const VkFormat_VK_FORMAT_R16G16_SFIXED5_NV: VkFormat = 1000464000;
+pub const VkFormat_VK_FORMAT_R10X6_UINT_PACK16_ARM: VkFormat = 1000609000;
+pub const VkFormat_VK_FORMAT_R10X6G10X6_UINT_2PACK16_ARM: VkFormat = 1000609001;
+pub const VkFormat_VK_FORMAT_R10X6G10X6B10X6A10X6_UINT_4PACK16_ARM: VkFormat = 1000609002;
+pub const VkFormat_VK_FORMAT_R12X4_UINT_PACK16_ARM: VkFormat = 1000609003;
+pub const VkFormat_VK_FORMAT_R12X4G12X4_UINT_2PACK16_ARM: VkFormat = 1000609004;
+pub const VkFormat_VK_FORMAT_R12X4G12X4B12X4A12X4_UINT_4PACK16_ARM: VkFormat = 1000609005;
+pub const VkFormat_VK_FORMAT_R14X2_UINT_PACK16_ARM: VkFormat = 1000609006;
+pub const VkFormat_VK_FORMAT_R14X2G14X2_UINT_2PACK16_ARM: VkFormat = 1000609007;
+pub const VkFormat_VK_FORMAT_R14X2G14X2B14X2A14X2_UINT_4PACK16_ARM: VkFormat = 1000609008;
+pub const VkFormat_VK_FORMAT_R14X2_UNORM_PACK16_ARM: VkFormat = 1000609009;
+pub const VkFormat_VK_FORMAT_R14X2G14X2_UNORM_2PACK16_ARM: VkFormat = 1000609010;
+pub const VkFormat_VK_FORMAT_R14X2G14X2B14X2A14X2_UNORM_4PACK16_ARM: VkFormat = 1000609011;
+pub const VkFormat_VK_FORMAT_G14X2_B14X2R14X2_2PLANE_420_UNORM_3PACK16_ARM: VkFormat = 1000609012;
+pub const VkFormat_VK_FORMAT_G14X2_B14X2R14X2_2PLANE_422_UNORM_3PACK16_ARM: VkFormat = 1000609013;
+pub const VkFormat_VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK_EXT: VkFormat = 1000066000;
+pub const VkFormat_VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK_EXT: VkFormat = 1000066001;
+pub const VkFormat_VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK_EXT: VkFormat = 1000066002;
+pub const VkFormat_VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK_EXT: VkFormat = 1000066003;
+pub const VkFormat_VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK_EXT: VkFormat = 1000066004;
+pub const VkFormat_VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK_EXT: VkFormat = 1000066005;
+pub const VkFormat_VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK_EXT: VkFormat = 1000066006;
+pub const VkFormat_VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK_EXT: VkFormat = 1000066007;
+pub const VkFormat_VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK_EXT: VkFormat = 1000066008;
+pub const VkFormat_VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK_EXT: VkFormat = 1000066009;
+pub const VkFormat_VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK_EXT: VkFormat = 1000066010;
+pub const VkFormat_VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK_EXT: VkFormat = 1000066011;
+pub const VkFormat_VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK_EXT: VkFormat = 1000066012;
+pub const VkFormat_VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK_EXT: VkFormat = 1000066013;
+pub const VkFormat_VK_FORMAT_G8B8G8R8_422_UNORM_KHR: VkFormat = 1000156000;
+pub const VkFormat_VK_FORMAT_B8G8R8G8_422_UNORM_KHR: VkFormat = 1000156001;
+pub const VkFormat_VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM_KHR: VkFormat = 1000156002;
+pub const VkFormat_VK_FORMAT_G8_B8R8_2PLANE_420_UNORM_KHR: VkFormat = 1000156003;
+pub const VkFormat_VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM_KHR: VkFormat = 1000156004;
+pub const VkFormat_VK_FORMAT_G8_B8R8_2PLANE_422_UNORM_KHR: VkFormat = 1000156005;
+pub const VkFormat_VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM_KHR: VkFormat = 1000156006;
+pub const VkFormat_VK_FORMAT_R10X6_UNORM_PACK16_KHR: VkFormat = 1000156007;
+pub const VkFormat_VK_FORMAT_R10X6G10X6_UNORM_2PACK16_KHR: VkFormat = 1000156008;
+pub const VkFormat_VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16_KHR: VkFormat = 1000156009;
+pub const VkFormat_VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16_KHR: VkFormat = 1000156010;
+pub const VkFormat_VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16_KHR: VkFormat = 1000156011;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16_KHR: VkFormat = 1000156012;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16_KHR: VkFormat = 1000156013;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16_KHR: VkFormat = 1000156014;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16_KHR: VkFormat = 1000156015;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16_KHR: VkFormat = 1000156016;
+pub const VkFormat_VK_FORMAT_R12X4_UNORM_PACK16_KHR: VkFormat = 1000156017;
+pub const VkFormat_VK_FORMAT_R12X4G12X4_UNORM_2PACK16_KHR: VkFormat = 1000156018;
+pub const VkFormat_VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16_KHR: VkFormat = 1000156019;
+pub const VkFormat_VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16_KHR: VkFormat = 1000156020;
+pub const VkFormat_VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16_KHR: VkFormat = 1000156021;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16_KHR: VkFormat = 1000156022;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16_KHR: VkFormat = 1000156023;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16_KHR: VkFormat = 1000156024;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16_KHR: VkFormat = 1000156025;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16_KHR: VkFormat = 1000156026;
+pub const VkFormat_VK_FORMAT_G16B16G16R16_422_UNORM_KHR: VkFormat = 1000156027;
+pub const VkFormat_VK_FORMAT_B16G16R16G16_422_UNORM_KHR: VkFormat = 1000156028;
+pub const VkFormat_VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM_KHR: VkFormat = 1000156029;
+pub const VkFormat_VK_FORMAT_G16_B16R16_2PLANE_420_UNORM_KHR: VkFormat = 1000156030;
+pub const VkFormat_VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM_KHR: VkFormat = 1000156031;
+pub const VkFormat_VK_FORMAT_G16_B16R16_2PLANE_422_UNORM_KHR: VkFormat = 1000156032;
+pub const VkFormat_VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM_KHR: VkFormat = 1000156033;
+pub const VkFormat_VK_FORMAT_G8_B8R8_2PLANE_444_UNORM_EXT: VkFormat = 1000330000;
+pub const VkFormat_VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16_EXT: VkFormat = 1000330001;
+pub const VkFormat_VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16_EXT: VkFormat = 1000330002;
+pub const VkFormat_VK_FORMAT_G16_B16R16_2PLANE_444_UNORM_EXT: VkFormat = 1000330003;
+pub const VkFormat_VK_FORMAT_A4R4G4B4_UNORM_PACK16_EXT: VkFormat = 1000340000;
+pub const VkFormat_VK_FORMAT_A4B4G4R4_UNORM_PACK16_EXT: VkFormat = 1000340001;
+pub const VkFormat_VK_FORMAT_R16G16_S10_5_NV: VkFormat = 1000464000;
+pub const VkFormat_VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR: VkFormat = 1000470000;
+pub const VkFormat_VK_FORMAT_A8_UNORM_KHR: VkFormat = 1000470001;
+pub const VkFormat_VK_FORMAT_MAX_ENUM: VkFormat = 2147483647;
+pub type VkFormat = ::std::os::raw::c_uint;
+pub const VkImageTiling_VK_IMAGE_TILING_OPTIMAL: VkImageTiling = 0;
+pub const VkImageTiling_VK_IMAGE_TILING_LINEAR: VkImageTiling = 1;
+pub const VkImageTiling_VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT: VkImageTiling = 1000158000;
+pub const VkImageTiling_VK_IMAGE_TILING_MAX_ENUM: VkImageTiling = 2147483647;
+pub type VkImageTiling = ::std::os::raw::c_uint;
+pub const VkImageType_VK_IMAGE_TYPE_1D: VkImageType = 0;
+pub const VkImageType_VK_IMAGE_TYPE_2D: VkImageType = 1;
+pub const VkImageType_VK_IMAGE_TYPE_3D: VkImageType = 2;
+pub const VkImageType_VK_IMAGE_TYPE_MAX_ENUM: VkImageType = 2147483647;
+pub type VkImageType = ::std::os::raw::c_uint;
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_OTHER: VkPhysicalDeviceType = 0;
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: VkPhysicalDeviceType = 1;
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: VkPhysicalDeviceType = 2;
@@ -1736,10 +2111,38 @@ pub const VkImageLayout_VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR: VkImageLayout = 1
 pub const VkImageLayout_VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR: VkImageLayout = 1000314001;
 pub const VkImageLayout_VK_IMAGE_LAYOUT_MAX_ENUM: VkImageLayout = 2147483647;
 pub type VkImageLayout = ::std::os::raw::c_uint;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_IDENTITY: VkComponentSwizzle = 0;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_ZERO: VkComponentSwizzle = 1;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_ONE: VkComponentSwizzle = 2;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_R: VkComponentSwizzle = 3;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_G: VkComponentSwizzle = 4;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_B: VkComponentSwizzle = 5;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_A: VkComponentSwizzle = 6;
+pub const VkComponentSwizzle_VK_COMPONENT_SWIZZLE_MAX_ENUM: VkComponentSwizzle = 2147483647;
+pub type VkComponentSwizzle = ::std::os::raw::c_uint;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_1D: VkImageViewType = 0;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_2D: VkImageViewType = 1;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_3D: VkImageViewType = 2;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_CUBE: VkImageViewType = 3;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_1D_ARRAY: VkImageViewType = 4;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_2D_ARRAY: VkImageViewType = 5;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY: VkImageViewType = 6;
+pub const VkImageViewType_VK_IMAGE_VIEW_TYPE_MAX_ENUM: VkImageViewType = 2147483647;
+pub type VkImageViewType = ::std::os::raw::c_uint;
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY: VkCommandBufferLevel = 0;
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_SECONDARY: VkCommandBufferLevel = 1;
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_MAX_ENUM: VkCommandBufferLevel = 2147483647;
 pub type VkCommandBufferLevel = ::std::os::raw::c_uint;
+pub const VkCompareOp_VK_COMPARE_OP_NEVER: VkCompareOp = 0;
+pub const VkCompareOp_VK_COMPARE_OP_LESS: VkCompareOp = 1;
+pub const VkCompareOp_VK_COMPARE_OP_EQUAL: VkCompareOp = 2;
+pub const VkCompareOp_VK_COMPARE_OP_LESS_OR_EQUAL: VkCompareOp = 3;
+pub const VkCompareOp_VK_COMPARE_OP_GREATER: VkCompareOp = 4;
+pub const VkCompareOp_VK_COMPARE_OP_NOT_EQUAL: VkCompareOp = 5;
+pub const VkCompareOp_VK_COMPARE_OP_GREATER_OR_EQUAL: VkCompareOp = 6;
+pub const VkCompareOp_VK_COMPARE_OP_ALWAYS: VkCompareOp = 7;
+pub const VkCompareOp_VK_COMPARE_OP_MAX_ENUM: VkCompareOp = 2147483647;
+pub type VkCompareOp = ::std::os::raw::c_uint;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS: VkPipelineBindPoint = 0;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE: VkPipelineBindPoint = 1;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: VkPipelineBindPoint = 1000165000;
@@ -1748,7 +2151,290 @@ pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_DATA_GRAPH_ARM: VkPipelineB
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_RAY_TRACING_NV: VkPipelineBindPoint = 1000165000;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_MAX_ENUM: VkPipelineBindPoint = 2147483647;
 pub type VkPipelineBindPoint = ::std::os::raw::c_uint;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ZERO: VkBlendFactor = 0;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE: VkBlendFactor = 1;
+pub const VkBlendFactor_VK_BLEND_FACTOR_SRC_COLOR: VkBlendFactor = 2;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR: VkBlendFactor = 3;
+pub const VkBlendFactor_VK_BLEND_FACTOR_DST_COLOR: VkBlendFactor = 4;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR: VkBlendFactor = 5;
+pub const VkBlendFactor_VK_BLEND_FACTOR_SRC_ALPHA: VkBlendFactor = 6;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA: VkBlendFactor = 7;
+pub const VkBlendFactor_VK_BLEND_FACTOR_DST_ALPHA: VkBlendFactor = 8;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA: VkBlendFactor = 9;
+pub const VkBlendFactor_VK_BLEND_FACTOR_CONSTANT_COLOR: VkBlendFactor = 10;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR: VkBlendFactor = 11;
+pub const VkBlendFactor_VK_BLEND_FACTOR_CONSTANT_ALPHA: VkBlendFactor = 12;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA: VkBlendFactor = 13;
+pub const VkBlendFactor_VK_BLEND_FACTOR_SRC_ALPHA_SATURATE: VkBlendFactor = 14;
+pub const VkBlendFactor_VK_BLEND_FACTOR_SRC1_COLOR: VkBlendFactor = 15;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR: VkBlendFactor = 16;
+pub const VkBlendFactor_VK_BLEND_FACTOR_SRC1_ALPHA: VkBlendFactor = 17;
+pub const VkBlendFactor_VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA: VkBlendFactor = 18;
+pub const VkBlendFactor_VK_BLEND_FACTOR_MAX_ENUM: VkBlendFactor = 2147483647;
+pub type VkBlendFactor = ::std::os::raw::c_uint;
+pub const VkBlendOp_VK_BLEND_OP_ADD: VkBlendOp = 0;
+pub const VkBlendOp_VK_BLEND_OP_SUBTRACT: VkBlendOp = 1;
+pub const VkBlendOp_VK_BLEND_OP_REVERSE_SUBTRACT: VkBlendOp = 2;
+pub const VkBlendOp_VK_BLEND_OP_MIN: VkBlendOp = 3;
+pub const VkBlendOp_VK_BLEND_OP_MAX: VkBlendOp = 4;
+pub const VkBlendOp_VK_BLEND_OP_ZERO_EXT: VkBlendOp = 1000148000;
+pub const VkBlendOp_VK_BLEND_OP_SRC_EXT: VkBlendOp = 1000148001;
+pub const VkBlendOp_VK_BLEND_OP_DST_EXT: VkBlendOp = 1000148002;
+pub const VkBlendOp_VK_BLEND_OP_SRC_OVER_EXT: VkBlendOp = 1000148003;
+pub const VkBlendOp_VK_BLEND_OP_DST_OVER_EXT: VkBlendOp = 1000148004;
+pub const VkBlendOp_VK_BLEND_OP_SRC_IN_EXT: VkBlendOp = 1000148005;
+pub const VkBlendOp_VK_BLEND_OP_DST_IN_EXT: VkBlendOp = 1000148006;
+pub const VkBlendOp_VK_BLEND_OP_SRC_OUT_EXT: VkBlendOp = 1000148007;
+pub const VkBlendOp_VK_BLEND_OP_DST_OUT_EXT: VkBlendOp = 1000148008;
+pub const VkBlendOp_VK_BLEND_OP_SRC_ATOP_EXT: VkBlendOp = 1000148009;
+pub const VkBlendOp_VK_BLEND_OP_DST_ATOP_EXT: VkBlendOp = 1000148010;
+pub const VkBlendOp_VK_BLEND_OP_XOR_EXT: VkBlendOp = 1000148011;
+pub const VkBlendOp_VK_BLEND_OP_MULTIPLY_EXT: VkBlendOp = 1000148012;
+pub const VkBlendOp_VK_BLEND_OP_SCREEN_EXT: VkBlendOp = 1000148013;
+pub const VkBlendOp_VK_BLEND_OP_OVERLAY_EXT: VkBlendOp = 1000148014;
+pub const VkBlendOp_VK_BLEND_OP_DARKEN_EXT: VkBlendOp = 1000148015;
+pub const VkBlendOp_VK_BLEND_OP_LIGHTEN_EXT: VkBlendOp = 1000148016;
+pub const VkBlendOp_VK_BLEND_OP_COLORDODGE_EXT: VkBlendOp = 1000148017;
+pub const VkBlendOp_VK_BLEND_OP_COLORBURN_EXT: VkBlendOp = 1000148018;
+pub const VkBlendOp_VK_BLEND_OP_HARDLIGHT_EXT: VkBlendOp = 1000148019;
+pub const VkBlendOp_VK_BLEND_OP_SOFTLIGHT_EXT: VkBlendOp = 1000148020;
+pub const VkBlendOp_VK_BLEND_OP_DIFFERENCE_EXT: VkBlendOp = 1000148021;
+pub const VkBlendOp_VK_BLEND_OP_EXCLUSION_EXT: VkBlendOp = 1000148022;
+pub const VkBlendOp_VK_BLEND_OP_INVERT_EXT: VkBlendOp = 1000148023;
+pub const VkBlendOp_VK_BLEND_OP_INVERT_RGB_EXT: VkBlendOp = 1000148024;
+pub const VkBlendOp_VK_BLEND_OP_LINEARDODGE_EXT: VkBlendOp = 1000148025;
+pub const VkBlendOp_VK_BLEND_OP_LINEARBURN_EXT: VkBlendOp = 1000148026;
+pub const VkBlendOp_VK_BLEND_OP_VIVIDLIGHT_EXT: VkBlendOp = 1000148027;
+pub const VkBlendOp_VK_BLEND_OP_LINEARLIGHT_EXT: VkBlendOp = 1000148028;
+pub const VkBlendOp_VK_BLEND_OP_PINLIGHT_EXT: VkBlendOp = 1000148029;
+pub const VkBlendOp_VK_BLEND_OP_HARDMIX_EXT: VkBlendOp = 1000148030;
+pub const VkBlendOp_VK_BLEND_OP_HSL_HUE_EXT: VkBlendOp = 1000148031;
+pub const VkBlendOp_VK_BLEND_OP_HSL_SATURATION_EXT: VkBlendOp = 1000148032;
+pub const VkBlendOp_VK_BLEND_OP_HSL_COLOR_EXT: VkBlendOp = 1000148033;
+pub const VkBlendOp_VK_BLEND_OP_HSL_LUMINOSITY_EXT: VkBlendOp = 1000148034;
+pub const VkBlendOp_VK_BLEND_OP_PLUS_EXT: VkBlendOp = 1000148035;
+pub const VkBlendOp_VK_BLEND_OP_PLUS_CLAMPED_EXT: VkBlendOp = 1000148036;
+pub const VkBlendOp_VK_BLEND_OP_PLUS_CLAMPED_ALPHA_EXT: VkBlendOp = 1000148037;
+pub const VkBlendOp_VK_BLEND_OP_PLUS_DARKER_EXT: VkBlendOp = 1000148038;
+pub const VkBlendOp_VK_BLEND_OP_MINUS_EXT: VkBlendOp = 1000148039;
+pub const VkBlendOp_VK_BLEND_OP_MINUS_CLAMPED_EXT: VkBlendOp = 1000148040;
+pub const VkBlendOp_VK_BLEND_OP_CONTRAST_EXT: VkBlendOp = 1000148041;
+pub const VkBlendOp_VK_BLEND_OP_INVERT_OVG_EXT: VkBlendOp = 1000148042;
+pub const VkBlendOp_VK_BLEND_OP_RED_EXT: VkBlendOp = 1000148043;
+pub const VkBlendOp_VK_BLEND_OP_GREEN_EXT: VkBlendOp = 1000148044;
+pub const VkBlendOp_VK_BLEND_OP_BLUE_EXT: VkBlendOp = 1000148045;
+pub const VkBlendOp_VK_BLEND_OP_MAX_ENUM: VkBlendOp = 2147483647;
+pub type VkBlendOp = ::std::os::raw::c_uint;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT: VkDynamicState = 0;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SCISSOR: VkDynamicState = 1;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LINE_WIDTH: VkDynamicState = 2;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_BIAS: VkDynamicState = 3;
+pub const VkDynamicState_VK_DYNAMIC_STATE_BLEND_CONSTANTS: VkDynamicState = 4;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_BOUNDS: VkDynamicState = 5;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK: VkDynamicState = 6;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_WRITE_MASK: VkDynamicState = 7;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_REFERENCE: VkDynamicState = 8;
+pub const VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE: VkDynamicState = 1000267000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_FRONT_FACE: VkDynamicState = 1000267001;
+pub const VkDynamicState_VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY: VkDynamicState = 1000267002;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT: VkDynamicState = 1000267003;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT: VkDynamicState = 1000267004;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE: VkDynamicState = 1000267005;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE: VkDynamicState = 1000267006;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE: VkDynamicState = 1000267007;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_COMPARE_OP: VkDynamicState = 1000267008;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE: VkDynamicState = 1000267009;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE: VkDynamicState = 1000267010;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP: VkDynamicState = 1000267011;
+pub const VkDynamicState_VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE: VkDynamicState = 1000377001;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE: VkDynamicState = 1000377002;
+pub const VkDynamicState_VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE: VkDynamicState = 1000377004;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LINE_STIPPLE: VkDynamicState = 1000259000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV: VkDynamicState = 1000087000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT: VkDynamicState = 1000099000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DISCARD_RECTANGLE_ENABLE_EXT: VkDynamicState = 1000099001;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DISCARD_RECTANGLE_MODE_EXT: VkDynamicState = 1000099002;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT: VkDynamicState = 1000143000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR: VkDynamicState = 1000347000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV: VkDynamicState = 1000164004;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV: VkDynamicState = 1000164006;
+pub const VkDynamicState_VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_ENABLE_NV: VkDynamicState = 1000205000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV: VkDynamicState = 1000205001;
+pub const VkDynamicState_VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR: VkDynamicState = 1000226000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_EXT: VkDynamicState = 1000352000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT: VkDynamicState = 1000377000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LOGIC_OP_EXT: VkDynamicState = 1000377003;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT: VkDynamicState = 1000381000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT: VkDynamicState = 1000455003;
+pub const VkDynamicState_VK_DYNAMIC_STATE_POLYGON_MODE_EXT: VkDynamicState = 1000455004;
+pub const VkDynamicState_VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT: VkDynamicState = 1000455005;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SAMPLE_MASK_EXT: VkDynamicState = 1000455006;
+pub const VkDynamicState_VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT: VkDynamicState = 1000455007;
+pub const VkDynamicState_VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT: VkDynamicState = 1000455008;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT: VkDynamicState = 1000455009;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT: VkDynamicState = 1000455010;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT: VkDynamicState = 1000455011;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT: VkDynamicState = 1000455012;
+pub const VkDynamicState_VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT: VkDynamicState = 1000455002;
+pub const VkDynamicState_VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT: VkDynamicState = 1000455013;
+pub const VkDynamicState_VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT: VkDynamicState = 1000455014;
+pub const VkDynamicState_VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT: VkDynamicState = 1000455015;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT: VkDynamicState = 1000455016;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT: VkDynamicState = 1000455017;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT: VkDynamicState = 1000455018;
+pub const VkDynamicState_VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT: VkDynamicState = 1000455019;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT: VkDynamicState = 1000455020;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT: VkDynamicState = 1000455021;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT: VkDynamicState = 1000455022;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_ENABLE_NV: VkDynamicState = 1000455023;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_SWIZZLE_NV: VkDynamicState = 1000455024;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_ENABLE_NV: VkDynamicState = 1000455025;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_LOCATION_NV: VkDynamicState = 1000455026;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COVERAGE_MODULATION_MODE_NV: VkDynamicState = 1000455027;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_ENABLE_NV: VkDynamicState = 1000455028;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_NV: VkDynamicState = 1000455029;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SHADING_RATE_IMAGE_ENABLE_NV: VkDynamicState = 1000455030;
+pub const VkDynamicState_VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV: VkDynamicState = 1000455031;
+pub const VkDynamicState_VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV: VkDynamicState = 1000455032;
+pub const VkDynamicState_VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT: VkDynamicState = 1000524000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_CLAMP_RANGE_EXT: VkDynamicState = 1000582000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LINE_STIPPLE_EXT: VkDynamicState = 1000259000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE_EXT: VkDynamicState = 1000267000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_FRONT_FACE_EXT: VkDynamicState = 1000267001;
+pub const VkDynamicState_VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT: VkDynamicState = 1000267002;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT: VkDynamicState = 1000267003;
+pub const VkDynamicState_VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT: VkDynamicState = 1000267004;
+pub const VkDynamicState_VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT: VkDynamicState = 1000267005;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT: VkDynamicState = 1000267006;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT: VkDynamicState = 1000267007;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT: VkDynamicState = 1000267008;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT: VkDynamicState = 1000267009;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT: VkDynamicState = 1000267010;
+pub const VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP_EXT: VkDynamicState = 1000267011;
+pub const VkDynamicState_VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT: VkDynamicState = 1000377001;
+pub const VkDynamicState_VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT: VkDynamicState = 1000377002;
+pub const VkDynamicState_VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT: VkDynamicState = 1000377004;
+pub const VkDynamicState_VK_DYNAMIC_STATE_LINE_STIPPLE_KHR: VkDynamicState = 1000259000;
+pub const VkDynamicState_VK_DYNAMIC_STATE_MAX_ENUM: VkDynamicState = 2147483647;
+pub type VkDynamicState = ::std::os::raw::c_uint;
+pub const VkFrontFace_VK_FRONT_FACE_COUNTER_CLOCKWISE: VkFrontFace = 0;
+pub const VkFrontFace_VK_FRONT_FACE_CLOCKWISE: VkFrontFace = 1;
+pub const VkFrontFace_VK_FRONT_FACE_MAX_ENUM: VkFrontFace = 2147483647;
+pub type VkFrontFace = ::std::os::raw::c_uint;
+pub const VkLogicOp_VK_LOGIC_OP_CLEAR: VkLogicOp = 0;
+pub const VkLogicOp_VK_LOGIC_OP_AND: VkLogicOp = 1;
+pub const VkLogicOp_VK_LOGIC_OP_AND_REVERSE: VkLogicOp = 2;
+pub const VkLogicOp_VK_LOGIC_OP_COPY: VkLogicOp = 3;
+pub const VkLogicOp_VK_LOGIC_OP_AND_INVERTED: VkLogicOp = 4;
+pub const VkLogicOp_VK_LOGIC_OP_NO_OP: VkLogicOp = 5;
+pub const VkLogicOp_VK_LOGIC_OP_XOR: VkLogicOp = 6;
+pub const VkLogicOp_VK_LOGIC_OP_OR: VkLogicOp = 7;
+pub const VkLogicOp_VK_LOGIC_OP_NOR: VkLogicOp = 8;
+pub const VkLogicOp_VK_LOGIC_OP_EQUIVALENT: VkLogicOp = 9;
+pub const VkLogicOp_VK_LOGIC_OP_INVERT: VkLogicOp = 10;
+pub const VkLogicOp_VK_LOGIC_OP_OR_REVERSE: VkLogicOp = 11;
+pub const VkLogicOp_VK_LOGIC_OP_COPY_INVERTED: VkLogicOp = 12;
+pub const VkLogicOp_VK_LOGIC_OP_OR_INVERTED: VkLogicOp = 13;
+pub const VkLogicOp_VK_LOGIC_OP_NAND: VkLogicOp = 14;
+pub const VkLogicOp_VK_LOGIC_OP_SET: VkLogicOp = 15;
+pub const VkLogicOp_VK_LOGIC_OP_MAX_ENUM: VkLogicOp = 2147483647;
+pub type VkLogicOp = ::std::os::raw::c_uint;
+pub const VkStencilOp_VK_STENCIL_OP_KEEP: VkStencilOp = 0;
+pub const VkStencilOp_VK_STENCIL_OP_ZERO: VkStencilOp = 1;
+pub const VkStencilOp_VK_STENCIL_OP_REPLACE: VkStencilOp = 2;
+pub const VkStencilOp_VK_STENCIL_OP_INCREMENT_AND_CLAMP: VkStencilOp = 3;
+pub const VkStencilOp_VK_STENCIL_OP_DECREMENT_AND_CLAMP: VkStencilOp = 4;
+pub const VkStencilOp_VK_STENCIL_OP_INVERT: VkStencilOp = 5;
+pub const VkStencilOp_VK_STENCIL_OP_INCREMENT_AND_WRAP: VkStencilOp = 6;
+pub const VkStencilOp_VK_STENCIL_OP_DECREMENT_AND_WRAP: VkStencilOp = 7;
+pub const VkStencilOp_VK_STENCIL_OP_MAX_ENUM: VkStencilOp = 2147483647;
+pub type VkStencilOp = ::std::os::raw::c_uint;
+pub const VkVertexInputRate_VK_VERTEX_INPUT_RATE_VERTEX: VkVertexInputRate = 0;
+pub const VkVertexInputRate_VK_VERTEX_INPUT_RATE_INSTANCE: VkVertexInputRate = 1;
+pub const VkVertexInputRate_VK_VERTEX_INPUT_RATE_MAX_ENUM: VkVertexInputRate = 2147483647;
+pub type VkVertexInputRate = ::std::os::raw::c_uint;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_POINT_LIST: VkPrimitiveTopology = 0;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_LINE_LIST: VkPrimitiveTopology = 1;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_LINE_STRIP: VkPrimitiveTopology = 2;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST: VkPrimitiveTopology = 3;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP: VkPrimitiveTopology = 4;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN: VkPrimitiveTopology = 5;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY: VkPrimitiveTopology = 6;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY: VkPrimitiveTopology = 7;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY: VkPrimitiveTopology = 8;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY: VkPrimitiveTopology = 9;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_PATCH_LIST: VkPrimitiveTopology = 10;
+pub const VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_MAX_ENUM: VkPrimitiveTopology = 2147483647;
+pub type VkPrimitiveTopology = ::std::os::raw::c_uint;
+pub const VkPolygonMode_VK_POLYGON_MODE_FILL: VkPolygonMode = 0;
+pub const VkPolygonMode_VK_POLYGON_MODE_LINE: VkPolygonMode = 1;
+pub const VkPolygonMode_VK_POLYGON_MODE_POINT: VkPolygonMode = 2;
+pub const VkPolygonMode_VK_POLYGON_MODE_FILL_RECTANGLE_NV: VkPolygonMode = 1000153000;
+pub const VkPolygonMode_VK_POLYGON_MODE_MAX_ENUM: VkPolygonMode = 2147483647;
+pub type VkPolygonMode = ::std::os::raw::c_uint;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_LOAD: VkAttachmentLoadOp = 0;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR: VkAttachmentLoadOp = 1;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_DONT_CARE: VkAttachmentLoadOp = 2;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_NONE: VkAttachmentLoadOp = 1000400000;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_NONE_EXT: VkAttachmentLoadOp = 1000400000;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_NONE_KHR: VkAttachmentLoadOp = 1000400000;
+pub const VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_MAX_ENUM: VkAttachmentLoadOp = 2147483647;
+pub type VkAttachmentLoadOp = ::std::os::raw::c_uint;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_STORE: VkAttachmentStoreOp = 0;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_DONT_CARE: VkAttachmentStoreOp = 1;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE: VkAttachmentStoreOp = 1000301000;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_KHR: VkAttachmentStoreOp = 1000301000;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_QCOM: VkAttachmentStoreOp = 1000301000;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_EXT: VkAttachmentStoreOp = 1000301000;
+pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_MAX_ENUM: VkAttachmentStoreOp = 2147483647;
+pub type VkAttachmentStoreOp = ::std::os::raw::c_uint;
+pub const VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE: VkSubpassContents = 0;
+pub const VkSubpassContents_VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: VkSubpassContents = 1;
+pub const VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR: VkSubpassContents = 1000451000;
+pub const VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT: VkSubpassContents = 1000451000;
+pub const VkSubpassContents_VK_SUBPASS_CONTENTS_MAX_ENUM: VkSubpassContents = 2147483647;
+pub type VkSubpassContents = ::std::os::raw::c_uint;
+pub type VkImageCreateFlags = VkFlags;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT: VkSampleCountFlagBits = 1;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_2_BIT: VkSampleCountFlagBits = 2;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_4_BIT: VkSampleCountFlagBits = 4;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_8_BIT: VkSampleCountFlagBits = 8;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_16_BIT: VkSampleCountFlagBits = 16;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_32_BIT: VkSampleCountFlagBits = 32;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_64_BIT: VkSampleCountFlagBits = 64;
+pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM: VkSampleCountFlagBits = 2147483647;
+pub type VkSampleCountFlagBits = ::std::os::raw::c_uint;
 pub type VkSampleCountFlags = VkFlags;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_SRC_BIT: VkImageUsageFlagBits = 1;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_DST_BIT: VkImageUsageFlagBits = 2;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLED_BIT: VkImageUsageFlagBits = 4;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_STORAGE_BIT: VkImageUsageFlagBits = 8;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT: VkImageUsageFlagBits = 16;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT: VkImageUsageFlagBits = 32;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT: VkImageUsageFlagBits = 64;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT: VkImageUsageFlagBits = 128;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_HOST_TRANSFER_BIT: VkImageUsageFlagBits = 4194304;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR: VkImageUsageFlagBits = 1024;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_DECODE_SRC_BIT_KHR: VkImageUsageFlagBits = 2048;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR: VkImageUsageFlagBits = 4096;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT: VkImageUsageFlagBits = 512;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkImageUsageFlagBits = 256;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_ENCODE_DST_BIT_KHR: VkImageUsageFlagBits = 8192;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_ENCODE_SRC_BIT_KHR: VkImageUsageFlagBits = 16384;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_ENCODE_DPB_BIT_KHR: VkImageUsageFlagBits = 32768;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT: VkImageUsageFlagBits = 524288;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_INVOCATION_MASK_BIT_HUAWEI: VkImageUsageFlagBits = 262144;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLE_WEIGHT_BIT_QCOM: VkImageUsageFlagBits = 1048576;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLE_BLOCK_MATCH_BIT_QCOM: VkImageUsageFlagBits = 2097152;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_TENSOR_ALIASING_BIT_ARM: VkImageUsageFlagBits = 8388608;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_TILE_MEMORY_BIT_QCOM: VkImageUsageFlagBits = 134217728;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_ENCODE_QUANTIZATION_DELTA_MAP_BIT_KHR: VkImageUsageFlagBits = 33554432;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_VIDEO_ENCODE_EMPHASIS_MAP_BIT_KHR: VkImageUsageFlagBits = 67108864;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV: VkImageUsageFlagBits = 256;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT: VkImageUsageFlagBits = 4194304;
+pub const VkImageUsageFlagBits_VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM: VkImageUsageFlagBits = 2147483647;
+pub type VkImageUsageFlagBits = ::std::os::raw::c_uint;
+pub type VkImageUsageFlags = VkFlags;
 pub type VkInstanceCreateFlags = VkFlags;
 pub type VkMemoryHeapFlags = VkFlags;
 pub const VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT: VkMemoryPropertyFlagBits = 1;
@@ -1844,6 +2530,24 @@ pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM: VkPipeli
 pub type VkPipelineStageFlagBits = ::std::os::raw::c_uint;
 pub type VkPipelineStageFlags = VkFlags;
 pub type VkMemoryMapFlags = VkFlags;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT: VkImageAspectFlagBits = 1;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_DEPTH_BIT: VkImageAspectFlagBits = 2;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_STENCIL_BIT: VkImageAspectFlagBits = 4;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_METADATA_BIT: VkImageAspectFlagBits = 8;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_PLANE_0_BIT: VkImageAspectFlagBits = 16;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_PLANE_1_BIT: VkImageAspectFlagBits = 32;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_PLANE_2_BIT: VkImageAspectFlagBits = 64;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_NONE: VkImageAspectFlagBits = 0;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_MEMORY_PLANE_0_BIT_EXT: VkImageAspectFlagBits = 128;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_MEMORY_PLANE_1_BIT_EXT: VkImageAspectFlagBits = 256;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_MEMORY_PLANE_2_BIT_EXT: VkImageAspectFlagBits = 512;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_MEMORY_PLANE_3_BIT_EXT: VkImageAspectFlagBits = 1024;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_PLANE_0_BIT_KHR: VkImageAspectFlagBits = 16;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_PLANE_1_BIT_KHR: VkImageAspectFlagBits = 32;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_PLANE_2_BIT_KHR: VkImageAspectFlagBits = 64;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_NONE_KHR: VkImageAspectFlagBits = 0;
+pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM: VkImageAspectFlagBits = 2147483647;
+pub type VkImageAspectFlagBits = ::std::os::raw::c_uint;
 pub type VkImageAspectFlags = VkFlags;
 pub type VkFenceCreateFlags = VkFlags;
 pub type VkQueryPipelineStatisticFlags = VkFlags;
@@ -1881,6 +2585,7 @@ pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR: V
 pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM: VkBufferUsageFlagBits = 2147483647;
 pub type VkBufferUsageFlagBits = ::std::os::raw::c_uint;
 pub type VkBufferUsageFlags = VkFlags;
+pub type VkImageViewCreateFlags = VkFlags;
 pub const VkAccessFlagBits_VK_ACCESS_INDIRECT_COMMAND_READ_BIT: VkAccessFlagBits = 1;
 pub const VkAccessFlagBits_VK_ACCESS_INDEX_READ_BIT: VkAccessFlagBits = 2;
 pub const VkAccessFlagBits_VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT: VkAccessFlagBits = 4;
@@ -1927,6 +2632,44 @@ pub type VkShaderModuleCreateFlags = VkFlags;
 pub type VkPipelineCreateFlags = VkFlags;
 pub type VkPipelineLayoutCreateFlags = VkFlags;
 pub type VkPipelineShaderStageCreateFlags = VkFlags;
+pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_R_BIT: VkColorComponentFlagBits = 1;
+pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_G_BIT: VkColorComponentFlagBits = 2;
+pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_B_BIT: VkColorComponentFlagBits = 4;
+pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_A_BIT: VkColorComponentFlagBits = 8;
+pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_FLAG_BITS_MAX_ENUM: VkColorComponentFlagBits = 2147483647;
+pub type VkColorComponentFlagBits = ::std::os::raw::c_uint;
+pub type VkColorComponentFlags = VkFlags;
+pub type VkCullModeFlags = VkFlags;
+pub type VkPipelineColorBlendStateCreateFlags = VkFlags;
+pub type VkPipelineDepthStencilStateCreateFlags = VkFlags;
+pub type VkPipelineDynamicStateCreateFlags = VkFlags;
+pub type VkPipelineInputAssemblyStateCreateFlags = VkFlags;
+pub type VkPipelineMultisampleStateCreateFlags = VkFlags;
+pub type VkPipelineRasterizationStateCreateFlags = VkFlags;
+pub type VkPipelineTessellationStateCreateFlags = VkFlags;
+pub type VkPipelineVertexInputStateCreateFlags = VkFlags;
+pub type VkPipelineViewportStateCreateFlags = VkFlags;
+pub type VkAttachmentDescriptionFlags = VkFlags;
+pub type VkFramebufferCreateFlags = VkFlags;
+pub type VkRenderPassCreateFlags = VkFlags;
+pub type VkSubpassDescriptionFlags = VkFlags;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkExtent2D {
+    pub width: u32,
+    pub height: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkExtent2D"][::std::mem::size_of::<VkExtent2D>() - 8usize];
+    ["Alignment of VkExtent2D"][::std::mem::align_of::<VkExtent2D>() - 4usize];
+    [
+        "Offset of field: VkExtent2D::width",
+    ][::std::mem::offset_of!(VkExtent2D, width) - 0usize];
+    [
+        "Offset of field: VkExtent2D::height",
+    ][::std::mem::offset_of!(VkExtent2D, height) - 4usize];
+};
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkExtent3D {
@@ -1947,6 +2690,51 @@ const _: () = {
     [
         "Offset of field: VkExtent3D::depth",
     ][::std::mem::offset_of!(VkExtent3D, depth) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkOffset2D {
+    pub x: i32,
+    pub y: i32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkOffset2D"][::std::mem::size_of::<VkOffset2D>() - 8usize];
+    ["Alignment of VkOffset2D"][::std::mem::align_of::<VkOffset2D>() - 4usize];
+    ["Offset of field: VkOffset2D::x"][::std::mem::offset_of!(VkOffset2D, x) - 0usize];
+    ["Offset of field: VkOffset2D::y"][::std::mem::offset_of!(VkOffset2D, y) - 4usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkOffset3D {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkOffset3D"][::std::mem::size_of::<VkOffset3D>() - 12usize];
+    ["Alignment of VkOffset3D"][::std::mem::align_of::<VkOffset3D>() - 4usize];
+    ["Offset of field: VkOffset3D::x"][::std::mem::offset_of!(VkOffset3D, x) - 0usize];
+    ["Offset of field: VkOffset3D::y"][::std::mem::offset_of!(VkOffset3D, y) - 4usize];
+    ["Offset of field: VkOffset3D::z"][::std::mem::offset_of!(VkOffset3D, z) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkRect2D {
+    pub offset: VkOffset2D,
+    pub extent: VkExtent2D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkRect2D"][::std::mem::size_of::<VkRect2D>() - 16usize];
+    ["Alignment of VkRect2D"][::std::mem::align_of::<VkRect2D>() - 4usize];
+    [
+        "Offset of field: VkRect2D::offset",
+    ][::std::mem::offset_of!(VkRect2D, offset) - 0usize];
+    [
+        "Offset of field: VkRect2D::extent",
+    ][::std::mem::offset_of!(VkRect2D, extent) - 8usize];
 };
 pub type PFN_vkAllocationFunction = ::std::option::Option<
     unsafe extern "C" fn(
@@ -2082,6 +2870,39 @@ impl Default for VkApplicationInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkImageFormatProperties {
+    pub maxExtent: VkExtent3D,
+    pub maxMipLevels: u32,
+    pub maxArrayLayers: u32,
+    pub sampleCounts: VkSampleCountFlags,
+    pub maxResourceSize: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageFormatProperties",
+    ][::std::mem::size_of::<VkImageFormatProperties>() - 32usize];
+    [
+        "Alignment of VkImageFormatProperties",
+    ][::std::mem::align_of::<VkImageFormatProperties>() - 8usize];
+    [
+        "Offset of field: VkImageFormatProperties::maxExtent",
+    ][::std::mem::offset_of!(VkImageFormatProperties, maxExtent) - 0usize];
+    [
+        "Offset of field: VkImageFormatProperties::maxMipLevels",
+    ][::std::mem::offset_of!(VkImageFormatProperties, maxMipLevels) - 12usize];
+    [
+        "Offset of field: VkImageFormatProperties::maxArrayLayers",
+    ][::std::mem::offset_of!(VkImageFormatProperties, maxArrayLayers) - 16usize];
+    [
+        "Offset of field: VkImageFormatProperties::sampleCounts",
+    ][::std::mem::offset_of!(VkImageFormatProperties, sampleCounts) - 20usize];
+    [
+        "Offset of field: VkImageFormatProperties::maxResourceSize",
+    ][::std::mem::offset_of!(VkImageFormatProperties, maxResourceSize) - 24usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkInstanceCreateInfo {
@@ -3489,6 +4310,124 @@ impl Default for VkBufferCreateInfo {
     }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkImageCreateFlags,
+    pub imageType: VkImageType,
+    pub format: VkFormat,
+    pub extent: VkExtent3D,
+    pub mipLevels: u32,
+    pub arrayLayers: u32,
+    pub samples: VkSampleCountFlagBits,
+    pub tiling: VkImageTiling,
+    pub usage: VkImageUsageFlags,
+    pub sharingMode: VkSharingMode,
+    pub queueFamilyIndexCount: u32,
+    pub pQueueFamilyIndices: *const u32,
+    pub initialLayout: VkImageLayout,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkImageCreateInfo"][::std::mem::size_of::<VkImageCreateInfo>() - 88usize];
+    [
+        "Alignment of VkImageCreateInfo",
+    ][::std::mem::align_of::<VkImageCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkImageCreateInfo::sType",
+    ][::std::mem::offset_of!(VkImageCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkImageCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkImageCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkImageCreateInfo::flags",
+    ][::std::mem::offset_of!(VkImageCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkImageCreateInfo::imageType",
+    ][::std::mem::offset_of!(VkImageCreateInfo, imageType) - 20usize];
+    [
+        "Offset of field: VkImageCreateInfo::format",
+    ][::std::mem::offset_of!(VkImageCreateInfo, format) - 24usize];
+    [
+        "Offset of field: VkImageCreateInfo::extent",
+    ][::std::mem::offset_of!(VkImageCreateInfo, extent) - 28usize];
+    [
+        "Offset of field: VkImageCreateInfo::mipLevels",
+    ][::std::mem::offset_of!(VkImageCreateInfo, mipLevels) - 40usize];
+    [
+        "Offset of field: VkImageCreateInfo::arrayLayers",
+    ][::std::mem::offset_of!(VkImageCreateInfo, arrayLayers) - 44usize];
+    [
+        "Offset of field: VkImageCreateInfo::samples",
+    ][::std::mem::offset_of!(VkImageCreateInfo, samples) - 48usize];
+    [
+        "Offset of field: VkImageCreateInfo::tiling",
+    ][::std::mem::offset_of!(VkImageCreateInfo, tiling) - 52usize];
+    [
+        "Offset of field: VkImageCreateInfo::usage",
+    ][::std::mem::offset_of!(VkImageCreateInfo, usage) - 56usize];
+    [
+        "Offset of field: VkImageCreateInfo::sharingMode",
+    ][::std::mem::offset_of!(VkImageCreateInfo, sharingMode) - 60usize];
+    [
+        "Offset of field: VkImageCreateInfo::queueFamilyIndexCount",
+    ][::std::mem::offset_of!(VkImageCreateInfo, queueFamilyIndexCount) - 64usize];
+    [
+        "Offset of field: VkImageCreateInfo::pQueueFamilyIndices",
+    ][::std::mem::offset_of!(VkImageCreateInfo, pQueueFamilyIndices) - 72usize];
+    [
+        "Offset of field: VkImageCreateInfo::initialLayout",
+    ][::std::mem::offset_of!(VkImageCreateInfo, initialLayout) - 80usize];
+};
+impl Default for VkImageCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkComponentMapping {
+    pub r: VkComponentSwizzle,
+    pub g: VkComponentSwizzle,
+    pub b: VkComponentSwizzle,
+    pub a: VkComponentSwizzle,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkComponentMapping",
+    ][::std::mem::size_of::<VkComponentMapping>() - 16usize];
+    [
+        "Alignment of VkComponentMapping",
+    ][::std::mem::align_of::<VkComponentMapping>() - 4usize];
+    [
+        "Offset of field: VkComponentMapping::r",
+    ][::std::mem::offset_of!(VkComponentMapping, r) - 0usize];
+    [
+        "Offset of field: VkComponentMapping::g",
+    ][::std::mem::offset_of!(VkComponentMapping, g) - 4usize];
+    [
+        "Offset of field: VkComponentMapping::b",
+    ][::std::mem::offset_of!(VkComponentMapping, b) - 8usize];
+    [
+        "Offset of field: VkComponentMapping::a",
+    ][::std::mem::offset_of!(VkComponentMapping, a) - 12usize];
+};
+impl Default for VkComponentMapping {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkImageSubresourceRange {
     pub aspectMask: VkImageAspectFlags,
@@ -3521,6 +4460,60 @@ const _: () = {
         "Offset of field: VkImageSubresourceRange::layerCount",
     ][::std::mem::offset_of!(VkImageSubresourceRange, layerCount) - 16usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageViewCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkImageViewCreateFlags,
+    pub image: VkImage,
+    pub viewType: VkImageViewType,
+    pub format: VkFormat,
+    pub components: VkComponentMapping,
+    pub subresourceRange: VkImageSubresourceRange,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageViewCreateInfo",
+    ][::std::mem::size_of::<VkImageViewCreateInfo>() - 80usize];
+    [
+        "Alignment of VkImageViewCreateInfo",
+    ][::std::mem::align_of::<VkImageViewCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::sType",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::flags",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::image",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, image) - 24usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::viewType",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, viewType) - 32usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::format",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, format) - 36usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::components",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, components) - 40usize];
+    [
+        "Offset of field: VkImageViewCreateInfo::subresourceRange",
+    ][::std::mem::offset_of!(VkImageViewCreateInfo, subresourceRange) - 56usize];
+};
+impl Default for VkImageViewCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkCommandPoolCreateInfo {
@@ -3695,6 +4688,70 @@ impl Default for VkCommandBufferBeginInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkImageSubresourceLayers {
+    pub aspectMask: VkImageAspectFlags,
+    pub mipLevel: u32,
+    pub baseArrayLayer: u32,
+    pub layerCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageSubresourceLayers",
+    ][::std::mem::size_of::<VkImageSubresourceLayers>() - 16usize];
+    [
+        "Alignment of VkImageSubresourceLayers",
+    ][::std::mem::align_of::<VkImageSubresourceLayers>() - 4usize];
+    [
+        "Offset of field: VkImageSubresourceLayers::aspectMask",
+    ][::std::mem::offset_of!(VkImageSubresourceLayers, aspectMask) - 0usize];
+    [
+        "Offset of field: VkImageSubresourceLayers::mipLevel",
+    ][::std::mem::offset_of!(VkImageSubresourceLayers, mipLevel) - 4usize];
+    [
+        "Offset of field: VkImageSubresourceLayers::baseArrayLayer",
+    ][::std::mem::offset_of!(VkImageSubresourceLayers, baseArrayLayer) - 8usize];
+    [
+        "Offset of field: VkImageSubresourceLayers::layerCount",
+    ][::std::mem::offset_of!(VkImageSubresourceLayers, layerCount) - 12usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkBufferImageCopy {
+    pub bufferOffset: VkDeviceSize,
+    pub bufferRowLength: u32,
+    pub bufferImageHeight: u32,
+    pub imageSubresource: VkImageSubresourceLayers,
+    pub imageOffset: VkOffset3D,
+    pub imageExtent: VkExtent3D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkBufferImageCopy"][::std::mem::size_of::<VkBufferImageCopy>() - 56usize];
+    [
+        "Alignment of VkBufferImageCopy",
+    ][::std::mem::align_of::<VkBufferImageCopy>() - 8usize];
+    [
+        "Offset of field: VkBufferImageCopy::bufferOffset",
+    ][::std::mem::offset_of!(VkBufferImageCopy, bufferOffset) - 0usize];
+    [
+        "Offset of field: VkBufferImageCopy::bufferRowLength",
+    ][::std::mem::offset_of!(VkBufferImageCopy, bufferRowLength) - 8usize];
+    [
+        "Offset of field: VkBufferImageCopy::bufferImageHeight",
+    ][::std::mem::offset_of!(VkBufferImageCopy, bufferImageHeight) - 12usize];
+    [
+        "Offset of field: VkBufferImageCopy::imageSubresource",
+    ][::std::mem::offset_of!(VkBufferImageCopy, imageSubresource) - 16usize];
+    [
+        "Offset of field: VkBufferImageCopy::imageOffset",
+    ][::std::mem::offset_of!(VkBufferImageCopy, imageOffset) - 32usize];
+    [
+        "Offset of field: VkBufferImageCopy::imageExtent",
+    ][::std::mem::offset_of!(VkBufferImageCopy, imageExtent) - 44usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkBufferMemoryBarrier {
@@ -4131,6 +5188,1309 @@ impl Default for VkPipelineLayoutCreateInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkClearColorValue {
+    pub float32: [f32; 4usize],
+    pub int32: [i32; 4usize],
+    pub uint32: [u32; 4usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkClearColorValue"][::std::mem::size_of::<VkClearColorValue>() - 16usize];
+    [
+        "Alignment of VkClearColorValue",
+    ][::std::mem::align_of::<VkClearColorValue>() - 4usize];
+    [
+        "Offset of field: VkClearColorValue::float32",
+    ][::std::mem::offset_of!(VkClearColorValue, float32) - 0usize];
+    [
+        "Offset of field: VkClearColorValue::int32",
+    ][::std::mem::offset_of!(VkClearColorValue, int32) - 0usize];
+    [
+        "Offset of field: VkClearColorValue::uint32",
+    ][::std::mem::offset_of!(VkClearColorValue, uint32) - 0usize];
+};
+impl Default for VkClearColorValue {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkDrawIndirectCommand {
+    pub vertexCount: u32,
+    pub instanceCount: u32,
+    pub firstVertex: u32,
+    pub firstInstance: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDrawIndirectCommand",
+    ][::std::mem::size_of::<VkDrawIndirectCommand>() - 16usize];
+    [
+        "Alignment of VkDrawIndirectCommand",
+    ][::std::mem::align_of::<VkDrawIndirectCommand>() - 4usize];
+    [
+        "Offset of field: VkDrawIndirectCommand::vertexCount",
+    ][::std::mem::offset_of!(VkDrawIndirectCommand, vertexCount) - 0usize];
+    [
+        "Offset of field: VkDrawIndirectCommand::instanceCount",
+    ][::std::mem::offset_of!(VkDrawIndirectCommand, instanceCount) - 4usize];
+    [
+        "Offset of field: VkDrawIndirectCommand::firstVertex",
+    ][::std::mem::offset_of!(VkDrawIndirectCommand, firstVertex) - 8usize];
+    [
+        "Offset of field: VkDrawIndirectCommand::firstInstance",
+    ][::std::mem::offset_of!(VkDrawIndirectCommand, firstInstance) - 12usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkStencilOpState {
+    pub failOp: VkStencilOp,
+    pub passOp: VkStencilOp,
+    pub depthFailOp: VkStencilOp,
+    pub compareOp: VkCompareOp,
+    pub compareMask: u32,
+    pub writeMask: u32,
+    pub reference: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkStencilOpState"][::std::mem::size_of::<VkStencilOpState>() - 28usize];
+    [
+        "Alignment of VkStencilOpState",
+    ][::std::mem::align_of::<VkStencilOpState>() - 4usize];
+    [
+        "Offset of field: VkStencilOpState::failOp",
+    ][::std::mem::offset_of!(VkStencilOpState, failOp) - 0usize];
+    [
+        "Offset of field: VkStencilOpState::passOp",
+    ][::std::mem::offset_of!(VkStencilOpState, passOp) - 4usize];
+    [
+        "Offset of field: VkStencilOpState::depthFailOp",
+    ][::std::mem::offset_of!(VkStencilOpState, depthFailOp) - 8usize];
+    [
+        "Offset of field: VkStencilOpState::compareOp",
+    ][::std::mem::offset_of!(VkStencilOpState, compareOp) - 12usize];
+    [
+        "Offset of field: VkStencilOpState::compareMask",
+    ][::std::mem::offset_of!(VkStencilOpState, compareMask) - 16usize];
+    [
+        "Offset of field: VkStencilOpState::writeMask",
+    ][::std::mem::offset_of!(VkStencilOpState, writeMask) - 20usize];
+    [
+        "Offset of field: VkStencilOpState::reference",
+    ][::std::mem::offset_of!(VkStencilOpState, reference) - 24usize];
+};
+impl Default for VkStencilOpState {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkVertexInputAttributeDescription {
+    pub location: u32,
+    pub binding: u32,
+    pub format: VkFormat,
+    pub offset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkVertexInputAttributeDescription",
+    ][::std::mem::size_of::<VkVertexInputAttributeDescription>() - 16usize];
+    [
+        "Alignment of VkVertexInputAttributeDescription",
+    ][::std::mem::align_of::<VkVertexInputAttributeDescription>() - 4usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription::location",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription, location) - 0usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription::binding",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription, binding) - 4usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription::format",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription, format) - 8usize];
+    [
+        "Offset of field: VkVertexInputAttributeDescription::offset",
+    ][::std::mem::offset_of!(VkVertexInputAttributeDescription, offset) - 12usize];
+};
+impl Default for VkVertexInputAttributeDescription {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkVertexInputBindingDescription {
+    pub binding: u32,
+    pub stride: u32,
+    pub inputRate: VkVertexInputRate,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkVertexInputBindingDescription",
+    ][::std::mem::size_of::<VkVertexInputBindingDescription>() - 12usize];
+    [
+        "Alignment of VkVertexInputBindingDescription",
+    ][::std::mem::align_of::<VkVertexInputBindingDescription>() - 4usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription::binding",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription, binding) - 0usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription::stride",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription, stride) - 4usize];
+    [
+        "Offset of field: VkVertexInputBindingDescription::inputRate",
+    ][::std::mem::offset_of!(VkVertexInputBindingDescription, inputRate) - 8usize];
+};
+impl Default for VkVertexInputBindingDescription {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkViewport {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub minDepth: f32,
+    pub maxDepth: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkViewport"][::std::mem::size_of::<VkViewport>() - 24usize];
+    ["Alignment of VkViewport"][::std::mem::align_of::<VkViewport>() - 4usize];
+    ["Offset of field: VkViewport::x"][::std::mem::offset_of!(VkViewport, x) - 0usize];
+    ["Offset of field: VkViewport::y"][::std::mem::offset_of!(VkViewport, y) - 4usize];
+    [
+        "Offset of field: VkViewport::width",
+    ][::std::mem::offset_of!(VkViewport, width) - 8usize];
+    [
+        "Offset of field: VkViewport::height",
+    ][::std::mem::offset_of!(VkViewport, height) - 12usize];
+    [
+        "Offset of field: VkViewport::minDepth",
+    ][::std::mem::offset_of!(VkViewport, minDepth) - 16usize];
+    [
+        "Offset of field: VkViewport::maxDepth",
+    ][::std::mem::offset_of!(VkViewport, maxDepth) - 20usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineColorBlendAttachmentState {
+    pub blendEnable: VkBool32,
+    pub srcColorBlendFactor: VkBlendFactor,
+    pub dstColorBlendFactor: VkBlendFactor,
+    pub colorBlendOp: VkBlendOp,
+    pub srcAlphaBlendFactor: VkBlendFactor,
+    pub dstAlphaBlendFactor: VkBlendFactor,
+    pub alphaBlendOp: VkBlendOp,
+    pub colorWriteMask: VkColorComponentFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineColorBlendAttachmentState",
+    ][::std::mem::size_of::<VkPipelineColorBlendAttachmentState>() - 32usize];
+    [
+        "Alignment of VkPipelineColorBlendAttachmentState",
+    ][::std::mem::align_of::<VkPipelineColorBlendAttachmentState>() - 4usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::blendEnable",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, blendEnable) - 0usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::srcColorBlendFactor",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, srcColorBlendFactor)
+        - 4usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::dstColorBlendFactor",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, dstColorBlendFactor)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::colorBlendOp",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, colorBlendOp)
+        - 12usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::srcAlphaBlendFactor",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, srcAlphaBlendFactor)
+        - 16usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::dstAlphaBlendFactor",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, dstAlphaBlendFactor)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::alphaBlendOp",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, alphaBlendOp)
+        - 24usize];
+    [
+        "Offset of field: VkPipelineColorBlendAttachmentState::colorWriteMask",
+    ][::std::mem::offset_of!(VkPipelineColorBlendAttachmentState, colorWriteMask)
+        - 28usize];
+};
+impl Default for VkPipelineColorBlendAttachmentState {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineColorBlendStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineColorBlendStateCreateFlags,
+    pub logicOpEnable: VkBool32,
+    pub logicOp: VkLogicOp,
+    pub attachmentCount: u32,
+    pub pAttachments: *const VkPipelineColorBlendAttachmentState,
+    pub blendConstants: [f32; 4usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineColorBlendStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineColorBlendStateCreateInfo>() - 56usize];
+    [
+        "Alignment of VkPipelineColorBlendStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineColorBlendStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::logicOpEnable",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, logicOpEnable)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::logicOp",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, logicOp) - 24usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::attachmentCount",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, attachmentCount)
+        - 28usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::pAttachments",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, pAttachments)
+        - 32usize];
+    [
+        "Offset of field: VkPipelineColorBlendStateCreateInfo::blendConstants",
+    ][::std::mem::offset_of!(VkPipelineColorBlendStateCreateInfo, blendConstants)
+        - 40usize];
+};
+impl Default for VkPipelineColorBlendStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineDepthStencilStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineDepthStencilStateCreateFlags,
+    pub depthTestEnable: VkBool32,
+    pub depthWriteEnable: VkBool32,
+    pub depthCompareOp: VkCompareOp,
+    pub depthBoundsTestEnable: VkBool32,
+    pub stencilTestEnable: VkBool32,
+    pub front: VkStencilOpState,
+    pub back: VkStencilOpState,
+    pub minDepthBounds: f32,
+    pub maxDepthBounds: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineDepthStencilStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineDepthStencilStateCreateInfo>() - 104usize];
+    [
+        "Alignment of VkPipelineDepthStencilStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineDepthStencilStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::depthTestEnable",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, depthTestEnable)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::depthWriteEnable",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, depthWriteEnable)
+        - 24usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::depthCompareOp",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, depthCompareOp)
+        - 28usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::depthBoundsTestEnable",
+    ][::std::mem::offset_of!(
+        VkPipelineDepthStencilStateCreateInfo, depthBoundsTestEnable
+    ) - 32usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::stencilTestEnable",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, stencilTestEnable)
+        - 36usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::front",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, front) - 40usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::back",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, back) - 68usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::minDepthBounds",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, minDepthBounds)
+        - 96usize];
+    [
+        "Offset of field: VkPipelineDepthStencilStateCreateInfo::maxDepthBounds",
+    ][::std::mem::offset_of!(VkPipelineDepthStencilStateCreateInfo, maxDepthBounds)
+        - 100usize];
+};
+impl Default for VkPipelineDepthStencilStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineDynamicStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineDynamicStateCreateFlags,
+    pub dynamicStateCount: u32,
+    pub pDynamicStates: *const VkDynamicState,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineDynamicStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineDynamicStateCreateInfo>() - 32usize];
+    [
+        "Alignment of VkPipelineDynamicStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineDynamicStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineDynamicStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineDynamicStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineDynamicStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineDynamicStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineDynamicStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineDynamicStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineDynamicStateCreateInfo::dynamicStateCount",
+    ][::std::mem::offset_of!(VkPipelineDynamicStateCreateInfo, dynamicStateCount)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineDynamicStateCreateInfo::pDynamicStates",
+    ][::std::mem::offset_of!(VkPipelineDynamicStateCreateInfo, pDynamicStates)
+        - 24usize];
+};
+impl Default for VkPipelineDynamicStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineInputAssemblyStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineInputAssemblyStateCreateFlags,
+    pub topology: VkPrimitiveTopology,
+    pub primitiveRestartEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineInputAssemblyStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineInputAssemblyStateCreateInfo>() - 32usize];
+    [
+        "Alignment of VkPipelineInputAssemblyStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineInputAssemblyStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineInputAssemblyStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineInputAssemblyStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineInputAssemblyStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineInputAssemblyStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineInputAssemblyStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineInputAssemblyStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineInputAssemblyStateCreateInfo::topology",
+    ][::std::mem::offset_of!(VkPipelineInputAssemblyStateCreateInfo, topology)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineInputAssemblyStateCreateInfo::primitiveRestartEnable",
+    ][::std::mem::offset_of!(
+        VkPipelineInputAssemblyStateCreateInfo, primitiveRestartEnable
+    ) - 24usize];
+};
+impl Default for VkPipelineInputAssemblyStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineMultisampleStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineMultisampleStateCreateFlags,
+    pub rasterizationSamples: VkSampleCountFlagBits,
+    pub sampleShadingEnable: VkBool32,
+    pub minSampleShading: f32,
+    pub pSampleMask: *const VkSampleMask,
+    pub alphaToCoverageEnable: VkBool32,
+    pub alphaToOneEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineMultisampleStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineMultisampleStateCreateInfo>() - 48usize];
+    [
+        "Alignment of VkPipelineMultisampleStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineMultisampleStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::rasterizationSamples",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, rasterizationSamples)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::sampleShadingEnable",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, sampleShadingEnable)
+        - 24usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::minSampleShading",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, minSampleShading)
+        - 28usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::pSampleMask",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, pSampleMask)
+        - 32usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::alphaToCoverageEnable",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, alphaToCoverageEnable)
+        - 40usize];
+    [
+        "Offset of field: VkPipelineMultisampleStateCreateInfo::alphaToOneEnable",
+    ][::std::mem::offset_of!(VkPipelineMultisampleStateCreateInfo, alphaToOneEnable)
+        - 44usize];
+};
+impl Default for VkPipelineMultisampleStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRasterizationStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineRasterizationStateCreateFlags,
+    pub depthClampEnable: VkBool32,
+    pub rasterizerDiscardEnable: VkBool32,
+    pub polygonMode: VkPolygonMode,
+    pub cullMode: VkCullModeFlags,
+    pub frontFace: VkFrontFace,
+    pub depthBiasEnable: VkBool32,
+    pub depthBiasConstantFactor: f32,
+    pub depthBiasClamp: f32,
+    pub depthBiasSlopeFactor: f32,
+    pub lineWidth: f32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRasterizationStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineRasterizationStateCreateInfo>() - 64usize];
+    [
+        "Alignment of VkPipelineRasterizationStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineRasterizationStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::depthClampEnable",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, depthClampEnable)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::rasterizerDiscardEnable",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationStateCreateInfo, rasterizerDiscardEnable
+    ) - 24usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::polygonMode",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, polygonMode)
+        - 28usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::cullMode",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, cullMode)
+        - 32usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::frontFace",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, frontFace)
+        - 36usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::depthBiasEnable",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, depthBiasEnable)
+        - 40usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::depthBiasConstantFactor",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationStateCreateInfo, depthBiasConstantFactor
+    ) - 44usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::depthBiasClamp",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, depthBiasClamp)
+        - 48usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::depthBiasSlopeFactor",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationStateCreateInfo, depthBiasSlopeFactor
+    ) - 52usize];
+    [
+        "Offset of field: VkPipelineRasterizationStateCreateInfo::lineWidth",
+    ][::std::mem::offset_of!(VkPipelineRasterizationStateCreateInfo, lineWidth)
+        - 56usize];
+};
+impl Default for VkPipelineRasterizationStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineTessellationStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineTessellationStateCreateFlags,
+    pub patchControlPoints: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineTessellationStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineTessellationStateCreateInfo>() - 24usize];
+    [
+        "Alignment of VkPipelineTessellationStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineTessellationStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineTessellationStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineTessellationStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineTessellationStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineTessellationStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineTessellationStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineTessellationStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineTessellationStateCreateInfo::patchControlPoints",
+    ][::std::mem::offset_of!(VkPipelineTessellationStateCreateInfo, patchControlPoints)
+        - 20usize];
+};
+impl Default for VkPipelineTessellationStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineVertexInputStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineVertexInputStateCreateFlags,
+    pub vertexBindingDescriptionCount: u32,
+    pub pVertexBindingDescriptions: *const VkVertexInputBindingDescription,
+    pub vertexAttributeDescriptionCount: u32,
+    pub pVertexAttributeDescriptions: *const VkVertexInputAttributeDescription,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineVertexInputStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineVertexInputStateCreateInfo>() - 48usize];
+    [
+        "Alignment of VkPipelineVertexInputStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineVertexInputStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineVertexInputStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineVertexInputStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineVertexInputStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::vertexBindingDescriptionCount",
+    ][::std::mem::offset_of!(
+        VkPipelineVertexInputStateCreateInfo, vertexBindingDescriptionCount
+    ) - 20usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::pVertexBindingDescriptions",
+    ][::std::mem::offset_of!(
+        VkPipelineVertexInputStateCreateInfo, pVertexBindingDescriptions
+    ) - 24usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::vertexAttributeDescriptionCount",
+    ][::std::mem::offset_of!(
+        VkPipelineVertexInputStateCreateInfo, vertexAttributeDescriptionCount
+    ) - 32usize];
+    [
+        "Offset of field: VkPipelineVertexInputStateCreateInfo::pVertexAttributeDescriptions",
+    ][::std::mem::offset_of!(
+        VkPipelineVertexInputStateCreateInfo, pVertexAttributeDescriptions
+    ) - 40usize];
+};
+impl Default for VkPipelineVertexInputStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineViewportStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineViewportStateCreateFlags,
+    pub viewportCount: u32,
+    pub pViewports: *const VkViewport,
+    pub scissorCount: u32,
+    pub pScissors: *const VkRect2D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineViewportStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineViewportStateCreateInfo>() - 48usize];
+    [
+        "Alignment of VkPipelineViewportStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineViewportStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::viewportCount",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, viewportCount)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::pViewports",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, pViewports) - 24usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::scissorCount",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, scissorCount) - 32usize];
+    [
+        "Offset of field: VkPipelineViewportStateCreateInfo::pScissors",
+    ][::std::mem::offset_of!(VkPipelineViewportStateCreateInfo, pScissors) - 40usize];
+};
+impl Default for VkPipelineViewportStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkGraphicsPipelineCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineCreateFlags,
+    pub stageCount: u32,
+    pub pStages: *const VkPipelineShaderStageCreateInfo,
+    pub pVertexInputState: *const VkPipelineVertexInputStateCreateInfo,
+    pub pInputAssemblyState: *const VkPipelineInputAssemblyStateCreateInfo,
+    pub pTessellationState: *const VkPipelineTessellationStateCreateInfo,
+    pub pViewportState: *const VkPipelineViewportStateCreateInfo,
+    pub pRasterizationState: *const VkPipelineRasterizationStateCreateInfo,
+    pub pMultisampleState: *const VkPipelineMultisampleStateCreateInfo,
+    pub pDepthStencilState: *const VkPipelineDepthStencilStateCreateInfo,
+    pub pColorBlendState: *const VkPipelineColorBlendStateCreateInfo,
+    pub pDynamicState: *const VkPipelineDynamicStateCreateInfo,
+    pub layout: VkPipelineLayout,
+    pub renderPass: VkRenderPass,
+    pub subpass: u32,
+    pub basePipelineHandle: VkPipeline,
+    pub basePipelineIndex: i32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkGraphicsPipelineCreateInfo",
+    ][::std::mem::size_of::<VkGraphicsPipelineCreateInfo>() - 144usize];
+    [
+        "Alignment of VkGraphicsPipelineCreateInfo",
+    ][::std::mem::align_of::<VkGraphicsPipelineCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::sType",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::flags",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::stageCount",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, stageCount) - 20usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pStages",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pStages) - 24usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pVertexInputState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pVertexInputState) - 32usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pInputAssemblyState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pInputAssemblyState)
+        - 40usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pTessellationState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pTessellationState)
+        - 48usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pViewportState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pViewportState) - 56usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pRasterizationState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pRasterizationState)
+        - 64usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pMultisampleState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pMultisampleState) - 72usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pDepthStencilState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pDepthStencilState)
+        - 80usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pColorBlendState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pColorBlendState) - 88usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::pDynamicState",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, pDynamicState) - 96usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::layout",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, layout) - 104usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::renderPass",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, renderPass) - 112usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::subpass",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, subpass) - 120usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::basePipelineHandle",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, basePipelineHandle)
+        - 128usize];
+    [
+        "Offset of field: VkGraphicsPipelineCreateInfo::basePipelineIndex",
+    ][::std::mem::offset_of!(VkGraphicsPipelineCreateInfo, basePipelineIndex)
+        - 136usize];
+};
+impl Default for VkGraphicsPipelineCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAttachmentDescription {
+    pub flags: VkAttachmentDescriptionFlags,
+    pub format: VkFormat,
+    pub samples: VkSampleCountFlagBits,
+    pub loadOp: VkAttachmentLoadOp,
+    pub storeOp: VkAttachmentStoreOp,
+    pub stencilLoadOp: VkAttachmentLoadOp,
+    pub stencilStoreOp: VkAttachmentStoreOp,
+    pub initialLayout: VkImageLayout,
+    pub finalLayout: VkImageLayout,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAttachmentDescription",
+    ][::std::mem::size_of::<VkAttachmentDescription>() - 36usize];
+    [
+        "Alignment of VkAttachmentDescription",
+    ][::std::mem::align_of::<VkAttachmentDescription>() - 4usize];
+    [
+        "Offset of field: VkAttachmentDescription::flags",
+    ][::std::mem::offset_of!(VkAttachmentDescription, flags) - 0usize];
+    [
+        "Offset of field: VkAttachmentDescription::format",
+    ][::std::mem::offset_of!(VkAttachmentDescription, format) - 4usize];
+    [
+        "Offset of field: VkAttachmentDescription::samples",
+    ][::std::mem::offset_of!(VkAttachmentDescription, samples) - 8usize];
+    [
+        "Offset of field: VkAttachmentDescription::loadOp",
+    ][::std::mem::offset_of!(VkAttachmentDescription, loadOp) - 12usize];
+    [
+        "Offset of field: VkAttachmentDescription::storeOp",
+    ][::std::mem::offset_of!(VkAttachmentDescription, storeOp) - 16usize];
+    [
+        "Offset of field: VkAttachmentDescription::stencilLoadOp",
+    ][::std::mem::offset_of!(VkAttachmentDescription, stencilLoadOp) - 20usize];
+    [
+        "Offset of field: VkAttachmentDescription::stencilStoreOp",
+    ][::std::mem::offset_of!(VkAttachmentDescription, stencilStoreOp) - 24usize];
+    [
+        "Offset of field: VkAttachmentDescription::initialLayout",
+    ][::std::mem::offset_of!(VkAttachmentDescription, initialLayout) - 28usize];
+    [
+        "Offset of field: VkAttachmentDescription::finalLayout",
+    ][::std::mem::offset_of!(VkAttachmentDescription, finalLayout) - 32usize];
+};
+impl Default for VkAttachmentDescription {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkAttachmentReference {
+    pub attachment: u32,
+    pub layout: VkImageLayout,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkAttachmentReference",
+    ][::std::mem::size_of::<VkAttachmentReference>() - 8usize];
+    [
+        "Alignment of VkAttachmentReference",
+    ][::std::mem::align_of::<VkAttachmentReference>() - 4usize];
+    [
+        "Offset of field: VkAttachmentReference::attachment",
+    ][::std::mem::offset_of!(VkAttachmentReference, attachment) - 0usize];
+    [
+        "Offset of field: VkAttachmentReference::layout",
+    ][::std::mem::offset_of!(VkAttachmentReference, layout) - 4usize];
+};
+impl Default for VkAttachmentReference {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkFramebufferCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkFramebufferCreateFlags,
+    pub renderPass: VkRenderPass,
+    pub attachmentCount: u32,
+    pub pAttachments: *const VkImageView,
+    pub width: u32,
+    pub height: u32,
+    pub layers: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkFramebufferCreateInfo",
+    ][::std::mem::size_of::<VkFramebufferCreateInfo>() - 64usize];
+    [
+        "Alignment of VkFramebufferCreateInfo",
+    ][::std::mem::align_of::<VkFramebufferCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::sType",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::flags",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::renderPass",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, renderPass) - 24usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::attachmentCount",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, attachmentCount) - 32usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::pAttachments",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, pAttachments) - 40usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::width",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, width) - 48usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::height",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, height) - 52usize];
+    [
+        "Offset of field: VkFramebufferCreateInfo::layers",
+    ][::std::mem::offset_of!(VkFramebufferCreateInfo, layers) - 56usize];
+};
+impl Default for VkFramebufferCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkSubpassDependency {
+    pub srcSubpass: u32,
+    pub dstSubpass: u32,
+    pub srcStageMask: VkPipelineStageFlags,
+    pub dstStageMask: VkPipelineStageFlags,
+    pub srcAccessMask: VkAccessFlags,
+    pub dstAccessMask: VkAccessFlags,
+    pub dependencyFlags: VkDependencyFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSubpassDependency",
+    ][::std::mem::size_of::<VkSubpassDependency>() - 28usize];
+    [
+        "Alignment of VkSubpassDependency",
+    ][::std::mem::align_of::<VkSubpassDependency>() - 4usize];
+    [
+        "Offset of field: VkSubpassDependency::srcSubpass",
+    ][::std::mem::offset_of!(VkSubpassDependency, srcSubpass) - 0usize];
+    [
+        "Offset of field: VkSubpassDependency::dstSubpass",
+    ][::std::mem::offset_of!(VkSubpassDependency, dstSubpass) - 4usize];
+    [
+        "Offset of field: VkSubpassDependency::srcStageMask",
+    ][::std::mem::offset_of!(VkSubpassDependency, srcStageMask) - 8usize];
+    [
+        "Offset of field: VkSubpassDependency::dstStageMask",
+    ][::std::mem::offset_of!(VkSubpassDependency, dstStageMask) - 12usize];
+    [
+        "Offset of field: VkSubpassDependency::srcAccessMask",
+    ][::std::mem::offset_of!(VkSubpassDependency, srcAccessMask) - 16usize];
+    [
+        "Offset of field: VkSubpassDependency::dstAccessMask",
+    ][::std::mem::offset_of!(VkSubpassDependency, dstAccessMask) - 20usize];
+    [
+        "Offset of field: VkSubpassDependency::dependencyFlags",
+    ][::std::mem::offset_of!(VkSubpassDependency, dependencyFlags) - 24usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSubpassDescription {
+    pub flags: VkSubpassDescriptionFlags,
+    pub pipelineBindPoint: VkPipelineBindPoint,
+    pub inputAttachmentCount: u32,
+    pub pInputAttachments: *const VkAttachmentReference,
+    pub colorAttachmentCount: u32,
+    pub pColorAttachments: *const VkAttachmentReference,
+    pub pResolveAttachments: *const VkAttachmentReference,
+    pub pDepthStencilAttachment: *const VkAttachmentReference,
+    pub preserveAttachmentCount: u32,
+    pub pPreserveAttachments: *const u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSubpassDescription",
+    ][::std::mem::size_of::<VkSubpassDescription>() - 72usize];
+    [
+        "Alignment of VkSubpassDescription",
+    ][::std::mem::align_of::<VkSubpassDescription>() - 8usize];
+    [
+        "Offset of field: VkSubpassDescription::flags",
+    ][::std::mem::offset_of!(VkSubpassDescription, flags) - 0usize];
+    [
+        "Offset of field: VkSubpassDescription::pipelineBindPoint",
+    ][::std::mem::offset_of!(VkSubpassDescription, pipelineBindPoint) - 4usize];
+    [
+        "Offset of field: VkSubpassDescription::inputAttachmentCount",
+    ][::std::mem::offset_of!(VkSubpassDescription, inputAttachmentCount) - 8usize];
+    [
+        "Offset of field: VkSubpassDescription::pInputAttachments",
+    ][::std::mem::offset_of!(VkSubpassDescription, pInputAttachments) - 16usize];
+    [
+        "Offset of field: VkSubpassDescription::colorAttachmentCount",
+    ][::std::mem::offset_of!(VkSubpassDescription, colorAttachmentCount) - 24usize];
+    [
+        "Offset of field: VkSubpassDescription::pColorAttachments",
+    ][::std::mem::offset_of!(VkSubpassDescription, pColorAttachments) - 32usize];
+    [
+        "Offset of field: VkSubpassDescription::pResolveAttachments",
+    ][::std::mem::offset_of!(VkSubpassDescription, pResolveAttachments) - 40usize];
+    [
+        "Offset of field: VkSubpassDescription::pDepthStencilAttachment",
+    ][::std::mem::offset_of!(VkSubpassDescription, pDepthStencilAttachment) - 48usize];
+    [
+        "Offset of field: VkSubpassDescription::preserveAttachmentCount",
+    ][::std::mem::offset_of!(VkSubpassDescription, preserveAttachmentCount) - 56usize];
+    [
+        "Offset of field: VkSubpassDescription::pPreserveAttachments",
+    ][::std::mem::offset_of!(VkSubpassDescription, pPreserveAttachments) - 64usize];
+};
+impl Default for VkSubpassDescription {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderPassCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkRenderPassCreateFlags,
+    pub attachmentCount: u32,
+    pub pAttachments: *const VkAttachmentDescription,
+    pub subpassCount: u32,
+    pub pSubpasses: *const VkSubpassDescription,
+    pub dependencyCount: u32,
+    pub pDependencies: *const VkSubpassDependency,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRenderPassCreateInfo",
+    ][::std::mem::size_of::<VkRenderPassCreateInfo>() - 64usize];
+    [
+        "Alignment of VkRenderPassCreateInfo",
+    ][::std::mem::align_of::<VkRenderPassCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::sType",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::flags",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::attachmentCount",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, attachmentCount) - 20usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::pAttachments",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pAttachments) - 24usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::subpassCount",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, subpassCount) - 32usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::pSubpasses",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pSubpasses) - 40usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::dependencyCount",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, dependencyCount) - 48usize];
+    [
+        "Offset of field: VkRenderPassCreateInfo::pDependencies",
+    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pDependencies) - 56usize];
+};
+impl Default for VkRenderPassCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkClearDepthStencilValue {
+    pub depth: f32,
+    pub stencil: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkClearDepthStencilValue",
+    ][::std::mem::size_of::<VkClearDepthStencilValue>() - 8usize];
+    [
+        "Alignment of VkClearDepthStencilValue",
+    ][::std::mem::align_of::<VkClearDepthStencilValue>() - 4usize];
+    [
+        "Offset of field: VkClearDepthStencilValue::depth",
+    ][::std::mem::offset_of!(VkClearDepthStencilValue, depth) - 0usize];
+    [
+        "Offset of field: VkClearDepthStencilValue::stencil",
+    ][::std::mem::offset_of!(VkClearDepthStencilValue, stencil) - 4usize];
+};
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkClearValue {
+    pub color: VkClearColorValue,
+    pub depthStencil: VkClearDepthStencilValue,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkClearValue"][::std::mem::size_of::<VkClearValue>() - 16usize];
+    ["Alignment of VkClearValue"][::std::mem::align_of::<VkClearValue>() - 4usize];
+    [
+        "Offset of field: VkClearValue::color",
+    ][::std::mem::offset_of!(VkClearValue, color) - 0usize];
+    [
+        "Offset of field: VkClearValue::depthStencil",
+    ][::std::mem::offset_of!(VkClearValue, depthStencil) - 0usize];
+};
+impl Default for VkClearValue {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderPassBeginInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub renderPass: VkRenderPass,
+    pub framebuffer: VkFramebuffer,
+    pub renderArea: VkRect2D,
+    pub clearValueCount: u32,
+    pub pClearValues: *const VkClearValue,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRenderPassBeginInfo",
+    ][::std::mem::size_of::<VkRenderPassBeginInfo>() - 64usize];
+    [
+        "Alignment of VkRenderPassBeginInfo",
+    ][::std::mem::align_of::<VkRenderPassBeginInfo>() - 8usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::sType",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, sType) - 0usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::pNext",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::renderPass",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, renderPass) - 16usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::framebuffer",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, framebuffer) - 24usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::renderArea",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, renderArea) - 32usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::clearValueCount",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, clearValueCount) - 48usize];
+    [
+        "Offset of field: VkRenderPassBeginInfo::pClearValues",
+    ][::std::mem::offset_of!(VkRenderPassBeginInfo, pClearValues) - 56usize];
+};
+impl Default for VkRenderPassBeginInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type PFN_vkCreateInstance = ::std::option::Option<
     unsafe extern "C" fn(
         pCreateInfo: *const VkInstanceCreateInfo,
@@ -4146,6 +6506,17 @@ pub type PFN_vkEnumeratePhysicalDevices = ::std::option::Option<
         instance: VkInstance,
         pPhysicalDeviceCount: *mut u32,
         pPhysicalDevices: *mut VkPhysicalDevice,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetPhysicalDeviceImageFormatProperties = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        format: VkFormat,
+        type_: VkImageType,
+        tiling: VkImageTiling,
+        usage: VkImageUsageFlags,
+        flags: VkImageCreateFlags,
+        pImageFormatProperties: *mut VkImageFormatProperties,
     ) -> VkResult,
 >;
 pub type PFN_vkGetPhysicalDeviceProperties = ::std::option::Option<
@@ -4261,10 +6632,25 @@ pub type PFN_vkBindBufferMemory = ::std::option::Option<
         memoryOffset: VkDeviceSize,
     ) -> VkResult,
 >;
+pub type PFN_vkBindImageMemory = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        image: VkImage,
+        memory: VkDeviceMemory,
+        memoryOffset: VkDeviceSize,
+    ) -> VkResult,
+>;
 pub type PFN_vkGetBufferMemoryRequirements = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
         buffer: VkBuffer,
+        pMemoryRequirements: *mut VkMemoryRequirements,
+    ),
+>;
+pub type PFN_vkGetImageMemoryRequirements = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        image: VkImage,
         pMemoryRequirements: *mut VkMemoryRequirements,
     ),
 >;
@@ -4307,6 +6693,36 @@ pub type PFN_vkDestroyBuffer = ::std::option::Option<
         pAllocator: *const VkAllocationCallbacks,
     ),
 >;
+pub type PFN_vkCreateImage = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkImageCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pImage: *mut VkImage,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyImage = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        image: VkImage,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCreateImageView = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkImageViewCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pView: *mut VkImageView,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyImageView = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        imageView: VkImageView,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
 pub type PFN_vkCreateCommandPool = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
@@ -4337,6 +6753,16 @@ pub type PFN_vkBeginCommandBuffer = ::std::option::Option<
 >;
 pub type PFN_vkEndCommandBuffer = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer) -> VkResult,
+>;
+pub type PFN_vkCmdCopyImageToBuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        srcImage: VkImage,
+        srcImageLayout: VkImageLayout,
+        dstBuffer: VkBuffer,
+        regionCount: u32,
+        pRegions: *const VkBufferImageCopy,
+    ),
 >;
 pub type PFN_vkCmdPipelineBarrier = ::std::option::Option<
     unsafe extern "C" fn(
@@ -4423,6 +6849,81 @@ pub type PFN_vkCmdPushConstants = ::std::option::Option<
         size: u32,
         pValues: *const ::std::os::raw::c_void,
     ),
+>;
+pub type PFN_vkCreateGraphicsPipelines = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipelineCache: VkPipelineCache,
+        createInfoCount: u32,
+        pCreateInfos: *const VkGraphicsPipelineCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pPipelines: *mut VkPipeline,
+    ) -> VkResult,
+>;
+pub type PFN_vkCreateFramebuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkFramebufferCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pFramebuffer: *mut VkFramebuffer,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyFramebuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        framebuffer: VkFramebuffer,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCreateRenderPass = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkRenderPassCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pRenderPass: *mut VkRenderPass,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyRenderPass = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        renderPass: VkRenderPass,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCmdSetViewport = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstViewport: u32,
+        viewportCount: u32,
+        pViewports: *const VkViewport,
+    ),
+>;
+pub type PFN_vkCmdSetScissor = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstScissor: u32,
+        scissorCount: u32,
+        pScissors: *const VkRect2D,
+    ),
+>;
+pub type PFN_vkCmdDrawIndirect = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        buffer: VkBuffer,
+        offset: VkDeviceSize,
+        drawCount: u32,
+        stride: u32,
+    ),
+>;
+pub type PFN_vkCmdBeginRenderPass = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pRenderPassBegin: *const VkRenderPassBeginInfo,
+        contents: VkSubpassContents,
+    ),
+>;
+pub type PFN_vkCmdEndRenderPass = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer),
 >;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT: VkMemoryAllocateFlagBits = 1;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT: VkMemoryAllocateFlagBits = 2;

@@ -80,10 +80,15 @@ the GPU, draw into a 64×64 target, copy to a readback buffer, and wait once.
 It will check opaque-black background and solid-color interior pixels away from
 rasterization boundaries. No CPU readback of vertices or draw arguments is needed.
 
-Tests must cover graphics queue selection without breaking compute-only selection,
+Tests cover graphics queue selection without breaking compute-only selection,
 invalid extents/shaders, buffer bounds/alignment, wrong-device objects, missing
 prior draw, retained-resource lifetimes, image reuse, and partial creation failures.
-Existing compute examples, bindings, and ABI checks must continue passing.
+`cargo xtask gpu-tests` runs the Vulkan-backed graphics tests with the existing
+compute tests and fails on reported validation errors. Creation-failure injection
+exercises render-pass/image/memory/view/framebuffer cleanup, second-module failure,
+layout failure, and a returned pipeline handle alongside an error. Queue selection,
+extent limits, memory selection, access masks, and NULL C arguments also have tests
+that do not require a GPU.
 
 Not included: windows, surfaces, swapchains, sampling, general image uploads,
 depth/stencil, blending, indexing, mesh shaders, or multiple queues. Classic Vulkan

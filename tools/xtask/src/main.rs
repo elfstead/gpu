@@ -61,7 +61,7 @@ fn bindings(root: &Path, check: bool) -> Result {
         ))
         .clang_arg("-DVK_NO_PROTOTYPES")
         .clang_arg("--target=x86_64-unknown-linux-gnu")
-        .allowlist_var("VK_(TRUE|FALSE|HEADER_VERSION|MAX_PHYSICAL_DEVICE_NAME_SIZE|WHOLE_SIZE)")
+        .allowlist_var("VK_(TRUE|FALSE|HEADER_VERSION|MAX_PHYSICAL_DEVICE_NAME_SIZE|WHOLE_SIZE|SUBPASS_EXTERNAL)")
         .derive_default(true)
         .formatter(bindgen::Formatter::Prettyplease)
         .raw_line(
@@ -124,12 +124,17 @@ fn abi(root: &Path) -> Result {
         let mut words = line.split_whitespace();
         let namespace = words.next().ok_or("missing namespace")?;
         let name = words.next().ok_or("missing type")?;
-        if namespace == "const" {
+        if namespace == "const" || namespace == "const32" {
             c.push_str(&format!(
                 "printf(\"{name} %llu\\n\", (unsigned long long)({name}));\n"
             ));
+            let cast = if namespace == "const32" {
+                "as u32 as u64"
+            } else {
+                "as u64"
+            };
             rust.push_str(&format!(
-                "println!(\"{name} {{}}\", ogpu_vulkan_sys::{name} as u64);\n"
+                "println!(\"{name} {{}}\", ogpu_vulkan_sys::{name} {cast});\n"
             ));
             continue;
         }

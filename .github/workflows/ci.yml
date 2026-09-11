@@ -21,6 +21,9 @@ jobs:
       - run: spirv-val --target-env vulkan1.2 examples/shaders/roundtrip.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/produce.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/consume.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/triangle.comp.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/triangle.vert.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/triangle.frag.spv
       - run: cargo xtask batch
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation

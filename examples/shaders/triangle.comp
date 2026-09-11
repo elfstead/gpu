@@ -1,0 +1,27 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+
+layout(local_size_x = 1) in;
+layout(buffer_reference, std430, buffer_reference_align = 16) writeonly buffer Vertices {
+    vec4 positions[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Draw {
+    uint vertex_count;
+    uint instance_count;
+    uint first_vertex;
+    uint first_instance;
+};
+layout(push_constant, std430) uniform Root {
+    Vertices vertices;
+    Draw draw;
+} root;
+
+void main() {
+    root.vertices.positions[0] = vec4(-0.75, -0.75, 0.0, 1.0);
+    root.vertices.positions[1] = vec4( 0.75, -0.75, 0.0, 1.0);
+    root.vertices.positions[2] = vec4( 0.0,   0.75, 0.0, 1.0);
+    root.draw.vertex_count = 3;
+    root.draw.instance_count = 1;
+    root.draw.first_vertex = 0;
+    root.draw.first_instance = 0;
+}

@@ -160,7 +160,7 @@ fn gpu_batches() {
         let other_device = Device::new(instance.clone(), physical).unwrap();
         let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16).unwrap() });
         let other_kernel = Rc::new(unsafe { Kernel::new(other_device, &words, 16).unwrap() });
-        let mut buffer = Buffer::new(device.clone(), 4).unwrap();
+        let buffer = Buffer::new(device.clone(), 4).unwrap();
         buffer.write(0, &1u32.to_ne_bytes()).unwrap();
         let mut root = [0u8; 16];
         root[..8].copy_from_slice(&buffer.address().unwrap().to_ne_bytes());
@@ -231,15 +231,23 @@ fn gpu_batches() {
 #[test]
 fn access_masks_are_explicit_and_checked() {
     assert_eq!(
-        access(COMPUTE_READ).unwrap(),
+        access(COMPUTE_READ).unwrap().flags,
         vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT
     );
     assert_eq!(
-        access(COMPUTE_WRITE).unwrap(),
+        access(COMPUTE_WRITE).unwrap().flags,
         vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT
     );
-    assert_eq!(access(3).unwrap(), access(1).unwrap() | access(2).unwrap());
-    for mask in [0, 4, 5, u32::MAX] {
+    assert_eq!(
+        access(3).unwrap().flags,
+        access(1).unwrap().flags | access(2).unwrap().flags
+    );
+    assert_eq!(
+        access(VERTEX_READ | INDIRECT_READ).unwrap().stages,
+        vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+            | vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT
+    );
+    for mask in [0, 256, 257, u32::MAX] {
         assert_eq!(access(mask).unwrap_err().status, INVALID_ARGUMENT);
     }
 }

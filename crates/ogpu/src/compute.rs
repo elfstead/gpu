@@ -7,6 +7,9 @@ use std::{cell::Cell, ptr, rc::Rc, sync::Arc};
 #[path = "batch.rs"]
 mod batch;
 pub(crate) use batch::{Batch, Completion};
+#[path = "graphics.rs"]
+mod graphics;
+pub(crate) use graphics::{Raster, Target};
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -52,6 +55,17 @@ functions! {
     vkQueueSubmit: PFN_vkQueueSubmit, vkQueueWaitIdle: PFN_vkQueueWaitIdle,
     vkCreateFence: PFN_vkCreateFence, vkDestroyFence: PFN_vkDestroyFence,
     vkWaitForFences: PFN_vkWaitForFences,
+    vkGetPhysicalDeviceImageFormatProperties: PFN_vkGetPhysicalDeviceImageFormatProperties,
+    vkCreateImage: PFN_vkCreateImage, vkDestroyImage: PFN_vkDestroyImage,
+    vkGetImageMemoryRequirements: PFN_vkGetImageMemoryRequirements,
+    vkBindImageMemory: PFN_vkBindImageMemory,
+    vkCreateImageView: PFN_vkCreateImageView, vkDestroyImageView: PFN_vkDestroyImageView,
+    vkCreateRenderPass: PFN_vkCreateRenderPass, vkDestroyRenderPass: PFN_vkDestroyRenderPass,
+    vkCreateFramebuffer: PFN_vkCreateFramebuffer, vkDestroyFramebuffer: PFN_vkDestroyFramebuffer,
+    vkCreateGraphicsPipelines: PFN_vkCreateGraphicsPipelines,
+    vkCmdBeginRenderPass: PFN_vkCmdBeginRenderPass, vkCmdEndRenderPass: PFN_vkCmdEndRenderPass,
+    vkCmdSetViewport: PFN_vkCmdSetViewport, vkCmdSetScissor: PFN_vkCmdSetScissor,
+    vkCmdDrawIndirect: PFN_vkCmdDrawIndirect, vkCmdCopyImageToBuffer: PFN_vkCmdCopyImageToBuffer,
 }
 
 fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
@@ -66,6 +80,8 @@ pub(crate) struct Device {
     handle: vk::VkDevice,
     queue: vk::VkQueue,
     family: u32,
+    physical: vk::VkPhysicalDevice,
+    graphics: bool,
     memory: vk::VkPhysicalDeviceMemoryProperties,
     limits: vk::VkPhysicalDeviceLimits,
     lost: Cell<bool>,
@@ -87,6 +103,21 @@ impl Device {
     pub(crate) fn new(
         instance: Arc<Instance>,
         physical: vk::VkPhysicalDevice,
+    ) -> Result<Rc<Self>, Error> {
+        Self::create(instance, physical, false)
+    }
+
+    pub(crate) fn new_graphics(
+        instance: Arc<Instance>,
+        physical: vk::VkPhysicalDevice,
+    ) -> Result<Rc<Self>, Error> {
+        Self::create(instance, physical, true)
+    }
+
+    fn create(
+        instance: Arc<Instance>,
+        physical: vk::VkPhysicalDevice,
+        require_graphics: bool,
     ) -> Result<Rc<Self>, Error> {
         let info = instance.device_info(physical)?;
         if info.vulkan_api_major < 1
@@ -117,14 +148,16 @@ impl Device {
                     families.as_mut_ptr(),
                 );
             }
-            let family = families
-                .iter()
-                .take(count as usize)
-                .position(|p| {
-                    p.queueCount > 0 && p.queueFlags & vk::VkQueueFlagBits_VK_QUEUE_COMPUTE_BIT != 0
-                })
-                .ok_or_else(|| Error::new(UNSUPPORTED, "No compute queue"))?
-                as u32;
+            let family =
+                queue_family(&families[..count as usize], require_graphics).ok_or_else(|| {
+                    Error::new(
+                        UNSUPPORTED,
+                        "No queue supporting the requested execution profile",
+                    )
+                })?;
+            let graphics = families[family as usize].queueFlags
+                & vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT
+                != 0;
             let mut properties = vk::VkPhysicalDeviceProperties::default();
             (f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
             let mut memory = vk::VkPhysicalDeviceMemoryProperties::default();
@@ -158,6 +191,8 @@ impl Device {
                 handle,
                 queue,
                 family,
+                physical,
+                graphics,
                 memory,
                 limits: properties.limits,
                 lost: Cell::new(false),
@@ -184,6 +219,19 @@ impl Device {
         }
         check(op, status)
     }
+}
+
+fn queue_family(families: &[vk::VkQueueFamilyProperties], graphics: bool) -> Option<u32> {
+    let required = vk::VkQueueFlagBits_VK_QUEUE_COMPUTE_BIT
+        | if graphics {
+            vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT
+        } else {
+            0
+        };
+    families
+        .iter()
+        .position(|f| f.queueCount != 0 && f.queueFlags & required == required)
+        .map(|i| i as u32)
 }
 
 pub(crate) struct Buffer {
@@ -262,7 +310,9 @@ impl Buffer {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                 size: size as u64,
                 usage: vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 sharingMode: vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE,
                 ..Default::default()
             };
@@ -379,7 +429,7 @@ impl Buffer {
         }
     }
 
-    pub(crate) fn write(&mut self, offset: usize, bytes: &[u8]) -> Result<(), Error> {
+    pub(crate) fn write(&self, offset: usize, bytes: &[u8]) -> Result<(), Error> {
         self.device.ready()?;
         self.range(offset, bytes.len())?;
         if bytes.is_empty() {

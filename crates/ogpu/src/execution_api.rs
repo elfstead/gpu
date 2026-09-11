@@ -1,6 +1,6 @@
 //! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
 use crate::{
-    compute::{Batch, Buffer, Completion, Device, Kernel},
+    compute::{Batch, Buffer, Completion, Device, Kernel, Raster, Target},
     Error, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
     SUCCESS,
 };
@@ -15,7 +15,21 @@ pub struct OgpuDevice {
     inner: Rc<Device>,
 }
 pub struct OgpuBuffer {
-    inner: Buffer,
+    inner: Rc<Buffer>,
+}
+pub struct OgpuTarget {
+    inner: Rc<Target>,
+}
+pub struct OgpuRaster {
+    inner: Rc<Raster>,
+}
+
+#[repr(C)]
+pub struct OgpuDrawArguments {
+    pub vertex_count: u32,
+    pub instance_count: u32,
+    pub first_vertex: u32,
+    pub first_instance: u32,
 }
 pub struct OgpuKernel {
     inner: Rc<Kernel>,
@@ -130,7 +144,7 @@ pub unsafe extern "C" fn ogpu_buffer_create(
             let size = usize::try_from(size)
                 .map_err(|_| Error::new(INVALID_ARGUMENT, "Buffer too large"))?;
             Ok(OgpuBuffer {
-                inner: Buffer::new((*device).inner.clone(), size)?,
+                inner: Rc::new(Buffer::new((*device).inner.clone(), size)?),
             })
         })
     }
@@ -160,7 +174,7 @@ pub unsafe extern "C" fn ogpu_buffer_write(
     unsafe {
         call(error, || {
             required(buffer)?;
-            let buffer = &mut (*buffer).inner;
+            let buffer = &(*buffer).inner;
             let offset = usize::try_from(offset)
                 .map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
             let size = usize::try_from(size)
@@ -410,9 +424,241 @@ pub unsafe extern "C" fn ogpu_completion_destroy(completion: *mut OgpuCompletion
     }
 }
 
+/// # Safety
+/// Same pointer/ownership rules as device_create; requires a graphics+compute queue.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_device_create_graphics(
+    probe: *const OgpuProbe,
+    index: u32,
+    out_device: *mut *mut OgpuDevice,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out_device, error, || {
+            required(probe)?;
+            let probe = &*probe;
+            let physical = *probe
+                .physical_devices
+                .get(index as usize)
+                .ok_or_else(|| Error::new(OUT_OF_RANGE, "Device index out of range"))?;
+            Ok(OgpuDevice {
+                inner: Device::new_graphics(probe._vulkan.clone(), physical)?,
+            })
+        })
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: live device, writable independent outputs, external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_target_create_rgba8(
+    device: *mut OgpuDevice,
+    width: u32,
+    height: u32,
+    out_target: *mut *mut OgpuTarget,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out_target, error, || {
+            required(device)?;
+            Ok(OgpuTarget {
+                inner: Rc::new(Target::new((*device).inner.clone(), width, height)?),
+            })
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL, externally serialized. Recorded uses retain it.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_target_destroy(target: *mut OgpuTarget) {
+    if !target.is_null() {
+        unsafe {
+            drop(Box::from_raw(target));
+        }
+    }
+}
+
+// SAFETY: caller supplies word_count readable words with a lifetime covering the call.
+unsafe fn shader_words<'a>(words: *const u32, word_count: u64) -> Result<&'a [u32], Error> {
+    required(words)?;
+    if word_count < 5 || word_count > (isize::MAX as u64) / 4 || words as usize % 4 != 0 {
+        return Err(Error::new(
+            INVALID_ARGUMENT,
+            "Invalid SPIR-V word count/alignment",
+        ));
+    }
+    unsafe { Ok(std::slice::from_raw_parts(words, word_count as usize)) }
+}
+
+/// # Safety
+/// See include/ogpu.h: valid matching vertex/fragment SPIR-V with only enabled features,
+/// live device, readable word arrays, writable independent outputs, external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_raster_create(
+    device: *mut OgpuDevice,
+    vertex_words: *const u32,
+    vertex_count: u64,
+    fragment_words: *const u32,
+    fragment_count: u64,
+    push_size: u32,
+    out_raster: *mut *mut OgpuRaster,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out_raster, error, || {
+            required(device)?;
+            let vertex = shader_words(vertex_words, vertex_count)?;
+            let fragment = shader_words(fragment_words, fragment_count)?;
+            Ok(OgpuRaster {
+                inner: Rc::new(Raster::new(
+                    (*device).inner.clone(),
+                    vertex,
+                    fragment,
+                    push_size,
+                )?),
+            })
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL, externally serialized. Recorded uses retain it.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_raster_destroy(raster: *mut OgpuRaster) {
+    if !raster.is_null() {
+        unsafe {
+            drop(Box::from_raw(raster));
+        }
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: valid handles/arguments, valid GPU-produced indirect contents,
+/// live reachable addresses through completion, and explicit race-free dependencies.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_draw_indirect(
+    batch: *mut OgpuBatch,
+    raster: *mut OgpuRaster,
+    target: *mut OgpuTarget,
+    indirect: *mut OgpuBuffer,
+    offset: u64,
+    arguments: *const c_void,
+    argument_bytes: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(raster)?;
+            required(target)?;
+            required(indirect)?;
+            let offset = usize::try_from(offset)
+                .map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
+            let root = if argument_bytes == 0 {
+                &[]
+            } else {
+                required(arguments)?;
+                std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
+            };
+            (*batch).inner.draw(
+                (*raster).inner.clone(),
+                (*target).inner.clone(),
+                (*indirect).inner.clone(),
+                offset,
+                root,
+            )
+        })
+    }
+}
+
+/// # Safety
+/// See include/ogpu.h: live same-device objects, independent writable error output,
+/// external serialization, and no host access to pending GPU resources.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_copy_target(
+    batch: *mut OgpuBatch,
+    target: *mut OgpuTarget,
+    destination: *mut OgpuBuffer,
+    offset: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(target)?;
+            required(destination)?;
+            let offset = usize::try_from(offset)
+                .map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
+            (*batch).inner.copy_target(
+                (*target).inner.clone(),
+                (*destination).inner.clone(),
+                offset,
+            )
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn invalid_graphics_arguments_need_no_driver() {
+        unsafe {
+            let mut device = ptr::dangling_mut::<OgpuDevice>();
+            let mut target = ptr::dangling_mut::<OgpuTarget>();
+            let mut raster = ptr::dangling_mut::<OgpuRaster>();
+            assert_eq!(
+                ogpu_device_create_graphics(ptr::null(), 0, &mut device, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(device.is_null());
+            assert_eq!(
+                ogpu_target_create_rgba8(ptr::null_mut(), 64, 64, &mut target, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(target.is_null());
+            assert_eq!(
+                ogpu_raster_create(
+                    ptr::null_mut(),
+                    ptr::null(),
+                    0,
+                    ptr::null(),
+                    0,
+                    0,
+                    &mut raster,
+                    ptr::null_mut()
+                ),
+                INVALID_ARGUMENT
+            );
+            assert!(raster.is_null());
+            assert_eq!(
+                ogpu_batch_draw_indirect(
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    0,
+                    ptr::null(),
+                    0,
+                    ptr::null_mut()
+                ),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_copy_target(
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                    0,
+                    ptr::null_mut()
+                ),
+                INVALID_ARGUMENT
+            );
+            ogpu_target_destroy(ptr::null_mut());
+            ogpu_raster_destroy(ptr::null_mut());
+        }
+    }
     #[test]
     fn invalid_batch_arguments_need_no_driver() {
         unsafe {

@@ -113,10 +113,18 @@ typedef struct OgpuKernel OgpuKernel;
 OgpuResult ogpu_device_create(const OgpuProbe *probe, uint32_t index, OgpuDevice **out_device, OgpuError *out_error);
 void ogpu_device_destroy(OgpuDevice *device);
 
+/* Optional profile: requires one queue family supporting BOTH graphics and compute.
+ * Other device creation/ownership rules match ogpu_device_create; UNSUPPORTED if
+ * no such family exists. Ordinary creation still accepts compute-only devices. */
+OgpuResult ogpu_device_create_graphics(const OgpuProbe *probe, uint32_t index,
+    OgpuDevice **out_device, OgpuError *out_error);
+
 /* Dedicated host-visible allocation. size_bytes must be nonzero and <= INTPTR_MAX.
  * Contents start unspecified. Transfers are checked CPU copies, not GPU commands.
- * Wait for ALL submitted uses of this entire buffer before reading, writing, or
- * destroying it (cache maintenance may touch the whole allocation).
+ * Wait for ALL submitted uses of this entire buffer before CPU reading/writing
+ * (cache maintenance may touch the whole allocation). Destroying the public handle
+ * releases its ownership; commands explicitly retaining a buffer delay deallocation.
+ * Otherwise wait before destruction; GPU addresses alone do not retain allocations.
  * Zero-length transfers allow NULL data and offset == size_bytes. Read destinations
  * are unchanged on error. No persistent host mapping is exposed. */
 OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, OgpuBuffer **out_buffer, OgpuError *out_error);
@@ -124,9 +132,10 @@ void ogpu_buffer_destroy(OgpuBuffer *buffer);
 OgpuResult ogpu_buffer_write(OgpuBuffer *buffer, uint64_t offset, const void *data, uint64_t size_bytes, OgpuError *out_error);
 OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *data, uint64_t size_bytes, OgpuError *out_error);
 
-/* Returns a NON-OWNING GPU address, valid only on this buffer's device until buffer
- * destruction or device loss. Never dereference it on the CPU. Output unchanged
- * on error. Keep the buffer alive for every dispatch that can reach this address. */
+/* Returns a NON-OWNING GPU address, valid only on this buffer's device until its
+ * underlying allocation is freed or the device is lost. Never dereference it on
+ * the CPU. Output unchanged on error. Keep ownership (a public handle or documented
+ * command retention) for every GPU operation that can reach this address. */
 OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_address, OgpuError *out_error);
 
 /* words is a 4-byte-aligned SPIR-V module, copied/consumed before return. The caller
@@ -160,12 +169,18 @@ OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, const void 
 
 /* One-shot asynchronous recordings on the device's single queue. All calls remain
  * externally serialized with this device and its children; GPU execution may run
- * between calls. These access bits are ours, not Vulkan flags. Currently only compute
- * dependencies are expressible; this does not specify the future graphics profile. */
+ * between calls. These access bits are ours, not Vulkan flags. Graphics access bits
+ * require a graphics-capable execution queue. */
 typedef struct OgpuBatch OgpuBatch;
 typedef struct OgpuCompletion OgpuCompletion;
 #define OGPU_ACCESS_COMPUTE_READ UINT32_C(1)
 #define OGPU_ACCESS_COMPUTE_WRITE UINT32_C(2)
+#define OGPU_ACCESS_VERTEX_READ UINT32_C(4)
+#define OGPU_ACCESS_INDIRECT_READ UINT32_C(8)
+#define OGPU_ACCESS_COLOR_WRITE UINT32_C(16)
+#define OGPU_ACCESS_TRANSFER_READ UINT32_C(32)
+#define OGPU_ACCESS_TRANSFER_WRITE UINT32_C(64)
+#define OGPU_ACCESS_FRAGMENT_READ UINT32_C(128)
 
 OgpuResult ogpu_batch_create(OgpuDevice *device, OgpuBatch **out_batch, OgpuError *out_error);
 /* Discards an unsubmitted recording; never waits. NULL is a no-op. */
@@ -179,7 +194,7 @@ void ogpu_batch_destroy(OgpuBatch *batch);
 OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t groups_x,
     const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
 
-/* Global dependency from earlier to later compute commands on this queue, including
+/* Global dependency from earlier to later commands on this queue, including
  * earlier submissions. Each mask must be a nonzero combination of the access bits
  * above. No dependency is inferred from GPU pointers or dispatch order. */
 OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
@@ -191,7 +206,7 @@ OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
  * out_completion is required, NULL on failure. On success the completion retains
  * command resources and kernels; the original batch/kernel/device handles may be
  * destroyed. Referenced buffers must still outlive GPU access.
- * Host writes before submission become visible to compute, and completed compute
+ * Host writes before submission become visible to GPU commands, and completed GPU
  * writes to subsequent host reads. GPU-to-GPU dependencies remain explicit.
  * Failed submission does not establish completion of other outstanding work. */
 OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, OgpuError *out_error);
@@ -204,6 +219,61 @@ OgpuResult ogpu_completion_wait(OgpuCompletion *completion, OgpuError *out_error
 /* Waits if pending, then destroys; does NOT cancel. Explicitly wait first for error
  * diagnostics. Destroy completions before referenced buffers. NULL is a no-op. */
 void ogpu_completion_destroy(OgpuCompletion *completion);
+
+/* Narrow offscreen graphics profile; all existing pointer/error/serialization rules
+ * apply. Both objects retain their device. Targets are specialized images, NOT
+ * addressable allocations. No window, presentation, depth, blending, or sampling. */
+typedef struct OgpuTarget OgpuTarget;
+typedef struct OgpuRaster OgpuRaster;
+
+/* Single-layer/mip/sample RGBA8 UNORM target. Extents must be nonzero and supported.
+ * No CPU mapping. Read back through batch_copy_target and a completion wait. */
+OgpuResult ogpu_target_create_rgba8(OgpuDevice *device, uint32_t width, uint32_t height,
+    OgpuTarget **out_target, OgpuError *out_error);
+void ogpu_target_destroy(OgpuTarget *target);
+
+/* Valid matching vertex/fragment Vulkan 1.2 SPIR-V main entries; no descriptors,
+ * only core-required capabilities plus BDA. Storage reads only in these stages;
+ * vertex/fragment stores/atomics are NOT enabled. Vertex positions must be written
+ * by the vertex shader; fragment location 0 is a floating-point RGBA output.
+ * Fixed triangle-list/fill/no-cull state, full-target viewport/scissor, one sample,
+ * no depth/stencil or blending. Root range is shared by vertex AND fragment stages;
+ * size/alignment/trusted-shader rules match kernel_create. No source compiler. */
+OgpuResult ogpu_raster_create(OgpuDevice *device,
+    const uint32_t *vertex_words, uint64_t vertex_word_count,
+    const uint32_t *fragment_words, uint64_t fragment_word_count,
+    uint32_t push_size_bytes, OgpuRaster **out_raster, OgpuError *out_error);
+void ogpu_raster_destroy(OgpuRaster *raster);
+
+/* GPU-readable draw record, four consecutive uint32 values. first_instance MUST
+ * be zero (optional indirect-first-instance is not enabled). GPU-produced contents
+ * are trusted, not inspected on the CPU; shader addresses must fit every invocation. */
+typedef struct OgpuDrawArguments {
+    uint32_t vertex_count;
+    uint32_t instance_count;
+    uint32_t first_vertex;
+    uint32_t first_instance;
+} OgpuDrawArguments;
+
+/* Clear target to opaque black and execute ONE non-indexed indirect draw. All
+ * objects must belong to the batch device. Indirect offset is 4-byte aligned and
+ * a full 16-byte record must fit. Arguments are copied; their size must match raster.
+ * Records retain raster, target, and indirect buffer, but NOT pointees embedded
+ * in arguments. Explicit barriers must order compute-produced vertex/draw data.
+ * Target operations manage image layouts and attachment/copy dependencies; every
+ * draw discards previous target contents. Public handles may be destroyed after
+ * recording; retained resources are released only after discard/completion cleanup. */
+OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
+    OgpuTarget *target, OgpuBuffer *indirect, uint64_t indirect_offset,
+    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+
+/* Requires an earlier draw to THIS target in THIS batch. Copy whole image as
+ * tightly packed RGBA8 rows starting at (0,0). Destination offset must be 4-byte
+ * aligned; width*height*4 bytes must fit. Retains target and destination. Wait before
+ * CPU access; explicit TRANSFER_WRITE dependencies precede subsequent GPU consumers.
+ * Invalid draw/copy arguments leave the recording unchanged. Destruction is NULL-safe. */
+OgpuResult ogpu_batch_copy_target(OgpuBatch *batch, OgpuTarget *target,
+    OgpuBuffer *destination, uint64_t destination_offset, OgpuError *out_error);
 
 #ifdef __cplusplus
 }

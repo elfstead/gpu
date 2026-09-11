@@ -4,19 +4,76 @@ use super::*;
 pub(crate) const COMPUTE_READ: u32 = 1;
 pub(crate) const COMPUTE_WRITE: u32 = 2;
 
-fn access(mask: u32) -> Result<vk::VkAccessFlags, Error> {
-    if mask == 0 || mask & !(COMPUTE_READ | COMPUTE_WRITE) != 0 {
-        return Err(Error::new(INVALID_ARGUMENT, "Invalid compute access mask"));
+pub(crate) const VERTEX_READ: u32 = 4;
+pub(crate) const INDIRECT_READ: u32 = 8;
+pub(crate) const COLOR_WRITE: u32 = 16;
+pub(crate) const TRANSFER_READ: u32 = 32;
+pub(crate) const TRANSFER_WRITE: u32 = 64;
+pub(crate) const FRAGMENT_READ: u32 = 128;
+const GRAPHICS_ACCESS: u32 = VERTEX_READ | INDIRECT_READ | COLOR_WRITE | FRAGMENT_READ;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Access {
+    stages: vk::VkPipelineStageFlags,
+    flags: vk::VkAccessFlags,
+}
+
+fn access(mask: u32) -> Result<Access, Error> {
+    if mask == 0 || mask & !255 != 0 {
+        return Err(Error::new(INVALID_ARGUMENT, "Invalid access mask"));
     }
-    Ok(if mask & COMPUTE_READ != 0 {
-        vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT
-    } else {
-        0
-    } | if mask & COMPUTE_WRITE != 0 {
-        vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT
-    } else {
-        0
-    })
+    let mut result = Access {
+        stages: 0,
+        flags: 0,
+    };
+    for (bit, stage, flags) in [
+        (
+            COMPUTE_READ,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT,
+        ),
+        (
+            COMPUTE_WRITE,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+        ),
+        (
+            VERTEX_READ,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT,
+        ),
+        (
+            INDIRECT_READ,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+        ),
+        (
+            COLOR_WRITE,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        ),
+        (
+            TRANSFER_READ,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFER_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_TRANSFER_READ_BIT,
+        ),
+        (
+            TRANSFER_WRITE,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFER_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_TRANSFER_WRITE_BIT,
+        ),
+        (
+            FRAGMENT_READ,
+            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+            vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT,
+        ),
+    ] {
+        if mask & bit != 0 {
+            result.stages |= stage;
+            result.flags |= flags;
+        }
+    }
+    Ok(result)
 }
 
 enum Step {
@@ -26,8 +83,20 @@ enum Step {
         root: Vec<u8>,
     },
     Barrier {
-        source: vk::VkAccessFlags,
-        destination: vk::VkAccessFlags,
+        source: Access,
+        destination: Access,
+    },
+    Draw {
+        raster: Rc<Raster>,
+        target: Rc<Target>,
+        indirect: Rc<Buffer>,
+        offset: u64,
+        root: Vec<u8>,
+    },
+    CopyTarget {
+        target: Rc<Target>,
+        destination: Rc<Buffer>,
+        offset: u64,
     },
 }
 
@@ -83,11 +152,87 @@ impl Batch {
     }
 
     pub(crate) fn barrier(&mut self, source: u32, destination: u32) -> Result<(), Error> {
+        let graphics_access = (source | destination) & GRAPHICS_ACCESS != 0;
         let source = access(source)?;
         let destination = access(destination)?;
+        if !self.device.graphics && graphics_access {
+            return Err(Error::new(
+                UNSUPPORTED,
+                "Graphics access on a compute-only queue",
+            ));
+        }
         self.recording()?.push(Step::Barrier {
             source,
             destination,
+        });
+        Ok(())
+    }
+
+    pub(crate) fn draw(
+        &mut self,
+        raster: Rc<Raster>,
+        target: Rc<Target>,
+        indirect: Rc<Buffer>,
+        offset: usize,
+        root: &[u8],
+    ) -> Result<(), Error> {
+        if !Rc::ptr_eq(&self.device, &raster.device)
+            || !Rc::ptr_eq(&self.device, &target.device)
+            || !Rc::ptr_eq(&self.device, &indirect.device)
+        {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Draw objects belong to different devices",
+            ));
+        }
+        if offset % 4 != 0 || root.len() != raster.push_size as usize {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Invalid indirect offset or raster argument size",
+            ));
+        }
+        indirect.range(offset, 16)?;
+        self.recording()?.push(Step::Draw {
+            raster,
+            target,
+            indirect,
+            offset: offset as u64,
+            root: root.to_vec(),
+        });
+        Ok(())
+    }
+
+    pub(crate) fn copy_target(
+        &mut self,
+        target: Rc<Target>,
+        destination: Rc<Buffer>,
+        offset: usize,
+    ) -> Result<(), Error> {
+        if !Rc::ptr_eq(&self.device, &target.device)
+            || !Rc::ptr_eq(&self.device, &destination.device)
+        {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Copy objects belong to different devices",
+            ));
+        }
+        if offset % 4 != 0 {
+            return Err(Error::new(INVALID_ARGUMENT, "Unaligned copy destination"));
+        }
+        destination.range(offset, target.size)?;
+        let steps = self.recording()?;
+        if !steps.iter().any(
+            |step| matches!(step, Step::Draw { target: drawn, .. } if Rc::ptr_eq(drawn, &target)),
+        ) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Target copy requires an earlier draw in this batch",
+            ));
+        }
+        steps.push(Step::CopyTarget {
+            target,
+            destination,
+            offset: offset as u64,
         });
         Ok(())
     }
@@ -209,10 +354,10 @@ impl Completion {
                 d,
                 command,
                 vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                 vk::VkAccessFlagBits_VK_ACCESS_HOST_WRITE_BIT,
-                vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT
-                    | vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+                vk::VkAccessFlagBits_VK_ACCESS_MEMORY_READ_BIT
+                    | vk::VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT,
             );
             for step in &self.steps {
                 match step {
@@ -244,19 +389,31 @@ impl Completion {
                     } => barrier(
                         d,
                         command,
-                        vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                        vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                        *source,
-                        *destination,
+                        source.stages,
+                        destination.stages,
+                        source.flags,
+                        destination.flags,
                     ),
+                    Step::Draw {
+                        raster,
+                        target,
+                        indirect,
+                        offset,
+                        root,
+                    } => target.draw(command, raster, indirect, *offset, root),
+                    Step::CopyTarget {
+                        target,
+                        destination,
+                        offset,
+                    } => target.copy_to(command, destination, *offset),
                 }
             }
             barrier(
                 d,
                 command,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                 vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT,
-                vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+                vk::VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT,
                 vk::VkAccessFlagBits_VK_ACCESS_HOST_READ_BIT,
             );
             d.result(

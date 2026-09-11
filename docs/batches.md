@@ -4,7 +4,8 @@ This is the next execution experiment, not a stable API. It separates recording,
 submission, and completion while keeping one externally serialized queue per
 device and the existing host-visible allocations. Graphics and additional queues
 remain follow-up experiments; the dependency vocabulary below currently covers
-only compute accesses.
+compute accesses. The [offscreen graphics profile](graphics.md) now extends this
+same recording/submission model with raster draws, images, and image readback.
 
 Run the [C example](../examples/batch.c) with `cargo xtask batch`. It uploads 4099
 integers, dispatches [a producer](../examples/shaders/produce.comp) into an
@@ -27,7 +28,7 @@ argument bytes and retains the kernel. The kernel must belong to the batch's
 device. The existing one-dimensional dispatch and shader contracts apply.
 
 `ogpu_batch_barrier` records a global memory/execution dependency between earlier
-and later compute commands on the same queue. Source and destination masks are
+and later commands on the same queue. The initial compute source/destination masks are
 nonzero combinations of `OGPU_ACCESS_COMPUTE_READ` and
 `OGPU_ACCESS_COMPUTE_WRITE`. For a producer followed by a consumer, use WRITE →
 READ. These are our access values, not Vulkan flags. Dependencies are not inferred
@@ -52,15 +53,18 @@ GPU execution failures can surface during waiting rather than submission.
 
 ## Dependencies and host access
 
-Each batch establishes host-write → compute-read/write visibility at its start
-and compute-write → host-read visibility at its end. These boundary dependencies
+Each batch establishes host-write → GPU-read/write visibility at its start
+and GPU-write → host-read visibility at its end, including graphics and transfers.
+These boundary dependencies
 do not replace explicit dependencies between GPU operations. Submission order
 alone is not a memory dependency between dispatches or batches.
 
 The caller keeps every allocation reachable through recorded GPU addresses alive
 from recording until completion (or until the unsubmitted batch is discarded).
 Recorded addresses are non-owning; retaining kernels cannot retain pointees.
-Do not read, write, or destroy a buffer while submitted work can access it. This
+Do not perform CPU reads/writes while submitted work can access the buffer. Keep
+ownership until completion; commands taking explicit buffer handles can retain
+them, but addresses alone cannot. This host-access
 restriction covers the entire allocation, even disjoint byte ranges, because the
 initial transfer implementation performs whole-allocation cache maintenance.
 All API calls involving a device and its children remain externally serialized;
@@ -106,8 +110,9 @@ authorize host access to buffers still used by later submissions.
 - Wait-error draining and device-loss behavior, including partial construction.
 - Existing synchronous examples and ABI/binding reproducibility remain passing.
 
-Not included: completion polling/timeouts, reusable recordings, multiple queues,
-GPU transfer commands, device-local staging, graphics commands, or tensor semantics.
+Not included in this first compute slice: completion polling/timeouts, reusable
+recordings, multiple queues, device-local staging, or tensor semantics. The graphics
+extension adds a narrow image-to-buffer GPU copy, not a general transfer interface.
 
 ## Reproduction
 

@@ -67,7 +67,10 @@ or a decision to exclude graphics or asynchronous execution.
 The next slice adds [one-shot asynchronous batches](batches.md): copied arguments,
 explicit compute access dependencies, and per-submission completion handles.
 The blocking dispatch remains a convenience built on those primitives. This still
-uses one queue and host-visible allocations; graphics has not yet been exercised.
+uses one queue and host-visible linear allocations. The next
+[offscreen graphics experiment](graphics.md) adds GPU-produced vertices and
+indirect draw arguments consumed in the same batch, with specialized image targets
+and image readback. Graphics remains an optional device profile.
 
 1. Specify one allocation's CPU/GPU visibility and lifetime, one dispatch's argument and executable contract, and one submission's completion semantics.
 2. Exercise the common model with a compute-produced vertex array and indirect arguments consumed by a draw. Then add an image-processing or small neural graphics workload to test texture/linear-memory boundaries.
