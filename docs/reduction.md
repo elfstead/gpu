@@ -1,6 +1,6 @@
 # Cooperative integer reduction
 
-Status: implementation experiment, not an API proposal. The question is whether
+Status: implemented correctness experiment, not an API proposal. The question is whether
 the existing address/root/batch model can express workgroup cooperation and a
 multi-level reduction without a reduction-specific host API.
 
@@ -87,3 +87,8 @@ cargo xtask gpu-tests
 
 See [development](development.md) for the toolchain, loader selection, and validation
 settings. Results and remaining design questions belong in the [experiment ledger](experiments.md).
+
+The C example and 68-case Rust suite passed on the RX 5700 XT (RADV) and llvmpipe
+with synchronization validation enabled. The default example returned `3717237828`,
+matching the CPU reference. No public API changes were required. These results
+leave floating-point behavior, additional hardware vendors, and performance unproven.

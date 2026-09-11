@@ -12,6 +12,7 @@ for commands. "Implemented" does not mean production-ready or performance-tuned.
 | Address-based round trip | `cargo xtask compute` | CPU upload, repeated dispatch, partial updates, readback, retained device ownership | Device-local staging, suballocation, actual non-coherent hardware coverage |
 | Dependent compute kernels | `cargo xtask batch` | Copied roots, intermediate storage, explicit dependency, one submission/wait | Workgroup cooperation, arithmetic acceleration, replay or performance |
 | Compute → offscreen graphics | `cargo xtask graphics` | GPU-generated vertices/indirect arguments, image rendering/readback, shared batches | Sampling, compute image access, full graphics → compute → graphics loop |
+| Cooperative integer reduction | `cargo xtask reduction`, `cargo xtask gpu-tests` | Shared memory, uniform workgroup barriers, multi-level partial sums, tails/empty inputs/overflow, guarded intermediate outputs | Floating-point accuracy, subgroup acceleration, scratch reuse, performance |
 | Backend ownership/failure paths | `cargo xtask gpu-tests` | Batch states, retained resources, image reuse, preparation/submission/wait failure injection | Real hardware device loss, arbitrary shader faults, all driver behavior |
 
 These paths have been verified locally on the RX 5700 XT (RADV) and llvmpipe, with
@@ -19,18 +20,45 @@ Vulkan synchronization validation for execution tests. The discovery mocks and
 ordinary unit tests do not need a GPU. CI is configured to run validation, not
 claimed to have run remotely. These are correctness results, not benchmarks.
 
-## Next experiment: cooperative reduction
+## Cooperative reduction outcome — 2026-09-12
 
-Status: planned. Sum an unsigned integer array using workgroup-shared memory and
-multiple dependent dispatch levels. A CPU reference should define exact modulo-2^32
-results, including empty input, partial groups, and overflow cases. Keep intermediate
-data on the GPU and wait only after the final level. Test boundaries where the
-number of dispatch levels changes, not just one large input.
+Status: implemented and locally verified; [contract and source links](reduction.md).
+No public API additions or runtime execution changes were needed. A 64-invocation
+workgroup reduces up to 128 unsigned inputs using shared memory; explicit batch
+barriers connect the partial-sum levels. The C example reduces 1,048,579 inputs
+through 8,193 and 65 partials to one modulo-2^32 result, `3717237828`, with one
+submission and one wait.
 
-Questions: can existing allocation/address/root/batch primitives express this
-without a reduction-specific API? What obligations appear around scratch ownership,
-dispatch sizing, workgroup barriers, and padding lanes? This is not yet a test of
-floating-point summation accuracy, subgroup instructions, or matrix acceleration.
+The Vulkan-backed test checks 17 input lengths × 4 patterns (68 cases per device).
+Lengths include zero, 64/128-element boundaries, 16,384/16,385 (a dispatch-depth
+transition), and a million-element case. Patterns are zeros, ones, UINT32_MAX, and
+deterministic mixed values. After one final wait per case, CPU references check
+every intermediate partial, prefix/suffix guards, and the unchanged input. A
+driver-free planning test also checks uint32-max sizing without allocating it.
+
+Both the C example and 68-case suite passed on the RX 5700 XT (RADV) and llvmpipe
+with synchronization validation. The shader was compiled with glslang 16.4.0 and
+validated with SPIRV-Tools 1.4.357.0. Existing compute/graphics examples, unit tests,
+ABI/mock checks, Clippy, and the release build also passed locally.
+
+Design implications:
+
+- Workgroup cooperation fits in shader code plus existing dispatch dependencies;
+  a host `reduce` operation is not required for this workload.
+- Padding lanes must participate in shader barriers even when they have no input.
+  Workgroup barriers and inter-dispatch dependencies are separate obligations.
+- Scratch ownership is still manual. Copied roots do not retain their pointees;
+  dedicated per-level allocations prove correctness, not an optimal reuse strategy.
+- Host dispatch sizing knows the shader's fixed 128-input tile. Executable metadata,
+  specialization, and workgroup variants remain unresolved before tuning variants.
+- Empty logical input does not require a zero-byte allocation: the workload uses
+  a valid dummy allocation and emits zero. Tensor/collection semantics stay above
+  the allocation API.
+
+This does not establish floating-point summation accuracy, subgroup-size control,
+matrix acceleration, competitive throughput, device-local transfer performance,
+or correctness on additional hardware vendors. The next queued experiment remains
+the graphics → compute → graphics image-processing loop.
 
 ## Queued experiments
 

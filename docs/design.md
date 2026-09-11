@@ -43,6 +43,10 @@ graphics path requires a queue supporting both graphics and compute.
 | Graphics | GPU-produced vertex data and indirect draws, specialized images, image-to-buffer copies | Fixed-state RGBA8 offscreen targets, clear on every draw, same-batch draw before copy |
 | Discovery | Device information and supported capability bits | Reporting is not feature negotiation or a complete matrix/type capability description |
 
+The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
+shader barriers, and multi-level dispatch using this existing API. It adds workload
+evidence, not a new host operation or a reason to freeze the execution model.
+
 The examples establish functional paths and ownership/visibility behavior. They do
 not establish competitive performance, portability across hardware vendors, or a
 complete graphics/ML programming model. The [experiment ledger](experiments.md)
@@ -116,10 +120,11 @@ operation. Reusable low-level command sequences do not imply runtime-owned ML gr
 
 ## Experiment sequence
 
-1. **Cooperative reduction.** Exercise shared workgroup memory, uniform barriers,
-   partial groups, multiple dispatch levels, and intermediate allocations. Start
-   with exact integer arithmetic; assess floating-point error separately later.
-2. **Graphics → compute → graphics.** Process a rendered image and consume the
+1. **Cooperative reduction — initial experiment completed.** Exact uint32 sums
+   now exercise shared memory, uniform barriers, partial groups, multiple dispatch
+   levels, and scratch ownership. Floating-point accuracy, tuning, and scratch
+   reuse remain separate experiments; see the [recorded outcome](experiments.md).
+2. **Graphics → compute → graphics — next.** Process a rendered image and consume the
    result on the GPU. Make image/linear-memory representation and dependency costs
    explicit; do not assume images are ordinary addressable arrays.
 3. **Matrix workload and measurement.** Establish a numerical baseline, then test
@@ -153,6 +158,7 @@ communication are later profiles, not prerequisites for these experiments.
 - [Execution baseline](execution.md): linear memory, shader assumptions, blocking example.
 - [Batches](batches.md): recording, submission, dependencies, completion, and errors.
 - [Offscreen graphics](graphics.md): the implemented optional graphics profile.
+- [Reduction](reduction.md): cooperative workgroups and a multi-level compute workload.
 - [Experiments](experiments.md): tested evidence, limitations, and next questions.
 - [Development](development.md): builds, regeneration, validation, and test commands.
 
