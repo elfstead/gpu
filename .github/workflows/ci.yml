@@ -24,6 +24,11 @@ jobs:
       - run: spirv-val --target-env vulkan1.2 examples/shaders/triangle.comp.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/triangle.vert.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/triangle.frag.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/reduce.spv
+      - run: cargo xtask reduction
+        env:
+          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+          VK_LAYER_VALIDATE_SYNC: '1'
       - run: cargo xtask batch
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation

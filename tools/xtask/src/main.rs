@@ -278,6 +278,10 @@ fn batch(root: &Path) -> Result {
     c_execution(root, "batch", &["produce", "consume"])
 }
 
+fn reduction(root: &Path) -> Result {
+    c_execution(root, "reduction", &["reduce"])
+}
+
 fn graphics(root: &Path) -> Result {
     c_execution(
         root,
@@ -354,10 +358,11 @@ fn main() -> Result {
         Some("compute") if args.len() == 1 => compute(&root),
         Some("batch") if args.len() == 1 => batch(&root),
         Some("graphics") if args.len() == 1 => graphics(&root),
+        Some("reduction") if args.len() == 1 => reduction(&root),
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | graphics | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | graphics | reduction | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

@@ -11,6 +11,10 @@ pub(crate) use batch::{Batch, Completion};
 mod graphics;
 pub(crate) use graphics::{Raster, Target};
 
+#[cfg(test)]
+#[path = "reduction_tests.rs"]
+mod reduction_tests;
+
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
         #[allow(non_snake_case)]

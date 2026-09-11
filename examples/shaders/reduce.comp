@@ -1,0 +1,37 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+
+// One workgroup reduces up to 128 integers to one partial sum.
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input {
+    uint values[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output {
+    uint values[];
+};
+layout(push_constant, std430) uniform Root {
+    Input input_data;   // GPU address at byte 0.
+    Output output_data; // GPU address at byte 8.
+    uint count;        // Byte 16; host supplies 24 bytes including padding.
+} root;
+
+shared uint partial[64];
+
+void main() {
+    uint lane = gl_LocalInvocationID.x;
+    uint first = gl_WorkGroupID.x * 128u + lane;
+    uint second = first + 64u;
+    uint value = 0u;
+    if (first < root.count) value += root.input_data.values[first];
+    if (second < root.count) value += root.input_data.values[second];
+    partial[lane] = value;
+    barrier();
+
+    // Every lane, including padding lanes, reaches every barrier. No subgroup-size
+    // assumption: communication is through shared memory and workgroup barriers.
+    for (uint stride = 32u; stride != 0u; stride >>= 1u) {
+        if (lane < stride) partial[lane] += partial[lane + stride];
+        barrier();
+    }
+    if (lane == 0u) root.output_data.values[gl_WorkGroupID.x] = partial[0];
+}

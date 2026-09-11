@@ -16,6 +16,7 @@ cargo xtask smoke
 cargo xtask compute
 cargo xtask batch
 cargo xtask graphics
+cargo xtask reduction
 ```
 
 The first command builds `target/debug/libogpu.so` using checked-in bindings. It
@@ -37,10 +38,17 @@ copies the target for CPU verification after one wait. It requires a shared
 graphics+compute queue and a supported RGBA8 attachment/readback image. No display
 or presentation system is needed. See the [graphics contract](graphics.md).
 
+`reduction` runs [the cooperative reduction example](../examples/reduction.c):
+1,048,579 uint32 inputs become 8,193 partials, then 65, then one modulo-2^32 sum.
+Shared workgroup memory and shader barriers cooperate within a group; batch
+barriers connect levels. One final wait precedes readback. See the
+[reduction experiment](reduction.md) for the numerical contract and test cases.
+
 `cargo xtask gpu-tests` runs the Vulkan-backed Rust tests, including asynchronous
 batch lifetimes, dependencies across submissions, and injected preparation,
 submission, and wait errors, plus graphics image reuse, ownership, and partial
-creation failures. Like the C runner, it fails on Vulkan validation
+creation failures. It also checks reduction stage boundaries, overflow patterns,
+every intermediate partial, and buffer guards. Like the C runner, it fails on Vulkan validation
 errors even when the test process exits successfully. To enable synchronization
 validation, set `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and
 `VK_LAYER_VALIDATE_SYNC=1` (requires installed validation layers).
@@ -84,6 +92,7 @@ cargo xtask compute
 cargo xtask batch
 cargo xtask gpu-tests
 cargo xtask graphics
+cargo xtask reduction
 ```
 
 `bindings` uses **bindgen 0.72.1**, pinned in the Rust tooling crate and Cargo.lock,
