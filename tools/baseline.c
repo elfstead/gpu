@@ -27,8 +27,12 @@ int main(void) {
     LOAD(vkEnumerateInstanceVersion);
     uint32_t loader_version = VK_API_VERSION_1_0;
     CHECK(vkEnumerateInstanceVersion(&loader_version));
-    uint32_t api_version = loader_version < VK_API_VERSION_1_4 ? loader_version : VK_API_VERSION_1_4;
-    VkApplicationInfo app = {.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .apiVersion = api_version};
+    if (loader_version < VK_API_VERSION_1_1) {
+        fprintf(stderr, "Vulkan 1.1 or newer loader required\n");
+        dlclose(library);
+        return 2;
+    }
+    VkApplicationInfo app = {.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .apiVersion = VK_API_VERSION_1_4};
     VkInstanceCreateInfo create = {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pApplicationInfo = &app};
     CHECK(vkCreateInstance(&create, NULL, &instance));
     LOAD(vkDestroyInstance);

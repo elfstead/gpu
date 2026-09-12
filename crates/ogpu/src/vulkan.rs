@@ -132,10 +132,10 @@ impl Instance {
                 "Vulkan 1.1 or newer loader required",
             ));
         }
-        // Request the highest version this loader can actually create, capped at the
-        // execution target. Older loaders remain useful for discovery and are rejected
-        // later when a device is asked to execute the modern baseline.
-        let api_version = supported.min(V1_4);
+        // VkApplicationInfo declares the application's ceiling. A 1.1+ instance
+        // must accept a newer target and may expose newer physical devices.
+        // Cap physical-device feature use against this target, not the loader version.
+        let api_version = V1_4;
         let create = command!(
             get,
             ptr::null_mut(),

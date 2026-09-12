@@ -15,9 +15,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkEnumerateInstanceVersion(uint32_t *version) {
 }
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo *info, const VkAllocationCallbacks *allocator, VkInstance *instance) {
     assert(info->sType == VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO && allocator == NULL);
-    const char *mode = getenv("OGPU_MOCK_MODE");
-    assert(info->pApplicationInfo->apiVersion == (mode && !strcmp(mode, "instance11")
-        ? VK_API_VERSION_1_1 : VK_API_VERSION_1_3));
+    assert(info->pApplicationInfo->apiVersion == VK_API_VERSION_1_4);
     assert(info->enabledExtensionCount == 0 && info->enabledLayerCount == 0);
     *instance = (VkInstance)&instance_token;
     ++live_instances;
