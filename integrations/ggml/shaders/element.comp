@@ -1,0 +1,14 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input { float v[]; };
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output { float v[]; };
+layout(push_constant, std430) uniform Root {
+    Input a; Input b; Output c;
+    uint m; uint n; uint k; uint operation;
+} r;
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i < r.m * r.n)
+        r.c.v[i] = r.operation == 1u ? r.a.v[i] + r.b.v[i % r.m] : max(r.a.v[i], 0.0);
+}
