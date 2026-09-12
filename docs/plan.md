@@ -14,7 +14,8 @@ stable API, a portable standard, or a complete graphics/ML system.
 
 The first consumer is [GGML's FP32 MNIST forward graph](consumer-ggml.md).
 Its brief resolves candidate decisions by retaining the current bounded API.
-Integration is underway; there is no release date or stability claim.
+The first integration checkpoint is complete: `375f333`, with paired-driver
+acceptance recorded in the brief. There is no release date or stability claim.
 
 "Experimental" now means breaking changes are permitted and limitations are
 explicit. It does not mean an indefinite sequence of workload demonstrations.
@@ -66,16 +67,20 @@ for this checkpoint. Deferred work is not a hidden prerequisite.
 | F0 — Feasibility | Complete | Working model and recorded workload evidence | Existing ledger establishes the implemented paths; unanswered product questions move to the decisions below |
 | C1 — Scope and consumer brief | Complete: [GGML brief](consumer-ggml.md) | One named consumer, revision, use case, and acceptance checklist | D0 is resolved and the brief separates required capabilities from nice-to-haves |
 | C2 — API candidate decisions | Complete: retain/defer decisions in brief | D1–D5 decisions, candidate header/contracts, necessary implementation changes | Each decision is resolved or explicitly deferred without contradicting the brief; each included change has tests |
-| C3 — Public-interface integration | Active | Reproducible consumer integration and a friction report | The selected workflow works through the public interface and meets its independently stated acceptance checks |
-| C4 — Experimental checkpoint | Pending C3 | Version-identified source checkpoint, build/use instructions, limitations and compatibility notes | Header, contracts, consumer, and regression results agree; open issues are classified as future work, not unstated requirements |
+| C3 — Public-interface integration | Complete: [acceptance and friction](consumer-ggml.md) | Reproducible consumer integration and a friction report | The selected workflow works through the public interface and meets its independently stated acceptance checks |
+| C4 — Experimental checkpoint | Complete: source `375f333`, ABI 1 | Version-identified source checkpoint, build/use instructions, limitations and compatibility notes | Header, contracts, consumer, and regression results agree; open issues are classified as future work, not unstated requirements |
 
 Consumer inspection during C1 can inform C2; there is no requirement to design in
 isolation before looking at integration code. Any later scope change must update
 the brief and this plan, rather than quietly accumulating additional gates.
 
-The plan does not itself complete C3–C4, publish a release, or authorize
-contacting upstream maintainers. A release/tag or external contribution can be
-handled explicitly when the checkpoint is ready.
+Checkpoint completion does not publish a release or authorize contacting upstream
+maintainers. A release/tag or external contribution can be handled explicitly.
+
+The next task is to review the [consumer friction report](../integrations/ggml/README.md#deliberate-costs-and-remaining-friction)
+and choose the next bounded integration requirement. Scheduler-managed allocation
+reuse is a concrete candidate; more operators, device-local transfers, another
+consumer or backend are separate scope choices, not an automatically growing queue.
 
 ## Decisions blocking the candidate
 

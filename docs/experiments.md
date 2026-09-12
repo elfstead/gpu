@@ -27,6 +27,23 @@ Vulkan synchronization validation for execution tests. The discovery mocks and
 ordinary unit tests do not need a GPU. CI is configured to run validation, not
 claimed to have run remotely. These are correctness results, not benchmarks.
 
+## First consumer integration — 2026-09-12
+
+The [GGML MNIST checkpoint](consumer-ggml.md) is integration evidence, not another
+API-surface experiment. Its unmodified upstream FP32 forward graph uses five
+dispatches per batch through the unchanged public API. All 10,000 test digits at
+batch sizes 1, 17 and 64 matched GGML CPU predictions on RX 5700 XT and llvmpipe
+with synchronization validation: 98.01% accuracy for the recorded saved model,
+maximum absolute logit difference 0.0000343322754. Every logit met the predeclared
+tolerance. Repeated allocation use, full teardown/recreation and unsupported-graph
+preflight rejection passed. See the brief for source/model revisions and checks.
+
+This validates consumer-side suballocation and synchronous graph integration,
+not scheduler-driven memory reuse, general GGML operations or competitive ML
+performance. The [friction report](../integrations/ggml/README.md#deliberate-costs-and-remaining-friction)
+records host token storage, registry ordering and lifecycle costs. No GPU runtime
+or public API changes were necessary; no graphics-consumer conclusion follows.
+
 ## Cooperative reduction outcome — 2026-09-12
 
 Status: implemented and locally verified; [contract and source links](reduction.md).

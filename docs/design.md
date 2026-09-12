@@ -4,10 +4,10 @@ Updated 2026-09-12. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
-Initial feasibility is complete. The current phase is an API candidate for a first
-consumer integration, not another open-ended benchmark sequence. The
+Initial feasibility and the first bounded consumer checkpoint are complete:
+[GGML's FP32 MNIST forward graph](consumer-ggml.md) works through the public API. The
 [milestone plan](plan.md) owns working status, scope, blocking decisions and exit
-criteria; the first consumer is not yet selected. Experimental still means changes
+criteria. Experimental still means changes
 are allowed, not that a stable or broadly portable interface has been established.
 
 ## Purpose and scope
@@ -135,17 +135,17 @@ kernel-language/IR capabilities. The host interface needs to select executable
 variants and negotiate requirements, not add a host function for each arithmetic
 operation. Reusable low-level command sequences do not imply runtime-owned ML graphs.
 
-## Next milestone: an API candidate for integration
+## First integration checkpoint
 
 The reduction, mixed image loop, FP32 matrix and optional timing experiments have
 provided the initial feasibility evidence. They remain regression/diagnostic tools;
 their untested variants are not automatically the next development steps.
 
-Follow the [milestone plan](plan.md): select one consumer and acceptance brief,
-resolve its consequential API decisions, integrate through the public boundary,
-and produce a version-identified experimental checkpoint with explicit limitations.
-The plan classifies intended semantics, provisional implementation choices and
-deferred features. No first integration or release is claimed yet.
+The [milestone plan](plan.md) records the completed GGML MNIST checkpoint and its
+retain/defer API decisions. The integration uses the unchanged public boundary,
+and its source revision, reproduction instructions, acceptance and limitations
+are recorded in the [consumer brief](consumer-ggml.md). This validates one bounded
+compute consumer, not a general GGML backend, graphics consumer, or stable release.
 
 Further experiments must resolve a named decision with a stopping condition.
 Benchmark expansion is paused unless that decision needs it. Presentation, broad

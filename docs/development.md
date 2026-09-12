@@ -1,9 +1,16 @@
 # Building the prototype
 
 The initial backend is Rust with directly generated Vulkan declarations and a small
-C ABI. It does not use ash, Vulkanalia, C++, or Kotlin. Only Linux x86-64 is currently
+C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
+[GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
+it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
 supported and tested. The ABI is experimental, not a specification of the eventual
 execution interface.
+
+For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
+Its downloads, CPU fixture preparation and CMake build are separate from ordinary
+Cargo builds. CI includes a separate consumer job; local results do not establish
+that remote CI has run.
 
 ## Build and run
 

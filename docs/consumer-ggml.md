@@ -54,5 +54,64 @@ errors must not trigger a hidden fallback.
 
 ## Working status
 
-C1 is complete. C2 retains the API with these explicit decisions.
-C3 implementation and verification are in progress; no acceptance result yet.
+C1–C3 are complete. C2 retained the API; no public-header or Rust runtime changes
+were required. The experimental C4 source checkpoint is
+`375f33398d88b85db2ed6dd244d58e519850e328` (ABI 1), with the clarified compatibility
+policy above. This is a source checkpoint, not a release/tag or a stable ABI.
+See [build instructions and the integration friction report](../integrations/ggml/README.md).
+
+## Acceptance record — 2026-09-12
+
+The saved FP32 model used for the paired-driver runs has SHA-256
+`da1c16099ee705ac4445cf460cd89212acf30eca166db47225f5d38935b097ea`.
+It was prepared with the pinned upstream CPU `mnist-train`, 30 epochs, default
+random initialization, 57,000 training and 3,000 validation images. No test images
+were used for training. The file remains in `target/ggml-data/mnist-fc-f32.gguf`;
+it is not distributed in Git. Fresh training produces different weights, so the
+reproduction promise is the same acceptance procedure, not identical model bits.
+
+Both the RX 5700 XT (RADV NAVI10) and llvmpipe (LLVM 21.1.8, 256 bits) passed with
+Vulkan/synchronization validation. CPU reference: Ryzen 9 5900X, GGML CPU, four
+threads. All rows below passed on both drivers with identical recorded results.
+
+| Batch size | Images | Graph calls | GPU dispatches | Correct predictions | Maximum absolute logit difference |
+|---|---|---|---|---|---|
+| 1 | 10,000 | 10,000 | 50,000 | 9,801 (98.01%) | 0.0000343322754 |
+| 17 | 10,000 | 589 | 2,945 | 9,801 (98.01%) | 0.0000343322754 |
+| 64 | 10,000 | 157 | 785 | 9,801 (98.01%) | 0.0000343322754 |
+
+Every logit, including padded tail rows, met the predeclared tolerance; every real
+image's top-1 prediction matched CPU. Outputs were poisoned before calls. Weights,
+input and intermediate allocations were reused across calls, then models, buffers,
+kernels and devices were destroyed/recreated for the next batch size. Rejection
+tests verified unsupported operations, FP16, strided layouts and aliased matrix
+outputs fail without submitting earlier graph nodes or changing a sentinel output.
+No host Vulkan calls, private Rust access, or GPU-graph CPU fallback was used.
+
+Toolchain: Rust 1.97.1, Clang 21.1.8, CMake 4.3.4, glslang 16.4.0,
+SPIRV-Tools/loader/validation layers 1.4.357.0. Release consumer checks remain
+active under `NDEBUG`. ShellCheck, Rust formatting/Clippy, 20 ordinary tests, all
+seven GPU tests across both drivers, 550 ABI layout checks and loader mocks passed.
+CI includes a consumer job; no remote CI run is claimed.
+
+A fresh local clone of the source checkpoint also completed the documented
+download → checksum → CPU training → build → llvmpipe acceptance procedure.
+Its independently prepared model hash was
+`0f65ae33a84d59abf328cf00fb517d513d15a6a7d1b9e56953663ca150f3f59c`;
+all three batch sizes produced 9,792/10,000 correct predictions, identical CPU/GPU
+top-1 results, and maximum logit difference 0.0000305175781. This confirms the
+procedure does not depend on the original checkout's generated artifacts.
+Missing-shader and invalid-device consumer startup checks also exited with clear
+errors, without the process-exit cleanup fault.
+
+An exploratory sanitizer build completed inference without an AddressSanitizer
+error (leak detection disabled), but UBSan reported two diagnostics in pinned
+upstream GGML: null-pointer offset calculation in graph sizing and an indirect
+CPU-kernel function-type mismatch. This is **not** a sanitizer-clean claim for the
+dependency or the entire stack, and does not replace the validated release runs.
+
+The result supports this small forward-inference integration. It does not settle
+device-local transfers, scheduler-driven allocation reuse, asynchronous callbacks,
+accelerated numeric profiles, graphics-consumer usability, or performance against
+existing GGML GPU backends. These are future scope choices, not unfinished gates
+for this checkpoint.

@@ -7,5 +7,7 @@ The [experiment ledger](docs/experiments.md) records the supporting evidence.
 
 The Rust/C prototype supports address-based compute and [offscreen graphics](docs/graphics.md)
 in shared asynchronous batches. See [building and testing](docs/development.md).
+The first consumer is [GGML's FP32 MNIST classifier](integrations/ggml/README.md),
+running its forward graph through the public API.
 
 Licensed under the [MIT License](LICENSE).
