@@ -12,9 +12,9 @@ kernels, and optional batch timing. See the ledger for exact coverage and limits
 This supports moving to an **API candidate for integration**, not declaring a
 stable API, a portable standard, or a complete graphics/ML system.
 
-The first consumer has not been selected. Executable requirements, the memory
-transfer contract, and the image-access boundary still need candidate decisions.
-There is no release date or claim that integration is already underway.
+The first consumer is [GGML's FP32 MNIST forward graph](consumer-ggml.md).
+Its brief resolves candidate decisions by retaining the current bounded API.
+Integration is underway; there is no release date or stability claim.
 
 "Experimental" now means breaking changes are permitted and limitations are
 explicit. It does not mean an indefinite sequence of workload demonstrations.
@@ -64,27 +64,27 @@ for this checkpoint. Deferred work is not a hidden prerequisite.
 | Step | Status | Deliverable | Done when |
 |---|---|---|---|
 | F0 — Feasibility | Complete | Working model and recorded workload evidence | Existing ledger establishes the implemented paths; unanswered product questions move to the decisions below |
-| C1 — Scope and consumer brief | Active: scope recorded, consumer unselected | One named consumer, revision, use case, and acceptance checklist | D0 is resolved and the brief separates required capabilities from nice-to-haves |
-| C2 — API candidate decisions | Pending C1; inventory below is ready | D1–D5 decisions, candidate header/contracts, necessary implementation changes | Each decision is resolved or explicitly deferred without contradicting the brief; each included change has tests |
-| C3 — Public-interface integration | Pending C2 | Reproducible consumer integration and a friction report | The selected workflow works through the public interface and meets its independently stated acceptance checks |
+| C1 — Scope and consumer brief | Complete: [GGML brief](consumer-ggml.md) | One named consumer, revision, use case, and acceptance checklist | D0 is resolved and the brief separates required capabilities from nice-to-haves |
+| C2 — API candidate decisions | Complete: retain/defer decisions in brief | D1–D5 decisions, candidate header/contracts, necessary implementation changes | Each decision is resolved or explicitly deferred without contradicting the brief; each included change has tests |
+| C3 — Public-interface integration | Active | Reproducible consumer integration and a friction report | The selected workflow works through the public interface and meets its independently stated acceptance checks |
 | C4 — Experimental checkpoint | Pending C3 | Version-identified source checkpoint, build/use instructions, limitations and compatibility notes | Header, contracts, consumer, and regression results agree; open issues are classified as future work, not unstated requirements |
 
 Consumer inspection during C1 can inform C2; there is no requirement to design in
 isolation before looking at integration code. Any later scope change must update
 the brief and this plan, rather than quietly accumulating additional gates.
 
-This planning commit does not complete C1–C4, publish a release, or authorize
+The plan does not itself complete C3–C4, publish a release, or authorize
 contacting upstream maintainers. A release/tag or external contribution can be
 handled explicitly when the checkpoint is ready.
 
 ## Decisions blocking the candidate
 
-All decisions below are open. The recommended starting positions are proposals,
-not changes to the currently implemented contracts.
+Decisions D0–D5 are resolved for this consumer in the [brief](consumer-ggml.md).
+The inventory below records the questions those decisions address.
 
 | ID | Question | Evidence already available | Required decision/output |
 |---|---|---|---|
-| D0 | Who is the first consumer, and what must it accomplish? | Existing examples prove execution, not integration value | Select a named application/compiler/runtime and write the brief below; this is the immediate next task |
+| D0 | Who is the first consumer, and what must it accomplish? | Existing examples prove execution, not integration value | Resolved: GGML MNIST forward inference; see the brief |
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Reduction/matmul share the ABI, but the host knows root layout and tile sizes; reported feature bits are not enabled features | Specify baseline/optional requirements, enabled-capability reporting, entry point/root/workgroup agreement, and failure behavior; say which metadata is declared versus validated |
 | D2 | What memory placement and transfer behavior does this consumer need? | Host-visible buffers work; device-local linear data and staging have not been exercised | Choose explicit allocation/copy semantics if needed, or retain host-visible-only with a consumer-supported limitation; document address stability, range/lifetime and completion rules |
 | D3 | Which image operations belong in the first offscreen profile? | Buffer-mediated graphics → compute → graphics works; direct storage access and sampling are absent | Retain the fixed profile or specify the smallest required image access/format/state addition; explicitly defer sampling/storage images when unnecessary, without claiming they are solved |
@@ -97,8 +97,7 @@ minimum contract needed for the brief, including what is intentionally unsupport
 
 ## Consumer brief and integration acceptance
 
-The immediate next task is to shortlist and select one consumer with the user,
-then record:
+The selected consumer's brief records:
 
 - Project/revision and the specific application or compiler/runtime workflow.
 - A useful result defined independently of this API: actual inputs, expected
