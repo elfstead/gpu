@@ -66,21 +66,29 @@ queued throughput. The output-reset interval includes CPU poisoning plus the cop
 and is reported separately. Allocation timing includes the three GPU allocations,
 host staging allocations, and their poison initialization, but not reference work.
 
-The execution interval covers batch creation/recording, submission, completion
-wait, and cleanup. It is **not GPU kernel time**: the current API has no GPU
-timestamps, and host/driver overhead is included. Upload/readback measure the
+The host execution interval covers batch creation/recording, submission, completion
+wait, and cleanup. It is **not GPU kernel time**: host/driver overhead is included.
+The [optional timing follow-up](timing.md) now adds a separate device-batch interval
+and result-query cost. Supported devices run each case and benchmark in timed and
+untimed modes, alternating their order; unsupported devices report host-only timing.
+Timed host latency includes query creation/destruction but excludes query retrieval.
+Each kernel/mode has its own two warmups and nine samples. Upload/readback measure the
 current host-visible allocation copies/cache maintenance, not device-local PCIe
 staging. Correctness runs with Vulkan validation; comparative timing must also
 be collected in a separate validation-disabled run, with device/build conditions
 recorded. No timing threshold gates tests.
 
 Keep scratch and arguments alive through completion. Explicit compute-write →
-compute-write dependencies cover output reuse. Do not widen the API for timing
-yet; use the measurements to decide whether GPU timestamps are the next justified
-addition. No comparison against tuned BLAS libraries or accelerated matrix units
+compute-write dependencies cover output reuse. The runner queries the counter
+period/width and rejects timed calls whose enclosing host execution interval could
+span a full wrap. No comparison against tuned BLAS libraries or accelerated matrix units
 is implied by comparing these two deliberately simple shaders.
 
-## Observed result — 2026-09-12
+## Initial host-only result — 2026-09-12
+
+This section preserves the original matrix experiment before timestamp support.
+See [the timing follow-up](timing.md#initial-measurements) for the newer paired
+host/device results. The original kernels and numerical contract are unchanged.
 
 Both kernels passed all 50 cases and all timing-shape checks on the RX 5700 XT
 (RADV NAVI10) and llvmpipe (LLVM 21.1.8, 256 bits), both reporting Vulkan 1.4.354.
@@ -141,10 +149,10 @@ benchmark or evidence of competitive GEMM performance.
 - Shared-memory tiling is not a universal optimization. Variant selection should
   remain possible, with measurements on the target device rather than one mandated
   tile or assumed subgroup width.
-- **GPU timestamps are now a justified next experiment.** Host timing detects a
-  difference but cannot partition recording/submission overhead, queue delay, and
-  shader execution. Test a narrow optional timing facility before making kernel-
-  throughput claims or selecting accelerated variants from these numbers.
+- The initial host timings justified the [now-implemented optional timestamps](timing.md).
+  Those measure device-side batch duration separately, not pure arithmetic time or
+  exact CPU overhead. Larger shape sweeps and submission-amortization experiments
+  should precede resource-pool optimization or accelerated-variant conclusions.
 
 ## Reproduction
 

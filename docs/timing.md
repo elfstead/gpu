@@ -2,7 +2,7 @@
 
 ## Scope and API contract
 
-Add a narrow optional way to measure the existing matrix workload on the device.
+The implementation adds a narrow optional way to measure the matrix workload on the device.
 One timed batch yields one approximate elapsed duration. No arbitrary markers,
 per-stage profiling, calibrated host/device clocks, cross-queue comparisons,
 query-pool handles, or mandatory timestamp support.
@@ -65,3 +65,87 @@ The Vulkan choices follow the primary [timestamp example](https://docs.vulkan.or
 [timestamp command semantics](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdWriteTimestamp.html),
 [queue counter properties](https://docs.vulkan.org/refpages/latest/refpages/source/VkQueueFamilyProperties.html),
 and [query retrieval rules](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetQueryPoolResults.html).
+
+## Implementation and evidence — 2026-09-12
+
+Implementation checkpoint: `d82684c`. The [public header](../include/ogpu.h) adds
+three functions and one new info structure; no previous layout or signature changes.
+The Rust [batch implementation](../crates/ogpu/src/batch.rs) owns the two-query pool
+inside each timed completion. Five core Vulkan commands were added to the pinned
+binding allowlist; no extensions, optional device features, or new dependencies
+are enabled. The generated bindings reproduce exactly, and C/Rust checks cover
+550 layout values, including the new structure, query pool, and timestamp period.
+
+Ordinary tests pass (20), and all seven Vulkan-backed tests pass locally with
+synchronization validation. The [timing tests](../crates/ogpu/src/timing_tests.rs)
+exercise malformed clock reports, narrow/full-width wraps, zero elapsed time,
+optional-support fallback, untouched untimed/discarded recordings, pre-wait reads,
+two outstanding query pools, cached retrieval, pending destruction without a read,
+creation OOM, retryable query failures, and simulated loss only after real work
+completes. Existing preparation/submission/wait injections also run with timing
+enabled. Mixed compute/draw/copy batches retain their timing resources after public
+owners are dropped. Actual loss and hardware with a narrow counter remain untested;
+simulations and arithmetic tests do not replace that evidence.
+
+The matrix C runner passes all 50 cases per kernel in **both** timed and untimed
+modes on both local devices, plus every warmup and measured output. Unsupported
+devices explicitly retain host-only measurement. The current local devices both
+support timing: RX 5700 XT has 64 valid bits at 10 ns/tick, and llvmpipe has 64 bits
+at 1 ns/tick. Counter period is a conversion scale, not an accuracy guarantee.
+Clippy, ABI/mock checks, binding reproduction, and all previous C experiments pass.
+Existing CI commands include the new tests and updated matrix runner; no remote
+CI execution is claimed.
+
+## Initial measurements
+
+A validation-disabled run of the committed implementation used Rust 1.97.1
+release, Clang 21.1.8 `-O2 -DNDEBUG`, the unchanged SPIR-V matrix shaders, Vulkan
+loader 1.4.357, RADV/llvmpipe Vulkan 1.4.354, and a Ryzen 9 5900X host. Validation
+environment variables were unset and `VK_LOADER_LAYERS_DISABLE` named
+`VK_LAYER_KHRONOS_validation`. CPU/GPU clocks were not fixed; the machine was not
+isolated. These are preliminary profiling observations, not controlled benchmarks.
+
+Each kernel/mode gets two warmups and nine samples, alternating kernel and timing
+mode order. All intervals below are median milliseconds for M=N=K=256:
+
+| Device | Kernel | Untimed host | Timed host | Device batch | Query read |
+|---|---|---|---|---|---|
+| RX 5700 XT | Baseline | 0.5211 | 0.5504 | 0.3655 | 0.0032 |
+| RX 5700 XT | Tiled 8×8 | 0.3155 | 0.3408 | 0.1618 | 0.0031 |
+| llvmpipe | Baseline | 2.3140 | 2.4716 | 2.3797 | 0.0131 |
+| llvmpipe | Tiled 8×8 | 2.8913 | 3.0514 | 2.9673 | 0.0136 |
+
+RADV device-batch min/max were 0.3634–0.3693 ms baseline and 0.1600–0.1634 ms
+tiled. llvmpipe's were 1.9768–2.8443 and 2.4247–3.4026 ms; its variability is
+material. For 128³, baseline/tiled device medians were 0.1402/0.0456 ms on RADV
+and 0.3694/0.4610 ms on llvmpipe. For (257,193,129), they were 0.1945/0.0942 ms
+and 0.9727/1.3227 ms respectively. The runner prints full min/median/max for all
+host/device intervals and separately reports allocation, upload, reset, and readback.
+
+A second validation-disabled process run retained the same ordering for all three
+shapes. Its 256³ device medians were 0.3597/0.1617 ms on RADV and 2.5302/3.1091 ms
+on llvmpipe (baseline/tiled). This repeat does not eliminate scheduling or clock noise.
+
+Timed host intervals include query-pool creation, reset/write recording, submission,
+wait, and destruction, but exclude result retrieval. Device intervals cover the
+instrumented command batch and its barriers. Query-read cost is charged separately;
+it does not disappear. Untimed and timed samples are different executions, and
+their clock domains are not calibrated: subtracting medians is not an exact CPU
+overhead measurement. A device-time sample need not be below an unrelated untimed
+host sample. Software Vulkan timing is not physical GPU timing.
+
+The RADV tiled improvement is visible in the device bracket as well as host
+latency. Tiling still has higher median latency on llvmpipe for these cases.
+Timing instrumentation has measurable cost, reinforcing the opt-in design and the
+need to keep untimed controls. Whole-batch measurements do not identify individual
+barrier, dispatch, image-copy, or allocation bottlenecks.
+
+Next, use larger shape sweeps and multiple dispatches per submission to test how
+costs scale and amortize before optimizing resource reuse or adding finer markers.
+Accelerated matrix variants, direct image access, and per-region profiling remain
+separate workload-driven decisions; this experiment does not stabilize the API.
+
+Run `cargo xtask matmul` for the comparison, and `cargo xtask gpu-tests` for backend
+state/failure checks. See [matrix reproduction](matmul.md#reproduction) for separate
+validation-enabled and disabled commands, and [development](development.md) for
+loader/toolchain setup. Timing tests intentionally impose no speed threshold.

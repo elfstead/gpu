@@ -57,15 +57,20 @@ barriers connect levels. One final wait precedes readback. See the
 with `-O2 -DNDEBUG` (checks remain active). It compares baseline and shared-memory
 FP32 matrix kernels against FP64 CPU references on every compute-capable device,
 including padded row strides, guards, and awkward shapes. It reports setup/copy
-costs and warmed host execution latency separately. These are not GPU timestamps;
-run without validation for comparative timing, and with validation for correctness.
+costs and warmed host execution latency separately. It also compares timed/untimed
+batches when the selected queue supports timestamps, reporting device-batch duration
+and query-read cost separately. Unsupported clocks retain host-only measurements.
+Run without validation for comparative timing, and with validation for correctness.
 See [the matrix contract and recorded measurements](matmul.md).
 
 `cargo xtask gpu-tests` runs the Vulkan-backed Rust tests, including asynchronous
 batch lifetimes, dependencies across submissions, and injected preparation,
 submission, and wait errors, plus graphics image reuse, ownership, and partial
 creation failures. It also checks reduction stage boundaries, overflow patterns,
-every intermediate partial, and buffer guards. Like the C runner, it fails on Vulkan validation
+every intermediate partial, and buffer guards. Optional [timing tests](timing.md)
+cover wrap arithmetic, support fallback, read states, query failures, and resource
+cleanup; existing mixed graphics tests also exercise timed submissions.
+Like the C runner, it fails on Vulkan validation
 errors even when the test process exits successfully. To enable synchronization
 validation, set `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and
 `VK_LAYER_VALIDATE_SYNC=1` (requires installed validation layers).

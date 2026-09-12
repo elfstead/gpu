@@ -15,6 +15,7 @@ for commands. "Implemented" does not mean production-ready or performance-tuned.
 | Graphics → compute → graphics | `cargo xtask image-loop` | Explicit image/linear conversion, compute pixel transform, fragment address reads, guarded intermediate/final checks and reuse | Sampling/storage images, conversion costs, filtering, general formats |
 | Cooperative integer reduction | `cargo xtask reduction`, `cargo xtask gpu-tests` | Shared memory, uniform workgroup barriers, multi-level partial sums, tails/empty inputs/overflow, guarded intermediate outputs | Floating-point accuracy, subgroup acceleration, scratch reuse, performance |
 | FP32 matrix multiplication | `cargo xtask matmul` | Baseline/tiled kernels, FP64 references, guarded row strides, 50 cases per kernel, separate setup/copy/warmed host timings | Isolated GPU timing, accelerated/narrow types, tuned BLAS comparison, performance portability |
+| Optional batch timestamps | `cargo xtask matmul`, `cargo xtask gpu-tests` | Queue-specific clock reports, completion-owned queries, wrap arithmetic, state/failure tests, timed/untimed matrix comparison | Per-region attribution, calibrated clocks, real narrow-counter hardware, controlled benchmarks |
 | Backend ownership/failure paths | `cargo xtask gpu-tests` | Batch states, retained resources, image reuse, preparation/submission/wait failure injection | Real hardware device loss, arbitrary shader faults, all driver behavior |
 
 These paths have been verified locally on the RX 5700 XT (RADV) and llvmpipe, with
@@ -106,15 +107,30 @@ not selecting a universal tile. Timings include host/driver overhead, and the
 machine was not isolated or clock-locked; isolated shader throughput remains unknown.
 
 No matrix host operation, 2D dispatch, optional arithmetic feature, or timestamp
-API was added. Workgroup/tile metadata remains a caller/shader agreement. A narrow
-optional timestamp experiment is now the next justified measurement step before
-attributing performance differences or evaluating accelerated matrix variants.
+API was added in that initial checkpoint. Workgroup/tile metadata remains a
+caller/shader agreement. Its host measurements motivated the timing follow-up below.
+
+## Optional timing outcome — 2026-09-12
+
+Status: implemented and locally verified; [contract, sources, and measurements](timing.md).
+Three new functions report the selected queue's clock, opt a recording batch into
+timing, and retrieve a duration after an explicit successful wait. Existing layouts
+and ordinary execution requirements are unchanged. Unsupported timing leaves
+ordinary batches usable; untimed execution creates no query resources.
+
+Both local devices pass timing state/failure tests, existing timed mixed-command
+tests, and 50 matrix cases per kernel in both modes. The validation-disabled
+256³ RADV device-batch medians were 0.3655 ms baseline and 0.1618 ms tiled, versus
+0.5504/0.3408 ms timed host latency. llvmpipe retained a higher tiled median.
+Query retrieval is reported separately, and untimed controls expose instrumentation
+cost. These intervals do not isolate individual shader/barrier costs or yield an
+exact CPU/GPU latency decomposition. The machine was not benchmark-isolated.
 
 ## Queued experiments
 
-1. Add a narrow optional GPU-timestamp experiment to distinguish device execution
-   from host/runtime latency in matrix and mixed workloads; then investigate
-   supported accelerated/narrow-type matrix variants against the FP32 baseline.
+1. Sweep larger matrix shapes and multiple dispatches per submission to measure
+   scaling and amortization before optimizing resource reuse; then investigate
+   supported accelerated/narrow-type variants against the FP32 baseline.
 2. Follow up the image loop with measured representation costs before deciding
    whether to add direct storage-image access or sampled-image bindings.
 3. A compiler/runtime consumer and a second backend for the common compute model.

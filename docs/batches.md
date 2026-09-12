@@ -6,6 +6,12 @@ per device. The [offscreen graphics profile](graphics.md) uses this same model f
 raster draws, images, and image readback. Additional queues remain future work.
 See [the design overview](design.md) and [experiment ledger](experiments.md).
 
+[Optional timing](timing.md) can bracket a whole batch with device timestamps.
+Enable it while recording, explicitly wait successfully, then read the duration
+from the completion. Untimed batches allocate no query resources. Timing retrieval
+does not wait or change a previous wait outcome, and timestamps do not replace
+the memory dependencies described below.
+
 Run the [C example](../examples/batch.c) with `cargo xtask batch`. It uploads 4099
 integers, dispatches [a producer](../examples/shaders/produce.comp) into an
 intermediate allocation, then [a consumer](../examples/shaders/consume.comp) into

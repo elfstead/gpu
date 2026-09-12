@@ -42,6 +42,7 @@ graphics path requires a queue supporting both graphics and compute.
 | Executables | Prepared compute kernels and raster programs, caller-defined root bytes | Trusted Vulkan SPIR-V, `main` entry points, limited enabled capabilities |
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, per-submission completions | One queue, externally serialized host calls, no replay/polling/timeouts |
+| Timing | Optional whole-batch device timestamps, retrieved after successful wait | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
 | Graphics | GPU-produced vertex data and indirect draws, specialized images, image-to-buffer copies | Fixed-state RGBA8 offscreen targets, clear on every draw, same-batch draw before copy |
 | Discovery | Device information and supported capability bits | Reporting is not feature negotiation or a complete matrix/type capability description |
 
@@ -49,7 +50,8 @@ The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
 shader barriers, and multi-level dispatch using this existing API. It adds workload
 evidence, not a new host operation or a reason to freeze the execution model.
 The [FP32 matrix experiment](matmul.md) adds numerical references, explicit row
-strides, baseline/tiled variants, and separated host timings without API changes.
+strides, baseline/tiled variants, and separated host timings without matrix-specific
+API changes. The [timing follow-up](timing.md) adds optional device batch durations.
 
 The examples establish functional paths and ownership/visibility behavior. They do
 not establish competitive performance, portability across hardware vendors, or a
@@ -115,7 +117,7 @@ diagnostics are needed, but they must not be confused with guarantees we do not 
 | Images and graphics state | Sampling, compute image access, attachments and a complete graphics → compute → graphics workload |
 | ML profiles | Reductions and matrix kernels; exact storage/arithmetic/conversion/accumulation combinations and matrix shapes |
 | Portability boundary | One real compiler/runtime consumer and a second backend for the common compute subset |
-| Tooling | Timestamps, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |
+| Tooling | Finer profiling/calibrated clocks, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |
 
 Workgroup/shared-memory operations and subgroup/matrix instructions are primarily
 kernel-language/IR capabilities. The host interface needs to select executable
@@ -133,9 +135,9 @@ operation. Reusable low-level command sequences do not imply runtime-owned ML gr
    between stages. Direct image access/sampling and conversion-cost measurements
    remain open; see the [experiment contract](image-loop.md).
 3. **Matrix workload — FP32 baseline and initial host measurements complete.**
-   Baseline/tiled kernels pass numerical and guarded-layout checks. GPU timestamps
-   are the next measurement experiment: host timings do not isolate kernel time.
-   Accelerated/narrow-type variants and device-local transfers remain untested.
+   Baseline/tiled kernels pass numerical and guarded-layout checks. Optional device
+   timestamps now separate batch duration from host latency. Shape/submission scaling,
+   accelerated/narrow-type variants, and device-local transfers remain untested.
 4. **External consumer and portability.** Integrate a compiler/runtime consumer
    and test a second backend before treating the common contract as stable.
 
@@ -167,6 +169,7 @@ communication are later profiles, not prerequisites for these experiments.
 - [Reduction](reduction.md): cooperative workgroups and a multi-level compute workload.
 - [Image loop](image-loop.md): mixed execution and explicit image/linear conversion.
 - [Matrix multiplication](matmul.md): FP32 accuracy, tiled variants, and host timings.
+- [Timing](timing.md): optional batch timestamps, ownership, and paired measurements.
 - [Experiments](experiments.md): tested evidence, limitations, and next questions.
 - [Development](development.md): builds, regeneration, validation, and test commands.
 
