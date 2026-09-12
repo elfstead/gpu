@@ -14,8 +14,8 @@ const GRAPHICS_ACCESS: u32 = VERTEX_READ | INDIRECT_READ | COLOR_WRITE | FRAGMEN
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Access {
-    stages: vk::VkPipelineStageFlags,
-    flags: vk::VkAccessFlags,
+    stages: vk::VkPipelineStageFlags2,
+    flags: vk::VkAccessFlags2,
 }
 
 fn access(mask: u32) -> Result<Access, Error> {
@@ -29,43 +29,43 @@ fn access(mask: u32) -> Result<Access, Error> {
     for (bit, stage, flags) in [
         (
             COMPUTE_READ,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT,
+            vk::VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            vk::VK_ACCESS_2_SHADER_READ_BIT,
         ),
         (
             COMPUTE_WRITE,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT,
+            vk::VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            vk::VK_ACCESS_2_SHADER_WRITE_BIT,
         ),
         (
             VERTEX_READ,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT,
+            vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            vk::VK_ACCESS_2_SHADER_READ_BIT,
         ),
         (
             INDIRECT_READ,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
+            vk::VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+            vk::VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
         ),
         (
             COLOR_WRITE,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            vk::VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         ),
         (
             TRANSFER_READ,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFER_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_TRANSFER_READ_BIT,
+            vk::VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            vk::VK_ACCESS_2_TRANSFER_READ_BIT,
         ),
         (
             TRANSFER_WRITE,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFER_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_TRANSFER_WRITE_BIT,
+            vk::VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            vk::VK_ACCESS_2_TRANSFER_WRITE_BIT,
         ),
         (
             FRAGMENT_READ,
-            vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-            vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT,
+            vk::VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            vk::VK_ACCESS_2_SHADER_READ_BIT,
         ),
     ] {
         if mask & bit != 0 {
@@ -273,13 +273,18 @@ impl Batch {
         unsafe {
             let command = completion.prepare()?;
             let d = &completion.device;
-            let submit = vk::VkSubmitInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                commandBufferCount: 1,
-                pCommandBuffers: &command,
+            let command_info = vk::VkCommandBufferSubmitInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                commandBuffer: command,
                 ..Default::default()
             };
-            let status = (d.f.vkQueueSubmit.unwrap())(d.queue, 1, &submit, completion.fence);
+            let submit = vk::VkSubmitInfo2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                commandBufferInfoCount: 1,
+                pCommandBufferInfos: &command_info,
+                ..Default::default()
+            };
+            let status = (d.f.vkQueueSubmit2.unwrap())(d.queue, 1, &submit, completion.fence);
             if status == vk::VkResult_VK_SUCCESS {
                 // No fallible operation between accepted submission and recording ownership.
                 completion.pending = true;
@@ -293,7 +298,7 @@ impl Batch {
                         d.result("vkQueueWaitIdle after submit error", drained)?;
                     }
                 }
-                d.result("vkQueueSubmit", status)?;
+                d.result("vkQueueSubmit2", status)?;
             }
         }
         Ok(completion)
@@ -384,9 +389,9 @@ impl Completion {
             )?;
             if self.timed {
                 (d.f.vkCmdResetQueryPool.unwrap())(command, self.queries, 0, 2);
-                (d.f.vkCmdWriteTimestamp.unwrap())(
+                (d.f.vkCmdWriteTimestamp2.unwrap())(
                     command,
-                    vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    vk::VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
                     self.queries,
                     0,
                 );
@@ -394,11 +399,10 @@ impl Completion {
             barrier(
                 d,
                 command,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                vk::VkAccessFlagBits_VK_ACCESS_HOST_WRITE_BIT,
-                vk::VkAccessFlagBits_VK_ACCESS_MEMORY_READ_BIT
-                    | vk::VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT,
+                vk::VK_PIPELINE_STAGE_2_HOST_BIT,
+                vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                vk::VK_ACCESS_2_HOST_WRITE_BIT,
+                vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
             );
             for step in &self.steps {
                 match step {
@@ -412,16 +416,7 @@ impl Completion {
                             vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE,
                             kernel.pipeline,
                         );
-                        if kernel.push_size != 0 {
-                            (d.f.vkCmdPushConstants.unwrap())(
-                                command,
-                                kernel.layout,
-                                vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
-                                0,
-                                kernel.push_size,
-                                root.as_ptr().cast(),
-                            );
-                        }
+                        push_data(d, command, root);
                         (d.f.vkCmdDispatch.unwrap())(command, *groups, 1, 1);
                     }
                     Step::Barrier {
@@ -452,15 +447,15 @@ impl Completion {
             barrier(
                 d,
                 command,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_HOST_BIT,
-                vk::VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT,
-                vk::VkAccessFlagBits_VK_ACCESS_HOST_READ_BIT,
+                vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                vk::VK_PIPELINE_STAGE_2_HOST_BIT,
+                vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
+                vk::VK_ACCESS_2_HOST_READ_BIT,
             );
             if self.timed {
-                (d.f.vkCmdWriteTimestamp.unwrap())(
+                (d.f.vkCmdWriteTimestamp2.unwrap())(
                     command,
-                    vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    vk::VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
                     self.queries,
                     1,
                 );
@@ -558,34 +553,49 @@ impl Drop for Completion {
     }
 }
 
-unsafe fn barrier(
+pub(super) unsafe fn barrier(
     d: &Device,
     command: vk::VkCommandBuffer,
-    source_stage: vk::VkPipelineStageFlags,
-    destination_stage: vk::VkPipelineStageFlags,
-    source: vk::VkAccessFlags,
-    destination: vk::VkAccessFlags,
+    source_stage: vk::VkPipelineStageFlags2,
+    destination_stage: vk::VkPipelineStageFlags2,
+    source: vk::VkAccessFlags2,
+    destination: vk::VkAccessFlags2,
 ) {
-    let memory = vk::VkMemoryBarrier {
-        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+    let memory = vk::VkMemoryBarrier2 {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+        srcStageMask: source_stage,
         srcAccessMask: source,
+        dstStageMask: destination_stage,
         dstAccessMask: destination,
         ..Default::default()
     };
-    // SAFETY: command is recording; stages/accesses are supported on the compute queue.
+    let dependency = vk::VkDependencyInfo {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        memoryBarrierCount: 1,
+        pMemoryBarriers: &memory,
+        ..Default::default()
+    };
+    // SAFETY: command is recording; stages/accesses match enabled queue capabilities.
     unsafe {
-        (d.f.vkCmdPipelineBarrier.unwrap())(
-            command,
-            source_stage,
-            destination_stage,
-            0,
-            1,
-            &memory,
-            0,
-            ptr::null(),
-            0,
-            ptr::null(),
-        );
+        (d.f.vkCmdPipelineBarrier2.unwrap())(command, &dependency);
+    }
+}
+
+pub(super) unsafe fn push_data(d: &Device, command: vk::VkCommandBuffer, root: &[u8]) {
+    if root.is_empty() {
+        return;
+    }
+    let info = vk::VkPushDataInfoEXT {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+        data: vk::VkHostAddressRangeConstEXT {
+            address: root.as_ptr().cast(),
+            size: root.len(),
+        },
+        ..Default::default()
+    };
+    // SAFETY: root size/alignment was validated; Vulkan copies bytes during recording.
+    unsafe {
+        (d.f.vkCmdPushDataEXT.unwrap())(command, &info);
     }
 }
 

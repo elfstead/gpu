@@ -35,15 +35,20 @@ format, and implementation language are separate design decisions.
 
 ## Current implementation
 
-The [modern-baseline decision](modern-baseline.md) supersedes the old execution
-baseline as our target. Migration removes older mechanisms rather than keeping
-compatibility fallbacks. The inventory below describes the pre-migration checkpoint.
+The [modern-baseline migration](modern-baseline.md) replaces the old execution
+backend without keeping compatibility fallbacks. Public layouts remain ABI 1;
+deployment requirements changed, so source revision still identifies the checkpoint.
 
 The backend is Rust over Vulkan, with a small C header and directly generated,
 pinned Vulkan declarations. It does not depend on ash or Vulkanalia. Only Linux
 x86-64 is currently supported. Discovery needs a Vulkan 1.1 loader; execution needs
-a Vulkan 1.2 device, buffer device addresses, and a compute queue. The optional
-graphics path requires a queue supporting both graphics and compute.
+Vulkan 1.4, descriptor heaps, untyped pointers, address commands and the core
+features listed in the baseline decision. The optional graphics path additionally
+requires dynamic rendering, unified image layouts and a shared graphics/compute queue.
+Pipelines have no layout objects; roots use push data. Barriers, submission and
+timestamps use synchronization2. Rendering uses no render-pass/framebuffer objects,
+and indirect draws/readback use addresses. Completion fences remain pending the
+separate timeline/retirement design; they are not a compatibility fallback.
 
 | Part | Implemented contract | Deliberate restriction |
 |---|---|---|

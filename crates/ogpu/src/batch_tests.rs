@@ -24,7 +24,7 @@ fail!(fail_allocate(_d: vk::VkDevice, _i: *const vk::VkCommandBufferAllocateInfo
     _o: *mut vk::VkCommandBuffer));
 fail!(fail_begin(_c: vk::VkCommandBuffer, _i: *const vk::VkCommandBufferBeginInfo));
 fail!(fail_end(_c: vk::VkCommandBuffer));
-fail!(fail_submit(_q: vk::VkQueue, _n: u32, _s: *const vk::VkSubmitInfo, _f: vk::VkFence));
+fail!(fail_submit(_q: vk::VkQueue, _n: u32, _s: *const vk::VkSubmitInfo2, _f: vk::VkFence));
 
 unsafe extern "C" fn flaky_idle(queue: vk::VkQueue) -> vk::VkResult {
     let call = IDLE_CALLS.get();
@@ -94,7 +94,7 @@ fn gpu_batch_failures() {
                 2 => f.vkAllocateCommandBuffers = Some(fail_allocate),
                 3 => f.vkBeginCommandBuffer = Some(fail_begin),
                 4 => f.vkEndCommandBuffer = Some(fail_end),
-                _ => f.vkQueueSubmit = Some(fail_submit),
+                _ => f.vkQueueSubmit2 = Some(fail_submit),
             }
             let mut batch = Batch::new(device.clone()).unwrap();
             if timed {
@@ -251,11 +251,11 @@ fn gpu_batches() {
 fn access_masks_are_explicit_and_checked() {
     assert_eq!(
         access(COMPUTE_READ).unwrap().flags,
-        vk::VkAccessFlagBits_VK_ACCESS_SHADER_READ_BIT
+        vk::VK_ACCESS_2_SHADER_READ_BIT
     );
     assert_eq!(
         access(COMPUTE_WRITE).unwrap().flags,
-        vk::VkAccessFlagBits_VK_ACCESS_SHADER_WRITE_BIT
+        vk::VK_ACCESS_2_SHADER_WRITE_BIT
     );
     assert_eq!(
         access(3).unwrap().flags,
@@ -263,8 +263,7 @@ fn access_masks_are_explicit_and_checked() {
     );
     assert_eq!(
         access(VERTEX_READ | INDIRECT_READ).unwrap().stages,
-        vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
-            | vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT
+        vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | vk::VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT
     );
     for mask in [0, 256, 257, u32::MAX] {
         assert_eq!(access(mask).unwrap_err().status, INVALID_ARGUMENT);

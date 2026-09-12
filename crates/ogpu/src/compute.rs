@@ -35,6 +35,16 @@ macro_rules! functions {
     };
 }
 functions! {
+    vkGetPhysicalDeviceFeatures2: PFN_vkGetPhysicalDeviceFeatures2,
+    vkGetPhysicalDeviceProperties2: PFN_vkGetPhysicalDeviceProperties2,
+    vkCmdPushDataEXT: PFN_vkCmdPushDataEXT,
+    vkCmdPipelineBarrier2: PFN_vkCmdPipelineBarrier2,
+    vkQueueSubmit2: PFN_vkQueueSubmit2,
+    vkCmdWriteTimestamp2: PFN_vkCmdWriteTimestamp2,
+    vkCmdBeginRendering: PFN_vkCmdBeginRendering,
+    vkCmdEndRendering: PFN_vkCmdEndRendering,
+    vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
+    vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
     vkGetPhysicalDeviceMemoryProperties: PFN_vkGetPhysicalDeviceMemoryProperties,
     vkGetPhysicalDeviceProperties: PFN_vkGetPhysicalDeviceProperties,
     vkGetPhysicalDeviceQueueFamilyProperties: PFN_vkGetPhysicalDeviceQueueFamilyProperties,
@@ -49,14 +59,13 @@ functions! {
     vkInvalidateMappedMemoryRanges: PFN_vkInvalidateMappedMemoryRanges,
     vkGetBufferDeviceAddress: PFN_vkGetBufferDeviceAddress,
     vkCreateShaderModule: PFN_vkCreateShaderModule, vkDestroyShaderModule: PFN_vkDestroyShaderModule,
-    vkCreatePipelineLayout: PFN_vkCreatePipelineLayout, vkDestroyPipelineLayout: PFN_vkDestroyPipelineLayout,
     vkCreateComputePipelines: PFN_vkCreateComputePipelines, vkDestroyPipeline: PFN_vkDestroyPipeline,
     vkCreateCommandPool: PFN_vkCreateCommandPool, vkDestroyCommandPool: PFN_vkDestroyCommandPool,
     vkAllocateCommandBuffers: PFN_vkAllocateCommandBuffers,
     vkBeginCommandBuffer: PFN_vkBeginCommandBuffer, vkEndCommandBuffer: PFN_vkEndCommandBuffer,
-    vkCmdBindPipeline: PFN_vkCmdBindPipeline, vkCmdPushConstants: PFN_vkCmdPushConstants,
-    vkCmdDispatch: PFN_vkCmdDispatch, vkCmdPipelineBarrier: PFN_vkCmdPipelineBarrier,
-    vkQueueSubmit: PFN_vkQueueSubmit, vkQueueWaitIdle: PFN_vkQueueWaitIdle,
+    vkCmdBindPipeline: PFN_vkCmdBindPipeline,
+    vkCmdDispatch: PFN_vkCmdDispatch,
+    vkQueueWaitIdle: PFN_vkQueueWaitIdle,
     vkCreateFence: PFN_vkCreateFence, vkDestroyFence: PFN_vkDestroyFence,
     vkWaitForFences: PFN_vkWaitForFences,
     vkGetPhysicalDeviceImageFormatProperties: PFN_vkGetPhysicalDeviceImageFormatProperties,
@@ -64,14 +73,10 @@ functions! {
     vkGetImageMemoryRequirements: PFN_vkGetImageMemoryRequirements,
     vkBindImageMemory: PFN_vkBindImageMemory,
     vkCreateImageView: PFN_vkCreateImageView, vkDestroyImageView: PFN_vkDestroyImageView,
-    vkCreateRenderPass: PFN_vkCreateRenderPass, vkDestroyRenderPass: PFN_vkDestroyRenderPass,
-    vkCreateFramebuffer: PFN_vkCreateFramebuffer, vkDestroyFramebuffer: PFN_vkDestroyFramebuffer,
     vkCreateGraphicsPipelines: PFN_vkCreateGraphicsPipelines,
-    vkCmdBeginRenderPass: PFN_vkCmdBeginRenderPass, vkCmdEndRenderPass: PFN_vkCmdEndRenderPass,
     vkCmdSetViewport: PFN_vkCmdSetViewport, vkCmdSetScissor: PFN_vkCmdSetScissor,
-    vkCmdDrawIndirect: PFN_vkCmdDrawIndirect, vkCmdCopyImageToBuffer: PFN_vkCmdCopyImageToBuffer,
     vkCreateQueryPool: PFN_vkCreateQueryPool, vkDestroyQueryPool: PFN_vkDestroyQueryPool,
-    vkCmdResetQueryPool: PFN_vkCmdResetQueryPool, vkCmdWriteTimestamp: PFN_vkCmdWriteTimestamp,
+    vkCmdResetQueryPool: PFN_vkCmdResetQueryPool,
     vkGetQueryPoolResults: PFN_vkGetQueryPoolResults,
 }
 
@@ -83,6 +88,41 @@ fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
     }
 }
 
+fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
+    if info.vulkan_api_major < 1 || (info.vulkan_api_major == 1 && info.vulkan_api_minor < 4) {
+        return Err(Error::new(UNSUPPORTED, "Execution requires Vulkan 1.4"));
+    }
+    for (supported, name) in [
+        (
+            info.capabilities.buffer_device_address,
+            "bufferDeviceAddress",
+        ),
+        (info.capabilities.compute_queue, "compute queue"),
+        (info.capabilities.timeline_semaphore, "timelineSemaphore"),
+        (info.capabilities.synchronization2, "synchronization2"),
+        (
+            info.capabilities.descriptor_heap,
+            "VK_EXT_descriptor_heap: descriptorHeap",
+        ),
+        (
+            info.capabilities.device_address_commands,
+            "VK_KHR_device_address_commands: deviceAddressCommands",
+        ),
+        (
+            info.capabilities.shader_untyped_pointers,
+            "VK_KHR_shader_untyped_pointers: shaderUntypedPointers",
+        ),
+    ] {
+        if supported == 0 {
+            return Err(Error::new(
+                UNSUPPORTED,
+                format!("Execution requires {name}"),
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) struct Device {
     handle: vk::VkDevice,
     queue: vk::VkQueue,
@@ -92,6 +132,7 @@ pub(crate) struct Device {
     timestamp_bits: u32,
     memory: vk::VkPhysicalDeviceMemoryProperties,
     limits: vk::VkPhysicalDeviceLimits,
+    max_push_data: u64,
     lost: Cell<bool>,
     f: Functions,
     _instance: Arc<Instance>,
@@ -128,20 +169,45 @@ impl Device {
         require_graphics: bool,
     ) -> Result<Rc<Self>, Error> {
         let info = instance.device_info(physical)?;
-        if info.vulkan_api_major < 1
-            || (info.vulkan_api_major == 1 && info.vulkan_api_minor < 2)
-            || info.capabilities.buffer_device_address == 0
-            || info.capabilities.compute_queue == 0
-        {
-            return Err(Error::new(
-                UNSUPPORTED,
-                "Execution requires Vulkan 1.2, buffer device addresses, and a compute queue",
-            ));
-        }
+        require_baseline(&info)?;
+        let image_extension =
+            instance.supports_extension(physical, c"VK_KHR_unified_image_layouts")?;
         let f = Functions::load(&instance)?;
         // SAFETY: the physical handle belongs to the retained instance. Each query has
-        // initialized, appropriately sized outputs; creation enables only the BDA feature.
+        // initialized, appropriately sized outputs. Query before enabling the exact profile.
         unsafe {
+            let mut v12 = vk::VkPhysicalDeviceVulkan12Features {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+                ..Default::default()
+            };
+            let mut v13 = vk::VkPhysicalDeviceVulkan13Features {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+                ..Default::default()
+            };
+            let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
+                ..Default::default()
+            };
+            let mut images = vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR, ..Default::default() };
+            v12.pNext = (&mut v13 as *mut vk::VkPhysicalDeviceVulkan13Features).cast();
+            v13.pNext = (&mut v14 as *mut vk::VkPhysicalDeviceVulkan14Features).cast();
+            if image_extension {
+                v14.pNext =
+                    (&mut images as *mut vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR).cast();
+            }
+            let mut query = vk::VkPhysicalDeviceFeatures2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+                pNext: (&mut v12 as *mut vk::VkPhysicalDeviceVulkan12Features).cast(),
+                ..Default::default()
+            };
+            (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut query);
+            if v14.maintenance5 == 0 {
+                return Err(Error::new(UNSUPPORTED, "Execution requires maintenance5"));
+            }
+            let image_profile = v13.dynamicRendering != 0 && images.unifiedImageLayouts != 0;
+            if require_graphics && !image_profile {
+                return Err(Error::new(UNSUPPORTED, "Graphics requires dynamicRendering and VK_KHR_unified_image_layouts: unifiedImageLayouts"));
+            }
             let mut count = 0;
             (f.vkGetPhysicalDeviceQueueFamilyProperties.unwrap())(
                 physical,
@@ -163,9 +229,9 @@ impl Device {
                         "No queue supporting the requested execution profile",
                     )
                 })?;
-            let graphics = families[family as usize].queueFlags
-                & vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT
-                != 0;
+            let graphics = image_profile
+                && families[family as usize].queueFlags & vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT
+                    != 0;
             let mut properties = vk::VkPhysicalDeviceProperties::default();
             (f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
             let mut memory = vk::VkPhysicalDeviceMemoryProperties::default();
@@ -178,11 +244,52 @@ impl Device {
                 pQueuePriorities: &priority,
                 ..Default::default()
             };
-            let bda = vk::VkPhysicalDeviceBufferDeviceAddressFeatures { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-                bufferDeviceAddress: vk::VK_TRUE, ..Default::default() };
+            let mut heap_limits = vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT, ..Default::default() };
+            images.unifiedImageLayoutsVideo = vk::VK_FALSE;
+            let mut properties2 = vk::VkPhysicalDeviceProperties2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+                pNext: (&mut heap_limits as *mut vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT)
+                    .cast(),
+                ..Default::default()
+            };
+            (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties2);
+            let mut untyped = vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR, shaderUntypedPointers: vk::VK_TRUE, pNext: if graphics { (&mut images as *mut vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR).cast() } else { ptr::null_mut() } };
+            let mut addresses = vk::VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR, deviceAddressCommands: vk::VK_TRUE, pNext: (&mut untyped as *mut vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR).cast() };
+            let mut heap = vk::VkPhysicalDeviceDescriptorHeapFeaturesEXT { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT, descriptorHeap: vk::VK_TRUE, pNext: (&mut addresses as *mut vk::VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR).cast(), ..Default::default() };
+            // Do not enable every queried feature accidentally.
+            v14 = vk::VkPhysicalDeviceVulkan14Features {
+                sType: v14.sType,
+                maintenance5: vk::VK_TRUE,
+                pNext: (&mut heap as *mut vk::VkPhysicalDeviceDescriptorHeapFeaturesEXT).cast(),
+                ..Default::default()
+            };
+            v13 = vk::VkPhysicalDeviceVulkan13Features {
+                sType: v13.sType,
+                synchronization2: vk::VK_TRUE,
+                dynamicRendering: u32::from(graphics),
+                pNext: (&mut v14 as *mut vk::VkPhysicalDeviceVulkan14Features).cast(),
+                ..Default::default()
+            };
+            v12 = vk::VkPhysicalDeviceVulkan12Features {
+                sType: v12.sType,
+                bufferDeviceAddress: vk::VK_TRUE,
+                timelineSemaphore: vk::VK_TRUE,
+                pNext: (&mut v13 as *mut vk::VkPhysicalDeviceVulkan13Features).cast(),
+                ..Default::default()
+            };
+            let mut extensions = vec![
+                c"VK_EXT_descriptor_heap".as_ptr(),
+                c"VK_KHR_device_address_commands".as_ptr(),
+                c"VK_KHR_shader_untyped_pointers".as_ptr(),
+            ];
+            if graphics {
+                extensions.push(c"VK_KHR_unified_image_layouts".as_ptr());
+            }
             let create = vk::VkDeviceCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                pNext: (&bda as *const vk::VkPhysicalDeviceBufferDeviceAddressFeatures).cast(),
+                pNext: (&v12 as *const vk::VkPhysicalDeviceVulkan12Features).cast(),
+                enabledExtensionCount: extensions.len() as u32,
+                ppEnabledExtensionNames: extensions.as_ptr(),
                 queueCreateInfoCount: 1,
                 pQueueCreateInfos: &queue_info,
                 ..Default::default()
@@ -204,6 +311,7 @@ impl Device {
                 timestamp_bits: families[family as usize].timestampValidBits,
                 memory,
                 limits: properties.limits,
+                max_push_data: heap_limits.maxPushDataSize,
                 lost: Cell::new(false),
                 f,
                 _instance: instance,
@@ -334,8 +442,9 @@ impl Buffer {
             let create = vk::VkBufferCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                 size: size as u64,
-                usage: vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+                // No storage descriptors. Address commands still require the backing
+                // buffer's indirect/transfer usage under Vulkan's validity rules.
+                usage: vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
                     | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
                     | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 sharingMode: vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE,
@@ -495,7 +604,6 @@ impl Buffer {
 pub(crate) struct Kernel {
     device: Rc<Device>,
     module: vk::VkShaderModule,
-    layout: vk::VkPipelineLayout,
     pipeline: vk::VkPipeline,
     push_size: u32,
 }
@@ -508,9 +616,6 @@ impl Drop for Kernel {
             if !self.pipeline.is_null() {
                 (d.f.vkDestroyPipeline.unwrap())(d.handle, self.pipeline, ptr::null());
             }
-            if !self.layout.is_null() {
-                (d.f.vkDestroyPipelineLayout.unwrap())(d.handle, self.layout, ptr::null());
-            }
             if !self.module.is_null() {
                 (d.f.vkDestroyShaderModule.unwrap())(d.handle, self.module, ptr::null());
             }
@@ -520,7 +625,7 @@ impl Drop for Kernel {
 
 impl Kernel {
     /// # Safety
-    /// SPIR-V must be valid for this device with only BDA enabled, a compute entry named
+    /// SPIR-V must be valid for this device's enabled modern baseline, a compute entry named
     /// main, no descriptors, and no push-constant accesses outside push_size bytes.
     pub(crate) unsafe fn new(
         device: Rc<Device>,
@@ -531,7 +636,7 @@ impl Kernel {
         if words.len() < 5
             || words[0] != 0x07230203
             || push_size % 4 != 0
-            || push_size > device.limits.maxPushConstantsSize
+            || u64::from(push_size) > device.max_push_data
         {
             return Err(Error::new(
                 INVALID_ARGUMENT,
@@ -541,7 +646,6 @@ impl Kernel {
         let mut result = Self {
             device,
             module: ptr::null_mut(),
-            layout: ptr::null_mut(),
             pipeline: ptr::null_mut(),
             push_size,
         };
@@ -564,26 +668,6 @@ impl Kernel {
                     &mut result.module,
                 ),
             )?;
-            let range = vk::VkPushConstantRange {
-                stageFlags: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
-                offset: 0,
-                size: push_size,
-            };
-            let layout = vk::VkPipelineLayoutCreateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                pushConstantRangeCount: u32::from(push_size != 0),
-                pPushConstantRanges: if push_size == 0 { ptr::null() } else { &range },
-                ..Default::default()
-            };
-            d.result(
-                "vkCreatePipelineLayout",
-                (d.f.vkCreatePipelineLayout.unwrap())(
-                    d.handle,
-                    &layout,
-                    ptr::null(),
-                    &mut result.layout,
-                ),
-            )?;
             let stage = vk::VkPipelineShaderStageCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                 stage: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
@@ -591,10 +675,15 @@ impl Kernel {
                 pName: c"main".as_ptr(),
                 ..Default::default()
             };
+            let flags = vk::VkPipelineCreateFlags2CreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+                flags: vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+                ..Default::default()
+            };
             let pipeline = vk::VkComputePipelineCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
                 stage,
-                layout: result.layout,
+                pNext: (&flags as *const vk::VkPipelineCreateFlags2CreateInfo).cast(),
                 basePipelineIndex: -1,
                 ..Default::default()
             };
@@ -656,6 +745,56 @@ fn drain(mut wait: impl FnMut() -> vk::VkResult) -> vk::VkResult {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn modern_baseline_rejects_each_missing_requirement() {
+        let mut info = crate::OgpuDeviceInfo {
+            name: [0; 256],
+            vendor_id: 0,
+            device_id: 0,
+            device_type: 0,
+            vulkan_api_major: 1,
+            vulkan_api_minor: 4,
+            vulkan_api_patch: 0,
+            capabilities: Default::default(),
+        };
+        let caps = &mut info.capabilities;
+        caps.buffer_device_address = 1;
+        caps.compute_queue = 1;
+        caps.timeline_semaphore = 1;
+        caps.synchronization2 = 1;
+        caps.descriptor_heap = 1;
+        caps.device_address_commands = 1;
+        caps.shader_untyped_pointers = 1;
+        require_baseline(&info).unwrap();
+        for (field, expected) in [
+            (0, "bufferDeviceAddress"),
+            (1, "compute queue"),
+            (2, "timelineSemaphore"),
+            (3, "synchronization2"),
+            (4, "descriptorHeap"),
+            (5, "deviceAddressCommands"),
+            (6, "shaderUntypedPointers"),
+        ] {
+            let mut absent = info;
+            let c = &mut absent.capabilities;
+            let fields = [
+                &mut c.buffer_device_address,
+                &mut c.compute_queue,
+                &mut c.timeline_semaphore,
+                &mut c.synchronization2,
+                &mut c.descriptor_heap,
+                &mut c.device_address_commands,
+                &mut c.shader_untyped_pointers,
+            ];
+            *fields.into_iter().nth(field).unwrap() = 0;
+            let error = require_baseline(&absent).unwrap_err();
+            assert_eq!(error.status, UNSUPPORTED);
+            assert!(format!("{error:?}").contains(expected));
+        }
+        info.vulkan_api_minor = 3;
+        assert_eq!(require_baseline(&info).unwrap_err().status, UNSUPPORTED);
+    }
     use super::*;
     #[test]
     fn wait_error_does_not_release_pending_resources() {

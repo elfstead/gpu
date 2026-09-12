@@ -8,10 +8,11 @@ Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
 ## Device and executable
 
 `ogpu_device_create_graphics` requires a single queue family supporting both
-graphics and compute, in addition to the existing Vulkan 1.2/BDA requirements.
+graphics and compute, dynamic rendering and unified image layouts, in addition
+to the [modern execution baseline](modern-baseline.md).
 It returns UNSUPPORTED if none exists. Ordinary `ogpu_device_create` continues to
 accept compute-only devices; discovery remains independent. No new optional
-Vulkan shader features are enabled.
+graphics shader arithmetic features are enabled beyond that baseline.
 
 `OgpuRaster` prepares valid descriptor-free Vulkan 1.2 vertex and fragment SPIR-V
 entry points named `main`, with a caller-defined copied root block shared by both
@@ -38,10 +39,10 @@ GPU-produced contents cannot be validated by the CPU; the caller is responsible
 for their validity and for shader-address bounds for every resulting invocation.
 
 The draw takes an owning buffer handle plus byte offset for the indirect record.
-This allows bounds checking and retention while the Vulkan 1.2 backend uses its
-buffer-based draw command. It is not a new allocation type; the same allocation
-can be written through a GPU address by compute. Address-range commands remain a
-future experiment rather than requiring a newer Vulkan extension now.
+This allows bounds checking and retention; the backend resolves the address at
+recording and uses `vkCmdDrawIndirect2KHR`. It is not a new allocation type: compute
+writes the same memory. The public handle is an ownership choice, not a workaround
+for an older Vulkan command interface.
 
 `ogpu_batch_copy_target` copies the whole target into an ordinary buffer at a
 four-byte-aligned offset, tightly packed as width × height × 4 RGBA bytes, row by
@@ -52,8 +53,10 @@ in subsequent batches, are permitted; every draw discards previous image content
 
 Known target operations manage their own image transitions and attachment/copy
 dependencies. The Vulkan backend uses an initial UNDEFINED layout (discard), a
-color attachment subpass, and a final TRANSFER_SRC layout, with external
-dependencies ordering prior target use and making color writes visible to copies.
+transition to GENERAL followed by dynamic rendering, and a global synchronization2
+dependency making color writes visible to address-based image readback. Ordinary
+use stays in GENERAL; no render-pass/framebuffer objects or mutable layout tracker
+remain. The discard transition orders prior uses, including across submissions.
 This is a documented clear/draw/readback operation, not a general image-state model.
 
 ## Shared dependencies and ownership
@@ -92,14 +95,14 @@ invalid extents/shaders, buffer bounds/alignment, wrong-device objects, missing
 prior draw, retained-resource lifetimes, image reuse, and partial creation failures.
 `cargo xtask gpu-tests` runs the Vulkan-backed graphics tests with the existing
 compute tests and fails on reported validation errors. Creation-failure injection
-exercises render-pass/image/memory/view/framebuffer cleanup, second-module failure,
-layout failure, and a returned pipeline handle alongside an error. Queue selection,
+exercises image/memory/view cleanup, second-module failure,
+and a returned pipeline handle alongside an error. Queue selection,
 extent limits, memory selection, access masks, and NULL C arguments also have tests
 that do not require a GPU.
 
 Not included: windows, surfaces, swapchains, sampling, general image uploads,
-depth/stencil, blending, indexing, mesh shaders, or multiple queues. Classic Vulkan
-render passes/pipelines are backend details, not public objects.
+depth/stencil, blending, indexing, mesh shaders, or multiple queues. Vulkan pipeline
+objects remain backend details; classic render passes are no longer used.
 
 ## Shader reproduction and verification
 
@@ -126,10 +129,11 @@ shader faults are not exercised. See [development](development.md) for validatio
 layer settings and loader selection.
 
 The C example and Rust graphics/reuse/failure tests have passed locally on the
-RX 5700 XT (RADV) and llvmpipe with synchronization validation enabled. Existing
+RX 5700 XT (RADV) and llvmpipe with synchronization validation enabled before the
+modern migration. The modern backend is verified on llvmpipe only so far. Existing
 compute examples still pass. CI is configured to run the examples, Vulkan-backed
 tests, and SPIR-V validation; local execution is not a claim that hosted CI has run.
 
-Backend references: [indirect draws](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDrawIndirect.html),
-[attachment dependencies](https://docs.vulkan.org/refpages/latest/refpages/source/VkSubpassDependency.html),
-and [image readback](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdCopyImageToBuffer.html).
+Backend references: [address commands](https://docs.vulkan.org/features/latest/features/proposals/VK_KHR_device_address_commands.html),
+[dynamic rendering](https://docs.vulkan.org/features/latest/features/proposals/VK_KHR_dynamic_rendering.html),
+and [unified layouts](https://docs.vulkan.org/features/latest/features/proposals/VK_KHR_unified_image_layouts.html).

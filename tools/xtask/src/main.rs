@@ -62,6 +62,7 @@ fn bindings(root: &Path, check: bool) -> Result {
         .clang_arg("-DVK_NO_PROTOTYPES")
         .clang_arg("--target=x86_64-unknown-linux-gnu")
         .allowlist_var("VK_(TRUE|FALSE|HEADER_VERSION|MAX_PHYSICAL_DEVICE_NAME_SIZE|WHOLE_SIZE|SUBPASS_EXTERNAL)")
+        .allowlist_var("VK_(PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT|PIPELINE_STAGE_2_.*|ACCESS_2_.*|ADDRESS_COMMAND_.*|QUEUE_FAMILY_IGNORED)")
         .derive_default(true)
         .formatter(bindgen::Formatter::Prettyplease)
         .raw_line(
@@ -413,7 +414,7 @@ fn main() -> Result {
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | graphics | image-loop | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | baseline | compute | batch | graphics | image-loop | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

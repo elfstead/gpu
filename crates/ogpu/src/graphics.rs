@@ -2,8 +2,6 @@
 use super::*;
 
 const FORMAT: vk::VkFormat = vk::VkFormat_VK_FORMAT_R8G8B8A8_UNORM;
-const STAGES: vk::VkShaderStageFlags = vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT
-    | vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT;
 
 fn ready(device: &Device) -> Result<(), Error> {
     device.ready()?;
@@ -62,101 +60,6 @@ fn image_memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -
         })
 }
 
-// All render passes have identical format/subpass/dependency descriptions, so raster
-// pipelines can be used with any of our targets, independent of dimensions.
-struct RenderPass {
-    device: Rc<Device>,
-    handle: vk::VkRenderPass,
-}
-impl RenderPass {
-    fn new(device: Rc<Device>) -> Result<Self, Error> {
-        let attachment = vk::VkAttachmentDescription {
-            format: FORMAT,
-            samples: vk::VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT,
-            loadOp: vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR,
-            storeOp: vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_STORE,
-            stencilLoadOp: vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            stencilStoreOp: vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            initialLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_UNDEFINED,
-            finalLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            ..Default::default()
-        };
-        let color = vk::VkAttachmentReference {
-            attachment: 0,
-            layout: vk::VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        };
-        let subpass = vk::VkSubpassDescription {
-            pipelineBindPoint: vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
-            colorAttachmentCount: 1,
-            pColorAttachments: &color,
-            ..Default::default()
-        };
-        let dependencies = [
-            vk::VkSubpassDependency {
-                srcSubpass: vk::VK_SUBPASS_EXTERNAL as u32,
-                dstSubpass: 0,
-                srcStageMask: vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                dstStageMask:
-                    vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                srcAccessMask: vk::VkAccessFlagBits_VK_ACCESS_MEMORY_READ_BIT
-                    | vk::VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT,
-                dstAccessMask: vk::VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                ..Default::default()
-            },
-            vk::VkSubpassDependency {
-                srcSubpass: 0,
-                dstSubpass: vk::VK_SUBPASS_EXTERNAL as u32,
-                srcStageMask:
-                    vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                dstStageMask: vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TRANSFER_BIT,
-                srcAccessMask: vk::VkAccessFlagBits_VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                dstAccessMask: vk::VkAccessFlagBits_VK_ACCESS_TRANSFER_READ_BIT,
-                ..Default::default()
-            },
-        ];
-        let create = vk::VkRenderPassCreateInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            attachmentCount: 1,
-            pAttachments: &attachment,
-            subpassCount: 1,
-            pSubpasses: &subpass,
-            dependencyCount: 2,
-            pDependencies: dependencies.as_ptr(),
-            ..Default::default()
-        };
-        let mut result = Self {
-            device,
-            handle: ptr::null_mut(),
-        };
-        // SAFETY: all referenced state is live for creation; result owns partial construction.
-        unsafe {
-            result.device.result(
-                "vkCreateRenderPass",
-                (result.device.f.vkCreateRenderPass.unwrap())(
-                    result.device.handle,
-                    &create,
-                    ptr::null(),
-                    &mut result.handle,
-                ),
-            )?;
-        }
-        Ok(result)
-    }
-}
-impl Drop for RenderPass {
-    fn drop(&mut self) {
-        if !self.handle.is_null() {
-            unsafe {
-                (self.device.f.vkDestroyRenderPass.unwrap())(
-                    self.device.handle,
-                    self.handle,
-                    ptr::null(),
-                );
-            }
-        }
-    }
-}
-
 pub(crate) struct Target {
     pub(super) device: Rc<Device>,
     pub(super) size: usize,
@@ -165,8 +68,6 @@ pub(crate) struct Target {
     image: vk::VkImage,
     memory: vk::VkDeviceMemory,
     view: vk::VkImageView,
-    framebuffer: vk::VkFramebuffer,
-    pass: RenderPass,
 }
 
 impl Target {
@@ -204,17 +105,14 @@ impl Target {
                 "Unsupported image extent or sample count",
             ));
         }
-        let pass = RenderPass::new(device.clone())?;
         let mut result = Self {
             device,
             size,
             width,
             height,
-            pass,
             image: ptr::null_mut(),
             memory: ptr::null_mut(),
             view: ptr::null_mut(),
-            framebuffer: ptr::null_mut(),
         };
         let d = &result.device;
         // SAFETY: result owns handles immediately; every subsequent failure runs ordered cleanup.
@@ -287,25 +185,6 @@ impl Target {
                 "vkCreateImageView",
                 (d.f.vkCreateImageView.unwrap())(d.handle, &view, ptr::null(), &mut result.view),
             )?;
-            let framebuffer = vk::VkFramebufferCreateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                renderPass: result.pass.handle,
-                attachmentCount: 1,
-                pAttachments: &result.view,
-                width,
-                height,
-                layers: 1,
-                ..Default::default()
-            };
-            d.result(
-                "vkCreateFramebuffer",
-                (d.f.vkCreateFramebuffer.unwrap())(
-                    d.handle,
-                    &framebuffer,
-                    ptr::null(),
-                    &mut result.framebuffer,
-                ),
-            )?;
         }
         Ok(result)
     }
@@ -331,13 +210,48 @@ impl Target {
                 float32: [0.0, 0.0, 0.0, 1.0],
             },
         };
-        let begin = vk::VkRenderPassBeginInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            renderPass: self.pass.handle,
-            framebuffer: self.framebuffer,
+        let attachment = vk::VkRenderingAttachmentInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            imageView: self.view,
+            imageLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
+            loadOp: vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR,
+            storeOp: vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_STORE,
+            clearValue: clear,
+            ..Default::default()
+        };
+        let begin = vk::VkRenderingInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_INFO,
             renderArea: area,
-            clearValueCount: 1,
-            pClearValues: &clear,
+            layerCount: 1,
+            colorAttachmentCount: 1,
+            pColorAttachments: &attachment,
+            ..Default::default()
+        };
+        // This fixed-profile draw discards contents every time. UNDEFINED handles
+        // initialization too, without mutable per-image layout bookkeeping.
+        let initialize = vk::VkImageMemoryBarrier2 {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            srcStageMask: vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            srcAccessMask: vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
+            dstStageMask: vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            dstAccessMask: vk::VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+            oldLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_UNDEFINED,
+            newLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
+            srcQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
+            dstQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
+            image: self.image,
+            subresourceRange: vk::VkImageSubresourceRange {
+                aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
+                levelCount: 1,
+                layerCount: 1,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let dependency = vk::VkDependencyInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            imageMemoryBarrierCount: 1,
+            pImageMemoryBarriers: &initialize,
             ..Default::default()
         };
         let viewport = vk::VkViewport {
@@ -351,11 +265,8 @@ impl Target {
         // SAFETY: validated same-device objects are retained by the recording; caller
         // guarantees indirect contents and reachable shader memory. Commands are recording.
         unsafe {
-            (d.f.vkCmdBeginRenderPass.unwrap())(
-                command,
-                &begin,
-                vk::VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE,
-            );
+            (d.f.vkCmdPipelineBarrier2.unwrap())(command, &dependency);
+            (d.f.vkCmdBeginRendering.unwrap())(command, &begin);
             (d.f.vkCmdBindPipeline.unwrap())(
                 command,
                 vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -363,18 +274,21 @@ impl Target {
             );
             (d.f.vkCmdSetViewport.unwrap())(command, 0, 1, &viewport);
             (d.f.vkCmdSetScissor.unwrap())(command, 0, 1, &area);
-            if raster.push_size != 0 {
-                (d.f.vkCmdPushConstants.unwrap())(
-                    command,
-                    raster.layout,
-                    STAGES,
-                    0,
-                    raster.push_size,
-                    root.as_ptr().cast(),
-                );
-            }
-            (d.f.vkCmdDrawIndirect.unwrap())(command, indirect.buffer, offset, 1, 16);
-            (d.f.vkCmdEndRenderPass.unwrap())(command);
+            batch::push_data(d, command, root);
+            let draw = vk::VkDrawIndirect2InfoKHR {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
+                addressRange: vk::VkStridedDeviceAddressRangeKHR {
+                    address: indirect.address + offset,
+                    size: 16,
+                    stride: 16,
+                },
+                addressFlags:
+                    vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+                drawCount: 1,
+                ..Default::default()
+            };
+            (d.f.vkCmdDrawIndirect2KHR.unwrap())(command, &draw);
+            (d.f.vkCmdEndRendering.unwrap())(command);
         }
     }
 
@@ -384,8 +298,14 @@ impl Target {
         destination: &Buffer,
         offset: u64,
     ) {
-        let region = vk::VkBufferImageCopy {
-            bufferOffset: offset,
+        let region = vk::VkDeviceMemoryImageCopyKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_MEMORY_IMAGE_COPY_KHR,
+            addressRange: vk::VkDeviceAddressRangeKHR {
+                address: destination.address + offset,
+                size: self.size as u64,
+            },
+            addressFlags: vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+            imageLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
             imageSubresource: vk::VkImageSubresourceLayers {
                 aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
                 mipLevel: 0,
@@ -399,17 +319,25 @@ impl Target {
             },
             ..Default::default()
         };
-        // SAFETY: prior draw established TRANSFER_SRC layout and attachment visibility;
-        // recording checks destination bounds/alignment and retains both resources.
+        let copy = vk::VkCopyDeviceMemoryImageInfoKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COPY_DEVICE_MEMORY_IMAGE_INFO_KHR,
+            image: self.image,
+            regionCount: 1,
+            pRegions: &region,
+            ..Default::default()
+        };
+        // SAFETY: the earlier same-batch draw initialized GENERAL. Preserve the
+        // existing profile's implicit attachment-to-readback dependency.
         unsafe {
-            (self.device.f.vkCmdCopyImageToBuffer.unwrap())(
+            batch::barrier(
+                &self.device,
                 command,
-                self.image,
-                vk::VkImageLayout_VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                destination.buffer,
-                1,
-                &region,
+                vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                vk::VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                vk::VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                vk::VK_ACCESS_2_TRANSFER_READ_BIT,
             );
+            (self.device.f.vkCmdCopyImageToMemoryKHR.unwrap())(command, &copy);
         }
     }
 }
@@ -419,9 +347,6 @@ impl Drop for Target {
         // SAFETY: recorded/submitted uses retain the target until commands are destroyed.
         unsafe {
             let d = &self.device;
-            if !self.framebuffer.is_null() {
-                (d.f.vkDestroyFramebuffer.unwrap())(d.handle, self.framebuffer, ptr::null());
-            }
             if !self.view.is_null() {
                 (d.f.vkDestroyImageView.unwrap())(d.handle, self.view, ptr::null());
             }
@@ -439,9 +364,7 @@ pub(crate) struct Raster {
     pub(super) device: Rc<Device>,
     pub(super) push_size: u32,
     modules: [vk::VkShaderModule; 2],
-    layout: vk::VkPipelineLayout,
     pipeline: vk::VkPipeline,
-    _pass: RenderPass,
 }
 
 impl Raster {
@@ -459,21 +382,18 @@ impl Raster {
             .iter()
             .any(|s| s.len() < 5 || s[0] != 0x07230203)
             || push_size % 4 != 0
-            || push_size > device.limits.maxPushConstantsSize
+            || u64::from(push_size) > device.max_push_data
         {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Invalid raster SPIR-V header or root size",
             ));
         }
-        let pass = RenderPass::new(device.clone())?;
         let mut result = Self {
             device,
             push_size,
             modules: [ptr::null_mut(); 2],
-            layout: ptr::null_mut(),
             pipeline: ptr::null_mut(),
-            _pass: pass,
         };
         let d = &result.device;
         // SAFETY: shader semantics are the caller's contract. All state is initialized
@@ -496,26 +416,6 @@ impl Raster {
                     ),
                 )?;
             }
-            let range = vk::VkPushConstantRange {
-                stageFlags: STAGES,
-                offset: 0,
-                size: push_size,
-            };
-            let layout = vk::VkPipelineLayoutCreateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                pushConstantRangeCount: u32::from(push_size != 0),
-                pPushConstantRanges: if push_size == 0 { ptr::null() } else { &range },
-                ..Default::default()
-            };
-            d.result(
-                "vkCreatePipelineLayout(raster)",
-                (d.f.vkCreatePipelineLayout.unwrap())(
-                    d.handle,
-                    &layout,
-                    ptr::null(),
-                    &mut result.layout,
-                ),
-            )?;
             let stages = [
                 vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT,
                 vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -581,6 +481,18 @@ impl Raster {
                 pDynamicStates: states.as_ptr(),
                 ..Default::default()
             };
+            let flags = vk::VkPipelineCreateFlags2CreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+                flags: vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+                ..Default::default()
+            };
+            let rendering = vk::VkPipelineRenderingCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+                pNext: (&flags as *const vk::VkPipelineCreateFlags2CreateInfo).cast(),
+                colorAttachmentCount: 1,
+                pColorAttachmentFormats: &FORMAT,
+                ..Default::default()
+            };
             let create = vk::VkGraphicsPipelineCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                 stageCount: 2,
@@ -592,8 +504,7 @@ impl Raster {
                 pMultisampleState: &multisample,
                 pColorBlendState: &blend,
                 pDynamicState: &dynamic,
-                layout: result.layout,
-                renderPass: result._pass.handle,
+                pNext: (&rendering as *const vk::VkPipelineRenderingCreateInfo).cast(),
                 basePipelineIndex: -1,
                 ..Default::default()
             };
@@ -620,9 +531,6 @@ impl Drop for Raster {
             let d = &self.device;
             if !self.pipeline.is_null() {
                 (d.f.vkDestroyPipeline.unwrap())(d.handle, self.pipeline, ptr::null());
-            }
-            if !self.layout.is_null() {
-                (d.f.vkDestroyPipelineLayout.unwrap())(d.handle, self.layout, ptr::null());
             }
             for module in self.modules {
                 if !module.is_null() {

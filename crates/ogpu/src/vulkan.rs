@@ -55,6 +55,23 @@ impl Drop for Instance {
 }
 
 impl Instance {
+    pub(crate) fn supports_extension(
+        &self,
+        device: vk::VkPhysicalDevice,
+        name: &CStr,
+    ) -> Result<bool, Error> {
+        let extensions = command!(
+            self.get,
+            self.handle,
+            "vkEnumerateDeviceExtensionProperties",
+            vk::PFN_vkEnumerateDeviceExtensionProperties
+        );
+        let exts = enumerate(
+            "vkEnumerateDeviceExtensionProperties",
+            |count, data| unsafe { extensions(device, ptr::null(), count, data) },
+        )?;
+        Ok(exts.iter().any(|e| name_matches(&e.extensionName, name)))
+    }
     pub(crate) fn proc(&self, name: &CStr) -> vk::PFN_vkVoidFunction {
         // SAFETY: the retained library owns get and this live instance.
         unsafe { (self.get)(self.handle, name.as_ptr()) }
@@ -116,7 +133,7 @@ impl Instance {
         }
         // apiVersion declares our application ceiling, not the loader's ceiling.
         // A 1.1+ instance implementation may expose newer physical devices.
-        let api_version = V1_3;
+        let api_version = version(1, 4);
         let create = command!(
             get,
             ptr::null_mut(),

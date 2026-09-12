@@ -94,7 +94,10 @@ void ogpu_probe_destroy(OgpuProbe *probe);
 OgpuResult ogpu_probe_device_count(const OgpuProbe *probe, uint32_t *out_count);
 OgpuResult ogpu_probe_device_info(const OgpuProbe *probe, uint32_t index, OgpuDeviceInfo *out_info);
 
-/* Experimental execution slice: Linux x86-64, Vulkan 1.2 device + BDA + compute queue.
+/* Experimental execution slice: Linux x86-64, Vulkan 1.4 + compute queue;
+ * requires BDA, timelineSemaphore, synchronization2, maintenance5,
+ * VK_EXT_descriptor_heap, VK_KHR_device_address_commands and
+ * VK_KHR_shader_untyped_pointers (including their feature bits).
  * Discovery remains independent: unsupported execution devices are still listed.
  * These opaque objects have independent ownership. Buffers/kernels retain their
  * device; a device retains its instance. Batches/completions retain recorded kernels.
@@ -141,7 +144,7 @@ OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_ad
 /* words is a 4-byte-aligned SPIR-V module, copied/consumed before return. The caller
  * must provide VALID Vulkan 1.2 SPIR-V with a compute entry named "main", no
  * descriptors, and only core-required capabilities plus bufferDeviceAddress.
- * push_size_bytes must be a multiple of 4 within maxPushConstantsSize; zero is legal.
+ * push_size_bytes must be a multiple of 4 within maxPushDataSize; zero is legal.
  * All shader push accesses must fit this range. Header checks are NOT validation
  * or sandboxing; malformed/incompatible shaders may cause driver faults. */
 OgpuResult ogpu_kernel_create(OgpuDevice *device, const uint32_t *words, uint64_t word_count,
@@ -245,6 +248,8 @@ OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_na
     OgpuError *out_error);
 
 /* Narrow offscreen graphics profile; all existing pointer/error/serialization rules
+ * apply. Requires dynamicRendering, VK_KHR_unified_image_layouts with
+ * unifiedImageLayouts, and a shared graphics/compute queue. Ownership rules
  * apply. Both objects retain their device. Targets are specialized images, NOT
  * addressable allocations. No window, presentation, depth, blending, or sampling. */
 typedef struct OgpuTarget OgpuTarget;

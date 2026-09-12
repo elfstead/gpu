@@ -6,6 +6,7 @@
 
 pub const VK_HEADER_VERSION: u32 = 357;
 pub const VK_FALSE: u32 = 0;
+pub const VK_QUEUE_FAMILY_IGNORED: i32 = -1;
 pub const VK_TRUE: u32 = 1;
 pub const VK_WHOLE_SIZE: i32 = -1;
 pub const VK_MAX_PHYSICAL_DEVICE_NAME_SIZE: u32 = 256;
@@ -129,12 +130,6 @@ pub struct VkPipelineLayout_T {
     _unused: [u8; 0],
 }
 pub type VkPipelineLayout = *mut VkPipelineLayout_T;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkDescriptorSetLayout_T {
-    _unused: [u8; 0],
-}
-pub type VkDescriptorSetLayout = *mut VkDescriptorSetLayout_T;
 pub const VkResult_VK_SUCCESS: VkResult = 0;
 pub const VkResult_VK_NOT_READY: VkResult = 1;
 pub const VkResult_VK_TIMEOUT: VkResult = 2;
@@ -2414,12 +2409,6 @@ pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_QCOM: VkAttachmentStor
 pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_EXT: VkAttachmentStoreOp = 1000301000;
 pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_MAX_ENUM: VkAttachmentStoreOp = 2147483647;
 pub type VkAttachmentStoreOp = ::std::os::raw::c_uint;
-pub const VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE: VkSubpassContents = 0;
-pub const VkSubpassContents_VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS: VkSubpassContents = 1;
-pub const VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_KHR: VkSubpassContents = 1000451000;
-pub const VkSubpassContents_VK_SUBPASS_CONTENTS_INLINE_AND_SECONDARY_COMMAND_BUFFERS_EXT: VkSubpassContents = 1000451000;
-pub const VkSubpassContents_VK_SUBPASS_CONTENTS_MAX_ENUM: VkSubpassContents = 2147483647;
-pub type VkSubpassContents = ::std::os::raw::c_uint;
 pub type VkImageCreateFlags = VkFlags;
 pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT: VkSampleCountFlagBits = 1;
 pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_2_BIT: VkSampleCountFlagBits = 2;
@@ -2515,7 +2504,6 @@ pub const VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_NV: VkShaderStageFlagBi
 pub const VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_NV: VkShaderStageFlagBits = 128;
 pub const VkShaderStageFlagBits_VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM: VkShaderStageFlagBits = 2147483647;
 pub type VkShaderStageFlagBits = ::std::os::raw::c_uint;
-pub type VkShaderStageFlags = VkFlags;
 pub type VkDeviceCreateFlags = VkFlags;
 pub type VkDeviceQueueCreateFlags = VkFlags;
 pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT: VkPipelineStageFlagBits = 1;
@@ -2554,7 +2542,6 @@ pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV: V
 pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_NONE_KHR: VkPipelineStageFlagBits = 0;
 pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM: VkPipelineStageFlagBits = 2147483647;
 pub type VkPipelineStageFlagBits = ::std::os::raw::c_uint;
-pub type VkPipelineStageFlags = VkFlags;
 pub type VkMemoryMapFlags = VkFlags;
 pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT: VkImageAspectFlagBits = 1;
 pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_DEPTH_BIT: VkImageAspectFlagBits = 2;
@@ -2658,14 +2645,12 @@ pub const VkAccessFlagBits_VK_ACCESS_COMMAND_PREPROCESS_WRITE_BIT_NV: VkAccessFl
 pub const VkAccessFlagBits_VK_ACCESS_NONE_KHR: VkAccessFlagBits = 0;
 pub const VkAccessFlagBits_VK_ACCESS_FLAG_BITS_MAX_ENUM: VkAccessFlagBits = 2147483647;
 pub type VkAccessFlagBits = ::std::os::raw::c_uint;
-pub type VkAccessFlags = VkFlags;
 pub type VkDependencyFlags = VkFlags;
 pub type VkCommandPoolCreateFlags = VkFlags;
 pub type VkQueryControlFlags = VkFlags;
 pub type VkCommandBufferUsageFlags = VkFlags;
 pub type VkShaderModuleCreateFlags = VkFlags;
 pub type VkPipelineCreateFlags = VkFlags;
-pub type VkPipelineLayoutCreateFlags = VkFlags;
 pub type VkPipelineShaderStageCreateFlags = VkFlags;
 pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_R_BIT: VkColorComponentFlagBits = 1;
 pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_G_BIT: VkColorComponentFlagBits = 2;
@@ -2684,10 +2669,6 @@ pub type VkPipelineRasterizationStateCreateFlags = VkFlags;
 pub type VkPipelineTessellationStateCreateFlags = VkFlags;
 pub type VkPipelineVertexInputStateCreateFlags = VkFlags;
 pub type VkPipelineViewportStateCreateFlags = VkFlags;
-pub type VkAttachmentDescriptionFlags = VkFlags;
-pub type VkFramebufferCreateFlags = VkFlags;
-pub type VkRenderPassCreateFlags = VkFlags;
-pub type VkSubpassDescriptionFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkExtent2D {
@@ -4101,60 +4082,6 @@ impl Default for VkExtensionProperties {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct VkSubmitInfo {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub waitSemaphoreCount: u32,
-    pub pWaitSemaphores: *const VkSemaphore,
-    pub pWaitDstStageMask: *const VkPipelineStageFlags,
-    pub commandBufferCount: u32,
-    pub pCommandBuffers: *const VkCommandBuffer,
-    pub signalSemaphoreCount: u32,
-    pub pSignalSemaphores: *const VkSemaphore,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of VkSubmitInfo"][::std::mem::size_of::<VkSubmitInfo>() - 72usize];
-    ["Alignment of VkSubmitInfo"][::std::mem::align_of::<VkSubmitInfo>() - 8usize];
-    [
-        "Offset of field: VkSubmitInfo::sType",
-    ][::std::mem::offset_of!(VkSubmitInfo, sType) - 0usize];
-    [
-        "Offset of field: VkSubmitInfo::pNext",
-    ][::std::mem::offset_of!(VkSubmitInfo, pNext) - 8usize];
-    [
-        "Offset of field: VkSubmitInfo::waitSemaphoreCount",
-    ][::std::mem::offset_of!(VkSubmitInfo, waitSemaphoreCount) - 16usize];
-    [
-        "Offset of field: VkSubmitInfo::pWaitSemaphores",
-    ][::std::mem::offset_of!(VkSubmitInfo, pWaitSemaphores) - 24usize];
-    [
-        "Offset of field: VkSubmitInfo::pWaitDstStageMask",
-    ][::std::mem::offset_of!(VkSubmitInfo, pWaitDstStageMask) - 32usize];
-    [
-        "Offset of field: VkSubmitInfo::commandBufferCount",
-    ][::std::mem::offset_of!(VkSubmitInfo, commandBufferCount) - 40usize];
-    [
-        "Offset of field: VkSubmitInfo::pCommandBuffers",
-    ][::std::mem::offset_of!(VkSubmitInfo, pCommandBuffers) - 48usize];
-    [
-        "Offset of field: VkSubmitInfo::signalSemaphoreCount",
-    ][::std::mem::offset_of!(VkSubmitInfo, signalSemaphoreCount) - 56usize];
-    [
-        "Offset of field: VkSubmitInfo::pSignalSemaphores",
-    ][::std::mem::offset_of!(VkSubmitInfo, pSignalSemaphores) - 64usize];
-};
-impl Default for VkSubmitInfo {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 pub struct VkMappedMemoryRange {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -4799,195 +4726,6 @@ const _: () = {
     ][::std::mem::offset_of!(VkImageSubresourceLayers, layerCount) - 12usize];
 };
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct VkBufferImageCopy {
-    pub bufferOffset: VkDeviceSize,
-    pub bufferRowLength: u32,
-    pub bufferImageHeight: u32,
-    pub imageSubresource: VkImageSubresourceLayers,
-    pub imageOffset: VkOffset3D,
-    pub imageExtent: VkExtent3D,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of VkBufferImageCopy"][::std::mem::size_of::<VkBufferImageCopy>() - 56usize];
-    [
-        "Alignment of VkBufferImageCopy",
-    ][::std::mem::align_of::<VkBufferImageCopy>() - 8usize];
-    [
-        "Offset of field: VkBufferImageCopy::bufferOffset",
-    ][::std::mem::offset_of!(VkBufferImageCopy, bufferOffset) - 0usize];
-    [
-        "Offset of field: VkBufferImageCopy::bufferRowLength",
-    ][::std::mem::offset_of!(VkBufferImageCopy, bufferRowLength) - 8usize];
-    [
-        "Offset of field: VkBufferImageCopy::bufferImageHeight",
-    ][::std::mem::offset_of!(VkBufferImageCopy, bufferImageHeight) - 12usize];
-    [
-        "Offset of field: VkBufferImageCopy::imageSubresource",
-    ][::std::mem::offset_of!(VkBufferImageCopy, imageSubresource) - 16usize];
-    [
-        "Offset of field: VkBufferImageCopy::imageOffset",
-    ][::std::mem::offset_of!(VkBufferImageCopy, imageOffset) - 32usize];
-    [
-        "Offset of field: VkBufferImageCopy::imageExtent",
-    ][::std::mem::offset_of!(VkBufferImageCopy, imageExtent) - 44usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkBufferMemoryBarrier {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub srcAccessMask: VkAccessFlags,
-    pub dstAccessMask: VkAccessFlags,
-    pub srcQueueFamilyIndex: u32,
-    pub dstQueueFamilyIndex: u32,
-    pub buffer: VkBuffer,
-    pub offset: VkDeviceSize,
-    pub size: VkDeviceSize,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkBufferMemoryBarrier",
-    ][::std::mem::size_of::<VkBufferMemoryBarrier>() - 56usize];
-    [
-        "Alignment of VkBufferMemoryBarrier",
-    ][::std::mem::align_of::<VkBufferMemoryBarrier>() - 8usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::sType",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, sType) - 0usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::pNext",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, pNext) - 8usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::srcAccessMask",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, srcAccessMask) - 16usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::dstAccessMask",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, dstAccessMask) - 20usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::srcQueueFamilyIndex",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, srcQueueFamilyIndex) - 24usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::dstQueueFamilyIndex",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, dstQueueFamilyIndex) - 28usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::buffer",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, buffer) - 32usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::offset",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, offset) - 40usize];
-    [
-        "Offset of field: VkBufferMemoryBarrier::size",
-    ][::std::mem::offset_of!(VkBufferMemoryBarrier, size) - 48usize];
-};
-impl Default for VkBufferMemoryBarrier {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkImageMemoryBarrier {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub srcAccessMask: VkAccessFlags,
-    pub dstAccessMask: VkAccessFlags,
-    pub oldLayout: VkImageLayout,
-    pub newLayout: VkImageLayout,
-    pub srcQueueFamilyIndex: u32,
-    pub dstQueueFamilyIndex: u32,
-    pub image: VkImage,
-    pub subresourceRange: VkImageSubresourceRange,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkImageMemoryBarrier",
-    ][::std::mem::size_of::<VkImageMemoryBarrier>() - 72usize];
-    [
-        "Alignment of VkImageMemoryBarrier",
-    ][::std::mem::align_of::<VkImageMemoryBarrier>() - 8usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::sType",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, sType) - 0usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::pNext",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, pNext) - 8usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::srcAccessMask",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, srcAccessMask) - 16usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::dstAccessMask",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, dstAccessMask) - 20usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::oldLayout",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, oldLayout) - 24usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::newLayout",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, newLayout) - 28usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::srcQueueFamilyIndex",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, srcQueueFamilyIndex) - 32usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::dstQueueFamilyIndex",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, dstQueueFamilyIndex) - 36usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::image",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, image) - 40usize];
-    [
-        "Offset of field: VkImageMemoryBarrier::subresourceRange",
-    ][::std::mem::offset_of!(VkImageMemoryBarrier, subresourceRange) - 48usize];
-};
-impl Default for VkImageMemoryBarrier {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkMemoryBarrier {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub srcAccessMask: VkAccessFlags,
-    pub dstAccessMask: VkAccessFlags,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of VkMemoryBarrier"][::std::mem::size_of::<VkMemoryBarrier>() - 24usize];
-    ["Alignment of VkMemoryBarrier"][::std::mem::align_of::<VkMemoryBarrier>() - 8usize];
-    [
-        "Offset of field: VkMemoryBarrier::sType",
-    ][::std::mem::offset_of!(VkMemoryBarrier, sType) - 0usize];
-    [
-        "Offset of field: VkMemoryBarrier::pNext",
-    ][::std::mem::offset_of!(VkMemoryBarrier, pNext) - 8usize];
-    [
-        "Offset of field: VkMemoryBarrier::srcAccessMask",
-    ][::std::mem::offset_of!(VkMemoryBarrier, srcAccessMask) - 16usize];
-    [
-        "Offset of field: VkMemoryBarrier::dstAccessMask",
-    ][::std::mem::offset_of!(VkMemoryBarrier, dstAccessMask) - 20usize];
-};
-impl Default for VkMemoryBarrier {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkShaderModuleCreateInfo {
     pub sType: VkStructureType,
@@ -5185,82 +4923,6 @@ const _: () = {
     ][::std::mem::offset_of!(VkComputePipelineCreateInfo, basePipelineIndex) - 88usize];
 };
 impl Default for VkComputePipelineCreateInfo {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct VkPushConstantRange {
-    pub stageFlags: VkShaderStageFlags,
-    pub offset: u32,
-    pub size: u32,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkPushConstantRange",
-    ][::std::mem::size_of::<VkPushConstantRange>() - 12usize];
-    [
-        "Alignment of VkPushConstantRange",
-    ][::std::mem::align_of::<VkPushConstantRange>() - 4usize];
-    [
-        "Offset of field: VkPushConstantRange::stageFlags",
-    ][::std::mem::offset_of!(VkPushConstantRange, stageFlags) - 0usize];
-    [
-        "Offset of field: VkPushConstantRange::offset",
-    ][::std::mem::offset_of!(VkPushConstantRange, offset) - 4usize];
-    [
-        "Offset of field: VkPushConstantRange::size",
-    ][::std::mem::offset_of!(VkPushConstantRange, size) - 8usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkPipelineLayoutCreateInfo {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub flags: VkPipelineLayoutCreateFlags,
-    pub setLayoutCount: u32,
-    pub pSetLayouts: *const VkDescriptorSetLayout,
-    pub pushConstantRangeCount: u32,
-    pub pPushConstantRanges: *const VkPushConstantRange,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkPipelineLayoutCreateInfo",
-    ][::std::mem::size_of::<VkPipelineLayoutCreateInfo>() - 48usize];
-    [
-        "Alignment of VkPipelineLayoutCreateInfo",
-    ][::std::mem::align_of::<VkPipelineLayoutCreateInfo>() - 8usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::sType",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, sType) - 0usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::pNext",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pNext) - 8usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::flags",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, flags) - 16usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::setLayoutCount",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, setLayoutCount) - 20usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::pSetLayouts",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pSetLayouts) - 24usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::pushConstantRangeCount",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pushConstantRangeCount)
-        - 32usize];
-    [
-        "Offset of field: VkPipelineLayoutCreateInfo::pPushConstantRanges",
-    ][::std::mem::offset_of!(VkPipelineLayoutCreateInfo, pPushConstantRanges) - 40usize];
-};
-impl Default for VkPipelineLayoutCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -6169,313 +5831,6 @@ impl Default for VkGraphicsPipelineCreateInfo {
     }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkAttachmentDescription {
-    pub flags: VkAttachmentDescriptionFlags,
-    pub format: VkFormat,
-    pub samples: VkSampleCountFlagBits,
-    pub loadOp: VkAttachmentLoadOp,
-    pub storeOp: VkAttachmentStoreOp,
-    pub stencilLoadOp: VkAttachmentLoadOp,
-    pub stencilStoreOp: VkAttachmentStoreOp,
-    pub initialLayout: VkImageLayout,
-    pub finalLayout: VkImageLayout,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkAttachmentDescription",
-    ][::std::mem::size_of::<VkAttachmentDescription>() - 36usize];
-    [
-        "Alignment of VkAttachmentDescription",
-    ][::std::mem::align_of::<VkAttachmentDescription>() - 4usize];
-    [
-        "Offset of field: VkAttachmentDescription::flags",
-    ][::std::mem::offset_of!(VkAttachmentDescription, flags) - 0usize];
-    [
-        "Offset of field: VkAttachmentDescription::format",
-    ][::std::mem::offset_of!(VkAttachmentDescription, format) - 4usize];
-    [
-        "Offset of field: VkAttachmentDescription::samples",
-    ][::std::mem::offset_of!(VkAttachmentDescription, samples) - 8usize];
-    [
-        "Offset of field: VkAttachmentDescription::loadOp",
-    ][::std::mem::offset_of!(VkAttachmentDescription, loadOp) - 12usize];
-    [
-        "Offset of field: VkAttachmentDescription::storeOp",
-    ][::std::mem::offset_of!(VkAttachmentDescription, storeOp) - 16usize];
-    [
-        "Offset of field: VkAttachmentDescription::stencilLoadOp",
-    ][::std::mem::offset_of!(VkAttachmentDescription, stencilLoadOp) - 20usize];
-    [
-        "Offset of field: VkAttachmentDescription::stencilStoreOp",
-    ][::std::mem::offset_of!(VkAttachmentDescription, stencilStoreOp) - 24usize];
-    [
-        "Offset of field: VkAttachmentDescription::initialLayout",
-    ][::std::mem::offset_of!(VkAttachmentDescription, initialLayout) - 28usize];
-    [
-        "Offset of field: VkAttachmentDescription::finalLayout",
-    ][::std::mem::offset_of!(VkAttachmentDescription, finalLayout) - 32usize];
-};
-impl Default for VkAttachmentDescription {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkAttachmentReference {
-    pub attachment: u32,
-    pub layout: VkImageLayout,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkAttachmentReference",
-    ][::std::mem::size_of::<VkAttachmentReference>() - 8usize];
-    [
-        "Alignment of VkAttachmentReference",
-    ][::std::mem::align_of::<VkAttachmentReference>() - 4usize];
-    [
-        "Offset of field: VkAttachmentReference::attachment",
-    ][::std::mem::offset_of!(VkAttachmentReference, attachment) - 0usize];
-    [
-        "Offset of field: VkAttachmentReference::layout",
-    ][::std::mem::offset_of!(VkAttachmentReference, layout) - 4usize];
-};
-impl Default for VkAttachmentReference {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkFramebufferCreateInfo {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub flags: VkFramebufferCreateFlags,
-    pub renderPass: VkRenderPass,
-    pub attachmentCount: u32,
-    pub pAttachments: *const VkImageView,
-    pub width: u32,
-    pub height: u32,
-    pub layers: u32,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkFramebufferCreateInfo",
-    ][::std::mem::size_of::<VkFramebufferCreateInfo>() - 64usize];
-    [
-        "Alignment of VkFramebufferCreateInfo",
-    ][::std::mem::align_of::<VkFramebufferCreateInfo>() - 8usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::sType",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, sType) - 0usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::pNext",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, pNext) - 8usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::flags",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, flags) - 16usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::renderPass",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, renderPass) - 24usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::attachmentCount",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, attachmentCount) - 32usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::pAttachments",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, pAttachments) - 40usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::width",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, width) - 48usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::height",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, height) - 52usize];
-    [
-        "Offset of field: VkFramebufferCreateInfo::layers",
-    ][::std::mem::offset_of!(VkFramebufferCreateInfo, layers) - 56usize];
-};
-impl Default for VkFramebufferCreateInfo {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct VkSubpassDependency {
-    pub srcSubpass: u32,
-    pub dstSubpass: u32,
-    pub srcStageMask: VkPipelineStageFlags,
-    pub dstStageMask: VkPipelineStageFlags,
-    pub srcAccessMask: VkAccessFlags,
-    pub dstAccessMask: VkAccessFlags,
-    pub dependencyFlags: VkDependencyFlags,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkSubpassDependency",
-    ][::std::mem::size_of::<VkSubpassDependency>() - 28usize];
-    [
-        "Alignment of VkSubpassDependency",
-    ][::std::mem::align_of::<VkSubpassDependency>() - 4usize];
-    [
-        "Offset of field: VkSubpassDependency::srcSubpass",
-    ][::std::mem::offset_of!(VkSubpassDependency, srcSubpass) - 0usize];
-    [
-        "Offset of field: VkSubpassDependency::dstSubpass",
-    ][::std::mem::offset_of!(VkSubpassDependency, dstSubpass) - 4usize];
-    [
-        "Offset of field: VkSubpassDependency::srcStageMask",
-    ][::std::mem::offset_of!(VkSubpassDependency, srcStageMask) - 8usize];
-    [
-        "Offset of field: VkSubpassDependency::dstStageMask",
-    ][::std::mem::offset_of!(VkSubpassDependency, dstStageMask) - 12usize];
-    [
-        "Offset of field: VkSubpassDependency::srcAccessMask",
-    ][::std::mem::offset_of!(VkSubpassDependency, srcAccessMask) - 16usize];
-    [
-        "Offset of field: VkSubpassDependency::dstAccessMask",
-    ][::std::mem::offset_of!(VkSubpassDependency, dstAccessMask) - 20usize];
-    [
-        "Offset of field: VkSubpassDependency::dependencyFlags",
-    ][::std::mem::offset_of!(VkSubpassDependency, dependencyFlags) - 24usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkSubpassDescription {
-    pub flags: VkSubpassDescriptionFlags,
-    pub pipelineBindPoint: VkPipelineBindPoint,
-    pub inputAttachmentCount: u32,
-    pub pInputAttachments: *const VkAttachmentReference,
-    pub colorAttachmentCount: u32,
-    pub pColorAttachments: *const VkAttachmentReference,
-    pub pResolveAttachments: *const VkAttachmentReference,
-    pub pDepthStencilAttachment: *const VkAttachmentReference,
-    pub preserveAttachmentCount: u32,
-    pub pPreserveAttachments: *const u32,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkSubpassDescription",
-    ][::std::mem::size_of::<VkSubpassDescription>() - 72usize];
-    [
-        "Alignment of VkSubpassDescription",
-    ][::std::mem::align_of::<VkSubpassDescription>() - 8usize];
-    [
-        "Offset of field: VkSubpassDescription::flags",
-    ][::std::mem::offset_of!(VkSubpassDescription, flags) - 0usize];
-    [
-        "Offset of field: VkSubpassDescription::pipelineBindPoint",
-    ][::std::mem::offset_of!(VkSubpassDescription, pipelineBindPoint) - 4usize];
-    [
-        "Offset of field: VkSubpassDescription::inputAttachmentCount",
-    ][::std::mem::offset_of!(VkSubpassDescription, inputAttachmentCount) - 8usize];
-    [
-        "Offset of field: VkSubpassDescription::pInputAttachments",
-    ][::std::mem::offset_of!(VkSubpassDescription, pInputAttachments) - 16usize];
-    [
-        "Offset of field: VkSubpassDescription::colorAttachmentCount",
-    ][::std::mem::offset_of!(VkSubpassDescription, colorAttachmentCount) - 24usize];
-    [
-        "Offset of field: VkSubpassDescription::pColorAttachments",
-    ][::std::mem::offset_of!(VkSubpassDescription, pColorAttachments) - 32usize];
-    [
-        "Offset of field: VkSubpassDescription::pResolveAttachments",
-    ][::std::mem::offset_of!(VkSubpassDescription, pResolveAttachments) - 40usize];
-    [
-        "Offset of field: VkSubpassDescription::pDepthStencilAttachment",
-    ][::std::mem::offset_of!(VkSubpassDescription, pDepthStencilAttachment) - 48usize];
-    [
-        "Offset of field: VkSubpassDescription::preserveAttachmentCount",
-    ][::std::mem::offset_of!(VkSubpassDescription, preserveAttachmentCount) - 56usize];
-    [
-        "Offset of field: VkSubpassDescription::pPreserveAttachments",
-    ][::std::mem::offset_of!(VkSubpassDescription, pPreserveAttachments) - 64usize];
-};
-impl Default for VkSubpassDescription {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkRenderPassCreateInfo {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub flags: VkRenderPassCreateFlags,
-    pub attachmentCount: u32,
-    pub pAttachments: *const VkAttachmentDescription,
-    pub subpassCount: u32,
-    pub pSubpasses: *const VkSubpassDescription,
-    pub dependencyCount: u32,
-    pub pDependencies: *const VkSubpassDependency,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkRenderPassCreateInfo",
-    ][::std::mem::size_of::<VkRenderPassCreateInfo>() - 64usize];
-    [
-        "Alignment of VkRenderPassCreateInfo",
-    ][::std::mem::align_of::<VkRenderPassCreateInfo>() - 8usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::sType",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, sType) - 0usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::pNext",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pNext) - 8usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::flags",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, flags) - 16usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::attachmentCount",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, attachmentCount) - 20usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::pAttachments",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pAttachments) - 24usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::subpassCount",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, subpassCount) - 32usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::pSubpasses",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pSubpasses) - 40usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::dependencyCount",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, dependencyCount) - 48usize];
-    [
-        "Offset of field: VkRenderPassCreateInfo::pDependencies",
-    ][::std::mem::offset_of!(VkRenderPassCreateInfo, pDependencies) - 56usize];
-};
-impl Default for VkRenderPassCreateInfo {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkClearDepthStencilValue {
     pub depth: f32,
@@ -6514,56 +5869,6 @@ const _: () = {
     ][::std::mem::offset_of!(VkClearValue, depthStencil) - 0usize];
 };
 impl Default for VkClearValue {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct VkRenderPassBeginInfo {
-    pub sType: VkStructureType,
-    pub pNext: *const ::std::os::raw::c_void,
-    pub renderPass: VkRenderPass,
-    pub framebuffer: VkFramebuffer,
-    pub renderArea: VkRect2D,
-    pub clearValueCount: u32,
-    pub pClearValues: *const VkClearValue,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    [
-        "Size of VkRenderPassBeginInfo",
-    ][::std::mem::size_of::<VkRenderPassBeginInfo>() - 64usize];
-    [
-        "Alignment of VkRenderPassBeginInfo",
-    ][::std::mem::align_of::<VkRenderPassBeginInfo>() - 8usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::sType",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, sType) - 0usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::pNext",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, pNext) - 8usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::renderPass",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, renderPass) - 16usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::framebuffer",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, framebuffer) - 24usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::renderArea",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, renderArea) - 32usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::clearValueCount",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, clearValueCount) - 48usize];
-    [
-        "Offset of field: VkRenderPassBeginInfo::pClearValues",
-    ][::std::mem::offset_of!(VkRenderPassBeginInfo, pClearValues) - 56usize];
-};
-impl Default for VkRenderPassBeginInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -6651,14 +5956,6 @@ pub type PFN_vkGetDeviceQueue = ::std::option::Option<
         queueIndex: u32,
         pQueue: *mut VkQueue,
     ),
->;
-pub type PFN_vkQueueSubmit = ::std::option::Option<
-    unsafe extern "C" fn(
-        queue: VkQueue,
-        submitCount: u32,
-        pSubmits: *const VkSubmitInfo,
-        fence: VkFence,
-    ) -> VkResult,
 >;
 pub type PFN_vkQueueWaitIdle = ::std::option::Option<
     unsafe extern "C" fn(queue: VkQueue) -> VkResult,
@@ -6862,44 +6159,12 @@ pub type PFN_vkBeginCommandBuffer = ::std::option::Option<
 pub type PFN_vkEndCommandBuffer = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer) -> VkResult,
 >;
-pub type PFN_vkCmdCopyImageToBuffer = ::std::option::Option<
-    unsafe extern "C" fn(
-        commandBuffer: VkCommandBuffer,
-        srcImage: VkImage,
-        srcImageLayout: VkImageLayout,
-        dstBuffer: VkBuffer,
-        regionCount: u32,
-        pRegions: *const VkBufferImageCopy,
-    ),
->;
-pub type PFN_vkCmdPipelineBarrier = ::std::option::Option<
-    unsafe extern "C" fn(
-        commandBuffer: VkCommandBuffer,
-        srcStageMask: VkPipelineStageFlags,
-        dstStageMask: VkPipelineStageFlags,
-        dependencyFlags: VkDependencyFlags,
-        memoryBarrierCount: u32,
-        pMemoryBarriers: *const VkMemoryBarrier,
-        bufferMemoryBarrierCount: u32,
-        pBufferMemoryBarriers: *const VkBufferMemoryBarrier,
-        imageMemoryBarrierCount: u32,
-        pImageMemoryBarriers: *const VkImageMemoryBarrier,
-    ),
->;
 pub type PFN_vkCmdResetQueryPool = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         queryPool: VkQueryPool,
         firstQuery: u32,
         queryCount: u32,
-    ),
->;
-pub type PFN_vkCmdWriteTimestamp = ::std::option::Option<
-    unsafe extern "C" fn(
-        commandBuffer: VkCommandBuffer,
-        pipelineStage: VkPipelineStageFlagBits,
-        queryPool: VkQueryPool,
-        query: u32,
     ),
 >;
 pub type PFN_vkCreateShaderModule = ::std::option::Option<
@@ -6934,21 +6199,6 @@ pub type PFN_vkDestroyPipeline = ::std::option::Option<
         pAllocator: *const VkAllocationCallbacks,
     ),
 >;
-pub type PFN_vkCreatePipelineLayout = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        pCreateInfo: *const VkPipelineLayoutCreateInfo,
-        pAllocator: *const VkAllocationCallbacks,
-        pPipelineLayout: *mut VkPipelineLayout,
-    ) -> VkResult,
->;
-pub type PFN_vkDestroyPipelineLayout = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        pipelineLayout: VkPipelineLayout,
-        pAllocator: *const VkAllocationCallbacks,
-    ),
->;
 pub type PFN_vkCmdBindPipeline = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -6964,16 +6214,6 @@ pub type PFN_vkCmdDispatch = ::std::option::Option<
         groupCountZ: u32,
     ),
 >;
-pub type PFN_vkCmdPushConstants = ::std::option::Option<
-    unsafe extern "C" fn(
-        commandBuffer: VkCommandBuffer,
-        layout: VkPipelineLayout,
-        stageFlags: VkShaderStageFlags,
-        offset: u32,
-        size: u32,
-        pValues: *const ::std::os::raw::c_void,
-    ),
->;
 pub type PFN_vkCreateGraphicsPipelines = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
@@ -6983,36 +6223,6 @@ pub type PFN_vkCreateGraphicsPipelines = ::std::option::Option<
         pAllocator: *const VkAllocationCallbacks,
         pPipelines: *mut VkPipeline,
     ) -> VkResult,
->;
-pub type PFN_vkCreateFramebuffer = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        pCreateInfo: *const VkFramebufferCreateInfo,
-        pAllocator: *const VkAllocationCallbacks,
-        pFramebuffer: *mut VkFramebuffer,
-    ) -> VkResult,
->;
-pub type PFN_vkDestroyFramebuffer = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        framebuffer: VkFramebuffer,
-        pAllocator: *const VkAllocationCallbacks,
-    ),
->;
-pub type PFN_vkCreateRenderPass = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        pCreateInfo: *const VkRenderPassCreateInfo,
-        pAllocator: *const VkAllocationCallbacks,
-        pRenderPass: *mut VkRenderPass,
-    ) -> VkResult,
->;
-pub type PFN_vkDestroyRenderPass = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        renderPass: VkRenderPass,
-        pAllocator: *const VkAllocationCallbacks,
-    ),
 >;
 pub type PFN_vkCmdSetViewport = ::std::option::Option<
     unsafe extern "C" fn(
@@ -7029,25 +6239,6 @@ pub type PFN_vkCmdSetScissor = ::std::option::Option<
         scissorCount: u32,
         pScissors: *const VkRect2D,
     ),
->;
-pub type PFN_vkCmdDrawIndirect = ::std::option::Option<
-    unsafe extern "C" fn(
-        commandBuffer: VkCommandBuffer,
-        buffer: VkBuffer,
-        offset: VkDeviceSize,
-        drawCount: u32,
-        stride: u32,
-    ),
->;
-pub type PFN_vkCmdBeginRenderPass = ::std::option::Option<
-    unsafe extern "C" fn(
-        commandBuffer: VkCommandBuffer,
-        pRenderPassBegin: *const VkRenderPassBeginInfo,
-        contents: VkSubpassContents,
-    ),
->;
-pub type PFN_vkCmdEndRenderPass = ::std::option::Option<
-    unsafe extern "C" fn(commandBuffer: VkCommandBuffer),
 >;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT: VkMemoryAllocateFlagBits = 1;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT: VkMemoryAllocateFlagBits = 2;
@@ -7171,6 +6362,40 @@ impl Default for VkPhysicalDeviceFeatures2 {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceProperties2 {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub properties: VkPhysicalDeviceProperties,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceProperties2",
+    ][::std::mem::size_of::<VkPhysicalDeviceProperties2>() - 840usize];
+    [
+        "Alignment of VkPhysicalDeviceProperties2",
+    ][::std::mem::align_of::<VkPhysicalDeviceProperties2>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceProperties2::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProperties2, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceProperties2::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProperties2, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceProperties2::properties",
+    ][::std::mem::offset_of!(VkPhysicalDeviceProperties2, properties) - 16usize];
+};
+impl Default for VkPhysicalDeviceProperties2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDevice16BitStorageFeatures {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -7230,6 +6455,320 @@ pub type PFN_vkGetPhysicalDeviceFeatures2 = ::std::option::Option<
         pFeatures: *mut VkPhysicalDeviceFeatures2,
     ),
 >;
+pub type PFN_vkGetPhysicalDeviceProperties2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pProperties: *mut VkPhysicalDeviceProperties2,
+    ),
+>;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_NONE: VkResolveModeFlagBits = 0;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_SAMPLE_ZERO_BIT: VkResolveModeFlagBits = 1;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_AVERAGE_BIT: VkResolveModeFlagBits = 2;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_MIN_BIT: VkResolveModeFlagBits = 4;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_MAX_BIT: VkResolveModeFlagBits = 8;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_BIT_ANDROID: VkResolveModeFlagBits = 16;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_CUSTOM_BIT_EXT: VkResolveModeFlagBits = 32;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_NONE_KHR: VkResolveModeFlagBits = 0;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_SAMPLE_ZERO_BIT_KHR: VkResolveModeFlagBits = 1;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_AVERAGE_BIT_KHR: VkResolveModeFlagBits = 2;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_MIN_BIT_KHR: VkResolveModeFlagBits = 4;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_MAX_BIT_KHR: VkResolveModeFlagBits = 8;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_ANDROID: VkResolveModeFlagBits = 16;
+pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM: VkResolveModeFlagBits = 2147483647;
+pub type VkResolveModeFlagBits = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVulkan12Features {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub samplerMirrorClampToEdge: VkBool32,
+    pub drawIndirectCount: VkBool32,
+    pub storageBuffer8BitAccess: VkBool32,
+    pub uniformAndStorageBuffer8BitAccess: VkBool32,
+    pub storagePushConstant8: VkBool32,
+    pub shaderBufferInt64Atomics: VkBool32,
+    pub shaderSharedInt64Atomics: VkBool32,
+    pub shaderFloat16: VkBool32,
+    pub shaderInt8: VkBool32,
+    pub descriptorIndexing: VkBool32,
+    pub shaderInputAttachmentArrayDynamicIndexing: VkBool32,
+    pub shaderUniformTexelBufferArrayDynamicIndexing: VkBool32,
+    pub shaderStorageTexelBufferArrayDynamicIndexing: VkBool32,
+    pub shaderUniformBufferArrayNonUniformIndexing: VkBool32,
+    pub shaderSampledImageArrayNonUniformIndexing: VkBool32,
+    pub shaderStorageBufferArrayNonUniformIndexing: VkBool32,
+    pub shaderStorageImageArrayNonUniformIndexing: VkBool32,
+    pub shaderInputAttachmentArrayNonUniformIndexing: VkBool32,
+    pub shaderUniformTexelBufferArrayNonUniformIndexing: VkBool32,
+    pub shaderStorageTexelBufferArrayNonUniformIndexing: VkBool32,
+    pub descriptorBindingUniformBufferUpdateAfterBind: VkBool32,
+    pub descriptorBindingSampledImageUpdateAfterBind: VkBool32,
+    pub descriptorBindingStorageImageUpdateAfterBind: VkBool32,
+    pub descriptorBindingStorageBufferUpdateAfterBind: VkBool32,
+    pub descriptorBindingUniformTexelBufferUpdateAfterBind: VkBool32,
+    pub descriptorBindingStorageTexelBufferUpdateAfterBind: VkBool32,
+    pub descriptorBindingUpdateUnusedWhilePending: VkBool32,
+    pub descriptorBindingPartiallyBound: VkBool32,
+    pub descriptorBindingVariableDescriptorCount: VkBool32,
+    pub runtimeDescriptorArray: VkBool32,
+    pub samplerFilterMinmax: VkBool32,
+    pub scalarBlockLayout: VkBool32,
+    pub imagelessFramebuffer: VkBool32,
+    pub uniformBufferStandardLayout: VkBool32,
+    pub shaderSubgroupExtendedTypes: VkBool32,
+    pub separateDepthStencilLayouts: VkBool32,
+    pub hostQueryReset: VkBool32,
+    pub timelineSemaphore: VkBool32,
+    pub bufferDeviceAddress: VkBool32,
+    pub bufferDeviceAddressCaptureReplay: VkBool32,
+    pub bufferDeviceAddressMultiDevice: VkBool32,
+    pub vulkanMemoryModel: VkBool32,
+    pub vulkanMemoryModelDeviceScope: VkBool32,
+    pub vulkanMemoryModelAvailabilityVisibilityChains: VkBool32,
+    pub shaderOutputViewportIndex: VkBool32,
+    pub shaderOutputLayer: VkBool32,
+    pub subgroupBroadcastDynamicId: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVulkan12Features",
+    ][::std::mem::size_of::<VkPhysicalDeviceVulkan12Features>() - 208usize];
+    [
+        "Alignment of VkPhysicalDeviceVulkan12Features",
+    ][::std::mem::align_of::<VkPhysicalDeviceVulkan12Features>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::samplerMirrorClampToEdge",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, samplerMirrorClampToEdge)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::drawIndirectCount",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, drawIndirectCount)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::storageBuffer8BitAccess",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, storageBuffer8BitAccess)
+        - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::uniformAndStorageBuffer8BitAccess",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, uniformAndStorageBuffer8BitAccess
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::storagePushConstant8",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, storagePushConstant8)
+        - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderBufferInt64Atomics",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, shaderBufferInt64Atomics)
+        - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderSharedInt64Atomics",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, shaderSharedInt64Atomics)
+        - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderFloat16",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, shaderFloat16) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderInt8",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, shaderInt8) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorIndexing",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, descriptorIndexing)
+        - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderInputAttachmentArrayDynamicIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderInputAttachmentArrayDynamicIndexing
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderUniformTexelBufferArrayDynamicIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderUniformTexelBufferArrayDynamicIndexing
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderStorageTexelBufferArrayDynamicIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderStorageTexelBufferArrayDynamicIndexing
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderUniformBufferArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderUniformBufferArrayNonUniformIndexing
+    ) - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderSampledImageArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderSampledImageArrayNonUniformIndexing
+    ) - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderStorageBufferArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderStorageBufferArrayNonUniformIndexing
+    ) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderStorageImageArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderStorageImageArrayNonUniformIndexing
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderInputAttachmentArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderInputAttachmentArrayNonUniformIndexing
+    ) - 84usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderUniformTexelBufferArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderUniformTexelBufferArrayNonUniformIndexing
+    ) - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderStorageTexelBufferArrayNonUniformIndexing",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderStorageTexelBufferArrayNonUniformIndexing
+    ) - 92usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingUniformBufferUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingUniformBufferUpdateAfterBind
+    ) - 96usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingSampledImageUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingSampledImageUpdateAfterBind
+    ) - 100usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingStorageImageUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingStorageImageUpdateAfterBind
+    ) - 104usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingStorageBufferUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingStorageBufferUpdateAfterBind
+    ) - 108usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingUniformTexelBufferUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features,
+        descriptorBindingUniformTexelBufferUpdateAfterBind
+    ) - 112usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingStorageTexelBufferUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features,
+        descriptorBindingStorageTexelBufferUpdateAfterBind
+    ) - 116usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingUpdateUnusedWhilePending",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingUpdateUnusedWhilePending
+    ) - 120usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingPartiallyBound",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingPartiallyBound
+    ) - 124usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::descriptorBindingVariableDescriptorCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, descriptorBindingVariableDescriptorCount
+    ) - 128usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::runtimeDescriptorArray",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, runtimeDescriptorArray)
+        - 132usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::samplerFilterMinmax",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, samplerFilterMinmax)
+        - 136usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::scalarBlockLayout",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, scalarBlockLayout)
+        - 140usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::imagelessFramebuffer",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, imagelessFramebuffer)
+        - 144usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::uniformBufferStandardLayout",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, uniformBufferStandardLayout
+    ) - 148usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderSubgroupExtendedTypes",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, shaderSubgroupExtendedTypes
+    ) - 152usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::separateDepthStencilLayouts",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, separateDepthStencilLayouts
+    ) - 156usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::hostQueryReset",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, hostQueryReset)
+        - 160usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::timelineSemaphore",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, timelineSemaphore)
+        - 164usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::bufferDeviceAddress",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, bufferDeviceAddress)
+        - 168usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::bufferDeviceAddressCaptureReplay",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, bufferDeviceAddressCaptureReplay
+    ) - 172usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::bufferDeviceAddressMultiDevice",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, bufferDeviceAddressMultiDevice
+    ) - 176usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::vulkanMemoryModel",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, vulkanMemoryModel)
+        - 180usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::vulkanMemoryModelDeviceScope",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, vulkanMemoryModelDeviceScope
+    ) - 184usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::vulkanMemoryModelAvailabilityVisibilityChains",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, vulkanMemoryModelAvailabilityVisibilityChains
+    ) - 188usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderOutputViewportIndex",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, shaderOutputViewportIndex)
+        - 192usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::shaderOutputLayer",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Features, shaderOutputLayer)
+        - 196usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Features::subgroupBroadcastDynamicId",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Features, subgroupBroadcastDynamicId
+    ) - 200usize];
+};
+impl Default for VkPhysicalDeviceVulkan12Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceTimelineSemaphoreFeatures {
@@ -7443,6 +6982,653 @@ pub type PFN_vkGetBufferDeviceAddress = ::std::option::Option<
         pInfo: *const VkBufferDeviceAddressInfo,
     ) -> VkDeviceAddress,
 >;
+pub type VkFlags64 = u64;
+pub type VkPipelineStageFlags2 = VkFlags64;
+pub type VkPipelineStageFlagBits2 = VkFlags64;
+pub const VK_PIPELINE_STAGE_2_NONE: VkPipelineStageFlagBits2 = 0;
+pub const VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT: VkPipelineStageFlagBits2 = 1;
+pub const VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT: VkPipelineStageFlagBits2 = 2;
+pub const VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT: VkPipelineStageFlagBits2 = 4;
+pub const VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT: VkPipelineStageFlagBits2 = 8;
+pub const VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT: VkPipelineStageFlagBits2 = 16;
+pub const VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT: VkPipelineStageFlagBits2 = 32;
+pub const VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT: VkPipelineStageFlagBits2 = 64;
+pub const VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT: VkPipelineStageFlagBits2 = 128;
+pub const VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT: VkPipelineStageFlagBits2 = 256;
+pub const VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT: VkPipelineStageFlagBits2 = 512;
+pub const VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT: VkPipelineStageFlagBits2 = 1024;
+pub const VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT: VkPipelineStageFlagBits2 = 2048;
+pub const VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT: VkPipelineStageFlagBits2 = 4096;
+pub const VK_PIPELINE_STAGE_2_TRANSFER_BIT: VkPipelineStageFlagBits2 = 4096;
+pub const VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT: VkPipelineStageFlagBits2 = 8192;
+pub const VK_PIPELINE_STAGE_2_HOST_BIT: VkPipelineStageFlagBits2 = 16384;
+pub const VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT: VkPipelineStageFlagBits2 = 32768;
+pub const VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT: VkPipelineStageFlagBits2 = 65536;
+pub const VK_PIPELINE_STAGE_2_COPY_BIT: VkPipelineStageFlagBits2 = 4294967296;
+pub const VK_PIPELINE_STAGE_2_RESOLVE_BIT: VkPipelineStageFlagBits2 = 8589934592;
+pub const VK_PIPELINE_STAGE_2_BLIT_BIT: VkPipelineStageFlagBits2 = 17179869184;
+pub const VK_PIPELINE_STAGE_2_CLEAR_BIT: VkPipelineStageFlagBits2 = 34359738368;
+pub const VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT: VkPipelineStageFlagBits2 = 68719476736;
+pub const VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT: VkPipelineStageFlagBits2 = 137438953472;
+pub const VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT: VkPipelineStageFlagBits2 = 274877906944;
+pub const VK_PIPELINE_STAGE_2_VIDEO_DECODE_BIT_KHR: VkPipelineStageFlagBits2 = 67108864;
+pub const VK_PIPELINE_STAGE_2_VIDEO_ENCODE_BIT_KHR: VkPipelineStageFlagBits2 = 134217728;
+pub const VK_PIPELINE_STAGE_2_NONE_KHR: VkPipelineStageFlagBits2 = 0;
+pub const VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT_KHR: VkPipelineStageFlagBits2 = 1;
+pub const VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT_KHR: VkPipelineStageFlagBits2 = 2;
+pub const VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT_KHR: VkPipelineStageFlagBits2 = 4;
+pub const VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 8;
+pub const VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 16;
+pub const VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 32;
+pub const VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 64;
+pub const VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 128;
+pub const VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT_KHR: VkPipelineStageFlagBits2 = 256;
+pub const VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT_KHR: VkPipelineStageFlagBits2 = 512;
+pub const VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR: VkPipelineStageFlagBits2 = 1024;
+pub const VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 2048;
+pub const VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT_KHR: VkPipelineStageFlagBits2 = 4096;
+pub const VK_PIPELINE_STAGE_2_TRANSFER_BIT_KHR: VkPipelineStageFlagBits2 = 4096;
+pub const VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT_KHR: VkPipelineStageFlagBits2 = 8192;
+pub const VK_PIPELINE_STAGE_2_HOST_BIT_KHR: VkPipelineStageFlagBits2 = 16384;
+pub const VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR: VkPipelineStageFlagBits2 = 32768;
+pub const VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT_KHR: VkPipelineStageFlagBits2 = 65536;
+pub const VK_PIPELINE_STAGE_2_COPY_BIT_KHR: VkPipelineStageFlagBits2 = 4294967296;
+pub const VK_PIPELINE_STAGE_2_RESOLVE_BIT_KHR: VkPipelineStageFlagBits2 = 8589934592;
+pub const VK_PIPELINE_STAGE_2_BLIT_BIT_KHR: VkPipelineStageFlagBits2 = 17179869184;
+pub const VK_PIPELINE_STAGE_2_CLEAR_BIT_KHR: VkPipelineStageFlagBits2 = 34359738368;
+pub const VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT_KHR: VkPipelineStageFlagBits2 = 68719476736;
+pub const VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT_KHR: VkPipelineStageFlagBits2 = 137438953472;
+pub const VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT_KHR: VkPipelineStageFlagBits2 = 274877906944;
+pub const VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT: VkPipelineStageFlagBits2 = 16777216;
+pub const VK_PIPELINE_STAGE_2_CONDITIONAL_RENDERING_BIT_EXT: VkPipelineStageFlagBits2 = 262144;
+pub const VK_PIPELINE_STAGE_2_COMMAND_PREPROCESS_BIT_NV: VkPipelineStageFlagBits2 = 131072;
+pub const VK_PIPELINE_STAGE_2_COMMAND_PREPROCESS_BIT_EXT: VkPipelineStageFlagBits2 = 131072;
+pub const VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkPipelineStageFlagBits2 = 4194304;
+pub const VK_PIPELINE_STAGE_2_SHADING_RATE_IMAGE_BIT_NV: VkPipelineStageFlagBits2 = 4194304;
+pub const VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR: VkPipelineStageFlagBits2 = 33554432;
+pub const VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR: VkPipelineStageFlagBits2 = 2097152;
+pub const VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_NV: VkPipelineStageFlagBits2 = 2097152;
+pub const VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_NV: VkPipelineStageFlagBits2 = 33554432;
+pub const VK_PIPELINE_STAGE_2_FRAGMENT_DENSITY_PROCESS_BIT_EXT: VkPipelineStageFlagBits2 = 8388608;
+pub const VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_NV: VkPipelineStageFlagBits2 = 524288;
+pub const VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_NV: VkPipelineStageFlagBits2 = 1048576;
+pub const VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT: VkPipelineStageFlagBits2 = 524288;
+pub const VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT: VkPipelineStageFlagBits2 = 1048576;
+pub const VK_PIPELINE_STAGE_2_SUBPASS_SHADER_BIT_HUAWEI: VkPipelineStageFlagBits2 = 549755813888;
+pub const VK_PIPELINE_STAGE_2_SUBPASS_SHADING_BIT_HUAWEI: VkPipelineStageFlagBits2 = 549755813888;
+pub const VK_PIPELINE_STAGE_2_INVOCATION_MASK_BIT_HUAWEI: VkPipelineStageFlagBits2 = 1099511627776;
+pub const VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR: VkPipelineStageFlagBits2 = 268435456;
+pub const VK_PIPELINE_STAGE_2_MICROMAP_BUILD_BIT_EXT: VkPipelineStageFlagBits2 = 1073741824;
+pub const VK_PIPELINE_STAGE_2_CLUSTER_CULLING_SHADER_BIT_HUAWEI: VkPipelineStageFlagBits2 = 2199023255552;
+pub const VK_PIPELINE_STAGE_2_OPTICAL_FLOW_BIT_NV: VkPipelineStageFlagBits2 = 536870912;
+pub const VK_PIPELINE_STAGE_2_CONVERT_COOPERATIVE_VECTOR_MATRIX_BIT_NV: VkPipelineStageFlagBits2 = 17592186044416;
+pub const VK_PIPELINE_STAGE_2_DATA_GRAPH_BIT_ARM: VkPipelineStageFlagBits2 = 4398046511104;
+pub const VK_PIPELINE_STAGE_2_COPY_INDIRECT_BIT_KHR: VkPipelineStageFlagBits2 = 70368744177664;
+pub const VK_PIPELINE_STAGE_2_MEMORY_DECOMPRESSION_BIT_EXT: VkPipelineStageFlagBits2 = 35184372088832;
+pub type VkAccessFlags2 = VkFlags64;
+pub type VkAccessFlagBits2 = VkFlags64;
+pub const VK_ACCESS_2_NONE: VkAccessFlagBits2 = 0;
+pub const VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT: VkAccessFlagBits2 = 1;
+pub const VK_ACCESS_2_INDEX_READ_BIT: VkAccessFlagBits2 = 2;
+pub const VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT: VkAccessFlagBits2 = 4;
+pub const VK_ACCESS_2_UNIFORM_READ_BIT: VkAccessFlagBits2 = 8;
+pub const VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT: VkAccessFlagBits2 = 16;
+pub const VK_ACCESS_2_SHADER_READ_BIT: VkAccessFlagBits2 = 32;
+pub const VK_ACCESS_2_SHADER_WRITE_BIT: VkAccessFlagBits2 = 64;
+pub const VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT: VkAccessFlagBits2 = 128;
+pub const VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT: VkAccessFlagBits2 = 256;
+pub const VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT: VkAccessFlagBits2 = 512;
+pub const VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT: VkAccessFlagBits2 = 1024;
+pub const VK_ACCESS_2_TRANSFER_READ_BIT: VkAccessFlagBits2 = 2048;
+pub const VK_ACCESS_2_TRANSFER_WRITE_BIT: VkAccessFlagBits2 = 4096;
+pub const VK_ACCESS_2_HOST_READ_BIT: VkAccessFlagBits2 = 8192;
+pub const VK_ACCESS_2_HOST_WRITE_BIT: VkAccessFlagBits2 = 16384;
+pub const VK_ACCESS_2_MEMORY_READ_BIT: VkAccessFlagBits2 = 32768;
+pub const VK_ACCESS_2_MEMORY_WRITE_BIT: VkAccessFlagBits2 = 65536;
+pub const VK_ACCESS_2_SHADER_SAMPLED_READ_BIT: VkAccessFlagBits2 = 4294967296;
+pub const VK_ACCESS_2_SHADER_STORAGE_READ_BIT: VkAccessFlagBits2 = 8589934592;
+pub const VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT: VkAccessFlagBits2 = 17179869184;
+pub const VK_ACCESS_2_VIDEO_DECODE_READ_BIT_KHR: VkAccessFlagBits2 = 34359738368;
+pub const VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR: VkAccessFlagBits2 = 68719476736;
+pub const VK_ACCESS_2_SAMPLER_HEAP_READ_BIT_EXT: VkAccessFlagBits2 = 144115188075855872;
+pub const VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT: VkAccessFlagBits2 = 288230376151711744;
+pub const VK_ACCESS_2_VIDEO_ENCODE_READ_BIT_KHR: VkAccessFlagBits2 = 137438953472;
+pub const VK_ACCESS_2_VIDEO_ENCODE_WRITE_BIT_KHR: VkAccessFlagBits2 = 274877906944;
+pub const VK_ACCESS_2_SHADER_TILE_ATTACHMENT_READ_BIT_QCOM: VkAccessFlagBits2 = 2251799813685248;
+pub const VK_ACCESS_2_SHADER_TILE_ATTACHMENT_WRITE_BIT_QCOM: VkAccessFlagBits2 = 4503599627370496;
+pub const VK_ACCESS_2_NONE_KHR: VkAccessFlagBits2 = 0;
+pub const VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT_KHR: VkAccessFlagBits2 = 1;
+pub const VK_ACCESS_2_INDEX_READ_BIT_KHR: VkAccessFlagBits2 = 2;
+pub const VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT_KHR: VkAccessFlagBits2 = 4;
+pub const VK_ACCESS_2_UNIFORM_READ_BIT_KHR: VkAccessFlagBits2 = 8;
+pub const VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT_KHR: VkAccessFlagBits2 = 16;
+pub const VK_ACCESS_2_SHADER_READ_BIT_KHR: VkAccessFlagBits2 = 32;
+pub const VK_ACCESS_2_SHADER_WRITE_BIT_KHR: VkAccessFlagBits2 = 64;
+pub const VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT_KHR: VkAccessFlagBits2 = 128;
+pub const VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT_KHR: VkAccessFlagBits2 = 256;
+pub const VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT_KHR: VkAccessFlagBits2 = 512;
+pub const VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT_KHR: VkAccessFlagBits2 = 1024;
+pub const VK_ACCESS_2_TRANSFER_READ_BIT_KHR: VkAccessFlagBits2 = 2048;
+pub const VK_ACCESS_2_TRANSFER_WRITE_BIT_KHR: VkAccessFlagBits2 = 4096;
+pub const VK_ACCESS_2_HOST_READ_BIT_KHR: VkAccessFlagBits2 = 8192;
+pub const VK_ACCESS_2_HOST_WRITE_BIT_KHR: VkAccessFlagBits2 = 16384;
+pub const VK_ACCESS_2_MEMORY_READ_BIT_KHR: VkAccessFlagBits2 = 32768;
+pub const VK_ACCESS_2_MEMORY_WRITE_BIT_KHR: VkAccessFlagBits2 = 65536;
+pub const VK_ACCESS_2_SHADER_SAMPLED_READ_BIT_KHR: VkAccessFlagBits2 = 4294967296;
+pub const VK_ACCESS_2_SHADER_STORAGE_READ_BIT_KHR: VkAccessFlagBits2 = 8589934592;
+pub const VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT_KHR: VkAccessFlagBits2 = 17179869184;
+pub const VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT: VkAccessFlagBits2 = 33554432;
+pub const VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_READ_BIT_EXT: VkAccessFlagBits2 = 67108864;
+pub const VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT: VkAccessFlagBits2 = 134217728;
+pub const VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT: VkAccessFlagBits2 = 1048576;
+pub const VK_ACCESS_2_COMMAND_PREPROCESS_READ_BIT_NV: VkAccessFlagBits2 = 131072;
+pub const VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_NV: VkAccessFlagBits2 = 262144;
+pub const VK_ACCESS_2_COMMAND_PREPROCESS_READ_BIT_EXT: VkAccessFlagBits2 = 131072;
+pub const VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT: VkAccessFlagBits2 = 262144;
+pub const VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR: VkAccessFlagBits2 = 8388608;
+pub const VK_ACCESS_2_SHADING_RATE_IMAGE_READ_BIT_NV: VkAccessFlagBits2 = 8388608;
+pub const VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR: VkAccessFlagBits2 = 2097152;
+pub const VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR: VkAccessFlagBits2 = 4194304;
+pub const VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_NV: VkAccessFlagBits2 = 2097152;
+pub const VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_NV: VkAccessFlagBits2 = 4194304;
+pub const VK_ACCESS_2_FRAGMENT_DENSITY_MAP_READ_BIT_EXT: VkAccessFlagBits2 = 16777216;
+pub const VK_ACCESS_2_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT: VkAccessFlagBits2 = 524288;
+pub const VK_ACCESS_2_DESCRIPTOR_BUFFER_READ_BIT_EXT: VkAccessFlagBits2 = 2199023255552;
+pub const VK_ACCESS_2_INVOCATION_MASK_READ_BIT_HUAWEI: VkAccessFlagBits2 = 549755813888;
+pub const VK_ACCESS_2_SHADER_BINDING_TABLE_READ_BIT_KHR: VkAccessFlagBits2 = 1099511627776;
+pub const VK_ACCESS_2_MICROMAP_READ_BIT_EXT: VkAccessFlagBits2 = 17592186044416;
+pub const VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT: VkAccessFlagBits2 = 35184372088832;
+pub const VK_ACCESS_2_OPTICAL_FLOW_READ_BIT_NV: VkAccessFlagBits2 = 4398046511104;
+pub const VK_ACCESS_2_OPTICAL_FLOW_WRITE_BIT_NV: VkAccessFlagBits2 = 8796093022208;
+pub const VK_ACCESS_2_DATA_GRAPH_READ_BIT_ARM: VkAccessFlagBits2 = 140737488355328;
+pub const VK_ACCESS_2_DATA_GRAPH_WRITE_BIT_ARM: VkAccessFlagBits2 = 281474976710656;
+pub const VK_ACCESS_2_MEMORY_DECOMPRESSION_READ_BIT_EXT: VkAccessFlagBits2 = 36028797018963968;
+pub const VK_ACCESS_2_MEMORY_DECOMPRESSION_WRITE_BIT_EXT: VkAccessFlagBits2 = 72057594037927936;
+pub type VkSubmitFlags = VkFlags;
+pub type VkRenderingFlags = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVulkan13Features {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub robustImageAccess: VkBool32,
+    pub inlineUniformBlock: VkBool32,
+    pub descriptorBindingInlineUniformBlockUpdateAfterBind: VkBool32,
+    pub pipelineCreationCacheControl: VkBool32,
+    pub privateData: VkBool32,
+    pub shaderDemoteToHelperInvocation: VkBool32,
+    pub shaderTerminateInvocation: VkBool32,
+    pub subgroupSizeControl: VkBool32,
+    pub computeFullSubgroups: VkBool32,
+    pub synchronization2: VkBool32,
+    pub textureCompressionASTC_HDR: VkBool32,
+    pub shaderZeroInitializeWorkgroupMemory: VkBool32,
+    pub dynamicRendering: VkBool32,
+    pub shaderIntegerDotProduct: VkBool32,
+    pub maintenance4: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVulkan13Features",
+    ][::std::mem::size_of::<VkPhysicalDeviceVulkan13Features>() - 80usize];
+    [
+        "Alignment of VkPhysicalDeviceVulkan13Features",
+    ][::std::mem::align_of::<VkPhysicalDeviceVulkan13Features>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::robustImageAccess",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, robustImageAccess)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::inlineUniformBlock",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, inlineUniformBlock)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::descriptorBindingInlineUniformBlockUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan13Features,
+        descriptorBindingInlineUniformBlockUpdateAfterBind
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::pipelineCreationCacheControl",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan13Features, pipelineCreationCacheControl
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::privateData",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, privateData) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::shaderDemoteToHelperInvocation",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan13Features, shaderDemoteToHelperInvocation
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::shaderTerminateInvocation",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, shaderTerminateInvocation)
+        - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::subgroupSizeControl",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, subgroupSizeControl)
+        - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::computeFullSubgroups",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, computeFullSubgroups)
+        - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::synchronization2",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, synchronization2)
+        - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::textureCompressionASTC_HDR",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan13Features, textureCompressionASTC_HDR
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::shaderZeroInitializeWorkgroupMemory",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan13Features, shaderZeroInitializeWorkgroupMemory
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::dynamicRendering",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, dynamicRendering)
+        - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::shaderIntegerDotProduct",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, shaderIntegerDotProduct)
+        - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan13Features::maintenance4",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan13Features, maintenance4) - 72usize];
+};
+impl Default for VkPhysicalDeviceVulkan13Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMemoryBarrier2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcStageMask: VkPipelineStageFlags2,
+    pub srcAccessMask: VkAccessFlags2,
+    pub dstStageMask: VkPipelineStageFlags2,
+    pub dstAccessMask: VkAccessFlags2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkMemoryBarrier2"][::std::mem::size_of::<VkMemoryBarrier2>() - 48usize];
+    [
+        "Alignment of VkMemoryBarrier2",
+    ][::std::mem::align_of::<VkMemoryBarrier2>() - 8usize];
+    [
+        "Offset of field: VkMemoryBarrier2::sType",
+    ][::std::mem::offset_of!(VkMemoryBarrier2, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryBarrier2::pNext",
+    ][::std::mem::offset_of!(VkMemoryBarrier2, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryBarrier2::srcStageMask",
+    ][::std::mem::offset_of!(VkMemoryBarrier2, srcStageMask) - 16usize];
+    [
+        "Offset of field: VkMemoryBarrier2::srcAccessMask",
+    ][::std::mem::offset_of!(VkMemoryBarrier2, srcAccessMask) - 24usize];
+    [
+        "Offset of field: VkMemoryBarrier2::dstStageMask",
+    ][::std::mem::offset_of!(VkMemoryBarrier2, dstStageMask) - 32usize];
+    [
+        "Offset of field: VkMemoryBarrier2::dstAccessMask",
+    ][::std::mem::offset_of!(VkMemoryBarrier2, dstAccessMask) - 40usize];
+};
+impl Default for VkMemoryBarrier2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBufferMemoryBarrier2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcStageMask: VkPipelineStageFlags2,
+    pub srcAccessMask: VkAccessFlags2,
+    pub dstStageMask: VkPipelineStageFlags2,
+    pub dstAccessMask: VkAccessFlags2,
+    pub srcQueueFamilyIndex: u32,
+    pub dstQueueFamilyIndex: u32,
+    pub buffer: VkBuffer,
+    pub offset: VkDeviceSize,
+    pub size: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBufferMemoryBarrier2",
+    ][::std::mem::size_of::<VkBufferMemoryBarrier2>() - 80usize];
+    [
+        "Alignment of VkBufferMemoryBarrier2",
+    ][::std::mem::align_of::<VkBufferMemoryBarrier2>() - 8usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::sType",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, sType) - 0usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::pNext",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, pNext) - 8usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::srcStageMask",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, srcStageMask) - 16usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::srcAccessMask",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, srcAccessMask) - 24usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::dstStageMask",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, dstStageMask) - 32usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::dstAccessMask",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, dstAccessMask) - 40usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::srcQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, srcQueueFamilyIndex) - 48usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::dstQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, dstQueueFamilyIndex) - 52usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::buffer",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, buffer) - 56usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::offset",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, offset) - 64usize];
+    [
+        "Offset of field: VkBufferMemoryBarrier2::size",
+    ][::std::mem::offset_of!(VkBufferMemoryBarrier2, size) - 72usize];
+};
+impl Default for VkBufferMemoryBarrier2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageMemoryBarrier2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcStageMask: VkPipelineStageFlags2,
+    pub srcAccessMask: VkAccessFlags2,
+    pub dstStageMask: VkPipelineStageFlags2,
+    pub dstAccessMask: VkAccessFlags2,
+    pub oldLayout: VkImageLayout,
+    pub newLayout: VkImageLayout,
+    pub srcQueueFamilyIndex: u32,
+    pub dstQueueFamilyIndex: u32,
+    pub image: VkImage,
+    pub subresourceRange: VkImageSubresourceRange,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageMemoryBarrier2",
+    ][::std::mem::size_of::<VkImageMemoryBarrier2>() - 96usize];
+    [
+        "Alignment of VkImageMemoryBarrier2",
+    ][::std::mem::align_of::<VkImageMemoryBarrier2>() - 8usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::sType",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, sType) - 0usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::pNext",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, pNext) - 8usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::srcStageMask",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, srcStageMask) - 16usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::srcAccessMask",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, srcAccessMask) - 24usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::dstStageMask",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, dstStageMask) - 32usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::dstAccessMask",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, dstAccessMask) - 40usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::oldLayout",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, oldLayout) - 48usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::newLayout",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, newLayout) - 52usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::srcQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, srcQueueFamilyIndex) - 56usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::dstQueueFamilyIndex",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, dstQueueFamilyIndex) - 60usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::image",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, image) - 64usize];
+    [
+        "Offset of field: VkImageMemoryBarrier2::subresourceRange",
+    ][::std::mem::offset_of!(VkImageMemoryBarrier2, subresourceRange) - 72usize];
+};
+impl Default for VkImageMemoryBarrier2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDependencyInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub dependencyFlags: VkDependencyFlags,
+    pub memoryBarrierCount: u32,
+    pub pMemoryBarriers: *const VkMemoryBarrier2,
+    pub bufferMemoryBarrierCount: u32,
+    pub pBufferMemoryBarriers: *const VkBufferMemoryBarrier2,
+    pub imageMemoryBarrierCount: u32,
+    pub pImageMemoryBarriers: *const VkImageMemoryBarrier2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkDependencyInfo"][::std::mem::size_of::<VkDependencyInfo>() - 64usize];
+    [
+        "Alignment of VkDependencyInfo",
+    ][::std::mem::align_of::<VkDependencyInfo>() - 8usize];
+    [
+        "Offset of field: VkDependencyInfo::sType",
+    ][::std::mem::offset_of!(VkDependencyInfo, sType) - 0usize];
+    [
+        "Offset of field: VkDependencyInfo::pNext",
+    ][::std::mem::offset_of!(VkDependencyInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkDependencyInfo::dependencyFlags",
+    ][::std::mem::offset_of!(VkDependencyInfo, dependencyFlags) - 16usize];
+    [
+        "Offset of field: VkDependencyInfo::memoryBarrierCount",
+    ][::std::mem::offset_of!(VkDependencyInfo, memoryBarrierCount) - 20usize];
+    [
+        "Offset of field: VkDependencyInfo::pMemoryBarriers",
+    ][::std::mem::offset_of!(VkDependencyInfo, pMemoryBarriers) - 24usize];
+    [
+        "Offset of field: VkDependencyInfo::bufferMemoryBarrierCount",
+    ][::std::mem::offset_of!(VkDependencyInfo, bufferMemoryBarrierCount) - 32usize];
+    [
+        "Offset of field: VkDependencyInfo::pBufferMemoryBarriers",
+    ][::std::mem::offset_of!(VkDependencyInfo, pBufferMemoryBarriers) - 40usize];
+    [
+        "Offset of field: VkDependencyInfo::imageMemoryBarrierCount",
+    ][::std::mem::offset_of!(VkDependencyInfo, imageMemoryBarrierCount) - 48usize];
+    [
+        "Offset of field: VkDependencyInfo::pImageMemoryBarriers",
+    ][::std::mem::offset_of!(VkDependencyInfo, pImageMemoryBarriers) - 56usize];
+};
+impl Default for VkDependencyInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSemaphoreSubmitInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub semaphore: VkSemaphore,
+    pub value: u64,
+    pub stageMask: VkPipelineStageFlags2,
+    pub deviceIndex: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSemaphoreSubmitInfo",
+    ][::std::mem::size_of::<VkSemaphoreSubmitInfo>() - 48usize];
+    [
+        "Alignment of VkSemaphoreSubmitInfo",
+    ][::std::mem::align_of::<VkSemaphoreSubmitInfo>() - 8usize];
+    [
+        "Offset of field: VkSemaphoreSubmitInfo::sType",
+    ][::std::mem::offset_of!(VkSemaphoreSubmitInfo, sType) - 0usize];
+    [
+        "Offset of field: VkSemaphoreSubmitInfo::pNext",
+    ][::std::mem::offset_of!(VkSemaphoreSubmitInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSemaphoreSubmitInfo::semaphore",
+    ][::std::mem::offset_of!(VkSemaphoreSubmitInfo, semaphore) - 16usize];
+    [
+        "Offset of field: VkSemaphoreSubmitInfo::value",
+    ][::std::mem::offset_of!(VkSemaphoreSubmitInfo, value) - 24usize];
+    [
+        "Offset of field: VkSemaphoreSubmitInfo::stageMask",
+    ][::std::mem::offset_of!(VkSemaphoreSubmitInfo, stageMask) - 32usize];
+    [
+        "Offset of field: VkSemaphoreSubmitInfo::deviceIndex",
+    ][::std::mem::offset_of!(VkSemaphoreSubmitInfo, deviceIndex) - 40usize];
+};
+impl Default for VkSemaphoreSubmitInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferSubmitInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub commandBuffer: VkCommandBuffer,
+    pub deviceMask: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferSubmitInfo",
+    ][::std::mem::size_of::<VkCommandBufferSubmitInfo>() - 32usize];
+    [
+        "Alignment of VkCommandBufferSubmitInfo",
+    ][::std::mem::align_of::<VkCommandBufferSubmitInfo>() - 8usize];
+    [
+        "Offset of field: VkCommandBufferSubmitInfo::sType",
+    ][::std::mem::offset_of!(VkCommandBufferSubmitInfo, sType) - 0usize];
+    [
+        "Offset of field: VkCommandBufferSubmitInfo::pNext",
+    ][::std::mem::offset_of!(VkCommandBufferSubmitInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkCommandBufferSubmitInfo::commandBuffer",
+    ][::std::mem::offset_of!(VkCommandBufferSubmitInfo, commandBuffer) - 16usize];
+    [
+        "Offset of field: VkCommandBufferSubmitInfo::deviceMask",
+    ][::std::mem::offset_of!(VkCommandBufferSubmitInfo, deviceMask) - 24usize];
+};
+impl Default for VkCommandBufferSubmitInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSubmitInfo2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkSubmitFlags,
+    pub waitSemaphoreInfoCount: u32,
+    pub pWaitSemaphoreInfos: *const VkSemaphoreSubmitInfo,
+    pub commandBufferInfoCount: u32,
+    pub pCommandBufferInfos: *const VkCommandBufferSubmitInfo,
+    pub signalSemaphoreInfoCount: u32,
+    pub pSignalSemaphoreInfos: *const VkSemaphoreSubmitInfo,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkSubmitInfo2"][::std::mem::size_of::<VkSubmitInfo2>() - 64usize];
+    ["Alignment of VkSubmitInfo2"][::std::mem::align_of::<VkSubmitInfo2>() - 8usize];
+    [
+        "Offset of field: VkSubmitInfo2::sType",
+    ][::std::mem::offset_of!(VkSubmitInfo2, sType) - 0usize];
+    [
+        "Offset of field: VkSubmitInfo2::pNext",
+    ][::std::mem::offset_of!(VkSubmitInfo2, pNext) - 8usize];
+    [
+        "Offset of field: VkSubmitInfo2::flags",
+    ][::std::mem::offset_of!(VkSubmitInfo2, flags) - 16usize];
+    [
+        "Offset of field: VkSubmitInfo2::waitSemaphoreInfoCount",
+    ][::std::mem::offset_of!(VkSubmitInfo2, waitSemaphoreInfoCount) - 20usize];
+    [
+        "Offset of field: VkSubmitInfo2::pWaitSemaphoreInfos",
+    ][::std::mem::offset_of!(VkSubmitInfo2, pWaitSemaphoreInfos) - 24usize];
+    [
+        "Offset of field: VkSubmitInfo2::commandBufferInfoCount",
+    ][::std::mem::offset_of!(VkSubmitInfo2, commandBufferInfoCount) - 32usize];
+    [
+        "Offset of field: VkSubmitInfo2::pCommandBufferInfos",
+    ][::std::mem::offset_of!(VkSubmitInfo2, pCommandBufferInfos) - 40usize];
+    [
+        "Offset of field: VkSubmitInfo2::signalSemaphoreInfoCount",
+    ][::std::mem::offset_of!(VkSubmitInfo2, signalSemaphoreInfoCount) - 48usize];
+    [
+        "Offset of field: VkSubmitInfo2::pSignalSemaphoreInfos",
+    ][::std::mem::offset_of!(VkSubmitInfo2, pSignalSemaphoreInfos) - 56usize];
+};
+impl Default for VkSubmitInfo2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceSynchronization2Features {
@@ -7470,6 +7656,382 @@ const _: () = {
         - 16usize];
 };
 impl Default for VkPhysicalDeviceSynchronization2Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkRenderingAttachmentInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub imageView: VkImageView,
+    pub imageLayout: VkImageLayout,
+    pub resolveMode: VkResolveModeFlagBits,
+    pub resolveImageView: VkImageView,
+    pub resolveImageLayout: VkImageLayout,
+    pub loadOp: VkAttachmentLoadOp,
+    pub storeOp: VkAttachmentStoreOp,
+    pub clearValue: VkClearValue,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRenderingAttachmentInfo",
+    ][::std::mem::size_of::<VkRenderingAttachmentInfo>() - 72usize];
+    [
+        "Alignment of VkRenderingAttachmentInfo",
+    ][::std::mem::align_of::<VkRenderingAttachmentInfo>() - 8usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::sType",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, sType) - 0usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::pNext",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::imageView",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, imageView) - 16usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::imageLayout",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, imageLayout) - 24usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::resolveMode",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, resolveMode) - 28usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::resolveImageView",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, resolveImageView) - 32usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::resolveImageLayout",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, resolveImageLayout) - 40usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::loadOp",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, loadOp) - 44usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::storeOp",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, storeOp) - 48usize];
+    [
+        "Offset of field: VkRenderingAttachmentInfo::clearValue",
+    ][::std::mem::offset_of!(VkRenderingAttachmentInfo, clearValue) - 52usize];
+};
+impl Default for VkRenderingAttachmentInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderingInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkRenderingFlags,
+    pub renderArea: VkRect2D,
+    pub layerCount: u32,
+    pub viewMask: u32,
+    pub colorAttachmentCount: u32,
+    pub pColorAttachments: *const VkRenderingAttachmentInfo,
+    pub pDepthAttachment: *const VkRenderingAttachmentInfo,
+    pub pStencilAttachment: *const VkRenderingAttachmentInfo,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkRenderingInfo"][::std::mem::size_of::<VkRenderingInfo>() - 72usize];
+    ["Alignment of VkRenderingInfo"][::std::mem::align_of::<VkRenderingInfo>() - 8usize];
+    [
+        "Offset of field: VkRenderingInfo::sType",
+    ][::std::mem::offset_of!(VkRenderingInfo, sType) - 0usize];
+    [
+        "Offset of field: VkRenderingInfo::pNext",
+    ][::std::mem::offset_of!(VkRenderingInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkRenderingInfo::flags",
+    ][::std::mem::offset_of!(VkRenderingInfo, flags) - 16usize];
+    [
+        "Offset of field: VkRenderingInfo::renderArea",
+    ][::std::mem::offset_of!(VkRenderingInfo, renderArea) - 20usize];
+    [
+        "Offset of field: VkRenderingInfo::layerCount",
+    ][::std::mem::offset_of!(VkRenderingInfo, layerCount) - 36usize];
+    [
+        "Offset of field: VkRenderingInfo::viewMask",
+    ][::std::mem::offset_of!(VkRenderingInfo, viewMask) - 40usize];
+    [
+        "Offset of field: VkRenderingInfo::colorAttachmentCount",
+    ][::std::mem::offset_of!(VkRenderingInfo, colorAttachmentCount) - 44usize];
+    [
+        "Offset of field: VkRenderingInfo::pColorAttachments",
+    ][::std::mem::offset_of!(VkRenderingInfo, pColorAttachments) - 48usize];
+    [
+        "Offset of field: VkRenderingInfo::pDepthAttachment",
+    ][::std::mem::offset_of!(VkRenderingInfo, pDepthAttachment) - 56usize];
+    [
+        "Offset of field: VkRenderingInfo::pStencilAttachment",
+    ][::std::mem::offset_of!(VkRenderingInfo, pStencilAttachment) - 64usize];
+};
+impl Default for VkRenderingInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRenderingCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub viewMask: u32,
+    pub colorAttachmentCount: u32,
+    pub pColorAttachmentFormats: *const VkFormat,
+    pub depthAttachmentFormat: VkFormat,
+    pub stencilAttachmentFormat: VkFormat,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRenderingCreateInfo",
+    ][::std::mem::size_of::<VkPipelineRenderingCreateInfo>() - 40usize];
+    [
+        "Alignment of VkPipelineRenderingCreateInfo",
+    ][::std::mem::align_of::<VkPipelineRenderingCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::viewMask",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, viewMask) - 16usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::colorAttachmentCount",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, colorAttachmentCount)
+        - 20usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::pColorAttachmentFormats",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, pColorAttachmentFormats)
+        - 24usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::depthAttachmentFormat",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, depthAttachmentFormat)
+        - 32usize];
+    [
+        "Offset of field: VkPipelineRenderingCreateInfo::stencilAttachmentFormat",
+    ][::std::mem::offset_of!(VkPipelineRenderingCreateInfo, stencilAttachmentFormat)
+        - 36usize];
+};
+impl Default for VkPipelineRenderingCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdPipelineBarrier2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pDependencyInfo: *const VkDependencyInfo,
+    ),
+>;
+pub type PFN_vkCmdWriteTimestamp2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        stage: VkPipelineStageFlags2,
+        queryPool: VkQueryPool,
+        query: u32,
+    ),
+>;
+pub type PFN_vkQueueSubmit2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        queue: VkQueue,
+        submitCount: u32,
+        pSubmits: *const VkSubmitInfo2,
+        fence: VkFence,
+    ) -> VkResult,
+>;
+pub type PFN_vkCmdBeginRendering = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pRenderingInfo: *const VkRenderingInfo,
+    ),
+>;
+pub type PFN_vkCmdEndRendering = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer),
+>;
+pub type VkPipelineCreateFlags2 = VkFlags64;
+pub type VkPipelineCreateFlagBits2 = VkFlags64;
+pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits2 = 68719476736;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVulkan14Features {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub globalPriorityQuery: VkBool32,
+    pub shaderSubgroupRotate: VkBool32,
+    pub shaderSubgroupRotateClustered: VkBool32,
+    pub shaderFloatControls2: VkBool32,
+    pub shaderExpectAssume: VkBool32,
+    pub rectangularLines: VkBool32,
+    pub bresenhamLines: VkBool32,
+    pub smoothLines: VkBool32,
+    pub stippledRectangularLines: VkBool32,
+    pub stippledBresenhamLines: VkBool32,
+    pub stippledSmoothLines: VkBool32,
+    pub vertexAttributeInstanceRateDivisor: VkBool32,
+    pub vertexAttributeInstanceRateZeroDivisor: VkBool32,
+    pub indexTypeUint8: VkBool32,
+    pub dynamicRenderingLocalRead: VkBool32,
+    pub maintenance5: VkBool32,
+    pub maintenance6: VkBool32,
+    pub pipelineProtectedAccess: VkBool32,
+    pub pipelineRobustness: VkBool32,
+    pub hostImageCopy: VkBool32,
+    pub pushDescriptor: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVulkan14Features",
+    ][::std::mem::size_of::<VkPhysicalDeviceVulkan14Features>() - 104usize];
+    [
+        "Alignment of VkPhysicalDeviceVulkan14Features",
+    ][::std::mem::align_of::<VkPhysicalDeviceVulkan14Features>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::globalPriorityQuery",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, globalPriorityQuery)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::shaderSubgroupRotate",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, shaderSubgroupRotate)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::shaderSubgroupRotateClustered",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Features, shaderSubgroupRotateClustered
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::shaderFloatControls2",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, shaderFloatControls2)
+        - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::shaderExpectAssume",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, shaderExpectAssume)
+        - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::rectangularLines",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, rectangularLines)
+        - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::bresenhamLines",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, bresenhamLines)
+        - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::smoothLines",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, smoothLines) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::stippledRectangularLines",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, stippledRectangularLines)
+        - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::stippledBresenhamLines",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, stippledBresenhamLines)
+        - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::stippledSmoothLines",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, stippledSmoothLines)
+        - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::vertexAttributeInstanceRateDivisor",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Features, vertexAttributeInstanceRateDivisor
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::vertexAttributeInstanceRateZeroDivisor",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Features, vertexAttributeInstanceRateZeroDivisor
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::indexTypeUint8",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, indexTypeUint8)
+        - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::dynamicRenderingLocalRead",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, dynamicRenderingLocalRead)
+        - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::maintenance5",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, maintenance5) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::maintenance6",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, maintenance6) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::pipelineProtectedAccess",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, pipelineProtectedAccess)
+        - 84usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::pipelineRobustness",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, pipelineRobustness)
+        - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::hostImageCopy",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, hostImageCopy) - 92usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Features::pushDescriptor",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Features, pushDescriptor)
+        - 96usize];
+};
+impl Default for VkPhysicalDeviceVulkan14Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineCreateFlags2CreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineCreateFlags2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineCreateFlags2CreateInfo",
+    ][::std::mem::size_of::<VkPipelineCreateFlags2CreateInfo>() - 24usize];
+    [
+        "Alignment of VkPipelineCreateFlags2CreateInfo",
+    ][::std::mem::align_of::<VkPipelineCreateFlags2CreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineCreateFlags2CreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineCreateFlags2CreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineCreateFlags2CreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineCreateFlags2CreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineCreateFlags2CreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineCreateFlags2CreateInfo, flags) - 16usize];
+};
+impl Default for VkPipelineCreateFlags2CreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -7526,6 +8088,165 @@ impl Default for VkPhysicalDeviceShaderBfloat16FeaturesKHR {
         }
     }
 }
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_PROTECTED_BIT_KHR: VkAddressCommandFlagBitsKHR = 1;
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR: VkAddressCommandFlagBitsKHR = 2;
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR: VkAddressCommandFlagBitsKHR = 4;
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_UNKNOWN_STORAGE_BUFFER_USAGE_BIT_KHR: VkAddressCommandFlagBitsKHR = 8;
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_TRANSFORM_FEEDBACK_BUFFER_USAGE_BIT_KHR: VkAddressCommandFlagBitsKHR = 16;
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_UNKNOWN_TRANSFORM_FEEDBACK_BUFFER_USAGE_BIT_KHR: VkAddressCommandFlagBitsKHR = 32;
+pub const VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FLAG_BITS_MAX_ENUM_KHR: VkAddressCommandFlagBitsKHR = 2147483647;
+pub type VkAddressCommandFlagBitsKHR = ::std::os::raw::c_uint;
+pub type VkAddressCommandFlagsKHR = VkFlags;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkDeviceAddressRangeKHR {
+    pub address: VkDeviceAddress,
+    pub size: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceAddressRangeKHR",
+    ][::std::mem::size_of::<VkDeviceAddressRangeKHR>() - 16usize];
+    [
+        "Alignment of VkDeviceAddressRangeKHR",
+    ][::std::mem::align_of::<VkDeviceAddressRangeKHR>() - 8usize];
+    [
+        "Offset of field: VkDeviceAddressRangeKHR::address",
+    ][::std::mem::offset_of!(VkDeviceAddressRangeKHR, address) - 0usize];
+    [
+        "Offset of field: VkDeviceAddressRangeKHR::size",
+    ][::std::mem::offset_of!(VkDeviceAddressRangeKHR, size) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkStridedDeviceAddressRangeKHR {
+    pub address: VkDeviceAddress,
+    pub size: VkDeviceSize,
+    pub stride: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkStridedDeviceAddressRangeKHR",
+    ][::std::mem::size_of::<VkStridedDeviceAddressRangeKHR>() - 24usize];
+    [
+        "Alignment of VkStridedDeviceAddressRangeKHR",
+    ][::std::mem::align_of::<VkStridedDeviceAddressRangeKHR>() - 8usize];
+    [
+        "Offset of field: VkStridedDeviceAddressRangeKHR::address",
+    ][::std::mem::offset_of!(VkStridedDeviceAddressRangeKHR, address) - 0usize];
+    [
+        "Offset of field: VkStridedDeviceAddressRangeKHR::size",
+    ][::std::mem::offset_of!(VkStridedDeviceAddressRangeKHR, size) - 8usize];
+    [
+        "Offset of field: VkStridedDeviceAddressRangeKHR::stride",
+    ][::std::mem::offset_of!(VkStridedDeviceAddressRangeKHR, stride) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDeviceMemoryImageCopyKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub addressRange: VkDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+    pub addressRowLength: u32,
+    pub addressImageHeight: u32,
+    pub imageSubresource: VkImageSubresourceLayers,
+    pub imageLayout: VkImageLayout,
+    pub imageOffset: VkOffset3D,
+    pub imageExtent: VkExtent3D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceMemoryImageCopyKHR",
+    ][::std::mem::size_of::<VkDeviceMemoryImageCopyKHR>() - 88usize];
+    [
+        "Alignment of VkDeviceMemoryImageCopyKHR",
+    ][::std::mem::align_of::<VkDeviceMemoryImageCopyKHR>() - 8usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::sType",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, sType) - 0usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::pNext",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::addressRange",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, addressRange) - 16usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::addressFlags",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, addressFlags) - 32usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::addressRowLength",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, addressRowLength) - 36usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::addressImageHeight",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, addressImageHeight) - 40usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::imageSubresource",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, imageSubresource) - 44usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::imageLayout",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, imageLayout) - 60usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::imageOffset",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, imageOffset) - 64usize];
+    [
+        "Offset of field: VkDeviceMemoryImageCopyKHR::imageExtent",
+    ][::std::mem::offset_of!(VkDeviceMemoryImageCopyKHR, imageExtent) - 76usize];
+};
+impl Default for VkDeviceMemoryImageCopyKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCopyDeviceMemoryImageInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub image: VkImage,
+    pub regionCount: u32,
+    pub pRegions: *const VkDeviceMemoryImageCopyKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCopyDeviceMemoryImageInfoKHR",
+    ][::std::mem::size_of::<VkCopyDeviceMemoryImageInfoKHR>() - 40usize];
+    [
+        "Alignment of VkCopyDeviceMemoryImageInfoKHR",
+    ][::std::mem::align_of::<VkCopyDeviceMemoryImageInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryImageInfoKHR::sType",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryImageInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryImageInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryImageInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryImageInfoKHR::image",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryImageInfoKHR, image) - 16usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryImageInfoKHR::regionCount",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryImageInfoKHR, regionCount) - 24usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryImageInfoKHR::pRegions",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryImageInfoKHR, pRegions) - 32usize];
+};
+impl Default for VkCopyDeviceMemoryImageInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR {
@@ -7566,6 +8287,60 @@ impl Default for VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDrawIndirect2InfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub addressRange: VkStridedDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+    pub drawCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDrawIndirect2InfoKHR",
+    ][::std::mem::size_of::<VkDrawIndirect2InfoKHR>() - 48usize];
+    [
+        "Alignment of VkDrawIndirect2InfoKHR",
+    ][::std::mem::align_of::<VkDrawIndirect2InfoKHR>() - 8usize];
+    [
+        "Offset of field: VkDrawIndirect2InfoKHR::sType",
+    ][::std::mem::offset_of!(VkDrawIndirect2InfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkDrawIndirect2InfoKHR::pNext",
+    ][::std::mem::offset_of!(VkDrawIndirect2InfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkDrawIndirect2InfoKHR::addressRange",
+    ][::std::mem::offset_of!(VkDrawIndirect2InfoKHR, addressRange) - 16usize];
+    [
+        "Offset of field: VkDrawIndirect2InfoKHR::addressFlags",
+    ][::std::mem::offset_of!(VkDrawIndirect2InfoKHR, addressFlags) - 40usize];
+    [
+        "Offset of field: VkDrawIndirect2InfoKHR::drawCount",
+    ][::std::mem::offset_of!(VkDrawIndirect2InfoKHR, drawCount) - 44usize];
+};
+impl Default for VkDrawIndirect2InfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdDrawIndirect2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkDrawIndirect2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdCopyImageToMemoryKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pCopyMemoryInfo: *const VkCopyDeviceMemoryImageInfoKHR,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderUntypedPointersFeaturesKHR {
@@ -7652,6 +8427,116 @@ impl Default for VkPhysicalDeviceCooperativeMatrixFeaturesKHR {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub unifiedImageLayouts: VkBool32,
+    pub unifiedImageLayoutsVideo: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR::unifiedImageLayouts",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR, unifiedImageLayouts
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR::unifiedImageLayoutsVideo",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR, unifiedImageLayoutsVideo
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkHostAddressRangeConstEXT {
+    pub address: *const ::std::os::raw::c_void,
+    pub size: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkHostAddressRangeConstEXT",
+    ][::std::mem::size_of::<VkHostAddressRangeConstEXT>() - 16usize];
+    [
+        "Alignment of VkHostAddressRangeConstEXT",
+    ][::std::mem::align_of::<VkHostAddressRangeConstEXT>() - 8usize];
+    [
+        "Offset of field: VkHostAddressRangeConstEXT::address",
+    ][::std::mem::offset_of!(VkHostAddressRangeConstEXT, address) - 0usize];
+    [
+        "Offset of field: VkHostAddressRangeConstEXT::size",
+    ][::std::mem::offset_of!(VkHostAddressRangeConstEXT, size) - 8usize];
+};
+impl Default for VkHostAddressRangeConstEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPushDataInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub offset: u32,
+    pub data: VkHostAddressRangeConstEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkPushDataInfoEXT"][::std::mem::size_of::<VkPushDataInfoEXT>() - 40usize];
+    [
+        "Alignment of VkPushDataInfoEXT",
+    ][::std::mem::align_of::<VkPushDataInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkPushDataInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPushDataInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkPushDataInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPushDataInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkPushDataInfoEXT::offset",
+    ][::std::mem::offset_of!(VkPushDataInfoEXT, offset) - 16usize];
+    [
+        "Offset of field: VkPushDataInfoEXT::data",
+    ][::std::mem::offset_of!(VkPushDataInfoEXT, data) - 24usize];
+};
+impl Default for VkPushDataInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDescriptorHeapFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -7691,6 +8576,159 @@ impl Default for VkPhysicalDeviceDescriptorHeapFeaturesEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDescriptorHeapPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub samplerHeapAlignment: VkDeviceSize,
+    pub resourceHeapAlignment: VkDeviceSize,
+    pub maxSamplerHeapSize: VkDeviceSize,
+    pub maxResourceHeapSize: VkDeviceSize,
+    pub minSamplerHeapReservedRange: VkDeviceSize,
+    pub minSamplerHeapReservedRangeWithEmbedded: VkDeviceSize,
+    pub minResourceHeapReservedRange: VkDeviceSize,
+    pub samplerDescriptorSize: VkDeviceSize,
+    pub imageDescriptorSize: VkDeviceSize,
+    pub bufferDescriptorSize: VkDeviceSize,
+    pub samplerDescriptorAlignment: VkDeviceSize,
+    pub imageDescriptorAlignment: VkDeviceSize,
+    pub bufferDescriptorAlignment: VkDeviceSize,
+    pub maxPushDataSize: VkDeviceSize,
+    pub imageCaptureReplayOpaqueDataSize: usize,
+    pub maxDescriptorHeapEmbeddedSamplers: u32,
+    pub samplerYcbcrConversionCount: u32,
+    pub sparseDescriptorHeaps: VkBool32,
+    pub protectedDescriptorHeaps: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDescriptorHeapPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDescriptorHeapPropertiesEXT>() - 152usize];
+    [
+        "Alignment of VkPhysicalDeviceDescriptorHeapPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDescriptorHeapPropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDescriptorHeapPropertiesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDescriptorHeapPropertiesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::samplerHeapAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, samplerHeapAlignment
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::resourceHeapAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, resourceHeapAlignment
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::maxSamplerHeapSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, maxSamplerHeapSize
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::maxResourceHeapSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, maxResourceHeapSize
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::minSamplerHeapReservedRange",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, minSamplerHeapReservedRange
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::minSamplerHeapReservedRangeWithEmbedded",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT,
+        minSamplerHeapReservedRangeWithEmbedded
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::minResourceHeapReservedRange",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, minResourceHeapReservedRange
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::samplerDescriptorSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, samplerDescriptorSize
+    ) - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::imageDescriptorSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, imageDescriptorSize
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::bufferDescriptorSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, bufferDescriptorSize
+    ) - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::samplerDescriptorAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, samplerDescriptorAlignment
+    ) - 96usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::imageDescriptorAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, imageDescriptorAlignment
+    ) - 104usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::bufferDescriptorAlignment",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, bufferDescriptorAlignment
+    ) - 112usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::maxPushDataSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, maxPushDataSize
+    ) - 120usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::imageCaptureReplayOpaqueDataSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, imageCaptureReplayOpaqueDataSize
+    ) - 128usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::maxDescriptorHeapEmbeddedSamplers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, maxDescriptorHeapEmbeddedSamplers
+    ) - 136usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::samplerYcbcrConversionCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, samplerYcbcrConversionCount
+    ) - 140usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::sparseDescriptorHeaps",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, sparseDescriptorHeaps
+    ) - 144usize];
+    [
+        "Offset of field: VkPhysicalDeviceDescriptorHeapPropertiesEXT::protectedDescriptorHeaps",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT, protectedDescriptorHeaps
+    ) - 148usize];
+};
+impl Default for VkPhysicalDeviceDescriptorHeapPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdPushDataEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pPushDataInfo: *const VkPushDataInfoEXT,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderFloat8FeaturesEXT {

@@ -76,7 +76,12 @@ int main(int argc, char **argv) {
     CHECK(ogpu_probe_device_count(probe, &count) == OGPU_SUCCESS);
     printf("Devices: %" PRIu32 "\n", count);
     if (!strcmp(mode, "--expect-empty")) CHECK(count == 0);
-    if (!strcmp(mode, "--expect-mock")) CHECK(count == 1);
+    if (!strcmp(mode, "--expect-mock")) {
+        CHECK(count == 1);
+        OgpuDevice *device = NULL;
+        CHECK(ogpu_device_create(probe, 0, &device, &error) == OGPU_ERROR_UNSUPPORTED);
+        CHECK(device == NULL && strstr(error.message, "Vulkan 1.4"));
+    }
     for (uint32_t i = 0; i < count; ++i) {
         OgpuDeviceInfo info;
         CHECK(ogpu_probe_device_info(probe, i, &info) == OGPU_SUCCESS);

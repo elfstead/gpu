@@ -13,8 +13,6 @@ macro_rules! fail {
         }
     };
 }
-fail!(fail_pass(_d: vk::VkDevice, _i: *const vk::VkRenderPassCreateInfo,
-    _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkRenderPass));
 fail!(fail_image(_d: vk::VkDevice, _i: *const vk::VkImageCreateInfo,
     _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkImage));
 fail!(fail_memory(_d: vk::VkDevice, _i: *const vk::VkMemoryAllocateInfo,
@@ -22,10 +20,6 @@ fail!(fail_memory(_d: vk::VkDevice, _i: *const vk::VkMemoryAllocateInfo,
 fail!(fail_bind(_d: vk::VkDevice, _i: vk::VkImage, _m: vk::VkDeviceMemory, _o: vk::VkDeviceSize));
 fail!(fail_view(_d: vk::VkDevice, _i: *const vk::VkImageViewCreateInfo,
     _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkImageView));
-fail!(fail_framebuffer(_d: vk::VkDevice, _i: *const vk::VkFramebufferCreateInfo,
-    _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkFramebuffer));
-fail!(fail_layout(_d: vk::VkDevice, _i: *const vk::VkPipelineLayoutCreateInfo,
-    _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkPipelineLayout));
 
 unsafe extern "C" fn fail_second_module(
     device: vk::VkDevice,
@@ -77,28 +71,25 @@ fn gpu_graphics_failures() {
             Err(e) if e.status == UNSUPPORTED => continue,
             Err(e) => panic!("{e:?}"),
         }
-        for point in 0..9 {
+        for point in 0..6 {
             let mut device = Device::new_graphics(instance.clone(), physical).unwrap();
             let f = &mut Rc::get_mut(&mut device).unwrap().f;
             match point {
-                0 => f.vkCreateRenderPass = Some(fail_pass),
-                1 => f.vkCreateImage = Some(fail_image),
-                2 => f.vkAllocateMemory = Some(fail_memory),
-                3 => f.vkBindImageMemory = Some(fail_bind),
-                4 => f.vkCreateImageView = Some(fail_view),
-                5 => f.vkCreateFramebuffer = Some(fail_framebuffer),
-                6 => {
+                0 => f.vkCreateImage = Some(fail_image),
+                1 => f.vkAllocateMemory = Some(fail_memory),
+                2 => f.vkBindImageMemory = Some(fail_bind),
+                3 => f.vkCreateImageView = Some(fail_view),
+                4 => {
                     MODULE_CALLS.set(0);
                     REAL_MODULE.set(f.vkCreateShaderModule);
                     f.vkCreateShaderModule = Some(fail_second_module);
                 }
-                7 => f.vkCreatePipelineLayout = Some(fail_layout),
                 _ => {
                     REAL_PIPELINE.set(f.vkCreateGraphicsPipelines);
                     f.vkCreateGraphicsPipelines = Some(fail_after_pipeline);
                 }
             }
-            let result = if point < 6 {
+            let result = if point < 4 {
                 Target::new(device.clone(), 64, 64).map(drop)
             } else {
                 unsafe { Raster::new(device.clone(), &vertex, &fragment, 16) }.map(drop)

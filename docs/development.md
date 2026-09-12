@@ -33,7 +33,8 @@ The first command builds `target/debug/libogpu.so` using checked-in bindings. It
 needs neither the headers submodule nor Clang/libclang. The second builds and runs
 [the discovery caller](../examples/probe.c) against [our header](../include/ogpu.h).
 `compute` builds and runs [the C execution example](../examples/compute.c), which
-requires a Vulkan 1.2 device with buffer device addresses and a compute queue.
+requires the [modern Vulkan execution baseline](modern-baseline.md).
+Run `cargo xtask baseline` first to inspect the exact feature/limit requirements.
 It verifies upload → dispatch → blocking completion → readback, including repeated
 dispatches and releasing parent handles before using their children.
 
@@ -151,7 +152,8 @@ public data field. Generated assertions also validate the generated declarations
 This is target-specific ABI evidence, not a proof of Vulkan semantic correctness.
 
 `mock` builds a tiny test-only Vulkan loader and exercises the real C boundary.
-It checks a Vulkan 1.1 instance with a 1.3 device, core promotion without extension
+It checks a Vulkan 1.1 instance with a 1.3 device (visible in discovery but rejected
+for modern execution), core promotion without extension
 advertisements, an advertised extension
 whose feature is false, absent optional extensions, zero devices, loader failure,
 and instance cleanup on a Vulkan error. The C caller is compiled with `NDEBUG` to

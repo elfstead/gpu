@@ -46,15 +46,11 @@ vk VkMemoryAllocateInfo sType pNext allocationSize memoryTypeIndex
 vk VkMappedMemoryRange sType pNext memory offset size
 vk VkBufferDeviceAddressInfo sType pNext buffer
 vk VkShaderModuleCreateInfo sType pNext flags codeSize pCode
-vk VkPushConstantRange stageFlags offset size
-vk VkPipelineLayoutCreateInfo sType pNext flags setLayoutCount pSetLayouts pushConstantRangeCount pPushConstantRanges
 vk VkPipelineShaderStageCreateInfo sType pNext flags stage module pName pSpecializationInfo
 vk VkComputePipelineCreateInfo sType pNext flags stage layout basePipelineHandle basePipelineIndex
 vk VkCommandPoolCreateInfo sType pNext flags queueFamilyIndex
 vk VkCommandBufferAllocateInfo sType pNext commandPool level commandBufferCount
 vk VkCommandBufferBeginInfo sType pNext flags pInheritanceInfo
-vk VkMemoryBarrier sType pNext srcAccessMask dstAccessMask
-vk VkSubmitInfo sType pNext waitSemaphoreCount pWaitSemaphores pWaitDstStageMask commandBufferCount pCommandBuffers signalSemaphoreCount pSignalSemaphores
 const VK_WHOLE_SIZE
 const32 VK_SUBPASS_EXTERNAL
 api OgpuDrawArguments vertex_count instance_count first_vertex first_instance
@@ -72,13 +68,6 @@ vk VkImageCreateInfo sType pNext flags imageType format extent mipLevels arrayLa
 vk VkImageViewCreateInfo sType pNext flags image viewType format components subresourceRange
 vk VkImageSubresourceRange aspectMask baseMipLevel levelCount baseArrayLayer layerCount
 vk VkImageSubresourceLayers aspectMask mipLevel baseArrayLayer layerCount
-vk VkAttachmentDescription flags format samples loadOp storeOp stencilLoadOp stencilStoreOp initialLayout finalLayout
-vk VkAttachmentReference attachment layout
-vk VkSubpassDescription flags pipelineBindPoint inputAttachmentCount pInputAttachments colorAttachmentCount pColorAttachments pResolveAttachments pDepthStencilAttachment preserveAttachmentCount pPreserveAttachments
-vk VkSubpassDependency srcSubpass dstSubpass srcStageMask dstStageMask srcAccessMask dstAccessMask dependencyFlags
-vk VkRenderPassCreateInfo sType pNext flags attachmentCount pAttachments subpassCount pSubpasses dependencyCount pDependencies
-vk VkFramebufferCreateInfo sType pNext flags renderPass attachmentCount pAttachments width height layers
-vk VkRenderPassBeginInfo sType pNext renderPass framebuffer renderArea clearValueCount pClearValues
 vk VkClearValue color depthStencil
 vk VkClearColorValue float32 int32 uint32
 vk VkViewport x y width height minDepth maxDepth
@@ -87,7 +76,6 @@ vk VkExtent2D width height
 vk VkExtent3D width height depth
 vk VkOffset2D x y
 vk VkOffset3D x y z
-vk VkBufferImageCopy bufferOffset bufferRowLength bufferImageHeight imageSubresource imageOffset imageExtent
 vk VkPipelineVertexInputStateCreateInfo sType pNext flags vertexBindingDescriptionCount pVertexBindingDescriptions vertexAttributeDescriptionCount pVertexAttributeDescriptions
 vk VkPipelineInputAssemblyStateCreateInfo sType pNext flags topology primitiveRestartEnable
 vk VkPipelineViewportStateCreateInfo sType pNext flags viewportCount pViewports scissorCount pScissors
@@ -97,3 +85,29 @@ vk VkPipelineColorBlendAttachmentState blendEnable srcColorBlendFactor dstColorB
 vk VkPipelineColorBlendStateCreateInfo sType pNext flags logicOpEnable logicOp attachmentCount pAttachments blendConstants
 vk VkPipelineDynamicStateCreateInfo sType pNext flags dynamicStateCount pDynamicStates
 vk VkGraphicsPipelineCreateInfo sType pNext flags stageCount pStages pVertexInputState pInputAssemblyState pTessellationState pViewportState pRasterizationState pMultisampleState pDepthStencilState pColorBlendState pDynamicState layout renderPass subpass basePipelineHandle basePipelineIndex
+vk VkPhysicalDeviceVulkan12Features sType pNext bufferDeviceAddress timelineSemaphore
+vk VkPhysicalDeviceVulkan13Features sType pNext synchronization2 dynamicRendering
+vk VkPhysicalDeviceVulkan14Features sType pNext maintenance5
+vk VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR sType pNext unifiedImageLayouts unifiedImageLayoutsVideo
+vk VkPhysicalDeviceProperties2 sType pNext properties
+vk VkPhysicalDeviceDescriptorHeapPropertiesEXT sType pNext maxPushDataSize
+vk VkPipelineCreateFlags2CreateInfo sType pNext flags
+vk VkPipelineRenderingCreateInfo sType pNext viewMask colorAttachmentCount pColorAttachmentFormats depthAttachmentFormat stencilAttachmentFormat
+vk VkHostAddressRangeConstEXT address size
+vk VkPushDataInfoEXT sType pNext offset data
+vk VkMemoryBarrier2 sType pNext srcStageMask srcAccessMask dstStageMask dstAccessMask
+vk VkImageMemoryBarrier2 sType pNext srcStageMask srcAccessMask dstStageMask dstAccessMask oldLayout newLayout srcQueueFamilyIndex dstQueueFamilyIndex image subresourceRange
+vk VkDependencyInfo sType pNext dependencyFlags memoryBarrierCount pMemoryBarriers bufferMemoryBarrierCount pBufferMemoryBarriers imageMemoryBarrierCount pImageMemoryBarriers
+vk VkCommandBufferSubmitInfo sType pNext commandBuffer deviceMask
+vk VkSubmitInfo2 sType pNext flags waitSemaphoreInfoCount pWaitSemaphoreInfos commandBufferInfoCount pCommandBufferInfos signalSemaphoreInfoCount pSignalSemaphoreInfos
+vk VkRenderingInfo sType pNext flags renderArea layerCount viewMask colorAttachmentCount pColorAttachments pDepthAttachment pStencilAttachment
+vk VkRenderingAttachmentInfo sType pNext imageView imageLayout resolveMode resolveImageView resolveImageLayout loadOp storeOp clearValue
+vk VkDeviceAddressRangeKHR address size
+vk VkStridedDeviceAddressRangeKHR address size stride
+vk VkDrawIndirect2InfoKHR sType pNext addressRange addressFlags drawCount
+vk VkDeviceMemoryImageCopyKHR sType pNext addressRange addressFlags addressRowLength addressImageHeight imageSubresource imageLayout imageOffset imageExtent
+vk VkCopyDeviceMemoryImageInfoKHR sType pNext image regionCount pRegions
+const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+const VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+const VK_ACCESS_2_SHADER_WRITE_BIT
+const32 VK_QUEUE_FAMILY_IGNORED

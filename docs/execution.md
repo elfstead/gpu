@@ -21,8 +21,8 @@ partial CPU update between dispatches. It destroys the probe and device handles
 before dispatch to test retained ownership. The Rust test runs on every eligible
 device. Both need a Vulkan loader/driver (hardware or Mesa lavapipe) and fail if
 none can execute. Discovery still requires only a Vulkan 1.1
-instance implementation; execution requires a Vulkan 1.2 device, buffer device
-addresses, and a compute queue. No descriptor-heap or matrix extension is required.
+instance implementation; execution requires the [modern Vulkan baseline](modern-baseline.md).
+Descriptor heaps and address commands are required; matrix acceleration is optional.
 
 ## C API and ownership
 
@@ -77,7 +77,10 @@ remains 1. No execution-facing Vulkan types are exposed.
 
 SPIR-V and shader memory accesses are trusted inputs. Checking a SPIR-V header is
 not full validation or sandboxing: programs must use only enabled device features,
-respect their pipeline layout, and make aligned, in-bounds, race-free accesses.
+respect their declared root layout, and make aligned, in-bounds, race-free accesses.
+The backend creates layout-free descriptor-heap pipelines and copies roots with
+`vkCmdPushDataEXT`. Existing descriptor-free Vulkan 1.2 SPIR-V remains valid input;
+the executable's minimum SPIR-V environment is not the runtime's device baseline.
 
 ## Shader source and regeneration
 

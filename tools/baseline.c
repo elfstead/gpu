@@ -1,6 +1,7 @@
 /* Standalone deployment audit, not a second execution backend. */
 #include <vulkan/vulkan.h>
 #include <dlfcn.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -85,7 +86,7 @@ int main(void) {
         SHOW("deviceAddressCommands", address.deviceAddressCommands);
         SHOW("shaderUntypedPointers", untyped.shaderUntypedPointers);
         SHOW("unifiedImageLayouts", image.unifiedImageLayouts);
-        SHOW("maxPushDataSize", limits.maxPushDataSize);
+        printf("  %-32s %" PRIu64 "\n", "maxPushDataSize", limits.maxPushDataSize);
 #undef SHOW
         int compute = core && v12.bufferDeviceAddress && v12.timelineSemaphore && v13.synchronization2
             && v14.maintenance5 && heap.descriptorHeap && address.deviceAddressCommands && untyped.shaderUntypedPointers;
