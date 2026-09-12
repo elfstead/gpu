@@ -66,20 +66,28 @@ the public C ABI. Its C++ is consumer glue for GGML's C++ application/backend
 interface, not a second GPU runtime. It contains no host-side Vulkan calls and
 does not include private Rust/backend headers. The runtime remains Rust.
 
-[mnist.cpp](mnist.cpp) calls the unmodified upstream model loader and graph builder,
-then sends each graph directly to a named backend. The upstream constructor prints
-fallback-backend messages, but its scheduler is **never executed** by this driver.
-GGML CPU runs a separate reference graph. GPU dispatch counts must be exactly five
-per call; unsupported graphs fail before submission. Four parameter nodes may
-also appear in GGML's graph and require no dispatch.
+[mnist.cpp](mnist.cpp) calls the unmodified upstream model loader and graph builder.
+It checks both direct backend execution and execution through GGML's scheduler
+and lifetime-based graph allocator, at batch sizes 1, 17 and 64 (six full test-set
+runs). GGML CPU runs a separate reference graph. In scheduled mode, the driver
+checks support before allocation, verifies every operation is placed on the primary
+OGPU backend and the graph is one split, and verifies placement before execution.
+It does not force per-node placement. The constructor prints its normal fallback
+list, but this acceptance workflow forbids fallback. GPU dispatch counts must be
+exactly five for **each** call; unsupported graphs fail before submission.
+Four parameter nodes may also appear in GGML's graph and require no dispatch.
 
 Supported tensor profile: contiguous, non-view FP32 1D/2D tensors with both leading
-extents in 1..1024 and remaining extents equal to 1. Operations are out-of-place
-`MUL_MAT` with matching inner dimensions, row-broadcast bias `ADD`, and unary ReLU.
+extents in 1..1024 and remaining extents equal to 1. Operations are `MUL_MAT` with
+matching inner dimensions, row-broadcast bias `ADD`, and unary ReLU. ADD/ReLU may
+exactly alias source 0 (same start and byte extent); every invocation reads and
+writes its own element, and shaders do not use `restrict`. Matrix aliases,
+partial overlaps and broadcast-bias overlaps are rejected. GGML, not OGPU, decides
+when an input tensor is dead and eligible for overwrite.
 This is exercised on finite trained weights/normalized inputs, not a complete
 NaN/Inf arithmetic conformance suite. Unsupported types/layouts/ops are rejected;
-out-of-range, foreign-buffer and overlapping input/output addresses also fail
-graph preflight. Copy callbacks have no GGML error return, so transfer failures
+out-of-range, foreign-buffer and unsafe overlapping addresses also fail graph
+preflight. Copy callbacks have no GGML error return, so transfer failures
 abort loudly rather than return stale data.
 
 Each graph records one batch with compute read/write dependencies before each
@@ -100,18 +108,22 @@ new optional feature or workgroup-limit query is needed for this profile.
 - GGML suballocation fits stable GPU addresses and checked offset copies. But its
   pointer-arithmetic ABI requires a distinct aligned host token range: this simple
   adapter allocates an extra host byte array per GPU buffer, not a data mirror.
-  It also uses `alloc_ctx_tensors`, not GGML's lifetime-reusing graph allocator.
+  The direct control uses `alloc_ctx_tensors`; the scheduled path uses GGML's
+  graph allocator. Both reuse their allocations over repeated calls; the latter
+  also reuses dead intermediate storage within each forward pass.
 - Bias and ReLU need shader code, not host-side tensor operators. There are two
   prepared shaders, five dispatches, and deliberately conservative global barriers.
   This is correctness/integration evidence, not competitive GEMM performance.
 - The upstream constructor assumes registry ordering leaves CPU last. The driver
   unregisters/re-registers the statically linked CPU backend before constructing
-  models. It neither changes upstream sources nor runs a fallback scheduler.
+  models. It does not change upstream sources. The scheduled path uses this
+  scheduler with placement checked; unsupported fallback is rejected by the driver.
 - `OgpuGgmlSession` owns registration and GPU state; backend streams and buffers
   retain that state explicitly. Destroy the session after those children, before
   static teardown. Live-child destruction aborts with a diagnostic. Initialization
   failure destroys partial resources without publishing a registration.
   The [teardown investigation](../../docs/ggml-hardening.md) isolates the original
   fault to validation-layer static destruction ordering, also with direct Vulkan.
-- No claim yet about arbitrary schedulers, allocation aliasing/reuse, asynchronous
+- No claim yet about arbitrary GGML graphs, general tensor views, asynchronous
   callbacks, larger/quantized models, other GPU vendors, or graphics consumers.
+  See [the follow-up results and API alternatives](../../docs/ggml-hardening.md).

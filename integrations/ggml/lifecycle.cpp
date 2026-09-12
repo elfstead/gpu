@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <string>
+#include <sys/prctl.h>
 
 static void require(bool value, const char *message) {
     if (!value)
@@ -14,6 +15,7 @@ int main(int argc, char **argv) {
     try {
         const std::string mode = argv[2];
         if (mode == "live-backend" || mode == "live-buffer") {
+            require(prctl(PR_SET_DUMPABLE, 0) == 0, "cannot disable core dumps for death test");
             OgpuGgmlSession session(0, argv[1]);
             auto backend = ggml_backend_init_by_name("OGPU", nullptr);
             require(backend != nullptr, "backend creation failed");

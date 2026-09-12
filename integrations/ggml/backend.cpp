@@ -213,13 +213,20 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
                 throw std::runtime_error("unsupported graph operation/type/layout");
             (void)owned_address(t);
             if (t->op != GGML_OP_NONE) {
-                for (const auto *source : {t->src[0], t->src[1]}) {
+                for (int source_index = 0; source_index < 2; ++source_index) {
+                    const auto *source = t->src[source_index];
                     if (!source)
                         continue;
                     const auto dst = owned_address(t), src = owned_address(source);
-                    // This adapter only accepts out-of-place operations. In-place
-                    // matrix outputs could race other workgroups' input reads.
-                    if (dst < src + ggml_nbytes(source) && src < dst + ggml_nbytes(t))
+                    // Exact source-0 alias is safe for elementwise operations:
+                    // invocation i reads/writes only element i. No restrict
+                    // qualifier is used in the shader. Broadcast bias aliases,
+                    // partial overlaps and all matrix aliases can race.
+                    const bool safe_in_place = source_index == 0 && dst == src &&
+                                               ggml_nbytes(t) == ggml_nbytes(source) &&
+                                               (t->op == GGML_OP_ADD || t->op == GGML_OP_UNARY);
+                    if (!safe_in_place && dst < src + ggml_nbytes(source) &&
+                        src < dst + ggml_nbytes(t))
                         throw std::runtime_error("overlapping input/output tensors");
                 }
             }

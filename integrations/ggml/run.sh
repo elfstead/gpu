@@ -23,5 +23,5 @@ if rg 'Validation Error:|runtime error:|ERROR: AddressSanitizer' "$log"; then
     echo "Validation/sanitizer diagnostic: $log" >&2
     exit 1
 fi
-test "$(rg -c '^batch=.* PASS$' "$log")" = 3
+test "$(rg -c '^batch=.* PASS$' "$log")" = 6
 echo "Acceptance log: $log"
