@@ -2562,7 +2562,7 @@ pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_NONE_KHR: VkImageAspectFlagBits 
 pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM: VkImageAspectFlagBits = 2147483647;
 pub type VkImageAspectFlagBits = ::std::os::raw::c_uint;
 pub type VkImageAspectFlags = VkFlags;
-pub type VkFenceCreateFlags = VkFlags;
+pub type VkSemaphoreCreateFlags = VkFlags;
 pub type VkQueryPoolCreateFlags = VkFlags;
 pub type VkQueryPipelineStatisticFlags = VkFlags;
 pub const VkQueryResultFlagBits_VK_QUERY_RESULT_64_BIT: VkQueryResultFlagBits = 1;
@@ -4187,28 +4187,30 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct VkFenceCreateInfo {
+pub struct VkSemaphoreCreateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
-    pub flags: VkFenceCreateFlags,
+    pub flags: VkSemaphoreCreateFlags,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of VkFenceCreateInfo"][::std::mem::size_of::<VkFenceCreateInfo>() - 24usize];
     [
-        "Alignment of VkFenceCreateInfo",
-    ][::std::mem::align_of::<VkFenceCreateInfo>() - 8usize];
+        "Size of VkSemaphoreCreateInfo",
+    ][::std::mem::size_of::<VkSemaphoreCreateInfo>() - 24usize];
     [
-        "Offset of field: VkFenceCreateInfo::sType",
-    ][::std::mem::offset_of!(VkFenceCreateInfo, sType) - 0usize];
+        "Alignment of VkSemaphoreCreateInfo",
+    ][::std::mem::align_of::<VkSemaphoreCreateInfo>() - 8usize];
     [
-        "Offset of field: VkFenceCreateInfo::pNext",
-    ][::std::mem::offset_of!(VkFenceCreateInfo, pNext) - 8usize];
+        "Offset of field: VkSemaphoreCreateInfo::sType",
+    ][::std::mem::offset_of!(VkSemaphoreCreateInfo, sType) - 0usize];
     [
-        "Offset of field: VkFenceCreateInfo::flags",
-    ][::std::mem::offset_of!(VkFenceCreateInfo, flags) - 16usize];
+        "Offset of field: VkSemaphoreCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkSemaphoreCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSemaphoreCreateInfo::flags",
+    ][::std::mem::offset_of!(VkSemaphoreCreateInfo, flags) - 16usize];
 };
-impl Default for VkFenceCreateInfo {
+impl Default for VkSemaphoreCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -6032,29 +6034,20 @@ pub type PFN_vkGetImageMemoryRequirements = ::std::option::Option<
         pMemoryRequirements: *mut VkMemoryRequirements,
     ),
 >;
-pub type PFN_vkCreateFence = ::std::option::Option<
+pub type PFN_vkCreateSemaphore = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
-        pCreateInfo: *const VkFenceCreateInfo,
+        pCreateInfo: *const VkSemaphoreCreateInfo,
         pAllocator: *const VkAllocationCallbacks,
-        pFence: *mut VkFence,
+        pSemaphore: *mut VkSemaphore,
     ) -> VkResult,
 >;
-pub type PFN_vkDestroyFence = ::std::option::Option<
+pub type PFN_vkDestroySemaphore = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
-        fence: VkFence,
+        semaphore: VkSemaphore,
         pAllocator: *const VkAllocationCallbacks,
     ),
->;
-pub type PFN_vkWaitForFences = ::std::option::Option<
-    unsafe extern "C" fn(
-        device: VkDevice,
-        fenceCount: u32,
-        pFences: *const VkFence,
-        waitAll: VkBool32,
-        timeout: u64,
-    ) -> VkResult,
 >;
 pub type PFN_vkCreateQueryPool = ::std::option::Option<
     unsafe extern "C" fn(
@@ -6461,6 +6454,12 @@ pub type PFN_vkGetPhysicalDeviceProperties2 = ::std::option::Option<
         pProperties: *mut VkPhysicalDeviceProperties2,
     ),
 >;
+pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_BINARY: VkSemaphoreType = 0;
+pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_TIMELINE: VkSemaphoreType = 1;
+pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_BINARY_KHR: VkSemaphoreType = 0;
+pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_TIMELINE_KHR: VkSemaphoreType = 1;
+pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_MAX_ENUM: VkSemaphoreType = 2147483647;
+pub type VkSemaphoreType = ::std::os::raw::c_uint;
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_NONE: VkResolveModeFlagBits = 0;
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_SAMPLE_ZERO_BIT: VkResolveModeFlagBits = 1;
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_AVERAGE_BIT: VkResolveModeFlagBits = 2;
@@ -6476,6 +6475,7 @@ pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_MAX_BIT_KHR: VkResolveModeFlagBi
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_ANDROID: VkResolveModeFlagBits = 16;
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM: VkResolveModeFlagBits = 2147483647;
 pub type VkResolveModeFlagBits = ::std::os::raw::c_uint;
+pub type VkSemaphoreWaitFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceVulkan12Features {
@@ -6807,6 +6807,90 @@ impl Default for VkPhysicalDeviceTimelineSemaphoreFeatures {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkSemaphoreTypeCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub semaphoreType: VkSemaphoreType,
+    pub initialValue: u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSemaphoreTypeCreateInfo",
+    ][::std::mem::size_of::<VkSemaphoreTypeCreateInfo>() - 32usize];
+    [
+        "Alignment of VkSemaphoreTypeCreateInfo",
+    ][::std::mem::align_of::<VkSemaphoreTypeCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkSemaphoreTypeCreateInfo::sType",
+    ][::std::mem::offset_of!(VkSemaphoreTypeCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkSemaphoreTypeCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkSemaphoreTypeCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSemaphoreTypeCreateInfo::semaphoreType",
+    ][::std::mem::offset_of!(VkSemaphoreTypeCreateInfo, semaphoreType) - 16usize];
+    [
+        "Offset of field: VkSemaphoreTypeCreateInfo::initialValue",
+    ][::std::mem::offset_of!(VkSemaphoreTypeCreateInfo, initialValue) - 24usize];
+};
+impl Default for VkSemaphoreTypeCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSemaphoreWaitInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkSemaphoreWaitFlags,
+    pub semaphoreCount: u32,
+    pub pSemaphores: *const VkSemaphore,
+    pub pValues: *const u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSemaphoreWaitInfo",
+    ][::std::mem::size_of::<VkSemaphoreWaitInfo>() - 40usize];
+    [
+        "Alignment of VkSemaphoreWaitInfo",
+    ][::std::mem::align_of::<VkSemaphoreWaitInfo>() - 8usize];
+    [
+        "Offset of field: VkSemaphoreWaitInfo::sType",
+    ][::std::mem::offset_of!(VkSemaphoreWaitInfo, sType) - 0usize];
+    [
+        "Offset of field: VkSemaphoreWaitInfo::pNext",
+    ][::std::mem::offset_of!(VkSemaphoreWaitInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSemaphoreWaitInfo::flags",
+    ][::std::mem::offset_of!(VkSemaphoreWaitInfo, flags) - 16usize];
+    [
+        "Offset of field: VkSemaphoreWaitInfo::semaphoreCount",
+    ][::std::mem::offset_of!(VkSemaphoreWaitInfo, semaphoreCount) - 20usize];
+    [
+        "Offset of field: VkSemaphoreWaitInfo::pSemaphores",
+    ][::std::mem::offset_of!(VkSemaphoreWaitInfo, pSemaphores) - 24usize];
+    [
+        "Offset of field: VkSemaphoreWaitInfo::pValues",
+    ][::std::mem::offset_of!(VkSemaphoreWaitInfo, pValues) - 32usize];
+};
+impl Default for VkSemaphoreWaitInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceBufferDeviceAddressFeatures {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -6976,6 +7060,13 @@ impl Default for VkPhysicalDeviceShaderFloat16Int8Features {
         }
     }
 }
+pub type PFN_vkWaitSemaphores = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pWaitInfo: *const VkSemaphoreWaitInfo,
+        timeout: u64,
+    ) -> VkResult,
+>;
 pub type PFN_vkGetBufferDeviceAddress = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,

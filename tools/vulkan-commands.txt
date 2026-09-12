@@ -11,6 +11,9 @@ vkGetPhysicalDeviceMemoryProperties
 vkCreateDevice
 vkDestroyDevice
 vkGetDeviceQueue
+vkCreateSemaphore
+vkDestroySemaphore
+vkWaitSemaphores
 vkCreateBuffer
 vkDestroyBuffer
 vkGetBufferMemoryRequirements
@@ -34,9 +37,6 @@ vkEndCommandBuffer
 vkCmdBindPipeline
 vkCmdDispatch
 vkQueueWaitIdle
-vkCreateFence
-vkDestroyFence
-vkWaitForFences
 vkGetPhysicalDeviceImageFormatProperties
 vkCreateImage
 vkDestroyImage

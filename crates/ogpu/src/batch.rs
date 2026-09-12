@@ -1,5 +1,6 @@
-//! Host-side one-shot recordings and fence-owned submitted resources.
+//! Host-side one-shot recordings and timeline-owned submitted resources.
 use super::*;
+use crate::INTERNAL_ERROR;
 
 pub(crate) const COMPUTE_READ: u32 = 1;
 pub(crate) const COMPUTE_WRITE: u32 = 2;
@@ -261,7 +262,7 @@ impl Batch {
             device: self.device.clone(),
             steps,
             pool: ptr::null_mut(),
-            fence: ptr::null_mut(),
+            timeline_value: 0,
             pending: false,
             outcome: None,
             timed: self.timed,
@@ -278,20 +279,36 @@ impl Batch {
                 commandBuffer: command,
                 ..Default::default()
             };
+            let timeline_value = d
+                .next_timeline
+                .get()
+                .checked_add(1)
+                .ok_or_else(|| Error::new(INTERNAL_ERROR, "Timeline value exhausted"))?;
+            d.next_timeline.set(timeline_value);
+            let signal = vk::VkSemaphoreSubmitInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                semaphore: d.timeline,
+                value: timeline_value,
+                stageMask: vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                ..Default::default()
+            };
             let submit = vk::VkSubmitInfo2 {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
                 commandBufferInfoCount: 1,
                 pCommandBufferInfos: &command_info,
+                signalSemaphoreInfoCount: 1,
+                pSignalSemaphoreInfos: &signal,
                 ..Default::default()
             };
-            let status = (d.f.vkQueueSubmit2.unwrap())(d.queue, 1, &submit, completion.fence);
+            completion.timeline_value = timeline_value;
+            let status = (d.f.vkQueueSubmit2.unwrap())(d.queue, 1, &submit, ptr::null_mut());
             if status == vk::VkResult_VK_SUCCESS {
                 // No fallible operation between accepted submission and recording ownership.
                 completion.pending = true;
             } else {
                 // Vulkan guarantees unchanged submission state for OOM, and cleanup on
                 // device loss. An unexpected error has no such guarantee: drain the queue,
-                // not the fence (which might never have been submitted).
+                // not the timeline value (which might never have been signaled).
                 if !submission_is_unaccepted(status) {
                     let drained = drain(|| (d.f.vkQueueWaitIdle.unwrap())(d.queue));
                     if drained == vk::VkResult_VK_ERROR_DEVICE_LOST {
@@ -319,7 +336,7 @@ pub(crate) struct Completion {
     // Retained until command pool destruction, even if public kernel handles are gone.
     steps: Vec<Step>,
     pool: vk::VkCommandPool,
-    fence: vk::VkFence,
+    timeline_value: u64,
     pending: bool,
     outcome: Option<vk::VkResult>,
     timed: bool,
@@ -350,14 +367,6 @@ impl Completion {
                     ),
                 )?;
             }
-            let fence = vk::VkFenceCreateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                ..Default::default()
-            };
-            d.result(
-                "vkCreateFence",
-                (d.f.vkCreateFence.unwrap())(d.handle, &fence, ptr::null(), &mut self.fence),
-            )?;
             let pool = vk::VkCommandPoolCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                 queueFamilyIndex: d.family,
@@ -474,17 +483,24 @@ impl Completion {
             let status = if d.lost.get() {
                 vk::VkResult_VK_ERROR_DEVICE_LOST
             } else {
-                // SAFETY: this completion owns an accepted submission's fence and all
+                // SAFETY: this completion owns an accepted submission's timeline value and all
                 // resources. Wait errors retain them until draining establishes safety.
                 drain(|| unsafe {
-                    (d.f.vkWaitForFences.unwrap())(d.handle, 1, &self.fence, vk::VK_TRUE, u64::MAX)
+                    let wait = vk::VkSemaphoreWaitInfo {
+                        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+                        semaphoreCount: 1,
+                        pSemaphores: &d.timeline,
+                        pValues: &self.timeline_value,
+                        ..Default::default()
+                    };
+                    (d.f.vkWaitSemaphores.unwrap())(d.handle, &wait, u64::MAX)
                 })
             };
             self.pending = false;
             self.outcome = Some(status);
         }
         self.device.result(
-            "vkWaitForFences",
+            "vkWaitSemaphores",
             self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
         )
     }
@@ -506,7 +522,7 @@ impl Completion {
             return Ok(elapsed);
         }
         let mut ticks = [0u64; 2];
-        // SAFETY: the successful fence wait establishes completion of reset and both
+        // SAFETY: the successful timeline wait establishes completion of reset and both
         // writes. This completion uniquely owns the pool and output is two aligned u64s.
         let status = unsafe {
             (self.device.f.vkGetQueryPoolResults.unwrap())(
@@ -545,9 +561,6 @@ impl Drop for Completion {
             }
             if !self.queries.is_null() {
                 (d.f.vkDestroyQueryPool.unwrap())(d.handle, self.queries, ptr::null());
-            }
-            if !self.fence.is_null() {
-                (d.f.vkDestroyFence.unwrap())(d.handle, self.fence, ptr::null());
             }
         }
     }

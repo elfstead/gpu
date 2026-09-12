@@ -28,8 +28,11 @@ vk VkDevice
 vk VkBuffer
 vk VkDeviceMemory
 vk VkQueue
+vk VkSemaphore
 vk VkFence
-vk VkFenceCreateInfo sType pNext flags
+vk VkSemaphoreCreateInfo sType pNext flags
+vk VkSemaphoreTypeCreateInfo sType pNext semaphoreType initialValue
+vk VkSemaphoreWaitInfo sType pNext flags semaphoreCount pSemaphores pValues
 vk VkShaderModule
 vk VkPipeline
 vk VkPipelineLayout

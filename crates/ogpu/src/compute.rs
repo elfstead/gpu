@@ -50,6 +50,8 @@ functions! {
     vkGetPhysicalDeviceQueueFamilyProperties: PFN_vkGetPhysicalDeviceQueueFamilyProperties,
     vkCreateDevice: PFN_vkCreateDevice, vkDestroyDevice: PFN_vkDestroyDevice,
     vkGetDeviceQueue: PFN_vkGetDeviceQueue,
+    vkCreateSemaphore: PFN_vkCreateSemaphore, vkDestroySemaphore: PFN_vkDestroySemaphore,
+    vkWaitSemaphores: PFN_vkWaitSemaphores,
     vkCreateBuffer: PFN_vkCreateBuffer, vkDestroyBuffer: PFN_vkDestroyBuffer,
     vkGetBufferMemoryRequirements: PFN_vkGetBufferMemoryRequirements,
     vkAllocateMemory: PFN_vkAllocateMemory, vkFreeMemory: PFN_vkFreeMemory,
@@ -66,8 +68,6 @@ functions! {
     vkCmdBindPipeline: PFN_vkCmdBindPipeline,
     vkCmdDispatch: PFN_vkCmdDispatch,
     vkQueueWaitIdle: PFN_vkQueueWaitIdle,
-    vkCreateFence: PFN_vkCreateFence, vkDestroyFence: PFN_vkDestroyFence,
-    vkWaitForFences: PFN_vkWaitForFences,
     vkGetPhysicalDeviceImageFormatProperties: PFN_vkGetPhysicalDeviceImageFormatProperties,
     vkCreateImage: PFN_vkCreateImage, vkDestroyImage: PFN_vkDestroyImage,
     vkGetImageMemoryRequirements: PFN_vkGetImageMemoryRequirements,
@@ -133,6 +133,8 @@ pub(crate) struct Device {
     memory: vk::VkPhysicalDeviceMemoryProperties,
     limits: vk::VkPhysicalDeviceLimits,
     max_push_data: u64,
+    timeline: vk::VkSemaphore,
+    next_timeline: Cell<u64>,
     lost: Cell<bool>,
     f: Functions,
     _instance: Arc<Instance>,
@@ -143,6 +145,9 @@ impl Drop for Device {
         // SAFETY: all children retain this device; completions drain before releasing it.
         // The instance/library still live.
         unsafe {
+            if !self.timeline.is_null() {
+                (self.f.vkDestroySemaphore.unwrap())(self.handle, self.timeline, ptr::null());
+            }
             (self.f.vkDestroyDevice.unwrap())(self.handle, ptr::null());
         }
     }
@@ -302,6 +307,24 @@ impl Device {
             // No fallible operation between successful creation and wrapping ownership.
             let mut queue = ptr::null_mut();
             (f.vkGetDeviceQueue.unwrap())(handle, family, 0, &mut queue);
+            let timeline_type = vk::VkSemaphoreTypeCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+                semaphoreType: vk::VkSemaphoreType_VK_SEMAPHORE_TYPE_TIMELINE,
+                initialValue: 0,
+                ..Default::default()
+            };
+            let timeline_info = vk::VkSemaphoreCreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+                pNext: (&timeline_type as *const vk::VkSemaphoreTypeCreateInfo).cast(),
+                ..Default::default()
+            };
+            let mut timeline = ptr::null_mut();
+            let status =
+                (f.vkCreateSemaphore.unwrap())(handle, &timeline_info, ptr::null(), &mut timeline);
+            if status != vk::VkResult_VK_SUCCESS {
+                (f.vkDestroyDevice.unwrap())(handle, ptr::null());
+                return Err(Error::vulkan("vkCreateSemaphore", status));
+            }
             Ok(Rc::new(Self {
                 handle,
                 queue,
@@ -312,6 +335,8 @@ impl Device {
                 memory,
                 limits: properties.limits,
                 max_push_data: heap_limits.maxPushDataSize,
+                timeline,
+                next_timeline: Cell::new(0),
                 lost: Cell::new(false),
                 f,
                 _instance: instance,

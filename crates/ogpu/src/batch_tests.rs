@@ -2,7 +2,7 @@ use super::*;
 
 thread_local! {
     static FAILURE: Cell<vk::VkResult> = const { Cell::new(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY) };
-    static REAL_WAIT: Cell<vk::PFN_vkWaitForFences> = const { Cell::new(None) };
+    static REAL_WAIT: Cell<vk::PFN_vkWaitSemaphores> = const { Cell::new(None) };
     static REAL_IDLE: Cell<vk::PFN_vkQueueWaitIdle> = const { Cell::new(None) };
     static WAIT_CALLS: Cell<u32> = const { Cell::new(0) };
     static IDLE_CALLS: Cell<u32> = const { Cell::new(0) };
@@ -16,8 +16,6 @@ macro_rules! fail {
         unsafe extern "C" fn $name($($arg: $ty),*) -> vk::VkResult { FAILURE.get() }
     };
 }
-fail!(fail_fence(_d: vk::VkDevice, _i: *const vk::VkFenceCreateInfo,
-    _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkFence));
 fail!(fail_pool(_d: vk::VkDevice, _i: *const vk::VkCommandPoolCreateInfo,
     _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkCommandPool));
 fail!(fail_allocate(_d: vk::VkDevice, _i: *const vk::VkCommandBufferAllocateInfo,
@@ -38,9 +36,7 @@ unsafe extern "C" fn flaky_idle(queue: vk::VkQueue) -> vk::VkResult {
 
 unsafe extern "C" fn flaky_wait(
     device: vk::VkDevice,
-    count: u32,
-    fences: *const vk::VkFence,
-    all: vk::VkBool32,
+    wait: *const vk::VkSemaphoreWaitInfo,
     timeout: u64,
 ) -> vk::VkResult {
     let call = WAIT_CALLS.get();
@@ -49,7 +45,7 @@ unsafe extern "C" fn flaky_wait(
         0 => vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY,
         1 => vk::VkResult_VK_TIMEOUT,
         _ => {
-            let status = unsafe { (REAL_WAIT.get().unwrap())(device, count, fences, all, timeout) };
+            let status = unsafe { (REAL_WAIT.get().unwrap())(device, wait, timeout) };
             // Only simulate loss AFTER real work completes; never pretend pending real
             // GPU work can be destroyed just because a test returned DEVICE_LOST.
             if status == vk::VkResult_VK_SUCCESS && REPORT_LOSS.get() {
@@ -89,11 +85,10 @@ fn gpu_batch_failures() {
             REAL_IDLE.set(f.vkQueueWaitIdle);
             f.vkQueueWaitIdle = Some(flaky_idle);
             match point {
-                0 | 7 => f.vkCreateFence = Some(fail_fence),
-                1 => f.vkCreateCommandPool = Some(fail_pool),
-                2 => f.vkAllocateCommandBuffers = Some(fail_allocate),
-                3 => f.vkBeginCommandBuffer = Some(fail_begin),
-                4 => f.vkEndCommandBuffer = Some(fail_end),
+                0 => f.vkCreateCommandPool = Some(fail_pool),
+                1 => f.vkAllocateCommandBuffers = Some(fail_allocate),
+                2 => f.vkBeginCommandBuffer = Some(fail_begin),
+                3 => f.vkEndCommandBuffer = Some(fail_end),
                 _ => f.vkQueueSubmit2 = Some(fail_submit),
             }
             let mut batch = Batch::new(device.clone()).unwrap();
@@ -120,8 +115,8 @@ fn gpu_batch_failures() {
                 continue;
             }
             let f = &mut Rc::get_mut(&mut device).unwrap().f;
-            REAL_WAIT.set(f.vkWaitForFences);
-            f.vkWaitForFences = Some(flaky_wait);
+            REAL_WAIT.set(f.vkWaitSemaphores);
+            f.vkWaitSemaphores = Some(flaky_wait);
             REPORT_LOSS.set(loss);
             WAIT_CALLS.set(0);
             let mut batch = Batch::new(device.clone()).unwrap();
