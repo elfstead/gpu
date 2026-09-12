@@ -6,6 +6,11 @@ evidence. Neither a backlog entry nor a successful benchmark schedules more work
 
 ## Current phase
 
+Active next work: [modern Vulkan baseline migration](modern-baseline.md), ahead of
+the lifetime API experiment. Require features that simplify the model/backend;
+do not preserve the Vulkan 1.2 path as a compatibility fallback. The completed
+integration checkpoints below remain historical regression evidence.
+
 Initial feasibility is complete. We have a working Rust/Vulkan runtime and C ABI,
 with tested compute, mixed graphics/compute, cooperative reduction, FP32 matrix
 kernels, and optional batch timing. See the ledger for exact coverage and limits.
@@ -87,10 +92,10 @@ Review whether the work **exposes a better API alternative** against the project
 goals. Compatibility with the current API is not a veto on a better design, and
 an alternative need not be forced by an integration failure to be worth adopting.
 The scoped consumer session was adopted. The strongest new public-API candidate
-is explicit buffer-range use/retention declarations; the follow-up compares its
-benefits with tensor-graph and mapping alternatives. Choosing a bounded prototype
-for those declarations is the next design discussion, not an automatic extension
-of this completed integration task.
+was explicit buffer-range use/retention declarations. Subsequent comparison separates
+allocation retention, allocator retirement and access tracking: they offer different
+guarantees. Evaluate them independently after the modern-baseline migration, without
+making resource-use lists mandatory merely to assist lifetime management.
 
 ## Decisions blocking the candidate
 

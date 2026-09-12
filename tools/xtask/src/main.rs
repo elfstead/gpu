@@ -234,6 +234,20 @@ fn smoke(root: &Path, arguments: &[String]) -> Result {
     Ok(())
 }
 
+fn baseline(root: &Path) -> Result {
+    check_headers(root)?;
+    let executable = root.join("target/ogpu-baseline");
+    fs::create_dir_all(root.join("target"))?;
+    run(compiler()
+        .args(["-std=c11", "-Wall", "-Wextra", "-Werror"])
+        .arg("-I")
+        .arg(root.join("vendor/Vulkan-Headers/include"))
+        .arg(root.join("tools/baseline.c"))
+        .args(["-ldl", "-o"])
+        .arg(&executable))?;
+    checked_vulkan_output(run(&mut Command::new(executable))?)
+}
+
 fn mock(root: &Path) -> Result {
     check_headers(root)?;
     let executable = smoke_executable(root)?;
@@ -387,6 +401,7 @@ fn main() -> Result {
             bindings(&root, true)
         }
         Some("abi") if args.len() == 1 => abi(&root),
+        Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
         Some("batch") if args.len() == 1 => batch(&root),

@@ -35,6 +35,10 @@ format, and implementation language are separate design decisions.
 
 ## Current implementation
 
+The [modern-baseline decision](modern-baseline.md) supersedes the old execution
+baseline as our target. Migration removes older mechanisms rather than keeping
+compatibility fallbacks. The inventory below describes the pre-migration checkpoint.
+
 The backend is Rust over Vulkan, with a small C header and directly generated,
 pinned Vulkan declarations. It does not depend on ash or Vulkanalia. Only Linux
 x86-64 is currently supported. Discovery needs a Vulkan 1.1 loader; execution needs
