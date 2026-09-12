@@ -34,6 +34,7 @@ vk VkSemaphoreCreateInfo sType pNext flags
 vk VkSemaphoreTypeCreateInfo sType pNext semaphoreType initialValue
 vk VkSemaphoreWaitInfo sType pNext flags semaphoreCount pSemaphores pValues
 vk VkSemaphoreSubmitInfo sType pNext semaphore value stageMask deviceIndex
+vk VkSemaphoreSignalInfo sType pNext semaphore value
 vk VkPhysicalDeviceTimelineSemaphoreProperties sType pNext maxTimelineSemaphoreValueDifference
 vk VkShaderModule
 vk VkPipeline

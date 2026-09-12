@@ -21,6 +21,7 @@ jobs:
       - run: cargo xtask baseline
       - run: cargo xtask compute
       - run: cargo xtask batch
+      - run: cargo xtask retirement
       - run: cargo xtask graphics
       - run: cargo xtask image-loop
       - run: cargo xtask reduction

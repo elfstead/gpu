@@ -105,6 +105,7 @@ pub(crate) struct Batch {
     // None means a submission was attempted; even failed attempts are terminal.
     steps: Option<Vec<Step>>,
     timed: bool,
+    retained: Vec<Rc<Buffer>>,
 }
 
 impl Batch {
@@ -114,6 +115,7 @@ impl Batch {
             device,
             steps: Some(Vec::new()),
             timed: false,
+            retained: Vec::new(),
         })
     }
 
@@ -128,6 +130,20 @@ impl Batch {
         self.recording()?;
         self.device.timing_info()?;
         self.timed = true;
+        Ok(())
+    }
+
+    pub(crate) fn retain_buffer(&mut self, buffer: Rc<Buffer>) -> Result<(), Error> {
+        self.recording()?;
+        if !Rc::ptr_eq(&self.device, &buffer.device) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Buffer belongs to another device",
+            ));
+        }
+        if !self.retained.iter().any(|b| Rc::ptr_eq(b, &buffer)) {
+            self.retained.push(buffer);
+        }
         Ok(())
     }
 
@@ -256,6 +272,7 @@ impl Batch {
             .steps
             .take()
             .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Batch already submitted"))?;
+        let retained = std::mem::take(&mut self.retained);
         self.device.ready()?;
         let mut completion = Completion {
             device: self.device.clone(),
@@ -267,6 +284,7 @@ impl Batch {
             timed: self.timed,
             queries: ptr::null_mut(),
             elapsed: None,
+            _retained: retained,
         };
         // SAFETY: the caller guarantees shader semantics/lifetimes. Preparation retains
         // every kernel, and the completion owns partial construction immediately.
@@ -336,9 +354,49 @@ pub(crate) struct Completion {
     timed: bool,
     queries: vk::VkQueryPool,
     elapsed: Option<f64>,
+    // Explicit ownership assistance, independent of shader access declarations.
+    _retained: Vec<Rc<Buffer>>,
 }
 
 impl Completion {
+    // SUCCESS means this submission's accesses have finished. A transient query
+    // error gives no release permission and leaves the completion pending.
+    pub(crate) fn poll(&mut self) -> Result<bool, Error> {
+        if self.pending {
+            let d = &self.device;
+            let status = if d.lost.get() {
+                vk::VkResult_VK_ERROR_DEVICE_LOST
+            } else {
+                unsafe { self.timeline_wait(0) }
+            };
+            match status {
+                vk::VkResult_VK_TIMEOUT => return Ok(false),
+                vk::VkResult_VK_SUCCESS | vk::VkResult_VK_ERROR_DEVICE_LOST => {
+                    self.pending = false;
+                    self.outcome = Some(status);
+                }
+                _ => return d.result("vkWaitSemaphores (poll)", status).map(|()| false),
+            }
+        }
+        self.device.result(
+            "completion poll",
+            self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
+        )?;
+        Ok(true)
+    }
+
+    unsafe fn timeline_wait(&self, timeout: u64) -> vk::VkResult {
+        let wait = vk::VkSemaphoreWaitInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            semaphoreCount: 1,
+            pSemaphores: &self.device.timeline,
+            pValues: &self.timeline_value,
+            ..Default::default()
+        };
+        // SAFETY: accepted submission, live semaphore, serialized host access.
+        unsafe { (self.device.f.vkWaitSemaphores.unwrap())(self.device.handle, &wait, timeout) }
+    }
+
     unsafe fn prepare(&mut self) -> Result<vk::VkCommandBuffer, Error> {
         let d = &self.device;
         // SAFETY: Vulkan pointers refer to initialized local structures. This object
@@ -479,16 +537,7 @@ impl Completion {
             } else {
                 // SAFETY: this completion owns an accepted submission's timeline value and all
                 // resources. Wait errors retain them until draining establishes safety.
-                drain(|| unsafe {
-                    let wait = vk::VkSemaphoreWaitInfo {
-                        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                        semaphoreCount: 1,
-                        pSemaphores: &d.timeline,
-                        pValues: &self.timeline_value,
-                        ..Default::default()
-                    };
-                    (d.f.vkWaitSemaphores.unwrap())(d.handle, &wait, u64::MAX)
-                })
+                drain(|| unsafe { self.timeline_wait(u64::MAX) })
             };
             self.pending = false;
             self.outcome = Some(status);
@@ -506,11 +555,11 @@ impl Completion {
         let outcome = self.outcome.ok_or_else(|| {
             Error::new(
                 INVALID_ARGUMENT,
-                "Timing requires an explicit successful completion wait",
+                "Timing requires a successful completion wait or poll",
             )
         })?;
         self.device
-            .result("Timing requires a successful wait", outcome)?;
+            .result("Timing requires confirmed successful completion", outcome)?;
         let (period, bits) = self.device.timing_info()?;
         if let Some(elapsed) = self.elapsed {
             return Ok(elapsed);
@@ -613,3 +662,7 @@ mod tests;
 #[cfg(test)]
 #[path = "timing_tests.rs"]
 mod timing_tests;
+
+#[cfg(test)]
+#[path = "retirement_tests.rs"]
+mod retirement_tests;

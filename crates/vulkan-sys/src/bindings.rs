@@ -6929,6 +6929,44 @@ impl Default for VkSemaphoreWaitInfo {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkSemaphoreSignalInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub semaphore: VkSemaphore,
+    pub value: u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSemaphoreSignalInfo",
+    ][::std::mem::size_of::<VkSemaphoreSignalInfo>() - 32usize];
+    [
+        "Alignment of VkSemaphoreSignalInfo",
+    ][::std::mem::align_of::<VkSemaphoreSignalInfo>() - 8usize];
+    [
+        "Offset of field: VkSemaphoreSignalInfo::sType",
+    ][::std::mem::offset_of!(VkSemaphoreSignalInfo, sType) - 0usize];
+    [
+        "Offset of field: VkSemaphoreSignalInfo::pNext",
+    ][::std::mem::offset_of!(VkSemaphoreSignalInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSemaphoreSignalInfo::semaphore",
+    ][::std::mem::offset_of!(VkSemaphoreSignalInfo, semaphore) - 16usize];
+    [
+        "Offset of field: VkSemaphoreSignalInfo::value",
+    ][::std::mem::offset_of!(VkSemaphoreSignalInfo, value) - 24usize];
+};
+impl Default for VkSemaphoreSignalInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceBufferDeviceAddressFeatures {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -7110,6 +7148,12 @@ pub type PFN_vkWaitSemaphores = ::std::option::Option<
         device: VkDevice,
         pWaitInfo: *const VkSemaphoreWaitInfo,
         timeout: u64,
+    ) -> VkResult,
+>;
+pub type PFN_vkSignalSemaphore = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pSignalInfo: *const VkSemaphoreSignalInfo,
     ) -> VkResult,
 >;
 pub type PFN_vkGetBufferDeviceAddress = ::std::option::Option<

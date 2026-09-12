@@ -406,6 +406,7 @@ fn main() -> Result {
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
         Some("batch") if args.len() == 1 => batch(&root),
+        Some("retirement") if args.len() == 1 => c_execution(&root, "retirement", &["produce", "consume"]),
         Some("graphics") if args.len() == 1 => graphics(&root),
         Some("image-loop") if args.len() == 1 => image_loop(&root),
         Some("reduction") if args.len() == 1 => reduction(&root),
@@ -414,7 +415,7 @@ fn main() -> Result {
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | baseline | compute | batch | graphics | image-loop | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

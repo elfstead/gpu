@@ -188,6 +188,10 @@ fn gpu_batch_failures() {
                 _ => f.vkQueueSubmit2 = Some(fail_submit),
             }
             let mut batch = Batch::new(device.clone()).unwrap();
+            let retained = Rc::new(Buffer::new(device.clone(), 4).unwrap());
+            let weak = Rc::downgrade(&retained);
+            batch.retain_buffer(retained.clone()).unwrap();
+            drop(retained);
             if timed {
                 batch.enable_timing().unwrap();
             }
@@ -196,6 +200,10 @@ fn gpu_batch_failures() {
                 Ok(_) => panic!("Injected failure did not fail"),
             };
             assert_eq!(error.vk, FAILURE.get());
+            assert!(
+                weak.upgrade().is_none(),
+                "Failed submission must release explicit retention"
+            );
             assert!(batch.steps.is_none());
             assert!(matches!(unsafe { batch.submit() }, Err(e) if e.status == INVALID_ARGUMENT));
             assert_eq!(device.lost.get(), point == 7);
@@ -228,6 +236,7 @@ fn gpu_batch_failures() {
             };
             assert_eq!(completion.wait().unwrap_err().vk, expected);
             assert_eq!(WAIT_CALLS.get(), 3);
+            assert_eq!(completion.poll().unwrap_err().vk, expected);
             if timed {
                 assert_eq!(completion.elapsed_ns().unwrap_err().vk, expected);
             }

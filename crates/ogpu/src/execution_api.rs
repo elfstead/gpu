@@ -479,6 +479,42 @@ pub unsafe extern "C" fn ogpu_completion_wait(
 }
 
 /// # Safety
+/// See include/ogpu.h: live completion, writable outputs, external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_completion_poll(
+    completion: *mut OgpuCompletion,
+    out_complete: *mut u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out_complete)?;
+            *out_complete = 0;
+            required(completion)?;
+            *out_complete = u32::from((*completion).inner.poll()?);
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live batch/buffer on one device, writable error, external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_retain_buffer(
+    batch: *mut OgpuBatch,
+    buffer: *const OgpuBuffer,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(buffer)?;
+            (*batch).inner.retain_buffer((*buffer).inner.clone())
+        })
+    }
+}
+
+/// # Safety
 /// Live uniquely owned handle or NULL, externally serialized. Referenced allocations
 /// must remain alive until this call returns; pending work is drained, not cancelled.
 #[no_mangle]
@@ -728,6 +764,20 @@ mod tests {
     #[test]
     fn invalid_batch_arguments_need_no_driver() {
         unsafe {
+            let mut complete = 99;
+            assert_eq!(
+                ogpu_completion_poll(ptr::null_mut(), &mut complete, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(complete, 0);
+            assert_eq!(
+                ogpu_completion_poll(ptr::dangling_mut(), ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_retain_buffer(ptr::null_mut(), ptr::null(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
             let mut batch = ptr::dangling_mut::<OgpuBatch>();
             let mut completion = ptr::dangling_mut::<OgpuCompletion>();
             assert_eq!(
