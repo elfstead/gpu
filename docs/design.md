@@ -19,7 +19,9 @@ devices. Presentation belongs behind a separate platform boundary.
 The central hypothesis is that this common model reduces integration work and
 unnecessary data movement across mixed workloads. The demanding target is
 compute → graphics → compute → graphics without intermediate CPU round trips.
-We have implemented the first compute → graphics segment, not the whole loop.
+The [image-processing experiment](image-loop.md) now completes this loop using
+explicit image-to-buffer copies and fragment reads from linear memory. It does
+not yet establish direct compute image access, sampling, or reduced transfer cost.
 
 This project currently implements a host/runtime interface. It does not yet define
 a new source language. The host C ABI, shader data/execution contract, executable
@@ -124,9 +126,10 @@ operation. Reusable low-level command sequences do not imply runtime-owned ML gr
    now exercise shared memory, uniform barriers, partial groups, multiple dispatch
    levels, and scratch ownership. Floating-point accuracy, tuning, and scratch
    reuse remain separate experiments; see the [recorded outcome](experiments.md).
-2. **Graphics → compute → graphics — next.** Process a rendered image and consume the
-   result on the GPU. Make image/linear-memory representation and dependency costs
-   explicit; do not assume images are ordinary addressable arrays.
+2. **Graphics → compute → graphics — initial experiment complete.** A buffer-mediated
+   image transform and fragment-address reads complete the loop without CPU work
+   between stages. Direct image access/sampling and conversion-cost measurements
+   remain open; see the [experiment contract](image-loop.md).
 3. **Matrix workload and measurement.** Establish a numerical baseline, then test
    supported accelerated/narrow-type variants. Separate CPU submission overhead,
    memory movement, kernel throughput, and compilation costs.
@@ -159,6 +162,7 @@ communication are later profiles, not prerequisites for these experiments.
 - [Batches](batches.md): recording, submission, dependencies, completion, and errors.
 - [Offscreen graphics](graphics.md): the implemented optional graphics profile.
 - [Reduction](reduction.md): cooperative workgroups and a multi-level compute workload.
+- [Image loop](image-loop.md): mixed execution and explicit image/linear conversion.
 - [Experiments](experiments.md): tested evidence, limitations, and next questions.
 - [Development](development.md): builds, regeneration, validation, and test commands.
 

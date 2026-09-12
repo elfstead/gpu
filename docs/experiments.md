@@ -11,7 +11,8 @@ for commands. "Implemented" does not mean production-ready or performance-tuned.
 | Discovery and C boundary | `cargo xtask smoke`, `cargo xtask mock`, `cargo xtask abi` | Capability reporting, loader failures, C/Rust layouts, version/pointer checks | Portable capability negotiation or feature enablement |
 | Address-based round trip | `cargo xtask compute` | CPU upload, repeated dispatch, partial updates, readback, retained device ownership | Device-local staging, suballocation, actual non-coherent hardware coverage |
 | Dependent compute kernels | `cargo xtask batch` | Copied roots, intermediate storage, explicit dependency, one submission/wait | Workgroup cooperation, arithmetic acceleration, replay or performance |
-| Compute → offscreen graphics | `cargo xtask graphics` | GPU-generated vertices/indirect arguments, image rendering/readback, shared batches | Sampling, compute image access, full graphics → compute → graphics loop |
+| Compute → offscreen graphics | `cargo xtask graphics` | GPU-generated vertices/indirect arguments, image rendering/readback, shared batches | Sampling, direct compute image access, presentation |
+| Graphics → compute → graphics | `cargo xtask image-loop` | Explicit image/linear conversion, compute pixel transform, fragment address reads, guarded intermediate/final checks and reuse | Sampling/storage images, conversion costs, filtering, general formats |
 | Cooperative integer reduction | `cargo xtask reduction`, `cargo xtask gpu-tests` | Shared memory, uniform workgroup barriers, multi-level partial sums, tails/empty inputs/overflow, guarded intermediate outputs | Floating-point accuracy, subgroup acceleration, scratch reuse, performance |
 | Backend ownership/failure paths | `cargo xtask gpu-tests` | Batch states, retained resources, image reuse, preparation/submission/wait failure injection | Real hardware device loss, arbitrary shader faults, all driver behavior |
 
@@ -57,13 +58,40 @@ Design implications:
 
 This does not establish floating-point summation accuracy, subgroup-size control,
 matrix acceleration, competitive throughput, device-local transfer performance,
-or correctness on additional hardware vendors. The next queued experiment remains
-the graphics → compute → graphics image-processing loop.
+or correctness on additional hardware vendors.
+
+## Image-processing loop outcome — 2026-09-12
+
+Status: implemented and locally verified; [contract and source links](image-loop.md).
+No API or runtime changes were needed. Compute-generated geometry produces a
+coordinate-colored triangle; a copy exposes RGBA8 pixels as linear memory. Compute
+flips rows, swaps red/blue, and inverts green into a separate buffer. A fullscreen
+fragment shader reads those bytes by address and renders the result to a second
+target. One submission and one final wait cover the complete loop.
+
+The C harness checks every intermediate and final pixel, prefix/suffix guards,
+copied processor roots, and target/buffer reuse. Six sizes, including tiny,
+non-square, odd, and exact-workgroup cases, run twice on each graphics-capable
+device. All 12 loops passed on both the RX 5700 XT and llvmpipe with synchronization
+validation. Fresh poison values prevent stale output passing the second run.
+
+Design implications:
+
+- Existing allocations, roots, dependencies, and completions compose across all
+  stages. A host image-processing operator is not required for this transform.
+- Images remain distinct objects: the image-to-buffer copy is an explicit
+  representation boundary, not evidence that an optimal image has a GPU address.
+- Fragment address reads can consume processed linear pixels without a texture
+  binding. This does not provide filtering, mipmaps, or arbitrary image formats.
+- The transfer-write → compute-read and compute-write → fragment-read dependencies
+  belong to the caller; completion only becomes relevant at the final host read.
+- No performance claim follows: this path pays for separate allocations and two
+  image copies. Direct storage/sampled-image alternatives need a measured comparison.
 
 ## Queued experiments
 
-1. Image processing in a graphics → compute → graphics chain, without intermediate
-   CPU round trips. Expose image access/representation and synchronization decisions.
+1. Follow up the image loop with measured representation costs before deciding
+   whether to add direct storage-image access or sampled-image bindings.
 2. Matrix kernels with numerical references and separately measured runtime,
    transfer, compilation, and execution costs; then optional accelerated variants.
 3. A compiler/runtime consumer and a second backend for the common compute model.

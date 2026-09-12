@@ -16,6 +16,7 @@ cargo xtask smoke
 cargo xtask compute
 cargo xtask batch
 cargo xtask graphics
+cargo xtask image-loop
 cargo xtask reduction
 ```
 
@@ -37,6 +38,13 @@ vertices and indirect arguments, graphics draws a triangle, and the same batch
 copies the target for CPU verification after one wait. It requires a shared
 graphics+compute queue and a supported RGBA8 attachment/readback image. No display
 or presentation system is needed. See the [graphics contract](graphics.md).
+
+`image-loop` runs [the mixed-workload C example](../examples/image_loop.c) on every
+graphics-capable device: draw → image-to-buffer copy → compute transform → fragment
+address reads → draw → final copy, with one submission/wait per loop. The C example
+also serves as the expanded test: six image sizes, two runs each, exact intermediate
+and final pixel checks, guards, and target reuse. It runs separately from the Rust
+`gpu-tests` command. See the [image-loop contract](image-loop.md).
 
 `reduction` runs [the cooperative reduction example](../examples/reduction.c):
 1,048,579 uint32 inputs become 8,193 partials, then 65, then one modulo-2^32 sum.
@@ -92,6 +100,7 @@ cargo xtask compute
 cargo xtask batch
 cargo xtask gpu-tests
 cargo xtask graphics
+cargo xtask image-loop
 cargo xtask reduction
 ```
 

@@ -82,6 +82,11 @@ the GPU, draws into a 64×64 target, copies to a readback buffer, and waits once
 It checks opaque-black background and solid-red interior pixels away from
 rasterization boundaries. No CPU readback of vertices or draw arguments is needed.
 
+The [image-loop experiment](image-loop.md), run with `cargo xtask image-loop`,
+extends this to graphics → compute → graphics using image-to-buffer copies and
+fragment-shader address reads. It uses this same profile without API additions;
+it does not introduce sampled images or storage-image compute access.
+
 Tests cover graphics queue selection without breaking compute-only selection,
 invalid extents/shaders, buffer bounds/alignment, wrong-device objects, missing
 prior draw, retained-resource lifetimes, image reuse, and partial creation failures.
