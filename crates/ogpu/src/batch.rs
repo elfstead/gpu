@@ -10,7 +10,10 @@ pub(crate) const COLOR_WRITE: u32 = 16;
 pub(crate) const TRANSFER_READ: u32 = 32;
 pub(crate) const TRANSFER_WRITE: u32 = 64;
 pub(crate) const FRAGMENT_READ: u32 = 128;
-const GRAPHICS_ACCESS: u32 = VERTEX_READ | INDIRECT_READ | COLOR_WRITE | FRAGMENT_READ;
+pub(crate) const COLOR_READ: u32 = 256;
+pub(crate) const CLEAR: u32 = 0;
+pub(crate) const LOAD: u32 = 1;
+const GRAPHICS_ACCESS: u32 = VERTEX_READ | INDIRECT_READ | COLOR_WRITE | FRAGMENT_READ | COLOR_READ;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Access {
@@ -19,7 +22,7 @@ struct Access {
 }
 
 fn access(mask: u32) -> Result<Access, Error> {
-    if mask == 0 || mask & !255 != 0 {
+    if mask == 0 || mask & !511 != 0 {
         return Err(Error::new(INVALID_ARGUMENT, "Invalid access mask"));
     }
     let mut result = Access {
@@ -27,6 +30,11 @@ fn access(mask: u32) -> Result<Access, Error> {
         flags: 0,
     };
     for (bit, stage, flags) in [
+        (
+            COLOR_READ,
+            vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+            vk::VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT,
+        ),
         (
             COMPUTE_READ,
             vk::VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
@@ -94,6 +102,7 @@ enum Step {
         indirect: Rc<Buffer>,
         offset: u64,
         root: Vec<u8>,
+        load: u32,
     },
     CopyTarget {
         target: Rc<Target>,
@@ -224,7 +233,14 @@ impl Batch {
         indirect: Rc<Buffer>,
         offset: usize,
         root: &[u8],
+        load: u32,
     ) -> Result<(), Error> {
+        if !matches!(load, CLEAR | LOAD) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Invalid attachment load operation",
+            ));
+        }
         if !Rc::ptr_eq(&self.device, &raster.device)
             || !Rc::ptr_eq(&self.device, &target.device)
             || !Rc::ptr_eq(&self.device, &indirect.device)
@@ -247,6 +263,7 @@ impl Batch {
             indirect,
             offset: offset as u64,
             root: root.to_vec(),
+            load,
         });
         Ok(())
     }
@@ -270,19 +287,6 @@ impl Batch {
         }
         destination.range(offset, target.size)?;
         let steps = self.recording()?;
-        if !steps.iter().any(|step| match step {
-            Step::Draw {
-                target: initialized,
-                ..
-            }
-            | Step::DiscardTarget(initialized) => Rc::ptr_eq(initialized, &target),
-            _ => false,
-        }) {
-            return Err(Error::new(
-                INVALID_ARGUMENT,
-                "Target copy requires an earlier draw or discard in this batch",
-            ));
-        }
         steps.push(Step::CopyTarget {
             target,
             destination,
@@ -528,7 +532,8 @@ impl Completion {
                         indirect,
                         offset,
                         root,
-                    } => target.draw(command, raster, indirect, *offset, root),
+                        load,
+                    } => target.draw(command, raster, indirect, *offset, root, *load),
                     Step::CopyTarget {
                         target,
                         destination,

@@ -14,7 +14,7 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 1;
+pub const ABI_VERSION: u32 = 2;
 pub const SUCCESS: OgpuResult = 0;
 pub const INVALID_ARGUMENT: OgpuResult = -1;
 pub const ABI_MISMATCH: OgpuResult = -2;

@@ -736,6 +736,7 @@ pub unsafe extern "C" fn ogpu_batch_draw_indirect(
     offset: u64,
     arguments: *const c_void,
     argument_bytes: u32,
+    load: u32,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
@@ -758,6 +759,7 @@ pub unsafe extern "C" fn ogpu_batch_draw_indirect(
                 (*indirect).inner.clone(),
                 offset,
                 root,
+                load,
             )
         })
     }
@@ -852,6 +854,7 @@ mod tests {
                     ptr::null_mut(),
                     0,
                     ptr::null(),
+                    0,
                     0,
                     ptr::null_mut()
                 ),

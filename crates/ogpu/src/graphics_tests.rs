@@ -2,6 +2,175 @@ use super::*;
 use crate::compute::batch::{COMPUTE_WRITE, INDIRECT_READ, TRANSFER_WRITE, VERTEX_READ};
 
 thread_local! {
+    static SUBMIT: Cell<vk::PFN_vkQueueSubmit2> = const { Cell::new(None) };
+    static REJECT: Cell<bool> = const { Cell::new(false) };
+}
+unsafe extern "C" fn reject_submit(
+    q: vk::VkQueue,
+    n: u32,
+    s: *const vk::VkSubmitInfo2,
+    f: vk::VkFence,
+) -> vk::VkResult {
+    if REJECT.replace(false) {
+        vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY
+    } else {
+        unsafe { (SUBMIT.get().unwrap())(q, n, s, f) }
+    }
+}
+
+#[test]
+#[ignore = "requires graphics Vulkan; preservation, LOAD/CLEAR and abandoned/rejected discard"]
+fn gpu_image_preservation() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::create_configured(instance.clone(), physical, true, |f| {
+            SUBMIT.set(f.vkQueueSubmit2);
+            f.vkQueueSubmit2 = Some(reject_submit);
+        }) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        REJECT.set(false);
+        let target = Rc::new(Target::new(d.clone(), 64, 64).unwrap());
+        let pattern = Rc::new(unsafe {
+            Raster::new(
+                d.clone(),
+                &words(include_bytes!(
+                    "../../../examples/shaders/fullscreen.vert.spv"
+                )),
+                &words(include_bytes!(
+                    "../../../examples/shaders/image-pattern.frag.spv"
+                )),
+                0,
+            )
+            .unwrap()
+        });
+        let triangle = Rc::new(unsafe {
+            Raster::new(
+                d.clone(),
+                &words(include_bytes!(
+                    "../../../examples/shaders/triangle.vert.spv"
+                )),
+                &words(include_bytes!(
+                    "../../../examples/shaders/triangle.frag.spv"
+                )),
+                16,
+            )
+            .unwrap()
+        });
+        let vertices = Buffer::new(d.clone(), 48).unwrap();
+        let data: [f32; 12] = [
+            -0.75, -0.75, 0.0, 1.0, 0.75, -0.75, 0.0, 1.0, 0.0, 0.75, 0.0, 1.0,
+        ];
+        vertices
+            .write(
+                0,
+                &data
+                    .into_iter()
+                    .flat_map(f32::to_ne_bytes)
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
+        let indirect = Rc::new(Buffer::new(d.clone(), 16).unwrap());
+        indirect
+            .write(
+                0,
+                &[3u32, 1, 0, 0]
+                    .into_iter()
+                    .flat_map(u32::to_ne_bytes)
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
+        let mut root = [0u8; 16];
+        root[..8].copy_from_slice(&vertices.address.to_ne_bytes());
+        let output = Rc::new(Buffer::new(d.clone(), target.size).unwrap());
+        // A rejected first producer does not authorize using its image. Retry the
+        // complete initialization explicitly before any dependent work is submitted.
+        let mut rejected = Batch::new(d.clone()).unwrap();
+        rejected.discard_target(target.clone()).unwrap();
+        REJECT.set(true);
+        assert!(unsafe { rejected.submit() }.is_err());
+        let mut first = Batch::new(d.clone()).unwrap();
+        first
+            .draw(
+                pattern,
+                target.clone(),
+                indirect.clone(),
+                0,
+                &[],
+                batch::CLEAR,
+            )
+            .unwrap();
+        let initial = unsafe { first.submit().unwrap() };
+        // Neither abandoned recording nor rejected discard may erase the pattern.
+        let mut abandoned = Batch::new(d.clone()).unwrap();
+        abandoned.discard_target(target.clone()).unwrap();
+        drop(abandoned);
+        let mut rejected = Batch::new(d.clone()).unwrap();
+        rejected.discard_target(target.clone()).unwrap();
+        REJECT.set(true);
+        assert!(unsafe { rejected.submit() }.is_err());
+        for load in [batch::LOAD, batch::CLEAR] {
+            let mut draw = Batch::new(d.clone()).unwrap();
+            assert!(draw
+                .draw(
+                    triangle.clone(),
+                    target.clone(),
+                    indirect.clone(),
+                    0,
+                    &root,
+                    99
+                )
+                .is_err());
+            draw.barrier(
+                batch::COLOR_WRITE | batch::TRANSFER_READ,
+                batch::COLOR_READ | batch::COLOR_WRITE,
+            )
+            .unwrap();
+            draw.draw(
+                triangle.clone(),
+                target.clone(),
+                indirect.clone(),
+                0,
+                &root,
+                load,
+            )
+            .unwrap();
+            let rendered = unsafe { draw.submit().unwrap() };
+            let mut copy = Batch::new(d.clone()).unwrap();
+            copy.copy_target(target.clone(), output.clone(), 0).unwrap();
+            let mut copied = unsafe { copy.submit().unwrap() };
+            copied.wait().unwrap();
+            let mut pixels = vec![0u8; target.size];
+            unsafe {
+                output.read(0, pixels.as_mut_ptr(), pixels.len()).unwrap();
+            }
+            for (x, y) in [(0, 0), (63, 63), (4, 32), (60, 32)] {
+                let expected = if load == batch::LOAD {
+                    [
+                        (x * 17 + y * 3) as u8,
+                        (x * 5 + y * 29) as u8,
+                        (x * 11 + y * 7) as u8,
+                        255,
+                    ]
+                } else {
+                    [0, 0, 0, 255]
+                };
+                assert_eq!(&pixels[(y * 64 + x) * 4..][..4], &expected);
+            }
+            assert_eq!(&pixels[(24 * 64 + 32) * 4..][..4], &[255, 0, 0, 255]);
+            drop(copied);
+            drop(rendered);
+        }
+        drop(initial);
+        tested += 1;
+    }
+    assert!(tested > 0);
+}
+
+thread_local! {
     static MODULE_CALLS: Cell<u32> = const { Cell::new(0) };
     static REAL_MODULE: Cell<vk::PFN_vkCreateShaderModule> = const { Cell::new(None) };
     static REAL_PIPELINE: Cell<vk::PFN_vkCreateGraphicsPipelines> = const { Cell::new(None) };
@@ -244,7 +413,14 @@ fn gpu_graphics() {
         let mut wrong = Batch::new(other).unwrap();
         assert_eq!(
             wrong
-                .draw(raster.clone(), target.clone(), indirect.clone(), 0, &root)
+                .draw(
+                    raster.clone(),
+                    target.clone(),
+                    indirect.clone(),
+                    0,
+                    &root,
+                    batch::CLEAR
+                )
                 .unwrap_err()
                 .status,
             INVALID_ARGUMENT
@@ -259,23 +435,31 @@ fn gpu_graphics() {
             if timed {
                 batch.enable_timing().unwrap();
             }
+            // Copy initialization is now a trusted cross-submission obligation.
             assert_eq!(
                 batch
-                    .copy_target(target.clone(), output.clone(), 4)
+                    .draw(
+                        raster.clone(),
+                        target.clone(),
+                        indirect.clone(),
+                        1,
+                        &root,
+                        batch::CLEAR
+                    )
                     .unwrap_err()
                     .status,
                 INVALID_ARGUMENT
             );
             assert_eq!(
                 batch
-                    .draw(raster.clone(), target.clone(), indirect.clone(), 1, &root)
-                    .unwrap_err()
-                    .status,
-                INVALID_ARGUMENT
-            );
-            assert_eq!(
-                batch
-                    .draw(raster.clone(), target.clone(), indirect.clone(), 4, &root)
+                    .draw(
+                        raster.clone(),
+                        target.clone(),
+                        indirect.clone(),
+                        4,
+                        &root,
+                        batch::CLEAR
+                    )
                     .unwrap_err()
                     .status,
                 OUT_OF_RANGE
@@ -287,7 +471,8 @@ fn gpu_graphics() {
                         target.clone(),
                         indirect.clone(),
                         0,
-                        &root[..8]
+                        &root[..8],
+                        batch::CLEAR
                     )
                     .unwrap_err()
                     .status,
@@ -303,7 +488,14 @@ fn gpu_graphics() {
                 .unwrap();
             for copy in 0..2 {
                 batch
-                    .draw(raster.clone(), target.clone(), indirect.clone(), 0, &root)
+                    .draw(
+                        raster.clone(),
+                        target.clone(),
+                        indirect.clone(),
+                        0,
+                        &root,
+                        batch::CLEAR,
+                    )
                     .unwrap();
                 assert_eq!(
                     batch

@@ -198,6 +198,7 @@ impl Target {
         indirect: &Buffer,
         offset: u64,
         root: &[u8],
+        load: u32,
     ) {
         let d = &self.device;
         let area = vk::VkRect2D {
@@ -216,7 +217,11 @@ impl Target {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             imageView: self.view,
             imageLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
-            loadOp: vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR,
+            loadOp: if load == batch::CLEAR {
+                vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR
+            } else {
+                vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_LOAD
+            },
             storeOp: vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_STORE,
             clearValue: clear,
             ..Default::default()
@@ -240,7 +245,9 @@ impl Target {
         // SAFETY: validated same-device objects are retained by the recording; caller
         // guarantees indirect contents and reachable shader memory. Commands are recording.
         unsafe {
-            self.discard(command);
+            if load == batch::CLEAR {
+                self.discard(command);
+            }
             (d.f.vkCmdBeginRendering.unwrap())(command, &begin);
             (d.f.vkCmdBindPipeline.unwrap())(
                 command,
@@ -334,7 +341,7 @@ impl Target {
             pRegions: &region,
             ..Default::default()
         };
-        // SAFETY: an earlier same-batch draw/discard initialized GENERAL. Include
+        // SAFETY: the caller has initialized GENERAL in this or an earlier ordered submission. Include
         // shader writes as well as attachment writes in the readback dependency.
         unsafe {
             batch::barrier(

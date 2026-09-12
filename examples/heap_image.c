@@ -31,7 +31,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
     OgpuImageTable *tables[2] = {0};
     OgpuBuffer *indirect = NULL, *readback = NULL;
     OgpuBatch *batch = NULL;
-    OgpuCompletion *completion = NULL;
+    OgpuCompletion *completions[3] = {0};
     size_t size = (size_t)width * height * 4;
     uint8_t *pixels = malloc(2 * (size + 8));
     REQUIRE(pixels);
@@ -54,18 +54,25 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         memset(pixels, 0xa5, 2 * (size + 8));
         TRY(ogpu_buffer_write(readback, 0, pixels, 2 * (size + 8), &error));
         TRY(ogpu_batch_create(device, &batch, &error));
+        TRY(ogpu_batch_draw_indirect(batch, pattern, source, indirect, 0, NULL, 0, OGPU_ATTACHMENT_CLEAR, &error));
+        TRY(ogpu_batch_discard_target(batch, processed, &error));
+        TRY(ogpu_batch_submit(batch, &completions[0], &error));
+        ogpu_batch_destroy(batch); batch = NULL;
+        TRY(ogpu_batch_create(device, &batch, &error));
         TRY(ogpu_batch_bind_image_table(batch, tables[1 - pass], &error));
         TRY(ogpu_batch_bind_image_table(batch, tables[pass], &error));
-        TRY(ogpu_batch_draw_indirect(batch, pattern, source, indirect, 0, NULL, 0, &error));
-        TRY(ogpu_batch_discard_target(batch, processed, &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COLOR_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
         Root process = {pass ? 2 : 1, pass ? 0 : 2, width, height};
         Root sampling = {pass ? 1 : 0, 0, width, height};
         TRY(ogpu_batch_dispatch(batch, compute, (width * height + 63) / 64,
             &process, sizeof(process), &error));
+        TRY(ogpu_batch_submit(batch, &completions[1], &error));
+        ogpu_batch_destroy(batch); batch = NULL;
+        TRY(ogpu_batch_create(device, &batch, &error));
+        TRY(ogpu_batch_bind_image_table(batch, tables[pass], &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
         TRY(ogpu_batch_draw_indirect(batch, sample, final, indirect, 0,
-            &sampling, sizeof(sampling), &error));
+            &sampling, sizeof(sampling), OGPU_ATTACHMENT_CLEAR, &error));
         TRY(ogpu_batch_copy_target(batch, final, readback, 4, &error));
         // Diagnostic copies happen only after the full GPU chain. The processed
         // target was initialized by discard, never by a draw.
@@ -77,9 +84,9 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
             ogpu_target_destroy(processed); processed = NULL;
             ogpu_target_destroy(final); final = NULL;
         }
-        TRY(ogpu_batch_submit(batch, &completion, &error));
+        TRY(ogpu_batch_submit(batch, &completions[2], &error));
         ogpu_batch_destroy(batch); batch = NULL;
-        TRY(ogpu_completion_wait(completion, &error));
+        TRY(ogpu_completion_wait(completions[2], &error));
         TRY(ogpu_buffer_read(readback, 0, pixels, 2 * (size + 8), &error));
         for (unsigned image = 0; image < 2; ++image) {
             uint8_t *data = pixels + image * (size + 8);
@@ -91,12 +98,12 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
                 REQUIRE(memcmp(data + 4 + ((size_t)y * width + x) * 4, expected, 4) == 0);
             }
         }
-        ogpu_completion_destroy(completion); completion = NULL;
+        for (unsigned i = 0; i < 3; ++i) { ogpu_completion_destroy(completions[i]); completions[i] = NULL; }
     }
-    printf("heap-image %ux%u: two permutations, target reuse, early handle release, pixels/guards PASS\n", width, height);
+    printf("heap-image %ux%u: three submissions, two permutations, target reuse, early handle release, pixels/guards PASS\n", width, height);
     result = EXIT_SUCCESS;
 cleanup:
-    ogpu_completion_destroy(completion);
+    for (unsigned i = 0; i < 3; ++i) ogpu_completion_destroy(completions[i]);
     ogpu_batch_destroy(batch);
     for (unsigned i = 0; i < 2; ++i) ogpu_image_table_destroy(tables[i]);
     ogpu_target_destroy(final);

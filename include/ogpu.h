@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(1)
+#define OGPU_ABI_VERSION UINT32_C(2)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -305,8 +305,9 @@ OgpuResult ogpu_image_table_create(OgpuDevice *device, const OgpuImageEntry *ent
 void ogpu_image_table_destroy(OgpuImageTable *table);
 /* Recording-only; retains table through discard/failed submit/completion destruction.
  * Affects subsequent draws/dispatches until replaced; no binding-layout compatibility.
- * Does NOT initialize images: each accessed target must first be drawn or explicitly
- * discarded in this batch. All later shader accesses use GENERAL, with
+ * Does NOT initialize images: each accessed target must first be cleared/drawn or
+ * discarded in this or an earlier successfully submitted batch. Later uses preserve
+ * GENERAL and contents until explicit clear/discard, with
  * explicit barriers for real dependencies. Do not access the active draw attachment
  * from a shader. Public table/target handles can be released after retention. */
 OgpuResult ogpu_batch_bind_image_table(OgpuBatch *batch, const OgpuImageTable *table,
@@ -340,20 +341,26 @@ typedef struct OgpuDrawArguments {
     uint32_t first_instance;
 } OgpuDrawArguments;
 
-/* Clear target to opaque black and execute ONE non-indexed indirect draw. All
+#define OGPU_ATTACHMENT_CLEAR 0u
+#define OGPU_ATTACHMENT_LOAD 1u
+#define OGPU_ACCESS_COLOR_READ 256u
+/* Execute ONE non-indexed indirect draw. CLEAR discards and clears to opaque black;
+ * LOAD preserves prior contents and requires initialized, written texels plus an
+ * explicit dependency to COLOR_READ | COLOR_WRITE. Both store final contents. All
  * objects must belong to the batch device. Indirect offset is 4-byte aligned and
  * a full 16-byte record must fit. Arguments are copied; their size must match raster.
  * Records retain raster, target, and indirect buffer, but NOT pointees embedded
  * in arguments. Explicit barriers must order compute-produced vertex/draw data.
  * Target operations manage image layouts and attachment/copy dependencies; every
- * draw discards previous target contents. Public handles may be destroyed after
+ * CLEAR draw discards previous target contents. Public handles may be destroyed after
  * recording; retained resources are released only after discard/completion cleanup. */
 OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
     OgpuTarget *target, OgpuBuffer *indirect, uint64_t indirect_offset,
-    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+    const void *arguments, uint32_t argument_bytes, uint32_t load, OgpuError *out_error);
 
-/* Requires an earlier draw or discard to THIS target in THIS batch; the caller
- * must have written every copied texel. Orders earlier GPU writes before readback.
+/* Caller must initialize GENERAL and write every copied texel in this or an earlier
+ * successfully submitted batch. No hidden initialization or host-side layout tracker.
+ * Orders earlier GPU writes before readback.
  * Copy whole image as
  * tightly packed RGBA8 rows starting at (0,0). Destination offset must be 4-byte
  * aligned; width*height*4 bytes must fit. Retains target and destination. Wait before

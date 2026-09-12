@@ -122,14 +122,14 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         TRY(ogpu_batch_dispatch(batch, producer, 1, &draw, sizeof(draw), &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
             OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ, &error));
-        TRY(ogpu_batch_draw_indirect(batch, first_raster, first, indirect, 0, &draw, sizeof(draw), &error));
+        TRY(ogpu_batch_draw_indirect(batch, first_raster, first, indirect, 0, &draw, sizeof(draw), OGPU_ATTACHMENT_CLEAR, &error));
         TRY(ogpu_batch_copy_target(batch, first, buffers[0], 4, &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_TRANSFER_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
         ProcessRoot copied = process;
         TRY(ogpu_batch_dispatch(batch, processor, (width * height + 63) / 64, &copied, sizeof(copied), &error));
         memset(&copied, 0, sizeof(copied)); /* Recording must already have copied it. */
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
-        TRY(ogpu_batch_draw_indirect(batch, last_raster, last, indirect, 0, &read, sizeof(read), &error));
+        TRY(ogpu_batch_draw_indirect(batch, last_raster, last, indirect, 0, &read, sizeof(read), OGPU_ATTACHMENT_CLEAR, &error));
         TRY(ogpu_batch_copy_target(batch, last, buffers[2], 4, &error));
         TRY(ogpu_batch_submit(batch, &completion, &error));
         ogpu_batch_destroy(batch);

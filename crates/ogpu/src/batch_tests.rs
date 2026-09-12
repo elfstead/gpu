@@ -365,7 +365,11 @@ fn access_masks_are_explicit_and_checked() {
         access(VERTEX_READ | INDIRECT_READ).unwrap().stages,
         vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | vk::VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT
     );
-    for mask in [0, 256, 257, u32::MAX] {
+    assert_eq!(
+        access(COLOR_READ).unwrap().flags,
+        vk::VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
+    );
+    for mask in [0, 512, 513, u32::MAX] {
         assert_eq!(access(mask).unwrap_err().status, INVALID_ARGUMENT);
     }
 }
