@@ -86,6 +86,12 @@ and the first error is returned only after draining or device loss. Timeout
 responses are retried, not treated as completed work. Persistent failures can
 block indefinitely, as in the existing synchronous helper.
 
+The device enforces `maxTimelineSemaphoreValueDifference` before submission and
+rejects exhausted 64-bit values without wrapping. Both cases return OUT_OF_RANGE
+and consume the batch attempt. For a pending-value limit, complete outstanding
+work and record a new batch; exhaustion needs a new device. Failed submission
+attempts burn their reserved values, so a later success can leave gaps.
+
 `ogpu_completion_destroy` waits if necessary before freeing anything; it does not
 cancel submitted work. It has no error return, so explicitly wait first to obtain
 diagnostics. Destroy completions before referenced buffers during cleanup. After

@@ -34,6 +34,7 @@ VkPhysicalDeviceDescriptorHeapPropertiesEXT
 VkSemaphoreCreateInfo
 VkSemaphoreTypeCreateInfo
 VkSemaphoreWaitInfo
+VkPhysicalDeviceTimelineSemaphoreProperties
 VkPipelineCreateFlags2CreateInfo
 VkPipelineRenderingCreateInfo
 VkImageMemoryBarrier2

@@ -52,6 +52,7 @@ functions! {
     vkGetDeviceQueue: PFN_vkGetDeviceQueue,
     vkCreateSemaphore: PFN_vkCreateSemaphore, vkDestroySemaphore: PFN_vkDestroySemaphore,
     vkWaitSemaphores: PFN_vkWaitSemaphores,
+    vkGetSemaphoreCounterValue: PFN_vkGetSemaphoreCounterValue,
     vkCreateBuffer: PFN_vkCreateBuffer, vkDestroyBuffer: PFN_vkDestroyBuffer,
     vkGetBufferMemoryRequirements: PFN_vkGetBufferMemoryRequirements,
     vkAllocateMemory: PFN_vkAllocateMemory, vkFreeMemory: PFN_vkFreeMemory,
@@ -135,6 +136,8 @@ pub(crate) struct Device {
     max_push_data: u64,
     timeline: vk::VkSemaphore,
     next_timeline: Cell<u64>,
+    observed_timeline: Cell<u64>,
+    max_timeline_difference: u64,
     lost: Cell<bool>,
     f: Functions,
     _instance: Arc<Instance>,
@@ -173,11 +176,21 @@ impl Device {
         physical: vk::VkPhysicalDevice,
         require_graphics: bool,
     ) -> Result<Rc<Self>, Error> {
+        Self::create_configured(instance, physical, require_graphics, |_| {})
+    }
+
+    fn create_configured(
+        instance: Arc<Instance>,
+        physical: vk::VkPhysicalDevice,
+        require_graphics: bool,
+        configure: impl FnOnce(&mut Functions),
+    ) -> Result<Rc<Self>, Error> {
         let info = instance.device_info(physical)?;
         require_baseline(&info)?;
         let image_extension =
             instance.supports_extension(physical, c"VK_KHR_unified_image_layouts")?;
-        let f = Functions::load(&instance)?;
+        let mut f = Functions::load(&instance)?;
+        configure(&mut f);
         // SAFETY: the physical handle belongs to the retained instance. Each query has
         // initialized, appropriately sized outputs. Query before enabling the exact profile.
         unsafe {
@@ -250,6 +263,13 @@ impl Device {
                 ..Default::default()
             };
             let mut heap_limits = vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT, ..Default::default() };
+            let mut timeline_limits = vk::VkPhysicalDeviceTimelineSemaphoreProperties {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES,
+                ..Default::default()
+            };
+            heap_limits.pNext = (&mut timeline_limits
+                as *mut vk::VkPhysicalDeviceTimelineSemaphoreProperties)
+                .cast();
             images.unifiedImageLayoutsVideo = vk::VK_FALSE;
             let mut properties2 = vk::VkPhysicalDeviceProperties2 {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
@@ -304,7 +324,7 @@ impl Device {
                 "vkCreateDevice",
                 (f.vkCreateDevice.unwrap())(physical, &create, ptr::null(), &mut handle),
             )?;
-            // No fallible operation between successful creation and wrapping ownership.
+            // Semaphore creation below explicitly cleans up this device on failure.
             let mut queue = ptr::null_mut();
             (f.vkGetDeviceQueue.unwrap())(handle, family, 0, &mut queue);
             let timeline_type = vk::VkSemaphoreTypeCreateInfo {
@@ -337,6 +357,8 @@ impl Device {
                 max_push_data: heap_limits.maxPushDataSize,
                 timeline,
                 next_timeline: Cell::new(0),
+                observed_timeline: Cell::new(0),
+                max_timeline_difference: timeline_limits.maxTimelineSemaphoreValueDifference,
                 lost: Cell::new(false),
                 f,
                 _instance: instance,
@@ -347,6 +369,33 @@ impl Device {
     pub(crate) fn timing_info(&self) -> Result<(f64, u32), Error> {
         self.ready()?;
         timestamp_info(self.timestamp_bits, self.limits.timestampPeriod)
+    }
+
+    fn reserve_timeline(&self) -> Result<u64, Error> {
+        let value = self.next_timeline.get().checked_add(1).ok_or_else(|| {
+            Error::new(
+                OUT_OF_RANGE,
+                "Timeline value exhausted; create a new device",
+            )
+        })?;
+        if value - self.observed_timeline.get() > self.max_timeline_difference {
+            let mut observed = 0;
+            // SAFETY: live device-owned semaphore, externally serialized host access.
+            self.result("vkGetSemaphoreCounterValue", unsafe {
+                (self.f.vkGetSemaphoreCounterValue.unwrap())(
+                    self.handle,
+                    self.timeline,
+                    &mut observed,
+                )
+            })?;
+            self.observed_timeline.set(observed);
+            if value - observed > self.max_timeline_difference {
+                return Err(Error::new(OUT_OF_RANGE, "Timeline pending-value limit reached; complete outstanding work before retrying with a new batch"));
+            }
+        }
+        // Burn attempted values, including unknown submit outcomes. Never reuse them.
+        self.next_timeline.set(value);
+        Ok(value)
     }
 
     fn ready(&self) -> Result<(), Error> {

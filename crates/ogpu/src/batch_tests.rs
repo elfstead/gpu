@@ -7,6 +7,10 @@ thread_local! {
     static WAIT_CALLS: Cell<u32> = const { Cell::new(0) };
     static IDLE_CALLS: Cell<u32> = const { Cell::new(0) };
     static REPORT_LOSS: Cell<bool> = const { Cell::new(false) };
+    static REAL_SUBMIT: Cell<vk::PFN_vkQueueSubmit2> = const { Cell::new(None) };
+    static REAL_DESTROY_DEVICE: Cell<vk::PFN_vkDestroyDevice> = const { Cell::new(None) };
+    static DESTROYED_DEVICES: Cell<u32> = const { Cell::new(0) };
+    static SUBMIT_CALLS: Cell<u32> = const { Cell::new(0) };
 }
 
 // Replace one function at a time; all earlier allocations and destruction stay real
@@ -23,6 +27,98 @@ fail!(fail_allocate(_d: vk::VkDevice, _i: *const vk::VkCommandBufferAllocateInfo
 fail!(fail_begin(_c: vk::VkCommandBuffer, _i: *const vk::VkCommandBufferBeginInfo));
 fail!(fail_end(_c: vk::VkCommandBuffer));
 fail!(fail_submit(_q: vk::VkQueue, _n: u32, _s: *const vk::VkSubmitInfo2, _f: vk::VkFence));
+fail!(fail_semaphore(_d: vk::VkDevice, _i: *const vk::VkSemaphoreCreateInfo,
+    _a: *const vk::VkAllocationCallbacks, _o: *mut vk::VkSemaphore));
+
+unsafe extern "C" fn counted_destroy_device(d: vk::VkDevice, a: *const vk::VkAllocationCallbacks) {
+    DESTROYED_DEVICES.set(DESTROYED_DEVICES.get() + 1);
+    unsafe { (REAL_DESTROY_DEVICE.get().unwrap())(d, a) };
+}
+
+unsafe extern "C" fn submit_once_failed(
+    q: vk::VkQueue,
+    n: u32,
+    s: *const vk::VkSubmitInfo2,
+    f: vk::VkFence,
+) -> vk::VkResult {
+    let call = SUBMIT_CALLS.get();
+    SUBMIT_CALLS.set(call + 1);
+    assert!(f.is_null());
+    assert_eq!(n, 1);
+    let signal = unsafe { &*(*s).pSignalSemaphoreInfos };
+    assert_eq!(signal.value, u64::from(call) + 1);
+    assert_eq!(signal.stageMask, vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+    if call == 0 {
+        FAILURE.get()
+    } else {
+        unsafe { (REAL_SUBMIT.get().unwrap())(q, n, s, f) }
+    }
+}
+
+#[test]
+#[ignore = "requires Vulkan; timeline construction, gaps, limits, and out-of-order waits"]
+fn gpu_timeline_boundaries() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        match Device::new(instance.clone(), physical) {
+            Ok(_) => {}
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        }
+        FAILURE.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
+        DESTROYED_DEVICES.set(0);
+        let failed = Device::create_configured(instance.clone(), physical, false, |f| {
+            f.vkCreateSemaphore = Some(fail_semaphore);
+            REAL_DESTROY_DEVICE.set(f.vkDestroyDevice);
+            f.vkDestroyDevice = Some(counted_destroy_device);
+        });
+        assert!(matches!(failed, Err(e) if e.vk == FAILURE.get()));
+        assert_eq!(DESTROYED_DEVICES.get(), 1);
+
+        for failure in [
+            vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY,
+            vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY,
+            vk::VkResult_VK_ERROR_UNKNOWN,
+        ] {
+            FAILURE.set(failure);
+            SUBMIT_CALLS.set(0);
+            let device = Device::create_configured(instance.clone(), physical, false, |f| {
+                REAL_SUBMIT.set(f.vkQueueSubmit2);
+                f.vkQueueSubmit2 = Some(submit_once_failed);
+            })
+            .unwrap();
+            let mut failed = Batch::new(device.clone()).unwrap();
+            assert!(matches!(unsafe { failed.submit() }, Err(e) if e.vk == failure));
+            assert_eq!(device.next_timeline.get(), 1);
+            let mut first = unsafe { Batch::new(device.clone()).unwrap().submit().unwrap() };
+            let mut second = unsafe { Batch::new(device.clone()).unwrap().submit().unwrap() };
+            assert_eq!((first.timeline_value, second.timeline_value), (2, 3));
+            second.wait().unwrap();
+            first.wait().unwrap();
+            second.wait().unwrap();
+            assert_eq!(SUBMIT_CALLS.get(), 3);
+        }
+
+        let mut device = Device::new(instance.clone(), physical).unwrap();
+        // Tighten the reported limit to exercise rejection without billions of submits.
+        Rc::get_mut(&mut device).unwrap().max_timeline_difference = 1;
+        device.next_timeline.set(1); // Burned value; counter still zero.
+        let mut limited = Batch::new(device.clone()).unwrap();
+        assert!(matches!(unsafe { limited.submit() }, Err(e) if e.status == OUT_OF_RANGE));
+        assert_eq!(device.next_timeline.get(), 1);
+        assert!(limited.steps.is_none());
+        drop(limited);
+        Rc::get_mut(&mut device).unwrap().max_timeline_difference = u64::MAX;
+        device.next_timeline.set(u64::MAX);
+        let mut exhausted = Batch::new(device.clone()).unwrap();
+        assert!(matches!(unsafe { exhausted.submit() }, Err(e) if e.status == OUT_OF_RANGE));
+        assert_eq!(device.next_timeline.get(), u64::MAX);
+        assert!(exhausted.steps.is_none());
+        tested += 1;
+    }
+    assert!(tested > 0, "No execution-capable Vulkan device found");
+}
 
 unsafe extern "C" fn flaky_idle(queue: vk::VkQueue) -> vk::VkResult {
     let call = IDLE_CALLS.get();

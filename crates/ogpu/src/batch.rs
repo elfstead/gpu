@@ -1,6 +1,5 @@
 //! Host-side one-shot recordings and timeline-owned submitted resources.
 use super::*;
-use crate::INTERNAL_ERROR;
 
 pub(crate) const COMPUTE_READ: u32 = 1;
 pub(crate) const COMPUTE_WRITE: u32 = 2;
@@ -279,12 +278,7 @@ impl Batch {
                 commandBuffer: command,
                 ..Default::default()
             };
-            let timeline_value = d
-                .next_timeline
-                .get()
-                .checked_add(1)
-                .ok_or_else(|| Error::new(INTERNAL_ERROR, "Timeline value exhausted"))?;
-            d.next_timeline.set(timeline_value);
+            let timeline_value = d.reserve_timeline()?;
             let signal = vk::VkSemaphoreSubmitInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                 semaphore: d.timeline,

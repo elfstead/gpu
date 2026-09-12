@@ -6807,6 +6807,44 @@ impl Default for VkPhysicalDeviceTimelineSemaphoreFeatures {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceTimelineSemaphoreProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxTimelineSemaphoreValueDifference: u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceTimelineSemaphoreProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceTimelineSemaphoreProperties>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceTimelineSemaphoreProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceTimelineSemaphoreProperties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceTimelineSemaphoreProperties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceTimelineSemaphoreProperties, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceTimelineSemaphoreProperties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceTimelineSemaphoreProperties, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceTimelineSemaphoreProperties::maxTimelineSemaphoreValueDifference",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceTimelineSemaphoreProperties, maxTimelineSemaphoreValueDifference
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceTimelineSemaphoreProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkSemaphoreTypeCreateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -7060,6 +7098,13 @@ impl Default for VkPhysicalDeviceShaderFloat16Int8Features {
         }
     }
 }
+pub type PFN_vkGetSemaphoreCounterValue = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        semaphore: VkSemaphore,
+        pValue: *mut u64,
+    ) -> VkResult,
+>;
 pub type PFN_vkWaitSemaphores = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
