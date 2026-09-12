@@ -14,6 +14,7 @@ for commands. "Implemented" does not mean production-ready or performance-tuned.
 | Compute → offscreen graphics | `cargo xtask graphics` | GPU-generated vertices/indirect arguments, image rendering/readback, shared batches | Sampling, direct compute image access, presentation |
 | Graphics → compute → graphics | `cargo xtask image-loop` | Explicit image/linear conversion, compute pixel transform, fragment address reads, guarded intermediate/final checks and reuse | Sampling/storage images, conversion costs, filtering, general formats |
 | Cooperative integer reduction | `cargo xtask reduction`, `cargo xtask gpu-tests` | Shared memory, uniform workgroup barriers, multi-level partial sums, tails/empty inputs/overflow, guarded intermediate outputs | Floating-point accuracy, subgroup acceleration, scratch reuse, performance |
+| FP32 matrix multiplication | `cargo xtask matmul` | Baseline/tiled kernels, FP64 references, guarded row strides, 50 cases per kernel, separate setup/copy/warmed host timings | Isolated GPU timing, accelerated/narrow types, tuned BLAS comparison, performance portability |
 | Backend ownership/failure paths | `cargo xtask gpu-tests` | Batch states, retained resources, image reuse, preparation/submission/wait failure injection | Real hardware device loss, arbitrary shader faults, all driver behavior |
 
 These paths have been verified locally on the RX 5700 XT (RADV) and llvmpipe, with
@@ -88,12 +89,34 @@ Design implications:
 - No performance claim follows: this path pays for separate allocations and two
   image copies. Direct storage/sampled-image alternatives need a measured comparison.
 
+## FP32 matrix outcome — 2026-09-12
+
+Status: implemented and locally verified; [contract and measurements](matmul.md).
+One scalar-per-output kernel and an 8×8 shared-memory tiled kernel implement
+row-major C=A×B with explicit strides, using the existing API unchanged. Both
+passed 50 shape/input cases per device plus every benchmark warmup/sample on
+RADV and llvmpipe. Checks use FP64 references, a per-output magnitude-aware FP32
+error bound, NaN-poisoned outputs, row padding/guards, and unchanged inputs.
+
+The release runner separates device/pipeline setup, allocation/staging, host
+copies, and warmed recording/submission/wait/cleanup. Two validation-disabled runs
+showed lower median tiled latency on RADV but higher median tiled latency on
+llvmpipe across the three measured shapes. This supports retaining kernel variants,
+not selecting a universal tile. Timings include host/driver overhead, and the
+machine was not isolated or clock-locked; isolated shader throughput remains unknown.
+
+No matrix host operation, 2D dispatch, optional arithmetic feature, or timestamp
+API was added. Workgroup/tile metadata remains a caller/shader agreement. A narrow
+optional timestamp experiment is now the next justified measurement step before
+attributing performance differences or evaluating accelerated matrix variants.
+
 ## Queued experiments
 
-1. Follow up the image loop with measured representation costs before deciding
+1. Add a narrow optional GPU-timestamp experiment to distinguish device execution
+   from host/runtime latency in matrix and mixed workloads; then investigate
+   supported accelerated/narrow-type matrix variants against the FP32 baseline.
+2. Follow up the image loop with measured representation costs before deciding
    whether to add direct storage-image access or sampled-image bindings.
-2. Matrix kernels with numerical references and separately measured runtime,
-   transfer, compilation, and execution costs; then optional accelerated variants.
 3. A compiler/runtime consumer and a second backend for the common compute model.
 
 For each new experiment record: hypothesis, exact workload, required API changes,

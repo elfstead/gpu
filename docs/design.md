@@ -48,6 +48,8 @@ graphics path requires a queue supporting both graphics and compute.
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
 shader barriers, and multi-level dispatch using this existing API. It adds workload
 evidence, not a new host operation or a reason to freeze the execution model.
+The [FP32 matrix experiment](matmul.md) adds numerical references, explicit row
+strides, baseline/tiled variants, and separated host timings without API changes.
 
 The examples establish functional paths and ownership/visibility behavior. They do
 not establish competitive performance, portability across hardware vendors, or a
@@ -130,9 +132,10 @@ operation. Reusable low-level command sequences do not imply runtime-owned ML gr
    image transform and fragment-address reads complete the loop without CPU work
    between stages. Direct image access/sampling and conversion-cost measurements
    remain open; see the [experiment contract](image-loop.md).
-3. **Matrix workload and measurement.** Establish a numerical baseline, then test
-   supported accelerated/narrow-type variants. Separate CPU submission overhead,
-   memory movement, kernel throughput, and compilation costs.
+3. **Matrix workload — FP32 baseline and initial host measurements complete.**
+   Baseline/tiled kernels pass numerical and guarded-layout checks. GPU timestamps
+   are the next measurement experiment: host timings do not isolate kernel time.
+   Accelerated/narrow-type variants and device-local transfers remain untested.
 4. **External consumer and portability.** Integrate a compiler/runtime consumer
    and test a second backend before treating the common contract as stable.
 
@@ -163,6 +166,7 @@ communication are later profiles, not prerequisites for these experiments.
 - [Offscreen graphics](graphics.md): the implemented optional graphics profile.
 - [Reduction](reduction.md): cooperative workgroups and a multi-level compute workload.
 - [Image loop](image-loop.md): mixed execution and explicit image/linear conversion.
+- [Matrix multiplication](matmul.md): FP32 accuracy, tiled variants, and host timings.
 - [Experiments](experiments.md): tested evidence, limitations, and next questions.
 - [Development](development.md): builds, regeneration, validation, and test commands.
 

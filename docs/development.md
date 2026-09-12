@@ -18,6 +18,7 @@ cargo xtask batch
 cargo xtask graphics
 cargo xtask image-loop
 cargo xtask reduction
+cargo xtask matmul
 ```
 
 The first command builds `target/debug/libogpu.so` using checked-in bindings. It
@@ -51,6 +52,14 @@ and final pixel checks, guards, and target reuse. It runs separately from the Ru
 Shared workgroup memory and shader barriers cooperate within a group; batch
 barriers connect levels. One final wait precedes readback. See the
 [reduction experiment](reduction.md) for the numerical contract and test cases.
+
+`matmul` builds the runtime in release mode and its [C harness](../examples/matmul.c)
+with `-O2 -DNDEBUG` (checks remain active). It compares baseline and shared-memory
+FP32 matrix kernels against FP64 CPU references on every compute-capable device,
+including padded row strides, guards, and awkward shapes. It reports setup/copy
+costs and warmed host execution latency separately. These are not GPU timestamps;
+run without validation for comparative timing, and with validation for correctness.
+See [the matrix contract and recorded measurements](matmul.md).
 
 `cargo xtask gpu-tests` runs the Vulkan-backed Rust tests, including asynchronous
 batch lifetimes, dependencies across submissions, and injected preparation,
@@ -102,6 +111,7 @@ cargo xtask gpu-tests
 cargo xtask graphics
 cargo xtask image-loop
 cargo xtask reduction
+cargo xtask matmul
 ```
 
 `bindings` uses **bindgen 0.72.1**, pinned in the Rust tooling crate and Cargo.lock,
