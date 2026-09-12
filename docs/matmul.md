@@ -151,8 +151,9 @@ benchmark or evidence of competitive GEMM performance.
   tile or assumed subgroup width.
 - The initial host timings justified the [now-implemented optional timestamps](timing.md).
   Those measure device-side batch duration separately, not pure arithmetic time or
-  exact CPU overhead. Larger shape sweeps and submission-amortization experiments
-  should precede resource-pool optimization or accelerated-variant conclusions.
+  exact CPU overhead. Larger shape/submission sweeps are possible evidence before
+  optimization, but are now parked under the [integration milestone plan](plan.md).
+  They are not prerequisites for continuing API design or selecting a consumer.
 
 ## Reproduction
 

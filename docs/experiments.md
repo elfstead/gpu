@@ -4,6 +4,10 @@ Updated 2026-09-12. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
+The initial feasibility phase is complete. The [working plan](plan.md) now defines
+the API-candidate/integration milestone and its next task. This ledger is evidence,
+not a development queue; existing experiments remain regression and diagnostic tools.
+
 ## Implemented baseline
 
 | Experiment | Run | Evidence | Still not established |
@@ -126,16 +130,16 @@ Query retrieval is reported separately, and untimed controls expose instrumentat
 cost. These intervals do not isolate individual shader/barrier costs or yield an
 exact CPU/GPU latency decomposition. The machine was not benchmark-isolated.
 
-## Queued experiments
+## Parked follow-ups, not a work queue
 
-1. Sweep larger matrix shapes and multiple dispatches per submission to measure
-   scaling and amortization before optimizing resource reuse; then investigate
-   supported accelerated/narrow-type variants against the FP32 baseline.
-2. Follow up the image loop with measured representation costs before deciding
-   whether to add direct storage-image access or sampled-image bindings.
-3. A compiler/runtime consumer and a second backend for the common compute model.
+Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
+variants, and image-representation cost comparisons remain possible follow-ups.
+They are not scheduled and do not block the first integration merely because they
+are untested. Consumer selection and candidate decisions belong in the
+[working plan](plan.md); a second backend is a later portability gate.
 
-For each new experiment record: hypothesis, exact workload, required API changes,
-independent checks, hardware/toolchain used, observed result, untested cases, and
-the next design question. A successful example is a reason to continue testing,
-not a reason to freeze its temporary constraints.
+Before adding an experiment, name the API decision it can change, the alternatives,
+the minimum discriminating check and a stopping condition. If a check is needed,
+record its workload, API changes, independent references, hardware/toolchain,
+observed result and limitations here. Pure tuning belongs to implementation work,
+not an indefinitely extended API-feasibility phase.

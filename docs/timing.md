@@ -140,10 +140,11 @@ Timing instrumentation has measurable cost, reinforcing the opt-in design and th
 need to keep untimed controls. Whole-batch measurements do not identify individual
 barrier, dispatch, image-copy, or allocation bottlenecks.
 
-Next, use larger shape sweeps and multiple dispatches per submission to test how
-costs scale and amortize before optimizing resource reuse or adding finer markers.
-Accelerated matrix variants, direct image access, and per-region profiling remain
-separate workload-driven decisions; this experiment does not stabilize the API.
+Larger shape sweeps and multiple dispatches per submission could test scaling and
+amortization before resource-reuse optimization or finer markers. These follow-ups
+are now parked under the [integration milestone plan](plan.md), not automatically
+scheduled API work. Accelerated variants, direct image access and per-region
+profiling remain separate decisions; this experiment does not stabilize the API.
 
 Run `cargo xtask matmul` for the comparison, and `cargo xtask gpu-tests` for backend
 state/failure checks. See [matrix reproduction](matmul.md#reproduction) for separate

@@ -4,6 +4,12 @@ Updated 2026-09-12. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
+Initial feasibility is complete. The current phase is an API candidate for a first
+consumer integration, not another open-ended benchmark sequence. The
+[milestone plan](plan.md) owns working status, scope, blocking decisions and exit
+criteria; the first consumer is not yet selected. Experimental still means changes
+are allowed, not that a stable or broadly portable interface has been established.
+
 ## Purpose and scope
 
 Explore a common low-level foundation for graphics, general compute, and ML:
@@ -107,6 +113,11 @@ diagnostics are needed, but they must not be confused with guarantees we do not 
 
 ## Open decisions and the evidence needed
 
+This table describes the broader design horizon, not a list of prerequisites for
+the first checkpoint. The [candidate decisions D0–D5](plan.md#decisions-blocking-the-candidate)
+select the immediate work; other questions remain deferred unless the consumer
+brief requires them.
+
 | Decision | Evidence to seek before settling it |
 |---|---|
 | Inline roots versus GPU-resident argument blocks | GPU-produced structures, layout checks, measured argument/launch costs |
@@ -114,8 +125,8 @@ diagnostics are needed, but they must not be confused with guarantees we do not 
 | Memory placement and transfer model | Device-local linear data, staging/copies, measured movement costs on discrete and integrated GPUs |
 | Queue and batch model | Replayed work, cross-queue dependencies, concurrency, and observable completion/error behavior |
 | Executable preparation | Entry points, workgroup variants, specialization, capability requirements, compilation/cache costs |
-| Images and graphics state | Sampling, compute image access, attachments and a complete graphics → compute → graphics workload |
-| ML profiles | Reductions and matrix kernels; exact storage/arithmetic/conversion/accumulation combinations and matrix shapes |
+| Images and graphics state | A consumer's required access/format/state behavior beyond the implemented buffer-mediated loop; sampling/storage access remain open |
+| ML profiles | Beyond the tested reduction/FP32 baseline: required storage/arithmetic/conversion/accumulation combinations and accelerated matrix shapes |
 | Portability boundary | One real compiler/runtime consumer and a second backend for the common compute subset |
 | Tooling | Finer profiling/calibrated clocks, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |
 
@@ -124,29 +135,27 @@ kernel-language/IR capabilities. The host interface needs to select executable
 variants and negotiate requirements, not add a host function for each arithmetic
 operation. Reusable low-level command sequences do not imply runtime-owned ML graphs.
 
-## Experiment sequence
+## Next milestone: an API candidate for integration
 
-1. **Cooperative reduction — initial experiment completed.** Exact uint32 sums
-   now exercise shared memory, uniform barriers, partial groups, multiple dispatch
-   levels, and scratch ownership. Floating-point accuracy, tuning, and scratch
-   reuse remain separate experiments; see the [recorded outcome](experiments.md).
-2. **Graphics → compute → graphics — initial experiment complete.** A buffer-mediated
-   image transform and fragment-address reads complete the loop without CPU work
-   between stages. Direct image access/sampling and conversion-cost measurements
-   remain open; see the [experiment contract](image-loop.md).
-3. **Matrix workload — FP32 baseline and initial host measurements complete.**
-   Baseline/tiled kernels pass numerical and guarded-layout checks. Optional device
-   timestamps now separate batch duration from host latency. Shape/submission scaling,
-   accelerated/narrow-type variants, and device-local transfers remain untested.
-4. **External consumer and portability.** Integrate a compiler/runtime consumer
-   and test a second backend before treating the common contract as stable.
+The reduction, mixed image loop, FP32 matrix and optional timing experiments have
+provided the initial feasibility evidence. They remain regression/diagnostic tools;
+their untested variants are not automatically the next development steps.
 
-Add API surface when a workload needs it, and record the pressure it exposes. Do
-not require a new function when an existing kernel or command can express the work.
-Windows/presentation, broad rendering features, ray tracing, and multi-device
-communication are later profiles, not prerequisites for these experiments.
+Follow the [milestone plan](plan.md): select one consumer and acceptance brief,
+resolve its consequential API decisions, integrate through the public boundary,
+and produce a version-identified experimental checkpoint with explicit limitations.
+The plan classifies intended semantics, provisional implementation choices and
+deferred features. No first integration or release is claimed yet.
+
+Further experiments must resolve a named decision with a stopping condition.
+Benchmark expansion is paused unless that decision needs it. Presentation, broad
+rendering features, ray tracing, multi-device communication, and a second backend
+are outside this first checkpoint; they are not abandoned project goals.
 
 ## Evidence required before stabilization
+
+These gates concern later stabilization and stronger claims, not completion of the
+first experimental integration checkpoint. Its narrower exit criteria are in the plan.
 
 - Nontrivial compute, image, and mixed workloads agree with independent references.
 - Ownership, layout, visibility, failure, concurrency, and feature-negotiation rules
@@ -162,6 +171,7 @@ communication are later profiles, not prerequisites for these experiments.
 
 ## Where details live
 
+- [Working plan](plan.md): current phase, first usable scope, decisions and completion gates.
 - [Public header](../include/ogpu.h): exact C signatures and caller obligations.
 - [Execution baseline](execution.md): linear memory, shader assumptions, blocking example.
 - [Batches](batches.md): recording, submission, dependencies, completion, and errors.
