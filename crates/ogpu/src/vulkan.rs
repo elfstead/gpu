@@ -10,6 +10,7 @@ use std::{
 const V1_1: u32 = version(1, 1);
 const V1_2: u32 = version(1, 2);
 const V1_3: u32 = version(1, 3);
+const V1_4: u32 = version(1, 4);
 const fn version(major: u32, minor: u32) -> u32 {
     (major << 22) | (minor << 12)
 }
@@ -131,9 +132,10 @@ impl Instance {
                 "Vulkan 1.1 or newer loader required",
             ));
         }
-        // apiVersion declares our application ceiling, not the loader's ceiling.
-        // A 1.1+ instance implementation may expose newer physical devices.
-        let api_version = version(1, 4);
+        // Request the highest version this loader can actually create, capped at the
+        // execution target. Older loaders remain useful for discovery and are rejected
+        // later when a device is asked to execute the modern baseline.
+        let api_version = supported.min(V1_4);
         let create = command!(
             get,
             ptr::null_mut(),

@@ -24,7 +24,11 @@ int main(void) {
 #define LOAD(name) PFN_##name name = (PFN_##name)get(instance, #name); if (!name) return 1
     VkInstance instance = VK_NULL_HANDLE;
     LOAD(vkCreateInstance);
-    VkApplicationInfo app = {.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .apiVersion = VK_API_VERSION_1_4};
+    LOAD(vkEnumerateInstanceVersion);
+    uint32_t loader_version = VK_API_VERSION_1_0;
+    CHECK(vkEnumerateInstanceVersion(&loader_version));
+    uint32_t api_version = loader_version < VK_API_VERSION_1_4 ? loader_version : VK_API_VERSION_1_4;
+    VkApplicationInfo app = {.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO, .apiVersion = api_version};
     VkInstanceCreateInfo create = {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, .pApplicationInfo = &app};
     CHECK(vkCreateInstance(&create, NULL, &instance));
     LOAD(vkDestroyInstance);
