@@ -2154,6 +2154,30 @@ pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY: VkCommandBufferL
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_SECONDARY: VkCommandBufferLevel = 1;
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_MAX_ENUM: VkCommandBufferLevel = 2147483647;
 pub type VkCommandBufferLevel = ::std::os::raw::c_uint;
+pub const VkBorderColor_VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK: VkBorderColor = 0;
+pub const VkBorderColor_VK_BORDER_COLOR_INT_TRANSPARENT_BLACK: VkBorderColor = 1;
+pub const VkBorderColor_VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK: VkBorderColor = 2;
+pub const VkBorderColor_VK_BORDER_COLOR_INT_OPAQUE_BLACK: VkBorderColor = 3;
+pub const VkBorderColor_VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE: VkBorderColor = 4;
+pub const VkBorderColor_VK_BORDER_COLOR_INT_OPAQUE_WHITE: VkBorderColor = 5;
+pub const VkBorderColor_VK_BORDER_COLOR_FLOAT_CUSTOM_EXT: VkBorderColor = 1000287003;
+pub const VkBorderColor_VK_BORDER_COLOR_INT_CUSTOM_EXT: VkBorderColor = 1000287004;
+pub const VkBorderColor_VK_BORDER_COLOR_MAX_ENUM: VkBorderColor = 2147483647;
+pub type VkBorderColor = ::std::os::raw::c_uint;
+pub const VkFilter_VK_FILTER_NEAREST: VkFilter = 0;
+pub const VkFilter_VK_FILTER_LINEAR: VkFilter = 1;
+pub const VkFilter_VK_FILTER_CUBIC_EXT: VkFilter = 1000015000;
+pub const VkFilter_VK_FILTER_CUBIC_IMG: VkFilter = 1000015000;
+pub const VkFilter_VK_FILTER_MAX_ENUM: VkFilter = 2147483647;
+pub type VkFilter = ::std::os::raw::c_uint;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_REPEAT: VkSamplerAddressMode = 0;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: VkSamplerAddressMode = 1;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: VkSamplerAddressMode = 2;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: VkSamplerAddressMode = 3;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: VkSamplerAddressMode = 4;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE_KHR: VkSamplerAddressMode = 4;
+pub const VkSamplerAddressMode_VK_SAMPLER_ADDRESS_MODE_MAX_ENUM: VkSamplerAddressMode = 2147483647;
+pub type VkSamplerAddressMode = ::std::os::raw::c_uint;
 pub const VkCompareOp_VK_COMPARE_OP_NEVER: VkCompareOp = 0;
 pub const VkCompareOp_VK_COMPARE_OP_LESS: VkCompareOp = 1;
 pub const VkCompareOp_VK_COMPARE_OP_EQUAL: VkCompareOp = 2;
@@ -2164,6 +2188,33 @@ pub const VkCompareOp_VK_COMPARE_OP_GREATER_OR_EQUAL: VkCompareOp = 6;
 pub const VkCompareOp_VK_COMPARE_OP_ALWAYS: VkCompareOp = 7;
 pub const VkCompareOp_VK_COMPARE_OP_MAX_ENUM: VkCompareOp = 2147483647;
 pub type VkCompareOp = ::std::os::raw::c_uint;
+pub const VkSamplerMipmapMode_VK_SAMPLER_MIPMAP_MODE_NEAREST: VkSamplerMipmapMode = 0;
+pub const VkSamplerMipmapMode_VK_SAMPLER_MIPMAP_MODE_LINEAR: VkSamplerMipmapMode = 1;
+pub const VkSamplerMipmapMode_VK_SAMPLER_MIPMAP_MODE_MAX_ENUM: VkSamplerMipmapMode = 2147483647;
+pub type VkSamplerMipmapMode = ::std::os::raw::c_uint;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_SAMPLER: VkDescriptorType = 0;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: VkDescriptorType = 1;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: VkDescriptorType = 2;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: VkDescriptorType = 3;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: VkDescriptorType = 4;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: VkDescriptorType = 5;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: VkDescriptorType = 6;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: VkDescriptorType = 7;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: VkDescriptorType = 8;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: VkDescriptorType = 9;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: VkDescriptorType = 10;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK: VkDescriptorType = 1000138000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: VkDescriptorType = 1000150000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV: VkDescriptorType = 1000165000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_SAMPLE_WEIGHT_IMAGE_QCOM: VkDescriptorType = 1000440000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_BLOCK_MATCH_IMAGE_QCOM: VkDescriptorType = 1000440001;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_TENSOR_ARM: VkDescriptorType = 1000460000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_MUTABLE_EXT: VkDescriptorType = 1000351000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_PARTITIONED_ACCELERATION_STRUCTURE_NV: VkDescriptorType = 1000570000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT: VkDescriptorType = 1000138000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_MUTABLE_VALVE: VkDescriptorType = 1000351000;
+pub const VkDescriptorType_VK_DESCRIPTOR_TYPE_MAX_ENUM: VkDescriptorType = 2147483647;
+pub type VkDescriptorType = ::std::os::raw::c_uint;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS: VkPipelineBindPoint = 0;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE: VkPipelineBindPoint = 1;
 pub const VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR: VkPipelineBindPoint = 1000165000;
@@ -2652,6 +2703,7 @@ pub type VkCommandBufferUsageFlags = VkFlags;
 pub type VkShaderModuleCreateFlags = VkFlags;
 pub type VkPipelineCreateFlags = VkFlags;
 pub type VkPipelineShaderStageCreateFlags = VkFlags;
+pub type VkSamplerCreateFlags = VkFlags;
 pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_R_BIT: VkColorComponentFlagBits = 1;
 pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_G_BIT: VkColorComponentFlagBits = 2;
 pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_B_BIT: VkColorComponentFlagBits = 4;
@@ -4925,6 +4977,100 @@ const _: () = {
     ][::std::mem::offset_of!(VkComputePipelineCreateInfo, basePipelineIndex) - 88usize];
 };
 impl Default for VkComputePipelineCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSamplerCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkSamplerCreateFlags,
+    pub magFilter: VkFilter,
+    pub minFilter: VkFilter,
+    pub mipmapMode: VkSamplerMipmapMode,
+    pub addressModeU: VkSamplerAddressMode,
+    pub addressModeV: VkSamplerAddressMode,
+    pub addressModeW: VkSamplerAddressMode,
+    pub mipLodBias: f32,
+    pub anisotropyEnable: VkBool32,
+    pub maxAnisotropy: f32,
+    pub compareEnable: VkBool32,
+    pub compareOp: VkCompareOp,
+    pub minLod: f32,
+    pub maxLod: f32,
+    pub borderColor: VkBorderColor,
+    pub unnormalizedCoordinates: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSamplerCreateInfo",
+    ][::std::mem::size_of::<VkSamplerCreateInfo>() - 80usize];
+    [
+        "Alignment of VkSamplerCreateInfo",
+    ][::std::mem::align_of::<VkSamplerCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::sType",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::flags",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::magFilter",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, magFilter) - 20usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::minFilter",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, minFilter) - 24usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::mipmapMode",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, mipmapMode) - 28usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::addressModeU",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, addressModeU) - 32usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::addressModeV",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, addressModeV) - 36usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::addressModeW",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, addressModeW) - 40usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::mipLodBias",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, mipLodBias) - 44usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::anisotropyEnable",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, anisotropyEnable) - 48usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::maxAnisotropy",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, maxAnisotropy) - 52usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::compareEnable",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, compareEnable) - 56usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::compareOp",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, compareOp) - 60usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::minLod",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, minLod) - 64usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::maxLod",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, maxLod) - 68usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::borderColor",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, borderColor) - 72usize];
+    [
+        "Offset of field: VkSamplerCreateInfo::unnormalizedCoordinates",
+    ][::std::mem::offset_of!(VkSamplerCreateInfo, unnormalizedCoordinates) - 76usize];
+};
+impl Default for VkSamplerCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -8651,6 +8797,43 @@ impl Default for VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkTensorARM_T {
+    _unused: [u8; 0],
+}
+pub type VkTensorARM = *mut VkTensorARM_T;
+pub type VkTensorViewCreateFlagsARM = VkFlags64;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkHostAddressRangeEXT {
+    pub address: *mut ::std::os::raw::c_void,
+    pub size: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkHostAddressRangeEXT",
+    ][::std::mem::size_of::<VkHostAddressRangeEXT>() - 16usize];
+    [
+        "Alignment of VkHostAddressRangeEXT",
+    ][::std::mem::align_of::<VkHostAddressRangeEXT>() - 8usize];
+    [
+        "Offset of field: VkHostAddressRangeEXT::address",
+    ][::std::mem::offset_of!(VkHostAddressRangeEXT, address) - 0usize];
+    [
+        "Offset of field: VkHostAddressRangeEXT::size",
+    ][::std::mem::offset_of!(VkHostAddressRangeEXT, size) - 8usize];
+};
+impl Default for VkHostAddressRangeEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkHostAddressRangeConstEXT {
     pub address: *const ::std::os::raw::c_void,
     pub size: usize,
@@ -8671,6 +8854,241 @@ const _: () = {
     ][::std::mem::offset_of!(VkHostAddressRangeConstEXT, size) - 8usize];
 };
 impl Default for VkHostAddressRangeConstEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type VkDeviceAddressRangeEXT = VkDeviceAddressRangeKHR;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkTexelBufferDescriptorInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub format: VkFormat,
+    pub addressRange: VkDeviceAddressRangeEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkTexelBufferDescriptorInfoEXT",
+    ][::std::mem::size_of::<VkTexelBufferDescriptorInfoEXT>() - 40usize];
+    [
+        "Alignment of VkTexelBufferDescriptorInfoEXT",
+    ][::std::mem::align_of::<VkTexelBufferDescriptorInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkTexelBufferDescriptorInfoEXT::sType",
+    ][::std::mem::offset_of!(VkTexelBufferDescriptorInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkTexelBufferDescriptorInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkTexelBufferDescriptorInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkTexelBufferDescriptorInfoEXT::format",
+    ][::std::mem::offset_of!(VkTexelBufferDescriptorInfoEXT, format) - 16usize];
+    [
+        "Offset of field: VkTexelBufferDescriptorInfoEXT::addressRange",
+    ][::std::mem::offset_of!(VkTexelBufferDescriptorInfoEXT, addressRange) - 24usize];
+};
+impl Default for VkTexelBufferDescriptorInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageDescriptorInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pView: *const VkImageViewCreateInfo,
+    pub layout: VkImageLayout,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageDescriptorInfoEXT",
+    ][::std::mem::size_of::<VkImageDescriptorInfoEXT>() - 32usize];
+    [
+        "Alignment of VkImageDescriptorInfoEXT",
+    ][::std::mem::align_of::<VkImageDescriptorInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkImageDescriptorInfoEXT::sType",
+    ][::std::mem::offset_of!(VkImageDescriptorInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkImageDescriptorInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkImageDescriptorInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkImageDescriptorInfoEXT::pView",
+    ][::std::mem::offset_of!(VkImageDescriptorInfoEXT, pView) - 16usize];
+    [
+        "Offset of field: VkImageDescriptorInfoEXT::layout",
+    ][::std::mem::offset_of!(VkImageDescriptorInfoEXT, layout) - 24usize];
+};
+impl Default for VkImageDescriptorInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkTensorViewCreateInfoARM {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkTensorViewCreateFlagsARM,
+    pub tensor: VkTensorARM,
+    pub format: VkFormat,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkTensorViewCreateInfoARM",
+    ][::std::mem::size_of::<VkTensorViewCreateInfoARM>() - 40usize];
+    [
+        "Alignment of VkTensorViewCreateInfoARM",
+    ][::std::mem::align_of::<VkTensorViewCreateInfoARM>() - 8usize];
+    [
+        "Offset of field: VkTensorViewCreateInfoARM::sType",
+    ][::std::mem::offset_of!(VkTensorViewCreateInfoARM, sType) - 0usize];
+    [
+        "Offset of field: VkTensorViewCreateInfoARM::pNext",
+    ][::std::mem::offset_of!(VkTensorViewCreateInfoARM, pNext) - 8usize];
+    [
+        "Offset of field: VkTensorViewCreateInfoARM::flags",
+    ][::std::mem::offset_of!(VkTensorViewCreateInfoARM, flags) - 16usize];
+    [
+        "Offset of field: VkTensorViewCreateInfoARM::tensor",
+    ][::std::mem::offset_of!(VkTensorViewCreateInfoARM, tensor) - 24usize];
+    [
+        "Offset of field: VkTensorViewCreateInfoARM::format",
+    ][::std::mem::offset_of!(VkTensorViewCreateInfoARM, format) - 32usize];
+};
+impl Default for VkTensorViewCreateInfoARM {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkResourceDescriptorDataEXT {
+    pub pImage: *const VkImageDescriptorInfoEXT,
+    pub pTexelBuffer: *const VkTexelBufferDescriptorInfoEXT,
+    pub pAddressRange: *const VkDeviceAddressRangeEXT,
+    pub pTensorARM: *const VkTensorViewCreateInfoARM,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkResourceDescriptorDataEXT",
+    ][::std::mem::size_of::<VkResourceDescriptorDataEXT>() - 8usize];
+    [
+        "Alignment of VkResourceDescriptorDataEXT",
+    ][::std::mem::align_of::<VkResourceDescriptorDataEXT>() - 8usize];
+    [
+        "Offset of field: VkResourceDescriptorDataEXT::pImage",
+    ][::std::mem::offset_of!(VkResourceDescriptorDataEXT, pImage) - 0usize];
+    [
+        "Offset of field: VkResourceDescriptorDataEXT::pTexelBuffer",
+    ][::std::mem::offset_of!(VkResourceDescriptorDataEXT, pTexelBuffer) - 0usize];
+    [
+        "Offset of field: VkResourceDescriptorDataEXT::pAddressRange",
+    ][::std::mem::offset_of!(VkResourceDescriptorDataEXT, pAddressRange) - 0usize];
+    [
+        "Offset of field: VkResourceDescriptorDataEXT::pTensorARM",
+    ][::std::mem::offset_of!(VkResourceDescriptorDataEXT, pTensorARM) - 0usize];
+};
+impl Default for VkResourceDescriptorDataEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkResourceDescriptorInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub type_: VkDescriptorType,
+    pub data: VkResourceDescriptorDataEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkResourceDescriptorInfoEXT",
+    ][::std::mem::size_of::<VkResourceDescriptorInfoEXT>() - 32usize];
+    [
+        "Alignment of VkResourceDescriptorInfoEXT",
+    ][::std::mem::align_of::<VkResourceDescriptorInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkResourceDescriptorInfoEXT::sType",
+    ][::std::mem::offset_of!(VkResourceDescriptorInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkResourceDescriptorInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkResourceDescriptorInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkResourceDescriptorInfoEXT::type_",
+    ][::std::mem::offset_of!(VkResourceDescriptorInfoEXT, type_) - 16usize];
+    [
+        "Offset of field: VkResourceDescriptorInfoEXT::data",
+    ][::std::mem::offset_of!(VkResourceDescriptorInfoEXT, data) - 24usize];
+};
+impl Default for VkResourceDescriptorInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBindHeapInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub heapRange: VkDeviceAddressRangeEXT,
+    pub reservedRangeOffset: VkDeviceSize,
+    pub reservedRangeSize: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkBindHeapInfoEXT"][::std::mem::size_of::<VkBindHeapInfoEXT>() - 48usize];
+    [
+        "Alignment of VkBindHeapInfoEXT",
+    ][::std::mem::align_of::<VkBindHeapInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkBindHeapInfoEXT::sType",
+    ][::std::mem::offset_of!(VkBindHeapInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkBindHeapInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkBindHeapInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkBindHeapInfoEXT::heapRange",
+    ][::std::mem::offset_of!(VkBindHeapInfoEXT, heapRange) - 16usize];
+    [
+        "Offset of field: VkBindHeapInfoEXT::reservedRangeOffset",
+    ][::std::mem::offset_of!(VkBindHeapInfoEXT, reservedRangeOffset) - 32usize];
+    [
+        "Offset of field: VkBindHeapInfoEXT::reservedRangeSize",
+    ][::std::mem::offset_of!(VkBindHeapInfoEXT, reservedRangeSize) - 40usize];
+};
+impl Default for VkBindHeapInfoEXT {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -8903,6 +9321,34 @@ impl Default for VkPhysicalDeviceDescriptorHeapPropertiesEXT {
         }
     }
 }
+pub type PFN_vkWriteSamplerDescriptorsEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        samplerCount: u32,
+        pSamplers: *const VkSamplerCreateInfo,
+        pDescriptors: *const VkHostAddressRangeEXT,
+    ) -> VkResult,
+>;
+pub type PFN_vkWriteResourceDescriptorsEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        resourceCount: u32,
+        pResources: *const VkResourceDescriptorInfoEXT,
+        pDescriptors: *const VkHostAddressRangeEXT,
+    ) -> VkResult,
+>;
+pub type PFN_vkCmdBindSamplerHeapEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pBindInfo: *const VkBindHeapInfoEXT,
+    ),
+>;
+pub type PFN_vkCmdBindResourceHeapEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pBindInfo: *const VkBindHeapInfoEXT,
+    ),
+>;
 pub type PFN_vkCmdPushDataEXT = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,

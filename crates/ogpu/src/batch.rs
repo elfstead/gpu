@@ -77,6 +77,8 @@ fn access(mask: u32) -> Result<Access, Error> {
 }
 
 enum Step {
+    DiscardTarget(Rc<Target>),
+    BindImages(Rc<ImageTable>),
     Dispatch {
         kernel: Rc<Kernel>,
         groups: u32,
@@ -109,6 +111,28 @@ pub(crate) struct Batch {
 }
 
 impl Batch {
+    pub(crate) fn discard_target(&mut self, target: Rc<Target>) -> Result<(), Error> {
+        if !Rc::ptr_eq(&self.device, &target.device) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Target belongs to another device",
+            ));
+        }
+        self.recording()?.push(Step::DiscardTarget(target));
+        Ok(())
+    }
+
+    pub(crate) fn bind_images(&mut self, table: Rc<ImageTable>) -> Result<(), Error> {
+        if !Rc::ptr_eq(&self.device, &table.device) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Image table belongs to another device",
+            ));
+        }
+        self.recording()?.push(Step::BindImages(table));
+        Ok(())
+    }
+
     pub(crate) fn new(device: Rc<Device>) -> Result<Self, Error> {
         device.ready()?;
         Ok(Self {
@@ -246,12 +270,17 @@ impl Batch {
         }
         destination.range(offset, target.size)?;
         let steps = self.recording()?;
-        if !steps.iter().any(
-            |step| matches!(step, Step::Draw { target: drawn, .. } if Rc::ptr_eq(drawn, &target)),
-        ) {
+        if !steps.iter().any(|step| match step {
+            Step::Draw {
+                target: initialized,
+                ..
+            }
+            | Step::DiscardTarget(initialized) => Rc::ptr_eq(initialized, &target),
+            _ => false,
+        }) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
-                "Target copy requires an earlier draw in this batch",
+                "Target copy requires an earlier draw or discard in this batch",
             ));
         }
         steps.push(Step::CopyTarget {
@@ -467,6 +496,8 @@ impl Completion {
             );
             for step in &self.steps {
                 match step {
+                    Step::DiscardTarget(target) => target.discard(command),
+                    Step::BindImages(table) => table.bind(command),
                     Step::Dispatch {
                         kernel,
                         groups,

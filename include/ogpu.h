@@ -142,10 +142,11 @@ OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *dat
 OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_address, OgpuError *out_error);
 
 /* words is a 4-byte-aligned SPIR-V module, copied/consumed before return. The caller
- * must provide VALID Vulkan 1.2-targeted SPIR-V with a compute entry named "main", no
- * descriptors, and only core-required capabilities plus bufferDeviceAddress. Runtime
- * execution still requires the device's modern Vulkan baseline; this is the module's
- * SPIR-V target, not a compatibility promise for Vulkan 1.2 devices.
+ * must provide VALID SPIR-V for the enabled modern Vulkan baseline with a compute
+ * entry named "main" and no descriptor-set bindings. Core capabilities, BDA,
+ * untyped pointers and native descriptor-heap access are supported. Heap shaders
+ * require a bound table with matching descriptor kinds, formats and valid indices.
+ * Legacy descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
  * push_size_bytes must be a multiple of 4 within maxPushDataSize; zero is legal.
  * All shader push accesses must fit this range. Header checks are NOT validation
  * or sandboxing; malformed/incompatible shaders may cause driver faults. */
@@ -154,6 +155,7 @@ OgpuResult ogpu_kernel_create(OgpuDevice *device, const uint32_t *words, uint64_
 void ogpu_kernel_destroy(OgpuKernel *kernel);
 
 /* One-dimensional dispatch: groups_x workgroups; the shader defines local size.
+ * This convenience call has no image-table binding; use a batch for heap shaders.
  * groups_x must be nonzero and within the device limit. Argument byte count must
  * exactly match the kernel's push size (NULL allowed only for zero bytes).
  * The caller defines the argument layout, including initialized padding bytes.
@@ -272,18 +274,51 @@ OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_na
  * apply. Requires dynamicRendering, VK_KHR_unified_image_layouts with
  * unifiedImageLayouts, and a shared graphics/compute queue. Ownership rules
  * apply. Both objects retain their device. Targets are specialized images, NOT
- * addressable allocations. No window, presentation, depth, blending, or sampling. */
+ * addressable allocations. No window, presentation, depth, or blending. */
 typedef struct OgpuTarget OgpuTarget;
 typedef struct OgpuRaster OgpuRaster;
 
 /* Single-layer/mip/sample RGBA8 UNORM target. Extents must be nonzero and supported.
+ * Supports attachment, sampled and RGBA8 storage use; rejects unsupported formats.
  * No CPU mapping. Read back through batch_copy_target and a completion wait. */
 OgpuResult ogpu_target_create_rgba8(OgpuDevice *device, uint32_t width, uint32_t height,
     OgpuTarget **out_target, OgpuError *out_error);
 void ogpu_target_destroy(OgpuTarget *target);
 
-/* Valid matching vertex/fragment Vulkan 1.2-targeted SPIR-V main entries; no descriptors,
- * only core-required capabilities plus BDA. Storage reads only in these stages;
+/* Experimental immutable image table, scoped to the graphics image profile.
+ * Entry position is the uint32 shader image index. A target may appear more than
+ * once with different kinds. reserved must be zero. No image-view handles escape.
+ * The table retains all targets and owns separate resource/sampler heaps. Sampler
+ * index 0 is normalized-coordinate nearest/clamp-to-edge, mip 0 only. No updates,
+ * filtering choices, implicit access dependencies, or recursive resource tracing.
+ * Shader indices/kinds/formats/bounds remain the trusted caller's responsibility. */
+typedef struct OgpuImageTable OgpuImageTable;
+#define OGPU_IMAGE_SAMPLED 0u
+#define OGPU_IMAGE_STORAGE 1u
+typedef struct OgpuImageEntry {
+    const OgpuTarget *target;
+    uint32_t kind;
+    uint32_t reserved;
+} OgpuImageEntry;
+OgpuResult ogpu_image_table_create(OgpuDevice *device, const OgpuImageEntry *entries,
+    uint32_t count, OgpuImageTable **out_table, OgpuError *out_error);
+void ogpu_image_table_destroy(OgpuImageTable *table);
+/* Recording-only; retains table through discard/failed submit/completion destruction.
+ * Affects subsequent draws/dispatches until replaced; no binding-layout compatibility.
+ * Does NOT initialize images: each accessed target must first be drawn or explicitly
+ * discarded in this batch. All later shader accesses use GENERAL, with
+ * explicit barriers for real dependencies. Do not access the active draw attachment
+ * from a shader. Public table/target handles can be released after retention. */
+OgpuResult ogpu_batch_bind_image_table(OgpuBatch *batch, const OgpuImageTable *table,
+    OgpuError *out_error);
+/* Retains target and discards prior contents, ordering earlier uses and preparing
+ * GENERAL for shader writes. This does not clear texels: write before reading them.
+ * Useful for a compute-produced image without an otherwise unnecessary draw. */
+OgpuResult ogpu_batch_discard_target(OgpuBatch *batch, const OgpuTarget *target,
+    OgpuError *out_error);
+
+/* Valid matching vertex/fragment SPIR-V main entries; same baseline/heap contract
+ * as kernel_create. Storage reads only in these stages;
  * vertex/fragment stores/atomics are NOT enabled. Vertex positions must be written
  * by the vertex shader; fragment location 0 is a floating-point RGBA output.
  * Fixed triangle-list/fill/no-cull state, full-target viewport/scissor, one sample,
@@ -317,7 +352,9 @@ OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
     OgpuTarget *target, OgpuBuffer *indirect, uint64_t indirect_offset,
     const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
 
-/* Requires an earlier draw to THIS target in THIS batch. Copy whole image as
+/* Requires an earlier draw or discard to THIS target in THIS batch; the caller
+ * must have written every copied texel. Orders earlier GPU writes before readback.
+ * Copy whole image as
  * tightly packed RGBA8 rows starting at (0,0). Destination offset must be 4-byte
  * aligned; width*height*4 bytes must fit. Retains target and destination. Wait before
  * CPU access; explicit TRANSFER_WRITE dependencies precede subsequent GPU consumers.

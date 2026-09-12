@@ -24,6 +24,9 @@ jobs:
       - run: cargo xtask retirement
       - run: cargo xtask graphics
       - run: cargo xtask image-loop
+      - run: spirv-val --target-env vulkan1.4 examples/shaders/heap-process.comp.spv
+      - run: spirv-val --target-env vulkan1.4 examples/shaders/heap-sample.frag.spv
+      - run: cargo xtask heap-image
       - run: cargo xtask reduction
       - run: cargo xtask matmul
       - run: cargo xtask gpu-tests

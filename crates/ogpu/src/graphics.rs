@@ -65,7 +65,7 @@ pub(crate) struct Target {
     pub(super) size: usize,
     width: u32,
     height: u32,
-    image: vk::VkImage,
+    pub(super) image: vk::VkImage,
     memory: vk::VkDeviceMemory,
     view: vk::VkImageView,
 }
@@ -75,7 +75,9 @@ impl Target {
         ready(&device)?;
         let size = target_size(width, height, &device.limits)?;
         let usage = vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLED_BIT
+            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_STORAGE_BIT;
         let mut format = vk::VkImageFormatProperties::default();
         // SAFETY: physical device belongs to our retained instance and output is writable.
         let status = unsafe {
@@ -92,7 +94,7 @@ impl Target {
         if status == vk::VkResult_VK_ERROR_FORMAT_NOT_SUPPORTED {
             return Err(Error::new(
                 UNSUPPORTED,
-                "RGBA8 attachment/readback format unsupported",
+                "RGBA8 attachment/readback/sampled/storage format unsupported",
             ));
         }
         device.result("vkGetPhysicalDeviceImageFormatProperties", status)?;
@@ -227,33 +229,6 @@ impl Target {
             pColorAttachments: &attachment,
             ..Default::default()
         };
-        // This fixed-profile draw discards contents every time. UNDEFINED handles
-        // initialization too, without mutable per-image layout bookkeeping.
-        let initialize = vk::VkImageMemoryBarrier2 {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            srcStageMask: vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-            srcAccessMask: vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
-            dstStageMask: vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-            dstAccessMask: vk::VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            oldLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_UNDEFINED,
-            newLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
-            srcQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
-            dstQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
-            image: self.image,
-            subresourceRange: vk::VkImageSubresourceRange {
-                aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
-                levelCount: 1,
-                layerCount: 1,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let dependency = vk::VkDependencyInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            imageMemoryBarrierCount: 1,
-            pImageMemoryBarriers: &initialize,
-            ..Default::default()
-        };
         let viewport = vk::VkViewport {
             x: 0.0,
             y: 0.0,
@@ -265,7 +240,7 @@ impl Target {
         // SAFETY: validated same-device objects are retained by the recording; caller
         // guarantees indirect contents and reachable shader memory. Commands are recording.
         unsafe {
-            (d.f.vkCmdPipelineBarrier2.unwrap())(command, &dependency);
+            self.discard(command);
             (d.f.vkCmdBeginRendering.unwrap())(command, &begin);
             (d.f.vkCmdBindPipeline.unwrap())(
                 command,
@@ -289,6 +264,39 @@ impl Target {
             };
             (d.f.vkCmdDrawIndirect2KHR.unwrap())(command, &draw);
             (d.f.vkCmdEndRendering.unwrap())(command);
+        }
+    }
+
+    pub(super) unsafe fn discard(&self, command: vk::VkCommandBuffer) {
+        // Explicit discard needs no tracked previous layout. Order all earlier uses
+        // before initialization, then make GENERAL available to graphics or compute.
+        let initialize = vk::VkImageMemoryBarrier2 {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            srcStageMask: vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            srcAccessMask: vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
+            dstStageMask: vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+            dstAccessMask: vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
+            oldLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_UNDEFINED,
+            newLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
+            srcQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
+            dstQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
+            image: self.image,
+            subresourceRange: vk::VkImageSubresourceRange {
+                aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
+                levelCount: 1,
+                layerCount: 1,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let dependency = vk::VkDependencyInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            imageMemoryBarrierCount: 1,
+            pImageMemoryBarriers: &initialize,
+            ..Default::default()
+        };
+        unsafe {
+            (self.device.f.vkCmdPipelineBarrier2.unwrap())(command, &dependency);
         }
     }
 
@@ -326,15 +334,15 @@ impl Target {
             pRegions: &region,
             ..Default::default()
         };
-        // SAFETY: the earlier same-batch draw initialized GENERAL. Preserve the
-        // existing profile's implicit attachment-to-readback dependency.
+        // SAFETY: an earlier same-batch draw/discard initialized GENERAL. Include
+        // shader writes as well as attachment writes in the readback dependency.
         unsafe {
             batch::barrier(
                 &self.device,
                 command,
-                vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                 vk::VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                vk::VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
                 vk::VK_ACCESS_2_TRANSFER_READ_BIT,
             );
             (self.device.f.vkCmdCopyImageToMemoryKHR.unwrap())(command, &copy);
@@ -369,8 +377,9 @@ pub(crate) struct Raster {
 
 impl Raster {
     /// # Safety
-    /// Valid matching vertex/fragment SPIR-V main entries, descriptor-free, only
-    /// core-required capabilities plus BDA, read-only storage, and matching root layout.
+    /// Valid matching vertex/fragment SPIR-V main entries, no descriptor-set bindings, only
+    /// the enabled baseline (including native heaps), read-only storage, matching
+    /// root layout, and valid bound table indices for any heap accesses.
     pub(crate) unsafe fn new(
         device: Rc<Device>,
         vertex: &[u32],

@@ -1,6 +1,6 @@
 //! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
 use crate::{
-    compute::{Batch, Buffer, Completion, Device, Kernel, Raster, Target},
+    compute::{Batch, Buffer, Completion, Device, ImageTable, Kernel, Raster, Target},
     Error, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
     SUCCESS,
 };
@@ -19,6 +19,95 @@ pub struct OgpuBuffer {
 }
 pub struct OgpuTarget {
     inner: Rc<Target>,
+}
+pub struct OgpuImageTable {
+    inner: Rc<ImageTable>,
+}
+
+/// # Safety
+/// Live same-device batch/target, writable error; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_discard_target(
+    batch: *mut OgpuBatch,
+    target: *const OgpuTarget,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(target)?;
+            (*batch).inner.discard_target((*target).inner.clone())
+        })
+    }
+}
+
+#[repr(C)]
+pub struct OgpuImageEntry {
+    pub target: *const OgpuTarget,
+    pub kind: u32,
+    pub reserved: u32,
+}
+
+/// # Safety
+/// Live same-device targets; readable entries and writable, non-overlapping outputs.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_image_table_create(
+    device: *mut OgpuDevice,
+    entries: *const OgpuImageEntry,
+    count: u32,
+    out_table: *mut *mut OgpuImageTable,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out_table)?;
+            *out_table = ptr::null_mut();
+            required(device)?;
+            required(entries)?;
+            if count == 0 {
+                return Err(Error::new(INVALID_ARGUMENT, "Empty image table"));
+            }
+            let mut owned = Vec::new();
+            for entry in std::slice::from_raw_parts(entries, count as usize) {
+                required(entry.target)?;
+                if entry.reserved != 0 {
+                    return Err(Error::new(INVALID_ARGUMENT, "Reserved image entry field"));
+                }
+                owned.push(((*entry.target).inner.clone(), entry.kind));
+            }
+            let inner = Rc::new(ImageTable::new((*device).inner.clone(), owned)?);
+            *out_table = Box::into_raw(Box::new(OgpuImageTable { inner }));
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_image_table_destroy(table: *mut OgpuImageTable) {
+    if !table.is_null() {
+        unsafe {
+            drop(Box::from_raw(table));
+        }
+    }
+}
+
+/// # Safety
+/// Live same-device batch/table; writable error; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_bind_image_table(
+    batch: *mut OgpuBatch,
+    table: *const OgpuImageTable,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(table)?;
+            (*batch).inner.bind_images((*table).inner.clone())
+        })
+    }
 }
 pub struct OgpuRaster {
     inner: Rc<Raster>,
@@ -707,6 +796,27 @@ mod tests {
     #[test]
     fn invalid_graphics_arguments_need_no_driver() {
         unsafe {
+            let mut table = ptr::dangling_mut::<OgpuImageTable>();
+            assert_eq!(
+                ogpu_image_table_create(
+                    ptr::null_mut(),
+                    ptr::null(),
+                    0,
+                    &mut table,
+                    ptr::null_mut()
+                ),
+                INVALID_ARGUMENT
+            );
+            assert!(table.is_null());
+            assert_eq!(
+                ogpu_batch_bind_image_table(ptr::null_mut(), ptr::null(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_discard_target(ptr::null_mut(), ptr::null(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            ogpu_image_table_destroy(ptr::null_mut());
             let mut device = ptr::dangling_mut::<OgpuDevice>();
             let mut target = ptr::dangling_mut::<OgpuTarget>();
             let mut raster = ptr::dangling_mut::<OgpuRaster>();

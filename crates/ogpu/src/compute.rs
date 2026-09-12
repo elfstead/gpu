@@ -10,6 +10,9 @@ pub(crate) use batch::{Batch, Completion};
 #[path = "graphics.rs"]
 mod graphics;
 pub(crate) use graphics::{Raster, Target};
+#[path = "image_table.rs"]
+mod image_table;
+pub(crate) use image_table::ImageTable;
 
 #[cfg(test)]
 #[path = "reduction_tests.rs"]
@@ -45,6 +48,10 @@ functions! {
     vkCmdEndRendering: PFN_vkCmdEndRendering,
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
     vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
+    vkWriteResourceDescriptorsEXT: PFN_vkWriteResourceDescriptorsEXT,
+    vkWriteSamplerDescriptorsEXT: PFN_vkWriteSamplerDescriptorsEXT,
+    vkCmdBindResourceHeapEXT: PFN_vkCmdBindResourceHeapEXT,
+    vkCmdBindSamplerHeapEXT: PFN_vkCmdBindSamplerHeapEXT,
     vkGetPhysicalDeviceMemoryProperties: PFN_vkGetPhysicalDeviceMemoryProperties,
     vkGetPhysicalDeviceProperties: PFN_vkGetPhysicalDeviceProperties,
     vkGetPhysicalDeviceQueueFamilyProperties: PFN_vkGetPhysicalDeviceQueueFamilyProperties,
@@ -134,6 +141,7 @@ pub(crate) struct Device {
     memory: vk::VkPhysicalDeviceMemoryProperties,
     limits: vk::VkPhysicalDeviceLimits,
     max_push_data: u64,
+    heap_limits: vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT,
     timeline: vk::VkSemaphore,
     next_timeline: Cell<u64>,
     observed_timeline: Cell<u64>,
@@ -345,6 +353,7 @@ impl Device {
                 (f.vkDestroyDevice.unwrap())(handle, ptr::null());
                 return Err(Error::vulkan("vkCreateSemaphore", status));
             }
+            heap_limits.pNext = ptr::null_mut();
             Ok(Rc::new(Self {
                 handle,
                 queue,
@@ -355,6 +364,7 @@ impl Device {
                 memory,
                 limits: properties.limits,
                 max_push_data: heap_limits.maxPushDataSize,
+                heap_limits,
                 timeline,
                 next_timeline: Cell::new(0),
                 observed_timeline: Cell::new(0),
@@ -493,6 +503,14 @@ fn memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -> Opti
 
 impl Buffer {
     pub(crate) fn new(device: Rc<Device>, size: usize) -> Result<Self, Error> {
+        Self::with_usage(device, size, 0)
+    }
+
+    fn with_usage(
+        device: Rc<Device>,
+        size: usize,
+        extra_usage: vk::VkBufferUsageFlags,
+    ) -> Result<Self, Error> {
         device.ready()?;
         if size == 0 || size > isize::MAX as usize {
             return Err(Error::new(
@@ -520,7 +538,8 @@ impl Buffer {
                 // buffer's indirect/transfer usage under Vulkan's validity rules.
                 usage: vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
                     | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
-                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                    | extra_usage,
                 sharingMode: vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE,
                 ..Default::default()
             };
@@ -700,7 +719,8 @@ impl Drop for Kernel {
 impl Kernel {
     /// # Safety
     /// SPIR-V must be valid for this device's enabled modern baseline, a compute entry named
-    /// main, no descriptors, and no push-constant accesses outside push_size bytes.
+    /// main, no descriptor-set bindings, and no push-data accesses outside push_size bytes.
+    /// Heap accesses require a matching bound image table and valid indices/formats.
     pub(crate) unsafe fn new(
         device: Rc<Device>,
         words: &[u32],

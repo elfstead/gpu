@@ -63,3 +63,7 @@ vkCmdBeginRendering
 vkCmdEndRendering
 vkCmdDrawIndirect2KHR
 vkCmdCopyImageToMemoryKHR
+vkWriteResourceDescriptorsEXT
+vkWriteSamplerDescriptorsEXT
+vkCmdBindResourceHeapEXT
+vkCmdBindSamplerHeapEXT

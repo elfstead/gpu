@@ -155,8 +155,9 @@ fn abi(root: &Path) -> Result {
             c.push_str(&format!(
                 "printf(\"{name}.{field} %zu\\n\", offsetof({name}, {field}));\n"
             ));
+            let rust_field = if field == "type" { "type_" } else { field };
             rust.push_str(&format!(
-                "println!(\"{name}.{field} {{}}\", std::mem::offset_of!({ty}, {field}));\n"
+                "println!(\"{name}.{field} {{}}\", std::mem::offset_of!({ty}, {rust_field}));\n"
             ));
         }
     }
@@ -289,6 +290,76 @@ fn compute(root: &Path) -> Result {
     c_execution(root, "compute", &["roundtrip"])
 }
 
+fn heap_shaders(root: &Path, check: bool) -> Result {
+    let compiler = env::var_os("SLANGC").unwrap_or_else(|| "slangc".into());
+    let version = run(Command::new(&compiler).arg("-version"))?;
+    let version = format!(
+        "{}{}",
+        String::from_utf8_lossy(&version.stdout),
+        String::from_utf8_lossy(&version.stderr)
+    );
+    if version.trim() != "2026.14.1" {
+        return Err("Heap shader reproduction requires Slang 2026.14.1".into());
+    }
+    fs::create_dir_all(root.join("target/heap-shaders"))?;
+    for (name, stage, suffix) in [
+        ("heap-process", "compute", "comp"),
+        ("heap-sample", "fragment", "frag"),
+    ] {
+        let binary = root.join(format!("target/heap-shaders/{name}.{suffix}.spv"));
+        run(Command::new(&compiler)
+            .arg(root.join(format!("examples/shaders/{name}.slang")))
+            .args([
+                "-target",
+                "spirv",
+                "-profile",
+                "spirv_1_5",
+                "-emit-spirv-directly",
+                "-fvk-use-entrypoint-name",
+                "-fvk-use-c-layout",
+                "-matrix-layout-row-major",
+                "-capability",
+                "spvDescriptorHeapEXT",
+                "-entry",
+                "main",
+                "-stage",
+                stage,
+                "-o",
+            ])
+            .arg(&binary))?;
+        run(Command::new("spirv-val")
+            .args(["--target-env", "vulkan1.4"])
+            .arg(&binary))?;
+        let disassembly = run(Command::new("spirv-dis").arg(&binary))?;
+        let text = String::from_utf8(disassembly.stdout)?;
+        for line in text.lines().filter(|line| line.contains("OpCapability")) {
+            if !matches!(
+                line.split_whitespace().last(),
+                Some("Shader" | "UntypedPointersKHR" | "DescriptorHeapEXT")
+            ) {
+                return Err(format!("Unexpected shader capability: {line}").into());
+            }
+        }
+        if !text.contains("BuiltIn ResourceHeapEXT")
+            || text.contains(" DescriptorSet ")
+            || (stage == "fragment" && !text.contains("BuiltIn SamplerHeapEXT"))
+            || (stage == "compute" && !text.contains(" Rgba8"))
+        {
+            return Err("Shader does not implement the native RGBA8 heap contract".into());
+        }
+        let checked_in = root.join(format!("examples/shaders/{name}.{suffix}.spv"));
+        if check {
+            if fs::read(&binary)? != fs::read(&checked_in)? {
+                return Err(format!("Stale shader {name}").into());
+            }
+        } else {
+            fs::copy(&binary, checked_in)?;
+        }
+    }
+    println!("Native heap shaders: pinned compilation, validation and capability checks passed.");
+    Ok(())
+}
+
 fn batch(root: &Path) -> Result {
     c_execution(root, "batch", &["produce", "consume"])
 }
@@ -402,6 +473,8 @@ fn main() -> Result {
             bindings(&root, true)
         }
         Some("abi") if args.len() == 1 => abi(&root),
+        Some("heap-shaders") if args.len() == 1 => heap_shaders(&root, false),
+        Some("heap-shaders") if args.len() == 2 && args[1] == "--check" => heap_shaders(&root, true),
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
@@ -409,13 +482,14 @@ fn main() -> Result {
         Some("retirement") if args.len() == 1 => c_execution(&root, "retirement", &["produce", "consume"]),
         Some("graphics") if args.len() == 1 => graphics(&root),
         Some("image-loop") if args.len() == 1 => image_loop(&root),
+        Some("heap-image") if args.len() == 1 => c_execution(&root, "heap_image", &["fullscreen.vert", "image-pattern.frag", "heap-process.comp", "heap-sample.frag"]),
         Some("reduction") if args.len() == 1 => reduction(&root),
         Some("matmul") if args.len() == 1 =>
             c_execution_profile(&root, "matmul", &["matmul-naive.comp", "matmul-tiled.comp"], true),
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }
