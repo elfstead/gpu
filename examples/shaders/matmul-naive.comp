@@ -1,0 +1,30 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input {
+    float values[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output {
+    float values[];
+};
+layout(push_constant, std430) uniform Root {
+    Input a;
+    Input b;
+    Output c;
+    uint m;
+    uint n;
+    uint k;
+    uint lda;
+    uint ldb;
+    uint ldc;
+} root;
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= root.m * root.n) return;
+    uint row = i / root.n;
+    uint col = i % root.n;
+    float sum = 0.0;
+    for (uint k = 0; k < root.k; ++k)
+        sum += root.a.values[row * root.lda + k] * root.b.values[k * root.ldb + col];
+    root.c.values[row * root.ldc + col] = sum;
+}

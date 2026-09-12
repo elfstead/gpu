@@ -1,0 +1,44 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input {
+    float values[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output {
+    float values[];
+};
+layout(push_constant, std430) uniform Root {
+    Input a;
+    Input b;
+    Output c;
+    uint m;
+    uint n;
+    uint k;
+    uint lda;
+    uint ldb;
+    uint ldc;
+} root;
+shared float a_tile[64];
+shared float b_tile[64];
+void main() {
+    uint lane = gl_LocalInvocationID.x;
+    uint y = lane / 8u;
+    uint x = lane % 8u;
+    uint column_tiles = root.n / 8u + uint(root.n % 8u != 0u);
+    uint row = (gl_WorkGroupID.x / column_tiles) * 8u + y;
+    uint col = (gl_WorkGroupID.x % column_tiles) * 8u + x;
+    float sum = 0.0;
+    for (uint base = 0; base < root.k; base += 8u) {
+        a_tile[lane] = row < root.m && base + x < root.k
+            ? root.a.values[row * root.lda + base + x] : 0.0;
+        b_tile[lane] = base + y < root.k && col < root.n
+            ? root.b.values[(base + y) * root.ldb + col] : 0.0;
+        barrier(); // All lanes must finish loading before anyone consumes the tiles.
+        for (uint j = 0; j < 8u; ++j)
+            sum += a_tile[y * 8u + j] * b_tile[j * 8u + x];
+        barrier(); // No lane may overwrite a tile while another still reads it.
+    }
+    // Boundary lanes participate throughout; only stores are suppressed.
+    if (row < root.m && col < root.n)
+        root.c.values[row * root.ldc + col] = sum;
+}

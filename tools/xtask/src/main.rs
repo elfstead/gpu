@@ -306,11 +306,29 @@ fn image_loop(root: &Path) -> Result {
 }
 
 fn c_execution(root: &Path, name: &str, shaders: &[&str]) -> Result {
-    build(root)?;
-    let target = root.join("target/debug");
+    c_execution_profile(root, name, shaders, false)
+}
+
+fn c_execution_profile(root: &Path, name: &str, shaders: &[&str], release: bool) -> Result {
+    if release {
+        println!("C experiment: release Rust runtime, C -O2 -DNDEBUG (no fast-math).");
+        run(
+            Command::new(env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+                .current_dir(root)
+                .args(["build", "--locked", "--release", "-p", "ogpu"]),
+        )?;
+    } else {
+        build(root)?;
+    }
+    let target = root.join(if release {
+        "target/release"
+    } else {
+        "target/debug"
+    });
     let executable = target.join(format!("ogpu-{name}-c"));
     run(compiler()
         .args(["-std=c11", "-DNDEBUG", "-Wall", "-Wextra", "-Werror"])
+        .arg(if release { "-O2" } else { "-O0" })
         .arg("-I")
         .arg(root.join("include"))
         .arg(root.join(format!("examples/{name}.c")))
@@ -375,10 +393,12 @@ fn main() -> Result {
         Some("graphics") if args.len() == 1 => graphics(&root),
         Some("image-loop") if args.len() == 1 => image_loop(&root),
         Some("reduction") if args.len() == 1 => reduction(&root),
+        Some("matmul") if args.len() == 1 =>
+            c_execution_profile(&root, "matmul", &["matmul-naive.comp", "matmul-tiled.comp"], true),
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | graphics | image-loop | reduction | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | abi | mock | compute | batch | graphics | image-loop | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

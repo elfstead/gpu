@@ -29,6 +29,12 @@ jobs:
       - run: spirv-val --target-env vulkan1.2 examples/shaders/image-process.comp.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/fullscreen.vert.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/image-read.frag.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/matmul-naive.comp.spv
+      - run: spirv-val --target-env vulkan1.2 examples/shaders/matmul-tiled.comp.spv
+      - run: cargo xtask matmul
+        env:
+          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+          VK_LAYER_VALIDATE_SYNC: '1'
       - run: cargo xtask image-loop
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
