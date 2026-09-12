@@ -47,8 +47,9 @@ features listed in the baseline decision. The optional graphics path additionall
 requires dynamic rendering, unified image layouts and a shared graphics/compute queue.
 Pipelines have no layout objects; roots use push data. Barriers, submission and
 timestamps use synchronization2. Rendering uses no render-pass/framebuffer objects,
-and indirect draws/readback use addresses. Completion fences remain pending the
-separate timeline/retirement design; they are not a compatibility fallback.
+and indirect draws/readback use addresses. Completions now wait on monotonically
+increasing values of one device-owned timeline semaphore; a centralized retirement
+queue and polling API remain separate experiments, not compatibility fallbacks.
 
 | Part | Implemented contract | Deliberate restriction |
 |---|---|---|

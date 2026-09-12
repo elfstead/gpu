@@ -32,7 +32,7 @@ query allocation/reset/write/read calls. The C ABI remains experimental.
 
 Use two Vulkan timestamp queries per timed submission: command-buffer reset,
 TOP_OF_PIPE before the existing batch boundary barrier, BOTTOM_OF_PIPE after the
-last boundary barrier. After fence completion, retrieve 64-bit results without
+last boundary barrier. After timeline completion, retrieve 64-bit results without
 WAIT_BIT. This conventional bracket is approximate: stage latching can happen
 later, prior queued work may overlap, and barriers/contention/scheduling affect
 the interval. It measures the instrumented batch, not isolated shader arithmetic.

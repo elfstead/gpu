@@ -79,7 +79,7 @@ be used by the CPU while a submission runs.
 ## Completion and errors
 
 `ogpu_completion_wait` blocks without a timeout until that submission completes or
-the device is lost. It waits on a per-submission fence, not queue idle. Repeated
+the device is lost. It waits on a per-submission timeline value, not queue idle. Repeated
 waits are allowed and preserve the recorded wait outcome. A non-loss wait error
 does not establish completion: resources stay owned while waiting is retried,
 and the first error is returned only after draining or device loss. Timeout
@@ -98,7 +98,7 @@ unexpected submission error, conservatively drain the queue before releasing
 command resources. Failure of this attempt does not establish completion of other
 outstanding submissions; their completion handles still govern their lifetimes.
 The backend follows the [Vulkan submission failure guarantees](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit.html)
-and [fence wait semantics](https://docs.vulkan.org/refpages/latest/refpages/source/vkWaitForFences.html).
+and [timeline semaphore wait semantics](https://docs.vulkan.org/refpages/latest/refpages/source/vkWaitSemaphores.html).
 
 `ogpu_dispatch_wait` remains an ordered convenience operation built on a batch,
 an initial compute-read/write → compute-read/write dependency, and a completion
@@ -136,7 +136,7 @@ cargo xtask gpu-tests
 `gpu-tests` also exercises discarded/empty batches, multiple outstanding
 submissions, cross-submission dependencies, copied arguments, wrong-device
 kernels, terminal batch state, parent/kernel retention, and draining destruction.
-Failure injection covers fence/pool/command preparation, rejected/unknown
+Failure injection covers timeline/pool/command preparation, rejected/unknown
 submissions, transient waits, and simulated device loss. Simulated wait-time loss
 is reported only after actual work has drained; it is not a real device-loss test.
 Both runners reject reported Vulkan validation errors. See [development](development.md)

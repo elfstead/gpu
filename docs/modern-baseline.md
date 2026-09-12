@@ -4,8 +4,9 @@ Decision, 2026-09-12: prefer one direct implementation of a coherent modern GPU
 model, not compatibility paths for older drivers. The Vulkan 1.2 feasibility
 backend is a migration source, not a supported fallback to preserve.
 
-Decision/audit: `3fefc48`. Backend migration: `39b8c16`, locally verified on
-llvmpipe. Physical-GPU and remote execution-CI verification remain pending.
+Decision/audit: `3fefc48`. Backend migration: `39b8c16`; timeline completion:
+`05a1857`, locally verified on llvmpipe. Physical-GPU and remote execution-CI
+verification remain pending.
 
 ## Selected requirements
 
@@ -61,7 +62,7 @@ extension availability alone does not establish that end-to-end path.
 | Legacy barriers/submission/timestamps | Synchronization2 commands | Old synchronization structures and command loading |
 | Render passes and framebuffers | Dynamic rendering and GENERAL images | Persistent pass/framebuffer objects and ordinary layout transitions |
 | Buffer handles in indirect draws and image readback | Address-based commands | Command-side buffer/offset translation (owning allocations still exist) |
-| Per-submission fences | Timeline-backed completion | Deferred: coordinate separately with completion/polling and retirement design |
+| Per-submission fences | One device-owned timeline semaphore with monotonically increasing values | Centralized polling/retirement queue and public polling semantics |
 
 The first four replacements are implemented with no legacy execution branches.
 Vulkan buffer allocations still exist underneath owning allocations, and their
@@ -73,8 +74,9 @@ do not erase every Vulkan backing-allocation requirement.
 The fixed graphics operation still clears on every draw: it explicitly discards
 with UNDEFINED → GENERAL before dynamic rendering, and orders color writes before
 readback. These preserve the existing public clear/draw/copy contract; they are not
-a newly generalized image API. Completion handles still own/drain fences. Timeline
-support is enabled, but timeline-backed completion is not claimed as implemented.
+a newly generalized image API. Completion handles retain their command resources and
+wait on a device-owned timeline value. A centralized retirement queue and public
+polling semantics remain deliberately deferred.
 
 Migrate one path and delete its predecessor; do not add version-switching execution
 branches. Keep current public lifetime/numerical contracts unless explicitly revised.
@@ -100,8 +102,8 @@ Loader/validation 1.4.357.0, Mesa 26.2.1 llvmpipe, Linux x86-64:
   Unit coverage rejects each missing queried core requirement.
 - Compute, batch, graphics, six-size repeated image loop, reduction, and both matrix
   kernels pass with validation and synchronization validation enabled. Failure tests
-  cover the new object lifecycle; deleted pass/layout/framebuffer objects have no
-  remaining allocation/cleanup paths.
+  cover timeline-signal/wait and the new object lifecycle; deleted pass/layout/framebuffer
+  objects have no remaining allocation/cleanup paths.
 - All 15 existing shader binaries reproduce byte-for-byte with glslang 16.4.0 and
   pass SPIRV-Tools 1.4.357.0. Their Vulkan 1.2 SPIR-V target remains sufficient for
   these descriptor-free programs; it does not lower the backend's device baseline.

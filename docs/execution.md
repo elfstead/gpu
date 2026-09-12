@@ -63,7 +63,7 @@ remains 1. No execution-facing Vulkan types are exposed.
   byte 8, and four padding bytes. This block is an example contract, not a universal
   kernel ABI; the backend supports a caller-specified root-data byte count.
 - Each blocking dispatch records host/prior-compute → compute and compute → host memory
-  dependencies, then submits and waits on its completion fence. Arguments are
+  dependencies, then submits and waits on its device-owned timeline value. Arguments are
   copied into the command buffer. Readback invalidates non-coherent CPU caches.
 - Buffers and kernels retain their device, and devices retain their Vulkan instance.
   A caller must keep every allocation referenced by shader addresses alive during
