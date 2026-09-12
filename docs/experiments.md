@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-12. This page records evidence, not API-stability promises. See
+Updated 2026-09-13. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -9,6 +9,11 @@ the API-candidate/integration milestone and its next task. This ledger is eviden
 not a development queue; existing experiments remain regression and diagnostic tools.
 
 ## Implemented baseline
+
+The [heap-image experiment](heap-images.md) executes direct compute image load/store
+and fragment sampling without intermediate copies, using immutable descriptor tables
+and explicit image discard. Six sizes, permuted indices, ownership cleanup, and pinned
+Slang/SPIR-V reproduction pass locally; general heap management remains provisional.
 
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;

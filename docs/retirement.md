@@ -101,5 +101,6 @@ Local verification on 2026-09-13 passed:
 Met locally on Mesa 26.2.1 llvmpipe with Vulkan and synchronization validation:
 scratch ranges are reused while other work remains pending, ownership is safe in
 both modes, and failures do not authorize early reuse. This completes the D4
-comparison. The next experiment is direct image access/sampling with descriptor
-heaps. Physical-GPU and provisioned remote execution-CI evidence remain pending.
+comparison. The subsequent [direct image access/sampling experiment](heap-images.md)
+passes locally with descriptor heaps. Physical-GPU and provisioned remote
+execution-CI evidence remain pending.

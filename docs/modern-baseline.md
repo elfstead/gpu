@@ -52,7 +52,9 @@ RX 5700 XT results validate the old backend, not this selected baseline.
 Installed tools include glslang 16.4.0 and SPIRV-Tools 1.4.357.0; no shader Slang
 compiler was found. Existing descriptor-free SPIR-V/root blocks are the first
 migration input. Heap-indexed texture shaders still need a compiler/tooling test;
-extension availability alone does not establish that end-to-end path.
+extension availability alone does not establish that end-to-end path. The subsequent
+[heap-image experiment](heap-images.md) closes that local compiler/execution gate
+with pinned Slang 2026.14.1 and native SPIR-V heap indexing.
 
 ## Migration and stopping condition
 

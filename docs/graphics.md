@@ -14,9 +14,11 @@ It returns UNSUPPORTED if none exists. Ordinary `ogpu_device_create` continues t
 accept compute-only devices; discovery remains independent. No new optional
 graphics shader arithmetic features are enabled beyond that baseline.
 
-`OgpuRaster` prepares valid descriptor-free Vulkan 1.2-targeted vertex and fragment
-SPIR-V entry points named `main`, with a caller-defined copied root block shared by
-both stages. The runtime still requires the modern device baseline. Vertex attributes
+`OgpuRaster` prepares valid vertex and fragment SPIR-V entry points named `main`,
+with no descriptor-set bindings and a caller-defined copied root block shared by
+both stages. Native heap access is supported by the [image-table experiment](heap-images.md);
+existing descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
+The runtime still requires the modern device baseline. Vertex attributes
 are fetched through GPU addresses: there is no vertex
 binding layout. Vertex/fragment storage writes and atomics are not enabled. Shader
 validity, stage interfaces, and reachable address bounds remain trusted contracts.
@@ -29,7 +31,8 @@ This is an experiment constraint, not a commitment to hard-code graphics state.
 
 `ogpu_target_create_rgba8` owns a two-dimensional, single-layer, single-mip image
 with specialized optimal storage, a view, and attachment resources. It has no
-device address or CPU mapping. Width/height and format support are checked.
+device address or CPU mapping. Width/height and combined attachment/readback/sampled/
+storage format support are checked. Tables supply separate sampled/storage descriptors.
 
 `ogpu_batch_draw_indirect` clears the target to opaque black, then executes one
 non-indexed indirect draw. Its record is four uint32 values in order:
@@ -47,18 +50,21 @@ for an older Vulkan command interface.
 
 `ogpu_batch_copy_target` copies the whole target into an ordinary buffer at a
 four-byte-aligned offset, tightly packed as width × height × 4 RGBA bytes, row by
-row starting at image coordinate (0,0). It must follow a draw to that target in
-the SAME batch. This local rule avoids an implicit cross-submission image-state
+row starting at image coordinate (0,0). It must follow a draw or explicit
+`ogpu_batch_discard_target` to that target in the SAME batch, with all copied texels
+written before the copy. This local rule avoids an implicit cross-submission image-state
 tracker in the first experiment. Repeated draws/copies, including target reuse
 in subsequent batches, are permitted; every draw discards previous image contents.
 
 Known target operations manage their own image transitions and attachment/copy
 dependencies. The Vulkan backend uses an initial UNDEFINED layout (discard), a
 transition to GENERAL followed by dynamic rendering, and a global synchronization2
-dependency making color writes visible to address-based image readback. Ordinary
+dependency making earlier image writes visible to address-based image readback. Ordinary
 use stays in GENERAL; no render-pass/framebuffer objects or mutable layout tracker
 remain. The discard transition orders prior uses, including across submissions.
-This is a documented clear/draw/readback operation, not a general image-state model.
+Explicit discard also prepares compute-written images without drawing or clearing;
+write texels before reading them. This remains a bounded model, not a general
+cross-batch image-preservation API.
 
 ## Shared dependencies and ownership
 
@@ -89,7 +95,8 @@ rasterization boundaries. No CPU readback of vertices or draw arguments is neede
 The [image-loop experiment](image-loop.md), run with `cargo xtask image-loop`,
 extends this to graphics → compute → graphics using image-to-buffer copies and
 fragment-shader address reads. It uses this same profile without API additions;
-it does not introduce sampled images or storage-image compute access.
+it does not introduce sampled images or storage-image compute access. The separate
+[heap-image experiment](heap-images.md) adds both and avoids intermediate copies.
 
 Tests cover graphics queue selection without breaking compute-only selection,
 invalid extents/shaders, buffer bounds/alignment, wrong-device objects, missing
@@ -101,7 +108,7 @@ and a returned pipeline handle alongside an error. Queue selection,
 extent limits, memory selection, access masks, and NULL C arguments also have tests
 that do not require a GPU.
 
-Not included: windows, surfaces, swapchains, sampling, general image uploads,
+Not included: windows, surfaces, swapchains, general image uploads or filtering,
 depth/stencil, blending, indexing, mesh shaders, or multiple queues. Vulkan pipeline
 objects remain backend details; classic render passes are no longer used.
 

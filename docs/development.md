@@ -18,6 +18,11 @@ performed here. Automatic hosted CI is not currently an execution gate.
 
 ## Build and run
 
+`cargo xtask heap-image` runs direct image load/store and sampling through immutable
+image tables. New shader binaries are checked in; regeneration uses pinned Slang
+2026.14.1 with `SLANGC=/path/to/slangc cargo xtask heap-shaders --check` and modern
+SPIRV-Tools. See [the experiment/toolchain record](heap-images.md).
+
 `cargo xtask retirement` compares caller-owned and explicitly retained scratch
 allocations through the public C ABI. `cargo xtask gpu-tests` includes the
 deterministic gated reuse and polling/error checks; see [retirement](retirement.md).

@@ -1,6 +1,6 @@
 # Open GPU Interface: current design
 
-Updated 2026-09-12. This is an experimental programming model with a working
+Updated 2026-09-13. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
@@ -25,9 +25,11 @@ devices. Presentation belongs behind a separate platform boundary.
 The central hypothesis is that this common model reduces integration work and
 unnecessary data movement across mixed workloads. The demanding target is
 compute → graphics → compute → graphics without intermediate CPU round trips.
-The [image-processing experiment](image-loop.md) now completes this loop using
-explicit image-to-buffer copies and fragment reads from linear memory. It does
-not yet establish direct compute image access, sampling, or reduced transfer cost.
+The [original image-processing experiment](image-loop.md) completes this loop using
+image-to-buffer copies and fragment reads from linear memory. The subsequent
+[heap-image experiment](heap-images.md) establishes direct compute image access and
+fragment sampling without intermediate copies. It establishes correctness, not
+reduced execution time or measured transfer cost.
 
 This project currently implements a host/runtime interface. It does not yet define
 a new source language. The host C ABI, shader data/execution contract, executable
@@ -60,7 +62,7 @@ retention; applications still own scratch-range reuse decisions.
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
-| Graphics | GPU-produced vertex data and indirect draws, specialized images, image-to-buffer copies | Fixed-state RGBA8 offscreen targets, clear on every draw, same-batch draw before copy |
+| Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling and readback | Fixed-state RGBA8, immutable tables, nearest sampler, same-batch draw/discard initialization |
 | Discovery | Device information and supported capability bits | Reporting is not feature negotiation or a complete matrix/type capability description |
 
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
@@ -102,7 +104,7 @@ and fixed-state rendering are experiment constraints, not the intended final sha
 
 Public handles are destroyed once. Children retain their device, and a device
 retains its instance. Batches/completions retain explicitly supplied kernels,
-raster executables, targets, indirect buffers, copy destinations, and buffers
+raster executables, targets, bound image tables and their entries, indirect buffers, copy destinations, and buffers
 explicitly supplied to `ogpu_batch_retain_buffer`. A raw address inside an argument
 block does not create retention. The caller must keep its underlying allocation
 alive through explicit retention or its own ownership until all GPU uses finish.
@@ -137,7 +139,7 @@ brief requires them.
 | Memory placement and transfer model | Device-local linear data, staging/copies, measured movement costs on discrete and integrated GPUs |
 | Queue and batch model | Replayed work, cross-queue dependencies, concurrency, and observable completion/error behavior |
 | Executable preparation | Entry points, workgroup variants, specialization, capability requirements, compilation/cache costs |
-| Images and graphics state | A consumer's required access/format/state behavior beyond the implemented buffer-mediated loop; sampling/storage access remain open |
+| Images and graphics state | Native RGBA8 image access/sampling works; independent heap/view/sampler ownership and preserved cross-batch images remain open ([experiment](heap-images.md)) |
 | ML profiles | Beyond the tested reduction/FP32 baseline: required storage/arithmetic/conversion/accumulation combinations and accelerated matrix shapes |
 | Portability boundary | One real compiler/runtime consumer and a second backend for the common compute subset |
 | Tooling | Finer profiling/calibrated clocks, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |
