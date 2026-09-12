@@ -46,7 +46,9 @@ would be restrictive for streaming, large persistent heaps, or independent sampl
 The last alternative may expose a better API even though this example succeeds.
 Compatibility with the table wrapper is not a reason to reject it. Next is a focused
 API review of independent heap/view/sampler ownership and image initialization—not
-another unrelated workload or a declaration of API stability.
+another unrelated workload or a declaration of API stability. The resulting
+[ownership/preservation proposal](image-ownership-review.md) is now available;
+it does not change the implementation described here.
 
 ## Initialization and synchronization
 

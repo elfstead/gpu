@@ -15,9 +15,12 @@ failure recovery are verified; no centralized allocator or retirement queue was
 selected. The [heap-indexed image experiment](heap-images.md) now passes the compiler
 and public-API execution gates: compute image access and fragment sampling need no
 intermediate image-to-buffer copy. Immutable tables and explicit image discard are
-implemented; general heap management is not settled. Next is an API review of
-independent resource/sampler heaps, view ownership, and preserved image contents
-across submissions. No further unrelated workload is scheduled.
+implemented; general heap management is not settled. The
+[ownership/preservation review](image-ownership-review.md) is complete, with a proposal
+for independent checked heaps, copied view/sampler descriptions, and explicit image
+preservation. These are recommendations, not implemented changes. Pending agreement,
+the next implementation checkpoint is cross-submission preservation and LOAD/CLEAR,
+then independent heaps with explicitly bounded mutation. No unrelated workload is scheduled.
 The completed integration checkpoints below remain
 historical regression evidence, not proof of the new backend on physical hardware.
 
