@@ -7,7 +7,7 @@ raster draws, images, and image readback. Additional queues remain future work.
 See [the design overview](design.md) and [experiment ledger](experiments.md).
 
 [Optional timing](timing.md) can bracket a whole batch with device timestamps.
-Enable it while recording, explicitly wait successfully, then read the duration
+Enable it while recording, successfully wait or poll complete, then read the duration
 from the completion. Untimed batches allocate no query resources. Timing retrieval
 does not wait or change a previous wait outcome, and timestamps do not replace
 the memory dependencies described below.
@@ -67,6 +67,10 @@ alone is not a memory dependency between dispatches or batches.
 The caller keeps every allocation reachable through recorded GPU addresses alive
 from recording until completion (or until the unsubmitted batch is discarded).
 Recorded addresses are non-owning; retaining kernels cannot retain pointees.
+`ogpu_batch_retain_buffer` optionally keeps a whole allocation alive through
+recording and completion-handle destruction. It is independent of access barriers
+and does not protect a suballocation against early reuse. See the
+[retirement experiment](retirement.md) for the comparison and example.
 Do not perform CPU reads/writes while submitted work can access the buffer. Keep
 ownership until completion; commands taking explicit buffer handles can retain
 them, but addresses alone cannot. This host-access
@@ -86,10 +90,20 @@ and the first error is returned only after draining or device loss. Timeout
 responses are retried, not treated as completed work. Persistent failures can
 block indefinitely, as in the existing synchronous helper.
 
+`ogpu_completion_poll` returns immediately with SUCCESS and `out_complete=0` for
+pending work, or SUCCESS and `1` once completion is established. Transient errors
+leave the work pending and return an error with `0`; retry or drain later. Device
+loss is an error and permits cleanup. A prior recorded wait error stays an error.
+Successful polling with `1` permits timing retrieval and the same visibility as a
+successful wait. Polling does not release retained resources; destroy the completion
+to release them. It does not establish completion of later uses of a shared buffer.
+
 The device enforces `maxTimelineSemaphoreValueDifference` before submission and
 rejects exhausted 64-bit values without wrapping. Both cases return OUT_OF_RANGE
 and consume the batch attempt. For a pending-value limit, complete outstanding
-work and record a new batch; exhaustion needs a new device. Failed submission
+work and record a new batch; exhaustion needs a new device. If failed-attempt gaps
+exceed the limit and no outstanding work can advance the counter, use a new device.
+Failed submission
 attempts burn their reserved values, so a later success can leave gaps.
 
 `ogpu_completion_destroy` waits if necessary before freeing anything; it does not
@@ -121,7 +135,7 @@ authorize host access to buffers still used by later submissions.
 - Wait-error draining and device-loss behavior, including partial construction.
 - Regression checks for synchronous examples and ABI/binding reproducibility.
 
-Not included in this first compute slice: completion polling/timeouts, reusable
+Not included in this compute slice: timed waits, reusable
 recordings, multiple queues, device-local staging, or tensor semantics. The graphics
 extension adds a narrow image-to-buffer GPU copy, not a general transfer interface.
 

@@ -1,6 +1,6 @@
 # Working status and first integration milestone
 
-Updated 2026-09-12. This is the authoritative near-term work plan. The
+Updated 2026-09-13. This is the authoritative near-term work plan. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. Neither a backlog entry nor a successful benchmark schedules more work.
 
@@ -8,9 +8,14 @@ evidence. Neither a backlog entry nor a successful benchmark schedules more work
 
 The [modern Vulkan baseline migration](modern-baseline.md) is implemented and locally
 verified (`39b8c16`); physical-GPU and provisioned execution-CI checks remain pending.
-There is no Vulkan 1.2 compatibility path. Next design work is the separate
-retention/retirement comparison; heap-indexed image access still needs its own
-compiler/consumer experiment. The completed integration checkpoints below remain
+There is no Vulkan 1.2 compatibility path. The [retention/retirement comparison](retirement.md)
+is complete: adopt completion polling and optional whole-buffer retention, while
+the application decides when scratch ranges are reusable. Timeline limits and
+failure recovery are verified; no centralized allocator or retirement queue was
+selected. Next design work is the heap-indexed image compiler/consumer experiment:
+demonstrate direct compute image access and sampling through the shared model,
+then compare its API with the existing buffer-mediated image loop.
+The completed integration checkpoints below remain
 historical regression evidence, not proof of the new backend on physical hardware.
 
 Initial feasibility is complete. We have a working Rust/Vulkan runtime and C ABI,
@@ -96,8 +101,9 @@ an alternative need not be forced by an integration failure to be worth adopting
 The scoped consumer session was adopted. The strongest new public-API candidate
 was explicit buffer-range use/retention declarations. Subsequent comparison separates
 allocation retention, allocator retirement and access tracking: they offer different
-guarantees. Evaluate them independently after the modern-baseline migration, without
-making resource-use lists mandatory merely to assist lifetime management.
+guarantees. The completed [retirement experiment](retirement.md) adopts independent
+polling and optional whole-buffer retention, without making resource-use lists
+mandatory merely to assist lifetime management.
 
 ## Decisions blocking the candidate
 

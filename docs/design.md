@@ -48,8 +48,9 @@ requires dynamic rendering, unified image layouts and a shared graphics/compute 
 Pipelines have no layout objects; roots use push data. Barriers, submission and
 timestamps use synchronization2. Rendering uses no render-pass/framebuffer objects,
 and indirect draws/readback use addresses. Completions now wait on monotonically
-increasing values of one device-owned timeline semaphore; a centralized retirement
-queue and polling API remain separate experiments, not compatibility fallbacks.
+increasing values of one device-owned timeline semaphore. The
+[retirement experiment](retirement.md) adds completion polling and optional buffer
+retention; applications still own scratch-range reuse decisions.
 
 | Part | Implemented contract | Deliberate restriction |
 |---|---|---|
@@ -57,8 +58,8 @@ queue and polling API remain separate experiments, not compatibility fallbacks.
 | Linear memory | Owning buffers and separate non-owning GPU addresses | Dedicated host-visible allocations, checked CPU copies, no exposed mapping |
 | Executables | Prepared compute kernels and raster programs, caller-defined root bytes | Trusted Vulkan SPIR-V, `main` entry points, limited enabled capabilities |
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
-| Submission | One-shot batches, explicit access barriers, per-submission completions | One queue, externally serialized host calls, no replay/polling/timeouts |
-| Timing | Optional whole-batch device timestamps, retrieved after successful wait | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
+| Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
+| Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
 | Graphics | GPU-produced vertex data and indirect draws, specialized images, image-to-buffer copies | Fixed-state RGBA8 offscreen targets, clear on every draw, same-batch draw before copy |
 | Discovery | Device information and supported capability bits | Reporting is not feature negotiation or a complete matrix/type capability description |
 
@@ -101,9 +102,10 @@ and fixed-state rendering are experiment constraints, not the intended final sha
 
 Public handles are destroyed once. Children retain their device, and a device
 retains its instance. Batches/completions retain explicitly supplied kernels,
-raster executables, targets, indirect buffers, and copy destinations. A raw address
-inside an argument block does not create such retention. The caller must keep its
-underlying allocation alive until all GPU uses finish.
+raster executables, targets, indirect buffers, copy destinations, and buffers
+explicitly supplied to `ogpu_batch_retain_buffer`. A raw address inside an argument
+block does not create retention. The caller must keep its underlying allocation
+alive through explicit retention or its own ownership until all GPU uses finish.
 
 All host operations on a device and its children are externally serialized. GPU
 execution can continue between calls. CPU buffer reads/writes require completion

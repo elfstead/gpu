@@ -18,6 +18,10 @@ performed here. Automatic hosted CI is not currently an execution gate.
 
 ## Build and run
 
+`cargo xtask retirement` compares caller-owned and explicitly retained scratch
+allocations through the public C ABI. `cargo xtask gpu-tests` includes the
+deterministic gated reuse and polling/error checks; see [retirement](retirement.md).
+
 Requirements: Rust 1.85+ with Cargo, a C11 compiler/linker, and a Vulkan loader with
 Vulkan 1.1+ support. A GPU is not required to compile or run the mock tests.
 

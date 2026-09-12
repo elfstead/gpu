@@ -16,8 +16,9 @@ query-pool handles, or mandatory timestamp support.
   an empty batch. Repeated calls are idempotent. Unsupported/failed calls leave
   recording unchanged; after a submission attempt the batch remains terminal.
 - `ogpu_completion_elapsed_ns(completion, out_nanoseconds, error)` returns a double
-  only after an explicit successful completion wait. It does not poll or wait.
-  Untimed or not-yet-waited completions return INVALID_ARGUMENT. A failed wait
+  only after a successful completion wait or poll returning complete. Retrieval
+  itself does not poll or wait. Untimed or unconfirmed completions return
+  INVALID_ARGUMENT. A failed wait
   prevents timing retrieval. A result-query failure is reported separately and
   does not overwrite the recorded wait outcome; retrieval can be retried unless
   the device is lost. Successful retrieval is cached. Output is zero on failure

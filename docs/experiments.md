@@ -10,6 +10,10 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [retirement experiment](retirement.md) adds completion polling and optional
+whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
+a gated Vulkan test verifies reuse while another submission is still pending.
+
 The [modern migration](modern-baseline.md) reran the execution tests below on
 llvmpipe, plus all six GGML acceptance cases. Prior RADV results describe the old
 backend only. Modern physical-GPU and remote execution CI are pending. No new

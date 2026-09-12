@@ -62,9 +62,9 @@ extension availability alone does not establish that end-to-end path.
 | Legacy barriers/submission/timestamps | Synchronization2 commands | Old synchronization structures and command loading |
 | Render passes and framebuffers | Dynamic rendering and GENERAL images | Persistent pass/framebuffer objects and ordinary layout transitions |
 | Buffer handles in indirect draws and image readback | Address-based commands | Command-side buffer/offset translation (owning allocations still exist) |
-| Per-submission fences | One device-owned timeline semaphore with monotonically increasing values | Centralized polling/retirement queue and public polling semantics |
+| Per-submission fences | One device-owned timeline semaphore with monotonically increasing values | Per-submission fence allocation/destruction and wait commands |
 
-The first four replacements are implemented with no legacy execution branches.
+All five replacements are implemented with no legacy execution branches.
 Vulkan buffer allocations still exist underneath owning allocations, and their
 usage flags must satisfy address-command validity rules. The old STORAGE_BUFFER
 flag was unnecessary for physical-pointer shaders and was removed. INDIRECT_BUFFER
@@ -75,8 +75,9 @@ The fixed graphics operation still clears on every draw: it explicitly discards
 with UNDEFINED → GENERAL before dynamic rendering, and orders color writes before
 readback. These preserve the existing public clear/draw/copy contract; they are not
 a newly generalized image API. Completion handles retain their command resources and
-wait on a device-owned timeline value. A centralized retirement queue and public
-polling semantics remain deliberately deferred.
+wait or poll a device-owned timeline value. The [retirement experiment](retirement.md)
+keeps range reuse in the application and supplies optional allocation retention.
+A centralized runtime retirement queue remains unselected.
 
 Migrate one path and delete its predecessor; do not add version-switching execution
 branches. Keep current public lifetime/numerical contracts unless explicitly revised.
@@ -102,8 +103,9 @@ Loader/validation 1.4.357.0, Mesa 26.2.1 llvmpipe, Linux x86-64:
   Unit coverage rejects each missing queried core requirement.
 - Compute, batch, graphics, six-size repeated image loop, reduction, and both matrix
   kernels pass with validation and synchronization validation enabled. Failure tests
-  cover timeline-signal/wait and the new object lifecycle; deleted pass/layout/framebuffer
-  objects have no remaining allocation/cleanup paths.
+  cover the new object lifecycle; deleted pass/layout/framebuffer objects have no
+  remaining allocation/cleanup paths. This record describes the original migration;
+  the September 13 timeline and retirement verification is recorded separately below.
 - All 15 existing shader binaries reproduce byte-for-byte with glslang 16.4.0 and
   pass SPIRV-Tools 1.4.357.0. Their Vulkan 1.2 SPIR-V target remains sufficient for
   these descriptor-free programs; it does not lower the backend's device baseline.
@@ -120,3 +122,16 @@ continues build/mock/ABI/SPIR-V checks; GPU and GGML execution move together to
 The runner is **not provisioned by this change**. Manual trusted invocation avoids
 running arbitrary pull-request code on self-hosted hardware. Until that runner is
 available, automatic hosted CI is not an execution-regression gate.
+
+## Timeline follow-up — 2026-09-13
+
+The full Cargo workflow is restored after recovering its dependency cache. The
+review fixed missing pending-value limit enforcement and tested semaphore creation
+failure cleanup, rejected/unknown submissions followed by successful submissions,
+out-of-order waits, and exhaustion without wrapping. `e82cfff` records that work.
+`3c23fef` corrects the earlier loader-version clamp: the application's Vulkan 1.4
+ceiling must remain independent of a Vulkan 1.1+ instance implementation, as
+specified by [VkApplicationInfo](https://docs.vulkan.org/refpages/latest/refpages/source/VkApplicationInfo.html).
+The old mock assertion caught the capability-reporting regression and now passes.
+GGML's six acceptance cases and lifecycle checks pass after timeline hardening.
+See [retirement](retirement.md) for the subsequent API experiment and final checks.
