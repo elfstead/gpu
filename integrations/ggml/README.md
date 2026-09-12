@@ -16,30 +16,27 @@ reference currently requires AVX2/FMA/F16C, even though the GPU kernels use FP32
 ```sh
 git clone --no-checkout https://github.com/ggml-org/ggml.git target/ggml-source
 git -C target/ggml-source checkout --detach 7840aaba1989c6deeefede1d77d5aaf8f52b947e
-bash integrations/ggml/prepare.sh target/ggml-source
+bash integrations/ggml/prepare.sh
 VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 \
     bash integrations/ggml/run.sh target/ggml-source
 ```
 
-`prepare.sh` explicitly downloads MNIST into ignored `target/ggml-data`, verifies
-the [dataset checksums](dataset.sha256), builds upstream CPU tools and trains a
-model **only if no saved model exists**. It does not overwrite an existing model.
-Training uses the unmodified upstream 30-epoch FC example with its 95/5 train/
-validation split. Random initialization/shuffling means a fresh preparation is
-not bitwise reproducible. The saved weights are fixed across all acceptance runs;
-the runner prints their SHA-256. Keep that file to reproduce an exact model result.
-New preparations must meet the same numerical, prediction and accuracy gates;
-they need not match the recorded accuracy or model hash. Training support is not
-part of the OGPU adapter. Preparation logs are in `target/ggml-data/training.log`.
+`prepare.sh` downloads only MNIST test data into ignored `target/ggml-data` and
+verifies the [dataset checksums](dataset.sha256). Routine local/CI acceptance
+uses the [checked-in trained fixture](fixtures/README.md), whose exact SHA-256
+is verified by both preparation and execution. It never trains a new model or
+uses an arbitrary model left in `target/`. Optional `train.sh target/ggml-source`
+separately exercises upstream CPU training and saves a different output filename.
+Training is not part of the OGPU adapter.
 
 Source: [GGML MNIST example](https://github.com/ggml-org/ggml/tree/7840aaba1989c6deeefede1d77d5aaf8f52b947e/examples/mnist).
 Data: [MNIST](https://yann.lecun.com/exdb/mnist/), by Yann LeCun, Corinna Cortes and
 Christopher J. C. Burges, downloaded from the `cvdf-datasets` Google storage mirror.
 Consult the dataset's own attribution/terms; this repository's MIT license does
-not replace them. GGML is MIT licensed. Neither dataset nor trained weights are
-redistributed in this repository.
+not replace them. GGML is MIT licensed. Dataset images/labels are not redistributed;
+the locally trained regression weights are included with provenance and MIT license.
 
-`run.sh` performs no downloads or training. It verifies test-data checksums, builds
+`run.sh` performs no downloads or training. It verifies test-data/model checksums, builds
 the release Rust library, validates the checked-in SPIR-V, independently builds
 the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
@@ -110,9 +107,11 @@ new optional feature or workgroup-limit query is needed for this profile.
 - The upstream constructor assumes registry ordering leaves CPU last. The driver
   unregisters/re-registers the statically linked CPU backend before constructing
   models. It neither changes upstream sources nor runs a fallback scheduler.
-- Explicitly unregister/free the OGPU state after models, buffers and backends,
-  before process static teardown. The initial process-exit-only cleanup exhibited
-  a fault with validation enabled; explicit lifecycle management eliminated it in
-  repeated local runs. The underlying driver/layer teardown cause is not isolated.
+- `OgpuGgmlSession` owns registration and GPU state; backend streams and buffers
+  retain that state explicitly. Destroy the session after those children, before
+  static teardown. Live-child destruction aborts with a diagnostic. Initialization
+  failure destroys partial resources without publishing a registration.
+  The [teardown investigation](../../docs/ggml-hardening.md) isolates the original
+  fault to validation-layer static destruction ordering, also with direct Vulkan.
 - No claim yet about arbitrary schedulers, allocation aliasing/reuse, asynchronous
   callbacks, larger/quantized models, other GPU vendors, or graphics consumers.

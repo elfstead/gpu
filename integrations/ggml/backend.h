@@ -1,9 +1,19 @@
 #pragma once
 #include <cstdint>
 
-// Local, pinned GGML extension. Register exactly once, before constructing models.
-// All backend instances and buffer operations are externally serialized.
-void ogpu_ggml_register(uint32_t device_index, const char *shader_directory);
-// Call after all models/backends/buffers are freed, before process static teardown.
-void ogpu_ggml_shutdown();
-uint64_t ogpu_ggml_dispatch_count();
+#include <memory>
+
+// Scoped, externally serialized registration. Destroy after associated models,
+// backend streams and buffers, before process static teardown. No GPU statics.
+class OgpuGgmlSession {
+  public:
+    OgpuGgmlSession(uint32_t device_index, const char *shader_directory);
+    ~OgpuGgmlSession();
+    OgpuGgmlSession(const OgpuGgmlSession &) = delete;
+    OgpuGgmlSession &operator=(const OgpuGgmlSession &) = delete;
+    uint64_t dispatch_count() const;
+
+  private:
+    struct Impl;
+    std::unique_ptr<Impl> impl;
+};

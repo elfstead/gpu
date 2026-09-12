@@ -41,19 +41,17 @@ static_assert(sizeof(Root) == 40 && offsetof(Root, a) == 0 && offsetof(Root, b) 
               offsetof(Root, c) == 16 && offsetof(Root, m) == 24 && offsetof(Root, n) == 28 &&
               offsetof(Root, k) == 32 && offsetof(Root, operation) == 36);
 
-struct State {
+struct State : std::enable_shared_from_this<State> {
     Device device{nullptr, ogpu_device_destroy};
     Kernel matrix{nullptr, ogpu_kernel_destroy}, element{nullptr, ogpu_kernel_destroy};
     uint64_t dispatches = 0;
     std::string description;
+    ggml_backend_device device_interface{};
+    ggml_backend_buffer_type buffer_type{};
+    ggml_backend_reg registration{};
 };
-std::shared_ptr<State> state;
-ggml_backend_device device{};
-ggml_backend_buffer_type buffer_type{};
-ggml_backend_reg registration{};
-bool registered = false;
 
-Kernel load_kernel(const std::string &path) {
+Kernel load_kernel(State &state, const std::string &path) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file)
         throw std::runtime_error("cannot open shader: " + path);
@@ -65,13 +63,13 @@ Kernel load_kernel(const std::string &path) {
     if (!file.read(reinterpret_cast<char *>(words.data()), bytes))
         throw std::runtime_error("short shader read");
     OgpuKernel *raw = nullptr;
-    GPU(ogpu_kernel_create(state->device.get(), words.data(), words.size(), sizeof(Root), &raw,
+    GPU(ogpu_kernel_create(state.device.get(), words.data(), words.size(), sizeof(Root), &raw,
                            &error));
     return Kernel(raw, ogpu_kernel_destroy);
 }
 
 struct Allocation {
-    std::shared_ptr<State> owner = state;
+    std::shared_ptr<State> owner;
     Buffer buffer{nullptr, ogpu_buffer_destroy};
     uint64_t address = 0;
     // GGML performs pointer arithmetic on tensor data even for non-host buffers.
@@ -84,7 +82,7 @@ struct Allocation {
     }
 };
 Allocation &allocation(ggml_backend_buffer_t b) {
-    if (!b || b->buft != &buffer_type)
+    if (!b || !b->context)
         throw std::runtime_error("foreign tensor buffer");
     return *static_cast<Allocation *>(b->context);
 }
@@ -144,7 +142,9 @@ void clear_buffer(ggml_backend_buffer_t b, uint8_t value) {
 }
 ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
     try {
+        auto state = static_cast<State *>(buft->context)->shared_from_this();
         auto a = std::make_unique<Allocation>();
+        a->owner = state;
         if (size == 0 || size > PTRDIFF_MAX - 63)
             throw std::runtime_error("invalid buffer size");
         a->size = size;
@@ -198,19 +198,25 @@ bool supports_op(ggml_backend_dev_t, const ggml_tensor *t) {
     return false;
 }
 
-ggml_status graph_compute(ggml_backend_t, ggml_cgraph *graph) {
+ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
     try {
+        auto state = *static_cast<std::shared_ptr<State> *>(backend->context);
+        auto owned_address = [&](const ggml_tensor *tensor) {
+            if (!tensor->buffer || tensor->buffer->buft != &state->buffer_type)
+                throw std::runtime_error("foreign tensor buffer");
+            return address(tensor);
+        };
         // Complete preflight before allocating a batch: no partial graph execution.
         for (int i = 0; i < ggml_graph_n_nodes(graph); ++i) {
             const auto *t = ggml_graph_node(graph, i);
-            if (!supports_op(&device, t))
+            if (!supports_op(&state->device_interface, t))
                 throw std::runtime_error("unsupported graph operation/type/layout");
-            (void)address(t);
+            (void)owned_address(t);
             if (t->op != GGML_OP_NONE) {
                 for (const auto *source : {t->src[0], t->src[1]}) {
                     if (!source)
                         continue;
-                    const auto dst = address(t), src = address(source);
+                    const auto dst = owned_address(t), src = owned_address(source);
                     // This adapter only accepts out-of-place operations. In-place
                     // matrix outputs could race other workgroups' input reads.
                     if (dst < src + ggml_nbytes(source) && src < dst + ggml_nbytes(t))
@@ -266,28 +272,46 @@ ggml_backend_t init_backend(ggml_backend_dev_t dev, const char *) {
     auto *backend = new (std::nothrow) ggml_backend{};
     if (!backend)
         return nullptr;
+    auto *owner = new (std::nothrow)
+        std::shared_ptr<State>(static_cast<State *>(dev->context)->shared_from_this());
+    if (!owner) {
+        delete backend;
+        return nullptr;
+    }
+    backend->context = owner;
     backend->guid = &guid;
     backend->device = dev;
     backend->iface.get_name = [](ggml_backend_t) { return "OGPU"; };
-    backend->iface.free = [](ggml_backend_t b) { delete b; };
+    backend->iface.free = [](ggml_backend_t b) {
+        delete static_cast<std::shared_ptr<State> *>(b->context);
+        delete b;
+    };
     backend->iface.graph_compute = graph_compute;
     return backend;
 }
 } // namespace
 
-uint64_t ogpu_ggml_dispatch_count() { return state->dispatches; }
+struct OgpuGgmlSession::Impl {
+    std::shared_ptr<State> state = std::make_shared<State>();
+};
+uint64_t OgpuGgmlSession::dispatch_count() const { return impl->state->dispatches; }
 
-void ogpu_ggml_shutdown() {
-    if (registered)
-        ggml_backend_unload(&registration);
-    registered = false;
-    state.reset();
+OgpuGgmlSession::~OgpuGgmlSession() {
+    if (impl->state.use_count() != 1) {
+        std::fprintf(stderr, "OGPU session destroyed with live backends/buffers\n");
+        std::abort();
+    }
+    ggml_backend_unload(&impl->state->registration);
 }
 
-void ogpu_ggml_register(uint32_t index, const char *shaders) {
-    if (state)
+OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders)
+    : impl(std::make_unique<Impl>()) {
+    if (ggml_backend_reg_by_name("OGPU"))
         throw std::runtime_error("OGPU backend already registered");
-    state = std::make_shared<State>();
+    auto &state = impl->state;
+    auto &device = state->device_interface;
+    auto &buffer_type = state->buffer_type;
+    auto &registration = state->registration;
     OgpuProbe *raw_probe = nullptr;
     GPU(ogpu_probe_create(OGPU_ABI_VERSION, &raw_probe, &error));
     Owner<OgpuProbe, ogpu_probe_destroy> probe(raw_probe, ogpu_probe_destroy);
@@ -298,38 +322,44 @@ void ogpu_ggml_register(uint32_t index, const char *shaders) {
     OgpuDevice *raw_device = nullptr;
     GPU(ogpu_device_create(raw_probe, index, &raw_device, &error));
     state->device.reset(raw_device);
-    state->matrix = load_kernel(std::string(shaders) + "/matrix.comp.spv");
-    state->element = load_kernel(std::string(shaders) + "/element.comp.spv");
+    state->matrix = load_kernel(*state, std::string(shaders) + "/matrix.comp.spv");
+    state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv");
 
+    device.context = state.get();
+    buffer_type.context = state.get();
+    registration.context = state.get();
     buffer_type.device = &device;
     buffer_type.iface.get_name = [](ggml_backend_buffer_type_t) { return "OGPU"; };
     buffer_type.iface.alloc_buffer = alloc_buffer;
     buffer_type.iface.get_alignment = [](ggml_backend_buffer_type_t) -> size_t { return 64; };
     device.iface.get_name = [](ggml_backend_dev_t) { return "OGPU"; };
-    device.iface.get_description = [](ggml_backend_dev_t) { return state->description.c_str(); };
+    device.iface.get_description = [](ggml_backend_dev_t dev) {
+        return static_cast<State *>(dev->context)->description.c_str();
+    };
     device.iface.get_memory = [](ggml_backend_dev_t, size_t *free, size_t *total) {
         *free = *total = 0;
     };
     device.iface.get_type = [](ggml_backend_dev_t) { return GGML_BACKEND_DEVICE_TYPE_GPU; };
-    device.iface.get_props = [](ggml_backend_dev_t, ggml_backend_dev_props *props) {
+    device.iface.get_props = [](ggml_backend_dev_t dev, ggml_backend_dev_props *props) {
         *props = {};
         props->name = "OGPU";
-        props->description = state->description.c_str();
+        props->description = static_cast<State *>(dev->context)->description.c_str();
         props->type = GGML_BACKEND_DEVICE_TYPE_GPU;
     };
     device.iface.init_backend = init_backend;
-    device.iface.get_buffer_type = [](ggml_backend_dev_t) { return &buffer_type; };
+    device.iface.get_buffer_type = [](ggml_backend_dev_t dev) {
+        return &static_cast<State *>(dev->context)->buffer_type;
+    };
     device.iface.supports_op = supports_op;
-    device.iface.supports_buft = [](ggml_backend_dev_t, ggml_backend_buffer_type_t b) {
-        return b == &buffer_type;
+    device.iface.supports_buft = [](ggml_backend_dev_t dev, ggml_backend_buffer_type_t b) {
+        return b == &static_cast<State *>(dev->context)->buffer_type;
     };
     registration.api_version = GGML_BACKEND_API_VERSION;
     registration.iface.get_name = [](ggml_backend_reg_t) { return "OGPU"; };
     registration.iface.get_device_count = [](ggml_backend_reg_t) -> size_t { return 1; };
-    registration.iface.get_device = [](ggml_backend_reg_t, size_t index) -> ggml_backend_dev_t {
-        return index == 0 ? &device : nullptr;
+    registration.iface.get_device = [](ggml_backend_reg_t reg, size_t index) -> ggml_backend_dev_t {
+        return index == 0 ? &static_cast<State *>(reg->context)->device_interface : nullptr;
     };
     device.reg = &registration;
     ggml_backend_register(&registration);
-    registered = true;
 }

@@ -42,7 +42,8 @@ static ggml_cgraph *build(mnist_model &model) {
     return graph;
 }
 
-static void rejection_checks(mnist_model &model, ggml_cgraph *graph) {
+static void rejection_checks(mnist_model &model, ggml_cgraph *graph,
+                             const OgpuGgmlSession &session) {
     auto backend = model.backends[0];
     auto *first = ggml_graph_node(graph, 0);
     for (int i = 0; first->op == GGML_OP_NONE && i < ggml_graph_n_nodes(graph); ++i)
@@ -50,7 +51,7 @@ static void rejection_checks(mnist_model &model, ggml_cgraph *graph) {
     require(first->op != GGML_OP_NONE, "missing first operation");
     std::vector<float> before(ggml_nelements(first), -12345.0f), after(before.size());
     ggml_backend_tensor_set(first, before.data(), 0, ggml_nbytes(first));
-    const auto count = ogpu_ggml_dispatch_count();
+    const auto count = session.dispatch_count();
     auto *last = model.logits;
     const auto saved = last->op;
     last->op = GGML_OP_MUL; // Supported earlier nodes must not execute either.
@@ -59,7 +60,7 @@ static void rejection_checks(mnist_model &model, ggml_cgraph *graph) {
             "unsupported graph accepted");
     last->op = saved;
     ggml_backend_tensor_get(first, after.data(), 0, ggml_nbytes(first));
-    require(before == after && count == ogpu_ggml_dispatch_count(),
+    require(before == after && count == session.dispatch_count(),
             "partial execution of rejected graph");
 
     auto *half = ggml_new_tensor_2d(model.ctx_compute, GGML_TYPE_F16, 16, 16);
@@ -87,11 +88,12 @@ static void rejection_checks(mnist_model &model, ggml_cgraph *graph) {
     first->data = saved_data;
     first->buffer = saved_buffer;
     ggml_backend_tensor_get(first, after.data(), 0, ggml_nbytes(first));
-    require(before == after && count == ogpu_ggml_dispatch_count(), "rejected graph changed data");
+    require(before == after && count == session.dispatch_count(), "rejected graph changed data");
 }
 
 static void evaluate(const char *weights, const std::vector<uint8_t> &images,
-                     const std::vector<uint8_t> &labels, int batch_size) {
+                     const std::vector<uint8_t> &labels, int batch_size,
+                     const OgpuGgmlSession &session) {
     // Upstream constructs fallback schedulers, but this driver never executes
     // those schedulers. Each graph is sent directly to its one named backend.
     auto cpu = mnist_model_init_from_file(weights, "CPU", batch_size, batch_size);
@@ -104,8 +106,8 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
     BufferOwner gpu_compute(ggml_backend_alloc_ctx_tensors(gpu.ctx_compute, gpu.backends[0]),
                             ggml_backend_buffer_free);
     require(cpu_compute && gpu_compute, "compute allocation failed");
-    rejection_checks(gpu, gpu_graph);
-    const auto initial_dispatches = ogpu_ggml_dispatch_count();
+    rejection_checks(gpu, gpu_graph, session);
+    const auto initial_dispatches = session.dispatch_count();
     uint64_t calls = 0;
     size_t correct = 0;
     double max_error = 0;
@@ -144,8 +146,7 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
             correct += prediction == labels[8 + start + row];
         }
     }
-    require(ogpu_ggml_dispatch_count() - initial_dispatches == 5 * calls,
-            "wrong GPU dispatch count");
+    require(session.dispatch_count() - initial_dispatches == 5 * calls, "wrong GPU dispatch count");
     require(correct >= 9000, "trained fixture accuracy below 90%");
     std::printf(
         "batch=%d images=10000 calls=%llu dispatches=%llu correct=%zu max_logit_error=%.9g PASS\n",
@@ -173,18 +174,15 @@ int main(int argc, char **argv) {
         const auto index = std::stoul(argv[5], &end);
         require(end == std::string(argv[5]).size() && index <= UINT32_MAX, "bad device index");
         for (int batch : {1, 17, 64}) {
-            struct Lifetime {
-                ~Lifetime() { ogpu_ggml_shutdown(); }
-            } lifetime;
             // The upstream constructor passes registry order to a scheduler
             // requiring CPU last. Reorder statically linked CPU registration
             // before creating models; do not patch upstream or duplicate devices.
             auto cpu_reg = ggml_backend_reg_by_name("CPU");
             require(cpu_reg != nullptr, "CPU backend unavailable");
             ggml_backend_unload(cpu_reg);
-            ogpu_ggml_register(static_cast<uint32_t>(index), argv[4]);
+            OgpuGgmlSession session(static_cast<uint32_t>(index), argv[4]);
             ggml_backend_register(cpu_reg);
-            evaluate(argv[1], images, labels, batch);
+            evaluate(argv[1], images, labels, batch, session);
             // Includes explicit GPU device/kernel teardown, not process-exit cleanup.
         }
         return 0;

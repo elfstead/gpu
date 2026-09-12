@@ -54,11 +54,12 @@ errors must not trigger a hidden fallback.
 
 ## Working status
 
-C1–C3 are complete. C2 retained the API; no public-header or Rust runtime changes
-were required. The experimental C4 source checkpoint is
+C1–C3 are complete. C2 retained the API in the initial checkpoint. The experimental C4 source checkpoint is
 `375f33398d88b85db2ed6dd244d58e519850e328` (ABI 1), with the clarified compatibility
 policy above. This is a source checkpoint, not a release/tag or a stable ABI.
 See [build instructions and the integration friction report](../integrations/ggml/README.md).
+The active [hardening and scheduler follow-up](ggml-hardening.md) evaluates better
+API alternatives, not just compatibility with that checkpoint.
 
 ## Acceptance record — 2026-09-12
 
@@ -66,9 +67,10 @@ The saved FP32 model used for the paired-driver runs has SHA-256
 `da1c16099ee705ac4445cf460cd89212acf30eca166db47225f5d38935b097ea`.
 It was prepared with the pinned upstream CPU `mnist-train`, 30 epochs, default
 random initialization, 57,000 training and 3,000 validation images. No test images
-were used for training. The file remains in `target/ggml-data/mnist-fc-f32.gguf`;
-it is not distributed in Git. Fresh training produces different weights, so the
-reproduction promise is the same acceptance procedure, not identical model bits.
+were used for training. Originally saved only in `target/`, these exact weights
+are now [checked in and checksum-pinned](../integrations/ggml/fixtures/README.md).
+Routine regression no longer trains fresh weights; the historical fresh-training
+result below records the original preparation procedure.
 
 Both the RX 5700 XT (RADV NAVI10) and llvmpipe (LLVM 21.1.8, 256 bits) passed with
 Vulkan/synchronization validation. CPU reference: Ryzen 9 5900X, GGML CPU, four

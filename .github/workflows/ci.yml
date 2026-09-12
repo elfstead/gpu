@@ -71,7 +71,7 @@ jobs:
         run: |
           git clone --no-checkout https://github.com/ggml-org/ggml.git target/ggml-source
           git -C target/ggml-source checkout --detach 7840aaba1989c6deeefede1d77d5aaf8f52b947e
-      - run: bash integrations/ggml/prepare.sh target/ggml-source
+      - run: bash integrations/ggml/prepare.sh
       - run: bash integrations/ggml/run.sh target/ggml-source
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation

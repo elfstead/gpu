@@ -77,10 +77,14 @@ the brief and this plan, rather than quietly accumulating additional gates.
 Checkpoint completion does not publish a release or authorize contacting upstream
 maintainers. A release/tag or external contribution can be handled explicitly.
 
-The next task is to review the [consumer friction report](../integrations/ggml/README.md#deliberate-costs-and-remaining-friction)
-and choose the next bounded integration requirement. Scheduler-managed allocation
-reuse is a concrete candidate; more operators, device-local transfers, another
-consumer or backend are separate scope choices, not an automatically growing queue.
+The active follow-up is GGML integration hardening and scheduler-managed allocation
+reuse: isolate the teardown fault, pin regression weights, make adapter ownership
+explicit, then execute the same graph through GGML's scheduler and graph allocator.
+Acceptance retains numerical/prediction checks, verifies placement with no hidden
+fallback, demonstrates storage reuse and repeats validated execution/teardown.
+Review whether the work **exposes a better API alternative** against the project's
+goals. Compatibility with the current API is not a veto on a better design, and
+an alternative need not be forced by an integration failure to be worth adopting.
 
 ## Decisions blocking the candidate
 
@@ -93,7 +97,7 @@ The inventory below records the questions those decisions address.
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Reduction/matmul share the ABI, but the host knows root layout and tile sizes; reported feature bits are not enabled features | Specify baseline/optional requirements, enabled-capability reporting, entry point/root/workgroup agreement, and failure behavior; say which metadata is declared versus validated |
 | D2 | What memory placement and transfer behavior does this consumer need? | Host-visible buffers work; device-local linear data and staging have not been exercised | Choose explicit allocation/copy semantics if needed, or retain host-visible-only with a consumer-supported limitation; document address stability, range/lifetime and completion rules |
 | D3 | Which image operations belong in the first offscreen profile? | Buffer-mediated graphics → compute → graphics works; direct storage access and sampling are absent | Retain the fixed profile or specify the smallest required image access/format/state addition; explicitly defer sampling/storage images when unnecessary, without claiming they are solved |
-| D4 | Does the current submission/ownership model fit a real integration? | One-shot state, dependencies, retention and failure cleanup have tests | Walk the consumer's repeated execution and teardown paths; retain one queue/manual pointee lifetime unless a concrete requirement forces revision |
+| D4 | Which submission/ownership model best serves the project? | One-shot state, dependencies, retention and failure cleanup have tests | Walk repeated execution and teardown; evaluate whether the work exposes a better API alternative, including improvements beyond basic compatibility |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |
 
 Do not turn this inventory into a mandate for reflection, a shader package format,
