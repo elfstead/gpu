@@ -72,8 +72,13 @@ fn gpu_batch_failures() {
             Err(e) if e.status == UNSUPPORTED => continue,
             Err(e) => panic!("{e:?}"),
         }
-        for point in 0..8 {
+        for point in 0..16 {
             let mut device = Device::new(instance.clone(), physical).unwrap();
+            let timed = point >= 8;
+            let point = point % 8;
+            if timed && device.timing_info().is_err() {
+                continue;
+            }
             let f = &mut Rc::get_mut(&mut device).unwrap().f;
             FAILURE.set(match point {
                 6 => vk::VkResult_VK_ERROR_UNKNOWN,
@@ -92,6 +97,9 @@ fn gpu_batch_failures() {
                 _ => f.vkQueueSubmit = Some(fail_submit),
             }
             let mut batch = Batch::new(device.clone()).unwrap();
+            if timed {
+                batch.enable_timing().unwrap();
+            }
             let error = match unsafe { batch.submit() } {
                 Err(e) => e,
                 Ok(_) => panic!("Injected failure did not fail"),
@@ -104,14 +112,22 @@ fn gpu_batch_failures() {
             drop(batch);
             assert_eq!(Rc::strong_count(&device), 1);
         }
-        for loss in [false, true] {
+        for case in 0..4 {
+            let loss = case & 1 != 0;
+            let timed = case & 2 != 0;
             let mut device = Device::new(instance.clone(), physical).unwrap();
+            if timed && device.timing_info().is_err() {
+                continue;
+            }
             let f = &mut Rc::get_mut(&mut device).unwrap().f;
             REAL_WAIT.set(f.vkWaitForFences);
             f.vkWaitForFences = Some(flaky_wait);
             REPORT_LOSS.set(loss);
             WAIT_CALLS.set(0);
             let mut batch = Batch::new(device.clone()).unwrap();
+            if timed {
+                batch.enable_timing().unwrap();
+            }
             let mut completion = unsafe { batch.submit().unwrap() };
             assert_eq!(WAIT_CALLS.get(), 0, "Submit must not call wait");
             let expected = if loss {
@@ -121,6 +137,9 @@ fn gpu_batch_failures() {
             };
             assert_eq!(completion.wait().unwrap_err().vk, expected);
             assert_eq!(WAIT_CALLS.get(), 3);
+            if timed {
+                assert_eq!(completion.elapsed_ns().unwrap_err().vk, expected);
+            }
             assert!(!completion.pending);
             assert_eq!(completion.wait().unwrap_err().vk, expected);
             drop(completion);

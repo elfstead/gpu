@@ -260,10 +260,14 @@ fn gpu_graphics() {
         );
         let mut completions = Vec::new();
         let mut outputs = Vec::new();
+        let timed = device.timing_info().is_ok();
         for _ in 0..2 {
             let output = Rc::new(Buffer::new(device.clone(), target.size * 2 + 8).unwrap());
             output.write(0, &vec![0xAA; target.size * 2 + 8]).unwrap();
             let mut batch = Batch::new(device.clone()).unwrap();
+            if timed {
+                batch.enable_timing().unwrap();
+            }
             assert_eq!(
                 batch
                     .copy_target(target.clone(), output.clone(), 4)
@@ -342,6 +346,10 @@ fn gpu_graphics() {
         // Submitted target/pipeline/indirect ownership must survive all public owners.
         for mut completion in completions {
             completion.wait().unwrap();
+            if timed {
+                let elapsed = completion.elapsed_ns().unwrap();
+                assert!(elapsed.is_finite() && elapsed >= 0.0);
+            }
         }
         for output in outputs {
             let mut pixels = vec![0; output.size];

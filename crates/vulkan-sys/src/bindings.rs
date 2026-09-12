@@ -77,6 +77,12 @@ pub struct VkImage_T {
 pub type VkImage = *mut VkImage_T;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkQueryPool_T {
+    _unused: [u8; 0],
+}
+pub type VkQueryPool = *mut VkQueryPool_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkImageView_T {
     _unused: [u8; 0],
 }
@@ -2063,6 +2069,26 @@ pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: VkPhysicalDe
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_CPU: VkPhysicalDeviceType = 4;
 pub const VkPhysicalDeviceType_VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM: VkPhysicalDeviceType = 2147483647;
 pub type VkPhysicalDeviceType = ::std::os::raw::c_uint;
+pub const VkQueryType_VK_QUERY_TYPE_OCCLUSION: VkQueryType = 0;
+pub const VkQueryType_VK_QUERY_TYPE_PIPELINE_STATISTICS: VkQueryType = 1;
+pub const VkQueryType_VK_QUERY_TYPE_TIMESTAMP: VkQueryType = 2;
+pub const VkQueryType_VK_QUERY_TYPE_RESULT_STATUS_ONLY_KHR: VkQueryType = 1000023000;
+pub const VkQueryType_VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT: VkQueryType = 1000028004;
+pub const VkQueryType_VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR: VkQueryType = 1000116000;
+pub const VkQueryType_VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR: VkQueryType = 1000150000;
+pub const VkQueryType_VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_SIZE_KHR: VkQueryType = 1000150001;
+pub const VkQueryType_VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV: VkQueryType = 1000165000;
+pub const VkQueryType_VK_QUERY_TYPE_TIME_ELAPSED_QCOM: VkQueryType = 1000173000;
+pub const VkQueryType_VK_QUERY_TYPE_PERFORMANCE_QUERY_INTEL: VkQueryType = 1000210000;
+pub const VkQueryType_VK_QUERY_TYPE_VIDEO_ENCODE_FEEDBACK_KHR: VkQueryType = 1000299000;
+pub const VkQueryType_VK_QUERY_TYPE_MESH_PRIMITIVES_GENERATED_EXT: VkQueryType = 1000328000;
+pub const VkQueryType_VK_QUERY_TYPE_PRIMITIVES_GENERATED_EXT: VkQueryType = 1000382000;
+pub const VkQueryType_VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_BOTTOM_LEVEL_POINTERS_KHR: VkQueryType = 1000386000;
+pub const VkQueryType_VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SIZE_KHR: VkQueryType = 1000386001;
+pub const VkQueryType_VK_QUERY_TYPE_MICROMAP_SERIALIZATION_SIZE_EXT: VkQueryType = 1000396000;
+pub const VkQueryType_VK_QUERY_TYPE_MICROMAP_COMPACTED_SIZE_EXT: VkQueryType = 1000396001;
+pub const VkQueryType_VK_QUERY_TYPE_MAX_ENUM: VkQueryType = 2147483647;
+pub type VkQueryType = ::std::os::raw::c_uint;
 pub const VkSharingMode_VK_SHARING_MODE_EXCLUSIVE: VkSharingMode = 0;
 pub const VkSharingMode_VK_SHARING_MODE_CONCURRENT: VkSharingMode = 1;
 pub const VkSharingMode_VK_SHARING_MODE_MAX_ENUM: VkSharingMode = 2147483647;
@@ -2550,7 +2576,16 @@ pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM: VkImageAspec
 pub type VkImageAspectFlagBits = ::std::os::raw::c_uint;
 pub type VkImageAspectFlags = VkFlags;
 pub type VkFenceCreateFlags = VkFlags;
+pub type VkQueryPoolCreateFlags = VkFlags;
 pub type VkQueryPipelineStatisticFlags = VkFlags;
+pub const VkQueryResultFlagBits_VK_QUERY_RESULT_64_BIT: VkQueryResultFlagBits = 1;
+pub const VkQueryResultFlagBits_VK_QUERY_RESULT_WAIT_BIT: VkQueryResultFlagBits = 2;
+pub const VkQueryResultFlagBits_VK_QUERY_RESULT_WITH_AVAILABILITY_BIT: VkQueryResultFlagBits = 4;
+pub const VkQueryResultFlagBits_VK_QUERY_RESULT_PARTIAL_BIT: VkQueryResultFlagBits = 8;
+pub const VkQueryResultFlagBits_VK_QUERY_RESULT_WITH_STATUS_BIT_KHR: VkQueryResultFlagBits = 16;
+pub const VkQueryResultFlagBits_VK_QUERY_RESULT_FLAG_BITS_MAX_ENUM: VkQueryResultFlagBits = 2147483647;
+pub type VkQueryResultFlagBits = ::std::os::raw::c_uint;
+pub type VkQueryResultFlags = VkFlags;
 pub type VkBufferCreateFlags = VkFlags;
 pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_SRC_BIT: VkBufferUsageFlagBits = 1;
 pub const VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT: VkBufferUsageFlagBits = 2;
@@ -4247,6 +4282,52 @@ const _: () = {
     ][::std::mem::offset_of!(VkFenceCreateInfo, flags) - 16usize];
 };
 impl Default for VkFenceCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkQueryPoolCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkQueryPoolCreateFlags,
+    pub queryType: VkQueryType,
+    pub queryCount: u32,
+    pub pipelineStatistics: VkQueryPipelineStatisticFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkQueryPoolCreateInfo",
+    ][::std::mem::size_of::<VkQueryPoolCreateInfo>() - 32usize];
+    [
+        "Alignment of VkQueryPoolCreateInfo",
+    ][::std::mem::align_of::<VkQueryPoolCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkQueryPoolCreateInfo::sType",
+    ][::std::mem::offset_of!(VkQueryPoolCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkQueryPoolCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkQueryPoolCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkQueryPoolCreateInfo::flags",
+    ][::std::mem::offset_of!(VkQueryPoolCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkQueryPoolCreateInfo::queryType",
+    ][::std::mem::offset_of!(VkQueryPoolCreateInfo, queryType) - 20usize];
+    [
+        "Offset of field: VkQueryPoolCreateInfo::queryCount",
+    ][::std::mem::offset_of!(VkQueryPoolCreateInfo, queryCount) - 24usize];
+    [
+        "Offset of field: VkQueryPoolCreateInfo::pipelineStatistics",
+    ][::std::mem::offset_of!(VkQueryPoolCreateInfo, pipelineStatistics) - 28usize];
+};
+impl Default for VkQueryPoolCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -6678,6 +6759,33 @@ pub type PFN_vkWaitForFences = ::std::option::Option<
         timeout: u64,
     ) -> VkResult,
 >;
+pub type PFN_vkCreateQueryPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkQueryPoolCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pQueryPool: *mut VkQueryPool,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyQueryPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        queryPool: VkQueryPool,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkGetQueryPoolResults = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        queryPool: VkQueryPool,
+        firstQuery: u32,
+        queryCount: u32,
+        dataSize: usize,
+        pData: *mut ::std::os::raw::c_void,
+        stride: VkDeviceSize,
+        flags: VkQueryResultFlags,
+    ) -> VkResult,
+>;
 pub type PFN_vkCreateBuffer = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
@@ -6776,6 +6884,22 @@ pub type PFN_vkCmdPipelineBarrier = ::std::option::Option<
         pBufferMemoryBarriers: *const VkBufferMemoryBarrier,
         imageMemoryBarrierCount: u32,
         pImageMemoryBarriers: *const VkImageMemoryBarrier,
+    ),
+>;
+pub type PFN_vkCmdResetQueryPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        queryPool: VkQueryPool,
+        firstQuery: u32,
+        queryCount: u32,
+    ),
+>;
+pub type PFN_vkCmdWriteTimestamp = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pipelineStage: VkPipelineStageFlagBits,
+        queryPool: VkQueryPool,
+        query: u32,
     ),
 >;
 pub type PFN_vkCreateShaderModule = ::std::option::Option<

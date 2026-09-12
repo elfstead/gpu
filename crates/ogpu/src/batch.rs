@@ -104,6 +104,7 @@ pub(crate) struct Batch {
     device: Rc<Device>,
     // None means a submission was attempted; even failed attempts are terminal.
     steps: Option<Vec<Step>>,
+    timed: bool,
 }
 
 impl Batch {
@@ -112,6 +113,7 @@ impl Batch {
         Ok(Self {
             device,
             steps: Some(Vec::new()),
+            timed: false,
         })
     }
 
@@ -120,6 +122,13 @@ impl Batch {
         self.steps
             .as_mut()
             .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Batch already submitted"))
+    }
+
+    pub(crate) fn enable_timing(&mut self) -> Result<(), Error> {
+        self.recording()?;
+        self.device.timing_info()?;
+        self.timed = true;
+        Ok(())
     }
 
     pub(crate) fn dispatch(
@@ -255,6 +264,9 @@ impl Batch {
             fence: ptr::null_mut(),
             pending: false,
             outcome: None,
+            timed: self.timed,
+            queries: ptr::null_mut(),
+            elapsed: None,
         };
         // SAFETY: the caller guarantees shader semantics/lifetimes. Preparation retains
         // every kernel, and the completion owns partial construction immediately.
@@ -305,6 +317,9 @@ pub(crate) struct Completion {
     fence: vk::VkFence,
     pending: bool,
     outcome: Option<vk::VkResult>,
+    timed: bool,
+    queries: vk::VkQueryPool,
+    elapsed: Option<f64>,
 }
 
 impl Completion {
@@ -313,6 +328,23 @@ impl Completion {
         // SAFETY: Vulkan pointers refer to initialized local structures. This object
         // owns each successful allocation before another fallible call can occur.
         unsafe {
+            if self.timed {
+                let info = vk::VkQueryPoolCreateInfo {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+                    queryType: vk::VkQueryType_VK_QUERY_TYPE_TIMESTAMP,
+                    queryCount: 2,
+                    ..Default::default()
+                };
+                d.result(
+                    "vkCreateQueryPool",
+                    (d.f.vkCreateQueryPool.unwrap())(
+                        d.handle,
+                        &info,
+                        ptr::null(),
+                        &mut self.queries,
+                    ),
+                )?;
+            }
             let fence = vk::VkFenceCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
                 ..Default::default()
@@ -350,6 +382,15 @@ impl Completion {
                 "vkBeginCommandBuffer",
                 (d.f.vkBeginCommandBuffer.unwrap())(command, &begin),
             )?;
+            if self.timed {
+                (d.f.vkCmdResetQueryPool.unwrap())(command, self.queries, 0, 2);
+                (d.f.vkCmdWriteTimestamp.unwrap())(
+                    command,
+                    vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    self.queries,
+                    0,
+                );
+            }
             barrier(
                 d,
                 command,
@@ -416,6 +457,14 @@ impl Completion {
                 vk::VkAccessFlagBits_VK_ACCESS_MEMORY_WRITE_BIT,
                 vk::VkAccessFlagBits_VK_ACCESS_HOST_READ_BIT,
             );
+            if self.timed {
+                (d.f.vkCmdWriteTimestamp.unwrap())(
+                    command,
+                    vk::VkPipelineStageFlagBits_VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    self.queries,
+                    1,
+                );
+            }
             d.result(
                 "vkEndCommandBuffer",
                 (d.f.vkEndCommandBuffer.unwrap())(command),
@@ -444,6 +493,50 @@ impl Completion {
             self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
         )
     }
+
+    pub(crate) fn elapsed_ns(&mut self) -> Result<f64, Error> {
+        if !self.timed {
+            return Err(Error::new(INVALID_ARGUMENT, "Completion was not timed"));
+        }
+        let outcome = self.outcome.ok_or_else(|| {
+            Error::new(
+                INVALID_ARGUMENT,
+                "Timing requires an explicit successful completion wait",
+            )
+        })?;
+        self.device
+            .result("Timing requires a successful wait", outcome)?;
+        let (period, bits) = self.device.timing_info()?;
+        if let Some(elapsed) = self.elapsed {
+            return Ok(elapsed);
+        }
+        let mut ticks = [0u64; 2];
+        // SAFETY: the successful fence wait establishes completion of reset and both
+        // writes. This completion uniquely owns the pool and output is two aligned u64s.
+        let status = unsafe {
+            (self.device.f.vkGetQueryPoolResults.unwrap())(
+                self.device.handle,
+                self.queries,
+                0,
+                2,
+                std::mem::size_of_val(&ticks),
+                ticks.as_mut_ptr().cast(),
+                8,
+                vk::VkQueryResultFlagBits_VK_QUERY_RESULT_64_BIT,
+            )
+        };
+        self.device.result("vkGetQueryPoolResults", status)?;
+        let elapsed = timestamp_delta_ns(ticks[0], ticks[1], bits, period);
+        self.elapsed = Some(elapsed);
+        Ok(elapsed)
+    }
+}
+
+fn timestamp_delta_ns(start: u64, end: u64, bits: u32, period: f64) -> f64 {
+    // bits/period were checked by timing_info. Avoid shifting by 64; wrapping_sub
+    // also handles the full-width counter. Additional whole wraps are unknowable.
+    let mask = u64::MAX >> (64 - bits);
+    (end.wrapping_sub(start) & mask) as f64 * period
 }
 
 impl Drop for Completion {
@@ -454,6 +547,9 @@ impl Drop for Completion {
             let d = &self.device;
             if !self.pool.is_null() {
                 (d.f.vkDestroyCommandPool.unwrap())(d.handle, self.pool, ptr::null());
+            }
+            if !self.queries.is_null() {
+                (d.f.vkDestroyQueryPool.unwrap())(d.handle, self.queries, ptr::null());
             }
             if !self.fence.is_null() {
                 (d.f.vkDestroyFence.unwrap())(d.handle, self.fence, ptr::null());
@@ -496,3 +592,7 @@ unsafe fn barrier(
 #[cfg(test)]
 #[path = "batch_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "timing_tests.rs"]
+mod timing_tests;

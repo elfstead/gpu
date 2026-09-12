@@ -70,6 +70,9 @@ functions! {
     vkCmdBeginRenderPass: PFN_vkCmdBeginRenderPass, vkCmdEndRenderPass: PFN_vkCmdEndRenderPass,
     vkCmdSetViewport: PFN_vkCmdSetViewport, vkCmdSetScissor: PFN_vkCmdSetScissor,
     vkCmdDrawIndirect: PFN_vkCmdDrawIndirect, vkCmdCopyImageToBuffer: PFN_vkCmdCopyImageToBuffer,
+    vkCreateQueryPool: PFN_vkCreateQueryPool, vkDestroyQueryPool: PFN_vkDestroyQueryPool,
+    vkCmdResetQueryPool: PFN_vkCmdResetQueryPool, vkCmdWriteTimestamp: PFN_vkCmdWriteTimestamp,
+    vkGetQueryPoolResults: PFN_vkGetQueryPoolResults,
 }
 
 fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
@@ -86,6 +89,7 @@ pub(crate) struct Device {
     family: u32,
     physical: vk::VkPhysicalDevice,
     graphics: bool,
+    timestamp_bits: u32,
     memory: vk::VkPhysicalDeviceMemoryProperties,
     limits: vk::VkPhysicalDeviceLimits,
     lost: Cell<bool>,
@@ -197,6 +201,7 @@ impl Device {
                 family,
                 physical,
                 graphics,
+                timestamp_bits: families[family as usize].timestampValidBits,
                 memory,
                 limits: properties.limits,
                 lost: Cell::new(false),
@@ -204,6 +209,11 @@ impl Device {
                 _instance: instance,
             }))
         }
+    }
+
+    pub(crate) fn timing_info(&self) -> Result<(f64, u32), Error> {
+        self.ready()?;
+        timestamp_info(self.timestamp_bits, self.limits.timestampPeriod)
     }
 
     fn ready(&self) -> Result<(), Error> {
@@ -222,6 +232,17 @@ impl Device {
             self.lost.set(true);
         }
         check(op, status)
+    }
+}
+
+fn timestamp_info(bits: u32, period: f32) -> Result<(f64, u32), Error> {
+    if !(36..=64).contains(&bits) || !period.is_finite() || period <= 0.0 {
+        Err(Error::new(
+            UNSUPPORTED,
+            "Selected queue has no supported timestamp clock",
+        ))
+    } else {
+        Ok((f64::from(period), bits))
     }
 }
 

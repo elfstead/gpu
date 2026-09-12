@@ -220,6 +220,30 @@ OgpuResult ogpu_completion_wait(OgpuCompletion *completion, OgpuError *out_error
  * diagnostics. Destroy completions before referenced buffers. NULL is a no-op. */
 void ogpu_completion_destroy(OgpuCompletion *completion);
 
+/* Optional timing of the selected execution queue; not a new requirement for
+ * ordinary execution. Existing structures/signatures remain unchanged. */
+typedef struct OgpuTimingInfo {
+    double timestamp_period_ns;
+    uint32_t timestamp_valid_bits;
+    uint32_t reserved; /* Always zero. */
+} OgpuTimingInfo;
+/* UNSUPPORTED when this queue has no usable clock. Required output, zero on error. */
+OgpuResult ogpu_device_timing_info(OgpuDevice *device, OgpuTimingInfo *out_info, OgpuError *out_error);
+/* Opt a recording batch into whole-batch timing. Idempotent, empty batches legal.
+ * UNSUPPORTED leaves the batch unchanged; after any submission attempt, invalid. */
+OgpuResult ogpu_batch_enable_timing(OgpuBatch *batch, OgpuError *out_error);
+/* Requires a timed completion and an explicit SUCCESS from completion_wait.
+ * Does not poll or wait. Untimed/pre-wait reads are INVALID_ARGUMENT. Required
+ * output is zero on error. Successful reads are cached; query failures can be
+ * retried unless device-lost, and do not change the previous wait outcome.
+ * Approximate device-side batch duration, including barriers and scheduling;
+ * not a CPU timestamp, isolated shader time, or a memory dependency. Caller must
+ * keep intervals below 2^timestamp_valid_bits * timestamp_period_ns: subtraction
+ * handles a counter-boundary crossing, not additional full wraps. Zero is valid.
+ * Conversion to double may lose low-bit precision for large tick differences. */
+OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_nanoseconds,
+    OgpuError *out_error);
+
 /* Narrow offscreen graphics profile; all existing pointer/error/serialization rules
  * apply. Both objects retain their device. Targets are specialized images, NOT
  * addressable allocations. No window, presentation, depth, blending, or sampling. */

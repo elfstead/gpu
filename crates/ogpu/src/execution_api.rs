@@ -41,6 +41,72 @@ pub struct OgpuCompletion {
     inner: Completion,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OgpuTimingInfo {
+    pub timestamp_period_ns: f64,
+    pub timestamp_valid_bits: u32,
+    pub reserved: u32,
+}
+
+/// # Safety
+/// Live device, writable non-overlapping outputs; externally serialized host calls.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_device_timing_info(
+    device: *mut OgpuDevice,
+    out_info: *mut OgpuTimingInfo,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out_info)?;
+            out_info.write(OgpuTimingInfo::default());
+            required(device)?;
+            let (timestamp_period_ns, timestamp_valid_bits) = (*device).inner.timing_info()?;
+            out_info.write(OgpuTimingInfo {
+                timestamp_period_ns,
+                timestamp_valid_bits,
+                reserved: 0,
+            });
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live batch, writable error if supplied, externally serialized device access.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_enable_timing(
+    batch: *mut OgpuBatch,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            (*batch).inner.enable_timing()
+        })
+    }
+}
+
+/// # Safety
+/// Live completion and writable non-overlapping outputs; externally serialized access.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_completion_elapsed_ns(
+    completion: *mut OgpuCompletion,
+    out_nanoseconds: *mut f64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out_nanoseconds)?;
+            out_nanoseconds.write(0.0);
+            required(completion)?;
+            out_nanoseconds.write((*completion).inner.elapsed_ns()?);
+            Ok(())
+        })
+    }
+}
+
 // SAFETY (for callers of these private helpers): error, when non-NULL, is writable
 // and does not overlap inputs. The outer FFI functions document all pointer contracts.
 unsafe fn call(error: *mut OgpuError, f: impl FnOnce() -> Result<(), Error>) -> OgpuResult {
@@ -700,6 +766,47 @@ mod tests {
             );
             ogpu_batch_destroy(ptr::null_mut());
             ogpu_completion_destroy(ptr::null_mut());
+        }
+    }
+
+    #[test]
+    fn invalid_timing_arguments_need_no_driver() {
+        unsafe {
+            let mut info = OgpuTimingInfo {
+                timestamp_period_ns: 1.0,
+                timestamp_valid_bits: 64,
+                reserved: 9,
+            };
+            assert_eq!(
+                ogpu_device_timing_info(ptr::null_mut(), &mut info, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                (
+                    info.timestamp_period_ns,
+                    info.timestamp_valid_bits,
+                    info.reserved
+                ),
+                (0.0, 0, 0)
+            );
+            assert_eq!(
+                ogpu_device_timing_info(ptr::dangling_mut(), ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_enable_timing(ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            let mut elapsed = 42.0;
+            assert_eq!(
+                ogpu_completion_elapsed_ns(ptr::null_mut(), &mut elapsed, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(elapsed, 0.0);
+            assert_eq!(
+                ogpu_completion_elapsed_ns(ptr::dangling_mut(), ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
         }
     }
 

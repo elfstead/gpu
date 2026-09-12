@@ -58,6 +58,10 @@ vk VkSubmitInfo sType pNext waitSemaphoreCount pWaitSemaphores pWaitDstStageMask
 const VK_WHOLE_SIZE
 const32 VK_SUBPASS_EXTERNAL
 api OgpuDrawArguments vertex_count instance_count first_vertex first_instance
+api OgpuTimingInfo timestamp_period_ns timestamp_valid_bits reserved
+vk VkQueryPool
+vk VkQueryPoolCreateInfo sType pNext flags queryType queryCount pipelineStatistics
+vk VkPhysicalDeviceLimits timestampPeriod
 vk VkDrawIndirectCommand vertexCount instanceCount firstVertex firstInstance
 vk VkImage
 vk VkImageView

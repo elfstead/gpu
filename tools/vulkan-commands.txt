@@ -60,3 +60,8 @@ vkCmdSetViewport
 vkCmdSetScissor
 vkCmdDrawIndirect
 vkCmdCopyImageToBuffer
+vkCreateQueryPool
+vkDestroyQueryPool
+vkCmdResetQueryPool
+vkCmdWriteTimestamp
+vkGetQueryPoolResults

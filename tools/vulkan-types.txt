@@ -25,3 +25,4 @@ VkImageUsageFlagBits
 VkImageAspectFlagBits
 VkColorComponentFlagBits
 VkDrawIndirectCommand
+VkQueryResultFlagBits

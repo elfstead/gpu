@@ -79,22 +79,37 @@ static float input_value(unsigned pattern, unsigned which, uint32_t row, uint32_
 }
 
 static int execute(OgpuDevice *device, OgpuKernel *kernel, uint32_t groups,
-    const Root *root, double *elapsed) {
+    const Root *root, int timed, double *elapsed, double *device_ms, double *query_ms) {
     int exit_code = EXIT_FAILURE;
     OgpuError error = {0};
     OgpuBatch *batch = NULL;
     OgpuCompletion *completion = NULL;
     const double start = now_ms();
+    double wait_end = start;
+    double cleanup_start = 0;
+    *query_ms = 0;
     TRY(ogpu_batch_create(device, &batch, &error));
+    if (timed) TRY(ogpu_batch_enable_timing(batch, &error));
     TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_WRITE, &error));
     TRY(ogpu_batch_dispatch(batch, kernel, groups, root, sizeof(*root), &error));
     TRY(ogpu_batch_submit(batch, &completion, &error));
     TRY(ogpu_completion_wait(completion, &error));
+    wait_end = now_ms();
+    if (timed) {
+        double nanoseconds = 0;
+        const double query_start = now_ms();
+        TRY(ogpu_completion_elapsed_ns(completion, &nanoseconds, &error));
+        *query_ms = now_ms() - query_start;
+        REQUIRE(isfinite(nanoseconds) && nanoseconds >= 0);
+        *device_ms = nanoseconds / 1e6;
+    }
     exit_code = EXIT_SUCCESS;
 cleanup:
+    cleanup_start = now_ms();
     ogpu_completion_destroy(completion);
     ogpu_batch_destroy(batch);
-    *elapsed = now_ms() - start;
+    /* Retrieval is reported separately, not charged to host execution latency. */
+    *elapsed = (wait_end - start) + (now_ms() - cleanup_start);
     return exit_code;
 }
 
@@ -134,13 +149,15 @@ static void print_samples(const char *label, double samples[SAMPLES]) {
 }
 
 static int run_case(OgpuDevice *device, OgpuKernel *kernels[2], uint32_t m, uint32_t n,
-    uint32_t k, unsigned pattern, int benchmark, double max_error[2], double max_scaled[2]) {
+    uint32_t k, unsigned pattern, int benchmark, double wrap_ns, double max_error[2], double max_scaled[2]) {
     int exit_code = EXIT_FAILURE;
     OgpuError error = {0};
     Matrix matrices[3] = {0};
     double *reference = NULL, *magnitudes = NULL;
     float *input_check = NULL;
-    double execution[2][SAMPLES] = {{0}}, readback[2][SAMPLES] = {{0}}, reset[2][SAMPLES] = {{0}};
+    double execution[2][2][SAMPLES] = {{{0}}}, readback[2][2][SAMPLES] = {{{0}}}, reset[2][2][SAMPLES] = {{{0}}};
+    double device_times[2][SAMPLES] = {{0}}, query_times[2][SAMPLES] = {{0}};
+    const unsigned modes = wrap_ns > 0 ? 2 : 1;
     double start = now_ms();
     REQUIRE(create_matrix(device, m, k, 3, &matrices[0]) == EXIT_SUCCESS);
     REQUIRE(create_matrix(device, k, n, 5, &matrices[1]) == EXIT_SUCCESS);
@@ -181,21 +198,32 @@ static int run_case(OgpuDevice *device, OgpuKernel *kernels[2], uint32_t m, uint
     for (unsigned round = 0; round < (benchmark ? WARMUPS + SAMPLES : 1); ++round) {
         for (unsigned order = 0; order < 2; ++order) {
             const unsigned variant = (order + round) % 2;
-            start = now_ms();
-            poison_matrix(c);
-            TRY(ogpu_buffer_write(c->buffer, 0, c->host, c->count * 4, &error));
-            const double reset_ms = now_ms() - start;
-            double elapsed = 0;
-            REQUIRE(execute(device, kernels[variant], groups[variant], &root, &elapsed) == EXIT_SUCCESS);
-            start = now_ms();
-            TRY(ogpu_buffer_read(c->buffer, 0, c->host, c->count * 4, &error));
-            const double read_ms = now_ms() - start;
-            REQUIRE(check_output(c, reference, magnitudes, k, &max_error[variant], &max_scaled[variant]));
-            if (benchmark && round >= WARMUPS) {
-                const unsigned sample = round - WARMUPS;
-                execution[variant][sample] = elapsed;
-                readback[variant][sample] = read_ms;
-                reset[variant][sample] = reset_ms;
+            for (unsigned mode_order = 0; mode_order < modes; ++mode_order) {
+                const unsigned mode = (mode_order + round) % modes;
+                start = now_ms();
+                poison_matrix(c);
+                TRY(ogpu_buffer_write(c->buffer, 0, c->host, c->count * 4, &error));
+                const double reset_ms = now_ms() - start;
+                double elapsed = 0, gpu_ms = 0, query_ms = 0;
+                REQUIRE(execute(device, kernels[variant], groups[variant], &root, mode != 0,
+                    &elapsed, &gpu_ms, &query_ms) == EXIT_SUCCESS);
+                /* This isolated call's host interval bounds the bracket. Do not silently
+                 * accept durations that could contain an undetectable full counter wrap. */
+                if (mode) REQUIRE(elapsed * 1e6 < wrap_ns);
+                start = now_ms();
+                TRY(ogpu_buffer_read(c->buffer, 0, c->host, c->count * 4, &error));
+                const double read_ms = now_ms() - start;
+                REQUIRE(check_output(c, reference, magnitudes, k, &max_error[variant], &max_scaled[variant]));
+                if (benchmark && round >= WARMUPS) {
+                    const unsigned sample = round - WARMUPS;
+                    execution[mode][variant][sample] = elapsed;
+                    readback[mode][variant][sample] = read_ms;
+                    reset[mode][variant][sample] = reset_ms;
+                    if (mode) {
+                        device_times[variant][sample] = gpu_ms;
+                        query_times[variant][sample] = query_ms;
+                    }
+                }
             }
         }
     }
@@ -210,11 +238,17 @@ static int run_case(OgpuDevice *device, OgpuKernel *kernels[2], uint32_t m, uint
         printf("M=%" PRIu32 " N=%" PRIu32 " K=%" PRIu32 ": allocations+host staging %.4f ms, initial upload %.4f ms\n",
             m, n, k, allocation_ms, upload_ms);
         for (unsigned i = 0; i < 2; ++i) {
-            printf("  %s:", names[i]);
-            print_samples("execution", execution[i]);
-            print_samples("output-reset", reset[i]);
-            print_samples("readback", readback[i]);
-            putchar('\n');
+            for (unsigned mode = 0; mode < modes; ++mode) {
+                printf("  %s %s:", names[i], mode ? "timed" : "untimed");
+                print_samples("host-execution", execution[mode][i]);
+                if (mode) {
+                    print_samples("device-batch", device_times[i]);
+                    print_samples("query-read", query_times[i]);
+                }
+                print_samples("output-reset", reset[mode][i]);
+                print_samples("readback", readback[mode][i]);
+                putchar('\n');
+            }
         }
     }
     exit_code = EXIT_SUCCESS;
@@ -259,6 +293,7 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < 2; ++i) REQUIRE(read_shader(argv[i + 1], &words[i], &counts[i]) == EXIT_SUCCESS);
     printf("Host-clock measurements: median [min, max], %d warmups + %d samples.\n", WARMUPS, SAMPLES);
     printf("Execution includes recording/submission/wait/cleanup, not isolated GPU time.\n");
+    printf("Optional device-batch timings include boundary barriers; query read is separate.\n");
     printf("Validation environment: VK_INSTANCE_LAYERS=%s; VK_LAYER_VALIDATE_SYNC=%s\n",
         getenv("VK_INSTANCE_LAYERS") ? getenv("VK_INSTANCE_LAYERS") : "(unset)",
         getenv("VK_LAYER_VALIDATE_SYNC") ? getenv("VK_LAYER_VALIDATE_SYNC") : "(unset)");
@@ -277,6 +312,20 @@ int main(int argc, char **argv) {
         TRY(ogpu_probe_device_info(probe, i, &info));
         printf("Matrix experiment on %s, Vulkan %" PRIu32 ".%" PRIu32 ".%" PRIu32 "; device creation %.4f ms\n",
             info.name, info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch, device_ms);
+        OgpuTimingInfo timing = {0};
+        double wrap_ns = 0;
+        OgpuResult timing_status = ogpu_device_timing_info(device, &timing, &error);
+        if (timing_status == OGPU_ERROR_UNSUPPORTED) {
+            printf("  Device timestamps unsupported: host-only measurements.\n");
+        } else {
+            TRY(timing_status);
+            REQUIRE(timing.reserved == 0 && timing.timestamp_period_ns > 0
+                && timing.timestamp_valid_bits >= 36 && timing.timestamp_valid_bits <= 64);
+            wrap_ns = timing.timestamp_period_ns;
+            for (uint32_t bit = 0; bit < timing.timestamp_valid_bits; ++bit) wrap_ns *= 2;
+            printf("  Timestamp clock: %.9g ns/tick, %" PRIu32 " valid bits, wrap %.6g seconds\n",
+                timing.timestamp_period_ns, timing.timestamp_valid_bits, wrap_ns / 1e9);
+        }
         for (unsigned variant = 0; variant < 2; ++variant) {
             start = now_ms();
             TRY(ogpu_kernel_create(device, words[variant], counts[variant], sizeof(Root), &kernels[variant], &error));
@@ -288,12 +337,13 @@ int main(int argc, char **argv) {
         for (unsigned shape = 0; shape < sizeof(shapes) / sizeof(shapes[0]); ++shape)
             for (unsigned pattern = 0; pattern < 5; ++pattern)
                 REQUIRE(run_case(device, kernels, shapes[shape][0], shapes[shape][1], shapes[shape][2],
-                    pattern, 0, max_error, max_scaled) == EXIT_SUCCESS);
-        printf("Verified 50 shapes/patterns per kernel, including padding, guards, and unchanged inputs.\n");
+                    pattern, 0, wrap_ns, max_error, max_scaled) == EXIT_SUCCESS);
+        printf("Verified 50 shapes/patterns per kernel in %s mode(s), including padding, guards, and unchanged inputs.\n",
+            wrap_ns > 0 ? "untimed and timed" : "untimed");
         const uint32_t benchmarks[][3] = {{128, 128, 128}, {257, 193, 129}, {256, 256, 256}};
         for (unsigned shape = 0; shape < sizeof(benchmarks) / sizeof(benchmarks[0]); ++shape)
             REQUIRE(run_case(device, kernels, benchmarks[shape][0], benchmarks[shape][1], benchmarks[shape][2],
-                2, 1, max_error, max_scaled) == EXIT_SUCCESS);
+                2, 1, wrap_ns, max_error, max_scaled) == EXIT_SUCCESS);
         for (unsigned variant = 0; variant < 2; ++variant) {
             printf("  %s maximum absolute error %.6g; maximum error/bound %.6g\n",
                 names[variant], max_error[variant], max_scaled[variant]);
