@@ -142,8 +142,10 @@ OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *dat
 OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_address, OgpuError *out_error);
 
 /* words is a 4-byte-aligned SPIR-V module, copied/consumed before return. The caller
- * must provide VALID Vulkan 1.2 SPIR-V with a compute entry named "main", no
- * descriptors, and only core-required capabilities plus bufferDeviceAddress.
+ * must provide VALID Vulkan 1.2-targeted SPIR-V with a compute entry named "main", no
+ * descriptors, and only core-required capabilities plus bufferDeviceAddress. Runtime
+ * execution still requires the device's modern Vulkan baseline; this is the module's
+ * SPIR-V target, not a compatibility promise for Vulkan 1.2 devices.
  * push_size_bytes must be a multiple of 4 within maxPushDataSize; zero is legal.
  * All shader push accesses must fit this range. Header checks are NOT validation
  * or sandboxing; malformed/incompatible shaders may cause driver faults. */
@@ -261,7 +263,7 @@ OgpuResult ogpu_target_create_rgba8(OgpuDevice *device, uint32_t width, uint32_t
     OgpuTarget **out_target, OgpuError *out_error);
 void ogpu_target_destroy(OgpuTarget *target);
 
-/* Valid matching vertex/fragment Vulkan 1.2 SPIR-V main entries; no descriptors,
+/* Valid matching vertex/fragment Vulkan 1.2-targeted SPIR-V main entries; no descriptors,
  * only core-required capabilities plus BDA. Storage reads only in these stages;
  * vertex/fragment stores/atomics are NOT enabled. Vertex positions must be written
  * by the vertex shader; fragment location 0 is a floating-point RGBA output.

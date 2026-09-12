@@ -14,9 +14,10 @@ It returns UNSUPPORTED if none exists. Ordinary `ogpu_device_create` continues t
 accept compute-only devices; discovery remains independent. No new optional
 graphics shader arithmetic features are enabled beyond that baseline.
 
-`OgpuRaster` prepares valid descriptor-free Vulkan 1.2 vertex and fragment SPIR-V
-entry points named `main`, with a caller-defined copied root block shared by both
-stages. Vertex attributes are fetched through GPU addresses: there is no vertex
+`OgpuRaster` prepares valid descriptor-free Vulkan 1.2-targeted vertex and fragment
+SPIR-V entry points named `main`, with a caller-defined copied root block shared by
+both stages. The runtime still requires the modern device baseline. Vertex attributes
+are fetched through GPU addresses: there is no vertex
 binding layout. Vertex/fragment storage writes and atomics are not enabled. Shader
 validity, stage interfaces, and reachable address bounds remain trusted contracts.
 

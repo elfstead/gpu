@@ -61,7 +61,7 @@ remains 1. No execution-facing Vulkan types are exposed.
 - The shader is descriptor-free SPIR-V, with a compute entry named `main`. Its
   16-byte argument block contains a device address at byte 0, an element count at
   byte 8, and four padding bytes. This block is an example contract, not a universal
-  kernel ABI; the backend supports a caller-specified push-constant byte count.
+  kernel ABI; the backend supports a caller-specified root-data byte count.
 - Each blocking dispatch records host/prior-compute → compute and compute → host memory
   dependencies, then submits and waits on its completion fence. Arguments are
   copied into the command buffer. Readback invalidates non-coherent CPU caches.
@@ -106,8 +106,9 @@ VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation cargo xtask compute
 ```
 
 The C compute task fails on reported validation errors, not just API return codes.
-CI is configured to run the example with Mesa's software Vulkan driver and validate the checked-in
-SPIR-V. Local development has also verified it on the RX 5700 XT and llvmpipe.
+Hosted CI validates the checked-in SPIR-V; the manual modern-driver workflow runs
+execution. The old backend passed on RX 5700 XT and llvmpipe. The modern backend
+has been reverified on llvmpipe; physical-GPU execution remains pending.
 The non-coherent memory selector and wait-error draining have unit coverage;
 actual non-coherent cache behavior still needs a device exposing a suitable memory
 type. Tests can exercise the explicit flush/invalidate calls on coherent memory,

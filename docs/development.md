@@ -10,8 +10,11 @@ execution interface.
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
 Its test-data downloads and CMake build are separate from ordinary Cargo builds.
 Acceptance uses checked-in, hash-pinned weights; CPU training is a separate optional
-script. CI includes a separate consumer job; local results do not establish
-that remote CI has run.
+script. Hosted CI covers build/mock/ABI/SPIR-V checks. GPU and consumer execution
+are in the manual `gpu.yml` workflow, requiring a separately provisioned
+`ogpu-modern-vulkan` runner with the selected baseline, validation layers, build
+tools and test-data download access. No runner was provisioned or remote run
+performed here. Automatic hosted CI is not currently an execution gate.
 
 ## Build and run
 

@@ -6,10 +6,12 @@ evidence. Neither a backlog entry nor a successful benchmark schedules more work
 
 ## Current phase
 
-Active next work: [modern Vulkan baseline migration](modern-baseline.md), ahead of
-the lifetime API experiment. Require features that simplify the model/backend;
-do not preserve the Vulkan 1.2 path as a compatibility fallback. The completed
-integration checkpoints below remain historical regression evidence.
+The [modern Vulkan baseline migration](modern-baseline.md) is implemented and locally
+verified (`39b8c16`); physical-GPU and provisioned execution-CI checks remain pending.
+There is no Vulkan 1.2 compatibility path. Next design work is the separate
+retention/retirement comparison; heap-indexed image access still needs its own
+compiler/consumer experiment. The completed integration checkpoints below remain
+historical regression evidence, not proof of the new backend on physical hardware.
 
 Initial feasibility is complete. We have a working Rust/Vulkan runtime and C ABI,
 with tested compute, mixed graphics/compute, cooperative reduction, FP32 matrix

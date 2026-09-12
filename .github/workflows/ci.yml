@@ -31,52 +31,8 @@ jobs:
       - run: spirv-val --target-env vulkan1.2 examples/shaders/image-read.frag.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/matmul-naive.comp.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/matmul-tiled.comp.spv
-      - run: cargo xtask matmul
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-      - run: cargo xtask image-loop
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-      - run: cargo xtask reduction
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-      - run: cargo xtask batch
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-      - run: cargo xtask compute
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-      - run: cargo xtask gpu-tests
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-      - run: cargo xtask graphics
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-
-  ggml-consumer:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: sudo apt-get update && sudo apt-get install -y cmake ninja-build build-essential curl gzip ripgrep spirv-tools libvulkan1 mesa-vulkan-drivers vulkan-validationlayers
-      - name: Pin the independent consumer
-        run: |
-          git clone --no-checkout https://github.com/ggml-org/ggml.git target/ggml-source
-          git -C target/ggml-source checkout --detach 7840aaba1989c6deeefede1d77d5aaf8f52b947e
-      - run: bash integrations/ggml/prepare.sh
-      - run: bash integrations/ggml/run.sh target/ggml-source
-        env:
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
-          VK_LAYER_VALIDATE_SYNC: '1'
-
+      - run: spirv-val --target-env vulkan1.2 integrations/ggml/shaders/element.comp.spv
+      - run: spirv-val --target-env vulkan1.2 integrations/ggml/shaders/matrix.comp.spv
   minimum-rust:
     runs-on: ubuntu-24.04
     steps:

@@ -3,14 +3,16 @@
 A pinned GGML backend adapter for the upstream FP32 fully connected MNIST forward
 graph. Read the [brief and API decisions](../../docs/consumer-ggml.md) first.
 This is not a general GGML backend or a replacement for `mnist-eval`'s full
-loss/optimizer graph. The Rust GPU runtime and public API are unchanged.
+loss/optimizer graph. The consumer uses only the public C API. The
+[modern backend migration](../../docs/modern-baseline.md) reran this acceptance
+without changing the adapter, shader binaries, or public ABI layouts.
 
 ## Reproduce
 
 Run from the repository root on Linux x86-64. Requirements: the runtime's Rust
 toolchain/loader, C/C++17 compilers, CMake 3.20+, Ninja, Git, Bash, curl, gzip,
-sha256sum, ripgrep, and SPIRV-Tools. Vulkan 1.2 compute plus buffer device address
-is required; neither graphics nor timestamps is required. GGML's configured CPU
+sha256sum, ripgrep, and SPIRV-Tools. The modern execution baseline is required;
+neither graphics nor timestamps is required. GGML's configured CPU
 reference currently requires AVX2/FMA/F16C, even though the GPU kernels use FP32.
 
 ```sh
