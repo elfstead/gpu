@@ -58,8 +58,9 @@ C1–C3 are complete. C2 retained the API in the initial checkpoint. The experim
 `375f33398d88b85db2ed6dd244d58e519850e328` (ABI 1), with the clarified compatibility
 policy above. This is a source checkpoint, not a release/tag or a stable ABI.
 See [build instructions and the integration friction report](../integrations/ggml/README.md).
-The active [hardening and scheduler follow-up](ggml-hardening.md) evaluates better
-API alternatives, not just compatibility with that checkpoint.
+The completed [hardening and scheduler follow-up](ggml-hardening.md) adds scoped
+ownership, fixed regression weights and verified scheduler allocation reuse. It
+evaluates better API alternatives, not just compatibility with that checkpoint.
 
 ## Acceptance record — 2026-09-12
 

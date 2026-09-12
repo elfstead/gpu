@@ -77,14 +77,20 @@ the brief and this plan, rather than quietly accumulating additional gates.
 Checkpoint completion does not publish a release or authorize contacting upstream
 maintainers. A release/tag or external contribution can be handled explicitly.
 
-The active follow-up is GGML integration hardening and scheduler-managed allocation
-reuse: isolate the teardown fault, pin regression weights, make adapter ownership
-explicit, then execute the same graph through GGML's scheduler and graph allocator.
-Acceptance retains numerical/prediction checks, verifies placement with no hidden
-fallback, demonstrates storage reuse and repeats validated execution/teardown.
+The [GGML hardening and scheduler follow-up](ggml-hardening.md) is complete:
+teardown was isolated, regression weights pinned, adapter ownership made explicit,
+and the same graph now executes through GGML's scheduler/graph allocator with
+verified placement, no hidden fallback, and intermediate storage reuse. Direct
+and scheduled modes pass the numerical and repeated-lifecycle gates on both drivers.
+Source checkpoints: `a53564c` (hardening) and `dae0ba7` (scheduler/reuse).
 Review whether the work **exposes a better API alternative** against the project's
 goals. Compatibility with the current API is not a veto on a better design, and
 an alternative need not be forced by an integration failure to be worth adopting.
+The scoped consumer session was adopted. The strongest new public-API candidate
+is explicit buffer-range use/retention declarations; the follow-up compares its
+benefits with tensor-graph and mapping alternatives. Choosing a bounded prototype
+for those declarations is the next design discussion, not an automatic extension
+of this completed integration task.
 
 ## Decisions blocking the candidate
 

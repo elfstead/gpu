@@ -8,8 +8,9 @@ supported and tested. The ABI is experimental, not a specification of the eventu
 execution interface.
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
-Its downloads, CPU fixture preparation and CMake build are separate from ordinary
-Cargo builds. CI includes a separate consumer job; local results do not establish
+Its test-data downloads and CMake build are separate from ordinary Cargo builds.
+Acceptance uses checked-in, hash-pinned weights; CPU training is a separate optional
+script. CI includes a separate consumer job; local results do not establish
 that remote CI has run.
 
 ## Build and run

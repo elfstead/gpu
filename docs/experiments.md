@@ -38,9 +38,12 @@ maximum absolute logit difference 0.0000343322754. Every logit met the predeclar
 tolerance. Repeated allocation use, full teardown/recreation and unsupported-graph
 preflight rejection passed. See the brief for source/model revisions and checks.
 
-This validates consumer-side suballocation and synchronous graph integration,
-not scheduler-driven memory reuse, general GGML operations or competitive ML
-performance. The [friction report](../integrations/ggml/README.md#deliberate-costs-and-remaining-friction)
+The initial checkpoint validated consumer-side suballocation and direct synchronous
+graph integration. The [hardening/scheduler follow-up](ggml-hardening.md) also
+verifies GGML placement and safe in-place storage reuse: intermediate buffer bytes
+fall from 389,120 to 130,560 at batch 64 with unchanged numerical results on both
+drivers. General GGML operations and competitive ML performance remain unproven.
+The [friction report](../integrations/ggml/README.md#deliberate-costs-and-remaining-friction)
 records host token storage, registry ordering and lifecycle costs. No GPU runtime
 or public API changes were necessary; no graphics-consumer conclusion follows.
 

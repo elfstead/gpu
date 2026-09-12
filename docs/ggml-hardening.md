@@ -1,5 +1,9 @@
 # GGML follow-up: ownership, fixtures and allocation reuse
 
+Completed checkpoints: `a53564c` (scoped ownership, fixed fixture and teardown
+isolation) and `dae0ba7` (scheduler placement, safe aliasing and storage reuse).
+The public C ABI remains version 1; the local GGML-facing session API changed.
+
 ## Design question and stopping condition
 
 Evaluate whether ordinary GGML scheduling, tensor lifetime reuse and application
@@ -76,7 +80,74 @@ SHA-256. Local and CI regression runs now use exactly those weights. Only the
 test dataset is downloaded for routine acceptance. Optional CPU training writes
 `mnist-fc-trained.gguf` separately and never replaces the regression fixture.
 
-## Scheduler work
+## Scheduler and allocation-reuse result
 
-In progress. The next checkpoint will record placement, safe in-place execution,
-allocator storage reuse and the API alternatives exposed by this integration.
+The same upstream graph now runs in two modes: direct execution with independently
+allocated intermediates as a control, and GGML scheduling with its graph allocator.
+The scheduled workflow checks support before allocation, marks weights as weights,
+and lets GGML choose placement. Every executable node must resolve to the primary
+OGPU backend, with one split. This is checked before execution; each call must
+produce exactly five OGPU dispatches. The driver rejects unsupported graphs rather
+than permitting the scheduler's normal CPU fallback.
+
+GGML's allocator detects dead input tensors and assigns the same allocation/range
+to both bias additions and ReLU. The adapter permits only **exact source-0 aliasing**
+for those elementwise operations. An invocation reads/writes its own element;
+there are no `restrict` declarations. Partial overlaps, broadcast-bias overlap
+and every matrix input/output overlap remain invalid. Compute READ|WRITE barriers
+before each dispatch order RAW, WAR and WAW hazards, including reused storage and
+previous submissions. This does not infer dependencies from GPU addresses.
+
+Paired local results, 2026-09-12, RX 5700 XT/RADV and llvmpipe, validation and
+synchronization validation enabled:
+
+| Batch size | Direct intermediate bytes | Scheduled intermediate bytes | In-place nodes |
+|---|---|---|---|
+| 1 | 6,272 | 2,112 | 3 |
+| 17 | 103,552 | 34,752 | 3 |
+| 64 | 389,120 | 130,560 | 3 |
+
+These are GGML backend buffer capacities for intermediates, including tensor
+alignment, not total process memory or Vulkan allocation requirements. Weights,
+inputs, metadata, driver allocations and the adapter's host token arrays are
+excluded. Token storage still adds approximately one host byte per GPU-buffer byte.
+
+All six mode/size combinations per driver covered all 10,000 images: 9,801 correct,
+every top-1 prediction matching CPU, maximum absolute logit difference
+0.0000343322754, and every logit meeting the original absolute/relative tolerance.
+Padded tail logits were checked too. Exact token/buffer assignments were checked
+unchanged after every call; scheduler allocation happens once per model, not per
+inference. Models, schedulers, buffers and sessions are destroyed/recreated between
+mode/size runs. Tests reject unsupported operations, FP16, strided layouts,
+matrix aliasing, partial elementwise overlap and bias overlap before submission.
+Sentinel output and dispatch-count checks detect partial execution of rejected
+backend graphs. A scheduled unsupported-op check verifies refusal before fallback.
+
+Scoped lifecycle tests passed on both drivers, including intentional live-child
+death tests. ShellCheck, Rust formatting/Clippy, 20 ordinary tests, seven GPU tests
+and 550 C/Rust ABI checks passed. CI is configured to run fixed-fixture direct and
+scheduled acceptance plus lifecycle checks; no remote CI run is claimed.
+
+## API alternatives exposed
+
+This review is about better alignment with the project, not preserving the current
+API until something forces a change.
+
+| Alternative | Benefit and tradeoff | Decision here |
+|---|---|---|
+| Scoped consumer session instead of global register/shutdown state | Makes ownership and teardown visible; contexts identify which state each callback uses; child-lifetime violations are diagnosed | Adopted in the GGML-facing API. The runtime already has owning devices/children; no GPU-owning globals are needed in the adapter. |
+| Runtime tensor graph/in-place operators | Could hide graph allocation and alias rules, but makes the low-level boundary own GGML-like tensor semantics, duplicates the consumer's liveness knowledge and does not generalize naturally to graphics | Keep tensor liveness and elementwise alias legality in GGML/consumer code. This is a design choice, not a claim that a graph API is impossible. |
+| Explicit buffer-range use/retention declarations attached to a dispatch or batch | Could associate non-owning pointers with retained allocations and access ranges, improving lifetime diagnostics and making narrower dependencies possible across compute/graphics | A promising public-API alternative for a separate bounded prototype. Compare retention-only declarations against range+access declarations; preserve arbitrary pointer-root layouts and make incomplete declarations explicitly a caller obligation. |
+| Host mapping/import to eliminate the adapter's token arrays | Could remove this integration's extra host allocation, but couples pointer identity, placement and cache-maintenance/lifetime rules; mappings are not generally device addresses | Do not add mapping merely to satisfy GGML's token convention. Evaluate it with the broader transfer/placement design; token reservation without committed backing is a separate adapter optimization, not a solved portable C++ pointer model. |
+
+The public API remains the existing address/explicit-dependency model for this
+checkpoint because it preserves consumer-owned interpretation and transparent
+synchronization. The scoped adapter API is a concrete improvement adopted now;
+range-use declarations are the strongest new public-API candidate exposed by this
+work. Their value would be safer resource/lifetime expression, not additional
+MNIST operators. Implementing them is not an unstated gate for this completed step.
+
+Still outside the evidence: arbitrary graph topology/views, graph reset/rebuild
+within one scheduler, concurrent host callers or asynchronous callbacks,
+device-local staging, additional GPU vendors and graphics consumers. No performance
+claim follows from the intermediate-storage reduction.
