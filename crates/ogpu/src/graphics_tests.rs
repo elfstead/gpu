@@ -2,6 +2,121 @@ use super::*;
 use crate::compute::batch::{COMPUTE_WRITE, INDIRECT_READ, TRANSFER_WRITE, VERTEX_READ};
 
 thread_local! {
+    static QUERY_FEATURES: Cell<vk::PFN_vkGetPhysicalDeviceFeatures2> = const { Cell::new(None) };
+    static CREATE_DEVICE: Cell<vk::PFN_vkCreateDevice> = const { Cell::new(None) };
+    static FEATURE_MODE: Cell<u32> = const { Cell::new(0) };
+    static EXPECT_UNIFIED: Cell<bool> = const { Cell::new(false) };
+    static CREATED: Cell<bool> = const { Cell::new(false) };
+}
+
+unsafe extern "C" fn optional_image_features(
+    physical: vk::VkPhysicalDevice,
+    query: *mut vk::VkPhysicalDeviceFeatures2,
+) {
+    unsafe {
+        (QUERY_FEATURES.get().unwrap())(physical, query);
+        // This test intercepts Device::create_configured's known feature chain.
+        let v12 = (*query)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceVulkan12Features>();
+        let v13 = (*v12).pNext.cast::<vk::VkPhysicalDeviceVulkan13Features>();
+        let v14 = (*v13).pNext.cast::<vk::VkPhysicalDeviceVulkan14Features>();
+        let images = (*v14)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR>();
+        if FEATURE_MODE.get() == 2 {
+            (*v13).dynamicRendering = vk::VK_FALSE;
+        }
+        EXPECT_UNIFIED.set(false);
+        if !images.is_null() {
+            if FEATURE_MODE.get() == 1 {
+                (*images).unifiedImageLayouts = vk::VK_FALSE;
+            }
+            EXPECT_UNIFIED.set((*images).unifiedImageLayouts != 0);
+        }
+    }
+}
+
+unsafe extern "C" fn checked_image_device(
+    physical: vk::VkPhysicalDevice,
+    create: *const vk::VkDeviceCreateInfo,
+    allocator: *const vk::VkAllocationCallbacks,
+    output: *mut vk::VkDevice,
+) -> vk::VkResult {
+    unsafe {
+        let names = std::slice::from_raw_parts(
+            (*create).ppEnabledExtensionNames,
+            (*create).enabledExtensionCount as usize,
+        );
+        let enabled = names
+            .iter()
+            .any(|&name| std::ffi::CStr::from_ptr(name) == c"VK_KHR_unified_image_layouts");
+        assert_eq!(enabled, EXPECT_UNIFIED.get());
+        let v12 = (*create)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceVulkan12Features>();
+        let v13 = (*v12).pNext.cast::<vk::VkPhysicalDeviceVulkan13Features>();
+        let v14 = (*v13).pNext.cast::<vk::VkPhysicalDeviceVulkan14Features>();
+        let heap = (*v14)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceDescriptorHeapFeaturesEXT>();
+        let addresses = (*heap)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR>();
+        let untyped = (*addresses)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR>();
+        let images = (*untyped)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR>();
+        assert_eq!(!images.is_null(), enabled);
+        if enabled {
+            assert_eq!((*images).unifiedImageLayouts, vk::VK_TRUE);
+            assert_eq!((*images).unifiedImageLayoutsVideo, vk::VK_FALSE);
+        }
+        CREATED.set(true);
+        (CREATE_DEVICE.get().unwrap())(physical, create, allocator, output)
+    }
+}
+
+#[test]
+#[ignore = "requires graphics Vulkan; unified layouts optional, dynamic rendering required"]
+fn gpu_optional_unified_layouts() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        match Device::new_graphics(instance.clone(), physical) {
+            Ok(_) => {}
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        }
+        for mode in 0..3 {
+            FEATURE_MODE.set(mode);
+            CREATED.set(false);
+            let result = Device::create_configured(instance.clone(), physical, true, |f| {
+                QUERY_FEATURES.set(f.vkGetPhysicalDeviceFeatures2);
+                f.vkGetPhysicalDeviceFeatures2 = Some(optional_image_features);
+                CREATE_DEVICE.set(f.vkCreateDevice);
+                f.vkCreateDevice = Some(checked_image_device);
+            });
+            if mode == 2 {
+                assert!(matches!(result, Err(e) if e.status == UNSUPPORTED));
+                assert!(!CREATED.get());
+            } else {
+                let device = result.unwrap();
+                assert!(device.graphics && CREATED.get());
+                let target = Rc::new(Target::new(device.clone(), 2, 3).unwrap());
+                let mut batch = Batch::new(device).unwrap();
+                batch.discard_target(target).unwrap();
+                unsafe { batch.submit().unwrap().wait().unwrap() };
+            }
+        }
+        tested += 1;
+    }
+    assert!(tested > 0, "No graphics+compute device found");
+}
+
+thread_local! {
     static SUBMIT: Cell<vk::PFN_vkQueueSubmit2> = const { Cell::new(None) };
     static REJECT: Cell<bool> = const { Cell::new(false) };
 }

@@ -271,8 +271,9 @@ OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_na
     OgpuError *out_error);
 
 /* Narrow offscreen graphics profile; all existing pointer/error/serialization rules
- * apply. Requires dynamicRendering, VK_KHR_unified_image_layouts with
- * unifiedImageLayouts, and a shared graphics/compute queue. Ownership rules
+ * apply. Requires dynamicRendering and a shared graphics/compute queue.
+ * Uses GENERAL layouts; VK_KHR_unified_image_layouts is enabled when supported
+ * for its layout-efficiency guarantee, but is not required. Ownership rules
  * apply. Both objects retain their device. Targets are specialized images, NOT
  * addressable allocations. No window, presentation, depth, or blending. */
 typedef struct OgpuTarget OgpuTarget;

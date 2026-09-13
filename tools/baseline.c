@@ -94,12 +94,13 @@ int main(void) {
         SHOW("deviceAddressCommands", address.deviceAddressCommands);
         SHOW("shaderUntypedPointers", untyped.shaderUntypedPointers);
         SHOW("unifiedImageLayouts", image.unifiedImageLayouts);
+        printf("  unified layouts are optional (GENERAL layout-efficiency guarantee)\n");
         printf("  %-32s %" PRIu64 "\n", "maxPushDataSize", limits.maxPushDataSize);
 #undef SHOW
         int compute = core && v12.bufferDeviceAddress && v12.timelineSemaphore && v13.synchronization2
             && v14.maintenance5 && heap.descriptorHeap && address.deviceAddressCommands && untyped.shaderUntypedPointers;
         printf("  feature baseline: compute=%s graphics=%s (queue/creation/execution not tested)\n",
-               compute ? "yes" : "no", compute && v13.dynamicRendering && image.unifiedImageLayouts ? "yes" : "no");
+               compute ? "yes" : "no", compute && v13.dynamicRendering ? "yes" : "no");
         ready += compute;
         free(extensions);
     }

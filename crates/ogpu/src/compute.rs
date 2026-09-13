@@ -232,9 +232,12 @@ impl Device {
             if v14.maintenance5 == 0 {
                 return Err(Error::new(UNSUPPORTED, "Execution requires maintenance5"));
             }
-            let image_profile = v13.dynamicRendering != 0 && images.unifiedImageLayouts != 0;
+            let image_profile = v13.dynamicRendering != 0;
             if require_graphics && !image_profile {
-                return Err(Error::new(UNSUPPORTED, "Graphics requires dynamicRendering and VK_KHR_unified_image_layouts: unifiedImageLayouts"));
+                return Err(Error::new(
+                    UNSUPPORTED,
+                    "Graphics requires dynamicRendering",
+                ));
             }
             let mut count = 0;
             (f.vkGetPhysicalDeviceQueueFamilyProperties.unwrap())(
@@ -260,6 +263,10 @@ impl Device {
             let graphics = image_profile
                 && families[family as usize].queueFlags & vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT
                     != 0;
+            // GENERAL is legal for the current image operations without this
+            // extension. Enable its layout-efficiency guarantee when available;
+            // command recording is identical either way.
+            let unified_images = graphics && image_extension && images.unifiedImageLayouts != 0;
             let mut properties = vk::VkPhysicalDeviceProperties::default();
             (f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
             let mut memory = vk::VkPhysicalDeviceMemoryProperties::default();
@@ -288,7 +295,7 @@ impl Device {
                 ..Default::default()
             };
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties2);
-            let mut untyped = vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR, shaderUntypedPointers: vk::VK_TRUE, pNext: if graphics { (&mut images as *mut vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR).cast() } else { ptr::null_mut() } };
+            let mut untyped = vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR, shaderUntypedPointers: vk::VK_TRUE, pNext: if unified_images { (&mut images as *mut vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR).cast() } else { ptr::null_mut() } };
             let mut addresses = vk::VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR, deviceAddressCommands: vk::VK_TRUE, pNext: (&mut untyped as *mut vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR).cast() };
             let mut heap = vk::VkPhysicalDeviceDescriptorHeapFeaturesEXT { sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT, descriptorHeap: vk::VK_TRUE, pNext: (&mut addresses as *mut vk::VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR).cast(), ..Default::default() };
             // Do not enable every queried feature accidentally.
@@ -317,7 +324,7 @@ impl Device {
                 c"VK_KHR_device_address_commands".as_ptr(),
                 c"VK_KHR_shader_untyped_pointers".as_ptr(),
             ];
-            if graphics {
+            if unified_images {
                 extensions.push(c"VK_KHR_unified_image_layouts".as_ptr());
             }
             let create = vk::VkDeviceCreateInfo {
