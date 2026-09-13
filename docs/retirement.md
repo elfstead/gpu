@@ -30,7 +30,8 @@ ownership assistance independent of synchronization.
 At this checkpoint, the existing public C structures and signatures stayed ABI 1.
 The additional symbols need matching headers/library from that source revision;
 ABI 1 alone does not promise that older libraries export them. Subsequent
-[image/heap changes](descriptor-heaps.md) bring the current runtime to ABI 3 without
+[image/heap changes](descriptor-heaps.md) introduced ABI 3 and
+[explicit memory placement](memory-transfers.md) introduced ABI 4 without
 changing these retirement operations. A future central retirement
 queue could be an internal change; this experiment does not establish a need for it.
 

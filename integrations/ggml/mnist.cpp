@@ -148,7 +148,7 @@ static ggml_status scheduled_compute(mnist_model &model, ggml_cgraph *graph) {
 
 static void evaluate(const char *weights, const std::vector<uint8_t> &images,
                      const std::vector<uint8_t> &labels, int batch_size,
-                     const OgpuGgmlSession &session, bool scheduled) {
+                     const OgpuGgmlSession &session, bool scheduled, OgpuGgmlMemory memory) {
     auto cpu = mnist_model_init_from_file(weights, "CPU", batch_size, batch_size);
     auto gpu = mnist_model_init_from_file(weights, "OGPU", batch_size, batch_size);
     ggml_backend_cpu_set_n_threads(cpu.backends[0], 4);
@@ -201,6 +201,7 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
         allocation_snapshot.emplace_back(node->data, node->buffer);
     }
     rejection_checks(gpu, gpu_graph, session);
+    const auto setup = session.stats();
     const auto initial_dispatches = session.dispatch_count();
     uint64_t calls = 0;
     size_t correct = 0;
@@ -251,19 +252,43 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
     }
     require(session.dispatch_count() - initial_dispatches == 5 * calls, "wrong GPU dispatch count");
     require(correct >= 9000, "trained fixture accuracy below 90%");
+    const auto stats = session.stats();
+    require(stats.staging_allocations == setup.staging_allocations,
+            "staging reallocated during repeated inference");
+    require(stats.uploads - setup.uploads == 2 * calls && stats.downloads - setup.downloads == calls,
+            "unexpected steady-state transfer count");
+    require(stats.upload_bytes - setup.upload_bytes == calls * (input.size() + actual.size()) * 4 &&
+                stats.download_bytes - setup.download_bytes == calls * actual.size() * 4,
+            "unexpected steady-state transfer bytes (weights/intermediates moved?)");
+    require(memory == OgpuGgmlMemory::Host ? stats.staging_allocations == 0
+                                          : stats.staging_allocations > 0,
+            "wrong staging policy");
     std::printf(
-        "batch=%d mode=%s images=10000 calls=%llu dispatches=%llu correct=%zu max_logit_error=%.9g "
+        "batch=%d mode=%s memory=%s images=10000 calls=%llu dispatches=%llu correct=%zu max_logit_error=%.9g "
         "intermediate_bytes=%zu separate_bytes=%zu aliases=%d PASS\n",
-        batch_size, scheduled ? "scheduled" : "direct", static_cast<unsigned long long>(calls),
+        batch_size, scheduled ? "scheduled" : "direct",
+        memory == OgpuGgmlMemory::Host ? "host" : "device", static_cast<unsigned long long>(calls),
         static_cast<unsigned long long>(5 * calls), correct, max_error, allocated_bytes,
         separate_bytes, aliases);
+    std::printf("memory_stats batch=%d mode=%s memory=%s setup_upload_bytes=%llu "
+                "setup_transfer_ms=%.3f uploads=%llu downloads=%llu upload_bytes=%llu "
+                "download_bytes=%llu transfer_ms=%.3f graph_ms=%.3f staging_allocations=%llu\n",
+                batch_size, scheduled ? "scheduled" : "direct",
+                memory == OgpuGgmlMemory::Host ? "host" : "device",
+                static_cast<unsigned long long>(setup.upload_bytes), setup.transfer_ms,
+                static_cast<unsigned long long>(stats.uploads - setup.uploads),
+                static_cast<unsigned long long>(stats.downloads - setup.downloads),
+                static_cast<unsigned long long>(stats.upload_bytes - setup.upload_bytes),
+                static_cast<unsigned long long>(stats.download_bytes - setup.download_bytes),
+                stats.transfer_ms - setup.transfer_ms, stats.graph_ms - setup.graph_ms,
+                static_cast<unsigned long long>(stats.staging_allocations));
     std::fflush(stdout);
 }
 
 int main(int argc, char **argv) {
-    if (argc != 6) {
+    if (argc != 6 && argc != 7) {
         std::fprintf(stderr,
-                     "usage: %s model.gguf t10k-images t10k-labels shader-directory device-index\n",
+                     "usage: %s model.gguf t10k-images t10k-labels shader-directory device-index [host|device]\n",
                      argv[0]);
         return 2;
     }
@@ -278,6 +303,9 @@ int main(int argc, char **argv) {
         size_t end = 0;
         const auto index = std::stoul(argv[5], &end);
         require(end == std::string(argv[5]).size() && index <= UINT32_MAX, "bad device index");
+        const std::string placement = argc == 7 ? argv[6] : "device";
+        require(placement == "host" || placement == "device", "bad memory placement");
+        const auto memory = placement == "host" ? OgpuGgmlMemory::Host : OgpuGgmlMemory::Device;
         for (bool scheduled : {false, true})
             for (int batch : {1, 17, 64}) {
                 // The upstream constructor passes registry order to a scheduler
@@ -286,9 +314,9 @@ int main(int argc, char **argv) {
                 auto cpu_reg = ggml_backend_reg_by_name("CPU");
                 require(cpu_reg != nullptr, "CPU backend unavailable");
                 ggml_backend_unload(cpu_reg);
-                OgpuGgmlSession session(static_cast<uint32_t>(index), argv[4]);
+                OgpuGgmlSession session(static_cast<uint32_t>(index), argv[4], memory);
                 ggml_backend_register(cpu_reg);
-                evaluate(argv[1], images, labels, batch, session, scheduled);
+                evaluate(argv[1], images, labels, batch, session, scheduled, memory);
                 // Includes explicit GPU device/kernel teardown, not process-exit cleanup.
             }
         return 0;

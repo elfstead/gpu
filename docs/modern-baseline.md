@@ -12,7 +12,8 @@ graphics/heaps and preservation on that card. Remote execution CI remains pendin
 
 The subsequent [independent-heap checkpoint](descriptor-heaps.md) implements native
 image/sampler bindings and preserved image use on this same baseline, without a
-legacy table or descriptor-set path. The public interface is now ABI 3.
+legacy table or descriptor-set path. The later [memory checkpoint](memory-transfers.md)
+uses this same baseline and brings the public interface to ABI 4.
 
 ## Selected requirements
 

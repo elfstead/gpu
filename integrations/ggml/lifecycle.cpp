@@ -10,13 +10,16 @@ static void require(bool value, const char *message) {
         throw std::runtime_error(message);
 }
 int main(int argc, char **argv) {
-    if (argc != 3)
+    if (argc != 3 && argc != 4)
         return 2;
     try {
         const std::string mode = argv[2];
+        const std::string placement = argc == 4 ? argv[3] : "device";
+        require(placement == "host" || placement == "device", "bad memory placement");
+        const auto memory = placement == "host" ? OgpuGgmlMemory::Host : OgpuGgmlMemory::Device;
         if (mode == "live-backend" || mode == "live-buffer") {
             require(prctl(PR_SET_DUMPABLE, 0) == 0, "cannot disable core dumps for death test");
-            OgpuGgmlSession session(0, argv[1]);
+            OgpuGgmlSession session(0, argv[1], memory);
             auto backend = ggml_backend_init_by_name("OGPU", nullptr);
             require(backend != nullptr, "backend creation failed");
             if (mode == "live-buffer") {
@@ -31,7 +34,7 @@ int main(int argc, char **argv) {
         for (int pass = 0; pass < 3; ++pass) {
             bool failed = false;
             try {
-                OgpuGgmlSession bad(UINT32_MAX, argv[1]);
+                OgpuGgmlSession bad(UINT32_MAX, argv[1], memory);
             } catch (const std::exception &) {
                 failed = true;
             }
@@ -39,17 +42,17 @@ int main(int argc, char **argv) {
                     "failed init published registration");
             failed = false;
             try {
-                OgpuGgmlSession bad(0, "/ogpu-nonexistent-shader-directory");
+                OgpuGgmlSession bad(0, "/ogpu-nonexistent-shader-directory", memory);
             } catch (const std::exception &) {
                 failed = true;
             }
             require(failed && !ggml_backend_reg_by_name("OGPU"),
                     "shader failure published registration");
             {
-                OgpuGgmlSession session(0, argv[1]);
+                OgpuGgmlSession session(0, argv[1], memory);
                 failed = false;
                 try {
-                    OgpuGgmlSession duplicate(0, argv[1]);
+                    OgpuGgmlSession duplicate(0, argv[1], memory);
                 } catch (const std::exception &) {
                     failed = true;
                 }

@@ -21,13 +21,20 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
 The current interface is **ABI 4**: allocation now takes explicit memory placement;
-rebuild callers with the matching header/library. The memory checkpoint is in progress.
+rebuild callers with the matching header/library.
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
 The RX 5700 XT now passes graphics, heaps and preservation as well as compute/GGML;
-all twelve Vulkan tests also pass on llvmpipe. The next approved design checkpoint is
-[D2 memory placement and explicit transfers](memory-transfers.md), using the existing
-GGML consumer. Runner provisioning remains a separate authorization/deployment task
+all twelve ABI-3 Vulkan tests also passed on llvmpipe.
+[D2 memory placement and explicit transfers](memory-transfers.md) is now implemented
+at ABI 4 using the existing GGML consumer: both placements pass the six direct/scheduled
+cases on RADV and llvmpipe. Keep explicit placement/copies, with no implicit migration.
+The comparison exposes staging overhead as well as shorter graph intervals; it does
+not select a universally fastest memory policy. The next proposed design task is to
+select and write a bounded brief for an independent mixed graphics/compute consumer,
+before broadening graphics state, memory classes or ML profiles. No new workload is
+selected or started by this checkpoint.
+Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Concurrent slot streaming, generalized formats/views and compute-only image deployment
 remain deferred scope decisions, not hidden requirements to finish this checkpoint.
@@ -130,7 +137,7 @@ The inventory below records the questions those decisions address.
 |---|---|---|---|
 | D0 | Who is the first consumer, and what must it accomplish? | Existing examples prove execution, not integration value | Resolved: GGML MNIST forward inference; see the brief |
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Reduction/matmul share the ABI, but the host knows root layout and tile sizes; reported feature bits are not enabled features | Specify baseline/optional requirements, enabled-capability reporting, entry point/root/workgroup agreement, and failure behavior; say which metadata is declared versus validated |
-| D2 | What memory placement and transfer behavior does this consumer need? | Host-visible buffers work; device-local linear data and staging have not been exercised | Choose explicit allocation/copy semantics if needed, or retain host-visible-only with a consumer-supported limitation; document address stability, range/lifetime and completion rules |
+| D2 | What memory placement and transfer behavior best serves this consumer and the project? | Both explicit placements pass GGML; staging adds visible submission/wait costs | Follow-up adopts explicit HOST/DEVICE and retained range copies; stable addresses and explicit synchronization remain, automatic policy stays above the runtime |
 | D3 | Which image operations belong in the first offscreen profile? | Buffer-mediated and native heap-indexed graphics → compute → graphics paths work | Consumer checkpoint retained the fixed profile; follow-ups implement direct image access, preservation and independent heaps, leaving general formats/views and concurrent edits deferred |
 | D4 | Which submission/ownership model best serves the project? | One-shot state, dependencies, retention and failure cleanup have tests | Walk repeated execution and teardown; evaluate whether the work exposes a better API alternative, including improvements beyond basic compatibility |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |

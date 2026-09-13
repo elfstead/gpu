@@ -138,11 +138,14 @@ fn gpu_buffer_transfers() {
         batch
             .copy_buffer(host.clone(), 1, local.clone(), 3, 7)
             .unwrap();
+        let second = Rc::new(Buffer::placed(device.clone(), 64, Placement::Device).unwrap());
+        batch.barrier(TRANSFER_WRITE, TRANSFER_READ).unwrap();
+        batch
+            .copy_buffer(local.clone(), 3, second.clone(), 5, 7)
+            .unwrap();
         batch.barrier(TRANSFER_WRITE, TRANSFER_READ).unwrap();
         batch.barrier(TRANSFER_READ, TRANSFER_WRITE).unwrap();
-        batch
-            .copy_buffer(local.clone(), 3, host.clone(), 17, 7)
-            .unwrap();
+        batch.copy_buffer(second, 5, host.clone(), 17, 7).unwrap();
         batch.barrier(TRANSFER_WRITE, TRANSFER_READ).unwrap();
         batch
             .copy_buffer(host.clone(), 17, host.clone(), 33, 7)

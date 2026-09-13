@@ -3,7 +3,8 @@
 Historical compiler/consumer record for `cbc6528`. Its immutable table wrapper and
 same-batch initialization rule have since been removed. See
 [image preservation](image-preservation.md) and [independent heaps](descriptor-heaps.md)
-for the current ABI 3 contract and evidence. Commands below now run the follow-up
+for the replacement heap contract and evidence (introduced in ABI 3; the current
+[memory checkpoint](memory-transfers.md) uses ABI 4). Commands below now run the follow-up
 shaders/example; use the recorded source revision to reproduce this original variant.
 
 Bounded D3 compiler/consumer experiment, 2026-09-13. This follows the modern-baseline

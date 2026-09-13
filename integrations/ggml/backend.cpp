@@ -4,6 +4,7 @@
 #include "ogpu.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -45,11 +46,27 @@ struct State : std::enable_shared_from_this<State> {
     Device device{nullptr, ogpu_device_destroy};
     Kernel matrix{nullptr, ogpu_kernel_destroy}, element{nullptr, ogpu_kernel_destroy};
     uint64_t dispatches = 0;
+    OgpuGgmlMemory memory = OgpuGgmlMemory::Device;
+    OgpuGgmlStats stats;
+    Buffer staging{nullptr, ogpu_buffer_destroy};
+    size_t staging_size = 0;
     std::string description;
     ggml_backend_device device_interface{};
     ggml_backend_buffer_type buffer_type{};
     ggml_backend_reg registration{};
 };
+
+struct Measure {
+    double &milliseconds;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    ~Measure() {
+        milliseconds += std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - start).count();
+    }
+};
+
+constexpr uint32_t gpu_access = OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE |
+                                OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE;
 
 Kernel load_kernel(State &state, const std::string &path) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -112,18 +129,69 @@ template <class F> void transfer(F f) noexcept {
         std::abort();
     }
 }
+
+// These GGML callbacks and graph_compute are synchronous. A single session-owned
+// staging buffer can therefore be reused after each copy completion is destroyed.
+// No tensor mirror or placement migration; GPU allocations/addresses stay stable.
+void copy_bytes(Allocation &a, size_t off, const void *input, void *output, size_t size) {
+    if (off > a.size || size > a.size - off)
+        throw std::runtime_error("allocation transfer range exceeded");
+    if (size == 0)
+        return;
+    const bool upload = output == nullptr;
+    auto &state = *a.owner;
+    Measure measure{state.stats.transfer_ms};
+    if (state.memory == OgpuGgmlMemory::Host) {
+        if (upload)
+            GPU(ogpu_buffer_write(a.buffer.get(), off, input, size, &error));
+        else
+            GPU(ogpu_buffer_read(a.buffer.get(), off, output, size, &error));
+    } else {
+        if (size > state.staging_size) {
+            OgpuBuffer *raw = nullptr;
+            GPU(ogpu_buffer_create(state.device.get(), size, OGPU_MEMORY_HOST, &raw, &error));
+            state.staging.reset(raw);
+            state.staging_size = size;
+            ++state.stats.staging_allocations;
+        }
+        if (upload)
+            GPU(ogpu_buffer_write(state.staging.get(), 0, input, size, &error));
+        OgpuBatch *raw = nullptr;
+        GPU(ogpu_batch_create(state.device.get(), &raw, &error));
+        Batch batch(raw, ogpu_batch_destroy);
+        // Covers earlier graphs/copies, including READ -> WRITE on reused storage.
+        GPU(ogpu_batch_barrier(raw, gpu_access,
+                               OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE, &error));
+        GPU(ogpu_batch_copy_buffer(raw, upload ? state.staging.get() : a.buffer.get(),
+                                   upload ? 0 : off, upload ? a.buffer.get() : state.staging.get(),
+                                   upload ? off : 0, size, &error));
+        OgpuCompletion *done = nullptr;
+        GPU(ogpu_batch_submit(raw, &done, &error));
+        Completion completion(done, ogpu_completion_destroy);
+        GPU(ogpu_completion_wait(done, &error));
+        if (!upload)
+            GPU(ogpu_buffer_read(state.staging.get(), 0, output, size, &error));
+    }
+    if (upload) {
+        ++state.stats.uploads;
+        state.stats.upload_bytes += size;
+    } else {
+        ++state.stats.downloads;
+        state.stats.download_bytes += size;
+    }
+}
 void set_tensor(ggml_backend_buffer_t b, ggml_tensor *t, const void *data, size_t off,
                 size_t size) {
     transfer([&] {
         auto &a = allocation(b);
-        GPU(ogpu_buffer_write(a.buffer.get(), offset(a, t, off, size), data, size, &error));
+        copy_bytes(a, offset(a, t, off, size), data, nullptr, size);
     });
 }
 void get_tensor(ggml_backend_buffer_t b, const ggml_tensor *t, void *data, size_t off,
                 size_t size) {
     transfer([&] {
         auto &a = allocation(b);
-        GPU(ogpu_buffer_read(a.buffer.get(), offset(a, t, off, size), data, size, &error));
+        copy_bytes(a, offset(a, t, off, size), nullptr, data, size);
     });
 }
 void memset_tensor(ggml_backend_buffer_t b, ggml_tensor *t, uint8_t value, size_t off,
@@ -137,7 +205,7 @@ void clear_buffer(ggml_backend_buffer_t b, uint8_t value) {
     transfer([&] {
         auto &a = allocation(b);
         std::vector<uint8_t> data(b->size, value);
-        GPU(ogpu_buffer_write(a.buffer.get(), 0, data.data(), data.size(), &error));
+        copy_bytes(a, 0, data.data(), nullptr, data.size());
     });
 }
 ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size) {
@@ -150,7 +218,9 @@ ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size)
         a->size = size;
         a->tokens.resize(size + 63);
         OgpuBuffer *raw = nullptr;
-        GPU(ogpu_buffer_create(state->device.get(), size, OGPU_MEMORY_HOST, &raw, &error));
+        GPU(ogpu_buffer_create(state->device.get(), size,
+                               state->memory == OgpuGgmlMemory::Host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE,
+                               &raw, &error));
         a->buffer.reset(raw);
         GPU(ogpu_buffer_device_address(raw, &a->address, &error));
         ggml_backend_buffer_i iface{};
@@ -232,6 +302,7 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
             }
         }
         OgpuBatch *raw = nullptr;
+        Measure measure{state->stats.graph_ms};
         GPU(ogpu_batch_create(state->device.get(), &raw, &error));
         Batch batch(raw, ogpu_batch_destroy);
         uint64_t dispatches = 0;
@@ -240,7 +311,7 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
             if (t->op == GGML_OP_NONE)
                 continue;
             // Include READ -> WRITE for allocator reuse, and prior submissions.
-            GPU(ogpu_batch_barrier(raw, OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE,
+            GPU(ogpu_batch_barrier(raw, gpu_access,
                                    OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &error));
             Root root{};
             root.a = address(t->src[0]);
@@ -302,6 +373,7 @@ struct OgpuGgmlSession::Impl {
     std::shared_ptr<State> state = std::make_shared<State>();
 };
 uint64_t OgpuGgmlSession::dispatch_count() const { return impl->state->dispatches; }
+OgpuGgmlStats OgpuGgmlSession::stats() const { return impl->state->stats; }
 
 OgpuGgmlSession::~OgpuGgmlSession() {
     if (impl->state.use_count() != 1) {
@@ -311,11 +383,12 @@ OgpuGgmlSession::~OgpuGgmlSession() {
     ggml_backend_unload(&impl->state->registration);
 }
 
-OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders)
+OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMemory memory)
     : impl(std::make_unique<Impl>()) {
     if (ggml_backend_reg_by_name("OGPU"))
         throw std::runtime_error("OGPU backend already registered");
     auto &state = impl->state;
+    state->memory = memory;
     auto &device = state->device_interface;
     auto &buffer_type = state->buffer_type;
     auto &registration = state->registration;

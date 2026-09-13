@@ -4,8 +4,8 @@ A pinned GGML backend adapter for the upstream FP32 fully connected MNIST forwar
 graph. Read the [brief and API decisions](../../docs/consumer-ggml.md) first.
 This is not a general GGML backend or a replacement for `mnist-eval`'s full
 loss/optimizer graph. The consumer uses only the public C API. The
-[modern backend migration](../../docs/modern-baseline.md) reran this acceptance
-without changing the adapter, shader binaries, or public ABI layouts.
+[memory checkpoint](../../docs/memory-transfers.md) compares host-accessible buffers
+with device-local tensors and reusable staging. Shader binaries are unchanged.
 
 ## Reproduce
 
@@ -44,11 +44,30 @@ the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
 errors and leaves a uniquely named acceptance log under `target/ggml-integration`.
 Use matching header/library/shaders from the same OGPU checkout, not an arbitrary
-older shared library. The current checkout uses ABI 3; rebuilding the consumer
-updates its version handshake without adapter changes. Leave `CARGO_TARGET_DIR` unset.
+older shared library. The current checkout uses ABI 4 (explicit allocation placement).
+Leave `CARGO_TARGET_DIR` unset.
 
 An optional second argument to `run.sh` selects the OGPU probe's device index
-(default 0). To select a software ICD use the loader's `VK_DRIVER_FILES`; set
+(default 0). A third argument selects `host` or `device` (default `device`, to
+exercise staging, not because it is universally faster). To compare both:
+
+```sh
+bash integrations/ggml/run.sh target/ggml-source 0 host
+bash integrations/ggml/run.sh target/ggml-source 0 device
+```
+
+Both run the same six full-dataset and lifecycle checks. `memory_stats` reports
+setup upload bytes/transfer time separately from steady-state upload/download
+counts, bytes, transfer time and graph time. Times are adapter CPU wall milliseconds,
+including synchronous submission/wait/destruction, not isolated GPU kernel time;
+graph time excludes graph preflight, CPU reference execution and output checks.
+The driver verifies two uploads and one readback per inference: input, deliberate
+output poisoning, then logits. It rejects unexpected weight/intermediate movement
+or staging reallocation during repeated inference. Setup includes model loading
+and rejection checks, not just weight transfer. HOST reports CPU-copy bytes, not
+PCIe traffic; DEVICE reports explicit GPU-copy payload bytes, not bus transactions.
+
+To select a software ICD use the loader's `VK_DRIVER_FILES`; set
 `OGPU_VULKAN_LIBRARY` and `VK_LAYER_PATH` if needed by your installation. Validation
 must be installed/enabled to claim a validated run; the script cannot prove that
 a requested layer was successfully activated on every loader configuration.
@@ -93,7 +112,7 @@ out-of-range, foreign-buffer and unsafe overlapping addresses also fail graph
 preflight. Copy callbacks have no GGML error return, so transfer failures
 abort loudly rather than return stale data.
 
-Each graph records one batch with compute read/write dependencies before each
+Each graph records one batch with compute/transfer dependencies before each
 dispatch, including the first (previous submissions). It submits and waits once.
 The graph, weights and input allocations remain live throughout. All host calls
 and backend instances share one externally serialized execution device; async,
@@ -114,6 +133,11 @@ new optional feature or workgroup-limit query is needed for this profile.
   The direct control uses `alloc_ctx_tensors`; the scheduled path uses GGML's
   graph allocator. Both reuse their allocations over repeated calls; the latter
   also reuses dead intermediate storage within each forward pass.
+- Placement is fixed per session. DEVICE keeps all tensor allocations device-local
+  and stages synchronous callbacks through one grow-to-fit HOST buffer. It adds
+  one copy submission/wait per callback, with no automatic migration or tensor mirror.
+  HOST is the direct-copy control. Usage-specific placement, batched/asynchronous
+  transfers and persistent mappings are not part of this checkpoint.
 - Bias and ReLU need shader code, not host-side tensor operators. There are two
   prepared shaders, five dispatches, and deliberately conservative global barriers.
   This is correctness/integration evidence, not competitive GEMM performance.

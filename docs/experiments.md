@@ -15,8 +15,15 @@ load/store and fragment sampling without intermediate copies. The
 [preservation](image-preservation.md) and [independent-heap follow-up](descriptor-heaps.md)
 replace its coupled table API with independently owned, exclusively mutable heaps.
 Six sizes with four sampler/index variants pass across three submissions, alongside
-LOAD/CLEAR, retention/failure tests and pinned Slang/SPIR-V reproduction. ABI 3 is
-current; general formats/views and concurrent heap edits remain outside this checkpoint.
+LOAD/CLEAR, retention/failure tests and pinned Slang/SPIR-V reproduction. These
+introduced ABI 3; general formats/views and concurrent heap edits remain deferred.
+
+The [memory checkpoint](memory-transfers.md) introduces ABI 4: explicit HOST/DEVICE
+allocation and retained byte-range GPU copies. GGML passes all six direct/scheduled
+cases under both placements on RADV and llvmpipe. Exact transfer counters verify
+resident weights/intermediates and reusable staging; measured transfer overhead
+argues against a hidden universally-device-local policy. The contract stays explicit;
+no allocator framework, migration or new tensor operation was added.
 
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;

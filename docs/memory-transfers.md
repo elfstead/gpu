@@ -1,6 +1,7 @@
 # D2 follow-up: memory placement and transfers
 
-Approved 2026-09-13. Status: runtime implemented; consumer comparison in progress.
+Approved 2026-09-13. Status: complete; explicit placement/copies adopted experimentally.
+Runtime checkpoint: `27f9b6d` (ABI 4).
 
 ## Decision and bounds
 
@@ -38,7 +39,7 @@ placement in its allocation callback.
 - Stop with a justified memory contract, consumer friction report and regression
   evidence. Stabilization and a general allocator are not exit conditions.
 
-## Candidate contract
+## Adopted experimental contract
 
 Replace the experimental allocation signature with an explicit placement argument
 (ABI 4), rather than retaining two overlapping creation APIs. HOST supports checked
@@ -66,4 +67,90 @@ validation enabled. The new test covers odd byte counts/unaligned offsets, guard
 readback, disjoint same-buffer copies, cross-submission copy/compute visibility,
 range/device/overlap rejection, DEVICE CPU-access rejection, retained endpoints
 after caller ownership is dropped, completion destruction, discard and failed submit.
-The C compute example also checks unknown placement rejection.
+The C compute example also checks unknown placement rejection and DEVICE CPU-access
+errors without modifying read destinations. Device-to-device copies are included.
+
+## Consumer result and policy decision
+
+The adapter selects one placement per session, with DEVICE as the default to
+exercise staging and HOST as the direct-access control. This default is not an
+automatic performance recommendation. All tensor allocations keep stable addresses;
+GGML still owns suballocation and intermediate reuse. One grow-to-fit HOST staging
+buffer serves synchronous callbacks, each with a copy batch and wait. The first
+weight upload sizes it sufficiently for this workload: no steady-state growth.
+
+The acceptance driver checks exact transfer counts/bytes, not merely predictions.
+Each inference performs two uploads (input and test-only logit poisoning) and one
+readback. At batch 64, 157 inferences move 31,912,448 upload bytes and 401,920 readback
+bytes across the full test set, including padded tail rows. No weight or intermediate
+transfers occur during the loop. HOST counts CPU-copy payload, DEVICE GPU-copy
+payload: neither measures physical PCIe transactions. Setup includes model loading
+and rejection tests and is reported separately, not mislabeled as weight-only cost.
+
+RADV diagnostics, one validated run per placement; sums of adapter CPU wall time
+in milliseconds over the existing scheduled full-dataset runs:
+
+| Batch | HOST transfers | HOST graph | DEVICE transfers | DEVICE graph |
+|---|---:|---:|---:|---:|
+| 1 | 7.465 | 5929.409 | 8341.889 | 4019.105 |
+| 17 | 1.243 | 408.045 | 500.966 | 246.925 |
+| 64 | 0.779 | 132.521 | 131.634 | 72.591 |
+
+Graph intervals cover recording, submit, wait and resource cleanup; transfer
+intervals cover CPU copies and, in DEVICE mode, copy submission/wait/cleanup.
+Graph preflight, CPU reference and correctness checks are outside both intervals.
+No optional timestamp profile is needed. These are not isolated GPU/kernel timings,
+controlled benchmarks or evidence of a generally optimal placement. Validation is
+enabled; clock state, run order and driver overhead are not controlled. Direct mode
+shows the same qualitative tradeoff in this run. Do not infer a bandwidth number.
+
+The observation is enough for this API decision: moving all data to DEVICE does
+not automatically improve this synchronous consumer. Conversely, HOST-only denies
+applications the ability to keep long-lived data explicitly device-local.
+
+| Alternative | Decision |
+|---|---|
+| Caller selects placement; runtime chooses compatible memory type | Adopt. Makes access and movement predictable without exposing Vulkan heaps/types. Caller still chooses ranges, dependencies and reuse. |
+| Runtime silently stages every CPU access to DEVICE | Do not adopt in core. This adapter demonstrates that convenience at the consumer layer, including its blocking/copy costs; moving it into the runtime would hide those costs without removing them. |
+| Runtime infers placement or migrates allocations | Defer. Size alone lacks reuse/access-frequency information; GGML's weight-usage label arrives after allocation. Relocation also conflicts with already-published raw addresses unless a separate stable-address mechanism is designed. |
+
+The explicit API adds useful control but the adapter does pay for staging ownership,
+copy barriers and completion handling. It could batch uploads with compute using
+the existing copy command; its synchronous callbacks currently choose not to.
+That is a consumer scheduling improvement, not evidence that another host tensor
+operator or a general allocator is needed. No such optimization was added here.
+
+HOST/DEVICE is still a candidate, not a final universal taxonomy. A future physical
+UMA/BAR consumer may expose a better API alternative combining guaranteed locality
+with host access, or separate upload/readback preferences. llvmpipe plus synthetic
+memory-property tests do not substitute for that hardware evidence. Keep the simple
+contract now; neither freeze it nor add speculative memory classes.
+
+## Reproduction and acceptance
+
+Use the pinned GGML revision and fixture in [the integration instructions](../integrations/ggml/README.md).
+For each selected driver, run `bash integrations/ggml/run.sh /path/to/pinned/ggml 0 host`
+and the same command ending in `device`, with validation and synchronization
+validation enabled. No upstream modifications or shader changes are needed.
+
+Local evidence (ignored logs, not required build inputs):
+
+- RADV HOST: `target/ggml-integration/acceptance.gC5UQgop.log`.
+- RADV DEVICE: `target/ggml-integration/acceptance.DCTm6Rlq.log`.
+- llvmpipe DEVICE: `target/ggml-integration/acceptance.eg1rDt0U.log`.
+- llvmpipe HOST: `target/ggml-integration/acceptance.VsMkPngR.log`.
+
+All six cases in each of these runs pass: CPU-matching top-1 predictions on all
+10,000 digits, 9,801 correct, maximum absolute logit error 0.0000343322754, five
+dispatches per inference, three scheduled aliases and unchanged allocation reuse.
+Lifecycle checks pass, including deliberate live-child rejection; no validation
+errors were reported. llvmpipe is software evidence, not a physical integrated GPU.
+
+Final regressions: 23 ordinary tests, all thirteen Vulkan tests on both drivers,
+712 C/Rust layout values, clippy with warnings denied, loader mocks, pinned binding
+and heap-shader reproduction. The migrated C compute, batch, graphics, image-loop,
+heap-image, retirement, reduction and matrix examples all pass on both drivers.
+Existing matrix timing output was only a regression check, not new performance
+evidence. The bounded checkpoint is complete. Physical UMA/BAR deployment,
+asynchronous GGML transfer scheduling and broader allocation policy stay deferred;
+none is an unstated prerequisite or an automatically scheduled follow-up.

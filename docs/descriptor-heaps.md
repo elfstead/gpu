@@ -3,10 +3,12 @@
 Implemented 2026-09-13 at `d93691f`, completing the
 [image ownership review](image-ownership-review.md). This follows
 [image preservation](image-preservation.md) at `a835f19` and replaces the original
-[coupled table experiment](heap-images.md). The public interface is **ABI 3**:
+[coupled table experiment](heap-images.md). This checkpoint introduced **ABI 3**:
 `OgpuImageTable` and its functions are removed, without aliases or a second execution
 path. Rebuild consumers with matching header/library/shaders from this checkout.
-Probe creation rejects ABI 1 and 2; this is not a stable cross-version ABI promise.
+The later [memory checkpoint](memory-transfers.md) introduces ABI 4, rejecting
+ABI 1–3 at probe creation without changing these heap operations. This is not a
+stable cross-version ABI promise.
 
 ## Contract
 

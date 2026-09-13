@@ -142,9 +142,10 @@ authorize host access to buffers still used by later submissions.
 - Wait-error draining and device-loss behavior, including partial construction.
 - Regression checks for synchronous examples and ABI/binding reproducibility.
 
-Not included in this compute slice: timed waits, reusable
-recordings, multiple queues, device-local staging, or tensor semantics. The graphics
-extension adds a narrow image-to-buffer GPU copy, not a general transfer interface.
+Not included in this original compute slice: timed waits, reusable recordings,
+multiple queues, device-local staging, or tensor semantics. The later
+[memory checkpoint](memory-transfers.md) adds retained byte-range buffer copies and
+device-local staging, alongside the graphics profile's image-to-buffer copy.
 
 ## Reproduction
 

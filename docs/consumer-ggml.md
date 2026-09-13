@@ -38,8 +38,10 @@ asynchronous scheduling, upstream contributions, and graphics-consumer evidence.
 
 These retain/defer decisions describe the initial ABI-1 consumer checkpoint and do
 not add a tensor API. Later [image/heap work](descriptor-heaps.md) brings the current
-runtime to ABI 3 without changing this consumer's compute contract; rebuild with
-the matching header/library. Its six acceptance cases have been rerun at ABI 3.
+runtime to ABI 3 without changing this consumer's compute contract. The
+[D2 memory follow-up](memory-transfers.md) now uses ABI 4 with explicit placement
+and reusable staging; it supersedes D2's original deferral below. Rebuild with
+the matching header/library. Historical acceptance below remains separately identified.
 
 | Decision | First-consumer contract |
 |---|---|
@@ -116,8 +118,10 @@ upstream GGML: null-pointer offset calculation in graph sizing and an indirect
 CPU-kernel function-type mismatch. This is **not** a sanitizer-clean claim for the
 dependency or the entire stack, and does not replace the validated release runs.
 
-The result supports this small forward-inference integration. It does not settle
-device-local transfers, scheduler-driven allocation reuse, asynchronous callbacks,
+The original result supported this small forward-inference integration. Later
+[memory](memory-transfers.md) and [scheduler](ggml-hardening.md) checkpoints cover
+device-local transfers and scheduler-driven allocation reuse. Still outside scope:
+asynchronous callbacks,
 accelerated numeric profiles, graphics-consumer usability, or performance against
 existing GGML GPU backends. These are future scope choices, not unfinished gates
 for this checkpoint.

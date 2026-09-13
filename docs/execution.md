@@ -114,7 +114,8 @@ actual non-coherent cache behavior still needs a device exposing a suitable memo
 type. Tests can exercise the explicit flush/invalidate calls on coherent memory,
 but that is not equivalent to hardware coverage of non-coherent memory.
 
-This is a correctness experiment, not a performance baseline. Linear memory still
-lacks device-local staging and suballocation, and executable/command preparation
+This is a correctness experiment, not a performance baseline. The later
+[memory checkpoint](memory-transfers.md) adds device-local placement and staging
+copies; runtime suballocation remains deferred. Executable/command preparation
 lacks caching and persistent pools. This blocking example does not overlap
 submissions; the asynchronous batch API permits multiple outstanding submissions.

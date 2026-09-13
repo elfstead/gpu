@@ -61,6 +61,13 @@ int main(int argc, char **argv) {
 
     REQUIRE(ogpu_buffer_create(device, 0, OGPU_MEMORY_HOST, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
     REQUIRE(ogpu_buffer_create(device, size, 99, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
+    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_DEVICE, &buffer, &error));
+    uint32_t unchanged = 0xabcdef01;
+    REQUIRE(ogpu_buffer_read(buffer, 0, &unchanged, sizeof(unchanged), &error) == OGPU_ERROR_INVALID_ARGUMENT);
+    REQUIRE(unchanged == 0xabcdef01);
+    REQUIRE(ogpu_buffer_write(buffer, 0, &unchanged, sizeof(unchanged), &error) == OGPU_ERROR_INVALID_ARGUMENT);
+    REQUIRE(ogpu_buffer_write(buffer, size, NULL, 0, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+    ogpu_buffer_destroy(buffer); buffer = NULL;
     TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &buffer, &error));
     uint32_t invalid_module[5] = {0};
     REQUIRE(ogpu_kernel_create(device, invalid_module, 5, 16, &kernel, &error) == OGPU_ERROR_INVALID_ARGUMENT && kernel == NULL);

@@ -141,7 +141,7 @@ brief requires them.
 |---|---|
 | Inline roots versus GPU-resident argument blocks | GPU-produced structures, layout checks, measured argument/launch costs |
 | Allocation/range API and lifetime assistance | Suballocation, completion-based reuse, non-coherent hardware, imported allocations |
-| Memory placement and transfer model | Device-local linear data, staging/copies, measured movement costs on discrete and integrated GPUs |
+| Memory placement and transfer model | Explicit HOST/DEVICE and staged GGML work on RADV/llvmpipe; physical UMA/BAR evidence, mixed access/locality contracts and allocation strategy remain open ([checkpoint](memory-transfers.md)) |
 | Queue and batch model | Replayed work, cross-queue dependencies, concurrency, and observable completion/error behavior |
 | Executable preparation | Entry points, workgroup variants, specialization, capability requirements, compilation/cache costs |
 | Images and graphics state | Native RGBA8 access/sampling, independent heaps and preserved cross-batch images work; general formats/views, concurrent heap edits and broader raster state remain open ([contract](descriptor-heaps.md)) |
