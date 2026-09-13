@@ -24,8 +24,10 @@ The current interface is **ABI 3**; rebuild callers with the matching header/lib
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
 The RX 5700 XT now passes graphics, heaps and preservation as well as compute/GGML;
-all twelve Vulkan tests also pass on llvmpipe. Next is authorizing runner provisioning
-on a selected host (this host now qualifies), not another unrelated workload.
+all twelve Vulkan tests also pass on llvmpipe. The next approved design checkpoint is
+[D2 memory placement and explicit transfers](memory-transfers.md), using the existing
+GGML consumer. Runner provisioning remains a separate authorization/deployment task
+(this host now qualifies), not a blocker for the memory decision.
 Concurrent slot streaming, generalized formats/views and compute-only image deployment
 remain deferred scope decisions, not hidden requirements to finish this checkpoint.
 The completed integration checkpoints below remain historical regression evidence;
