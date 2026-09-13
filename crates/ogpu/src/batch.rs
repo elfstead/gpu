@@ -86,7 +86,8 @@ fn access(mask: u32) -> Result<Access, Error> {
 
 enum Step {
     DiscardTarget(Rc<Target>),
-    BindImages(Rc<ImageTable>),
+    BindImages(Rc<ImageHeap>),
+    BindSamplers(Rc<SamplerHeap>),
     Dispatch {
         kernel: Rc<Kernel>,
         groups: u32,
@@ -131,14 +132,27 @@ impl Batch {
         Ok(())
     }
 
-    pub(crate) fn bind_images(&mut self, table: Rc<ImageTable>) -> Result<(), Error> {
-        if !Rc::ptr_eq(&self.device, &table.device) {
+    pub(crate) fn bind_images(&mut self, heap: Rc<ImageHeap>) -> Result<(), Error> {
+        heap.ready()?;
+        if !Rc::ptr_eq(&self.device, &heap.device) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
-                "Image table belongs to another device",
+                "Image heap belongs to another device",
             ));
         }
-        self.recording()?.push(Step::BindImages(table));
+        self.recording()?.push(Step::BindImages(heap));
+        Ok(())
+    }
+
+    pub(crate) fn bind_samplers(&mut self, heap: Rc<SamplerHeap>) -> Result<(), Error> {
+        heap.ready()?;
+        if !Rc::ptr_eq(&self.device, &heap.device) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Sampler heap belongs to another device",
+            ));
+        }
+        self.recording()?.push(Step::BindSamplers(heap));
         Ok(())
     }
 
@@ -501,7 +515,8 @@ impl Completion {
             for step in &self.steps {
                 match step {
                     Step::DiscardTarget(target) => target.discard(command),
-                    Step::BindImages(table) => table.bind(command),
+                    Step::BindImages(heap) => heap.bind(command),
+                    Step::BindSamplers(heap) => heap.bind(command),
                     Step::Dispatch {
                         kernel,
                         groups,

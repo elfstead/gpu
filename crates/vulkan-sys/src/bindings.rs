@@ -2460,6 +2460,51 @@ pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_QCOM: VkAttachmentStor
 pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_NONE_EXT: VkAttachmentStoreOp = 1000301000;
 pub const VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_MAX_ENUM: VkAttachmentStoreOp = 2147483647;
 pub type VkAttachmentStoreOp = ::std::os::raw::c_uint;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT: VkFormatFeatureFlagBits = 1;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT: VkFormatFeatureFlagBits = 2;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT: VkFormatFeatureFlagBits = 4;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT: VkFormatFeatureFlagBits = 8;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT: VkFormatFeatureFlagBits = 16;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT: VkFormatFeatureFlagBits = 32;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT: VkFormatFeatureFlagBits = 64;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT: VkFormatFeatureFlagBits = 128;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT: VkFormatFeatureFlagBits = 256;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT: VkFormatFeatureFlagBits = 512;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_BLIT_SRC_BIT: VkFormatFeatureFlagBits = 1024;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_BLIT_DST_BIT: VkFormatFeatureFlagBits = 2048;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT: VkFormatFeatureFlagBits = 4096;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_TRANSFER_SRC_BIT: VkFormatFeatureFlagBits = 16384;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_TRANSFER_DST_BIT: VkFormatFeatureFlagBits = 32768;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT: VkFormatFeatureFlagBits = 131072;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT: VkFormatFeatureFlagBits = 262144;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT: VkFormatFeatureFlagBits = 524288;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT: VkFormatFeatureFlagBits = 1048576;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT: VkFormatFeatureFlagBits = 2097152;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_DISJOINT_BIT: VkFormatFeatureFlagBits = 4194304;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT: VkFormatFeatureFlagBits = 8388608;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT: VkFormatFeatureFlagBits = 65536;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VIDEO_DECODE_OUTPUT_BIT_KHR: VkFormatFeatureFlagBits = 33554432;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VIDEO_DECODE_DPB_BIT_KHR: VkFormatFeatureFlagBits = 67108864;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR: VkFormatFeatureFlagBits = 536870912;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT: VkFormatFeatureFlagBits = 8192;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_FRAGMENT_DENSITY_MAP_BIT_EXT: VkFormatFeatureFlagBits = 16777216;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR: VkFormatFeatureFlagBits = 1073741824;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VIDEO_ENCODE_INPUT_BIT_KHR: VkFormatFeatureFlagBits = 134217728;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VIDEO_ENCODE_DPB_BIT_KHR: VkFormatFeatureFlagBits = 268435456;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_IMG: VkFormatFeatureFlagBits = 8192;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR: VkFormatFeatureFlagBits = 16384;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_TRANSFER_DST_BIT_KHR: VkFormatFeatureFlagBits = 32768;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT: VkFormatFeatureFlagBits = 65536;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT_KHR: VkFormatFeatureFlagBits = 131072;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT_KHR: VkFormatFeatureFlagBits = 262144;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT_KHR: VkFormatFeatureFlagBits = 524288;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT_KHR: VkFormatFeatureFlagBits = 1048576;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT_KHR: VkFormatFeatureFlagBits = 2097152;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_DISJOINT_BIT_KHR: VkFormatFeatureFlagBits = 4194304;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT_KHR: VkFormatFeatureFlagBits = 8388608;
+pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_FLAG_BITS_MAX_ENUM: VkFormatFeatureFlagBits = 2147483647;
+pub type VkFormatFeatureFlagBits = ::std::os::raw::c_uint;
+pub type VkFormatFeatureFlags = VkFlags;
 pub type VkImageCreateFlags = VkFlags;
 pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT: VkSampleCountFlagBits = 1;
 pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_2_BIT: VkSampleCountFlagBits = 2;
@@ -2938,6 +2983,31 @@ impl Default for VkApplicationInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkFormatProperties {
+    pub linearTilingFeatures: VkFormatFeatureFlags,
+    pub optimalTilingFeatures: VkFormatFeatureFlags,
+    pub bufferFeatures: VkFormatFeatureFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkFormatProperties",
+    ][::std::mem::size_of::<VkFormatProperties>() - 12usize];
+    [
+        "Alignment of VkFormatProperties",
+    ][::std::mem::align_of::<VkFormatProperties>() - 4usize];
+    [
+        "Offset of field: VkFormatProperties::linearTilingFeatures",
+    ][::std::mem::offset_of!(VkFormatProperties, linearTilingFeatures) - 0usize];
+    [
+        "Offset of field: VkFormatProperties::optimalTilingFeatures",
+    ][::std::mem::offset_of!(VkFormatProperties, optimalTilingFeatures) - 4usize];
+    [
+        "Offset of field: VkFormatProperties::bufferFeatures",
+    ][::std::mem::offset_of!(VkFormatProperties, bufferFeatures) - 8usize];
+};
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkImageFormatProperties {
@@ -6041,6 +6111,13 @@ pub type PFN_vkEnumeratePhysicalDevices = ::std::option::Option<
         pPhysicalDeviceCount: *mut u32,
         pPhysicalDevices: *mut VkPhysicalDevice,
     ) -> VkResult,
+>;
+pub type PFN_vkGetPhysicalDeviceFormatProperties = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        format: VkFormat,
+        pFormatProperties: *mut VkFormatProperties,
+    ),
 >;
 pub type PFN_vkGetPhysicalDeviceImageFormatProperties = ::std::option::Option<
     unsafe extern "C" fn(

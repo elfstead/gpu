@@ -10,9 +10,10 @@ pub(crate) use batch::{Batch, Completion};
 #[path = "graphics.rs"]
 mod graphics;
 pub(crate) use graphics::{Raster, Target};
-#[path = "image_table.rs"]
-mod image_table;
-pub(crate) use image_table::ImageTable;
+#[path = "heaps.rs"]
+mod heaps;
+pub use heaps::SamplerDesc;
+pub(crate) use heaps::{ImageHeap, SamplerHeap};
 
 #[cfg(test)]
 #[path = "reduction_tests.rs"]
@@ -49,6 +50,7 @@ functions! {
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
     vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
     vkWriteResourceDescriptorsEXT: PFN_vkWriteResourceDescriptorsEXT,
+    vkGetPhysicalDeviceFormatProperties: PFN_vkGetPhysicalDeviceFormatProperties,
     vkWriteSamplerDescriptorsEXT: PFN_vkWriteSamplerDescriptorsEXT,
     vkCmdBindResourceHeapEXT: PFN_vkCmdBindResourceHeapEXT,
     vkCmdBindSamplerHeapEXT: PFN_vkCmdBindSamplerHeapEXT,
@@ -720,7 +722,7 @@ impl Kernel {
     /// # Safety
     /// SPIR-V must be valid for this device's enabled modern baseline, a compute entry named
     /// main, no descriptor-set bindings, and no push-data accesses outside push_size bytes.
-    /// Heap accesses require a matching bound image table and valid indices/formats.
+    /// Heap accesses require matching bound image/sampler heaps and valid indices/formats.
     pub(crate) unsafe fn new(
         device: Rc<Device>,
         words: &[u32],

@@ -1,6 +1,6 @@
 //! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
 use crate::{
-    compute::{Batch, Buffer, Completion, Device, ImageTable, Kernel, Raster, Target},
+    compute::{Batch, Buffer, Completion, Device, ImageHeap, Kernel, Raster, SamplerHeap, Target},
     Error, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
     SUCCESS,
 };
@@ -20,9 +20,13 @@ pub struct OgpuBuffer {
 pub struct OgpuTarget {
     inner: Rc<Target>,
 }
-pub struct OgpuImageTable {
-    inner: Rc<ImageTable>,
+pub struct OgpuImageHeap {
+    inner: Rc<ImageHeap>,
 }
+pub struct OgpuSamplerHeap {
+    inner: Rc<SamplerHeap>,
+}
+pub use crate::compute::SamplerDesc as OgpuSamplerDesc;
 
 /// # Safety
 /// Live same-device batch/target, writable error; externally serialized.
@@ -49,34 +53,21 @@ pub struct OgpuImageEntry {
 }
 
 /// # Safety
-/// Live same-device targets; readable entries and writable, non-overlapping outputs.
+/// Live device; writable, non-overlapping outputs; external serialization.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_image_table_create(
+pub unsafe extern "C" fn ogpu_image_heap_create(
     device: *mut OgpuDevice,
-    entries: *const OgpuImageEntry,
-    count: u32,
-    out_table: *mut *mut OgpuImageTable,
+    capacity: u32,
+    out_heap: *mut *mut OgpuImageHeap,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         call(error, || {
-            required(out_table)?;
-            *out_table = ptr::null_mut();
+            required(out_heap)?;
+            *out_heap = ptr::null_mut();
             required(device)?;
-            required(entries)?;
-            if count == 0 {
-                return Err(Error::new(INVALID_ARGUMENT, "Empty image table"));
-            }
-            let mut owned = Vec::new();
-            for entry in std::slice::from_raw_parts(entries, count as usize) {
-                required(entry.target)?;
-                if entry.reserved != 0 {
-                    return Err(Error::new(INVALID_ARGUMENT, "Reserved image entry field"));
-                }
-                owned.push(((*entry.target).inner.clone(), entry.kind));
-            }
-            let inner = Rc::new(ImageTable::new((*device).inner.clone(), owned)?);
-            *out_table = Box::into_raw(Box::new(OgpuImageTable { inner }));
+            let inner = Rc::new(ImageHeap::new((*device).inner.clone(), capacity)?);
+            *out_heap = Box::into_raw(Box::new(OgpuImageHeap { inner }));
             Ok(())
         })
     }
@@ -85,27 +76,155 @@ pub unsafe extern "C" fn ogpu_image_table_create(
 /// # Safety
 /// Live uniquely owned handle or NULL; externally serialized.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_image_table_destroy(table: *mut OgpuImageTable) {
-    if !table.is_null() {
+pub unsafe extern "C" fn ogpu_image_heap_destroy(heap: *mut OgpuImageHeap) {
+    if !heap.is_null() {
         unsafe {
-            drop(Box::from_raw(table));
+            drop(Box::from_raw(heap));
         }
     }
 }
 
 /// # Safety
-/// Live same-device batch/table; writable error; externally serialized.
+/// Live same-device batch/heap; writable error; externally serialized.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_batch_bind_image_table(
+pub unsafe extern "C" fn ogpu_batch_bind_image_heap(
     batch: *mut OgpuBatch,
-    table: *const OgpuImageTable,
+    heap: *const OgpuImageHeap,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         call(error, || {
             required(batch)?;
-            required(table)?;
-            (*batch).inner.bind_images((*table).inner.clone())
+            required(heap)?;
+            (*batch).inner.bind_images((*heap).inner.clone())
+        })
+    }
+}
+
+fn exclusive<T>(heap: &mut Rc<T>) -> Result<&mut T, Error> {
+    Rc::get_mut(heap).ok_or_else(|| Error::new(INVALID_ARGUMENT, "Heap is retained by a recording or completion; destroy those references before editing"))
+}
+
+/// # Safety
+/// Live heap and target handles; readable entries and writable error; external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_image_heap_write(
+    heap: *mut OgpuImageHeap,
+    first: u32,
+    entries: *const OgpuImageEntry,
+    count: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(heap)?;
+            let heap = exclusive(&mut (*heap).inner)?;
+            let entries = if count == 0 {
+                &[]
+            } else {
+                required(entries)?;
+                std::slice::from_raw_parts(entries, count as usize)
+            };
+            let mut owned = Vec::new();
+            for entry in entries {
+                required(entry.target)?;
+                if entry.reserved != 0 {
+                    return Err(Error::new(INVALID_ARGUMENT, "Reserved image entry field"));
+                }
+                owned.push(((*entry.target).inner.clone(), entry.kind));
+            }
+            heap.write(first, owned)
+        })
+    }
+}
+
+/// # Safety
+/// Live heap; writable error; external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_image_heap_clear(
+    heap: *mut OgpuImageHeap,
+    first: u32,
+    count: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(heap)?;
+            exclusive(&mut (*heap).inner)?.clear(first, count)
+        })
+    }
+}
+
+/// # Safety
+/// Live device; writable non-overlapping outputs; external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_sampler_heap_create(
+    device: *mut OgpuDevice,
+    capacity: u32,
+    out_heap: *mut *mut OgpuSamplerHeap,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out_heap)?;
+            *out_heap = ptr::null_mut();
+            required(device)?;
+            let inner = Rc::new(SamplerHeap::new((*device).inner.clone(), capacity)?);
+            *out_heap = Box::into_raw(Box::new(OgpuSamplerHeap { inner }));
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL; external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_sampler_heap_destroy(heap: *mut OgpuSamplerHeap) {
+    if !heap.is_null() {
+        unsafe {
+            drop(Box::from_raw(heap));
+        }
+    }
+}
+
+/// # Safety
+/// Live heap, readable sampler descriptions and writable error; external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_sampler_heap_write(
+    heap: *mut OgpuSamplerHeap,
+    first: u32,
+    entries: *const OgpuSamplerDesc,
+    count: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(heap)?;
+            let heap = exclusive(&mut (*heap).inner)?;
+            let entries = if count == 0 {
+                &[]
+            } else {
+                required(entries)?;
+                std::slice::from_raw_parts(entries, count as usize)
+            };
+            heap.write(first, entries)
+        })
+    }
+}
+
+/// # Safety
+/// Live same-device batch/heap; writable error; external serialization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_bind_sampler_heap(
+    batch: *mut OgpuBatch,
+    heap: *const OgpuSamplerHeap,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(heap)?;
+            (*batch).inner.bind_samplers((*heap).inner.clone())
         })
     }
 }
@@ -798,27 +917,44 @@ mod tests {
     #[test]
     fn invalid_graphics_arguments_need_no_driver() {
         unsafe {
-            let mut table = ptr::dangling_mut::<OgpuImageTable>();
+            let mut table = ptr::dangling_mut::<OgpuImageHeap>();
             assert_eq!(
-                ogpu_image_table_create(
-                    ptr::null_mut(),
-                    ptr::null(),
-                    0,
-                    &mut table,
-                    ptr::null_mut()
-                ),
+                ogpu_image_heap_create(ptr::null_mut(), 0, &mut table, ptr::null_mut()),
                 INVALID_ARGUMENT
             );
             assert!(table.is_null());
             assert_eq!(
-                ogpu_batch_bind_image_table(ptr::null_mut(), ptr::null(), ptr::null_mut()),
+                ogpu_batch_bind_image_heap(ptr::null_mut(), ptr::null(), ptr::null_mut()),
                 INVALID_ARGUMENT
             );
             assert_eq!(
                 ogpu_batch_discard_target(ptr::null_mut(), ptr::null(), ptr::null_mut()),
                 INVALID_ARGUMENT
             );
-            ogpu_image_table_destroy(ptr::null_mut());
+            ogpu_image_heap_destroy(ptr::null_mut());
+            ogpu_sampler_heap_destroy(ptr::null_mut());
+            assert_eq!(
+                ogpu_image_heap_write(ptr::null_mut(), 0, ptr::null(), 0, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_image_heap_clear(ptr::null_mut(), 0, 0, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_sampler_heap_write(ptr::null_mut(), 0, ptr::null(), 0, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_bind_sampler_heap(ptr::null_mut(), ptr::null(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            let mut sampler = ptr::dangling_mut::<OgpuSamplerHeap>();
+            assert_eq!(
+                ogpu_sampler_heap_create(ptr::null_mut(), 1, &mut sampler, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(sampler.is_null());
             let mut device = ptr::dangling_mut::<OgpuDevice>();
             let mut target = ptr::dangling_mut::<OgpuTarget>();
             let mut raster = ptr::dangling_mut::<OgpuRaster>();

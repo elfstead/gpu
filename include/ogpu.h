@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(2)
+#define OGPU_ABI_VERSION UINT32_C(3)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -145,7 +145,7 @@ OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_ad
  * must provide VALID SPIR-V for the enabled modern Vulkan baseline with a compute
  * entry named "main" and no descriptor-set bindings. Core capabilities, BDA,
  * untyped pointers and native descriptor-heap access are supported. Heap shaders
- * require a bound table with matching descriptor kinds, formats and valid indices.
+ * require bound image/sampler heaps with matching descriptor kinds, formats and valid indices.
  * Legacy descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
  * push_size_bytes must be a multiple of 4 within maxPushDataSize; zero is legal.
  * All shader push accesses must fit this range. Header checks are NOT validation
@@ -155,7 +155,7 @@ OgpuResult ogpu_kernel_create(OgpuDevice *device, const uint32_t *words, uint64_
 void ogpu_kernel_destroy(OgpuKernel *kernel);
 
 /* One-dimensional dispatch: groups_x workgroups; the shader defines local size.
- * This convenience call has no image-table binding; use a batch for heap shaders.
+ * This convenience call has no heap bindings; use a batch for heap shaders.
  * groups_x must be nonzero and within the device limit. Argument byte count must
  * exactly match the kernel's push size (NULL allowed only for zero bytes).
  * The caller defines the argument layout, including initialized padding bytes.
@@ -285,14 +285,21 @@ OgpuResult ogpu_target_create_rgba8(OgpuDevice *device, uint32_t width, uint32_t
     OgpuTarget **out_target, OgpuError *out_error);
 void ogpu_target_destroy(OgpuTarget *target);
 
-/* Experimental immutable image table, scoped to the graphics image profile.
- * Entry position is the uint32 shader image index. A target may appear more than
- * once with different kinds. reserved must be zero. No image-view handles escape.
- * The table retains all targets and owns separate resource/sampler heaps. Sampler
- * index 0 is normalized-coordinate nearest/clamp-to-edge, mip 0 only. No updates,
- * filtering choices, implicit access dependencies, or recursive resource tracing.
- * Shader indices/kinds/formats/bounds remain the trusted caller's responsibility. */
-typedef struct OgpuImageTable OgpuImageTable;
+/* Independent owning image/sampler heaps, scoped to the graphics image profile.
+ * Capacity is nonzero. Slots begin INVALID, not readable null descriptors. Indices
+ * are separate uint32 namespaces relative to the bound heap, never ownership tokens.
+ * Image entries retain their target until replaced/cleared/destroyed. Descriptions
+ * are copied; no sampler/view handles or raw descriptor bytes escape. Every shader
+ * access requires a written slot with matching kind/format and an initialized image.
+ * No recursive resource tracing, implicit data dependencies, or index validation.
+ * Mutation requires exclusive ownership: rejected while ANY recording/completion
+ * retains the heap, including completed-but-live completions and earlier bindings
+ * superseded by another bind. Destroy those references first; waiting is insufficient.
+ * Validate/generate before commit: argument/descriptor-generation errors preserve
+ * old entries. A flush failure after commit poisons the heap (only destruction then
+ * succeeds). Device loss follows the device-wide terminal contract. */
+typedef struct OgpuImageHeap OgpuImageHeap;
+typedef struct OgpuSamplerHeap OgpuSamplerHeap;
 #define OGPU_IMAGE_SAMPLED 0u
 #define OGPU_IMAGE_STORAGE 1u
 typedef struct OgpuImageEntry {
@@ -300,17 +307,42 @@ typedef struct OgpuImageEntry {
     uint32_t kind;
     uint32_t reserved;
 } OgpuImageEntry;
-OgpuResult ogpu_image_table_create(OgpuDevice *device, const OgpuImageEntry *entries,
-    uint32_t count, OgpuImageTable **out_table, OgpuError *out_error);
-void ogpu_image_table_destroy(OgpuImageTable *table);
-/* Recording-only; retains table through discard/failed submit/completion destruction.
+OgpuResult ogpu_image_heap_create(OgpuDevice *device, uint32_t capacity,
+    OgpuImageHeap **out_heap, OgpuError *out_error);
+void ogpu_image_heap_destroy(OgpuImageHeap *heap);
+/* first+count must fit; count zero allows NULL entries and first==capacity.
+ * reserved must be zero; entries may repeat a target with different kinds. */
+OgpuResult ogpu_image_heap_write(OgpuImageHeap *heap, uint32_t first,
+    const OgpuImageEntry *entries, uint32_t count, OgpuError *out_error);
+/* Clears ownership and invalidates slots; does NOT install readable null descriptors. */
+OgpuResult ogpu_image_heap_clear(OgpuImageHeap *heap, uint32_t first,
+    uint32_t count, OgpuError *out_error);
+#define OGPU_FILTER_NEAREST 0u
+#define OGPU_FILTER_LINEAR 1u
+#define OGPU_ADDRESS_CLAMP 0u
+#define OGPU_ADDRESS_REPEAT 1u
+typedef struct OgpuSamplerDesc {
+    uint32_t min_filter, mag_filter;
+    uint32_t address_u, address_v;
+} OgpuSamplerDesc;
+/* Normalized coordinates, mip 0 only, no comparison/anisotropy; W clamps to edge.
+ * Linear sampling checks RGBA8 support and otherwise returns UNSUPPORTED. */
+OgpuResult ogpu_sampler_heap_create(OgpuDevice *device, uint32_t capacity,
+    OgpuSamplerHeap **out_heap, OgpuError *out_error);
+void ogpu_sampler_heap_destroy(OgpuSamplerHeap *heap);
+OgpuResult ogpu_sampler_heap_write(OgpuSamplerHeap *heap, uint32_t first,
+    const OgpuSamplerDesc *entries, uint32_t count, OgpuError *out_error);
+/* Recording-only; retains heap through discard/failed submit/completion destruction.
  * Affects subsequent draws/dispatches until replaced; no binding-layout compatibility.
  * Does NOT initialize images: each accessed target must first be cleared/drawn or
  * discarded in this or an earlier successfully submitted batch. Later uses preserve
  * GENERAL and contents until explicit clear/discard, with
  * explicit barriers for real dependencies. Do not access the active draw attachment
- * from a shader. Public table/target handles can be released after retention. */
-OgpuResult ogpu_batch_bind_image_table(OgpuBatch *batch, const OgpuImageTable *table,
+ * from a shader. Public heap/target handles can be released after retention.
+ * Image and sampler bindings are independent; neither changes the other. */
+OgpuResult ogpu_batch_bind_image_heap(OgpuBatch *batch, const OgpuImageHeap *heap,
+    OgpuError *out_error);
+OgpuResult ogpu_batch_bind_sampler_heap(OgpuBatch *batch, const OgpuSamplerHeap *heap,
     OgpuError *out_error);
 /* Retains target and discards prior contents, ordering earlier uses and preparing
  * GENERAL for shader writes. This does not clear texels: write before reading them.
