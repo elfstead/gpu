@@ -45,9 +45,11 @@ It waits after each operation; this establishes correctness, not throughput.
 The two-consumer review's capability cleanup is now implemented: enabled-feature
 reporting, shared image-support preflight, compute-image deployment and validated
 adapter format advertisements. Existing ownership/completion rules are unchanged.
-Next proposed decision: D4, compare completion-owned resources with a separate
-completion receipt and reclaimable submission resources. Identify whether this
-exposes a better API alternative before implementing automatic reclamation.
+The [D4 completion-resource comparison](completion-resource-review.md) is complete.
+Recommendation: retain a result/timing receipt, but release submission resources on
+safe terminal wait/poll observation. This is not implemented: ABI 8 still retains
+resources until completion destruction. Next proposed step is the bounded ABI-9
+experiment in that review, preserving failure/draining and heap-reservation rules.
 Asynchronous adapter scheduling and a general libplacebo backend are not implicitly
 approved next milestones.
 Runner provisioning remains a separate authorization/deployment task
@@ -155,7 +157,7 @@ The inventory below records the questions those decisions address.
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Fixed baseline, per-stage specialization, enabled-feature and limit queries; root/stage/local/shared compatibility stays caller-checked | Capability follow-up separates supported/enabled/required; general optional profiles and reflection remain deferred |
 | D2 | What memory placement and transfer behavior best serves this consumer and the project? | Both explicit placements pass GGML; staging adds visible submission/wait costs | Follow-up adopts explicit HOST/DEVICE and retained range copies; stable addresses and explicit synchronization remain, automatic policy stays above the runtime |
 | D3 | Which image operations belong in the first offscreen profile? | Native images/heaps on compute and graphics devices, exact support queries and libplacebo execution work | Follow-ups separate images from rasterization and validate advertised combinations; general formats/views, filtering split and concurrent edits remain deferred |
-| D4 | Which submission/ownership model best serves the project? | One-shot state, dependencies, retention and failure cleanup have tests | Walk repeated execution and teardown; evaluate whether the work exposes a better API alternative, including improvements beyond basic compatibility |
+| D4 | Which submission/ownership model best serves the project? | Both consumer cleanup paths and gated ownership/timing tests reviewed | Completion-resource review recommends retirement on terminal observation with a surviving receipt; ABI-9 experiment proposed, not implemented |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |
 
 Do not turn this inventory into a mandate for reflection, a shader package format,

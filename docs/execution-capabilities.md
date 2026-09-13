@@ -117,11 +117,10 @@ Ignored logs under `target/ggml-integration/`:
 These are local correctness regressions, not new performance measurements or
 remote-CI results. No shader binaries or pinned upstream revisions changed.
 
-## Next decision, not an implemented feature
+## Subsequent D4 review
 
-D4: compare today's completion-owned resources with separating a durable completion
-receipt from reclaimable submission resources. Ask whether this exposes a better
-API alternative for explicit reuse and diagnostics, not merely whether the current
-consumers can run. Preserve draining/error safety and heap driver-reservation rules
-in any comparison. No automatic reclamation, mutable in-flight heaps, asynchronous
-adapter scheduling or generalized runtime allocator is introduced here.
+The [completion-resource comparison](completion-resource-review.md) now recommends
+separating the result/timing receipt from resources retired on safe terminal
+observation. Its ABI-9 implementation gate is proposed, not implemented. This ABI-8
+checkpoint adds no automatic reclamation, mutable in-flight heaps, asynchronous
+adapter scheduling or generalized runtime allocator.

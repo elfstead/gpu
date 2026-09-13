@@ -6,6 +6,11 @@ or a combined range-use declaration. These mechanisms provide different guarante
 Implementation: `26133a5`; preceding loader and timeline corrections: `3c23fef`
 and `e82cfff`.
 
+The later [completion-resource review](completion-resource-review.md) proposes
+shortening retention to safe terminal observation while preserving result handles.
+That is a separate, unimplemented ABI-9 experiment; the rules below still describe
+the implemented lifetime, including retention through completion destruction.
+
 ## Decision
 
 Adopt two independent, optional operations:

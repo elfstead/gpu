@@ -78,6 +78,10 @@ retention; applications still own scratch-range reuse decisions.
 | Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents, upload/readback | 1D/2D RGBA8/R32F images with explicit usages; fixed-state RGBA8 rendering, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
 | Discovery | Physical support, cached enabled capabilities/limits, exact image-description checks | Reporting is not feature negotiation, shader reflection or a complete matrix/type capability description |
 
+The [completion-resource review](completion-resource-review.md) recommends separating
+result lifetime from submitted-resource lifetime. It remains an implementation
+proposal; ABI 8 still pins those resources until completion destruction.
+
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
 shader barriers, and multi-level dispatch using this existing API. It adds workload
 evidence, not a new host operation or a reason to freeze the execution model.

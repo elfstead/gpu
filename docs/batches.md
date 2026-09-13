@@ -6,6 +6,10 @@ per device. The [offscreen graphics profile](graphics.md) uses this same model f
 raster draws, images, and image readback. Additional queues remain future work.
 See [the design overview](design.md) and [experiment ledger](experiments.md).
 
+The [D4 completion-resource review](completion-resource-review.md) proposes retiring
+submission resources before destroying the result handle. It is not implemented;
+the ABI-8 contracts below still retain them until completion destruction.
+
 [Optional timing](timing.md) can bracket a whole batch with device timestamps.
 Enable it while recording, successfully wait or poll complete, then read the duration
 from the completion. Untimed batches allocate no query resources. Timing retrieval
