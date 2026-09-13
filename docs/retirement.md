@@ -104,5 +104,6 @@ Met locally on Mesa 26.2.1 llvmpipe with Vulkan and synchronization validation:
 scratch ranges are reused while other work remains pending, ownership is safe in
 both modes, and failures do not authorize early reuse. This completes the D4
 comparison. The subsequent [direct image access/sampling experiment](heap-images.md)
-passes locally with descriptor heaps. Physical-GPU and provisioned remote
-execution-CI evidence remain pending.
+passes locally with descriptor heaps. A subsequent [hardware run](hardware-validation.md)
+passes both retirement modes and the gated Vulkan tests on RX 5700 XT / RADV.
+Provisioned remote execution CI remains pending.

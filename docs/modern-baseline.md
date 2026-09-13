@@ -5,8 +5,9 @@ model, not compatibility paths for older drivers. The Vulkan 1.2 feasibility
 backend is a migration source, not a supported fallback to preserve.
 
 Decision/audit: `3fefc48`. Backend migration: `39b8c16`; timeline completion:
-`05a1857`, locally verified on llvmpipe. Physical-GPU and remote execution-CI
-verification remain pending.
+`05a1857`, locally verified on llvmpipe. The subsequent
+[ABI-3 hardware run](hardware-validation.md) verifies modern compute and GGML on
+RX 5700 XT / RADV. Physical graphics/heaps and remote execution CI remain pending.
 
 The subsequent [independent-heap checkpoint](descriptor-heaps.md) implements native
 image/sampler bindings and preserved image use on this same baseline, without a
@@ -51,8 +52,11 @@ It reports capabilities only: device creation and execution are separate gates.
 
 In the current sandbox, llvmpipe (LLVM 21.1.8, Mesa 26.2.1), Vulkan 1.4.354,
 reports every selected compute/graphics feature and maxPushDataSize=256.
-There is no `/dev/dri` here, so no new physical-GPU result is claimed. Earlier
-RX 5700 XT results validate the old backend, not this selected baseline.
+The initial sandbox audit had no `/dev/dri`; it did not establish host GPU absence.
+A later approved host audit found the RX 5700 XT and verified the modern compute
+backend there; see [hardware validation](hardware-validation.md). The card's current
+driver lacks unified image layouts, so its earlier graphics results still describe
+the old backend, not this selected graphics baseline.
 Installed tools include glslang 16.4.0 and SPIRV-Tools 1.4.357.0; no shader Slang
 compiler was found. Existing descriptor-free SPIR-V/root blocks are the first
 migration input. Heap-indexed texture shaders still need a compiler/tooling test;

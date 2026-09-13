@@ -22,10 +22,12 @@ The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
 a gated Vulkan test verifies reuse while another submission is still pending.
 
-The [modern migration](modern-baseline.md) reran the execution tests below on
-llvmpipe, plus all six GGML acceptance cases. Prior RADV results describe the old
-backend only. Modern physical-GPU and remote execution CI are pending. No new
-performance conclusion follows from migration.
+The [modern migration](modern-baseline.md) reran execution tests on llvmpipe, plus all
+six GGML acceptance cases. The [ABI-3 hardware follow-up](hardware-validation.md) now
+passes the compute examples, seven compute-side Vulkan tests and all six GGML cases
+on RX 5700 XT / RADV with software ICDs excluded. Physical graphics/heaps remain
+unsupported on that driver (no unified image layouts); remote execution CI is pending.
+No new performance conclusion follows from these runs.
 
 | Experiment | Run | Evidence | Still not established |
 |---|---|---|---|

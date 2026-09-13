@@ -7,7 +7,8 @@ evidence. Neither a backlog entry nor a successful benchmark schedules more work
 ## Current phase
 
 The [modern Vulkan baseline migration](modern-baseline.md) is implemented and locally
-verified (`39b8c16`); physical-GPU and provisioned execution-CI checks remain pending.
+verified (`39b8c16`). [Modern compute and GGML now pass on physical RADV hardware](hardware-validation.md);
+physical graphics/heaps and provisioned execution-CI checks remain pending.
 There is no Vulkan 1.2 compatibility path. The [retention/retirement comparison](retirement.md)
 is complete: adopt completion polling and optional whole-buffer retention, while
 the application decides when scratch ranges are reusable. Timeline limits and
@@ -20,12 +21,15 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
 The current interface is **ABI 3**; rebuild callers with the matching header/library.
-Local contract and regression gates pass. Next is physical-GPU validation and
-provisioning the modern execution-CI runner, not another unrelated workload.
+Local contract and regression gates pass. The RX 5700 XT passes modern compute and
+GGML, but its driver lacks `unifiedImageLayouts`, so physical graphics/heap validation
+is still open. Next is selecting a full-profile GPU host and authorizing runner
+provisioning, not another unrelated workload. The current host can support a separately
+scoped compute-only lane, not the full hardware gate.
 Concurrent slot streaming, generalized formats/views and compute-only image deployment
 remain deferred scope decisions, not hidden requirements to finish this checkpoint.
-The completed integration checkpoints below remain
-historical regression evidence, not proof of the new backend on physical hardware.
+The completed integration checkpoints below remain historical regression evidence;
+the new hardware result and its limits are recorded separately.
 
 Initial feasibility is complete. We have a working Rust/Vulkan runtime and C ABI,
 with tested compute, mixed graphics/compute, cooperative reduction, FP32 matrix

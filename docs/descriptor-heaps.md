@@ -115,6 +115,10 @@ next; concurrent slot updates, generalized views/formats, image uploads and broa
 raster state remain separately scoped decisions. The local stopping condition from
 the ownership review is met, not the project's stabilization gates.
 
+The subsequent [hardware run](hardware-validation.md) passes compute and GGML on
+RX 5700 XT / RADV, but that driver's missing unified image layouts leaves the
+physical image/heap gate open. It does not extend the image evidence above to hardware.
+
 Implementation: [public header](../include/ogpu.h), [heap owners](../crates/ogpu/src/heaps.rs),
 [C boundary](../crates/ogpu/src/execution_api.rs), [failure/lifetime tests](../crates/ogpu/src/heap_tests.rs),
 [public C consumer](../examples/heap_image.c). See [working status](plan.md) for priorities.
