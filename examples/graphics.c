@@ -72,7 +72,10 @@ int main(int argc, char **argv) {
     TRY(ogpu_probe_device_count(probe, &device_count));
     for (uint32_t i = 0; i < device_count; ++i) {
         OgpuResult status = ogpu_device_create_graphics(probe, i, &device, &error);
-        if (status == OGPU_ERROR_UNSUPPORTED) continue;
+        if (status == OGPU_ERROR_UNSUPPORTED) {
+            fprintf(stderr, "Skipping graphics device %u: %s\n", i, error.message);
+            continue;
+        }
         TRY(status);
         OgpuDeviceInfo info;
         TRY(ogpu_probe_device_info(probe, i, &info));

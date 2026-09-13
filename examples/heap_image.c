@@ -169,8 +169,14 @@ int main(int argc, char **argv) {
     TRY(ogpu_probe_device_count(probe, &count));
     for (uint32_t i = 0; i < count; ++i) {
         OgpuResult status = ogpu_device_create_graphics(probe, i, &device, &error);
-        if (status == OGPU_ERROR_UNSUPPORTED) continue;
+        if (status == OGPU_ERROR_UNSUPPORTED) {
+            fprintf(stderr, "Skipping heap-image device %u: %s\n", i, error.message);
+            continue;
+        }
         TRY(status);
+        OgpuDeviceInfo info;
+        TRY(ogpu_probe_device_info(probe, i, &info));
+        printf("Executing heap-image on %s\n", info.name);
         TRY(ogpu_kernel_create(device, words[2], counts[2], sizeof(Root), &compute, &error));
         TRY(ogpu_raster_create(device, words[0], counts[0], words[1], counts[1], 0, &pattern, &error));
         TRY(ogpu_raster_create(device, words[0], counts[0], words[3], counts[3], sizeof(SampleRoot), &sample, &error));
