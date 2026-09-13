@@ -26,6 +26,15 @@ fn shader_descriptions_reject_invalid_pointer_count_and_reserved_fields() {
     let words = [0x07230203, 0, 0, 0, 0];
     let mut shader_desc = desc(&words, &[]);
     unsafe {
+        let mut limits = OgpuDeviceLimits {
+            max_push_data_bytes: 123,
+            ..Default::default()
+        };
+        assert_eq!(
+            ogpu_device_limits(ptr::null(), &mut limits, ptr::null_mut()),
+            INVALID_ARGUMENT
+        );
+        assert_eq!(limits.max_push_data_bytes, 123);
         assert!(shader(ptr::null()).is_err());
         shader_desc.constants = ptr::null();
         assert!(shader(&shader_desc).is_ok());
@@ -57,6 +66,22 @@ fn gpu_compute_specialization() {
         let mut handle = OgpuDevice {
             inner: device.clone(),
         };
+        let mut limits = OgpuDeviceLimits::default();
+        unsafe {
+            assert_eq!(
+                ogpu_device_limits(&handle, ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_device_limits(&handle, &mut limits, ptr::null_mut()),
+                SUCCESS
+            );
+        }
+        assert_eq!(limits, device.execution_limits());
+        assert!(limits.max_group_size.iter().all(|&v| v > 0));
+        assert!(limits.max_dispatch.iter().all(|&v| v > 0));
+        assert!(limits.max_group_invocations >= 8 && limits.max_shared_memory_bytes >= 64);
+        assert!(limits.max_push_data_bytes >= 8);
         let buffer = Buffer::new(device.clone(), 3 * 16 + 8).unwrap();
         buffer.write(0, &[0xaa; 56]).unwrap();
         let root = (buffer.address().unwrap() + 4).to_ne_bytes();

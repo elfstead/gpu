@@ -100,6 +100,7 @@ vk VkPhysicalDeviceDescriptorHeapPropertiesEXT sType pNext maxPushDataSize sampl
 api OgpuImageEntry image kind reserved
 api OgpuImageDesc dimension width height format usage reserved
 api OgpuShaderDesc words word_count constants constant_count reserved
+api OgpuDeviceLimits max_group_size max_group_invocations max_shared_memory_bytes max_dispatch max_image_1d max_image_2d max_push_data_bytes
 api OgpuSpecializationConstant id bits
 vk VkSpecializationMapEntry constantID offset size
 vk VkSpecializationInfo mapEntryCount pMapEntries dataSize pData

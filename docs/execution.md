@@ -65,6 +65,15 @@ the enabled device contract. Trusted shader input is not a sandbox boundary.
 
 ## Memory and execution contract
 
+`ogpu_device_limits` returns cached workgroup dimensions/invocations, shared-memory
+bytes, dispatch counts, image dimension ceilings and the push-data byte ceiling.
+It submits no work and remains readable after device loss. It is an additive ABI-7
+query: no existing layout or signature changes, but callers using it must link this
+checkpoint or newer. The libplacebo adapter needs these limits to preserve upstream
+workgroup/shared-memory choices without assuming the tested GPUs' values. Image
+limits do not replace format/usage checks at creation, and this is not optional
+feature negotiation, reflection, or a complete executable compatibility contract.
+
 - One logical device owns one compute-capable queue. Operations are serialized.
 - Each buffer owns a dedicated allocation, bound at offset zero and mapped for
   its entire lifetime. We prefer ordinary host-coherent memory but support

@@ -116,6 +116,19 @@ typedef struct OgpuKernel OgpuKernel;
 OgpuResult ogpu_device_create(const OgpuProbe *probe, uint32_t index, OgpuDevice **out_device, OgpuError *out_error);
 void ogpu_device_destroy(OgpuDevice *device);
 
+/* Cached execution limits, not optional-feature negotiation. Local dimensions AND
+ * total invocations must fit; specialized shared storage must fit as well. Image
+ * dimensions are upper bounds, not a promise of every format/usage combination.
+ * Query submits no work and remains available after device loss. Output unchanged
+ * on error; all device/child calls still require external serialization. */
+typedef struct OgpuDeviceLimits {
+    uint32_t max_group_size[3], max_group_invocations, max_shared_memory_bytes;
+    uint32_t max_dispatch[3], max_image_1d, max_image_2d;
+    uint64_t max_push_data_bytes;
+} OgpuDeviceLimits;
+OgpuResult ogpu_device_limits(const OgpuDevice *device, OgpuDeviceLimits *out_limits,
+    OgpuError *out_error);
+
 /* Optional profile: requires one queue family supporting BOTH graphics and compute.
  * Other device creation/ownership rules match ogpu_device_create; UNSUPPORTED if
  * no such family exists. Ordinary creation still accepts compute-only devices. */
@@ -195,7 +208,8 @@ void ogpu_kernel_destroy(OgpuKernel *kernel);
  * to subsequent buffer_read or dispatch calls. Even on error, submitted work is
  * drained/lost before return so resources can be destroyed. Non-loss wait errors
  * are retried until draining is established; persistent failures may block forever.
- * After device loss, only destruction and draining existing completions are supported.
+ * After device loss, only destruction, draining existing completions and the cached
+ * device_limits query are supported.
  * This ordered convenience call uses a batch and completion internally. */
 OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, uint32_t groups_y,
     uint32_t groups_z, const void *arguments, uint32_t argument_bytes, OgpuError *out_error);

@@ -145,6 +145,18 @@ fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
     Ok(())
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DeviceLimits {
+    pub max_group_size: [u32; 3],
+    pub max_group_invocations: u32,
+    pub max_shared_memory_bytes: u32,
+    pub max_dispatch: [u32; 3],
+    pub max_image_1d: u32,
+    pub max_image_2d: u32,
+    pub max_push_data_bytes: u64,
+}
+
 pub(crate) struct Device {
     handle: vk::VkDevice,
     queue: vk::VkQueue,
@@ -445,6 +457,18 @@ impl Device {
             self.lost.set(true);
         }
         check(op, status)
+    }
+
+    pub(crate) fn execution_limits(&self) -> DeviceLimits {
+        DeviceLimits {
+            max_group_size: self.limits.maxComputeWorkGroupSize,
+            max_group_invocations: self.limits.maxComputeWorkGroupInvocations,
+            max_shared_memory_bytes: self.limits.maxComputeSharedMemorySize,
+            max_dispatch: self.limits.maxComputeWorkGroupCount,
+            max_image_1d: self.limits.maxImageDimension1D,
+            max_image_2d: self.limits.maxImageDimension2D,
+            max_push_data_bytes: self.max_push_data,
+        }
     }
 }
 
@@ -1043,6 +1067,36 @@ mod tests {
                 Err(e) => panic!("{e:?}"),
             };
             let count = 4099u32;
+            let mut properties = vk::VkPhysicalDeviceProperties::default();
+            unsafe {
+                (device.f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
+            }
+            let limits = device.execution_limits();
+            assert_eq!(
+                limits.max_group_size,
+                properties.limits.maxComputeWorkGroupSize
+            );
+            assert_eq!(
+                limits.max_group_invocations,
+                properties.limits.maxComputeWorkGroupInvocations
+            );
+            assert_eq!(
+                limits.max_shared_memory_bytes,
+                properties.limits.maxComputeSharedMemorySize
+            );
+            assert_eq!(
+                limits.max_dispatch,
+                properties.limits.maxComputeWorkGroupCount
+            );
+            assert_eq!(limits.max_image_1d, properties.limits.maxImageDimension1D);
+            assert_eq!(limits.max_image_2d, properties.limits.maxImageDimension2D);
+            assert_eq!(
+                limits.max_push_data_bytes,
+                device.heap_limits.maxPushDataSize
+            );
+            device.lost.set(true);
+            assert_eq!(limits, device.execution_limits());
+            device.lost.set(false);
             let mut buffer = Buffer::new(device.clone(), count as usize * 4).unwrap();
             // Exercise the explicit maintenance calls even on coherent memory (legal in
             // Vulkan). This tests their ranges/lifetimes, not non-coherent hardware effects.

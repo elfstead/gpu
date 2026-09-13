@@ -26,9 +26,28 @@ pub struct OgpuImageHeap {
 pub struct OgpuSamplerHeap {
     inner: Rc<SamplerHeap>,
 }
+pub use crate::compute::DeviceLimits as OgpuDeviceLimits;
 pub use crate::compute::ImageDesc as OgpuImageDesc;
 pub use crate::compute::SamplerDesc as OgpuSamplerDesc;
 pub use crate::compute::SpecializationConstant as OgpuSpecializationConstant;
+
+/// # Safety
+/// Live device and writable, non-overlapping outputs; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_device_limits(
+    device: *const OgpuDevice,
+    out_limits: *mut OgpuDeviceLimits,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(device)?;
+            required(out_limits)?;
+            *out_limits = (*device).inner.execution_limits();
+            Ok(())
+        })
+    }
+}
 
 #[repr(C)]
 pub struct OgpuShaderDesc {
