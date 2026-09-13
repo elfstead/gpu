@@ -20,7 +20,8 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 5**: dispatch now takes explicit X/Y/Z workgroup counts;
+The current interface is **ABI 6**: explicit image descriptions and retained uploads
+replace the RGBA8-only target API; X/Y/Z dispatch remains available;
 rebuild callers with the matching header/library.
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
@@ -34,13 +35,13 @@ not select a universally fastest memory policy. The user selected
 [libplacebo image processing](consumer-libplacebo.md) as the second consumer.
 G0 passed: pinned upstream compute/fragment execution on RADV and llvmpipe, plus
 declaration-only native-heap compilation of the captured shaders. G1 is in progress:
-checked multidimensional dispatch is implemented, with existing callers migrated.
-Next is the bounded image description/upload contract, then specialization and
-vertex-input handling in the adapter. OGPU execution of this consumer is not yet
+checked multidimensional dispatch, 1D/2D RGBA8/R32F image descriptions and explicit
+uploads are implemented, with existing callers migrated. Next is executable
+specialization and vertex-input handling in the adapter. OGPU execution of this consumer is not yet
 implemented; G0 is not an integration acceptance claim.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
-Concurrent slot streaming, generalized formats/views and compute-only image deployment
+Concurrent slot streaming, additional formats/subresources and compute-only image deployment
 remain deferred scope decisions, not hidden requirements to finish this checkpoint.
 The completed integration checkpoints below remain historical regression evidence;
 the new hardware result and its limits are recorded separately.

@@ -1,7 +1,103 @@
-//! Fixed-state RGBA8 offscreen rendering. Public targets are images, never pointers.
+//! Explicit 1D/2D images and fixed-state RGBA8 offscreen rendering.
 use super::*;
 
 const FORMAT: vk::VkFormat = vk::VkFormat_VK_FORMAT_R8G8B8A8_UNORM;
+
+pub(crate) const SAMPLED: u32 = 1;
+pub(crate) const STORAGE: u32 = 2;
+pub(crate) const COLOR: u32 = 4;
+pub(crate) const COPY_SRC: u32 = 8;
+pub(crate) const COPY_DST: u32 = 16;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ImageDesc {
+    pub dimension: u32,
+    pub width: u32,
+    pub height: u32,
+    pub format: u32,
+    pub usage: u32,
+    pub reserved: u32,
+}
+
+impl ImageDesc {
+    #[cfg(test)]
+    pub(crate) fn rgba8(width: u32, height: u32) -> Self {
+        Self {
+            dimension: 2,
+            width,
+            height,
+            format: 0,
+            usage: SAMPLED | STORAGE | COLOR | COPY_SRC | COPY_DST,
+            reserved: 0,
+        }
+    }
+
+    fn validate(&self, limits: &vk::VkPhysicalDeviceLimits) -> Result<usize, Error> {
+        if !matches!(self.dimension, 1 | 2)
+            || self.format > 1
+            || self.reserved != 0
+            || self.usage == 0
+            || self.usage & !(SAMPLED | STORAGE | COLOR | COPY_SRC | COPY_DST) != 0
+            || self.width == 0
+            || self.height == 0
+            || (self.dimension == 1
+                && (self.height != 1 || self.width > limits.maxImageDimension1D))
+            || (self.dimension == 2
+                && (self.width > limits.maxImageDimension2D
+                    || self.height > limits.maxImageDimension2D))
+            || (self.usage & COLOR != 0 && (self.dimension != 2 || self.format != 0))
+        {
+            return Err(Error::new(INVALID_ARGUMENT, "Invalid image description"));
+        }
+        if self.usage & COLOR != 0 {
+            return target_size(self.width, self.height, limits);
+        }
+        (self.width as usize)
+            .checked_mul(self.height as usize)
+            .and_then(|n| n.checked_mul(4))
+            .filter(|&n| n <= isize::MAX as usize)
+            .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Image byte size overflow"))
+    }
+
+    pub(super) fn vk_format(&self) -> vk::VkFormat {
+        if self.format == 0 {
+            FORMAT
+        } else {
+            vk::VkFormat_VK_FORMAT_R32_SFLOAT
+        }
+    }
+
+    pub(super) fn view_type(&self) -> vk::VkImageViewType {
+        if self.dimension == 1 {
+            vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_1D
+        } else {
+            vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D
+        }
+    }
+
+    fn vk_usage(&self) -> vk::VkImageUsageFlags {
+        [
+            (SAMPLED, vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLED_BIT),
+            (STORAGE, vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_STORAGE_BIT),
+            (
+                COLOR,
+                vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            ),
+            (
+                COPY_SRC,
+                vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            ),
+            (
+                COPY_DST,
+                vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            ),
+        ]
+        .into_iter()
+        .filter(|(bit, _)| self.usage & bit != 0)
+        .fold(0, |flags, (_, flag)| flags | flag)
+    }
+}
 
 fn ready(device: &Device) -> Result<(), Error> {
     device.ready()?;
@@ -39,7 +135,7 @@ fn target_size(
         .checked_mul(height as usize)
         .and_then(|n| n.checked_mul(4))
         .filter(|&n| n <= isize::MAX as usize)
-        .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Target byte size overflow"))
+        .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Image byte size overflow"))
 }
 
 fn image_memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -> Option<u32> {
@@ -60,31 +156,54 @@ fn image_memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -
         })
 }
 
-pub(crate) struct Target {
+pub(crate) struct Image {
     pub(super) device: Rc<Device>,
     pub(super) size: usize,
-    width: u32,
-    height: u32,
+    pub(super) desc: ImageDesc,
     pub(super) image: vk::VkImage,
     memory: vk::VkDeviceMemory,
     view: vk::VkImageView,
 }
 
-impl Target {
-    pub(crate) fn new(device: Rc<Device>, width: u32, height: u32) -> Result<Self, Error> {
+impl Image {
+    pub(crate) fn new(device: Rc<Device>, desc: ImageDesc) -> Result<Self, Error> {
         ready(&device)?;
-        let size = target_size(width, height, &device.limits)?;
-        let usage = vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLED_BIT
-            | vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_STORAGE_BIT;
+        let size = desc.validate(&device.limits)?;
+        let (width, height) = (desc.width, desc.height);
+        let usage = desc.vk_usage();
+        let image_type = if desc.dimension == 1 {
+            vk::VkImageType_VK_IMAGE_TYPE_1D
+        } else {
+            vk::VkImageType_VK_IMAGE_TYPE_2D
+        };
+        // Sampled images promise both nearest and linear filtering, independent of
+        // which sampler is later bound. Validate that promise on the actual format.
+        if desc.usage & SAMPLED != 0 {
+            let mut properties = vk::VkFormatProperties::default();
+            unsafe {
+                (device.f.vkGetPhysicalDeviceFormatProperties.unwrap())(
+                    device.physical,
+                    desc.vk_format(),
+                    &mut properties,
+                );
+            }
+            if properties.optimalTilingFeatures
+                & vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT
+                == 0
+            {
+                return Err(Error::new(
+                    UNSUPPORTED,
+                    "Image format does not support linear sampling",
+                ));
+            }
+        }
         let mut format = vk::VkImageFormatProperties::default();
         // SAFETY: physical device belongs to our retained instance and output is writable.
         let status = unsafe {
             (device.f.vkGetPhysicalDeviceImageFormatProperties.unwrap())(
                 device.physical,
-                FORMAT,
-                vk::VkImageType_VK_IMAGE_TYPE_2D,
+                desc.vk_format(),
+                image_type,
                 vk::VkImageTiling_VK_IMAGE_TILING_OPTIMAL,
                 usage,
                 0,
@@ -94,7 +213,7 @@ impl Target {
         if status == vk::VkResult_VK_ERROR_FORMAT_NOT_SUPPORTED {
             return Err(Error::new(
                 UNSUPPORTED,
-                "RGBA8 attachment/readback/sampled/storage format unsupported",
+                "Image format/dimension/usage combination unsupported",
             ));
         }
         device.result("vkGetPhysicalDeviceImageFormatProperties", status)?;
@@ -110,8 +229,7 @@ impl Target {
         let mut result = Self {
             device,
             size,
-            width,
-            height,
+            desc,
             image: ptr::null_mut(),
             memory: ptr::null_mut(),
             view: ptr::null_mut(),
@@ -121,8 +239,8 @@ impl Target {
         unsafe {
             let create = vk::VkImageCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-                imageType: vk::VkImageType_VK_IMAGE_TYPE_2D,
-                format: FORMAT,
+                imageType: image_type,
+                format: desc.vk_format(),
                 extent: vk::VkExtent3D {
                     width,
                     height,
@@ -172,8 +290,8 @@ impl Target {
             let view = vk::VkImageViewCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 image: result.image,
-                viewType: vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D,
-                format: FORMAT,
+                viewType: desc.view_type(),
+                format: desc.vk_format(),
                 subresourceRange: vk::VkImageSubresourceRange {
                     aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
                     baseMipLevel: 0,
@@ -183,10 +301,17 @@ impl Target {
                 },
                 ..Default::default()
             };
-            d.result(
-                "vkCreateImageView",
-                (d.f.vkCreateImageView.unwrap())(d.handle, &view, ptr::null(), &mut result.view),
-            )?;
+            if desc.usage & COLOR != 0 {
+                d.result(
+                    "vkCreateImageView",
+                    (d.f.vkCreateImageView.unwrap())(
+                        d.handle,
+                        &view,
+                        ptr::null(),
+                        &mut result.view,
+                    ),
+                )?;
+            }
         }
         Ok(result)
     }
@@ -204,8 +329,8 @@ impl Target {
         let area = vk::VkRect2D {
             offset: vk::VkOffset2D { x: 0, y: 0 },
             extent: vk::VkExtent2D {
-                width: self.width,
-                height: self.height,
+                width: self.desc.width,
+                height: self.desc.height,
             },
         };
         let clear = vk::VkClearValue {
@@ -237,8 +362,8 @@ impl Target {
         let viewport = vk::VkViewport {
             x: 0.0,
             y: 0.0,
-            width: self.width as f32,
-            height: self.height as f32,
+            width: self.desc.width as f32,
+            height: self.desc.height as f32,
             minDepth: 0.0,
             maxDepth: 1.0,
         };
@@ -307,16 +432,17 @@ impl Target {
         }
     }
 
-    pub(super) unsafe fn copy_to(
+    pub(super) unsafe fn copy(
         &self,
         command: vk::VkCommandBuffer,
-        destination: &Buffer,
+        buffer: &Buffer,
         offset: u64,
+        to_image: bool,
     ) {
         let region = vk::VkDeviceMemoryImageCopyKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_MEMORY_IMAGE_COPY_KHR,
             addressRange: vk::VkDeviceAddressRangeKHR {
-                address: destination.address + offset,
+                address: buffer.address + offset,
                 size: self.size as u64,
             },
             addressFlags: vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
@@ -328,8 +454,8 @@ impl Target {
                 layerCount: 1,
             },
             imageExtent: vk::VkExtent3D {
-                width: self.width,
-                height: self.height,
+                width: self.desc.width,
+                height: self.desc.height,
                 depth: 1,
             },
             ..Default::default()
@@ -341,23 +467,32 @@ impl Target {
             pRegions: &region,
             ..Default::default()
         };
-        // SAFETY: the caller has initialized GENERAL in this or an earlier ordered submission. Include
-        // shader writes as well as attachment writes in the readback dependency.
+        // SAFETY: caller has initialized GENERAL in this or an earlier submission.
+        // Uploads order prior reads too, allowing a previously sampled image to be replaced.
         unsafe {
             batch::barrier(
                 &self.device,
                 command,
                 vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                 vk::VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
-                vk::VK_ACCESS_2_TRANSFER_READ_BIT,
+                vk::VK_ACCESS_2_MEMORY_WRITE_BIT
+                    | if to_image {
+                        vk::VK_ACCESS_2_MEMORY_READ_BIT
+                    } else {
+                        0
+                    },
+                vk::VK_ACCESS_2_TRANSFER_READ_BIT | vk::VK_ACCESS_2_TRANSFER_WRITE_BIT,
             );
-            (self.device.f.vkCmdCopyImageToMemoryKHR.unwrap())(command, &copy);
+            if to_image {
+                (self.device.f.vkCmdCopyMemoryToImageKHR.unwrap())(command, &copy);
+            } else {
+                (self.device.f.vkCmdCopyImageToMemoryKHR.unwrap())(command, &copy);
+            }
         }
     }
 }
 
-impl Drop for Target {
+impl Drop for Image {
     fn drop(&mut self) {
         // SAFETY: recorded/submitted uses retain the target until commands are destroyed.
         unsafe {

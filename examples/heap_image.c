@@ -29,7 +29,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
     OgpuRaster *sample, uint32_t width, uint32_t height) {
     int result = EXIT_FAILURE;
     OgpuError error = {0};
-    OgpuTarget *source = NULL, *processed = NULL, *final = NULL;
+    OgpuImage *source = NULL, *processed = NULL, *final = NULL;
     OgpuImageHeap *heaps[2] = {0};
     OgpuSamplerHeap *samplers = NULL;
     OgpuBuffer *indirect = NULL, *readback = NULL;
@@ -38,9 +38,13 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
     size_t size = (size_t)width * height * 4;
     uint8_t *pixels = malloc(2 * (size + 8));
     REQUIRE(pixels);
-    TRY(ogpu_target_create_rgba8(device, width, height, &source, &error));
-    TRY(ogpu_target_create_rgba8(device, width, height, &processed, &error));
-    TRY(ogpu_target_create_rgba8(device, width, height, &final, &error));
+    OgpuImageDesc image_desc = {OGPU_IMAGE_2D, width, height, OGPU_FORMAT_RGBA8_UNORM,
+        OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_SAMPLED | OGPU_IMAGE_USAGE_COPY_SRC, 0};
+    TRY(ogpu_image_create(device, &image_desc, &source, &error));
+    image_desc.usage = OGPU_IMAGE_USAGE_SAMPLED | OGPU_IMAGE_USAGE_STORAGE | OGPU_IMAGE_USAGE_COPY_SRC;
+    TRY(ogpu_image_create(device, &image_desc, &processed, &error));
+    image_desc.usage = OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC;
+    TRY(ogpu_image_create(device, &image_desc, &final, &error));
     // The two heaps deliberately permute entries. Shader roots must select the
     // right descriptor at runtime; fixed compiler bindings cannot pass both modes.
     const OgpuImageEntry a[] = {{processed, OGPU_IMAGE_SAMPLED, 0},
@@ -72,7 +76,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         TRY(ogpu_buffer_write(readback, 0, pixels, 2 * (size + 8), &error));
         TRY(ogpu_batch_create(device, &batch, &error));
         TRY(ogpu_batch_draw_indirect(batch, pattern, source, indirect, 0, NULL, 0, OGPU_ATTACHMENT_CLEAR, &error));
-        TRY(ogpu_batch_discard_target(batch, processed, &error));
+        TRY(ogpu_batch_discard_image(batch, processed, &error));
         TRY(ogpu_batch_submit(batch, &completions[0], &error));
         ogpu_batch_destroy(batch); batch = NULL;
         TRY(ogpu_batch_create(device, &batch, &error));
@@ -93,17 +97,17 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
         TRY(ogpu_batch_draw_indirect(batch, sample, final, indirect, 0,
             &sampling, sizeof(sampling), OGPU_ATTACHMENT_CLEAR, &error));
-        TRY(ogpu_batch_copy_target(batch, final, readback, 4, &error));
+        TRY(ogpu_batch_copy_image_to_buffer(batch, final, readback, 4, &error));
         // Diagnostic copies happen only after the full GPU chain. The processed
         // target was initialized by discard, never by a draw.
-        TRY(ogpu_batch_copy_target(batch, processed, readback, size + 12, &error));
+        TRY(ogpu_batch_copy_image_to_buffer(batch, processed, readback, size + 12, &error));
         if (pass == 3) {
             // Recorded bindings/draws/discard retain everything, even before submit.
             for (unsigned i = 0; i < 2; ++i) { ogpu_image_heap_destroy(heaps[i]); heaps[i] = NULL; }
             ogpu_sampler_heap_destroy(samplers); samplers = NULL;
-            ogpu_target_destroy(source); source = NULL;
-            ogpu_target_destroy(processed); processed = NULL;
-            ogpu_target_destroy(final); final = NULL;
+            ogpu_image_destroy(source); source = NULL;
+            ogpu_image_destroy(processed); processed = NULL;
+            ogpu_image_destroy(final); final = NULL;
         }
         TRY(ogpu_batch_submit(batch, &completions[2], &error));
         ogpu_batch_destroy(batch); batch = NULL;
@@ -144,9 +148,9 @@ cleanup:
     ogpu_batch_destroy(batch);
     for (unsigned i = 0; i < 2; ++i) ogpu_image_heap_destroy(heaps[i]);
     ogpu_sampler_heap_destroy(samplers);
-    ogpu_target_destroy(final);
-    ogpu_target_destroy(processed);
-    ogpu_target_destroy(source);
+    ogpu_image_destroy(final);
+    ogpu_image_destroy(processed);
+    ogpu_image_destroy(source);
     ogpu_buffer_destroy(readback);
     ogpu_buffer_destroy(indirect);
     free(pixels);

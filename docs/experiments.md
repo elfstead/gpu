@@ -31,6 +31,12 @@ Both C dispatch entry points execute 1D/2D/3D grids with unmodified builtin IDs;
 tail/guard/argument-copy tests and existing execution regressions pass on RADV and
 llvmpipe. This is an adapter prerequisite, not yet libplacebo-on-OGPU acceptance.
 
+The [G1 image checkpoint](consumer-libplacebo.md#g1-checkpoint-image-descriptions-and-upload)
+introduces ABI 6: 1D/2D RGBA8/R32F images with explicit usage and retained upload /
+readback copies. Native float LUT sampling and repeated uploads exercise the image
+requirements observed in the upstream consumer. The target-only API is removed;
+the actual libplacebo adapter and upstream image comparison are still pending.
+
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
 a gated Vulkan test verifies reuse while another submission is still pending.

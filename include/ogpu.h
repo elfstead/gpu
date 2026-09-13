@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(5)
+#define OGPU_ABI_VERSION UINT32_C(6)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -296,17 +296,31 @@ OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_na
  * apply. Requires dynamicRendering and a shared graphics/compute queue.
  * Uses GENERAL layouts; VK_KHR_unified_image_layouts is enabled when supported
  * for its layout-efficiency guarantee, but is not required. Ownership rules
- * apply. Both objects retain their device. Targets are specialized images, NOT
+ * apply. Both objects retain their device. Images use specialized storage, NOT
  * addressable allocations. No window, presentation, depth, or blending. */
-typedef struct OgpuTarget OgpuTarget;
+typedef struct OgpuImage OgpuImage;
 typedef struct OgpuRaster OgpuRaster;
 
-/* Single-layer/mip/sample RGBA8 UNORM target. Extents must be nonzero and supported.
- * Supports attachment, sampled and RGBA8 storage use; rejects unsupported formats.
- * No CPU mapping. Read back through batch_copy_target and a completion wait. */
-OgpuResult ogpu_target_create_rgba8(OgpuDevice *device, uint32_t width, uint32_t height,
-    OgpuTarget **out_target, OgpuError *out_error);
-void ogpu_target_destroy(OgpuTarget *target);
+/* Copied description, one mip/layer/sample, no CPU mapping. 1D requires height=1.
+ * Extents and usage must be nonzero; reserved=0. COLOR requires 2D RGBA8.
+ * Device support is checked for the requested format/dimension/usage combination.
+ * SAMPLED promises nearest and linear filtering. Operations require matching usage.
+ * Initial contents/layout are undefined: discard or CLEAR before first use. */
+#define OGPU_IMAGE_1D 1u
+#define OGPU_IMAGE_2D 2u
+#define OGPU_FORMAT_RGBA8_UNORM 0u
+#define OGPU_FORMAT_R32_FLOAT 1u
+#define OGPU_IMAGE_USAGE_SAMPLED 1u
+#define OGPU_IMAGE_USAGE_STORAGE 2u
+#define OGPU_IMAGE_USAGE_COLOR 4u
+#define OGPU_IMAGE_USAGE_COPY_SRC 8u
+#define OGPU_IMAGE_USAGE_COPY_DST 16u
+typedef struct OgpuImageDesc {
+    uint32_t dimension, width, height, format, usage, reserved;
+} OgpuImageDesc;
+OgpuResult ogpu_image_create(OgpuDevice *device, const OgpuImageDesc *desc,
+    OgpuImage **out_target, OgpuError *out_error);
+void ogpu_image_destroy(OgpuImage *target);
 
 /* Independent owning image/sampler heaps, scoped to the graphics image profile.
  * Capacity is nonzero. Slots begin INVALID, not readable null descriptors. Indices
@@ -326,7 +340,7 @@ typedef struct OgpuSamplerHeap OgpuSamplerHeap;
 #define OGPU_IMAGE_SAMPLED 0u
 #define OGPU_IMAGE_STORAGE 1u
 typedef struct OgpuImageEntry {
-    const OgpuTarget *target;
+    const OgpuImage *image;
     uint32_t kind;
     uint32_t reserved;
 } OgpuImageEntry;
@@ -349,7 +363,7 @@ typedef struct OgpuSamplerDesc {
     uint32_t address_u, address_v;
 } OgpuSamplerDesc;
 /* Normalized coordinates, mip 0 only, no comparison/anisotropy; W clamps to edge.
- * Linear sampling checks RGBA8 support and otherwise returns UNSUPPORTED. */
+ * Linear filtering support is checked when creating each sampled image. */
 OgpuResult ogpu_sampler_heap_create(OgpuDevice *device, uint32_t capacity,
     OgpuSamplerHeap **out_heap, OgpuError *out_error);
 void ogpu_sampler_heap_destroy(OgpuSamplerHeap *heap);
@@ -369,8 +383,8 @@ OgpuResult ogpu_batch_bind_sampler_heap(OgpuBatch *batch, const OgpuSamplerHeap 
     OgpuError *out_error);
 /* Retains target and discards prior contents, ordering earlier uses and preparing
  * GENERAL for shader writes. This does not clear texels: write before reading them.
- * Useful for a compute-produced image without an otherwise unnecessary draw. */
-OgpuResult ogpu_batch_discard_target(OgpuBatch *batch, const OgpuTarget *target,
+ * Prepares an image for an initial upload or compute writes. */
+OgpuResult ogpu_batch_discard_image(OgpuBatch *batch, const OgpuImage *target,
     OgpuError *out_error);
 
 /* Valid matching vertex/fragment SPIR-V main entries; same baseline/heap contract
@@ -406,23 +420,33 @@ typedef struct OgpuDrawArguments {
  * a full 16-byte record must fit. Arguments are copied; their size must match raster.
  * Records retain raster, target, and indirect buffer, but NOT pointees embedded
  * in arguments. Explicit barriers must order compute-produced vertex/draw data.
- * Target operations manage image layouts and attachment/copy dependencies; every
+ * Image operations manage image layouts and attachment/copy dependencies; every
  * CLEAR draw discards previous target contents. Public handles may be destroyed after
  * recording; retained resources are released only after discard/completion cleanup. */
 OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
-    OgpuTarget *target, OgpuBuffer *indirect, uint64_t indirect_offset,
+    OgpuImage *target, OgpuBuffer *indirect, uint64_t indirect_offset,
     const void *arguments, uint32_t argument_bytes, uint32_t load, OgpuError *out_error);
 
 /* Caller must initialize GENERAL and write every copied texel in this or an earlier
  * successfully submitted batch. No hidden initialization or host-side layout tracker.
- * Orders earlier GPU writes before readback.
- * Copy whole image as
- * tightly packed RGBA8 rows starting at (0,0). Destination offset must be 4-byte
+ * Requires COPY_SRC usage; orders earlier GPU writes before readback.
+ * Copies whole images as tightly packed rows preserving format bits (four bytes
+ * per texel for both supported formats). Destination offset must be 4-byte
  * aligned; width*height*4 bytes must fit. Retains target and destination. Wait before
  * CPU access; explicit TRANSFER_WRITE dependencies precede subsequent GPU consumers.
  * Invalid draw/copy arguments leave the recording unchanged. Destruction is NULL-safe. */
-OgpuResult ogpu_batch_copy_target(OgpuBatch *batch, OgpuTarget *target,
+OgpuResult ogpu_batch_copy_image_to_buffer(OgpuBatch *batch, OgpuImage *target,
     OgpuBuffer *destination, uint64_t destination_offset, OgpuError *out_error);
+
+/* Requires COPY_DST and initialized GENERAL (discard_image before first use).
+ * Copies the full image from a tightly packed, 4-byte-aligned, in-bounds buffer
+ * range, without conversion. Orders prior GPU accesses before the copy; explicit
+ * TRANSFER_WRITE dependencies precede later shader/attachment consumers.
+ * Retains source and image. HOST or DEVICE buffers are legal. Finish host writes
+ * before submission; do not modify/reuse the source until completion or discard
+ * the unsubmitted batch. Invalid arguments leave the recording unchanged. */
+OgpuResult ogpu_batch_copy_buffer_to_image(OgpuBatch *batch, OgpuBuffer *source,
+    uint64_t source_offset, OgpuImage *image, OgpuError *out_error);
 
 #ifdef __cplusplus
 }

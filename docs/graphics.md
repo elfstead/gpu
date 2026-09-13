@@ -34,10 +34,12 @@ This is an experiment constraint, not a commitment to hard-code graphics state.
 
 ## Images and drawing
 
-`ogpu_target_create_rgba8` owns a two-dimensional, single-layer, single-mip image
-with specialized optimal storage, a view, and attachment resources. It has no
-device address or CPU mapping. Width/height and combined attachment/readback/sampled/
-storage format support are checked. Image-heap slots supply sampled/storage descriptors.
+`ogpu_image_create` (ABI 6) takes a copied description: 1D/2D, RGBA8 UNORM/R32F,
+extents and explicit sampled/storage/color/copy usages. The image owns specialized
+optimal storage and a view when used as a color attachment. It has no device address
+or CPU mapping. Format/dimension/usage support is checked; color use is limited to
+2D RGBA8. Image-heap slots supply sampled/storage descriptors for the actual format
+and dimension. The older RGBA8-only target constructor and type were removed.
 
 `ogpu_batch_draw_indirect` selects attachment CLEAR (opaque black) or LOAD (preserved
 texels), then executes one non-indexed indirect draw. Both store the result. LOAD
@@ -55,13 +57,19 @@ recording and uses `vkCmdDrawIndirect2KHR`. It is not a new allocation type: com
 writes the same memory. The public handle is an ownership choice, not a workaround
 for an older Vulkan command interface.
 
-`ogpu_batch_copy_target` copies the whole target into an ordinary buffer at a
-four-byte-aligned offset, tightly packed as width × height × 4 RGBA bytes, row by
+`ogpu_batch_copy_image_to_buffer` copies the whole image into an ordinary buffer at a
+four-byte-aligned offset, tightly packed as width × height × 4 bytes in the image's
+format, row by
 row starting at image coordinate (0,0). The caller must initialize the target through
 CLEAR or explicit discard followed by writes, in this or an earlier successfully
 submitted batch, with all copied texels written before the copy. There is no same-batch
 initialization scan. Rejected/abandoned initialization does not authorize later reads.
 Subsequent uses preserve contents unless CLEAR or discard explicitly invalidates them.
+
+`ogpu_batch_copy_buffer_to_image` uploads the same packed representation from a
+HOST or DEVICE buffer, retaining both operands. Initialize GENERAL before first use;
+the upload orders prior GPU accesses, and later shader/attachment consumers require
+an explicit TRANSFER_WRITE dependency. Repeated uploads preserve the layout.
 
 Known target operations manage their own image transitions and attachment/copy
 dependencies. The Vulkan backend uses an initial UNDEFINED layout (discard), a

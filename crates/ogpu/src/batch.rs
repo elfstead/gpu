@@ -92,7 +92,7 @@ enum Step {
         destination_offset: usize,
         size: usize,
     },
-    DiscardTarget(Rc<Target>),
+    DiscardImage(Rc<Image>),
     BindImages(Rc<ImageHeap>),
     BindSamplers(Rc<SamplerHeap>),
     Dispatch {
@@ -106,16 +106,17 @@ enum Step {
     },
     Draw {
         raster: Rc<Raster>,
-        target: Rc<Target>,
+        target: Rc<Image>,
         indirect: Rc<Buffer>,
         offset: u64,
         root: Vec<u8>,
         load: u32,
     },
-    CopyTarget {
-        target: Rc<Target>,
-        destination: Rc<Buffer>,
+    ImageCopy {
+        image: Rc<Image>,
+        buffer: Rc<Buffer>,
         offset: u64,
+        to_image: bool,
     },
 }
 
@@ -173,14 +174,14 @@ impl Batch {
         Ok(())
     }
 
-    pub(crate) fn discard_target(&mut self, target: Rc<Target>) -> Result<(), Error> {
+    pub(crate) fn discard_image(&mut self, target: Rc<Image>) -> Result<(), Error> {
         if !Rc::ptr_eq(&self.device, &target.device) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
-                "Target belongs to another device",
+                "Image belongs to another device",
             ));
         }
-        self.recording()?.push(Step::DiscardTarget(target));
+        self.recording()?.push(Step::DiscardImage(target));
         Ok(())
     }
 
@@ -294,7 +295,7 @@ impl Batch {
     pub(crate) fn draw(
         &mut self,
         raster: Rc<Raster>,
-        target: Rc<Target>,
+        target: Rc<Image>,
         indirect: Rc<Buffer>,
         offset: usize,
         root: &[u8],
@@ -321,6 +322,12 @@ impl Batch {
                 "Invalid indirect offset or raster argument size",
             ));
         }
+        if target.desc.usage & graphics::COLOR == 0 {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Image is not a color attachment",
+            ));
+        }
         indirect.range(offset, 16)?;
         self.recording()?.push(Step::Draw {
             raster,
@@ -333,29 +340,55 @@ impl Batch {
         Ok(())
     }
 
-    pub(crate) fn copy_target(
+    pub(crate) fn copy_image_to_buffer(
         &mut self,
-        target: Rc<Target>,
+        target: Rc<Image>,
         destination: Rc<Buffer>,
         offset: usize,
     ) -> Result<(), Error> {
-        if !Rc::ptr_eq(&self.device, &target.device)
-            || !Rc::ptr_eq(&self.device, &destination.device)
-        {
+        self.copy_image(target, destination, offset, false)
+    }
+
+    pub(crate) fn copy_buffer_to_image(
+        &mut self,
+        source: Rc<Buffer>,
+        offset: usize,
+        image: Rc<Image>,
+    ) -> Result<(), Error> {
+        self.copy_image(image, source, offset, true)
+    }
+
+    fn copy_image(
+        &mut self,
+        image: Rc<Image>,
+        buffer: Rc<Buffer>,
+        offset: usize,
+        to_image: bool,
+    ) -> Result<(), Error> {
+        if !Rc::ptr_eq(&self.device, &image.device) || !Rc::ptr_eq(&self.device, &buffer.device) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Copy objects belong to different devices",
             ));
         }
-        if offset % 4 != 0 {
-            return Err(Error::new(INVALID_ARGUMENT, "Unaligned copy destination"));
+        let usage = if to_image {
+            graphics::COPY_DST
+        } else {
+            graphics::COPY_SRC
+        };
+        if offset % 4 != 0 || image.desc.usage & usage == 0 {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Unaligned buffer offset or invalid image copy usage",
+            ));
         }
-        destination.range(offset, target.size)?;
+        buffer.range(offset, image.size)?;
         let steps = self.recording()?;
-        steps.push(Step::CopyTarget {
-            target,
-            destination,
+        steps.push(Step::ImageCopy {
+            image,
+            buffer,
             offset: offset as u64,
+            to_image,
         });
         Ok(())
     }
@@ -595,7 +628,7 @@ impl Completion {
                         };
                         (d.f.vkCmdCopyMemoryKHR.unwrap())(command, &info);
                     }
-                    Step::DiscardTarget(target) => target.discard(command),
+                    Step::DiscardImage(target) => target.discard(command),
                     Step::BindImages(heap) => heap.bind(command),
                     Step::BindSamplers(heap) => heap.bind(command),
                     Step::Dispatch {
@@ -630,11 +663,12 @@ impl Completion {
                         root,
                         load,
                     } => target.draw(command, raster, indirect, *offset, root, *load),
-                    Step::CopyTarget {
-                        target,
-                        destination,
+                    Step::ImageCopy {
+                        image,
+                        buffer,
                         offset,
-                    } => target.copy_to(command, destination, *offset),
+                        to_image,
+                    } => image.copy(command, buffer, *offset, *to_image),
                 }
             }
             barrier(

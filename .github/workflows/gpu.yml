@@ -27,6 +27,7 @@ jobs:
       - run: spirv-val --target-env vulkan1.4 examples/shaders/heap-process.comp.spv
       - run: spirv-val --target-env vulkan1.4 examples/shaders/heap-sample.frag.spv
       - run: spirv-val --target-env vulkan1.4 examples/shaders/dispatch-grid.comp.spv
+      - run: spirv-val --target-env vulkan1.4 examples/shaders/image-float.comp.spv
       - run: cargo xtask heap-image
       - run: cargo xtask reduction
       - run: cargo xtask matmul

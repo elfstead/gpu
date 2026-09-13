@@ -1,0 +1,24 @@
+#version 460
+#extension GL_EXT_descriptor_heap : require
+#extension GL_EXT_nonuniform_qualifier : require
+
+layout(local_size_x=8, local_size_y=4) in;
+layout(descriptor_heap) uniform texture1D sources1D[];
+layout(descriptor_heap) uniform texture2D sources2D[];
+layout(descriptor_heap) uniform sampler samplers[];
+layout(descriptor_heap, r32f) writeonly uniform image2D outputs[];
+layout(push_constant) uniform Root { uint dimension, width, height; } root;
+
+void main() {
+    uvec2 p = gl_GlobalInvocationID.xy;
+    if (p.x >= root.width || p.y >= root.height) return;
+    vec2 uv = (vec2(p) + 0.75) / vec2(root.width, root.height);
+    for (uint mode = 0; mode < 2; ++mode) {
+        float value;
+        if (root.dimension == 1)
+            value = textureLod(sampler1D(sources1D[0], samplers[mode]), uv.x, 0).r;
+        else
+            value = textureLod(sampler2D(sources2D[0], samplers[mode]), uv, 0).r;
+        imageStore(outputs[1], ivec2(p.x + mode * root.width, p.y), vec4(value));
+    }
+}

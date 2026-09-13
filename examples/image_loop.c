@@ -78,14 +78,16 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
     OgpuRaster *first_raster, OgpuRaster *last_raster, uint32_t width, uint32_t height) {
     int exit_code = EXIT_FAILURE;
     OgpuError error = {0};
-    OgpuTarget *first = NULL, *last = NULL;
+    OgpuImage *first = NULL, *last = NULL;
     OgpuBuffer *vertices = NULL, *indirect = NULL, *buffers[3] = {0};
     uint8_t *images[3] = {0};
     OgpuBatch *batch = NULL;
     OgpuCompletion *completion = NULL;
     const uint64_t size = (uint64_t)width * height * 4;
-    TRY(ogpu_target_create_rgba8(device, width, height, &first, &error));
-    TRY(ogpu_target_create_rgba8(device, width, height, &last, &error));
+    const OgpuImageDesc image_desc = {OGPU_IMAGE_2D, width, height, OGPU_FORMAT_RGBA8_UNORM,
+        OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC, 0};
+    TRY(ogpu_image_create(device, &image_desc, &first, &error));
+    TRY(ogpu_image_create(device, &image_desc, &last, &error));
     TRY(ogpu_buffer_create(device, 48, OGPU_MEMORY_HOST, &vertices, &error));
     TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &indirect, &error));
     DrawRoot draw = {0};
@@ -114,7 +116,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         if (pass != 0) {
             /* Reusing allocations requires dependencies on their previous GPU
              * accesses as well. Completion is host synchronization, not a new
-             * implicit GPU memory dependency. Target layouts are managed internally. */
+             * implicit GPU memory dependency. Image layouts are managed internally. */
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_VERTEX_READ
                 | OGPU_ACCESS_INDIRECT_READ | OGPU_ACCESS_FRAGMENT_READ | OGPU_ACCESS_TRANSFER_WRITE,
                 OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_TRANSFER_WRITE, &error));
@@ -123,14 +125,14 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
             OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ, &error));
         TRY(ogpu_batch_draw_indirect(batch, first_raster, first, indirect, 0, &draw, sizeof(draw), OGPU_ATTACHMENT_CLEAR, &error));
-        TRY(ogpu_batch_copy_target(batch, first, buffers[0], 4, &error));
+        TRY(ogpu_batch_copy_image_to_buffer(batch, first, buffers[0], 4, &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_TRANSFER_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
         ProcessRoot copied = process;
         TRY(ogpu_batch_dispatch(batch, processor, (width * height + 63) / 64, 1, 1, &copied, sizeof(copied), &error));
         memset(&copied, 0, sizeof(copied)); /* Recording must already have copied it. */
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
         TRY(ogpu_batch_draw_indirect(batch, last_raster, last, indirect, 0, &read, sizeof(read), OGPU_ATTACHMENT_CLEAR, &error));
-        TRY(ogpu_batch_copy_target(batch, last, buffers[2], 4, &error));
+        TRY(ogpu_batch_copy_image_to_buffer(batch, last, buffers[2], 4, &error));
         TRY(ogpu_batch_submit(batch, &completion, &error));
         ogpu_batch_destroy(batch);
         batch = NULL;
@@ -148,8 +150,8 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
 cleanup:
     ogpu_completion_destroy(completion); /* Drain before freeing raw-address pointees. */
     ogpu_batch_destroy(batch);
-    ogpu_target_destroy(last);
-    ogpu_target_destroy(first);
+    ogpu_image_destroy(last);
+    ogpu_image_destroy(first);
     ogpu_buffer_destroy(indirect);
     ogpu_buffer_destroy(vertices);
     for (unsigned i = 0; i < 3; ++i) {

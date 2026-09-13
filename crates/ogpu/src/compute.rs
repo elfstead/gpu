@@ -9,7 +9,8 @@ mod batch;
 pub(crate) use batch::{Batch, Completion};
 #[path = "graphics.rs"]
 mod graphics;
-pub(crate) use graphics::{Raster, Target};
+pub use graphics::ImageDesc;
+pub(crate) use graphics::{Image, Raster};
 #[path = "heaps.rs"]
 mod heaps;
 pub use heaps::SamplerDesc;
@@ -53,6 +54,7 @@ functions! {
     vkCmdEndRendering: PFN_vkCmdEndRendering,
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
     vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
+    vkCmdCopyMemoryToImageKHR: PFN_vkCmdCopyMemoryToImageKHR,
     vkCmdCopyMemoryKHR: PFN_vkCmdCopyMemoryKHR,
     vkWriteResourceDescriptorsEXT: PFN_vkWriteResourceDescriptorsEXT,
     vkGetPhysicalDeviceFormatProperties: PFN_vkGetPhysicalDeviceFormatProperties,

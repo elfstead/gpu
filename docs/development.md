@@ -5,7 +5,7 @@ C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
 supported and tested. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 5; rebuild callers with this checkout's
+execution interface. The current ABI is 6; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
@@ -39,6 +39,16 @@ arguments. The grid test shader is checked in; regenerate it with shaderc 2026.1
 ```sh
 glslc --target-env=vulkan1.4 examples/shaders/dispatch-grid.comp -o examples/shaders/dispatch-grid.comp.spv
 spirv-val --target-env vulkan1.4 examples/shaders/dispatch-grid.comp.spv
+```
+
+The image tests in `cargo xtask gpu-tests` cover 1D/2D RGBA8/R32F uploads and
+readback, HOST/DEVICE source buffers, retention, rejected uses, repeated updates,
+and native R32F nearest/linear sampling into a storage image. Reproduce the float
+sampling fixture with shaderc 2026.1:
+
+```sh
+glslc --target-env=vulkan1.4 examples/shaders/image-float.comp -o examples/shaders/image-float.comp.spv
+spirv-val --target-env vulkan1.4 examples/shaders/image-float.comp.spv
 ```
 
 Requirements: Rust 1.85+ with Cargo, a C11 compiler/linker, and a Vulkan loader with

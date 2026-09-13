@@ -24,12 +24,14 @@ not install a readable null descriptor. New slots are also invalid until written
 Shader indices, descriptor kinds and valid image contents remain trusted caller
 obligations, not runtime-checked accesses or recursive pointer tracing.
 
-The view is still fixed: RGBA8 UNORM, 2D, one mip/layer/sample, sampled or storage.
-There is no new view handle or generalized format/subresource description. Sampler
+At ABI 6, views follow the image's RGBA8 UNORM or R32F format and 1D/2D dimension,
+with one mip/layer/sample. Sampled/storage descriptors require the matching creation
+usage. No view handle or subresource selection is exposed. Sampler
 descriptions independently select nearest/linear minification and magnification,
 and clamp-to-edge/repeat U and V addressing. Coordinates are normalized, LOD is zero,
-W clamps, and comparison/anisotropy are disabled. Linear sampling is checked against
-RGBA8 support and rejected as UNSUPPORTED if absent. Both heap types currently
+W clamps, and comparison/anisotropy are disabled. Sampled image creation checks
+linear-filter support for its actual format and rejects UNSUPPORTED if absent;
+samplers are format-independent. Both heap types currently
 require the optional graphics image profile, even for compute-only image access.
 
 Bindings retain the entire heap through recording and completion destruction,

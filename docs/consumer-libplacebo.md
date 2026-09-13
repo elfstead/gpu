@@ -100,8 +100,8 @@ vertex data and resource binding must still be handled for execution.
 | Upstream requirement observed | Current OGPU fit / next decision |
 |---|---|
 | 32×32 local workgroup; 2D dispatch grid, tail groups | Implemented in ABI 5: explicit X/Y/Z workgroup counts with per-axis bounds checks; unused axes are 1. Local size remains shader-owned, with no builtin-ID remapping. |
-| Sampled RGBA8 input, storage RGBA8 intermediate, RGBA8 fragment target | Existing image heaps and rendering model fit; add a deliberate image upload contract rather than CPU texture mirrors. |
-| 256-entry R32F, linearly sampled 1D filter LUT | Current target is fixed 2D RGBA8. Decide format/dimension/usage description together; do not quantize LUT weights to fit RGBA8. Upstream also has dimension-selection logic worth evaluating before adding every image dimension. |
+| Sampled RGBA8 input, storage RGBA8 intermediate, RGBA8 fragment target | Implemented in ABI 6: explicit image usages and retained buffer-to-image uploads; rendering remains 2D RGBA8. |
+| 256-entry R32F, linearly sampled 1D filter LUT | Implemented in ABI 6: native 1D/2D R32F images and format-checked linear sampling. The adapter can keep the upstream LUT dimension and float values. |
 | Seven compute specialization constants, some sizing shared arrays; one raster constant | Values are captured, not optional. Compare adapter-side SPIR-V specialization with a small executable specialization contract. Do not execute placeholder GLSL defaults. |
 | 56 compute push bytes; zero raster push bytes | Fits current root size model. If adapter metadata is added, define offsets explicitly and preserve the upstream layout. |
 | Four-vertex strip with two vec2 vertex attributes | Compare adapter-side vertex pulling/strip expansion with a small raster topology contract. No depth, blending, indexed draws or arbitrary raster state is needed for this pipeline. |
@@ -140,6 +140,49 @@ and `acceptance.nbHgfqWG.log` (llvmpipe HOST/DEVICE), and
 This validates the grid contract and preserves the first consumer, not libplacebo
 execution or a new performance conclusion.
 
-Next: image creation descriptions and explicit upload, including floating-point
-filter data, followed by executable specialization and vertex-input translation.
-G2's upstream image comparison remains pending.
+### G1 checkpoint: image descriptions and upload
+
+ABI 6 replaces `OgpuTarget` and its fixed constructor with `OgpuImage` and a copied
+`OgpuImageDesc`. The description specifies 1D/2D, RGBA8 UNORM/R32F, width/height and
+sampled/storage/color/copy-source/copy-destination usages. One mip, layer and sample
+remain fixed; 1D requires height 1. Color attachments remain 2D RGBA8. Usage is
+checked at heap writes, draw recording and copy recording. Only attachment images
+inherit framebuffer/viewport limits and allocate an attachment view. Sampled images
+require linear-filter support for their actual format; independent samplers no
+longer make a hard-coded RGBA8 format query.
+
+Native 1D fits the upstream filter LUT directly. Supporting 2D R32F as well follows
+the same description and descriptor path. No shader coordinate rewrite or LUT
+quantization is needed. This is a small explicit format set; additional formats,
+subresources and feature negotiation remain future decisions.
+
+`ogpu_batch_copy_buffer_to_image` and `ogpu_batch_copy_image_to_buffer` copy whole,
+tightly packed images from/to 4-byte-aligned buffer offsets, preserving texel bits.
+Both formats use four bytes per texel. The batch retains both operands; HOST and
+DEVICE buffers work through the same address-copy commands. There is no hidden
+staging allocation. The caller initializes GENERAL with `ogpu_batch_discard_image`
+before a first upload, then writes every texel before any reads. Later uploads can
+replace contents while preserving GENERAL. Uploads order prior GPU accesses before
+the copy; explicit TRANSFER_WRITE barriers precede later shader/attachment consumers.
+Host buffers may be updated/reused after completion. Invalid calls do not change
+recorded work, and rejected submissions do not apply uploads.
+
+Verification covers 1D/2D × RGBA8/R32F × HOST/DEVICE sources, each with A/B/A
+updates, byte-exact readback and guards. Native heap execution samples a 256-entry
+1D R32F LUT and a 17×7 R32F image with nearest/linear samplers into an R32F storage
+image, checking negative and greater-than-one values against a numerical reference.
+Lifetime, wrong-device/usage/range, rejected upload, attachment rejection and
+missing-linear-support tests cover the surrounding contract. The existing C graphics,
+image-loop and heap-image examples use the new public image API.
+
+All 26 ordinary tests, 16 Vulkan tests, and the three migrated C graphics/image
+examples pass locally; GPU coverage includes RADV RX 5700 XT and llvmpipe with
+synchronization validation. The C/Rust ABI check covers 719 layout values;
+binding reproduction, Clippy and mocks pass. GGML was rebuilt against ABI 6 and
+its HOST/DEVICE lifecycle checks pass on both drivers; the full MNIST comparison
+was not rerun for this image-only change. Shaderc 2026.1 and SPIRV-Tools 1.4.357.0
+compile/validate the native float sampling fixture. Remote CI remains unverified.
+
+Next: executable specialization and vertex-input translation, then the bounded
+libplacebo adapter. G2's comparison of intermediate/final images against the
+upstream reference remains pending.

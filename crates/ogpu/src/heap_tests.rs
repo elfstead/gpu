@@ -223,10 +223,10 @@ fn gpu_heaps() {
             );
         }
         FAIL.set(0);
-        let target = Rc::new(Target::new(d.clone(), 2, 3).unwrap());
-        let other = Rc::new(Target::new(d.clone(), 2, 3).unwrap());
+        let target = Rc::new(Image::new(d.clone(), ImageDesc::rgba8(2, 3)).unwrap());
+        let other = Rc::new(Image::new(d.clone(), ImageDesc::rgba8(2, 3)).unwrap());
         let foreign = Device::new_graphics(instance.clone(), physical).unwrap();
-        let foreign_target = Rc::new(Target::new(foreign.clone(), 1, 1).unwrap());
+        let foreign_target = Rc::new(Image::new(foreign.clone(), ImageDesc::rgba8(1, 1)).unwrap());
         let mut images = Rc::new(ImageHeap::new(d.clone(), 2).unwrap());
         let mut samplers = Rc::new(SamplerHeap::new(d.clone(), 2).unwrap());
         let desc = SamplerDesc::default();
@@ -295,18 +295,31 @@ fn gpu_heaps() {
         assert!(!s.heap.poisoned);
         s.heap.buffer.coherent = coherent;
         FAIL.set(6);
-        assert_eq!(
-            s.write(
-                0,
-                &[SamplerDesc {
-                    mag_filter: 1,
-                    ..desc
-                }]
+        // Filtering is a promise of a sampled image, not of a sampler alone.
+        s.write(
+            0,
+            &[SamplerDesc {
+                mag_filter: 1,
+                ..desc
+            }],
+        )
+        .unwrap();
+        for format in [0, 1] {
+            let image = ImageDesc {
+                format,
+                usage: graphics::SAMPLED,
+                ..ImageDesc::rgba8(2, 3)
+            };
+            assert!(matches!(Image::new(d.clone(), image), Err(e) if e.status == UNSUPPORTED));
+            Image::new(
+                d.clone(),
+                ImageDesc {
+                    usage: graphics::COPY_SRC,
+                    ..image
+                },
             )
-            .unwrap_err()
-            .status,
-            UNSUPPORTED
-        );
+            .unwrap();
+        }
         FAIL.set(0);
         assert!(Batch::new(foreign.clone())
             .unwrap()

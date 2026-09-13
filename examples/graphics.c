@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     OgpuDevice *device = NULL;
     OgpuKernel *producer = NULL;
     OgpuRaster *raster = NULL;
-    OgpuTarget *target = NULL;
+    OgpuImage *target = NULL;
     OgpuBuffer *vertices = NULL, *indirect = NULL, *readback = NULL;
     OgpuBatch *batch = NULL;
     OgpuCompletion *completion = NULL;
@@ -89,7 +89,9 @@ int main(int argc, char **argv) {
     TRY(ogpu_kernel_create(device, compute_words, compute_count, sizeof(Root), &producer, &error));
     TRY(ogpu_raster_create(device, vertex_words, vertex_count, fragment_words, fragment_count,
         sizeof(Root), &raster, &error));
-    TRY(ogpu_target_create_rgba8(device, 64, 64, &target, &error));
+    const OgpuImageDesc image_desc = {OGPU_IMAGE_2D, 64, 64, OGPU_FORMAT_RGBA8_UNORM,
+        OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC, 0};
+    TRY(ogpu_image_create(device, &image_desc, &target, &error));
 
     /* Ordinary allocations, not special vertex/indirect memory types. The GPU will
      * generate all three vec4 positions and all four indirect-draw fields. */
@@ -109,7 +111,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ, &error));
     TRY(ogpu_batch_draw_indirect(batch, raster, target, indirect, 0, &root, sizeof(root), OGPU_ATTACHMENT_CLEAR, &error));
-    TRY(ogpu_batch_copy_target(batch, target, readback, 0, &error));
+    TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, 0, &error));
     TRY(ogpu_batch_submit(batch, &completion, &error));
 
     /* No host inspection of the generated vertices or draw arguments. */
@@ -129,7 +131,7 @@ cleanup:
     /* Drain any accepted work before releasing pointer-referenced allocations. */
     ogpu_completion_destroy(completion);
     ogpu_batch_destroy(batch);
-    ogpu_target_destroy(target);
+    ogpu_image_destroy(target);
     ogpu_raster_destroy(raster);
     ogpu_kernel_destroy(producer);
     ogpu_buffer_destroy(readback);

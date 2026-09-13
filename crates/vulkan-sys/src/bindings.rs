@@ -8828,6 +8828,12 @@ pub type PFN_vkCmdCopyMemoryKHR = ::std::option::Option<
         pCopyMemoryInfo: *const VkCopyDeviceMemoryInfoKHR,
     ),
 >;
+pub type PFN_vkCmdCopyMemoryToImageKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pCopyMemoryInfo: *const VkCopyDeviceMemoryImageInfoKHR,
+    ),
+>;
 pub type PFN_vkCmdCopyImageToMemoryKHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,

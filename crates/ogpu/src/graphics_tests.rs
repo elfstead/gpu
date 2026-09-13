@@ -1,4 +1,80 @@
 use super::*;
+
+#[test]
+fn image_description_respects_usage_and_dimension_limits() {
+    let limits = vk::VkPhysicalDeviceLimits {
+        maxImageDimension1D: 256,
+        maxImageDimension2D: 512,
+        maxFramebufferWidth: 64,
+        maxFramebufferHeight: 64,
+        maxViewportDimensions: [64, 64],
+        viewportBoundsRange: [-64.0, 64.0],
+        ..Default::default()
+    };
+    let desc = ImageDesc {
+        dimension: 1,
+        width: 256,
+        height: 1,
+        format: 1,
+        usage: SAMPLED | COPY_DST,
+        reserved: 0,
+    };
+    assert_eq!(desc.validate(&limits).unwrap(), 1024);
+    assert_eq!(
+        ImageDesc {
+            dimension: 2,
+            width: 512,
+            height: 512,
+            ..desc
+        }
+        .validate(&limits)
+        .unwrap(),
+        512 * 512 * 4
+    );
+    for bad in [
+        ImageDesc {
+            dimension: 0,
+            ..desc
+        },
+        ImageDesc {
+            dimension: 3,
+            ..desc
+        },
+        ImageDesc { width: 0, ..desc },
+        ImageDesc { width: 257, ..desc },
+        ImageDesc { height: 0, ..desc },
+        ImageDesc { height: 2, ..desc },
+        ImageDesc { format: 2, ..desc },
+        ImageDesc {
+            reserved: 1,
+            ..desc
+        },
+        ImageDesc { usage: 0, ..desc },
+        ImageDesc { usage: 32, ..desc },
+        ImageDesc {
+            usage: COLOR,
+            ..desc
+        },
+        ImageDesc {
+            dimension: 2,
+            width: 1,
+            usage: COLOR,
+            ..desc
+        },
+        ImageDesc::rgba8(65, 1),
+        ImageDesc {
+            dimension: 2,
+            width: 513,
+            ..desc
+        },
+    ] {
+        assert_eq!(
+            bad.validate(&limits).unwrap_err().status,
+            INVALID_ARGUMENT,
+            "{bad:?}"
+        );
+    }
+}
 use crate::compute::batch::{COMPUTE_WRITE, INDIRECT_READ, TRANSFER_WRITE, VERTEX_READ};
 
 thread_local! {
@@ -105,9 +181,9 @@ fn gpu_optional_unified_layouts() {
             } else {
                 let device = result.unwrap();
                 assert!(device.graphics && CREATED.get());
-                let target = Rc::new(Target::new(device.clone(), 2, 3).unwrap());
+                let target = Rc::new(Image::new(device.clone(), ImageDesc::rgba8(2, 3)).unwrap());
                 let mut batch = Batch::new(device).unwrap();
-                batch.discard_target(target).unwrap();
+                batch.discard_image(target).unwrap();
                 unsafe { batch.submit().unwrap().wait().unwrap() };
             }
         }
@@ -148,7 +224,7 @@ fn gpu_image_preservation() {
             Err(e) => panic!("{e:?}"),
         };
         REJECT.set(false);
-        let target = Rc::new(Target::new(d.clone(), 64, 64).unwrap());
+        let target = Rc::new(Image::new(d.clone(), ImageDesc::rgba8(64, 64)).unwrap());
         let pattern = Rc::new(unsafe {
             Raster::new(
                 d.clone(),
@@ -204,7 +280,10 @@ fn gpu_image_preservation() {
         // A rejected first producer does not authorize using its image. Retry the
         // complete initialization explicitly before any dependent work is submitted.
         let mut rejected = Batch::new(d.clone()).unwrap();
-        rejected.discard_target(target.clone()).unwrap();
+        rejected.discard_image(target.clone()).unwrap();
+        rejected
+            .copy_buffer_to_image(output.clone(), 0, target.clone())
+            .unwrap();
         REJECT.set(true);
         assert!(unsafe { rejected.submit() }.is_err());
         let mut first = Batch::new(d.clone()).unwrap();
@@ -221,10 +300,10 @@ fn gpu_image_preservation() {
         let initial = unsafe { first.submit().unwrap() };
         // Neither abandoned recording nor rejected discard may erase the pattern.
         let mut abandoned = Batch::new(d.clone()).unwrap();
-        abandoned.discard_target(target.clone()).unwrap();
+        abandoned.discard_image(target.clone()).unwrap();
         drop(abandoned);
         let mut rejected = Batch::new(d.clone()).unwrap();
-        rejected.discard_target(target.clone()).unwrap();
+        rejected.discard_image(target.clone()).unwrap();
         REJECT.set(true);
         assert!(unsafe { rejected.submit() }.is_err());
         for load in [batch::LOAD, batch::CLEAR] {
@@ -255,7 +334,8 @@ fn gpu_image_preservation() {
             .unwrap();
             let rendered = unsafe { draw.submit().unwrap() };
             let mut copy = Batch::new(d.clone()).unwrap();
-            copy.copy_target(target.clone(), output.clone(), 0).unwrap();
+            copy.copy_image_to_buffer(target.clone(), output.clone(), 0)
+                .unwrap();
             let mut copied = unsafe { copy.submit().unwrap() };
             copied.wait().unwrap();
             let mut pixels = vec![0u8; target.size];
@@ -374,7 +454,7 @@ fn gpu_graphics_failures() {
                 }
             }
             let result = if point < 4 {
-                Target::new(device.clone(), 64, 64).map(drop)
+                Image::new(device.clone(), ImageDesc::rgba8(64, 64)).map(drop)
             } else {
                 unsafe { Raster::new(device.clone(), &vertex, &fragment, 16) }.map(drop)
             };
@@ -391,7 +471,9 @@ fn gpu_graphics_failures() {
         // Exercise rejection without issuing unsupported commands to a real queue.
         let mut device = Device::new_graphics(instance.clone(), physical).unwrap();
         Rc::get_mut(&mut device).unwrap().graphics = false;
-        assert!(matches!(Target::new(device.clone(), 64, 64), Err(e) if e.status == UNSUPPORTED));
+        assert!(
+            matches!(Image::new(device.clone(), ImageDesc::rgba8(64, 64)), Err(e) if e.status == UNSUPPORTED)
+        );
         assert!(
             matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16) }, Err(e) if e.status == UNSUPPORTED)
         );
@@ -509,7 +591,7 @@ fn gpu_graphics() {
             Err(e) => panic!("{e:?}"),
         };
         assert!(
-            matches!(Target::new(device.clone(), 0, 64), Err(e) if e.status == INVALID_ARGUMENT)
+            matches!(Image::new(device.clone(), ImageDesc::rgba8(0, 64)), Err(e) if e.status == INVALID_ARGUMENT)
         );
         assert!(
             matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, 16) }, Err(e) if e.status == INVALID_ARGUMENT)
@@ -517,9 +599,34 @@ fn gpu_graphics() {
         let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &compute, 16).unwrap() });
         let raster =
             Rc::new(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16).unwrap() });
-        let target = Rc::new(Target::new(device.clone(), 64, 64).unwrap());
+        let target = Rc::new(Image::new(device.clone(), ImageDesc::rgba8(64, 64)).unwrap());
         let vertices = Buffer::new(device.clone(), 48).unwrap();
         let indirect = Rc::new(Buffer::new(device.clone(), 16).unwrap());
+        let non_attachment = Rc::new(
+            Image::new(
+                device.clone(),
+                ImageDesc {
+                    usage: SAMPLED | COPY_SRC,
+                    ..ImageDesc::rgba8(64, 64)
+                },
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            Batch::new(device.clone())
+                .unwrap()
+                .draw(
+                    raster.clone(),
+                    non_attachment,
+                    indirect.clone(),
+                    0,
+                    &[0; 16],
+                    batch::CLEAR
+                )
+                .unwrap_err()
+                .status,
+            INVALID_ARGUMENT
+        );
         assert_eq!(vertices.address().unwrap() % 16, 0);
         let mut root = [0u8; 16];
         root[..8].copy_from_slice(&vertices.address().unwrap().to_ne_bytes());
@@ -614,14 +721,14 @@ fn gpu_graphics() {
                     .unwrap();
                 assert_eq!(
                     batch
-                        .copy_target(target.clone(), output.clone(), 1)
+                        .copy_image_to_buffer(target.clone(), output.clone(), 1)
                         .unwrap_err()
                         .status,
                     INVALID_ARGUMENT
                 );
                 assert_eq!(
                     batch
-                        .copy_target(target.clone(), output.clone(), output.size)
+                        .copy_image_to_buffer(target.clone(), output.clone(), output.size)
                         .unwrap_err()
                         .status,
                     OUT_OF_RANGE
@@ -629,7 +736,7 @@ fn gpu_graphics() {
                 // Explicitly order writes to this readback allocation between copies.
                 batch.barrier(TRANSFER_WRITE, TRANSFER_WRITE).unwrap();
                 batch
-                    .copy_target(target.clone(), output.clone(), 4 + copy * target.size)
+                    .copy_image_to_buffer(target.clone(), output.clone(), 4 + copy * target.size)
                     .unwrap();
             }
             completions.push(unsafe { batch.submit().unwrap() });

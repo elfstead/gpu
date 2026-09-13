@@ -1,6 +1,6 @@
 //! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
 use crate::{
-    compute::{Batch, Buffer, Completion, Device, ImageHeap, Kernel, Raster, SamplerHeap, Target},
+    compute::{Batch, Buffer, Completion, Device, Image, ImageHeap, Kernel, Raster, SamplerHeap},
     Error, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
     SUCCESS,
 };
@@ -17,8 +17,8 @@ pub struct OgpuDevice {
 pub struct OgpuBuffer {
     inner: Rc<Buffer>,
 }
-pub struct OgpuTarget {
-    inner: Rc<Target>,
+pub struct OgpuImage {
+    inner: Rc<Image>,
 }
 pub struct OgpuImageHeap {
     inner: Rc<ImageHeap>,
@@ -26,28 +26,29 @@ pub struct OgpuImageHeap {
 pub struct OgpuSamplerHeap {
     inner: Rc<SamplerHeap>,
 }
+pub use crate::compute::ImageDesc as OgpuImageDesc;
 pub use crate::compute::SamplerDesc as OgpuSamplerDesc;
 
 /// # Safety
 /// Live same-device batch/target, writable error; externally serialized.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_batch_discard_target(
+pub unsafe extern "C" fn ogpu_batch_discard_image(
     batch: *mut OgpuBatch,
-    target: *const OgpuTarget,
+    target: *const OgpuImage,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         call(error, || {
             required(batch)?;
             required(target)?;
-            (*batch).inner.discard_target((*target).inner.clone())
+            (*batch).inner.discard_image((*target).inner.clone())
         })
     }
 }
 
 #[repr(C)]
 pub struct OgpuImageEntry {
-    pub target: *const OgpuTarget,
+    pub image: *const OgpuImage,
     pub kind: u32,
     pub reserved: u32,
 }
@@ -127,11 +128,11 @@ pub unsafe extern "C" fn ogpu_image_heap_write(
             };
             let mut owned = Vec::new();
             for entry in entries {
-                required(entry.target)?;
+                required(entry.image)?;
                 if entry.reserved != 0 {
                     return Err(Error::new(INVALID_ARGUMENT, "Reserved image entry field"));
                 }
-                owned.push(((*entry.target).inner.clone(), entry.kind));
+                owned.push(((*entry.image).inner.clone(), entry.kind));
             }
             heap.write(first, owned)
         })
@@ -806,18 +807,18 @@ pub unsafe extern "C" fn ogpu_device_create_graphics(
 /// # Safety
 /// See include/ogpu.h: live device, writable independent outputs, external serialization.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_target_create_rgba8(
+pub unsafe extern "C" fn ogpu_image_create(
     device: *mut OgpuDevice,
-    width: u32,
-    height: u32,
-    out_target: *mut *mut OgpuTarget,
+    desc: *const OgpuImageDesc,
+    out_target: *mut *mut OgpuImage,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         create(out_target, error, || {
             required(device)?;
-            Ok(OgpuTarget {
-                inner: Rc::new(Target::new((*device).inner.clone(), width, height)?),
+            required(desc)?;
+            Ok(OgpuImage {
+                inner: Rc::new(Image::new((*device).inner.clone(), *desc)?),
             })
         })
     }
@@ -826,7 +827,7 @@ pub unsafe extern "C" fn ogpu_target_create_rgba8(
 /// # Safety
 /// Live uniquely owned handle or NULL, externally serialized. Recorded uses retain it.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_target_destroy(target: *mut OgpuTarget) {
+pub unsafe extern "C" fn ogpu_image_destroy(target: *mut OgpuImage) {
     if !target.is_null() {
         unsafe {
             drop(Box::from_raw(target));
@@ -895,7 +896,7 @@ pub unsafe extern "C" fn ogpu_raster_destroy(raster: *mut OgpuRaster) {
 pub unsafe extern "C" fn ogpu_batch_draw_indirect(
     batch: *mut OgpuBatch,
     raster: *mut OgpuRaster,
-    target: *mut OgpuTarget,
+    target: *mut OgpuImage,
     indirect: *mut OgpuBuffer,
     offset: u64,
     arguments: *const c_void,
@@ -933,9 +934,9 @@ pub unsafe extern "C" fn ogpu_batch_draw_indirect(
 /// See include/ogpu.h: live same-device objects, independent writable error output,
 /// external serialization, and no host access to pending GPU resources.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_batch_copy_target(
+pub unsafe extern "C" fn ogpu_batch_copy_image_to_buffer(
     batch: *mut OgpuBatch,
-    target: *mut OgpuTarget,
+    target: *mut OgpuImage,
     destination: *mut OgpuBuffer,
     offset: u64,
     error: *mut OgpuError,
@@ -947,7 +948,7 @@ pub unsafe extern "C" fn ogpu_batch_copy_target(
             required(destination)?;
             let offset = usize::try_from(offset)
                 .map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
-            (*batch).inner.copy_target(
+            (*batch).inner.copy_image_to_buffer(
                 (*target).inner.clone(),
                 (*destination).inner.clone(),
                 offset,
@@ -956,9 +957,39 @@ pub unsafe extern "C" fn ogpu_batch_copy_target(
     }
 }
 
+/// # Safety
+/// Same-device live objects; valid outputs; no host access while a copy is pending.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_copy_buffer_to_image(
+    batch: *mut OgpuBatch,
+    source: *mut OgpuBuffer,
+    offset: u64,
+    image: *mut OgpuImage,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(source)?;
+            required(image)?;
+            let offset = usize::try_from(offset)
+                .map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
+            (*batch).inner.copy_buffer_to_image(
+                (*source).inner.clone(),
+                offset,
+                (*image).inner.clone(),
+            )
+        })
+    }
+}
+
 #[cfg(test)]
 #[path = "dispatch_tests.rs"]
 mod dispatch_tests;
+
+#[cfg(test)]
+#[path = "image_tests.rs"]
+mod image_tests;
 
 #[cfg(test)]
 mod tests {
@@ -977,7 +1008,7 @@ mod tests {
                 INVALID_ARGUMENT
             );
             assert_eq!(
-                ogpu_batch_discard_target(ptr::null_mut(), ptr::null(), ptr::null_mut()),
+                ogpu_batch_discard_image(ptr::null_mut(), ptr::null(), ptr::null_mut()),
                 INVALID_ARGUMENT
             );
             ogpu_image_heap_destroy(ptr::null_mut());
@@ -1005,7 +1036,7 @@ mod tests {
             );
             assert!(sampler.is_null());
             let mut device = ptr::dangling_mut::<OgpuDevice>();
-            let mut target = ptr::dangling_mut::<OgpuTarget>();
+            let mut target = ptr::dangling_mut::<OgpuImage>();
             let mut raster = ptr::dangling_mut::<OgpuRaster>();
             assert_eq!(
                 ogpu_device_create_graphics(ptr::null(), 0, &mut device, ptr::null_mut()),
@@ -1013,7 +1044,7 @@ mod tests {
             );
             assert!(device.is_null());
             assert_eq!(
-                ogpu_target_create_rgba8(ptr::null_mut(), 64, 64, &mut target, ptr::null_mut()),
+                ogpu_image_create(ptr::null_mut(), ptr::null(), &mut target, ptr::null_mut()),
                 INVALID_ARGUMENT
             );
             assert!(target.is_null());
@@ -1046,7 +1077,7 @@ mod tests {
                 INVALID_ARGUMENT
             );
             assert_eq!(
-                ogpu_batch_copy_target(
+                ogpu_batch_copy_image_to_buffer(
                     ptr::null_mut(),
                     ptr::null_mut(),
                     ptr::null_mut(),
@@ -1055,7 +1086,7 @@ mod tests {
                 ),
                 INVALID_ARGUMENT
             );
-            ogpu_target_destroy(ptr::null_mut());
+            ogpu_image_destroy(ptr::null_mut());
             ogpu_raster_destroy(ptr::null_mut());
         }
     }

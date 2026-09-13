@@ -59,7 +59,8 @@ it does not change the implementation described here.
 
 ## Initialization and synchronization
 
-The experiment exposed a better primitive: `ogpu_batch_discard_target`. A compute-written
+The experiment exposed a better primitive: `ogpu_batch_discard_image` (originally
+named `ogpu_batch_discard_target` before ABI 6). A compute-written
 image should not require a dummy draw merely to become usable. Discard orders previous
 uses and initializes GENERAL without clearing texels. Every accessed texel must be written
 before it is read. Draw continues to discard and clear, using the same backend initializer.

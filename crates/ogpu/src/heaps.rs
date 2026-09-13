@@ -167,7 +167,7 @@ impl Heap {
 pub(crate) struct ImageHeap {
     pub(super) device: Rc<Device>,
     heap: Heap,
-    entries: Vec<Option<Rc<Target>>>,
+    entries: Vec<Option<Rc<Image>>>,
 }
 
 impl ImageHeap {
@@ -186,14 +186,22 @@ impl ImageHeap {
     pub(crate) fn write(
         &mut self,
         first: u32,
-        entries: Vec<(Rc<Target>, u32)>,
+        entries: Vec<(Rc<Image>, u32)>,
     ) -> Result<(), Error> {
         let range = self.heap.range(first, entries.len())?;
         for (target, kind) in &entries {
-            if !Rc::ptr_eq(&self.device, &target.device) || !matches!(*kind, SAMPLED | STORAGE) {
+            let usage = match *kind {
+                SAMPLED => graphics::SAMPLED,
+                STORAGE => graphics::STORAGE,
+                _ => 0,
+            };
+            if !Rc::ptr_eq(&self.device, &target.device)
+                || usage == 0
+                || target.desc.usage & usage == 0
+            {
                 return Err(Error::new(
                     INVALID_ARGUMENT,
-                    "Invalid image-heap device or descriptor kind",
+                    "Invalid image-heap device, descriptor kind or image usage",
                 ));
             }
         }
@@ -205,8 +213,8 @@ impl ImageHeap {
             .map(|(target, _)| vk::VkImageViewCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                 image: target.image,
-                viewType: vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D,
-                format: vk::VkFormat_VK_FORMAT_R8G8B8A8_UNORM,
+                viewType: target.desc.view_type(),
+                format: target.desc.vk_format(),
                 subresourceRange: vk::VkImageSubresourceRange {
                     aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
                     levelCount: 1,
@@ -308,25 +316,6 @@ impl SamplerHeap {
         }
         if entries.is_empty() {
             return Ok(());
-        }
-        if entries
-            .iter()
-            .any(|s| s.min_filter == 1 || s.mag_filter == 1)
-        {
-            let mut format = vk::VkFormatProperties::default();
-            unsafe {
-                (self.device.f.vkGetPhysicalDeviceFormatProperties.unwrap())(
-                    self.device.physical,
-                    vk::VkFormat_VK_FORMAT_R8G8B8A8_UNORM,
-                    &mut format,
-                );
-            }
-            if format.optimalTilingFeatures
-                & vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT
-                == 0
-            {
-                return Err(Error::new(UNSUPPORTED, "RGBA8 linear sampling unsupported"));
-            }
         }
         let address = |v| {
             if v == 0 {
