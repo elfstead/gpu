@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-/* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(7)
+/* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
+#define OGPU_ABI_VERSION UINT32_C(8)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -28,7 +28,8 @@ typedef struct OgpuError {
     char message[256];    /* Always NUL-terminated, possibly truncated. */
 } OgpuError;
 
-/* Every field is exactly 0 or 1. Supported does not mean enabled.
+/* Every field is exactly 0 or 1. Probe queries report physical support;
+ * device_capabilities reports enabled execution. Supported does not mean enabled.
  * Matrix flags do NOT guarantee particular shapes/types, speed, or compiler support.
  * Numeric shader types and storage access are deliberately separate capabilities. */
 typedef struct OgpuCapabilities {
@@ -113,8 +114,19 @@ typedef struct OgpuDevice OgpuDevice;
 typedef struct OgpuBuffer OgpuBuffer;
 typedef struct OgpuKernel OgpuKernel;
 
+/* Compute and image/heap operations, with rasterization DISABLED even if the
+ * selected queue also supports graphics. Use create_graphics to enable raster. */
 OgpuResult ogpu_device_create(const OgpuProbe *probe, uint32_t index, OgpuDevice **out_device, OgpuError *out_error);
 void ogpu_device_destroy(OgpuDevice *device);
+
+/* Enabled execution capabilities using the same field vocabulary as discovery.
+ * Unlike probe_device_info.capabilities, these describe THIS created device.
+ * compute_queue=1; graphics_queue=1 only for create_graphics. The fixed modern
+ * baseline is enabled; optional numeric/storage/matrix features are currently 0,
+ * even if the probe reports hardware support. No implicit feature negotiation.
+ * Cached; works after device loss. Output unchanged on error; serialized. */
+OgpuResult ogpu_device_capabilities(const OgpuDevice *device,
+    OgpuCapabilities *out_capabilities, OgpuError *out_error);
 
 /* Cached execution limits, not optional-feature negotiation. Local dimensions AND
  * total invocations must fit; specialized shared storage must fit as well. Image
@@ -209,7 +221,7 @@ void ogpu_kernel_destroy(OgpuKernel *kernel);
  * drained/lost before return so resources can be destroyed. Non-loss wait errors
  * are retried until draining is established; persistent failures may block forever.
  * After device loss, only destruction, draining existing completions and the cached
- * device_limits query are supported.
+ * device_limits/device_capabilities queries are supported.
  * This ordered convenience call uses a batch and completion internally. */
 OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, uint32_t groups_y,
     uint32_t groups_z, const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
@@ -322,8 +334,8 @@ OgpuResult ogpu_batch_enable_timing(OgpuBatch *batch, OgpuError *out_error);
 OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_nanoseconds,
     OgpuError *out_error);
 
-/* Narrow offscreen graphics profile; all existing pointer/error/serialization rules
- * apply. Requires dynamicRendering and a shared graphics/compute queue.
+/* Images/heaps work on both execution profiles. Rasterization additionally requires
+ * create_graphics (dynamicRendering and a shared graphics/compute queue).
  * Uses GENERAL layouts; VK_KHR_unified_image_layouts is enabled when supported
  * for its layout-efficiency guarantee, but is not required. Ownership rules
  * apply. Both objects retain their device. Images use specialized storage, NOT
@@ -348,11 +360,21 @@ typedef struct OgpuRaster OgpuRaster;
 typedef struct OgpuImageDesc {
     uint32_t dimension, width, height, format, usage, reserved;
 } OgpuImageDesc;
+/* Allocation-free check of this EXACT description on this execution device.
+ * Same preflight as image_create: SUCCESS means supported, not that memory is
+ * available or creation cannot fail. INVALID_ARGUMENT for malformed descriptions
+ * (including the existing dimension ceilings); UNSUPPORTED for missing raster
+ * capability or format/usage/extent support. Driver errors remain errors.
+ * No GPU work or image/memory/descriptor allocation. Unlike cached device queries,
+ * checks require a non-lost device. SAMPLED still promises nearest AND linear.
+ * COLOR is supported only on create_graphics devices. */
+OgpuResult ogpu_image_check_support(const OgpuDevice *device, const OgpuImageDesc *desc,
+    OgpuError *out_error);
 OgpuResult ogpu_image_create(OgpuDevice *device, const OgpuImageDesc *desc,
     OgpuImage **out_target, OgpuError *out_error);
 void ogpu_image_destroy(OgpuImage *target);
 
-/* Independent owning image/sampler heaps, scoped to the graphics image profile.
+/* Independent owning image/sampler heaps, available on both execution profiles.
  * Capacity is nonzero. Slots begin INVALID, not readable null descriptors. Indices
  * are separate uint32 namespaces relative to the bound heap, never ownership tokens.
  * Image entries retain their target until replaced/cleared/destroyed. Descriptions

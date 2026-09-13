@@ -78,11 +78,43 @@ fn image_description_respects_usage_and_dimension_limits() {
 use crate::compute::batch::{COMPUTE_WRITE, INDIRECT_READ, TRANSFER_WRITE, VERTEX_READ};
 
 thread_local! {
+    static QUERY_FAMILIES: Cell<vk::PFN_vkGetPhysicalDeviceQueueFamilyProperties> = const { Cell::new(None) };
+    static DEDICATED_COMPUTE: Cell<bool> = const { Cell::new(false) };
     static QUERY_FEATURES: Cell<vk::PFN_vkGetPhysicalDeviceFeatures2> = const { Cell::new(None) };
     static CREATE_DEVICE: Cell<vk::PFN_vkCreateDevice> = const { Cell::new(None) };
     static FEATURE_MODE: Cell<u32> = const { Cell::new(0) };
     static EXPECT_UNIFIED: Cell<bool> = const { Cell::new(false) };
+    static EXPECT_RASTER: Cell<bool> = const { Cell::new(true) };
     static CREATED: Cell<bool> = const { Cell::new(false) };
+}
+
+// Test-only queue restriction: use a real compute-only family if one exists,
+// preserving its Vulkan index. Production queue selection remains unchanged.
+unsafe extern "C" fn compute_only_families(
+    physical: vk::VkPhysicalDevice,
+    count: *mut u32,
+    properties: *mut vk::VkQueueFamilyProperties,
+) {
+    unsafe {
+        (QUERY_FAMILIES.get().unwrap())(physical, count, properties);
+        if properties.is_null() {
+            return;
+        }
+        let families = std::slice::from_raw_parts_mut(properties, *count as usize);
+        let dedicated = |p: &vk::VkQueueFamilyProperties| {
+            p.queueCount != 0
+                && p.queueFlags & vk::VkQueueFlagBits_VK_QUEUE_COMPUTE_BIT != 0
+                && p.queueFlags & vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT == 0
+        };
+        DEDICATED_COMPUTE.set(families.iter().any(dedicated));
+        if DEDICATED_COMPUTE.get() {
+            for family in families {
+                if !dedicated(family) {
+                    family.queueCount = 0;
+                }
+            }
+        }
+    }
 }
 
 unsafe extern "C" fn optional_image_features(
@@ -132,6 +164,10 @@ unsafe extern "C" fn checked_image_device(
             .pNext
             .cast::<vk::VkPhysicalDeviceVulkan12Features>();
         let v13 = (*v12).pNext.cast::<vk::VkPhysicalDeviceVulkan13Features>();
+        assert_eq!((*v13).dynamicRendering != 0, EXPECT_RASTER.get());
+        assert_eq!((*v12).shaderFloat16, vk::VK_FALSE);
+        assert_eq!((*v12).shaderInt8, vk::VK_FALSE);
+        assert!((*create).pEnabledFeatures.is_null());
         let v14 = (*v13).pNext.cast::<vk::VkPhysicalDeviceVulkan14Features>();
         let heap = (*v14)
             .pNext
@@ -166,24 +202,56 @@ fn gpu_optional_unified_layouts() {
             Err(e) if e.status == UNSUPPORTED => continue,
             Err(e) => panic!("{e:?}"),
         }
-        for mode in 0..3 {
+        for (graphics, mode) in [
+            (true, 0),
+            (true, 1),
+            (true, 2),
+            (false, 0),
+            (false, 1),
+            (false, 2),
+        ] {
             FEATURE_MODE.set(mode);
+            EXPECT_RASTER.set(graphics);
             CREATED.set(false);
-            let result = Device::create_configured(instance.clone(), physical, true, |f| {
+            let result = Device::create_configured(instance.clone(), physical, graphics, |f| {
                 QUERY_FEATURES.set(f.vkGetPhysicalDeviceFeatures2);
                 f.vkGetPhysicalDeviceFeatures2 = Some(optional_image_features);
                 CREATE_DEVICE.set(f.vkCreateDevice);
                 f.vkCreateDevice = Some(checked_image_device);
+                if !graphics && mode == 2 {
+                    QUERY_FAMILIES.set(f.vkGetPhysicalDeviceQueueFamilyProperties);
+                    f.vkGetPhysicalDeviceQueueFamilyProperties = Some(compute_only_families);
+                }
             });
-            if mode == 2 {
+            if graphics && mode == 2 {
                 assert!(matches!(result, Err(e) if e.status == UNSUPPORTED));
                 assert!(!CREATED.get());
             } else {
                 let device = result.unwrap();
-                assert!(device.graphics && CREATED.get());
-                let target = Rc::new(Image::new(device.clone(), ImageDesc::rgba8(2, 3)).unwrap());
+                assert_eq!(device.graphics, graphics);
+                assert!(CREATED.get());
+                let desc = ImageDesc {
+                    usage: if graphics {
+                        COLOR
+                    } else {
+                        SAMPLED | STORAGE | COPY_SRC | COPY_DST
+                    },
+                    ..ImageDesc::rgba8(2, 3)
+                };
+                let target = Rc::new(Image::new(device.clone(), desc).unwrap());
+                let images = Rc::new(ImageHeap::new(device.clone(), 1).unwrap());
+                let samplers = Rc::new(SamplerHeap::new(device.clone(), 1).unwrap());
+                if !graphics && mode == 2 {
+                    eprintln!(
+                        "compute image/heap commands: dedicated compute family={}, index={}",
+                        DEDICATED_COMPUTE.get(),
+                        device.family
+                    );
+                }
                 let mut batch = Batch::new(device).unwrap();
                 batch.discard_image(target).unwrap();
+                batch.bind_images(images).unwrap();
+                batch.bind_samplers(samplers).unwrap();
                 unsafe { batch.submit().unwrap().wait().unwrap() };
             }
         }
@@ -371,8 +439,50 @@ fn gpu_image_preservation() {
 
 thread_local! {
     static MODULE_CALLS: Cell<u32> = const { Cell::new(0) };
+    static IMAGE_SUPPORT_MODE: Cell<u32> = const { Cell::new(0) };
     static REAL_MODULE: Cell<vk::PFN_vkCreateShaderModule> = const { Cell::new(None) };
     static REAL_PIPELINE: Cell<vk::PFN_vkCreateGraphicsPipelines> = const { Cell::new(None) };
+}
+
+unsafe extern "C" fn limited_image_support(
+    _physical: vk::VkPhysicalDevice,
+    format: vk::VkFormat,
+    kind: vk::VkImageType,
+    tiling: vk::VkImageTiling,
+    usage: vk::VkImageUsageFlags,
+    flags: vk::VkImageCreateFlags,
+    out: *mut vk::VkImageFormatProperties,
+) -> vk::VkResult {
+    assert_eq!(format, vk::VkFormat_VK_FORMAT_R32_SFLOAT);
+    assert_eq!(kind, vk::VkImageType_VK_IMAGE_TYPE_1D);
+    assert_eq!(tiling, vk::VkImageTiling_VK_IMAGE_TILING_OPTIMAL);
+    assert_eq!(
+        usage,
+        vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+    );
+    assert_eq!(flags, 0);
+    match IMAGE_SUPPORT_MODE.get() {
+        0 => vk::VkResult_VK_ERROR_FORMAT_NOT_SUPPORTED,
+        1 => vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY,
+        mode => {
+            unsafe {
+                *out = vk::VkImageFormatProperties {
+                    maxExtent: vk::VkExtent3D {
+                        width: if mode == 2 { 4 } else { 8 },
+                        height: 1,
+                        depth: 1,
+                    },
+                    sampleCounts: if mode == 3 {
+                        vk::VkSampleCountFlagBits_VK_SAMPLE_COUNT_2_BIT
+                    } else {
+                        vk::VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT
+                    },
+                    ..Default::default()
+                };
+            }
+            vk::VkResult_VK_SUCCESS
+        }
+    }
 }
 macro_rules! fail {
     ($name:ident($($arg:ident: $ty:ty),*)) => {
@@ -439,6 +549,31 @@ fn gpu_graphics_failures() {
             Err(e) if e.status == UNSUPPORTED => continue,
             Err(e) => panic!("{e:?}"),
         }
+        for mode in 0..4 {
+            IMAGE_SUPPORT_MODE.set(mode);
+            let mut device = Device::new(instance.clone(), physical).unwrap();
+            let f = &mut Rc::get_mut(&mut device).unwrap().f;
+            f.vkGetPhysicalDeviceImageFormatProperties = Some(limited_image_support);
+            // If preflight accidentally proceeds to creation this returns a distinct error.
+            f.vkCreateImage = Some(fail_image);
+            let desc = ImageDesc {
+                dimension: 1,
+                width: 8,
+                height: 1,
+                format: 1,
+                usage: COPY_SRC,
+                reserved: 0,
+            };
+            let query = Image::check_support(&device, desc).unwrap_err();
+            let create = Image::new(device.clone(), desc).err().unwrap();
+            assert_eq!((query.status, query.vk), (create.status, create.vk));
+            if mode == 1 {
+                assert_eq!(query.status, crate::VULKAN_ERROR);
+                assert_eq!(query.vk, vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY);
+            } else {
+                assert_eq!(query.status, UNSUPPORTED);
+            }
+        }
         for point in 0..6 {
             let mut device = Device::new_graphics(instance.clone(), physical).unwrap();
             let f = &mut Rc::get_mut(&mut device).unwrap().f;
@@ -458,6 +593,11 @@ fn gpu_graphics_failures() {
                 }
             }
             let result = if point < 4 {
+                // Creation/allocation failures must not affect allocation-free preflight.
+                assert_eq!(
+                    Image::check_support(&device, ImageDesc::rgba8(64, 64)).unwrap(),
+                    64 * 64 * 4
+                );
                 Image::new(device.clone(), ImageDesc::rgba8(64, 64)).map(drop)
             } else {
                 unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0) }
@@ -474,8 +614,7 @@ fn gpu_graphics_failures() {
             );
         }
         // Exercise rejection without issuing unsupported commands to a real queue.
-        let mut device = Device::new_graphics(instance.clone(), physical).unwrap();
-        Rc::get_mut(&mut device).unwrap().graphics = false;
+        let device = Device::new(instance.clone(), physical).unwrap();
         assert!(
             matches!(Image::new(device.clone(), ImageDesc::rgba8(64, 64)), Err(e) if e.status == UNSUPPORTED)
         );

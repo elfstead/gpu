@@ -42,12 +42,14 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 7: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
+ABI 8: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
 replaced the coupled table API in ABI 3; explicit allocation placement changes
 buffer creation in ABI 4; explicit X/Y/Z workgroup counts replace 1D-only dispatch
 in ABI 5; image descriptions, usage and uploads replace the target API in ABI 6;
 shader descriptions with per-stage specialization and raster topology change
-executable creation in ABI 7.
+executable creation in ABI 7. ABI 8 makes ordinary device creation explicitly
+compute/images-only, instead of opportunistically enabling rasterization. It adds
+[enabled-capability and exact image-support queries](execution-capabilities.md).
 Rebuild callers against matching
 header/library/shaders; source revision still identifies the experimental checkpoint.
 
@@ -74,7 +76,7 @@ retention; applications still own scratch-range reuse decisions.
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
 | Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents, upload/readback | 1D/2D RGBA8/R32F images with explicit usages; fixed-state RGBA8 rendering, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
-| Discovery | Device information, supported capability bits, cached execution limits on a created device | Reporting is not feature negotiation or a complete matrix/type capability description |
+| Discovery | Physical support, cached enabled capabilities/limits, exact image-description checks | Reporting is not feature negotiation, shader reflection or a complete matrix/type capability description |
 
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
 shader barriers, and multi-level dispatch using this existing API. It adds workload

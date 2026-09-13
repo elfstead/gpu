@@ -382,9 +382,28 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     OgpuProbe *probe = NULL;
     OgpuError error;
     OgpuDeviceLimits limits;
+    OgpuCapabilities enabled;
     TRY(ogpu_probe_create(OGPU_ABI_VERSION, &probe, &error));
     TRY(ogpu_device_create_graphics(probe, index, &b->device, &error));
     TRY(ogpu_device_limits(b->device, &limits, &error));
+    TRY(ogpu_device_capabilities(b->device, &enabled, &error));
+    REQUIRE(enabled.compute_queue && enabled.graphics_queue && enabled.descriptor_heap,
+            "required compute/raster/heap capabilities are not enabled");
+    // Validate the bounded profile before advertising it. These small descriptions
+    // check combinations, not all extents; actual texture creation checks its exact
+    // description. rg32f below is a host vertex layout, not an OGPU image format.
+    const OgpuImageDesc required_images[] = {
+        {.dimension=2, .width=1, .height=1, .format=OGPU_FORMAT_RGBA8_UNORM,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_STORAGE|OGPU_IMAGE_USAGE_COLOR|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+        {.dimension=1, .width=1, .height=1, .format=OGPU_FORMAT_RGBA8_UNORM,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_STORAGE|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+        {.dimension=1, .width=1, .height=1, .format=OGPU_FORMAT_R32_FLOAT,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+        {.dimension=2, .width=1, .height=1, .format=OGPU_FORMAT_R32_FLOAT,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+    };
+    for (size_t i = 0; i < sizeof(required_images) / sizeof(required_images[0]); ++i)
+        TRY(ogpu_image_check_support(b->device, &required_images[i], &error));
     gpu->glsl = (struct pl_glsl_version) {.version=450, .vulkan=true, .compute=true,
         .max_shmem_size=limits.max_shared_memory_bytes, .max_group_threads=limits.max_group_invocations};
     memcpy(gpu->glsl.max_group_size, limits.max_group_size, sizeof(limits.max_group_size));

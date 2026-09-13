@@ -65,13 +65,20 @@ the enabled device contract. Trusted shader input is not a sandbox boundary.
 
 ## Memory and execution contract
 
+At ABI 8, ordinary device creation enables compute and images/heaps but never
+rasterization. `ogpu_device_create_graphics` adds that capability explicitly.
+`ogpu_device_capabilities` reports what this device enables, unlike the probe's
+hardware-support snapshot. Optional numeric/matrix features are not enabled just
+because discovery reports them. See [the capability contract](execution-capabilities.md)
+for exact image checks and the remaining trusted executable obligations.
+
 `ogpu_device_limits` returns cached workgroup dimensions/invocations, shared-memory
 bytes, dispatch counts, image dimension ceilings and the push-data byte ceiling.
-It submits no work and remains readable after device loss. It is an additive ABI-7
-query: no existing layout or signature changes, but callers using it must link this
-checkpoint or newer. The libplacebo adapter needs these limits to preserve upstream
+It submits no work and remains readable after device loss. Introduced additively
+at ABI 7, its layout and signature are unchanged in ABI 8. The libplacebo adapter
+needs these limits to preserve upstream
 workgroup/shared-memory choices without assuming the tested GPUs' values. Image
-limits do not replace format/usage checks at creation, and this is not optional
+limits do not replace `ogpu_image_check_support` or checks at creation, and this is not optional
 feature negotiation, reflection, or a complete executable compatibility contract.
 
 - One logical device owns one compute-capable queue. Operations are serialized.

@@ -10,8 +10,10 @@ Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
 `ogpu_device_create_graphics` requires a single queue family supporting both
 graphics and compute, and dynamic rendering, in addition
 to the [modern execution baseline](modern-baseline.md).
-It returns UNSUPPORTED if none exists. Ordinary `ogpu_device_create` continues to
-accept compute-only devices; discovery remains independent. No new optional
+It returns UNSUPPORTED if none exists. At ABI 8, ordinary `ogpu_device_create`
+enables compute and images/heaps, never rasterization, even on a shared queue.
+Color attachments, raster creation and graphics access masks require explicit
+graphics creation. Discovery remains independent. No new optional
 graphics shader arithmetic features are enabled beyond that baseline.
 
 Unified image layouts are optional: the extension guarantees layout efficiency,
@@ -44,6 +46,11 @@ optimal storage and a view when used as a color attachment. It has no device add
 or CPU mapping. Format/dimension/usage support is checked; color use is limited to
 2D RGBA8. Image-heap slots supply sampled/storage descriptors for the actual format
 and dimension. The older RGBA8-only target constructor and type were removed.
+
+`ogpu_image_check_support` checks the exact description on the created device
+without allocating image/memory/descriptor resources. It shares creation's preflight,
+including linear-filter support for sampled images; success does not guarantee
+available allocation memory. See [query results and capability boundaries](execution-capabilities.md).
 
 `ogpu_batch_draw_indirect` selects attachment CLEAR (opaque black) or LOAD (preserved
 texels), then executes one non-indexed indirect draw. Both store the result. LOAD

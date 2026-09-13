@@ -293,6 +293,13 @@ image/shader rejection with cleanup, live-child destruction rejection, and actua
 A/B/A specialization updates on one live pass with pixel checks. The
 compiler-only gate remains independently reproducible.
 
-Next: review D1/D3/D4 using both consumers' actual integration code and restrictions.
-Identify better API alternatives before adding surface area; do not treat successful
-images as evidence for stability, general backend coverage or efficient scheduling.
+### Capability follow-up (ABI 8)
+
+The two-consumer review led to [explicit enabled-capability and exact image-support
+queries](execution-capabilities.md), plus compute image/heap support independent
+of rasterization. The adapter now validates its required combinations before
+publishing formats, while exact extents remain checked at creation. Both paired
+driver comparisons still have zero differing bytes; processing and scheduling are
+unchanged. The follow-up records tests/artifacts and the next D4 completion-resource
+comparison. Successful images do not establish stability, general backend coverage
+or efficient scheduling.

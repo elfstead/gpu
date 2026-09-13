@@ -16,6 +16,10 @@ unsafe fn make_image(device: &Rc<Device>, desc: OgpuImageDesc) -> Box<OgpuImage>
     let mut image = ptr::null_mut();
     unsafe {
         assert_eq!(
+            ogpu_image_check_support(&handle, &desc, ptr::null_mut()),
+            SUCCESS
+        );
+        assert_eq!(
             ogpu_image_create(&mut handle, &desc, &mut image, ptr::null_mut()),
             SUCCESS
         );
@@ -46,6 +50,28 @@ fn read(buffer: &Buffer, size: usize) -> Vec<u8> {
 #[test]
 fn image_null_arguments_need_no_driver() {
     unsafe {
+        let mut caps = crate::OgpuCapabilities {
+            graphics_queue: 42,
+            ..Default::default()
+        };
+        let before = caps;
+        assert_eq!(
+            ogpu_device_capabilities(ptr::null(), &mut caps, ptr::null_mut()),
+            INVALID_ARGUMENT
+        );
+        assert_eq!(caps, before);
+        assert_eq!(
+            ogpu_device_capabilities(ptr::dangling(), ptr::null_mut(), ptr::null_mut()),
+            INVALID_ARGUMENT
+        );
+        assert_eq!(
+            ogpu_image_check_support(ptr::null(), ptr::dangling(), ptr::null_mut()),
+            INVALID_ARGUMENT
+        );
+        assert_eq!(
+            ogpu_image_check_support(ptr::dangling(), ptr::null(), ptr::null_mut()),
+            INVALID_ARGUMENT
+        );
         let mut image = ptr::dangling_mut();
         assert_eq!(
             ogpu_image_create(ptr::null_mut(), ptr::null(), &mut image, ptr::null_mut()),
@@ -274,6 +300,16 @@ fn gpu_image_transfers() {
 #[test]
 #[ignore = "requires graphics Vulkan; native 1D/2D R32F nearest/linear sampling and storage"]
 fn gpu_float_image_sampling() {
+    float_image_sampling(true);
+}
+
+#[test]
+#[ignore = "requires compute Vulkan; images/heaps without enabled rasterization"]
+fn gpu_compute_image_sampling() {
+    float_image_sampling(false);
+}
+
+fn float_image_sampling(graphics: bool) {
     let instance = Arc::new(Instance::new().unwrap());
     let words: Vec<_> = include_bytes!("../../../examples/shaders/image-float.comp.spv")
         .chunks_exact(4)
@@ -281,11 +317,82 @@ fn gpu_float_image_sampling() {
         .collect();
     let mut tested = 0;
     for physical in instance.physical_devices().unwrap() {
-        let device = match Device::new_graphics(instance.clone(), physical) {
-            Ok(d) => d,
-            Err(e) if e.status == UNSUPPORTED => continue,
-            Err(e) => panic!("{e:?}"),
+        let probe = OgpuProbe {
+            devices: vec![instance.device_info(physical).unwrap()],
+            physical_devices: vec![physical],
+            _vulkan: instance.clone(),
         };
+        let mut raw = ptr::null_mut();
+        let create = if graphics {
+            ogpu_device_create_graphics
+        } else {
+            ogpu_device_create
+        };
+        let status = unsafe { create(&probe, 0, &mut raw, ptr::null_mut()) };
+        if status == UNSUPPORTED {
+            continue;
+        }
+        assert_eq!(status, SUCCESS);
+        let mut handle = unsafe { Box::from_raw(raw) };
+        let device = handle.inner.clone();
+        let mut caps = crate::OgpuCapabilities::default();
+        unsafe {
+            assert_eq!(
+                ogpu_device_capabilities(&*handle, &mut caps, ptr::null_mut()),
+                SUCCESS
+            );
+        }
+        assert_eq!(
+            caps,
+            crate::OgpuCapabilities {
+                graphics_queue: u32::from(graphics),
+                compute_queue: 1,
+                buffer_device_address: 1,
+                timeline_semaphore: 1,
+                synchronization2: 1,
+                descriptor_heap: 1,
+                device_address_commands: 1,
+                shader_untyped_pointers: 1,
+                ..Default::default()
+            }
+        );
+        // Query and creation share validation, including the execution profile.
+        let color = OgpuImageDesc {
+            dimension: 2,
+            width: 2,
+            height: 2,
+            format: 0,
+            usage: 4,
+            reserved: 0,
+        };
+        for (desc, expected) in [
+            (
+                OgpuImageDesc {
+                    reserved: 1,
+                    ..color
+                },
+                INVALID_ARGUMENT,
+            ),
+            (OgpuImageDesc { width: 0, ..color }, INVALID_ARGUMENT),
+            (color, if graphics { SUCCESS } else { UNSUPPORTED }),
+        ] {
+            unsafe {
+                assert_eq!(
+                    ogpu_image_check_support(&*handle, &desc, ptr::null_mut()),
+                    expected
+                );
+                let mut image = ptr::dangling_mut();
+                assert_eq!(
+                    ogpu_image_create(&mut *handle, &desc, &mut image, ptr::null_mut()),
+                    expected
+                );
+                if expected == SUCCESS {
+                    ogpu_image_destroy(image);
+                } else {
+                    assert!(image.is_null());
+                }
+            }
+        }
         let mut kernel = OgpuKernel {
             inner: Rc::new(unsafe { Kernel::new(device.clone(), &words, 12, &[]).unwrap() }),
         };

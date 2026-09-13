@@ -3,8 +3,11 @@
 This directory contains a bounded OGPU backend and its independent upstream Vulkan
 reference, plus declaration-lowering and executable-preparation audits. The selected
 compute/raster workflow passes on RADV and llvmpipe; this is **not a general libplacebo
-backend**. See the [consumer brief](../../docs/consumer-libplacebo.md). ABI 7 supplies
-specialization, triangle strips, grids/images/uploads and a cached device-limits query.
+backend**. See the [consumer brief](../../docs/consumer-libplacebo.md). Use matching
+ABI-8 headers/library: specialization, triangle strips, grids/images/uploads and
+cached limits remain; enabled capabilities and exact image support are now queryable.
+Startup validates the bounded format/usage combinations before publishing its format
+table. Image creation still checks the actual extent; this is not a general format catalog.
 
 ## Reproduce
 

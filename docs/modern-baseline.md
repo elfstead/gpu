@@ -21,6 +21,9 @@ The execution target is Vulkan 1.4, buffer device addresses, synchronization2,
 timeline semaphores, maintenance5, `VK_EXT_descriptor_heap`,
 `VK_KHR_shader_untyped_pointers` and `VK_KHR_device_address_commands`.
 Graphics additionally requires dynamic rendering and a shared graphics/compute queue.
+At ABI 8 this is an explicit creation choice; images and heaps also work on ordinary
+compute devices. [Enabled capabilities](execution-capabilities.md) are reported
+separately from the physical support snapshot.
 `VK_KHR_unified_image_layouts` is optional, enabled when supported for its
 layout-efficiency guarantee. GENERAL-only recording is identical without it.
 Mesh shading, presentation and accelerated

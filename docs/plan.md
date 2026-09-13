@@ -20,9 +20,10 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 7**: shader descriptions carry per-stage 32-bit
-specialization constants; raster creation selects triangle list or strip.
-Explicit images/uploads and X/Y/Z dispatch remain available;
+The current interface is **ABI 8**: [enabled capabilities and exact image support](execution-capabilities.md)
+are queryable; ordinary creation enables compute/images/heaps with rasterization
+disabled. Graphics creation adds rasterization explicitly. Shader specialization,
+triangle list/strip, images/uploads and X/Y/Z dispatch remain available;
 rebuild callers with the matching header/library.
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
@@ -38,15 +39,20 @@ G0, G1 and the bounded G2 execution gate now pass: a `pl_gpu` adapter preserves
 upstream polar scaling, LUT generation and fragment sampling, with actual OGPU
 compute/raster submission. Both intermediate and final images match upstream
 byte-for-byte on RADV and llvmpipe across nine frames per driver. The adapter uses
-the ABI-7 shader/image/grid contracts plus an additive cached device-limits query.
+shader/image/grid contracts introduced through ABI 7, now retained in ABI 8,
+plus the cached device-limits query.
 It waits after each operation; this establishes correctness, not throughput.
-Next: review the two consumers' evidence against D1/D3/D4, especially executable
-metadata, narrow image support and completion/heap lifetime rules. Identify better
-API alternatives before widening or stabilizing; asynchronous adapter scheduling
-and a general libplacebo backend are not implicitly approved next milestones.
+The two-consumer review's capability cleanup is now implemented: enabled-feature
+reporting, shared image-support preflight, compute-image deployment and validated
+adapter format advertisements. Existing ownership/completion rules are unchanged.
+Next proposed decision: D4, compare completion-owned resources with a separate
+completion receipt and reclaimable submission resources. Identify whether this
+exposes a better API alternative before implementing automatic reclamation.
+Asynchronous adapter scheduling and a general libplacebo backend are not implicitly
+approved next milestones.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
-Concurrent slot streaming, additional formats/subresources and compute-only image deployment
+Concurrent slot streaming and additional formats/subresources
 remain deferred scope decisions, not hidden requirements to finish this checkpoint.
 The completed integration checkpoints below remain historical regression evidence;
 the new hardware result and its limits are recorded separately.
@@ -146,9 +152,9 @@ The inventory below records the questions those decisions address.
 | ID | Question | Evidence already available | Required decision/output |
 |---|---|---|---|
 | D0 | Who is the first consumer, and what must it accomplish? | Existing examples prove execution, not integration value | Resolved: GGML MNIST forward inference; see the brief |
-| D1 | How does a consumer describe executable requirements and choose a compatible variant? | Reduction/matmul share the ABI, but the host knows root layout and tile sizes; reported feature bits are not enabled features | Specify baseline/optional requirements, enabled-capability reporting, entry point/root/workgroup agreement, and failure behavior; say which metadata is declared versus validated |
+| D1 | How does a consumer describe executable requirements and choose a compatible variant? | Fixed baseline, per-stage specialization, enabled-feature and limit queries; root/stage/local/shared compatibility stays caller-checked | Capability follow-up separates supported/enabled/required; general optional profiles and reflection remain deferred |
 | D2 | What memory placement and transfer behavior best serves this consumer and the project? | Both explicit placements pass GGML; staging adds visible submission/wait costs | Follow-up adopts explicit HOST/DEVICE and retained range copies; stable addresses and explicit synchronization remain, automatic policy stays above the runtime |
-| D3 | Which image operations belong in the first offscreen profile? | Buffer-mediated and native heap-indexed graphics → compute → graphics paths work | Consumer checkpoint retained the fixed profile; follow-ups implement direct image access, preservation and independent heaps, leaving general formats/views and concurrent edits deferred |
+| D3 | Which image operations belong in the first offscreen profile? | Native images/heaps on compute and graphics devices, exact support queries and libplacebo execution work | Follow-ups separate images from rasterization and validate advertised combinations; general formats/views, filtering split and concurrent edits remain deferred |
 | D4 | Which submission/ownership model best serves the project? | One-shot state, dependencies, retention and failure cleanup have tests | Walk repeated execution and teardown; evaluate whether the work exposes a better API alternative, including improvements beyond basic compatibility |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |
 

@@ -53,6 +53,13 @@ uploads, heaps, barriers and completion cleanup implement the bounded workload.
 Operations block individually; this is not an asynchronous scheduling or performance
 result, a general libplacebo backend, or an API-stability decision.
 
+The [capability follow-up](execution-capabilities.md) introduces ABI 8: explicit
+compute/image versus raster creation, cached enabled capabilities and exact image
+support checks shared with creation. The adapter checks its format combinations
+before advertisement. Both driver suites and paired libplacebo comparisons pass;
+compute-created devices execute native sampling/storage without enabling raster.
+The follow-up records the next D4 comparison without implementing reclamation.
+
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
 a gated Vulkan test verifies reuse while another submission is still pending.

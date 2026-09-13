@@ -35,12 +35,6 @@ struct Heap {
 impl Heap {
     fn new(device: Rc<Device>, count: u32, sampler: bool) -> Result<Self, Error> {
         device.ready()?;
-        if !device.graphics {
-            return Err(Error::new(
-                UNSUPPORTED,
-                "Descriptor heaps currently require the graphics image profile",
-            ));
-        }
         let p = &device.heap_limits;
         let (stride, alignment, reserved_alignment, reserved, limit) = if sampler {
             (

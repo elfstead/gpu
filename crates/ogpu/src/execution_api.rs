@@ -34,6 +34,41 @@ pub use crate::compute::SpecializationConstant as OgpuSpecializationConstant;
 /// # Safety
 /// Live device and writable, non-overlapping outputs; externally serialized.
 #[no_mangle]
+pub unsafe extern "C" fn ogpu_device_capabilities(
+    device: *const OgpuDevice,
+    out_capabilities: *mut crate::OgpuCapabilities,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(device)?;
+            required(out_capabilities)?;
+            *out_capabilities = (*device).inner.enabled_capabilities();
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live device, readable description and independent writable error; serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_image_check_support(
+    device: *const OgpuDevice,
+    desc: *const OgpuImageDesc,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(device)?;
+            required(desc)?;
+            Image::check_support(&(*device).inner, *desc).map(|_| ())
+        })
+    }
+}
+
+/// # Safety
+/// Live device and writable, non-overlapping outputs; externally serialized.
+#[no_mangle]
 pub unsafe extern "C" fn ogpu_device_limits(
     device: *const OgpuDevice,
     out_limits: *mut OgpuDeviceLimits,

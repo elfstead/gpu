@@ -166,9 +166,13 @@ pub(crate) struct Image {
 }
 
 impl Image {
-    pub(crate) fn new(device: Rc<Device>, desc: ImageDesc) -> Result<Self, Error> {
-        ready(&device)?;
+    // Shared preflight for allocation-free queries and actual creation.
+    pub(crate) fn check_support(device: &Device, desc: ImageDesc) -> Result<usize, Error> {
+        device.ready()?;
         let size = desc.validate(&device.limits)?;
+        if desc.usage & COLOR != 0 {
+            ready(device)?;
+        }
         let (width, height) = (desc.width, desc.height);
         let usage = desc.vk_usage();
         let image_type = if desc.dimension == 1 {
@@ -226,6 +230,18 @@ impl Image {
                 "Unsupported image extent or sample count",
             ));
         }
+        Ok(size)
+    }
+
+    pub(crate) fn new(device: Rc<Device>, desc: ImageDesc) -> Result<Self, Error> {
+        let size = Self::check_support(&device, desc)?;
+        let (width, height) = (desc.width, desc.height);
+        let usage = desc.vk_usage();
+        let image_type = if desc.dimension == 1 {
+            vk::VkImageType_VK_IMAGE_TYPE_1D
+        } else {
+            vk::VkImageType_VK_IMAGE_TYPE_2D
+        };
         let mut result = Self {
             device,
             size,

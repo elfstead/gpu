@@ -310,6 +310,10 @@ fn gpu_heaps() {
                 usage: graphics::SAMPLED,
                 ..ImageDesc::rgba8(2, 3)
             };
+            assert_eq!(
+                Image::check_support(&d, image).unwrap_err().status,
+                UNSUPPORTED
+            );
             assert!(matches!(Image::new(d.clone(), image), Err(e) if e.status == UNSUPPORTED));
             Image::new(
                 d.clone(),

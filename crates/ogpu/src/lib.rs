@@ -14,7 +14,7 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 7;
+pub const ABI_VERSION: u32 = 8;
 pub const SUCCESS: OgpuResult = 0;
 pub const INVALID_ARGUMENT: OgpuResult = -1;
 pub const ABI_MISMATCH: OgpuResult = -2;
@@ -32,7 +32,7 @@ pub struct OgpuError {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct OgpuCapabilities {
     pub graphics_queue: u32,
     pub compute_queue: u32,
@@ -260,7 +260,7 @@ mod tests {
                 vulkan_result: 42,
                 message: [1; 256],
             };
-            for version in [1, 2, 3, 4, 5, 6, ABI_VERSION + 1] {
+            for version in [1, 2, 3, 4, 5, 6, 7, ABI_VERSION + 1] {
                 assert_eq!(
                     ogpu_probe_create(version, &mut handle, &mut error),
                     ABI_MISMATCH

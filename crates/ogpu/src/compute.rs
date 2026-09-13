@@ -256,8 +256,7 @@ impl Device {
             if v14.maintenance5 == 0 {
                 return Err(Error::new(UNSUPPORTED, "Execution requires maintenance5"));
             }
-            let image_profile = v13.dynamicRendering != 0;
-            if require_graphics && !image_profile {
+            if require_graphics && v13.dynamicRendering == 0 {
                 return Err(Error::new(
                     UNSUPPORTED,
                     "Graphics requires dynamicRendering",
@@ -284,13 +283,12 @@ impl Device {
                         "No queue supporting the requested execution profile",
                     )
                 })?;
-            let graphics = image_profile
-                && families[family as usize].queueFlags & vk::VkQueueFlagBits_VK_QUEUE_GRAPHICS_BIT
-                    != 0;
+            // Capabilities follow the requested contract, not incidental queue flags.
+            let graphics = require_graphics;
             // GENERAL is legal for the current image operations without this
             // extension. Enable its layout-efficiency guarantee when available;
             // command recording is identical either way.
-            let unified_images = graphics && image_extension && images.unifiedImageLayouts != 0;
+            let unified_images = image_extension && images.unifiedImageLayouts != 0;
             let mut properties = vk::VkPhysicalDeviceProperties::default();
             (f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
             let mut memory = vk::VkPhysicalDeviceMemoryProperties::default();
@@ -468,6 +466,20 @@ impl Device {
             max_image_1d: self.limits.maxImageDimension1D,
             max_image_2d: self.limits.maxImageDimension2D,
             max_push_data_bytes: self.max_push_data,
+        }
+    }
+
+    pub(crate) fn enabled_capabilities(&self) -> crate::OgpuCapabilities {
+        crate::OgpuCapabilities {
+            compute_queue: 1,
+            graphics_queue: u32::from(self.graphics),
+            buffer_device_address: 1,
+            timeline_semaphore: 1,
+            synchronization2: 1,
+            descriptor_heap: 1,
+            device_address_commands: 1,
+            shader_untyped_pointers: 1,
+            ..Default::default()
         }
     }
 }
@@ -1094,8 +1106,18 @@ mod tests {
                 limits.max_push_data_bytes,
                 device.heap_limits.maxPushDataSize
             );
+            let caps = device.enabled_capabilities();
             device.lost.set(true);
             assert_eq!(limits, device.execution_limits());
+            assert_eq!(
+                Image::check_support(&device, ImageDesc::rgba8(2, 2))
+                    .unwrap_err()
+                    .vk,
+                vk::VkResult_VK_ERROR_DEVICE_LOST
+            );
+            assert_eq!(caps, device.enabled_capabilities());
+            assert_eq!(caps.compute_queue, 1);
+            assert_eq!(caps.graphics_queue, 0);
             device.lost.set(false);
             let mut buffer = Buffer::new(device.clone(), count as usize * 4).unwrap();
             // Exercise the explicit maintenance calls even on coherent memory (legal in

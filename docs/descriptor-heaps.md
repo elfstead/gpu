@@ -31,8 +31,9 @@ descriptions independently select nearest/linear minification and magnification,
 and clamp-to-edge/repeat U and V addressing. Coordinates are normalized, LOD is zero,
 W clamps, and comparison/anisotropy are disabled. Sampled image creation checks
 linear-filter support for its actual format and rejects UNSUPPORTED if absent;
-samplers are format-independent. Both heap types currently
-require the optional graphics image profile, even for compute-only image access.
+samplers are format-independent. At ABI 8, both heap types and non-color images
+work on compute-created devices; rasterization is no longer a prerequisite for
+compute image access. See [the capability follow-up](execution-capabilities.md).
 
 Bindings retain the entire heap through recording and completion destruction,
 including earlier bindings superseded later in the batch. Editing is rejected while
