@@ -184,7 +184,7 @@ fn gpu_buffer_transfers() {
         let mut root = [0; 16];
         root[..8].copy_from_slice(&local.address().unwrap().to_ne_bytes());
         root[8..12].copy_from_slice(&16u32.to_ne_bytes());
-        compute.dispatch(kernel, 1, &root).unwrap();
+        compute.dispatch(kernel, [1, 1, 1], &root).unwrap();
         compute.barrier(COMPUTE_WRITE, TRANSFER_READ).unwrap();
         compute.barrier(TRANSFER_READ, TRANSFER_WRITE).unwrap();
         compute

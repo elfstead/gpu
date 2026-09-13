@@ -18,7 +18,9 @@ This runner builds the runtime in release mode and the C harness with
 
 The baseline assigns one output to each of 64 workgroup invocations. The tiled
 variant uses an 8×8 output tile, 64 invocations, and two shared 8×8 input tiles.
-It flattens the two-dimensional tile grid into the API's existing 1D dispatch.
+It flattens the two-dimensional tile grid into a 1D dispatch, reflecting the API
+at the time of this experiment. ABI 5 supports native X/Y/Z grids; this existing
+kernel retains its flattening convention and dispatches with Y=Z=1.
 All lanes participate in both barriers per K tile, including boundary lanes.
 Each kernel accumulates FP32 products in ascending K order; results need not be
 bitwise identical across kernels or devices.

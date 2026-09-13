@@ -108,7 +108,7 @@ fn gpu_timing() {
             batch
                 .barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
                 .unwrap();
-            batch.dispatch(kernel.clone(), 1, &root).unwrap();
+            batch.dispatch(kernel.clone(), [1, 1, 1], &root).unwrap();
             let mut completion = unsafe { batch.submit().unwrap() };
             assert_eq!(batch.enable_timing().unwrap_err().status, INVALID_ARGUMENT);
             assert_eq!(

@@ -563,7 +563,9 @@ pub unsafe extern "C" fn ogpu_kernel_destroy(kernel: *mut OgpuKernel) {
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_dispatch_wait(
     kernel: *mut OgpuKernel,
-    groups: u32,
+    groups_x: u32,
+    groups_y: u32,
+    groups_z: u32,
     arguments: *const c_void,
     argument_bytes: u32,
     error: *mut OgpuError,
@@ -577,7 +579,9 @@ pub unsafe extern "C" fn ogpu_dispatch_wait(
                 required(arguments)?;
                 std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
             };
-            (*kernel).inner.dispatch_wait(groups, root)
+            (*kernel)
+                .inner
+                .dispatch_wait([groups_x, groups_y, groups_z], root)
         })
     }
 }
@@ -618,7 +622,9 @@ pub unsafe extern "C" fn ogpu_batch_destroy(batch: *mut OgpuBatch) {
 pub unsafe extern "C" fn ogpu_batch_dispatch(
     batch: *mut OgpuBatch,
     kernel: *mut OgpuKernel,
-    groups: u32,
+    groups_x: u32,
+    groups_y: u32,
+    groups_z: u32,
     arguments: *const c_void,
     argument_bytes: u32,
     error: *mut OgpuError,
@@ -633,9 +639,11 @@ pub unsafe extern "C" fn ogpu_batch_dispatch(
                 required(arguments)?;
                 std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
             };
-            (*batch)
-                .inner
-                .dispatch((*kernel).inner.clone(), groups, root)
+            (*batch).inner.dispatch(
+                (*kernel).inner.clone(),
+                [groups_x, groups_y, groups_z],
+                root,
+            )
         })
     }
 }
@@ -949,6 +957,10 @@ pub unsafe extern "C" fn ogpu_batch_copy_target(
 }
 
 #[cfg(test)]
+#[path = "dispatch_tests.rs"]
+mod dispatch_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]
@@ -1090,6 +1102,8 @@ mod tests {
                     ptr::null_mut(),
                     ptr::null_mut(),
                     1,
+                    1,
+                    1,
                     ptr::null(),
                     0,
                     ptr::null_mut()
@@ -1188,7 +1202,7 @@ mod tests {
             );
             assert!(kernel.is_null());
             assert_eq!(
-                ogpu_dispatch_wait(ptr::null_mut(), 1, ptr::null(), 0, &mut error),
+                ogpu_dispatch_wait(ptr::null_mut(), 1, 1, 1, ptr::null(), 0, &mut error),
                 INVALID_ARGUMENT
             );
             ogpu_buffer_destroy(ptr::null_mut());

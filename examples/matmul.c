@@ -91,7 +91,7 @@ static int execute(OgpuDevice *device, OgpuKernel *kernel, uint32_t groups,
     TRY(ogpu_batch_create(device, &batch, &error));
     if (timed) TRY(ogpu_batch_enable_timing(batch, &error));
     TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_WRITE, &error));
-    TRY(ogpu_batch_dispatch(batch, kernel, groups, root, sizeof(*root), &error));
+    TRY(ogpu_batch_dispatch(batch, kernel, groups, 1, 1, root, sizeof(*root), &error));
     TRY(ogpu_batch_submit(batch, &completion, &error));
     TRY(ogpu_completion_wait(completion, &error));
     wait_end = now_ms();

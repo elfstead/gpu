@@ -329,7 +329,7 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
                 root.b = address(t->src[1]);
                 root.operation = 1;
             }
-            GPU(ogpu_batch_dispatch(raw, kernel, groups, &root, sizeof(root), &error));
+            GPU(ogpu_batch_dispatch(raw, kernel, groups, 1, 1, &root, sizeof(root), &error));
             ++dispatches;
         }
         OgpuCompletion *done = nullptr;

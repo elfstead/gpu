@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
         root.input_address = input_address;
         root.count = remaining;
         TRY(ogpu_buffer_device_address(scratch[levels], &root.output_address, &error));
-        TRY(ogpu_batch_dispatch(batch, kernel, groups, &root, sizeof(root), &error));
+        TRY(ogpu_batch_dispatch(batch, kernel, groups, 1, 1, &root, sizeof(root), &error));
         printf("  %" PRIu32 " values -> %" PRIu32 " partials\n", remaining, groups);
         if (groups != 1) {
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));

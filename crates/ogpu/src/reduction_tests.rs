@@ -68,7 +68,9 @@ fn check_reduction(device: Rc<Device>, kernel: Rc<Kernel>, input: &[u32]) {
             .copy_from_slice(&(allocations.last().unwrap().address().unwrap() + 4).to_ne_bytes());
         root[8..16].copy_from_slice(&(output.address().unwrap() + 4).to_ne_bytes());
         root[16..20].copy_from_slice(&count.to_ne_bytes());
-        batch.dispatch(kernel.clone(), groups, &root).unwrap();
+        batch
+            .dispatch(kernel.clone(), [groups, 1, 1], &root)
+            .unwrap();
         root.fill(0); // Every level must have its own copied argument payload.
         allocations.push(output); // Addresses do not retain scratch; this vector does.
         if groups != 1 {

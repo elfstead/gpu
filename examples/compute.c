@@ -86,15 +86,15 @@ int main(int argc, char **argv) {
     TRY(ogpu_buffer_device_address(buffer, &root.address, &error));
     REQUIRE(root.address != 0);
     root.count = count;
-    REQUIRE(ogpu_dispatch_wait(kernel, 0, &root, sizeof(root), &error) == OGPU_ERROR_INVALID_ARGUMENT);
-    REQUIRE(ogpu_dispatch_wait(kernel, 1, &root, 12, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+    REQUIRE(ogpu_dispatch_wait(kernel, 0, 1, 1, &root, sizeof(root), &error) == OGPU_ERROR_INVALID_ARGUMENT);
+    REQUIRE(ogpu_dispatch_wait(kernel, 1, 1, 1, &root, 12, &error) == OGPU_ERROR_INVALID_ARGUMENT);
 
     for (uint32_t pass = 0; pass < 3; ++pass) {
         if (pass == 2) {
             input[1] = 123;
             TRY(ogpu_buffer_write(buffer, 4, &input[1], 4, &error));
         }
-        TRY(ogpu_dispatch_wait(kernel, (count + 63) / 64, &root, sizeof(root), &error));
+        TRY(ogpu_dispatch_wait(kernel, (count + 63) / 64, 1, 1, &root, sizeof(root), &error));
         for (uint32_t i = 0; i < count; ++i) input[i] = input[i] * 3u + 7u;
         TRY(ogpu_buffer_read(buffer, 0, output, size, &error));
         for (uint32_t i = 0; i < count; ++i) REQUIRE(output[i] == input[i]);

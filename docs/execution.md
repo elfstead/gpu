@@ -42,10 +42,12 @@ indices. Independent devices may be used concurrently, but all calls involving a
 device or any of its children must be externally serialized, including destruction.
 
 The kernel API accepts copied argument bytes rather than a hard-coded integer
-operation. It currently fixes the entry name to `main` and dispatch dimensions to
-`groups_x, 1, 1`. The shader declares its own local workgroup size. Adding these
-functions does not change existing layouts/signatures, so the discovery ABI version
-remains 1. No execution-facing Vulkan types are exposed.
+operation. The entry name remains `main`; ABI 5 accepts explicit
+`groups_x, groups_y, groups_z`, with unused axes set to 1. Each count must be
+nonzero and within its per-axis device limit. The shader declares its own local
+workgroup size. The original experiment introduced execution at ABI 1; use the
+current matching header/library after subsequent breaking changes. No
+execution-facing Vulkan types are exposed.
 
 ## Memory and execution contract
 

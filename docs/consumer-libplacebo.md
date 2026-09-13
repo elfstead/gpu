@@ -99,7 +99,7 @@ vertex data and resource binding must still be handled for execution.
 
 | Upstream requirement observed | Current OGPU fit / next decision |
 |---|---|
-| 32×32 local workgroup; 2D dispatch grid, tail groups | Local size is already shader-owned. Replace the arbitrary 1D grid restriction with a checked multidimensional dispatch contract rather than remapping builtin IDs in shader bodies. |
+| 32×32 local workgroup; 2D dispatch grid, tail groups | Implemented in ABI 5: explicit X/Y/Z workgroup counts with per-axis bounds checks; unused axes are 1. Local size remains shader-owned, with no builtin-ID remapping. |
 | Sampled RGBA8 input, storage RGBA8 intermediate, RGBA8 fragment target | Existing image heaps and rendering model fit; add a deliberate image upload contract rather than CPU texture mirrors. |
 | 256-entry R32F, linearly sampled 1D filter LUT | Current target is fixed 2D RGBA8. Decide format/dimension/usage description together; do not quantize LUT weights to fit RGBA8. Upstream also has dimension-selection logic worth evaluating before adding every image dimension. |
 | Seven compute specialization constants, some sizing shared arrays; one raster constant | Values are captured, not optional. Compare adapter-side SPIR-V specialization with a small executable specialization contract. Do not execute placeholder GLSL defaults. |
@@ -113,3 +113,33 @@ Vulkan. Keep the reference executable separate so successful reference execution
 cannot masquerade as successful OGPU integration. This inventory justifies the
 next design/implementation step; it is not a commitment to implement all libplacebo
 GPU operations or freeze the current API shape.
+
+### G1 checkpoint: multidimensional dispatch
+
+Both `ogpu_dispatch_wait` and `ogpu_batch_dispatch` now accept X/Y/Z counts.
+The backend records those counts and forwards them directly to Vulkan. Zero on
+any axis remains an error, not an empty-work convention; limits are inclusive
+and checked independently. Invalid calls leave existing recorded work unchanged.
+No grid object, flattening adapter or old-signature compatibility path was added.
+Existing examples and GGML retain their 1D shaders and pass Y=Z=1; rebuild them
+against ABI 5.
+
+The dedicated GPU contract test uses a 4×2×2 local size with pure X/Y/Z, 2D and
+asymmetric 3D grids. It checks global/workgroup/local IDs and `NumWorkGroups`,
+partial groups, guard words, repeated synchronous/batched execution and argument
+copying. Synthetic asymmetric limits test inclusive boundaries (including
+`UINT32_MAX`); GPU tests reject zero and representable over-limit counts without
+changing the recording. All 24 ordinary tests and 14 Vulkan tests pass; Vulkan
+tests and the eight existing execution examples pass on RADV and llvmpipe with
+synchronization validation. ABI layout checks, mocks, binding reproduction and
+Clippy pass. Rebuilt GGML also passes all six direct/scheduled cases with HOST and
+DEVICE placement on each driver (24 full-dataset cases), including its lifecycle
+checks. Local logs under `target/ggml-integration/` are `acceptance.p5ioDCpW.log`
+and `acceptance.nbHgfqWG.log` (llvmpipe HOST/DEVICE), and
+`acceptance.HGM8pMXN.log` and `acceptance.U1e2v6DE.log` (RADV HOST/DEVICE).
+This validates the grid contract and preserves the first consumer, not libplacebo
+execution or a new performance conclusion.
+
+Next: image creation descriptions and explicit upload, including floating-point
+filter data, followed by executable specialization and vertex-input translation.
+G2's upstream image comparison remains pending.

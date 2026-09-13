@@ -97,7 +97,7 @@ enum Step {
     BindSamplers(Rc<SamplerHeap>),
     Dispatch {
         kernel: Rc<Kernel>,
-        groups: u32,
+        groups: [u32; 3],
         root: Vec<u8>,
     },
     Barrier {
@@ -117,6 +117,13 @@ enum Step {
         destination: Rc<Buffer>,
         offset: u64,
     },
+}
+
+fn valid_grid(groups: [u32; 3], limits: [u32; 3]) -> bool {
+    groups
+        .into_iter()
+        .zip(limits)
+        .all(|(count, limit)| count != 0 && count <= limit)
 }
 
 pub(crate) struct Batch {
@@ -242,7 +249,7 @@ impl Batch {
     pub(crate) fn dispatch(
         &mut self,
         kernel: Rc<Kernel>,
-        groups: u32,
+        groups: [u32; 3],
         root: &[u8],
     ) -> Result<(), Error> {
         if !Rc::ptr_eq(&self.device, &kernel.device) {
@@ -251,8 +258,7 @@ impl Batch {
                 "Kernel belongs to another device",
             ));
         }
-        if groups == 0
-            || groups > self.device.limits.maxComputeWorkGroupCount[0]
+        if !valid_grid(groups, self.device.limits.maxComputeWorkGroupCount)
             || root.len() != kernel.push_size as usize
         {
             return Err(Error::new(
@@ -603,7 +609,7 @@ impl Completion {
                             kernel.pipeline,
                         );
                         push_data(d, command, root);
-                        (d.f.vkCmdDispatch.unwrap())(command, *groups, 1, 1);
+                        (d.f.vkCmdDispatch.unwrap())(command, groups[0], groups[1], groups[2]);
                     }
                     Step::Barrier {
                         source,

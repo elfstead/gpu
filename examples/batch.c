@@ -92,9 +92,9 @@ int main(int argc, char **argv) {
 
     /* Record two dispatches with an explicit producer-write → consumer-read dependency. */
     TRY(ogpu_batch_create(device, &batch, &error));
-    TRY(ogpu_batch_dispatch(batch, producer, (count + 63) / 64, &produce, sizeof(produce), &error));
+    TRY(ogpu_batch_dispatch(batch, producer, (count + 63) / 64, 1, 1, &produce, sizeof(produce), &error));
     TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
-    TRY(ogpu_batch_dispatch(batch, consumer, (count + 63) / 64, &consume, sizeof(consume), &error));
+    TRY(ogpu_batch_dispatch(batch, consumer, (count + 63) / 64, 1, 1, &consume, sizeof(consume), &error));
 
     TRY(ogpu_batch_submit(batch, &completion, &error));
     /* Submission returned without waiting. CPU work on unrelated data could go here.

@@ -39,9 +39,10 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 4: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
+ABI 5: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
 replaced the coupled table API in ABI 3; explicit allocation placement changes
-buffer creation in ABI 4. Rebuild callers against matching
+buffer creation in ABI 4; explicit X/Y/Z workgroup counts replace 1D-only dispatch
+in ABI 5. Rebuild callers against matching
 header/library/shaders; source revision still identifies the experimental checkpoint.
 
 The backend is Rust over Vulkan, with a small C header and directly generated,

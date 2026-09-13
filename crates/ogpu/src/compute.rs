@@ -878,7 +878,7 @@ impl Kernel {
     /// other operation on the device or its children may run concurrently.
     pub(crate) unsafe fn dispatch_wait(
         self: &Rc<Self>,
-        groups: u32,
+        groups: [u32; 3],
         root: &[u8],
     ) -> Result<(), Error> {
         let mut batch = Batch::new(self.device.clone())?;
@@ -1045,7 +1045,9 @@ mod tests {
             let kernel = Rc::new(unsafe { Kernel::new(device, &words, 16).unwrap() });
             for _ in 0..2 {
                 unsafe {
-                    kernel.dispatch_wait(count.div_ceil(64), &root).unwrap();
+                    kernel
+                        .dispatch_wait([count.div_ceil(64), 1, 1], &root)
+                        .unwrap();
                 }
                 expected
                     .iter_mut()
@@ -1065,13 +1067,15 @@ mod tests {
                 OUT_OF_RANGE
             );
             assert_eq!(
-                unsafe { kernel.dispatch_wait(0, &root) }
+                unsafe { kernel.dispatch_wait([0, 1, 1], &root) }
                     .unwrap_err()
                     .status,
                 INVALID_ARGUMENT
             );
             assert_eq!(
-                unsafe { kernel.dispatch_wait(1, &[]) }.unwrap_err().status,
+                unsafe { kernel.dispatch_wait([1, 1, 1], &[]) }
+                    .unwrap_err()
+                    .status,
                 INVALID_ARGUMENT
             );
             buffer.write(input.len(), &[]).unwrap();

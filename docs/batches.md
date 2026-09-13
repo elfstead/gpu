@@ -30,7 +30,9 @@ evidence, not a dispatch-overhead or overlap benchmark.
 
 `ogpu_batch_create` creates an empty recording. `ogpu_batch_dispatch` copies inline
 argument bytes and retains the kernel. The kernel must belong to the batch's
-device. The existing one-dimensional dispatch and shader contracts apply.
+device. Dispatch takes explicit X/Y/Z workgroup counts (ABI 5); set unused axes to
+1. Every count must be nonzero and within its per-axis device limit. The shader
+defines local workgroup size, and the other shader/argument contracts are unchanged.
 
 `ogpu_batch_barrier` records a global memory/execution dependency between earlier
 and later commands on the same queue. The initial compute source/destination masks are

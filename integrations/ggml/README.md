@@ -44,7 +44,8 @@ the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
 errors and leaves a uniquely named acceptance log under `target/ggml-integration`.
 Use matching header/library/shaders from the same OGPU checkout, not an arbitrary
-older shared library. The current checkout uses ABI 4 (explicit allocation placement).
+older shared library. The current checkout uses ABI 5 (explicit X/Y/Z dispatch);
+these existing 1D kernels use Y=Z=1 and retain explicit allocation placement.
 Leave `CARGO_TARGET_DIR` unset.
 
 An optional second argument to `run.sh` selects the OGPU probe's device index

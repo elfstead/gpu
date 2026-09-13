@@ -82,7 +82,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COLOR_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
         Root process = {variant ? 2 : 1, variant ? 0 : 2, width, height};
         SampleRoot sampling = {variant ? 1 : 0, variant, width, height, pass < 2 ? 0.0f : variant ? 0.5f : 1.0f};
-        TRY(ogpu_batch_dispatch(batch, compute, (width * height + 63) / 64,
+        TRY(ogpu_batch_dispatch(batch, compute, (width * height + 63) / 64, 1, 1,
             &process, sizeof(process), &error));
         TRY(ogpu_batch_submit(batch, &completions[1], &error));
         ogpu_batch_destroy(batch); batch = NULL;

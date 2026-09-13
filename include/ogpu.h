@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(4)
+#define OGPU_ABI_VERSION UINT32_C(5)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -163,10 +163,11 @@ OgpuResult ogpu_kernel_create(OgpuDevice *device, const uint32_t *words, uint64_
     uint32_t push_size_bytes, OgpuKernel **out_kernel, OgpuError *out_error);
 void ogpu_kernel_destroy(OgpuKernel *kernel);
 
-/* One-dimensional dispatch: groups_x workgroups; the shader defines local size.
+/* Dispatch a grid of groups_x × groups_y × groups_z workgroups. The shader defines
+ * local size; these counts are NOT invocation counts. Set unused axes to 1.
  * This convenience call has no heap bindings; use a batch for heap shaders.
- * groups_x must be nonzero and within the device limit. Argument byte count must
- * exactly match the kernel's push size (NULL allowed only for zero bytes).
+ * Each count must be nonzero and within its per-axis device limit. Argument byte
+ * count must exactly match the kernel's push size (NULL allowed only for zero bytes).
  * The caller defines the argument layout, including initialized padding bytes.
  * Arguments are copied into the command buffer. Every referenced GPU allocation
  * must be live, on this kernel's device, and accessed in bounds with correct
@@ -180,8 +181,8 @@ void ogpu_kernel_destroy(OgpuKernel *kernel);
  * are retried until draining is established; persistent failures may block forever.
  * After device loss, only destruction and draining existing completions are supported.
  * This ordered convenience call uses a batch and completion internally. */
-OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, const void *arguments,
-    uint32_t argument_bytes, OgpuError *out_error);
+OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, uint32_t groups_y,
+    uint32_t groups_z, const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
 
 /* One-shot asynchronous recordings on the device's single queue. All calls remain
  * externally serialized with this device and its children; GPU execution may run
@@ -208,7 +209,8 @@ void ogpu_batch_destroy(OgpuBatch *batch);
  * recording through completion, or until the unsubmitted recording is discarded.
  * Invalid recording arguments leave the recording unchanged. */
 OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t groups_x,
-    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+    uint32_t groups_y, uint32_t groups_z, const void *arguments,
+    uint32_t argument_bytes, OgpuError *out_error);
 
 /* Global dependency from earlier to later commands on this queue, including
  * earlier submissions. Each mask must be a nonzero combination of the access bits

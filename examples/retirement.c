@@ -73,9 +73,9 @@ static int run(OgpuDevice *device, OgpuKernel *produce, OgpuKernel *consume, int
             OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &error));
         Root a = {input_address + job * COUNT * 4, scratch_address + slot * COUNT * 4, COUNT, 0};
         Root b = {a.output, output_address + (job * STRIDE + 1) * 4, COUNT, 0};
-        TRY(ogpu_batch_dispatch(batch, produce, (COUNT + 63) / 64, &a, sizeof(a), &error));
+        TRY(ogpu_batch_dispatch(batch, produce, (COUNT + 63) / 64, 1, 1, &a, sizeof(a), &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
-        TRY(ogpu_batch_dispatch(batch, consume, (COUNT + 63) / 64, &b, sizeof(b), &error));
+        TRY(ogpu_batch_dispatch(batch, consume, (COUNT + 63) / 64, 1, 1, &b, sizeof(b), &error));
         TRY(ogpu_batch_submit(batch, &slots[slot], &error));
         ogpu_batch_destroy(batch);
         batch = NULL;

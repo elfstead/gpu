@@ -25,6 +25,12 @@ resident weights/intermediates and reusable staging; measured transfer overhead
 argues against a hidden universally-device-local policy. The contract stays explicit;
 no allocator framework, migration or new tensor operation was added.
 
+The [libplacebo G1 grid checkpoint](consumer-libplacebo.md#g1-checkpoint-multidimensional-dispatch)
+introduces ABI 5: explicit X/Y/Z workgroup counts, with checked per-axis limits.
+Both C dispatch entry points execute 1D/2D/3D grids with unmodified builtin IDs;
+tail/guard/argument-copy tests and existing execution regressions pass on RADV and
+llvmpipe. This is an adapter prerequisite, not yet libplacebo-on-OGPU acceptance.
+
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
 a gated Vulkan test verifies reuse while another submission is still pending.

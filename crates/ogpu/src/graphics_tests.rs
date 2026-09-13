@@ -597,7 +597,7 @@ fn gpu_graphics() {
             batch
                 .barrier(COMPUTE_WRITE | VERTEX_READ | INDIRECT_READ, COMPUTE_WRITE)
                 .unwrap();
-            batch.dispatch(kernel.clone(), 1, &root).unwrap();
+            batch.dispatch(kernel.clone(), [1, 1, 1], &root).unwrap();
             batch
                 .barrier(COMPUTE_WRITE, VERTEX_READ | INDIRECT_READ)
                 .unwrap();

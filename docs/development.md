@@ -5,7 +5,7 @@ C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
 supported and tested. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 3; rebuild callers with this checkout's
+execution interface. The current ABI is 5; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
@@ -31,6 +31,15 @@ SPIRV-Tools. See [the current heap contract](descriptor-heaps.md) and
 `cargo xtask retirement` compares caller-owned and explicitly retained scratch
 allocations through the public C ABI. `cargo xtask gpu-tests` includes the
 deterministic gated reuse and polling/error checks; see [retirement](retirement.md).
+
+`cargo xtask gpu-tests` also checks multidimensional dispatch through both C entry
+points: pure X/Y/Z, 2D/3D grids, partial workgroups, builtin IDs, guards and copied
+arguments. The grid test shader is checked in; regenerate it with shaderc 2026.1:
+
+```sh
+glslc --target-env=vulkan1.4 examples/shaders/dispatch-grid.comp -o examples/shaders/dispatch-grid.comp.spv
+spirv-val --target-env vulkan1.4 examples/shaders/dispatch-grid.comp.spv
+```
 
 Requirements: Rust 1.85+ with Cargo, a C11 compiler/linker, and a Vulkan loader with
 Vulkan 1.1+ support. A GPU is not required to compile or run the mock tests.

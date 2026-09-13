@@ -65,8 +65,9 @@ The compiler probe uses fixed per-pass heap slots corresponding to original bind
 numbers. It does not bind those heaps or execute the compiled binaries. In
 particular, specialization values in the manifest still need to be applied before
 execution: compiled GLSL defaults are **not** the processing configuration. Vertex
-inputs, the 1D float LUT and multidimensional dispatch also need an adapter/API
-decision. Compiler success does not establish runtime compatibility.
+inputs and the float LUT still need an adapter/API decision. Checked X/Y/Z
+dispatch is now implemented in OGPU ABI 5, but is not yet wired into a libplacebo
+adapter. Compiler success does not establish runtime compatibility.
 
 ## Licensing boundary
 

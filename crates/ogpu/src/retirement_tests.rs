@@ -198,7 +198,7 @@ fn gpu_retirement() {
                 let mut root = [0; 16];
                 root[..8].copy_from_slice(&(address + slot * 4).to_ne_bytes());
                 root[8..12].copy_from_slice(&1u32.to_ne_bytes());
-                batch.dispatch(kernel.clone(), 1, &root).unwrap();
+                batch.dispatch(kernel.clone(), [1, 1, 1], &root).unwrap();
                 gate.completions.push(unsafe { batch.submit().unwrap() });
                 assert_eq!(
                     batch.retain_buffer(buffer.clone()).unwrap_err().status,

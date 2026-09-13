@@ -20,7 +20,7 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 4**: allocation now takes explicit memory placement;
+The current interface is **ABI 5**: dispatch now takes explicit X/Y/Z workgroup counts;
 rebuild callers with the matching header/library.
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
@@ -33,9 +33,10 @@ The comparison exposes staging overhead as well as shorter graph intervals; it d
 not select a universally fastest memory policy. The user selected
 [libplacebo image processing](consumer-libplacebo.md) as the second consumer.
 G0 passed: pinned upstream compute/fragment execution on RADV and llvmpipe, plus
-declaration-only native-heap compilation of the captured shaders. The next step is
-G1: bounded adapter/API changes for the concrete grid, image, specialization and
-vertex-input requirements in the brief. OGPU execution of this consumer is not yet
+declaration-only native-heap compilation of the captured shaders. G1 is in progress:
+checked multidimensional dispatch is implemented, with existing callers migrated.
+Next is the bounded image description/upload contract, then specialization and
+vertex-input handling in the adapter. OGPU execution of this consumer is not yet
 implemented; G0 is not an integration acceptance claim.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
@@ -91,7 +92,7 @@ for this checkpoint. Deferred work is not a hidden prerequisite.
 |---|---|---|---|
 | Host boundary | Language-neutral C ABI, Rust implementation, explicit errors | Current function naming and version/discovery conventions | Preserve the boundary; decide compatibility policy in D5 |
 | Memory | Owning allocations separate from non-owning GPU addresses; explicit placement and transfers | Dedicated HOST/DEVICE buffers and retained byte-range copies | D2 follow-up tests the contract through GGML; no general allocator or implicit migration |
-| Executables and arguments | Prepared code with explicit requirements; application-owned data layout | Trusted SPIR-V, `main`, fixed root bytes, caller-known tile/workgroup sizes, 1D dispatch | Resolve the minimum executable contract in D1; fixed forms may remain if sufficient and documented |
+| Executables and arguments | Prepared code with explicit requirements; application-owned data layout | Trusted SPIR-V, `main`, fixed root bytes, caller-known tile/workgroup sizes, checked X/Y/Z dispatch | Resolve the minimum executable contract in D1; fixed forms may remain if sufficient and documented |
 | Submission and lifetimes | Explicit dependencies and completion; retained directly referenced resources | One queue, one-shot batches, global barriers, externally serialized host calls, draining destruction | Retain as the starting candidate; verify consumer fit in D4 |
 | Graphics/images | Graphics and compute share memory/submission rules; specialized images stay explicit | Fixed RGBA8 raster state, independent checked heaps, nearest/linear clamp/repeat sampling, exclusive edits, preserved contents | D3 follow-up implements preservation and independent ownership; broader formats/views and concurrent mutation stay deferred |
 | ML operations | Arithmetic and tensor interpretation live in executable/consumer code | Baseline FP32/integer workloads and incomplete feature negotiation | No host reduction/matmul API; accelerated profiles deferred unless required by the selected scope |

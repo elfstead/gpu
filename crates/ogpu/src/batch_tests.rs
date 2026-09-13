@@ -1,5 +1,21 @@
 use super::*;
 
+#[test]
+fn dispatch_grid_checks_each_axis_inclusively() {
+    let limits = [7, 3, 5];
+    assert!(valid_grid([1, 1, 1], limits));
+    assert!(valid_grid(limits, limits));
+    assert!(valid_grid([u32::MAX; 3], [u32::MAX; 3]));
+    for axis in 0..3 {
+        for invalid in [0, limits[axis] + 1, u32::MAX] {
+            let mut grid = [1; 3];
+            grid[axis] = invalid;
+            assert!(!valid_grid(grid, limits));
+        }
+    }
+    assert!(!valid_grid([3, 5, 7], limits));
+}
+
 thread_local! {
     static FAILURE: Cell<vk::VkResult> = const { Cell::new(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY) };
     static REAL_WAIT: Cell<vk::PFN_vkWaitSemaphores> = const { Cell::new(None) };
@@ -286,20 +302,28 @@ fn gpu_batches() {
         root[8..12].copy_from_slice(&1u32.to_ne_bytes());
         // A discarded recording must never execute.
         let mut discarded = Batch::new(device.clone()).unwrap();
-        discarded.dispatch(kernel.clone(), 1, &root).unwrap();
+        discarded
+            .dispatch(kernel.clone(), [1, 1, 1], &root)
+            .unwrap();
         drop(discarded);
         let mut batch = Batch::new(device.clone()).unwrap();
         assert_eq!(
-            batch.dispatch(other_kernel, 1, &root).unwrap_err().status,
-            INVALID_ARGUMENT
-        );
-        assert_eq!(
-            batch.dispatch(kernel.clone(), 0, &root).unwrap_err().status,
+            batch
+                .dispatch(other_kernel, [1, 1, 1], &root)
+                .unwrap_err()
+                .status,
             INVALID_ARGUMENT
         );
         assert_eq!(
             batch
-                .dispatch(kernel.clone(), 1, &root[..12])
+                .dispatch(kernel.clone(), [0, 1, 1], &root)
+                .unwrap_err()
+                .status,
+            INVALID_ARGUMENT
+        );
+        assert_eq!(
+            batch
+                .dispatch(kernel.clone(), [1, 1, 1], &root[..12])
                 .unwrap_err()
                 .status,
             INVALID_ARGUMENT
@@ -309,16 +333,38 @@ fn gpu_batches() {
             INVALID_ARGUMENT
         );
         assert!(batch.steps.as_ref().unwrap().is_empty());
-        batch.dispatch(kernel.clone(), 1, &root).unwrap();
+        batch.dispatch(kernel.clone(), [1, 1, 1], &root).unwrap();
+        // Rejected grids must neither remove earlier work nor append a command.
+        // Some devices report UINT32_MAX; there is no representable over-limit count.
+        for axis in 0..3 {
+            for invalid in [
+                Some(0),
+                device.limits.maxComputeWorkGroupCount[axis].checked_add(1),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                let mut grid = [1; 3];
+                grid[axis] = invalid;
+                assert_eq!(
+                    batch
+                        .dispatch(kernel.clone(), grid, &root)
+                        .unwrap_err()
+                        .status,
+                    INVALID_ARGUMENT
+                );
+                assert_eq!(batch.steps.as_ref().unwrap().len(), 1);
+            }
+        }
         batch
             .barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
             .unwrap();
-        batch.dispatch(kernel.clone(), 1, &root).unwrap();
+        batch.dispatch(kernel.clone(), [1, 1, 1], &root).unwrap();
         // A second submission uses an explicit dependency on the first submission.
         let mut next = Batch::new(device.clone()).unwrap();
         next.barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
             .unwrap();
-        next.dispatch(kernel.clone(), 1, &root).unwrap();
+        next.dispatch(kernel.clone(), [1, 1, 1], &root).unwrap();
         root.fill(0); // Recording must have copied the original argument bytes.
         drop(kernel);
         drop(device);

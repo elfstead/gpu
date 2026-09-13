@@ -14,7 +14,7 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 4;
+pub const ABI_VERSION: u32 = 5;
 pub const SUCCESS: OgpuResult = 0;
 pub const INVALID_ARGUMENT: OgpuResult = -1;
 pub const ABI_MISMATCH: OgpuResult = -2;
@@ -260,7 +260,7 @@ mod tests {
                 vulkan_result: 42,
                 message: [1; 256],
             };
-            for version in [1, 2, 3, ABI_VERSION + 1] {
+            for version in [1, 2, 3, 4, ABI_VERSION + 1] {
                 assert_eq!(
                     ogpu_probe_create(version, &mut handle, &mut error),
                     ABI_MISMATCH

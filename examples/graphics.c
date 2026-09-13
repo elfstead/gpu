@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 
     /* One batch: compute → vertex/indirect dependency → draw → image copy. */
     TRY(ogpu_batch_create(device, &batch, &error));
-    TRY(ogpu_batch_dispatch(batch, producer, 1, &root, sizeof(root), &error));
+    TRY(ogpu_batch_dispatch(batch, producer, 1, 1, 1, &root, sizeof(root), &error));
     TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ, &error));
     TRY(ogpu_batch_draw_indirect(batch, raster, target, indirect, 0, &root, sizeof(root), OGPU_ATTACHMENT_CLEAR, &error));
