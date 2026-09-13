@@ -30,10 +30,11 @@ all twelve ABI-3 Vulkan tests also passed on llvmpipe.
 at ABI 4 using the existing GGML consumer: both placements pass the six direct/scheduled
 cases on RADV and llvmpipe. Keep explicit placement/copies, with no implicit migration.
 The comparison exposes staging overhead as well as shorter graph intervals; it does
-not select a universally fastest memory policy. The next proposed design task is to
-select and write a bounded brief for an independent mixed graphics/compute consumer,
-before broadening graphics state, memory classes or ML profiles. No new workload is
-selected or started by this checkpoint.
+not select a universally fastest memory policy. The user selected
+[libplacebo image processing](consumer-libplacebo.md) as the second consumer.
+The active step is G0: a pinned upstream compute/fragment reference and shader-contract
+audit, before choosing the bounded adapter/API changes. OGPU execution of this
+consumer is not yet implemented; G0 is not an integration acceptance claim.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Concurrent slot streaming, generalized formats/views and compute-only image deployment
