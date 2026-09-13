@@ -38,8 +38,10 @@ format, and implementation language are separate design decisions.
 ## Current implementation
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
-backend without keeping compatibility fallbacks. Public layouts remain ABI 1;
-deployment requirements changed, so source revision still identifies the checkpoint.
+backend without keeping compatibility fallbacks. The current public interface is
+ABI 3: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
+replaced the coupled table API in ABI 3. Rebuild callers against matching
+header/library/shaders; source revision still identifies the experimental checkpoint.
 
 The backend is Rust over Vulkan, with a small C header and directly generated,
 pinned Vulkan declarations. It does not depend on ash or Vulkanalia. Only Linux
@@ -62,7 +64,7 @@ retention; applications still own scratch-range reuse decisions.
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
-| Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling and readback | Fixed-state RGBA8, immutable tables, nearest sampler, same-batch draw/discard initialization |
+| Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents and readback | Fixed-state RGBA8, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
 | Discovery | Device information and supported capability bits | Reporting is not feature negotiation or a complete matrix/type capability description |
 
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
@@ -104,8 +106,9 @@ and fixed-state rendering are experiment constraints, not the intended final sha
 
 Public handles are destroyed once. Children retain their device, and a device
 retains its instance. Batches/completions retain explicitly supplied kernels,
-raster executables, targets, bound image tables and their entries, indirect buffers, copy destinations, and buffers
-explicitly supplied to `ogpu_batch_retain_buffer`. A raw address inside an argument
+raster executables, targets, bound image/sampler heaps and their image entries,
+indirect buffers, copy destinations, and buffers explicitly supplied to
+`ogpu_batch_retain_buffer`. A raw address inside an argument
 block does not create retention. The caller must keep its underlying allocation
 alive through explicit retention or its own ownership until all GPU uses finish.
 
@@ -139,7 +142,7 @@ brief requires them.
 | Memory placement and transfer model | Device-local linear data, staging/copies, measured movement costs on discrete and integrated GPUs |
 | Queue and batch model | Replayed work, cross-queue dependencies, concurrency, and observable completion/error behavior |
 | Executable preparation | Entry points, workgroup variants, specialization, capability requirements, compilation/cache costs |
-| Images and graphics state | Native RGBA8 image access/sampling works; independent heap/view/sampler ownership and preserved cross-batch images remain open ([experiment](heap-images.md)) |
+| Images and graphics state | Native RGBA8 access/sampling, independent heaps and preserved cross-batch images work; general formats/views, concurrent heap edits and broader raster state remain open ([contract](descriptor-heaps.md)) |
 | ML profiles | Beyond the tested reduction/FP32 baseline: required storage/arithmetic/conversion/accumulation combinations and accelerated matrix shapes |
 | Portability boundary | One real compiler/runtime consumer and a second backend for the common compute subset |
 | Tooling | Finer profiling/calibrated clocks, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |
@@ -190,6 +193,7 @@ first experimental integration checkpoint. Its narrower exit criteria are in the
 - [Execution baseline](execution.md): linear memory, shader assumptions, blocking example.
 - [Batches](batches.md): recording, submission, dependencies, completion, and errors.
 - [Offscreen graphics](graphics.md): the implemented optional graphics profile.
+- [Descriptor heaps](descriptor-heaps.md): independent image/sampler ownership, mutation and preservation evidence.
 - [Reduction](reduction.md): cooperative workgroups and a multi-level compute workload.
 - [Image loop](image-loop.md): mixed execution and explicit image/linear conversion.
 - [Matrix multiplication](matmul.md): FP32 accuracy, tiled variants, and host timings.

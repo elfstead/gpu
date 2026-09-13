@@ -1,5 +1,11 @@
 # Direct image access and sampling
 
+Historical compiler/consumer record for `cbc6528`. Its immutable table wrapper and
+same-batch initialization rule have since been removed. See
+[image preservation](image-preservation.md) and [independent heaps](descriptor-heaps.md)
+for the current ABI 3 contract and evidence. Commands below now run the follow-up
+shaders/example; use the recorded source revision to reproduce this original variant.
+
 Bounded D3 compiler/consumer experiment, 2026-09-13. This follows the modern-baseline
 migration and [retirement comparison](retirement.md). It tests the missing end-to-end
 path, not a general texture API or a choice of the project's eventual source language.

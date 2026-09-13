@@ -8,6 +8,10 @@ Decision/audit: `3fefc48`. Backend migration: `39b8c16`; timeline completion:
 `05a1857`, locally verified on llvmpipe. Physical-GPU and remote execution-CI
 verification remain pending.
 
+The subsequent [independent-heap checkpoint](descriptor-heaps.md) implements native
+image/sampler bindings and preserved image use on this same baseline, without a
+legacy table or descriptor-set path. The public interface is now ABI 3.
+
 ## Selected requirements
 
 The execution target is Vulkan 1.4, buffer device addresses, synchronization2,

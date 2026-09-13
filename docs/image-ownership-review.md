@@ -1,8 +1,10 @@
-# Image ownership and preservation: proposed next API
+# Image ownership and preservation: design review
 
-Review, 2026-09-13, against implementation `cbc6528`. This is a recommendation,
-not an implemented contract. The [heap-image experiment](heap-images.md) remains
-the authoritative execution evidence. No runtime/header changes accompany this review.
+Historical review, 2026-09-13, against implementation `cbc6528`. Both proposed
+checkpoints are now implemented: [image preservation](image-preservation.md) and
+[independent heaps](descriptor-heaps.md). Those documents and the public header
+describe the current contract and execution evidence. The original rationale and
+acceptance criteria below are retained as design history, not pending approval.
 
 ## Recommendation
 
@@ -142,5 +144,5 @@ list without adopting and verifying its surrounding recording/submission rules.
 
 Complete when those contracts and evidence agree. Concurrent slot streaming, generalized
 formats/views and compute-only image deployment remain separately scoped work; physical
-GPU and remote execution-CI evidence are still missing. Approval of this proposal, not
-another discovery exercise, is the next step before implementation.
+GPU and remote execution-CI evidence are still missing. The two implementation
+checkpoints now meet the local stopping condition; deployment validation is next.

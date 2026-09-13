@@ -36,7 +36,10 @@ asynchronous scheduling, upstream contributions, and graphics-consumer evidence.
 
 ## Candidate decisions (C2)
 
-These retain/defer decisions do not add a tensor API.
+These retain/defer decisions describe the initial ABI-1 consumer checkpoint and do
+not add a tensor API. Later [image/heap work](descriptor-heaps.md) brings the current
+runtime to ABI 3 without changing this consumer's compute contract; rebuild with
+the matching header/library. Its six acceptance cases have been rerun at ABI 3.
 
 | Decision | First-consumer contract |
 |---|---|

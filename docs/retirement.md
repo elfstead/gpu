@@ -27,9 +27,11 @@ finishes. Neither successful execution nor compatibility with the old API was a
 veto: this exposes a better API alternative by making progress observable and
 ownership assistance independent of synchronization.
 
-The existing public C structures and signatures stay ABI 1. These additional
-symbols require matching headers/library from this source revision; ABI 1 alone
-does not promise that older libraries export them. A future central retirement
+At this checkpoint, the existing public C structures and signatures stayed ABI 1.
+The additional symbols need matching headers/library from that source revision;
+ABI 1 alone does not promise that older libraries export them. Subsequent
+[image/heap changes](descriptor-heaps.md) bring the current runtime to ABI 3 without
+changing these retirement operations. A future central retirement
 queue could be an internal change; this experiment does not establish a need for it.
 
 ## Comparison and workload

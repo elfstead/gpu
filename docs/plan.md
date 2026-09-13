@@ -12,15 +12,18 @@ There is no Vulkan 1.2 compatibility path. The [retention/retirement comparison]
 is complete: adopt completion polling and optional whole-buffer retention, while
 the application decides when scratch ranges are reusable. Timeline limits and
 failure recovery are verified; no centralized allocator or retirement queue was
-selected. The [heap-indexed image experiment](heap-images.md) now passes the compiler
+selected. The [heap-indexed image experiment](heap-images.md) passed the compiler
 and public-API execution gates: compute image access and fragment sampling need no
-intermediate image-to-buffer copy. Immutable tables and explicit image discard are
-implemented; general heap management is not settled. The
-[ownership/preservation review](image-ownership-review.md) is complete, with a proposal
-for independent checked heaps, copied view/sampler descriptions, and explicit image
-preservation. These are recommendations, not implemented changes. Pending agreement,
-the next implementation checkpoint is cross-submission preservation and LOAD/CLEAR,
-then independent heaps with explicitly bounded mutation. No unrelated workload is scheduled.
+intermediate image-to-buffer copy. Both checkpoints from the
+[ownership/preservation review](image-ownership-review.md) are now implemented:
+[cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
+[independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
+copied descriptions and configurable sampling. The old coupled table API is removed.
+The current interface is **ABI 3**; rebuild callers with the matching header/library.
+Local contract and regression gates pass. Next is physical-GPU validation and
+provisioning the modern execution-CI runner, not another unrelated workload.
+Concurrent slot streaming, generalized formats/views and compute-only image deployment
+remain deferred scope decisions, not hidden requirements to finish this checkpoint.
 The completed integration checkpoints below remain
 historical regression evidence, not proof of the new backend on physical hardware.
 
@@ -73,7 +76,7 @@ for this checkpoint. Deferred work is not a hidden prerequisite.
 | Memory | Owning allocations separate from non-owning GPU addresses | Dedicated host-visible buffers and CPU copies | Resolve placement/transfers in D2; do not present this as the final memory architecture |
 | Executables and arguments | Prepared code with explicit requirements; application-owned data layout | Trusted SPIR-V, `main`, fixed root bytes, caller-known tile/workgroup sizes, 1D dispatch | Resolve the minimum executable contract in D1; fixed forms may remain if sufficient and documented |
 | Submission and lifetimes | Explicit dependencies and completion; retained directly referenced resources | One queue, one-shot batches, global barriers, externally serialized host calls, draining destruction | Retain as the starting candidate; verify consumer fit in D4 |
-| Graphics/images | Graphics and compute share memory/submission rules; specialized images stay explicit | Fixed RGBA8 raster state, native sampled/storage access, immutable table and nearest sampler | D3 follow-up proves direct access; review heap ownership and preserved contents before generalizing |
+| Graphics/images | Graphics and compute share memory/submission rules; specialized images stay explicit | Fixed RGBA8 raster state, independent checked heaps, nearest/linear clamp/repeat sampling, exclusive edits, preserved contents | D3 follow-up implements preservation and independent ownership; broader formats/views and concurrent mutation stay deferred |
 | ML operations | Arithmetic and tensor interpretation live in executable/consumer code | Baseline FP32/integer workloads and incomplete feature negotiation | No host reduction/matmul API; accelerated profiles deferred unless required by the selected scope |
 | Timing | Optional diagnostics without gating ordinary execution | Whole-batch bracket, per-completion query pool, no calibrated clocks | Keep the current documented limitations; finer profiling and pool optimization deferred |
 | Safety/portability | Explicit obligations and unsupported cases | Trusted shaders, manual pointee lifetimes, one backend and limited hardware coverage | No sandboxing or broad portability claim; further backends remain a later validation gate |
@@ -121,7 +124,7 @@ The inventory below records the questions those decisions address.
 | D0 | Who is the first consumer, and what must it accomplish? | Existing examples prove execution, not integration value | Resolved: GGML MNIST forward inference; see the brief |
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Reduction/matmul share the ABI, but the host knows root layout and tile sizes; reported feature bits are not enabled features | Specify baseline/optional requirements, enabled-capability reporting, entry point/root/workgroup agreement, and failure behavior; say which metadata is declared versus validated |
 | D2 | What memory placement and transfer behavior does this consumer need? | Host-visible buffers work; device-local linear data and staging have not been exercised | Choose explicit allocation/copy semantics if needed, or retain host-visible-only with a consumer-supported limitation; document address stability, range/lifetime and completion rules |
-| D3 | Which image operations belong in the first offscreen profile? | Buffer-mediated and native heap-indexed graphics → compute → graphics paths work | Consumer checkpoint retained the fixed profile; follow-up adds bounded direct image access, leaving general heaps/views/samplers and preservation open |
+| D3 | Which image operations belong in the first offscreen profile? | Buffer-mediated and native heap-indexed graphics → compute → graphics paths work | Consumer checkpoint retained the fixed profile; follow-ups implement direct image access, preservation and independent heaps, leaving general formats/views and concurrent edits deferred |
 | D4 | Which submission/ownership model best serves the project? | One-shot state, dependencies, retention and failure cleanup have tests | Walk repeated execution and teardown; evaluate whether the work exposes a better API alternative, including improvements beyond basic compatibility |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |
 

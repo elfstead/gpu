@@ -71,6 +71,13 @@ Recorded addresses are non-owning; retaining kernels cannot retain pointees.
 recording and completion-handle destruction. It is independent of access barriers
 and does not protect a suballocation against early reuse. See the
 [retirement experiment](retirement.md) for the comparison and example.
+
+Bindings retain independent [image/sampler heaps](descriptor-heaps.md), including
+earlier bindings superseded later in a recording. Heap edits require destroying
+all such recording/completion references; waiting or polling complete alone does
+not release them. Image entries retain their targets until replaced, cleared or
+destroyed. Binding does not initialize images or add data dependencies.
+
 Do not perform CPU reads/writes while submitted work can access the buffer. Keep
 ownership until completion; commands taking explicit buffer handles can retain
 them, but addresses alone cannot. This host-access

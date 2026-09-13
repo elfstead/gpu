@@ -16,7 +16,7 @@ graphics shader arithmetic features are enabled beyond that baseline.
 
 `OgpuRaster` prepares valid vertex and fragment SPIR-V entry points named `main`,
 with no descriptor-set bindings and a caller-defined copied root block shared by
-both stages. Native heap access is supported by the [image-table experiment](heap-images.md);
+both stages. Native heap access uses [independent image/sampler heaps](descriptor-heaps.md);
 existing descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
 The runtime still requires the modern device baseline. Vertex attributes
 are fetched through GPU addresses: there is no vertex
@@ -32,10 +32,12 @@ This is an experiment constraint, not a commitment to hard-code graphics state.
 `ogpu_target_create_rgba8` owns a two-dimensional, single-layer, single-mip image
 with specialized optimal storage, a view, and attachment resources. It has no
 device address or CPU mapping. Width/height and combined attachment/readback/sampled/
-storage format support are checked. Tables supply separate sampled/storage descriptors.
+storage format support are checked. Image-heap slots supply sampled/storage descriptors.
 
-`ogpu_batch_draw_indirect` clears the target to opaque black, then executes one
-non-indexed indirect draw. Its record is four uint32 values in order:
+`ogpu_batch_draw_indirect` selects attachment CLEAR (opaque black) or LOAD (preserved
+texels), then executes one non-indexed indirect draw. Both store the result. LOAD
+requires initialized contents and dependencies to COLOR_READ | COLOR_WRITE; it does
+not enable blending or attachment feedback. Its record is four uint32 values in order:
 `vertex_count`, `instance_count`, `first_vertex`, `first_instance`. The last must
 be zero because optional indirect-first-instance support is not enabled. The
 record offset must be a multiple of four and all 16 bytes must fit the buffer.
@@ -50,11 +52,11 @@ for an older Vulkan command interface.
 
 `ogpu_batch_copy_target` copies the whole target into an ordinary buffer at a
 four-byte-aligned offset, tightly packed as width × height × 4 RGBA bytes, row by
-row starting at image coordinate (0,0). It must follow a draw or explicit
-`ogpu_batch_discard_target` to that target in the SAME batch, with all copied texels
-written before the copy. This local rule avoids an implicit cross-submission image-state
-tracker in the first experiment. Repeated draws/copies, including target reuse
-in subsequent batches, are permitted; every draw discards previous image contents.
+row starting at image coordinate (0,0). The caller must initialize the target through
+CLEAR or explicit discard followed by writes, in this or an earlier successfully
+submitted batch, with all copied texels written before the copy. There is no same-batch
+initialization scan. Rejected/abandoned initialization does not authorize later reads.
+Subsequent uses preserve contents unless CLEAR or discard explicitly invalidates them.
 
 Known target operations manage their own image transitions and attachment/copy
 dependencies. The Vulkan backend uses an initial UNDEFINED layout (discard), a
@@ -63,13 +65,14 @@ dependency making earlier image writes visible to address-based image readback. 
 use stays in GENERAL; no render-pass/framebuffer objects or mutable layout tracker
 remain. The discard transition orders prior uses, including across submissions.
 Explicit discard also prepares compute-written images without drawing or clearing;
-write texels before reading them. This remains a bounded model, not a general
-cross-batch image-preservation API.
+write texels before reading them. Preservation spans ordered submissions on the
+one queue; initialization and explicit data dependencies are caller obligations.
+No layout-state tracker or hidden initialization submission is needed.
 
 ## Shared dependencies and ownership
 
 The access vocabulary extends with vertex-read, fragment-read, indirect-read,
-color-write, transfer-read, and transfer-write. Graphics accesses are rejected on
+color-read/write, transfer-read, and transfer-write. Graphics accesses are rejected on
 a compute-only execution queue. Batch barriers translate each access to its
 execution stage; they remain global and do not inspect pointer arguments.
 
@@ -79,7 +82,9 @@ dependencies now cover host writes and GPU writes across all supported command
 types. A target copy followed by compute requires TRANSFER_WRITE → COMPUTE_READ.
 
 Batches and completions retain directly supplied targets, raster executables,
-indirect buffers, and copy destinations. Destroying those public handles does not
+image/sampler heaps, indirect buffers, and copy destinations. Image heaps retain
+their populated entries; editing requires releasing all recording/completion
+references, even after a successful wait. Destroying those public handles does not
 free the retained resources. Allocations referenced ONLY through GPU addresses
 still need caller-managed lifetime. Do not perform CPU buffer access until all
 submitted uses of that whole allocation complete. The existing external
@@ -97,10 +102,13 @@ extends this to graphics → compute → graphics using image-to-buffer copies a
 fragment-shader address reads. It uses this same profile without API additions;
 it does not introduce sampled images or storage-image compute access. The separate
 [heap-image experiment](heap-images.md) adds both and avoids intermediate copies.
+Its [current follow-up](descriptor-heaps.md) verifies preserved images across three
+submissions and independent heaps with nearest/linear clamp/repeat sampling.
 
 Tests cover graphics queue selection without breaking compute-only selection,
-invalid extents/shaders, buffer bounds/alignment, wrong-device objects, missing
-prior draw, retained-resource lifetimes, image reuse, and partial creation failures.
+invalid extents/shaders, buffer bounds/alignment, wrong-device objects,
+retained-resource lifetimes, LOAD/CLEAR, image reuse, abandoned/rejected discard,
+and partial creation failures.
 `cargo xtask gpu-tests` runs the Vulkan-backed graphics tests with the existing
 compute tests and fails on reported validation errors. Creation-failure injection
 exercises image/memory/view cleanup, second-module failure,

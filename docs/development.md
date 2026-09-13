@@ -5,7 +5,8 @@ C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
 supported and tested. The ABI is experimental, not a specification of the eventual
-execution interface.
+execution interface. The current ABI is 3; rebuild callers with this checkout's
+header, library and shaders after updating from an earlier checkpoint.
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
 Its test-data downloads and CMake build are separate from ordinary Cargo builds.
@@ -18,10 +19,12 @@ performed here. Automatic hosted CI is not currently an execution gate.
 
 ## Build and run
 
-`cargo xtask heap-image` runs direct image load/store and sampling through immutable
-image tables. New shader binaries are checked in; regeneration uses pinned Slang
+`cargo xtask heap-image` runs direct image load/store and sampling through independent
+image/sampler heaps: three submissions, four sampler/index variants per size, and
+checked retention/mutation. Shader binaries are checked in; regeneration uses pinned Slang
 2026.14.1 with `SLANGC=/path/to/slangc cargo xtask heap-shaders --check` and modern
-SPIRV-Tools. See [the experiment/toolchain record](heap-images.md).
+SPIRV-Tools. See [the current heap contract](descriptor-heaps.md) and
+[original experiment/toolchain record](heap-images.md).
 
 `cargo xtask retirement` compares caller-owned and explicitly retained scratch
 allocations through the public C ABI. `cargo xtask gpu-tests` includes the

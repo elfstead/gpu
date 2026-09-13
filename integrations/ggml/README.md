@@ -44,7 +44,8 @@ the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
 errors and leaves a uniquely named acceptance log under `target/ggml-integration`.
 Use matching header/library/shaders from the same OGPU checkout, not an arbitrary
-ABI-1 shared library. Leave `CARGO_TARGET_DIR` unset.
+older shared library. The current checkout uses ABI 3; rebuilding the consumer
+updates its version handshake without adapter changes. Leave `CARGO_TARGET_DIR` unset.
 
 An optional second argument to `run.sh` selects the OGPU probe's device index
 (default 0). To select a software ICD use the loader's `VK_DRIVER_FILES`; set
