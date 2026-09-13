@@ -72,9 +72,9 @@ int main(int argc, char **argv) {
     REQUIRE(device != NULL);
 
     /* Three independent allocations: input → intermediate → result. */
-    TRY(ogpu_buffer_create(device, size, &source, &error));
-    TRY(ogpu_buffer_create(device, size, &intermediate, &error));
-    TRY(ogpu_buffer_create(device, size, &result, &error));
+    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &source, &error));
+    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &intermediate, &error));
+    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &result, &error));
     REQUIRE(load_kernel(device, argv[1], &producer) == EXIT_SUCCESS);
     REQUIRE(load_kernel(device, argv[2], &consumer) == EXIT_SUCCESS);
     input = malloc((size_t)size);

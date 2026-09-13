@@ -8548,6 +8548,90 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkDeviceMemoryCopyKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcRange: VkDeviceAddressRangeKHR,
+    pub srcFlags: VkAddressCommandFlagsKHR,
+    pub dstRange: VkDeviceAddressRangeKHR,
+    pub dstFlags: VkAddressCommandFlagsKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceMemoryCopyKHR",
+    ][::std::mem::size_of::<VkDeviceMemoryCopyKHR>() - 64usize];
+    [
+        "Alignment of VkDeviceMemoryCopyKHR",
+    ][::std::mem::align_of::<VkDeviceMemoryCopyKHR>() - 8usize];
+    [
+        "Offset of field: VkDeviceMemoryCopyKHR::sType",
+    ][::std::mem::offset_of!(VkDeviceMemoryCopyKHR, sType) - 0usize];
+    [
+        "Offset of field: VkDeviceMemoryCopyKHR::pNext",
+    ][::std::mem::offset_of!(VkDeviceMemoryCopyKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkDeviceMemoryCopyKHR::srcRange",
+    ][::std::mem::offset_of!(VkDeviceMemoryCopyKHR, srcRange) - 16usize];
+    [
+        "Offset of field: VkDeviceMemoryCopyKHR::srcFlags",
+    ][::std::mem::offset_of!(VkDeviceMemoryCopyKHR, srcFlags) - 32usize];
+    [
+        "Offset of field: VkDeviceMemoryCopyKHR::dstRange",
+    ][::std::mem::offset_of!(VkDeviceMemoryCopyKHR, dstRange) - 40usize];
+    [
+        "Offset of field: VkDeviceMemoryCopyKHR::dstFlags",
+    ][::std::mem::offset_of!(VkDeviceMemoryCopyKHR, dstFlags) - 56usize];
+};
+impl Default for VkDeviceMemoryCopyKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCopyDeviceMemoryInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub regionCount: u32,
+    pub pRegions: *const VkDeviceMemoryCopyKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCopyDeviceMemoryInfoKHR",
+    ][::std::mem::size_of::<VkCopyDeviceMemoryInfoKHR>() - 32usize];
+    [
+        "Alignment of VkCopyDeviceMemoryInfoKHR",
+    ][::std::mem::align_of::<VkCopyDeviceMemoryInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryInfoKHR::sType",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryInfoKHR::regionCount",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryInfoKHR, regionCount) - 16usize];
+    [
+        "Offset of field: VkCopyDeviceMemoryInfoKHR::pRegions",
+    ][::std::mem::offset_of!(VkCopyDeviceMemoryInfoKHR, pRegions) - 24usize];
+};
+impl Default for VkCopyDeviceMemoryInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkDeviceMemoryImageCopyKHR {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -8736,6 +8820,12 @@ pub type PFN_vkCmdDrawIndirect2KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pInfo: *const VkDrawIndirect2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdCopyMemoryKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pCopyMemoryInfo: *const VkCopyDeviceMemoryInfoKHR,
     ),
 >;
 pub type PFN_vkCmdCopyImageToMemoryKHR = ::std::option::Option<

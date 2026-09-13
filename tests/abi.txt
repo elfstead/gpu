@@ -119,6 +119,8 @@ vk VkSubmitInfo2 sType pNext flags waitSemaphoreInfoCount pWaitSemaphoreInfos co
 vk VkRenderingInfo sType pNext flags renderArea layerCount viewMask colorAttachmentCount pColorAttachments pDepthAttachment pStencilAttachment
 vk VkRenderingAttachmentInfo sType pNext imageView imageLayout resolveMode resolveImageView resolveImageLayout loadOp storeOp clearValue
 vk VkDeviceAddressRangeKHR address size
+vk VkDeviceMemoryCopyKHR sType pNext srcRange srcFlags dstRange dstFlags
+vk VkCopyDeviceMemoryInfoKHR sType pNext regionCount pRegions
 vk VkStridedDeviceAddressRangeKHR address size stride
 vk VkDrawIndirect2InfoKHR sType pNext addressRange addressFlags drawCount
 vk VkDeviceMemoryImageCopyKHR sType pNext addressRange addressFlags addressRowLength addressImageHeight imageSubresource imageLayout imageOffset imageExtent

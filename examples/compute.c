@@ -59,8 +59,9 @@ int main(int argc, char **argv) {
     /* The device retains the instance; discovery can now be released. */
     ogpu_probe_destroy(probe); probe = NULL;
 
-    REQUIRE(ogpu_buffer_create(device, 0, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
-    TRY(ogpu_buffer_create(device, size, &buffer, &error));
+    REQUIRE(ogpu_buffer_create(device, 0, OGPU_MEMORY_HOST, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
+    REQUIRE(ogpu_buffer_create(device, size, 99, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
+    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &buffer, &error));
     uint32_t invalid_module[5] = {0};
     REQUIRE(ogpu_kernel_create(device, invalid_module, 5, 16, &kernel, &error) == OGPU_ERROR_INVALID_ARGUMENT && kernel == NULL);
     TRY(ogpu_kernel_create(device, words, (uint64_t)byte_count / 4, sizeof(Root), &kernel, &error));

@@ -93,9 +93,9 @@ int main(int argc, char **argv) {
 
     /* Ordinary allocations, not special vertex/indirect memory types. The GPU will
      * generate all three vec4 positions and all four indirect-draw fields. */
-    TRY(ogpu_buffer_create(device, 3 * 4 * sizeof(float), &vertices, &error));
-    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), &indirect, &error));
-    TRY(ogpu_buffer_create(device, image_size, &readback, &error));
+    TRY(ogpu_buffer_create(device, 3 * 4 * sizeof(float), OGPU_MEMORY_HOST, &vertices, &error));
+    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &indirect, &error));
+    TRY(ogpu_buffer_create(device, image_size, OGPU_MEMORY_HOST, &readback, &error));
     pixels = malloc((size_t)image_size);
     REQUIRE(pixels != NULL);
     Root root = {0};

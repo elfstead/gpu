@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(3)
+#define OGPU_ABI_VERSION UINT32_C(4)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -122,15 +122,24 @@ void ogpu_device_destroy(OgpuDevice *device);
 OgpuResult ogpu_device_create_graphics(const OgpuProbe *probe, uint32_t index,
     OgpuDevice **out_device, OgpuError *out_error);
 
-/* Dedicated host-visible allocation. size_bytes must be nonzero and <= INTPTR_MAX.
- * Contents start unspecified. Transfers are checked CPU copies, not GPU commands.
+/* Dedicated allocation with explicit placement (unknown values INVALID_ARGUMENT).
+ * HOST permits CPU read/write; DEVICE requires device-local memory and rejects
+ * CPU read/write (even zero bytes) with INVALID_ARGUMENT. Use recorded copies for
+ * staging. No silent placement fallback; UNSUPPORTED if no compatible memory type.
+ * HOST may also be device-local on UMA/BAR hardware; these are access contracts,
+ * not a promise of separate physical heaps. The runtime selects the memory type.
+ * size_bytes must be nonzero and <= INTPTR_MAX. Contents start unspecified.
+ * buffer_write/read are checked CPU copies, not implicit GPU commands.
  * Wait for ALL submitted uses of this entire buffer before CPU reading/writing
  * (cache maintenance may touch the whole allocation). Destroying the public handle
  * releases its ownership; commands explicitly retaining a buffer delay deallocation.
  * Otherwise establish completion before destruction; addresses alone do not retain allocations.
  * Zero-length transfers allow NULL data and offset == size_bytes. Read destinations
  * are unchanged on error. No persistent host mapping is exposed. */
-OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, OgpuBuffer **out_buffer, OgpuError *out_error);
+#define OGPU_MEMORY_HOST UINT32_C(0)
+#define OGPU_MEMORY_DEVICE UINT32_C(1)
+OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, uint32_t placement,
+    OgpuBuffer **out_buffer, OgpuError *out_error);
 void ogpu_buffer_destroy(OgpuBuffer *buffer);
 OgpuResult ogpu_buffer_write(OgpuBuffer *buffer, uint64_t offset, const void *data, uint64_t size_bytes, OgpuError *out_error);
 OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *data, uint64_t size_bytes, OgpuError *out_error);
@@ -206,6 +215,17 @@ OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t gr
  * above. No dependency is inferred from GPU pointers or dispatch order. */
 OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
     uint32_t destination_access, OgpuError *out_error);
+
+/* Records a byte-granular GPU copy between in-bounds ranges on this batch's device.
+ * Both buffers are retained until discard, failed submission cleanup or completion
+ * destruction. Either placement is legal. Same-buffer ranges must not overlap;
+ * this is not memmove. Zero size is a validated no-op (end offsets legal), retaining
+ * nothing. Invalid arguments leave recording unchanged. No implicit GPU dependency:
+ * order producers/consumers with TRANSFER_READ/WRITE and the existing barriers.
+ * CPU access to HOST buffers still requires completion of ALL their submitted uses. */
+OgpuResult ogpu_batch_copy_buffer(OgpuBatch *batch, const OgpuBuffer *source,
+    uint64_t source_offset, const OgpuBuffer *destination, uint64_t destination_offset,
+    uint64_t size_bytes, OgpuError *out_error);
 
 /* Attempts submission once; success means accepted, NOT completed. Empty batches
  * are legal. After an attempt (even preparation/submission failure), the batch is

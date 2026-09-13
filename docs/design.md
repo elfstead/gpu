@@ -39,8 +39,9 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 3: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
-replaced the coupled table API in ABI 3. Rebuild callers against matching
+ABI 4: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
+replaced the coupled table API in ABI 3; explicit allocation placement changes
+buffer creation in ABI 4. Rebuild callers against matching
 header/library/shaders; source revision still identifies the experimental checkpoint.
 
 The backend is Rust over Vulkan, with a small C header and directly generated,
@@ -60,7 +61,7 @@ retention; applications still own scratch-range reuse decisions.
 | Part | Implemented contract | Deliberate restriction |
 |---|---|---|
 | Host boundary | Opaque ownership handles, fixed-width values, explicit errors and lifetime rules | Experimental ABI; some diagnostics/capability fields are Vulkan-specific |
-| Linear memory | Owning buffers and separate non-owning GPU addresses | Dedicated host-visible allocations, checked CPU copies, no exposed mapping |
+| Linear memory | Owning buffers and separate non-owning GPU addresses | Dedicated HOST/DEVICE placement, checked host access and retained GPU copies; [memory checkpoint](memory-transfers.md) |
 | Executables | Prepared compute kernels and raster programs, caller-defined root bytes | Trusted Vulkan SPIR-V, `main` entry points, limited enabled capabilities |
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |

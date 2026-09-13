@@ -150,7 +150,7 @@ ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size)
         a->size = size;
         a->tokens.resize(size + 63);
         OgpuBuffer *raw = nullptr;
-        GPU(ogpu_buffer_create(state->device.get(), size, &raw, &error));
+        GPU(ogpu_buffer_create(state->device.get(), size, OGPU_MEMORY_HOST, &raw, &error));
         a->buffer.reset(raw);
         GPU(ogpu_buffer_device_address(raw, &a->address, &error));
         ggml_backend_buffer_i iface{};

@@ -1,6 +1,6 @@
 # D2 follow-up: memory placement and transfers
 
-Approved 2026-09-13. Status: implementation and consumer comparison in progress.
+Approved 2026-09-13. Status: runtime implemented; consumer comparison in progress.
 
 ## Decision and bounds
 
@@ -57,3 +57,13 @@ Implementation uses the already-required modern address-command extension:
 [vkCmdCopyMemoryKHR](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdCopyMemoryKHR.html)
 and its [range/usage rules](https://docs.vulkan.org/refpages/latest/refpages/source/VkDeviceMemoryCopyKHR.html).
 Internal descriptor-heap allocations remain host-accessible.
+
+## Runtime checkpoint
+
+ABI 4 implemented. All 23 ordinary tests and thirteen opt-in Vulkan tests pass;
+the Vulkan tests pass on both RX 5700 XT/RADV and llvmpipe with synchronization
+validation enabled. The new test covers odd byte counts/unaligned offsets, guarded
+readback, disjoint same-buffer copies, cross-submission copy/compute visibility,
+range/device/overlap rejection, DEVICE CPU-access rejection, retained endpoints
+after caller ownership is dropped, completion destruction, discard and failed submit.
+The C compute example also checks unknown placement rejection.

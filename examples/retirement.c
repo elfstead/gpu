@@ -42,9 +42,9 @@ static int run(OgpuDevice *device, OgpuKernel *produce, OgpuKernel *consume, int
     unsigned reused = 0, with_other_handles = 0;
     for (unsigned i = 0; i < JOBS * COUNT; ++i) inputs[i] = i * 13u + 5u;
     for (unsigned i = 0; i < JOBS * STRIDE; ++i) outputs[i] = guard;
-    TRY(ogpu_buffer_create(device, sizeof(inputs), &input, &error));
-    TRY(ogpu_buffer_create(device, SLOTS * COUNT * 4, &scratch, &error));
-    TRY(ogpu_buffer_create(device, sizeof(outputs), &output, &error));
+    TRY(ogpu_buffer_create(device, sizeof(inputs), OGPU_MEMORY_HOST, &input, &error));
+    TRY(ogpu_buffer_create(device, SLOTS * COUNT * 4, OGPU_MEMORY_HOST, &scratch, &error));
+    TRY(ogpu_buffer_create(device, sizeof(outputs), OGPU_MEMORY_HOST, &output, &error));
     TRY(ogpu_buffer_write(input, 0, inputs, sizeof(inputs), &error));
     TRY(ogpu_buffer_write(output, 0, outputs, sizeof(outputs), &error));
     TRY(ogpu_buffer_device_address(input, &input_address, &error));

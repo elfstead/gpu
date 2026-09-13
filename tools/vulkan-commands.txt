@@ -63,6 +63,7 @@ vkCmdBeginRendering
 vkCmdEndRendering
 vkCmdDrawIndirect2KHR
 vkCmdCopyImageToMemoryKHR
+vkCmdCopyMemoryKHR
 vkWriteResourceDescriptorsEXT
 vkGetPhysicalDeviceFormatProperties
 vkWriteSamplerDescriptorsEXT

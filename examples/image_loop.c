@@ -86,15 +86,15 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
     const uint64_t size = (uint64_t)width * height * 4;
     TRY(ogpu_target_create_rgba8(device, width, height, &first, &error));
     TRY(ogpu_target_create_rgba8(device, width, height, &last, &error));
-    TRY(ogpu_buffer_create(device, 48, &vertices, &error));
-    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), &indirect, &error));
+    TRY(ogpu_buffer_create(device, 48, OGPU_MEMORY_HOST, &vertices, &error));
+    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &indirect, &error));
     DrawRoot draw = {0};
     ProcessRoot process = {.width = width, .height = height};
     ReadRoot read = {.width = width};
     TRY(ogpu_buffer_device_address(vertices, &draw.vertices, &error));
     TRY(ogpu_buffer_device_address(indirect, &draw.draw, &error));
     for (unsigned i = 0; i < 3; ++i) {
-        TRY(ogpu_buffer_create(device, size + 8, &buffers[i], &error));
+        TRY(ogpu_buffer_create(device, size + 8, OGPU_MEMORY_HOST, &buffers[i], &error));
         images[i] = malloc((size_t)size + 8);
         REQUIRE(images[i] != NULL);
     }

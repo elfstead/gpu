@@ -409,6 +409,7 @@ pub unsafe extern "C" fn ogpu_device_destroy(device: *mut OgpuDevice) {
 pub unsafe extern "C" fn ogpu_buffer_create(
     device: *mut OgpuDevice,
     size: u64,
+    placement: u32,
     out_buffer: *mut *mut OgpuBuffer,
     error: *mut OgpuError,
 ) -> OgpuResult {
@@ -417,8 +418,13 @@ pub unsafe extern "C" fn ogpu_buffer_create(
             required(device)?;
             let size = usize::try_from(size)
                 .map_err(|_| Error::new(INVALID_ARGUMENT, "Buffer too large"))?;
+            let placement = match placement {
+                0 => crate::compute::Placement::Host,
+                1 => crate::compute::Placement::Device,
+                _ => return Err(Error::new(INVALID_ARGUMENT, "Invalid buffer placement")),
+            };
             Ok(OgpuBuffer {
-                inner: Rc::new(Buffer::new((*device).inner.clone(), size)?),
+                inner: Rc::new(Buffer::placed((*device).inner.clone(), size, placement)?),
             })
         })
     }
@@ -723,6 +729,37 @@ pub unsafe extern "C" fn ogpu_batch_retain_buffer(
 }
 
 /// # Safety
+/// Live batch and buffers, writable error, externally serialized; see include/ogpu.h.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_copy_buffer(
+    batch: *mut OgpuBatch,
+    source: *const OgpuBuffer,
+    source_offset: u64,
+    destination: *const OgpuBuffer,
+    destination_offset: u64,
+    size: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(source)?;
+            required(destination)?;
+            let convert = |value| {
+                usize::try_from(value).map_err(|_| Error::new(OUT_OF_RANGE, "Copy range too large"))
+            };
+            (*batch).inner.copy_buffer(
+                (*source).inner.clone(),
+                convert(source_offset)?,
+                (*destination).inner.clone(),
+                convert(destination_offset)?,
+                convert(size)?,
+            )
+        })
+    }
+}
+
+/// # Safety
 /// Live uniquely owned handle or NULL, externally serialized. Referenced allocations
 /// must remain alive until this call returns; pending work is drained, not cancelled.
 #[no_mangle]
@@ -1012,6 +1049,20 @@ mod tests {
     }
     #[test]
     fn invalid_batch_arguments_need_no_driver() {
+        assert_eq!(
+            unsafe {
+                ogpu_batch_copy_buffer(
+                    ptr::null_mut(),
+                    ptr::null(),
+                    0,
+                    ptr::null(),
+                    0,
+                    0,
+                    ptr::null_mut(),
+                )
+            },
+            INVALID_ARGUMENT
+        );
         unsafe {
             let mut complete = 99;
             assert_eq!(
@@ -1127,7 +1178,7 @@ mod tests {
             assert_eq!(error.vulkan_result, 0);
             assert_eq!(error.message[255], 0);
             assert_eq!(
-                ogpu_buffer_create(ptr::null_mut(), 1, &mut buffer, &mut error),
+                ogpu_buffer_create(ptr::null_mut(), 1, 0, &mut buffer, &mut error),
                 INVALID_ARGUMENT
             );
             assert!(buffer.is_null());

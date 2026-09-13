@@ -1,4 +1,4 @@
-//! First execution experiment: one externally synchronized queue, addressable host-visible
+//! First execution experiment: one externally synchronized queue, addressable
 //! buffers, descriptor-free compute pipelines, and one-shot asynchronous submission.
 use crate::{vulkan::Instance, Error, INVALID_ARGUMENT, LOADER_ERROR, OUT_OF_RANGE, UNSUPPORTED};
 use ogpu_vulkan_sys as vk;
@@ -18,6 +18,10 @@ pub(crate) use heaps::{ImageHeap, SamplerHeap};
 #[cfg(test)]
 #[path = "reduction_tests.rs"]
 mod reduction_tests;
+
+#[cfg(test)]
+#[path = "memory_tests.rs"]
+mod memory_tests;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -49,6 +53,7 @@ functions! {
     vkCmdEndRendering: PFN_vkCmdEndRendering,
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
     vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
+    vkCmdCopyMemoryKHR: PFN_vkCmdCopyMemoryKHR,
     vkWriteResourceDescriptorsEXT: PFN_vkWriteResourceDescriptorsEXT,
     vkGetPhysicalDeviceFormatProperties: PFN_vkGetPhysicalDeviceFormatProperties,
     vkWriteSamplerDescriptorsEXT: PFN_vkWriteSamplerDescriptorsEXT,
@@ -460,6 +465,12 @@ fn queue_family(families: &[vk::VkQueueFamilyProperties], graphics: bool) -> Opt
         .map(|i| i as u32)
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Placement {
+    Host,
+    Device,
+}
+
 pub(crate) struct Buffer {
     device: Rc<Device>,
     buffer: vk::VkBuffer,
@@ -489,12 +500,20 @@ impl Drop for Buffer {
     }
 }
 
-fn memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -> Option<(u32, bool)> {
+fn memory_type(
+    memory: &vk::VkPhysicalDeviceMemoryProperties,
+    mask: u32,
+    placement: Placement,
+) -> Option<(u32, bool)> {
+    let required = match placement {
+        Placement::Host => vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        Placement::Device => vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    };
     (0..memory.memoryTypeCount)
         .filter_map(|i| {
             let flags = memory.memoryTypes[i as usize].propertyFlags;
             if mask & (1 << i) == 0
-                || flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT == 0
+                || flags & required == 0
                 || flags
                     & (vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD
                         | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_PROTECTED_BIT)
@@ -507,17 +526,47 @@ fn memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -> Opti
                 flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT != 0,
             ))
         })
-        .max_by_key(|&(_, coherent)| coherent)
+        .max_by_key(|&(i, coherent)| {
+            let flags = memory.memoryTypes[i as usize].propertyFlags;
+            let local =
+                flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT != 0;
+            let visible =
+                flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT != 0;
+            let cached =
+                flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_CACHED_BIT != 0;
+            match placement {
+                Placement::Host => (coherent, cached, !local),
+                Placement::Device => (!visible, false, false),
+            }
+        })
 }
 
 impl Buffer {
+    #[cfg(test)]
     pub(crate) fn new(device: Rc<Device>, size: usize) -> Result<Self, Error> {
         Self::with_usage(device, size, 0)
+    }
+
+    pub(crate) fn placed(
+        device: Rc<Device>,
+        size: usize,
+        placement: Placement,
+    ) -> Result<Self, Error> {
+        Self::allocate(device, size, placement, 0)
     }
 
     fn with_usage(
         device: Rc<Device>,
         size: usize,
+        extra_usage: vk::VkBufferUsageFlags,
+    ) -> Result<Self, Error> {
+        Self::allocate(device, size, Placement::Host, extra_usage)
+    }
+
+    fn allocate(
+        device: Rc<Device>,
+        size: usize,
+        placement: Placement,
         extra_usage: vk::VkBufferUsageFlags,
     ) -> Result<Self, Error> {
         device.ready()?;
@@ -548,6 +597,7 @@ impl Buffer {
                 usage: vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
                     | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
                     | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                    | vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_TRANSFER_SRC_BIT
                     | extra_usage,
                 sharingMode: vk::VkSharingMode_VK_SHARING_MODE_EXCLUSIVE,
                 ..Default::default()
@@ -562,8 +612,10 @@ impl Buffer {
                 result.buffer,
                 &mut requirements,
             );
-            let (index, coherent) = memory_type(&d.memory, requirements.memoryTypeBits)
-                .ok_or_else(|| Error::new(UNSUPPORTED, "No compatible host-visible memory type"))?;
+            let (index, coherent) = memory_type(&d.memory, requirements.memoryTypeBits, placement)
+                .ok_or_else(|| {
+                    Error::new(UNSUPPORTED, "No compatible memory type for placement")
+                })?;
             result.coherent = coherent;
             // Declare the one-buffer allocation as dedicated as well as owning it that
             // way, satisfying implementations that require dedicated buffer allocations.
@@ -597,19 +649,21 @@ impl Buffer {
                 "vkBindBufferMemory",
                 (d.f.vkBindBufferMemory.unwrap())(d.handle, result.buffer, result.memory, 0),
             )?;
-            let mut mapping = ptr::null_mut();
-            d.result(
-                "vkMapMemory",
-                (d.f.vkMapMemory.unwrap())(
-                    d.handle,
-                    result.memory,
-                    0,
-                    vk::VK_WHOLE_SIZE as vk::VkDeviceSize,
-                    0,
-                    &mut mapping,
-                ),
-            )?;
-            result.mapped = mapping.cast();
+            if placement == Placement::Host {
+                let mut mapping = ptr::null_mut();
+                d.result(
+                    "vkMapMemory",
+                    (d.f.vkMapMemory.unwrap())(
+                        d.handle,
+                        result.memory,
+                        0,
+                        vk::VK_WHOLE_SIZE as vk::VkDeviceSize,
+                        0,
+                        &mut mapping,
+                    ),
+                )?;
+                result.mapped = mapping.cast();
+            }
             let address_info = vk::VkBufferDeviceAddressInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
                 buffer: result.buffer,
@@ -668,6 +722,7 @@ impl Buffer {
     pub(crate) fn write(&self, offset: usize, bytes: &[u8]) -> Result<(), Error> {
         self.device.ready()?;
         self.range(offset, bytes.len())?;
+        self.host_access()?;
         if bytes.is_empty() {
             return Ok(());
         }
@@ -691,6 +746,7 @@ impl Buffer {
     ) -> Result<(), Error> {
         self.device.ready()?;
         self.range(offset, length)?;
+        self.host_access()?;
         if length == 0 {
             return Ok(());
         }
@@ -700,6 +756,17 @@ impl Buffer {
             ptr::copy_nonoverlapping(self.mapped.add(offset), destination, length);
         }
         Ok(())
+    }
+
+    fn host_access(&self) -> Result<(), Error> {
+        if self.mapped.is_null() {
+            Err(Error::new(
+                INVALID_ARGUMENT,
+                "Device placement does not permit CPU access",
+            ))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -941,12 +1008,12 @@ mod tests {
             vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
         memory.memoryTypes[1].propertyFlags = memory.memoryTypes[0].propertyFlags
             | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-        assert_eq!(memory_type(&memory, 3), Some((1, true)));
-        assert_eq!(memory_type(&memory, 1), Some((0, false)));
-        assert_eq!(memory_type(&memory, 0), None);
+        assert_eq!(memory_type(&memory, 3, Placement::Host), Some((1, true)));
+        assert_eq!(memory_type(&memory, 1, Placement::Host), Some((0, false)));
+        assert_eq!(memory_type(&memory, 0, Placement::Host), None);
         memory.memoryTypes[1].propertyFlags |=
             vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD;
-        assert_eq!(memory_type(&memory, 3), Some((0, false)));
+        assert_eq!(memory_type(&memory, 3, Placement::Host), Some((0, false)));
     }
     #[test]
     #[ignore = "requires a real Vulkan loader/device; run with --ignored --nocapture"]

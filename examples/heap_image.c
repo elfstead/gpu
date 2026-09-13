@@ -57,10 +57,10 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
     TRY(ogpu_sampler_heap_write(samplers, 2, NULL, 0, &error));
     OgpuImageEntry invalid = {source, OGPU_IMAGE_SAMPLED, 1};
     REQUIRE(ogpu_image_heap_write(heaps[0], 0, &invalid, 1, &error) == OGPU_ERROR_INVALID_ARGUMENT);
-    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), &indirect, &error));
+    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &indirect, &error));
     const OgpuDrawArguments draw = {3, 1, 0, 0};
     TRY(ogpu_buffer_write(indirect, 0, &draw, sizeof(draw), &error));
-    TRY(ogpu_buffer_create(device, 2 * (size + 8), &readback, &error));
+    TRY(ogpu_buffer_create(device, 2 * (size + 8), OGPU_MEMORY_HOST, &readback, &error));
     for (unsigned pass = 0; pass < 4; ++pass) {
         unsigned variant = pass % 2;
         // Reuse the same allocations after all previous recorded references die.

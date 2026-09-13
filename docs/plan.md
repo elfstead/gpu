@@ -20,7 +20,8 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 3**; rebuild callers with the matching header/library.
+The current interface is **ABI 4**: allocation now takes explicit memory placement;
+rebuild callers with the matching header/library. The memory checkpoint is in progress.
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
 The RX 5700 XT now passes graphics, heaps and preservation as well as compute/GGML;
@@ -79,7 +80,7 @@ for this checkpoint. Deferred work is not a hidden prerequisite.
 | Area | Intended | Provisional now | Checkpoint treatment |
 |---|---|---|---|
 | Host boundary | Language-neutral C ABI, Rust implementation, explicit errors | Current function naming and version/discovery conventions | Preserve the boundary; decide compatibility policy in D5 |
-| Memory | Owning allocations separate from non-owning GPU addresses | Dedicated host-visible buffers and CPU copies | Resolve placement/transfers in D2; do not present this as the final memory architecture |
+| Memory | Owning allocations separate from non-owning GPU addresses; explicit placement and transfers | Dedicated HOST/DEVICE buffers and retained byte-range copies | D2 follow-up tests the contract through GGML; no general allocator or implicit migration |
 | Executables and arguments | Prepared code with explicit requirements; application-owned data layout | Trusted SPIR-V, `main`, fixed root bytes, caller-known tile/workgroup sizes, 1D dispatch | Resolve the minimum executable contract in D1; fixed forms may remain if sufficient and documented |
 | Submission and lifetimes | Explicit dependencies and completion; retained directly referenced resources | One queue, one-shot batches, global barriers, externally serialized host calls, draining destruction | Retain as the starting candidate; verify consumer fit in D4 |
 | Graphics/images | Graphics and compute share memory/submission rules; specialized images stay explicit | Fixed RGBA8 raster state, independent checked heaps, nearest/linear clamp/repeat sampling, exclusive edits, preserved contents | D3 follow-up implements preservation and independent ownership; broader formats/views and concurrent mutation stay deferred |

@@ -85,6 +85,13 @@ fn access(mask: u32) -> Result<Access, Error> {
 }
 
 enum Step {
+    CopyBuffer {
+        source: Rc<Buffer>,
+        source_offset: usize,
+        destination: Rc<Buffer>,
+        destination_offset: usize,
+        size: usize,
+    },
     DiscardTarget(Rc<Target>),
     BindImages(Rc<ImageHeap>),
     BindSamplers(Rc<SamplerHeap>),
@@ -121,6 +128,44 @@ pub(crate) struct Batch {
 }
 
 impl Batch {
+    pub(crate) fn copy_buffer(
+        &mut self,
+        source: Rc<Buffer>,
+        source_offset: usize,
+        destination: Rc<Buffer>,
+        destination_offset: usize,
+        size: usize,
+    ) -> Result<(), Error> {
+        self.recording()?;
+        if !Rc::ptr_eq(&self.device, &source.device)
+            || !Rc::ptr_eq(&self.device, &destination.device)
+        {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Copy buffers belong to another device",
+            ));
+        }
+        source.range(source_offset, size)?;
+        destination.range(destination_offset, size)?;
+        if size == 0 {
+            return Ok(());
+        }
+        if Rc::ptr_eq(&source, &destination)
+            && source_offset < destination_offset + size
+            && destination_offset < source_offset + size
+        {
+            return Err(Error::new(INVALID_ARGUMENT, "Copy ranges overlap"));
+        }
+        self.recording()?.push(Step::CopyBuffer {
+            source,
+            source_offset,
+            destination,
+            destination_offset,
+            size,
+        });
+        Ok(())
+    }
+
     pub(crate) fn discard_target(&mut self, target: Rc<Target>) -> Result<(), Error> {
         if !Rc::ptr_eq(&self.device, &target.device) {
             return Err(Error::new(
@@ -514,6 +559,36 @@ impl Completion {
             );
             for step in &self.steps {
                 match step {
+                    Step::CopyBuffer {
+                        source,
+                        source_offset,
+                        destination,
+                        destination_offset,
+                        size,
+                    } => {
+                        let region = vk::VkDeviceMemoryCopyKHR {
+                            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_MEMORY_COPY_KHR,
+                            srcRange: vk::VkDeviceAddressRangeKHR {
+                                address: source.address + *source_offset as u64,
+                                size: *size as u64,
+                            },
+                            dstRange: vk::VkDeviceAddressRangeKHR {
+                                address: destination.address + *destination_offset as u64,
+                                size: *size as u64,
+                            },
+                            srcFlags: vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+                            dstFlags: vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+                            ..Default::default()
+                        };
+                        let info = vk::VkCopyDeviceMemoryInfoKHR {
+                            sType:
+                                vk::VkStructureType_VK_STRUCTURE_TYPE_COPY_DEVICE_MEMORY_INFO_KHR,
+                            regionCount: 1,
+                            pRegions: &region,
+                            ..Default::default()
+                        };
+                        (d.f.vkCmdCopyMemoryKHR.unwrap())(command, &info);
+                    }
                     Step::DiscardTarget(target) => target.discard(command),
                     Step::BindImages(heap) => heap.bind(command),
                     Step::BindSamplers(heap) => heap.bind(command),
