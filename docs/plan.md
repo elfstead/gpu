@@ -32,9 +32,11 @@ cases on RADV and llvmpipe. Keep explicit placement/copies, with no implicit mig
 The comparison exposes staging overhead as well as shorter graph intervals; it does
 not select a universally fastest memory policy. The user selected
 [libplacebo image processing](consumer-libplacebo.md) as the second consumer.
-The active step is G0: a pinned upstream compute/fragment reference and shader-contract
-audit, before choosing the bounded adapter/API changes. OGPU execution of this
-consumer is not yet implemented; G0 is not an integration acceptance claim.
+G0 passed: pinned upstream compute/fragment execution on RADV and llvmpipe, plus
+declaration-only native-heap compilation of the captured shaders. The next step is
+G1: bounded adapter/API changes for the concrete grid, image, specialization and
+vertex-input requirements in the brief. OGPU execution of this consumer is not yet
+implemented; G0 is not an integration acceptance claim.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Concurrent slot streaming, generalized formats/views and compute-only image deployment

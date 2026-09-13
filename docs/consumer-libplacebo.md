@@ -1,6 +1,7 @@
 # Second consumer: libplacebo image processing
 
-Approved 2026-09-13. Status: G0 source/compiler/reference gate in progress.
+Approved 2026-09-13. Status: G0 source/compiler/reference gate passed. G1 adapter/API
+implementation is next; G2 OGPU execution is not implemented yet.
 Pinned upstream: `3330a515d62139259c26239014f286e233bd3a5c` (2026-09-03),
 [official mirror](https://github.com/haasn/libplacebo).
 
@@ -55,3 +56,60 @@ yet an approved list of general API additions.
 
 G0 is not completion of G2. Reference rendering, shader compilation and OGPU
 execution are separate gates. No performance target or stability claim.
+
+## G0 evidence — 2026-09-13
+
+The pinned upstream shared library builds without source changes. The
+[reference harness](../integrations/libplacebo/README.md) preserves upstream
+`pl_shader_sample_polar`, its EWA Lanczos filter/LUT generation, shader dispatch and
+Vulkan execution. A nearest-sampled fragment pass consumes the compute output.
+
+Both RX 5700 XT/RADV and llvmpipe pass three input extents (`16x16`, `31x17`,
+`64x33`) with three A/B/A frame updates each. Every frame runs one compute and one
+raster operation. Intermediate/final images match exactly; alpha is opaque; A
+repeats exactly and B changes the output. Only two passes compile per extent;
+subsequent frames reuse them. No validation errors were reported with Vulkan and
+synchronization validation requested. No window, decoder or CPU processing fallback.
+
+Local artifacts, all ignored:
+
+- llvmpipe: `target/libplacebo-integration/reference.S5Jv5nEz`.
+- RADV: `target/libplacebo-integration/reference.tryGFcWP`.
+- Compiler gate on llvmpipe captures: `target/libplacebo-integration/compiler.eXC3zpnE`.
+- Compiler gate on RADV captures: `target/libplacebo-integration/compiler.umTtYxmI`.
+
+Cross-driver comparison: 143,244 output bytes, 194 differing, maximum channel-byte
+difference 1. Checksums are diagnostic, not portable golden values. For G2, declare
+an initial maximum absolute RGB difference of **2/255**, alpha exactly 255, for
+both intermediate and final images against upstream on the same driver. This is
+declared before any OGPU result; failures must be investigated, not hidden by
+silently widening tolerance. Preserve exact A/B/A determinism and exact nearest
+intermediate-to-final copying within each implementation.
+
+The standalone compiler probe maps known sampled/storage declaration lines to
+`GL_EXT_descriptor_heap` arrays, constructing sampled images from separate image
+and sampler entries. No processing-body rewrite or descriptor-set backend was
+needed. All nine shaders from each driver capture compile under shaderc 2026.1 /
+glslang 16.4.0 and validate under SPIRV-Tools 1.4.357.0. The resulting SPIR-V uses
+native heaps and contains no descriptor-set/binding decorations. Negative-input
+and body-preservation tests pass. This is compiler evidence only: constants,
+vertex data and resource binding must still be handled for execution.
+
+## Concrete G1 inventory
+
+| Upstream requirement observed | Current OGPU fit / next decision |
+|---|---|
+| 32×32 local workgroup; 2D dispatch grid, tail groups | Local size is already shader-owned. Replace the arbitrary 1D grid restriction with a checked multidimensional dispatch contract rather than remapping builtin IDs in shader bodies. |
+| Sampled RGBA8 input, storage RGBA8 intermediate, RGBA8 fragment target | Existing image heaps and rendering model fit; add a deliberate image upload contract rather than CPU texture mirrors. |
+| 256-entry R32F, linearly sampled 1D filter LUT | Current target is fixed 2D RGBA8. Decide format/dimension/usage description together; do not quantize LUT weights to fit RGBA8. Upstream also has dimension-selection logic worth evaluating before adding every image dimension. |
+| Seven compute specialization constants, some sizing shared arrays; one raster constant | Values are captured, not optional. Compare adapter-side SPIR-V specialization with a small executable specialization contract. Do not execute placeholder GLSL defaults. |
+| 56 compute push bytes; zero raster push bytes | Fits current root size model. If adapter metadata is added, define offsets explicitly and preserve the upstream layout. |
+| Four-vertex strip with two vec2 vertex attributes | Compare adapter-side vertex pulling/strip expansion with a small raster topology contract. No depth, blending, indexed draws or arbitrary raster state is needed for this pipeline. |
+| Repeated passes and texture/LUT reuse | Preserve upstream dispatch caching and image lifetimes. Translate dependencies at the adapter boundary; no automatic pointer tracing in core. |
+
+Proceed with a bounded `pl_gpu` adapter, preserving upstream shader generation and
+dispatch. Unsupported callbacks/formats must reject rather than fall through to
+Vulkan. Keep the reference executable separate so successful reference execution
+cannot masquerade as successful OGPU integration. This inventory justifies the
+next design/implementation step; it is not a commitment to implement all libplacebo
+GPU operations or freeze the current API shape.
