@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Any layout/signature change must increment this version. */
-#define OGPU_ABI_VERSION UINT32_C(6)
+#define OGPU_ABI_VERSION UINT32_C(7)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -150,7 +150,23 @@ OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *dat
  * command retention) for every GPU operation that can reach this address. */
 OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_address, OgpuError *out_error);
 
-/* words is a 4-byte-aligned SPIR-V module, copied/consumed before return. The caller
+/* One 32-bit scalar specialization value, keyed by SPIR-V SpecId. bits preserves
+ * the raw representation of int32/uint32/float32; bool uses 0/1. IDs must be unique
+ * within each stage. Unspecified IDs keep shader defaults; absent IDs are ignored.
+ * The caller must match each present ID's scalar type/width and ensure the
+ * specialized shader (including local size/shared memory) fits enabled limits.
+ * Specialization affects executable creation, never later dispatch arguments. */
+typedef struct OgpuSpecializationConstant { uint32_t id, bits; } OgpuSpecializationConstant;
+typedef struct OgpuShaderDesc {
+    const uint32_t *words;
+    uint64_t word_count;
+    const OgpuSpecializationConstant *constants;
+    uint32_t constant_count;
+    uint32_t reserved;
+} OgpuShaderDesc;
+/* Description, words and constants are consumed before creation returns.
+ * reserved=0; constant_count=0 permits NULL constants. All pointers are naturally
+ * aligned. words is a 4-byte-aligned SPIR-V module. The caller
  * must provide VALID SPIR-V for the enabled modern Vulkan baseline with a compute
  * entry named "main" and no descriptor-set bindings. Core capabilities, BDA,
  * untyped pointers and native descriptor-heap access are supported. Heap shaders
@@ -159,7 +175,7 @@ OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_ad
  * push_size_bytes must be a multiple of 4 within maxPushDataSize; zero is legal.
  * All shader push accesses must fit this range. Header checks are NOT validation
  * or sandboxing; malformed/incompatible shaders may cause driver faults. */
-OgpuResult ogpu_kernel_create(OgpuDevice *device, const uint32_t *words, uint64_t word_count,
+OgpuResult ogpu_kernel_create(OgpuDevice *device, const OgpuShaderDesc *shader,
     uint32_t push_size_bytes, OgpuKernel **out_kernel, OgpuError *out_error);
 void ogpu_kernel_destroy(OgpuKernel *kernel);
 
@@ -391,13 +407,16 @@ OgpuResult ogpu_batch_discard_image(OgpuBatch *batch, const OgpuImage *target,
  * as kernel_create. Storage reads only in these stages;
  * vertex/fragment stores/atomics are NOT enabled. Vertex positions must be written
  * by the vertex shader; fragment location 0 is a floating-point RGBA output.
- * Fixed triangle-list/fill/no-cull state, full-target viewport/scissor, one sample,
+ * Triangle-list or triangle-strip topology, fixed fill/no-cull state,
+ * full-target viewport/scissor, one sample,
  * no depth/stencil or blending. Root range is shared by vertex AND fragment stages;
  * size/alignment/trusted-shader rules match kernel_create. No source compiler. */
+#define OGPU_TOPOLOGY_TRIANGLE_LIST 0u
+#define OGPU_TOPOLOGY_TRIANGLE_STRIP 1u
+/* Vertex and fragment specialization IDs are independent, even when equal. */
 OgpuResult ogpu_raster_create(OgpuDevice *device,
-    const uint32_t *vertex_words, uint64_t vertex_word_count,
-    const uint32_t *fragment_words, uint64_t fragment_word_count,
-    uint32_t push_size_bytes, OgpuRaster **out_raster, OgpuError *out_error);
+    const OgpuShaderDesc *vertex, const OgpuShaderDesc *fragment,
+    uint32_t push_size_bytes, uint32_t topology, OgpuRaster **out_raster, OgpuError *out_error);
 void ogpu_raster_destroy(OgpuRaster *raster);
 
 /* GPU-readable draw record, four consecutive uint32 values. first_instance MUST

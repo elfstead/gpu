@@ -1,0 +1,25 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+layout(local_size_x=8) in;
+layout(constant_id=1) const uint count = 8;
+layout(constant_id=2) const float scale = 1.0;
+layout(constant_id=3) const int bias = 0;
+layout(constant_id=4) const uint addend = 1;
+layout(constant_id=5) const bool enabled = true;
+layout(buffer_reference, std430, buffer_reference_align=4) buffer Data { uint words[]; };
+layout(push_constant, std430) uniform Root { Data output_data; };
+shared float tile[count];
+void main() {
+    for (uint i=gl_LocalInvocationIndex; i<count; i+=8)
+        tile[i] = float(i) * scale + float(bias) + float(addend);
+    barrier();
+    if (gl_LocalInvocationIndex == 0) {
+        float sum = 0;
+        for (uint i=0; i<count; ++i) sum += tile[i];
+        uint base = 4 * gl_WorkGroupID.x;
+        output_data.words[base] = count;
+        output_data.words[base+1] = floatBitsToUint(scale);
+        output_data.words[base+2] = floatBitsToUint(sum);
+        output_data.words[base+3] = enabled ? 1 : 0;
+    }
+}

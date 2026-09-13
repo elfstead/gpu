@@ -4,6 +4,11 @@ use crate::{vulkan::Instance, Error, INVALID_ARGUMENT, LOADER_ERROR, OUT_OF_RANG
 use ogpu_vulkan_sys as vk;
 use std::{cell::Cell, ptr, rc::Rc, sync::Arc};
 
+#[path = "specialization.rs"]
+mod specialization;
+use specialization::Specialization;
+pub use specialization::SpecializationConstant;
+
 #[path = "batch.rs"]
 mod batch;
 pub(crate) use batch::{Batch, Completion};
@@ -803,8 +808,11 @@ impl Kernel {
         device: Rc<Device>,
         words: &[u32],
         push_size: u32,
+        constants: &[SpecializationConstant],
     ) -> Result<Self, Error> {
         device.ready()?;
+        let specialization = Specialization::new(constants)?;
+        let specialization_info = specialization.info();
         if words.len() < 5
             || words[0] != 0x07230203
             || push_size % 4 != 0
@@ -845,6 +853,7 @@ impl Kernel {
                 stage: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
                 module: result.module,
                 pName: c"main".as_ptr(),
+                pSpecializationInfo: &specialization_info,
                 ..Default::default()
             };
             let flags = vk::VkPipelineCreateFlags2CreateInfo {
@@ -1044,7 +1053,7 @@ mod tests {
             let mut root = [0u8; 16];
             root[..8].copy_from_slice(&buffer.address().unwrap().to_ne_bytes());
             root[8..12].copy_from_slice(&count.to_ne_bytes());
-            let kernel = Rc::new(unsafe { Kernel::new(device, &words, 16).unwrap() });
+            let kernel = Rc::new(unsafe { Kernel::new(device, &words, 16, &[]).unwrap() });
             for _ in 0..2 {
                 unsafe {
                     kernel

@@ -37,6 +37,13 @@ readback copies. Native float LUT sampling and repeated uploads exercise the ima
 requirements observed in the upstream consumer. The target-only API is removed;
 the actual libplacebo adapter and upstream image comparison are still pending.
 
+The [G1 executable checkpoint](consumer-libplacebo.md#g1-checkpoint-specialization-and-vertex-pulling)
+introduces ABI 7: copied per-stage 32-bit specialization and triangle-list/strip
+selection. The adapter's bounded declaration lowering pulls original vertex records
+through an address, leaving processing bodies unchanged. Dedicated GPU tests execute
+these contracts on both drivers; all six captured libplacebo executables prepare
+with their actual constants. Upstream passes are not yet submitted through OGPU.
+
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
 a gated Vulkan test verifies reuse while another submission is still pending.

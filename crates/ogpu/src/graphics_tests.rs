@@ -235,6 +235,8 @@ fn gpu_image_preservation() {
                     "../../../examples/shaders/image-pattern.frag.spv"
                 )),
                 0,
+                [&[], &[]],
+                0,
             )
             .unwrap()
         });
@@ -248,6 +250,8 @@ fn gpu_image_preservation() {
                     "../../../examples/shaders/triangle.frag.spv"
                 )),
                 16,
+                [&[], &[]],
+                0,
             )
             .unwrap()
         });
@@ -456,7 +460,8 @@ fn gpu_graphics_failures() {
             let result = if point < 4 {
                 Image::new(device.clone(), ImageDesc::rgba8(64, 64)).map(drop)
             } else {
-                unsafe { Raster::new(device.clone(), &vertex, &fragment, 16) }.map(drop)
+                unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0) }
+                    .map(drop)
             };
             assert_eq!(
                 result.unwrap_err().vk,
@@ -475,7 +480,7 @@ fn gpu_graphics_failures() {
             matches!(Image::new(device.clone(), ImageDesc::rgba8(64, 64)), Err(e) if e.status == UNSUPPORTED)
         );
         assert!(
-            matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16) }, Err(e) if e.status == UNSUPPORTED)
+            matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0) }, Err(e) if e.status == UNSUPPORTED)
         );
         let mut batch = Batch::new(device).unwrap();
         assert_eq!(
@@ -594,11 +599,12 @@ fn gpu_graphics() {
             matches!(Image::new(device.clone(), ImageDesc::rgba8(0, 64)), Err(e) if e.status == INVALID_ARGUMENT)
         );
         assert!(
-            matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, 16) }, Err(e) if e.status == INVALID_ARGUMENT)
+            matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, 16, [&[], &[]], 0) }, Err(e) if e.status == INVALID_ARGUMENT)
         );
-        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &compute, 16).unwrap() });
-        let raster =
-            Rc::new(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16).unwrap() });
+        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &compute, 16, &[]).unwrap() });
+        let raster = Rc::new(unsafe {
+            Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0).unwrap()
+        });
         let target = Rc::new(Image::new(device.clone(), ImageDesc::rgba8(64, 64)).unwrap());
         let vertices = Buffer::new(device.clone(), 48).unwrap();
         let indirect = Rc::new(Buffer::new(device.clone(), 16).unwrap());

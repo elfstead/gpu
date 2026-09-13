@@ -33,7 +33,7 @@ documented in their respective contracts:
 |---|---|---|---|
 | `OgpuDevice` | Probe + stable device index | Create buffers and kernels | Vulkan instance |
 | `OgpuBuffer` | Device + byte size | Write, read, query GPU address | Device |
-| `OgpuKernel` | Device + SPIR-V + push byte count | Dispatch and wait | Device |
+| `OgpuKernel` | Device + shader description + push byte count | Dispatch and wait | Device |
 
 Each handle is destroyed exactly once. Destroying a parent handle does not destroy
 the implementation object while children retain it. Device creation uses the
@@ -48,6 +48,20 @@ nonzero and within its per-axis device limit. The shader declares its own local
 workgroup size. The original experiment introduced execution at ABI 1; use the
 current matching header/library after subsequent breaking changes. No
 execution-facing Vulkan types are exposed.
+
+ABI 7 uses `OgpuShaderDesc`: SPIR-V words, a list of `{id, bits}` specialization
+constants, and a zero reserved field. Descriptions, words and constants are consumed
+before creation returns; they need not remain alive with the executable. Each value
+is exactly 32 bits (int, uint, float, or bool encoded as 0/1). IDs must be unique
+within a stage; absent IDs are ignored and unspecified constants retain shader
+defaults. An empty list may have a null pointer. Vertex and fragment lists are
+independent. Specialization happens during executable creation, not dispatch.
+
+The driver specializes the module, including dependent shared-array sizes. OGPU
+checks description structure and duplicate IDs, but does not reflect shader types
+or prove specialized resource limits. Present IDs must have compatible types and
+widths; specialized local sizes/shared storage and the resulting shader must satisfy
+the enabled device contract. Trusted shader input is not a sandbox boundary.
 
 ## Memory and execution contract
 

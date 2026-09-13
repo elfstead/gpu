@@ -80,7 +80,8 @@ Kernel load_kernel(State &state, const std::string &path) {
     if (!file.read(reinterpret_cast<char *>(words.data()), bytes))
         throw std::runtime_error("short shader read");
     OgpuKernel *raw = nullptr;
-    GPU(ogpu_kernel_create(state.device.get(), words.data(), words.size(), sizeof(Root), &raw,
+    const OgpuShaderDesc shader = {words.data(), words.size(), nullptr, 0, 0};
+    GPU(ogpu_kernel_create(state.device.get(), &shader, sizeof(Root), &raw,
                            &error));
     return Kernel(raw, ogpu_kernel_destroy);
 }

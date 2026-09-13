@@ -24,7 +24,7 @@ fn gpu_dispatch_grids() {
             Err(e) => panic!("{e:?}"),
         };
         let mut kernel = OgpuKernel {
-            inner: Rc::new(unsafe { Kernel::new(device.clone(), &words, 24).unwrap() }),
+            inner: Rc::new(unsafe { Kernel::new(device.clone(), &words, 24, &[]).unwrap() }),
         };
         // Pure X/Y/Z, 2D and asymmetric 3D; every case has partial workgroups.
         for extent in [[9u32, 1, 1], [1, 5, 1], [1, 1, 7], [9, 5, 1], [17, 5, 3]] {

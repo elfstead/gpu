@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
         break;
     }
     REQUIRE(device != NULL);
-    TRY(ogpu_kernel_create(device, words, (uint64_t)byte_count / 4, sizeof(Root), &kernel, &error));
+    TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, (uint64_t)byte_count / 4, NULL, 0, 0}, sizeof(Root), &kernel, &error));
     TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &source, &error));
     input = malloc((size_t)size);
     REQUIRE(input != NULL);

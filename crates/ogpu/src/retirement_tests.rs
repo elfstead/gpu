@@ -157,7 +157,7 @@ fn gpu_retirement() {
                 .unwrap();
             let address = buffer.address().unwrap();
             let weak = Rc::downgrade(&buffer);
-            let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16).unwrap() });
+            let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16, &[]).unwrap() });
             let mut discarded = Batch::new(device.clone()).unwrap();
             let temporary = Rc::new(Buffer::new(device.clone(), 4).unwrap());
             let temporary_weak = Rc::downgrade(&temporary);

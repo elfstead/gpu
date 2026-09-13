@@ -527,8 +527,20 @@ impl Raster {
         vertex: &[u32],
         fragment: &[u32],
         push_size: u32,
+        constants: [&[SpecializationConstant]; 2],
+        topology: u32,
     ) -> Result<Self, Error> {
         ready(&device)?;
+        let topology = match topology {
+            0 => vk::VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            1 => vk::VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
+            _ => return Err(Error::new(INVALID_ARGUMENT, "Invalid raster topology")),
+        };
+        let specialization = [
+            Specialization::new(constants[0])?,
+            Specialization::new(constants[1])?,
+        ];
+        let specialization_info = specialization.each_ref().map(Specialization::info);
         if [vertex, fragment]
             .iter()
             .any(|s| s.len() < 5 || s[0] != 0x07230203)
@@ -577,6 +589,8 @@ impl Raster {
                 module: result.modules
                     [usize::from(stage == vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT)],
                 pName: c"main".as_ptr(),
+                pSpecializationInfo: &specialization_info
+                    [usize::from(stage == vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT)],
                 ..Default::default()
             });
             let vertex_input = vk::VkPipelineVertexInputStateCreateInfo {
@@ -587,7 +601,7 @@ impl Raster {
             let assembly = vk::VkPipelineInputAssemblyStateCreateInfo {
                 sType:
                     vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                topology: vk::VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+                topology,
                 ..Default::default()
             };
             let viewport = vk::VkPipelineViewportStateCreateInfo {

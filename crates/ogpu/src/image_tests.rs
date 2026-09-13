@@ -287,7 +287,7 @@ fn gpu_float_image_sampling() {
             Err(e) => panic!("{e:?}"),
         };
         let mut kernel = OgpuKernel {
-            inner: Rc::new(unsafe { Kernel::new(device.clone(), &words, 12).unwrap() }),
+            inner: Rc::new(unsafe { Kernel::new(device.clone(), &words, 12, &[]).unwrap() }),
         };
         for dimension in [1u32, 2] {
             let (width, height) = if dimension == 1 {

@@ -1,6 +1,6 @@
 # Working status and first integration milestone
 
-Updated 2026-09-13. This is the authoritative near-term work plan. The
+Updated 2026-09-14. This is the authoritative near-term work plan. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. Neither a backlog entry nor a successful benchmark schedules more work.
 
@@ -20,8 +20,9 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 6**: explicit image descriptions and retained uploads
-replace the RGBA8-only target API; X/Y/Z dispatch remains available;
+The current interface is **ABI 7**: shader descriptions carry per-stage 32-bit
+specialization constants; raster creation selects triangle list or strip.
+Explicit images/uploads and X/Y/Z dispatch remain available;
 rebuild callers with the matching header/library.
 Local contract and regression gates pass. At `a5a609d`, unified image layouts became
 optional: the same GENERAL-only path works without its layout-efficiency guarantee.
@@ -36,9 +37,11 @@ not select a universally fastest memory policy. The user selected
 G0 passed: pinned upstream compute/fragment execution on RADV and llvmpipe, plus
 declaration-only native-heap compilation of the captured shaders. G1 is in progress:
 checked multidimensional dispatch, 1D/2D RGBA8/R32F image descriptions and explicit
-uploads are implemented, with existing callers migrated. Next is executable
-specialization and vertex-input handling in the adapter. OGPU execution of this consumer is not yet
-implemented; G0 is not an integration acceptance claim.
+uploads, executable specialization and bounded vertex-input lowering are implemented,
+with existing callers migrated. All six captured upstream executables can be created
+through OGPU on both drivers. Next is the bounded `pl_gpu` adapter: resource/binding
+translation, pass submission and lifetimes, then G2 image comparison. No upstream
+pass has executed through OGPU yet; preparation is not integration acceptance.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Concurrent slot streaming, additional formats/subresources and compute-only image deployment

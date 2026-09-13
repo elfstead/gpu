@@ -21,14 +21,18 @@ See [physical RADV and llvmpipe validation](hardware-validation.md).
 
 `OgpuRaster` prepares valid vertex and fragment SPIR-V entry points named `main`,
 with no descriptor-set bindings and a caller-defined copied root block shared by
-both stages. Native heap access uses [independent image/sampler heaps](descriptor-heaps.md);
+both stages. Each stage uses an `OgpuShaderDesc` with its own specialization
+constants; identical constant IDs in different stages are independent. See the
+[executable contract](execution.md#c-api-and-ownership).
+Native heap access uses [independent image/sampler heaps](descriptor-heaps.md);
 existing descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
 The runtime still requires the modern device baseline. Vertex attributes
 are fetched through GPU addresses: there is no vertex
 binding layout. Vertex/fragment storage writes and atomics are not enabled. Shader
 validity, stage interfaces, and reachable address bounds remain trusted contracts.
 
-Raster state is deliberately fixed: triangle list, fill, no culling, full-target
+Raster creation selects triangle list or triangle strip (ABI 7); other topology
+values are rejected. Primitive restart is disabled. Remaining state is fixed: fill, no culling, full-target
 viewport/scissor, one sample, one RGBA8 UNORM color output, no blending/depth/stencil.
 This is an experiment constraint, not a commitment to hard-code graphics state.
 

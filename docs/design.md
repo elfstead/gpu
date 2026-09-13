@@ -39,10 +39,12 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 6: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
+ABI 7: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
 replaced the coupled table API in ABI 3; explicit allocation placement changes
 buffer creation in ABI 4; explicit X/Y/Z workgroup counts replace 1D-only dispatch
-in ABI 5; image descriptions, usage and uploads replace the target API in ABI 6.
+in ABI 5; image descriptions, usage and uploads replace the target API in ABI 6;
+shader descriptions with per-stage specialization and raster topology change
+executable creation in ABI 7.
 Rebuild callers against matching
 header/library/shaders; source revision still identifies the experimental checkpoint.
 
@@ -64,7 +66,7 @@ retention; applications still own scratch-range reuse decisions.
 |---|---|---|
 | Host boundary | Opaque ownership handles, fixed-width values, explicit errors and lifetime rules | Experimental ABI; some diagnostics/capability fields are Vulkan-specific |
 | Linear memory | Owning buffers and separate non-owning GPU addresses | Dedicated HOST/DEVICE placement, checked host access and retained GPU copies; [memory checkpoint](memory-transfers.md) |
-| Executables | Prepared compute kernels and raster programs, caller-defined root bytes | Trusted Vulkan SPIR-V, `main` entry points, limited enabled capabilities |
+| Executables | Prepared compute kernels and raster programs, caller-defined root bytes, per-stage 32-bit specialization | Trusted Vulkan SPIR-V, `main` entry points, limited enabled capabilities; caller validates specialized shader requirements |
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |

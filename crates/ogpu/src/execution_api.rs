@@ -28,6 +28,39 @@ pub struct OgpuSamplerHeap {
 }
 pub use crate::compute::ImageDesc as OgpuImageDesc;
 pub use crate::compute::SamplerDesc as OgpuSamplerDesc;
+pub use crate::compute::SpecializationConstant as OgpuSpecializationConstant;
+
+#[repr(C)]
+pub struct OgpuShaderDesc {
+    pub words: *const u32,
+    pub word_count: u64,
+    pub constants: *const OgpuSpecializationConstant,
+    pub constant_count: u32,
+    pub reserved: u32,
+}
+
+unsafe fn shader<'a>(
+    desc: *const OgpuShaderDesc,
+) -> Result<(&'a [u32], &'a [OgpuSpecializationConstant]), Error> {
+    unsafe {
+        required(desc)?;
+        let desc = &*desc;
+        if desc.reserved != 0 {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Reserved shader description field",
+            ));
+        }
+        let words = shader_words(desc.words, desc.word_count)?;
+        let constants = if desc.constant_count == 0 {
+            &[]
+        } else {
+            required(desc.constants)?;
+            std::slice::from_raw_parts(desc.constants, desc.constant_count as usize)
+        };
+        Ok((words, constants))
+    }
+}
 
 /// # Safety
 /// Live same-device batch/target, writable error; externally serialized.
@@ -523,8 +556,7 @@ pub unsafe extern "C" fn ogpu_buffer_device_address(
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_kernel_create(
     device: *mut OgpuDevice,
-    words: *const u32,
-    word_count: u64,
+    desc: *const OgpuShaderDesc,
     push_size: u32,
     out_kernel: *mut *mut OgpuKernel,
     error: *mut OgpuError,
@@ -532,16 +564,14 @@ pub unsafe extern "C" fn ogpu_kernel_create(
     unsafe {
         create(out_kernel, error, || {
             required(device)?;
-            required(words)?;
-            if word_count < 5 || word_count > (isize::MAX as u64) / 4 || words as usize % 4 != 0 {
-                return Err(Error::new(
-                    INVALID_ARGUMENT,
-                    "Invalid SPIR-V word count/alignment",
-                ));
-            }
-            let words = std::slice::from_raw_parts(words, word_count as usize);
+            let (words, constants) = shader(desc)?;
             Ok(OgpuKernel {
-                inner: Rc::new(Kernel::new((*device).inner.clone(), words, push_size)?),
+                inner: Rc::new(Kernel::new(
+                    (*device).inner.clone(),
+                    words,
+                    push_size,
+                    constants,
+                )?),
             })
         })
     }
@@ -853,25 +883,26 @@ unsafe fn shader_words<'a>(words: *const u32, word_count: u64) -> Result<&'a [u3
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_raster_create(
     device: *mut OgpuDevice,
-    vertex_words: *const u32,
-    vertex_count: u64,
-    fragment_words: *const u32,
-    fragment_count: u64,
+    vertex_desc: *const OgpuShaderDesc,
+    fragment_desc: *const OgpuShaderDesc,
     push_size: u32,
+    topology: u32,
     out_raster: *mut *mut OgpuRaster,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         create(out_raster, error, || {
             required(device)?;
-            let vertex = shader_words(vertex_words, vertex_count)?;
-            let fragment = shader_words(fragment_words, fragment_count)?;
+            let (vertex, vertex_constants) = shader(vertex_desc)?;
+            let (fragment, fragment_constants) = shader(fragment_desc)?;
             Ok(OgpuRaster {
                 inner: Rc::new(Raster::new(
                     (*device).inner.clone(),
                     vertex,
                     fragment,
                     push_size,
+                    [vertex_constants, fragment_constants],
+                    topology,
                 )?),
             })
         })
@@ -992,6 +1023,10 @@ mod dispatch_tests;
 mod image_tests;
 
 #[cfg(test)]
+#[path = "executable_tests.rs"]
+mod executable_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]
@@ -1052,7 +1087,6 @@ mod tests {
                 ogpu_raster_create(
                     ptr::null_mut(),
                     ptr::null(),
-                    0,
                     ptr::null(),
                     0,
                     0,
@@ -1228,7 +1262,7 @@ mod tests {
             );
             assert!(buffer.is_null());
             assert_eq!(
-                ogpu_kernel_create(ptr::null_mut(), ptr::null(), 0, 0, &mut kernel, &mut error),
+                ogpu_kernel_create(ptr::null_mut(), ptr::null(), 0, &mut kernel, &mut error),
                 INVALID_ARGUMENT
             );
             assert!(kernel.is_null());

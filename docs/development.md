@@ -5,7 +5,7 @@ C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
 supported and tested. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 6; rebuild callers with this checkout's
+execution interface. The current ABI is 7; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
@@ -49,6 +49,24 @@ sampling fixture with shaderc 2026.1:
 ```sh
 glslc --target-env=vulkan1.4 examples/shaders/image-float.comp -o examples/shaders/image-float.comp.spv
 spirv-val --target-env vulkan1.4 examples/shaders/image-float.comp.spv
+```
+
+The executable tests cover copied per-stage specialization, default/overridden
+integer/float/bool constants, shared-array sizes, and address-pulled triangle strips.
+Regenerate their fixtures with shaderc 2026.1 and the same bounded vertex lowering
+used by the libplacebo compiler gate (C++17 compiler required):
+
+```sh
+mkdir -p target
+c++ -std=c++17 -O2 -Wall -Wextra -Werror integrations/libplacebo/heap-lower.cpp -o target/heap-lower
+target/heap-lower --test
+target/heap-lower examples/shaders/specialize.vert target/specialize.vert --vertex uv position
+glslc --target-env=vulkan1.4 target/specialize.vert -o examples/shaders/specialize.vert.spv
+glslc --target-env=vulkan1.4 examples/shaders/specialize.comp -o examples/shaders/specialize.comp.spv
+glslc --target-env=vulkan1.4 examples/shaders/specialize.frag -o examples/shaders/specialize.frag.spv
+for stage in comp vert frag; do
+    spirv-val --target-env vulkan1.4 "examples/shaders/specialize.$stage.spv"
+done
 ```
 
 Requirements: Rust 1.85+ with Cargo, a C11 compiler/linker, and a Vulkan loader with

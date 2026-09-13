@@ -22,7 +22,7 @@ static int kernel(OgpuDevice *device, const char *path, OgpuKernel **out) {
     REQUIRE(size >= 20 && size % 4 == 0 && fseek(file, 0, SEEK_SET) == 0);
     words = malloc((size_t)size);
     REQUIRE(words && fread(words, 1, (size_t)size, file) == (size_t)size);
-    TRY(ogpu_kernel_create(device, words, (uint64_t)size / 4, sizeof(Root), out, &error));
+    TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, (uint64_t)size / 4, NULL, 0, 0}, sizeof(Root), out, &error));
     result = EXIT_SUCCESS;
 cleanup:
     free(words);

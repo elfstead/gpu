@@ -293,8 +293,8 @@ fn gpu_batches() {
             Err(e) => panic!("{e:?}"),
         };
         let other_device = Device::new(instance.clone(), physical).unwrap();
-        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16).unwrap() });
-        let other_kernel = Rc::new(unsafe { Kernel::new(other_device, &words, 16).unwrap() });
+        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16, &[]).unwrap() });
+        let other_kernel = Rc::new(unsafe { Kernel::new(other_device, &words, 16, &[]).unwrap() });
         let buffer = Buffer::new(device.clone(), 4).unwrap();
         buffer.write(0, &1u32.to_ne_bytes()).unwrap();
         let mut root = [0u8; 16];

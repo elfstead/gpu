@@ -1,7 +1,8 @@
 # Second consumer: libplacebo image processing
 
-Approved 2026-09-13. Status: G0 source/compiler/reference gate passed. G1 adapter/API
-implementation is next; G2 OGPU execution is not implemented yet.
+Approved 2026-09-13; updated 2026-09-14. Status: G0 passed. G1's core API and
+shader-preparation prerequisites pass; the bounded adapter is next. G2 execution
+through OGPU is not implemented yet.
 Pinned upstream: `3330a515d62139259c26239014f286e233bd3a5c` (2026-09-03),
 [official mirror](https://github.com/haasn/libplacebo).
 
@@ -102,9 +103,9 @@ vertex data and resource binding must still be handled for execution.
 | 32×32 local workgroup; 2D dispatch grid, tail groups | Implemented in ABI 5: explicit X/Y/Z workgroup counts with per-axis bounds checks; unused axes are 1. Local size remains shader-owned, with no builtin-ID remapping. |
 | Sampled RGBA8 input, storage RGBA8 intermediate, RGBA8 fragment target | Implemented in ABI 6: explicit image usages and retained buffer-to-image uploads; rendering remains 2D RGBA8. |
 | 256-entry R32F, linearly sampled 1D filter LUT | Implemented in ABI 6: native 1D/2D R32F images and format-checked linear sampling. The adapter can keep the upstream LUT dimension and float values. |
-| Seven compute specialization constants, some sizing shared arrays; one raster constant | Values are captured, not optional. Compare adapter-side SPIR-V specialization with a small executable specialization contract. Do not execute placeholder GLSL defaults. |
-| 56 compute push bytes; zero raster push bytes | Fits current root size model. If adapter metadata is added, define offsets explicitly and preserve the upstream layout. |
-| Four-vertex strip with two vec2 vertex attributes | Compare adapter-side vertex pulling/strip expansion with a small raster topology contract. No depth, blending, indexed draws or arbitrary raster state is needed for this pipeline. |
+| Seven compute specialization constants, some sizing shared arrays; one raster constant | Implemented in ABI 7: copied 32-bit ID/value pairs per stage, applied by the driver at executable creation. Preparation checks use the captured values, not placeholder defaults. |
+| 56 compute push bytes; zero raster push bytes | Compute layout stays unchanged. Vertex lowering adds an adapter-owned 8-byte vertex address at offset 0 to the originally empty raster root. |
+| Four-vertex strip with two vec2 vertex attributes | ABI 7 exposes triangle strips. Bounded declaration lowering pulls the original 16-byte vertex records through an address; no vertex expansion or processing-body rewrite. |
 | Repeated passes and texture/LUT reuse | Preserve upstream dispatch caching and image lifetimes. Translate dependencies at the adapter boundary; no automatic pointer tracing in core. |
 
 Proceed with a bounded `pl_gpu` adapter, preserving upstream shader generation and
@@ -183,6 +184,53 @@ its HOST/DEVICE lifecycle checks pass on both drivers; the full MNIST comparison
 was not rerun for this image-only change. Shaderc 2026.1 and SPIRV-Tools 1.4.357.0
 compile/validate the native float sampling fixture. Remote CI remains unverified.
 
-Next: executable specialization and vertex-input translation, then the bounded
-libplacebo adapter. G2's comparison of intermediate/final images against the
-upstream reference remains pending.
+### G1 checkpoint: specialization and vertex pulling
+
+ABI 7 makes executable preparation accept an `OgpuShaderDesc` with SPIR-V and
+32-bit `{id, bits}` specialization values. Each stage has an independent ID space;
+descriptions and values are consumed before creation returns. Missing values keep
+shader defaults; unknown IDs are ignored; duplicate IDs are rejected. The driver
+specializes the shader, including dependent shared arrays. Present constant types,
+specialized resource limits and shader validity remain caller obligations. This
+small creation contract fits compile-time algorithm parameters without making
+shader reflection or an offline SPIR-V rewrite engine part of the runtime.
+
+Raster creation now chooses triangle list or strip. For the captured libplacebo
+layout, adapter-side declaration lowering replaces two vec2 inputs with reads of
+the original 16-byte records, indexed by `gl_VertexIndex`. The adapter root contains
+one 8-byte-aligned GPU address at byte 0; the original raster root is empty, and
+compute's 56-byte root remains unchanged. The lowering rejects other strides,
+offsets, inputs or pre-existing push data. It preserves processing statements and
+uses the same helper for captured upstream shaders and the independent test shader.
+No vertex-layout object or CPU strip expansion is added to OGPU.
+
+The public-API tests execute default and overridden int/uint/float/bool constants,
+specialized shared-array sizes, nonsequential IDs, absent IDs and copied values.
+Raster tests use different values for the same ID in the two stages and verify
+every pixel of an address-pulled four-vertex strip. Invalid descriptions, duplicate
+IDs and invalid topology are rejected. All 27 ordinary tests and 18 Vulkan tests
+pass; Vulkan tests and all eight C execution examples pass on RADV RX 5700 XT and
+llvmpipe with synchronization validation. ABI checks cover 737 layout values;
+Clippy, mocks and binding reproduction pass. Remote CI remains unverified.
+
+The refreshed reference still passes all nine frames on each driver and now
+captures exact vertex metadata. All nine shaders per capture compile and validate
+after declaration lowering. A separate audit creates all six captured executables
+through the public OGPU API using their actual specialization bits. This submits
+no work: it establishes executable preparation, not image-processing correctness.
+Local artifacts under `target/libplacebo-integration/`:
+
+- llvmpipe: `reference.xcWxo67v`, `compiler.9aFdFAGm`, `executables.6kGnUKEv.log`.
+- RADV: `reference.o5x8P9Vc`, `compiler.O1FkPHFA`, `executables.ipJCRVRZ.log`.
+
+Rebuilt GGML passes all six direct/scheduled full-dataset cases with HOST and DEVICE
+placement on both drivers (24 cases), including lifecycle checks. Logs under
+`target/ggml-integration/`: `acceptance.Zxe32fna.log` / `acceptance.YDm1wgiO.log`
+(llvmpipe HOST/DEVICE) and `acceptance.Lu9OfJK0.log` / `acceptance.WGsoRkDe.log`
+(RADV HOST/DEVICE). This is regression evidence, not a new performance comparison.
+
+Next is the bounded `pl_gpu` adapter: create/upload resources, populate native
+heaps, translate pass submission/dependencies, and retain resources through
+completion. Preserve upstream generation, caching and dispatch. G2 then compares
+both images across repeated frames against the separate upstream reference using
+the predeclared tolerance above. No general backend or stable-API claim is made.

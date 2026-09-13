@@ -328,7 +328,7 @@ int main(int argc, char **argv) {
         }
         for (unsigned variant = 0; variant < 2; ++variant) {
             start = now_ms();
-            TRY(ogpu_kernel_create(device, words[variant], counts[variant], sizeof(Root), &kernels[variant], &error));
+            TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[variant], counts[variant], NULL, 0, 0}, sizeof(Root), &kernels[variant], &error));
             printf("  %s kernel/pipeline creation %.4f ms\n", names[variant], now_ms() - start);
         }
         const uint32_t shapes[][3] = {{1, 1, 0}, {1, 1, 1}, {3, 5, 7}, {7, 9, 8}, {8, 8, 9},

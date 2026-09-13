@@ -123,7 +123,7 @@ fn gpu_reduction() {
             Err(e) if e.status == UNSUPPORTED => continue,
             Err(e) => panic!("{e:?}"),
         };
-        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 24).unwrap() });
+        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 24, &[]).unwrap() });
         for count in counts {
             for pattern in 0..4 {
                 let input: Vec<u32> = (0..count)

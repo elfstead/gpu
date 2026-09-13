@@ -56,6 +56,11 @@ static pl_pass capture_create(pl_gpu gpu, const struct pl_pass_params *p)
         memcpy(&bits, (const char *) p->constant_data + c->offset, sizeof(bits));
         fprintf(manifest, "  constant id=%u type=%d bits=%08x\n", c->id, c->type, bits);
     }
+    for (int i = 0; i < p->num_vertex_attribs; ++i) {
+        const struct pl_vertex_attrib *a = &p->vertex_attribs[i];
+        fprintf(manifest, "  vertex location=%d offset=%zu format=%s name=%s\n",
+                a->location, a->offset, a->fmt->name, a->name);
+    }
     save(id, p->type == PL_PASS_COMPUTE ? "comp" : "frag", p->glsl_shader,
          strlen(p->glsl_shader));
     if (p->vertex_shader)

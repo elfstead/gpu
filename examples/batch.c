@@ -34,7 +34,7 @@ static int load_kernel(OgpuDevice *device, const char *path, OgpuKernel **out_ke
     words = malloc((size_t)bytes);
     REQUIRE(words != NULL);
     REQUIRE(fread(words, 1, (size_t)bytes, file) == (size_t)bytes);
-    TRY(ogpu_kernel_create(device, words, (uint64_t)bytes / 4, sizeof(Root), out_kernel, &error));
+    TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, (uint64_t)bytes / 4, NULL, 0, 0}, sizeof(Root), out_kernel, &error));
     exit_code = EXIT_SUCCESS;
 cleanup:
     free(words);

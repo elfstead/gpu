@@ -94,7 +94,7 @@ fn gpu_timing() {
             continue;
         }
         timed_devices += 1;
-        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16).unwrap() });
+        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16, &[]).unwrap() });
         let buffer = Buffer::new(device.clone(), 4).unwrap();
         buffer.write(0, &1u32.to_ne_bytes()).unwrap();
         let mut root = [0u8; 16];

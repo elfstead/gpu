@@ -1,14 +1,15 @@
-# libplacebo consumer — reference/compiler gate
+# libplacebo consumer — reference and executable preparation
 
-This directory currently contains **upstream Vulkan reference and compiler-audit
-tools, not an OGPU backend**. See the [consumer brief](../../docs/consumer-libplacebo.md).
-No runtime API or ABI changes are made at this gate.
+This directory contains upstream Vulkan reference, declaration-lowering and OGPU
+executable-preparation tools, **not yet a libplacebo OGPU backend**. See the
+[consumer brief](../../docs/consumer-libplacebo.md). The current ABI 7 supplies
+per-stage specialization and triangle strips alongside explicit grids/images/uploads.
 
 ## Reproduce
 
 Linux x86-64 prerequisites: C/C++ compilers (C11/C++20 for upstream, C++17 for the
 audit tools), Meson >=1.3, Ninja, pkg-config, Python 3 with Jinja2/MarkupSafe,
-Vulkan 1.4 headers/loader and registry, shaderc development files, `glslc`,
+Rust/Cargo for the OGPU executable audit, Vulkan 1.4 headers/loader and registry, shaderc development files, `glslc`,
 SPIRV-Tools, Git, Bash and ripgrep. Locally tested: Clang 21.1.8, Meson 1.10.2,
 shaderc 2026.1/glslang 16.4.0 and SPIRV-Tools 1.4.357.0.
 The repository's pinned Vulkan-Headers submodule must be initialized.
@@ -40,6 +41,19 @@ bash integrations/libplacebo/check-compiler.sh target/libplacebo-integration/ref
 target/libplacebo-integration/compare-reference /path/to/radv-capture /path/to/llvmpipe-capture
 ```
 
+The compiler gate prints its own output directory. Pair it with the capture it
+was generated from to create the six executables with their actual constants:
+
+```sh
+bash integrations/libplacebo/check-executables.sh \
+    target/libplacebo-integration/reference.XXXXXXXX \
+    target/libplacebo-integration/compiler.YYYYYYYY
+```
+
+This last check needs the OGPU modern graphics baseline and uses
+`OGPU_VULKAN_LIBRARY`. It submits no GPU work. Regenerate captures from older
+checkpoints: the compiler gate now requires captured vertex metadata.
+
 ## What is actually verified
 
 - Upstream `pl_shader_sample_polar` with EWA Lanczos produces a compute pass.
@@ -53,22 +67,27 @@ target/libplacebo-integration/compare-reference /path/to/radv-capture /path/to/l
 - Capture intercepts pinned private `pl_gpu_fns` callbacks without changing their
   implementation. The host-vertex upload helper re-enters `pass_run`, so only the
   outer invocation counts as a dispatched operation. This harness is serialized.
-- `heap-lower` changes only the known resource declaration lines into native image
-  and sampler arrays plus GLSL aliases. Processing bodies, workgroup declarations,
-  push layouts and specialization constants stay unchanged. Unsupported bound
-  declarations fail; this is deliberately not a general GLSL translator.
+- `heap-lower` changes known resource declarations into native image/sampler arrays
+  and replaces the two known vertex inputs with address-pulled aliases. The original
+  four 16-byte vertex records form a triangle strip. Vertex lowering adds an 8-byte
+  address root to the originally root-free raster stage; the 56-byte compute root,
+  processing bodies, workgroup declarations and specialization declarations stay
+  unchanged. Unsupported declarations/layouts fail; this is not a general translator.
 - `glslc` compilation and SPIR-V validation succeed, with native heap capabilities
   and no descriptor-set/binding decorations. Tests cover body preservation, slot
   mapping and rejection. Compiler version is recorded with each output.
+- The executable audit creates three kernels and three raster programs through
+  OGPU using the captured 32-bit specialization values. Separate public-API GPU
+  tests execute specialization and the same vertex lowering with original test
+  shaders; they do not substitute for upstream image-processing acceptance.
 
 The compiler probe uses fixed per-pass heap slots corresponding to original binding
-numbers. It does not bind those heaps or execute the compiled binaries. In
-particular, specialization values in the manifest still need to be applied before
-execution: compiled GLSL defaults are **not** the processing configuration. Vertex
-inputs still need an adapter/API decision. OGPU ABI 6 implements X/Y/Z dispatch,
-1D/2D RGBA8/R32F images and explicit buffer uploads, including float LUT sampling;
-these are not yet wired into a libplacebo adapter. Compiler success does not
-establish runtime compatibility.
+numbers. Neither audit binds heaps or executes the upstream binaries. The compiler
+output retains GLSL defaults; the executable audit supplies the captured values at
+creation, including shared-array sizes. Those values are mandatory for this
+processing configuration. Image/LUT uploads, native heap population, pass submission
+and lifetimes still need wiring into the bounded adapter. Executable preparation
+does not establish upstream processing correctness; G2 remains pending.
 
 ## Licensing boundary
 

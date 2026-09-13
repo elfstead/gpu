@@ -168,7 +168,7 @@ fn gpu_buffer_transfers() {
             .chunks_exact(4)
             .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
             .collect();
-        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16) }.unwrap());
+        let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &words, 16, &[]) }.unwrap());
         let data: Vec<u8> = (0..16u32).flat_map(u32::to_ne_bytes).collect();
         host.write(0, &data).unwrap();
         let mut upload = Batch::new(device.clone()).unwrap();
