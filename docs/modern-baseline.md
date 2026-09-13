@@ -7,7 +7,8 @@ backend is a migration source, not a supported fallback to preserve.
 Decision/audit: `3fefc48`. Backend migration: `39b8c16`; timeline completion:
 `05a1857`, locally verified on llvmpipe. The subsequent
 [ABI-3 hardware run](hardware-validation.md) verifies modern compute and GGML on
-RX 5700 XT / RADV. Physical graphics/heaps and remote execution CI remain pending.
+RX 5700 XT / RADV. At `a5a609d`, optional unified layouts also enable verified
+graphics/heaps and preservation on that card. Remote execution CI remains pending.
 
 The subsequent [independent-heap checkpoint](descriptor-heaps.md) implements native
 image/sampler bindings and preserved image use on this same baseline, without a
@@ -18,8 +19,10 @@ legacy table or descriptor-set path. The public interface is now ABI 3.
 The execution target is Vulkan 1.4, buffer device addresses, synchronization2,
 timeline semaphores, maintenance5, `VK_EXT_descriptor_heap`,
 `VK_KHR_shader_untyped_pointers` and `VK_KHR_device_address_commands`.
-Graphics additionally requires dynamic rendering, `VK_KHR_unified_image_layouts`
-and a shared graphics/compute queue. Mesh shading, presentation and accelerated
+Graphics additionally requires dynamic rendering and a shared graphics/compute queue.
+`VK_KHR_unified_image_layouts` is optional, enabled when supported for its
+layout-efficiency guarantee. GENERAL-only recording is identical without it.
+Mesh shading, presentation and accelerated
 matrix instructions are additional facilities, not prerequisites for compute.
 Unsupported execution devices must be rejected with a named missing requirement;
 discovery remains available to diagnose them. Feature bits and limits matter, not
@@ -34,7 +37,8 @@ Why these requirements:
 - [Untyped pointers](https://docs.vulkan.org/features/latest/features/proposals/VK_KHR_shader_untyped_pointers.html)
   support that descriptor model and reduce IR type-reconstruction constraints.
 - [Unified image layouts](https://docs.vulkan.org/features/latest/features/proposals/VK_KHR_unified_image_layouts.html)
-  permit efficient ordinary use in GENERAL. Initialization, presentation and real
+  optionally guarantee efficient ordinary use in GENERAL; our current operations
+  are legal in GENERAL without the extension. Initialization, presentation and real
   access dependencies do not disappear. Global image barriers are not guaranteed
   to be the fastest choice on every implementation.
 
@@ -54,9 +58,10 @@ In the current sandbox, llvmpipe (LLVM 21.1.8, Mesa 26.2.1), Vulkan 1.4.354,
 reports every selected compute/graphics feature and maxPushDataSize=256.
 The initial sandbox audit had no `/dev/dri`; it did not establish host GPU absence.
 A later approved host audit found the RX 5700 XT and verified the modern compute
-backend there; see [hardware validation](hardware-validation.md). The card's current
-driver lacks unified image layouts, so its earlier graphics results still describe
-the old backend, not this selected graphics baseline.
+backend there; see [hardware validation](hardware-validation.md). The driver lacks
+unified image layouts. Removing our unnecessary hard requirement subsequently
+allowed the unchanged image execution path to pass graphics/heap/preservation tests
+on that card too. The initial compute-only result is historical, not a current limit.
 Installed tools include glslang 16.4.0 and SPIRV-Tools 1.4.357.0; no shader Slang
 compiler was found. Existing descriptor-free SPIR-V/root blocks are the first
 migration input. Heap-indexed texture shaders still need a compiler/tooling test;

@@ -107,8 +107,8 @@ VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation cargo xtask compute
 
 The C compute task fails on reported validation errors, not just API return codes.
 Hosted CI validates the checked-in SPIR-V; the manual modern-driver workflow runs
-execution. The old backend passed on RX 5700 XT and llvmpipe. The modern backend
-has been reverified on llvmpipe; physical-GPU execution remains pending.
+execution when a runner is provisioned. The modern backend now passes on both
+RX 5700 XT / RADV and llvmpipe; see [hardware validation](hardware-validation.md).
 The non-coherent memory selector and wait-error draining have unit coverage;
 actual non-coherent cache behavior still needs a device exposing a suitable memory
 type. Tests can exercise the explicit flush/invalidate calls on coherent memory,

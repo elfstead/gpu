@@ -48,7 +48,8 @@ pinned Vulkan declarations. It does not depend on ash or Vulkanalia. Only Linux
 x86-64 is currently supported. Discovery needs a Vulkan 1.1 loader; execution needs
 Vulkan 1.4, descriptor heaps, untyped pointers, address commands and the core
 features listed in the baseline decision. The optional graphics path additionally
-requires dynamic rendering, unified image layouts and a shared graphics/compute queue.
+requires dynamic rendering and a shared graphics/compute queue. Unified image layouts
+are enabled when supported for their layout-efficiency guarantee, not required.
 Pipelines have no layout objects; roots use push data. Barriers, submission and
 timestamps use synchronization2. Rendering uses no render-pass/framebuffer objects,
 and indirect draws/readback use addresses. Completions now wait on monotonically

@@ -8,11 +8,16 @@ Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
 ## Device and executable
 
 `ogpu_device_create_graphics` requires a single queue family supporting both
-graphics and compute, dynamic rendering and unified image layouts, in addition
+graphics and compute, and dynamic rendering, in addition
 to the [modern execution baseline](modern-baseline.md).
 It returns UNSUPPORTED if none exists. Ordinary `ogpu_device_create` continues to
 accept compute-only devices; discovery remains independent. No new optional
 graphics shader arithmetic features are enabled beyond that baseline.
+
+Unified image layouts are optional: the extension guarantees layout efficiency,
+but the current GENERAL-only image operations are legal without it. Both enabled
+and unavailable cases use the same commands; no layout tracker or legacy path is added.
+See [physical RADV and llvmpipe validation](hardware-validation.md).
 
 `OgpuRaster` prepares valid vertex and fragment SPIR-V entry points named `main`,
 with no descriptor-set bindings and a caller-defined copied root block shared by

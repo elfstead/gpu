@@ -24,9 +24,10 @@ a gated Vulkan test verifies reuse while another submission is still pending.
 
 The [modern migration](modern-baseline.md) reran execution tests on llvmpipe, plus all
 six GGML acceptance cases. The [ABI-3 hardware follow-up](hardware-validation.md) now
-passes the compute examples, seven compute-side Vulkan tests and all six GGML cases
-on RX 5700 XT / RADV with software ICDs excluded. Physical graphics/heaps remain
-unsupported on that driver (no unified image layouts); remote execution CI is pending.
+passes compute, graphics/image examples, all twelve Vulkan tests and all six GGML
+cases on RX 5700 XT / RADV with software ICDs excluded. At `a5a609d`, unified image
+layouts became optional, retaining the same GENERAL-only commands. Full Vulkan and
+image regressions also pass independently on llvmpipe; remote execution CI is pending.
 No new performance conclusion follows from these runs.
 
 | Experiment | Run | Evidence | Still not established |

@@ -17,7 +17,7 @@ are in the manual `gpu.yml` workflow, requiring a separately provisioned
 tools and test-data download access. No runner was provisioned or remote run
 performed here. Automatic hosted CI is not currently an execution gate.
 See [hardware validation and runner handoff](hardware-validation.md) for the RADV
-compute result, explicit ICD selection and remaining full-profile host requirements.
+compute/graphics results, explicit ICD selection and remaining runner provisioning.
 
 ## Build and run
 

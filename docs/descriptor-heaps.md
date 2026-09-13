@@ -110,14 +110,17 @@ This is software-driver evidence, not modern physical-GPU coverage.
 
 Failure injection exercises the noncoherent maintenance branch; it does not establish
 real noncoherent-memory hardware coverage. No performance conclusion follows from
-these runs. Physical-GPU validation and a provisioned modern execution-CI runner are
-next; concurrent slot updates, generalized views/formats, image uploads and broader
+these runs. At this checkpoint physical-GPU validation and a provisioned modern
+execution-CI runner were next; the subsequent hardware result is below.
+Concurrent slot updates, generalized views/formats, image uploads and broader
 raster state remain separately scoped decisions. The local stopping condition from
 the ownership review is met, not the project's stabilization gates.
 
-The subsequent [hardware run](hardware-validation.md) passes compute and GGML on
-RX 5700 XT / RADV, but that driver's missing unified image layouts leaves the
-physical image/heap gate open. It does not extend the image evidence above to hardware.
+The subsequent [hardware run](hardware-validation.md), after making unified image
+layouts optional at `a5a609d`, also passes image/heap/preservation tests on RX 5700 XT
+/ RADV. The unchanged GENERAL-only commands work without the extension's
+layout-efficiency guarantee. All twelve current Vulkan tests pass independently on
+RADV and llvmpipe; the original eleven-test record above remains checkpoint history.
 
 Implementation: [public header](../include/ogpu.h), [heap owners](../crates/ogpu/src/heaps.rs),
 [C boundary](../crates/ogpu/src/execution_api.rs), [failure/lifetime tests](../crates/ogpu/src/heap_tests.rs),
