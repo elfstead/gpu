@@ -1,8 +1,8 @@
 # Second consumer: libplacebo image processing
 
-Approved 2026-09-13; updated 2026-09-14. Status: G0 passed. G1's core API and
-shader-preparation prerequisites pass; the bounded adapter is next. G2 execution
-through OGPU is not implemented yet.
+Approved 2026-09-13; updated 2026-09-14. Status: G0/G1 and bounded G2 execution pass
+on RADV and llvmpipe. Upstream-generated compute/raster work now executes through
+OGPU; intermediate and final images match the independent reference exactly.
 Pinned upstream: `3330a515d62139259c26239014f286e233bd3a5c` (2026-09-03),
 [official mirror](https://github.com/haasn/libplacebo).
 
@@ -106,7 +106,7 @@ vertex data and resource binding must still be handled for execution.
 | Seven compute specialization constants, some sizing shared arrays; one raster constant | Implemented in ABI 7: copied 32-bit ID/value pairs per stage, applied by the driver at executable creation. Preparation checks use the captured values, not placeholder defaults. |
 | 56 compute push bytes; zero raster push bytes | Compute layout stays unchanged. Vertex lowering adds an adapter-owned 8-byte vertex address at offset 0 to the originally empty raster root. |
 | Four-vertex strip with two vec2 vertex attributes | ABI 7 exposes triangle strips. Bounded declaration lowering pulls the original 16-byte vertex records through an address; no vertex expansion or processing-body rewrite. |
-| Repeated passes and texture/LUT reuse | Preserve upstream dispatch caching and image lifetimes. Translate dependencies at the adapter boundary; no automatic pointer tracing in core. |
+| Repeated passes and texture/LUT reuse | Implemented in the bounded adapter: upstream dispatch caching, reusable images/staging/vertex storage, explicit dependencies and per-operation completion cleanup. No automatic pointer tracing in core. |
 
 Proceed with a bounded `pl_gpu` adapter, preserving upstream shader generation and
 dispatch. Unsupported callbacks/formats must reject rather than fall through to
@@ -229,8 +229,70 @@ placement on both drivers (24 cases), including lifecycle checks. Logs under
 (llvmpipe HOST/DEVICE) and `acceptance.Lu9OfJK0.log` / `acceptance.WGsoRkDe.log`
 (RADV HOST/DEVICE). This is regression evidence, not a new performance comparison.
 
-Next is the bounded `pl_gpu` adapter: create/upload resources, populate native
-heaps, translate pass submission/dependencies, and retain resources through
-completion. Preserve upstream generation, caching and dispatch. G2 then compares
-both images across repeated frames against the separate upstream reference using
-the predeclared tolerance above. No general backend or stable-API claim is made.
+That checkpoint prepared the prerequisites for the bounded adapter below; it did
+not itself execute upstream image processing.
+
+## G2: bounded OGPU execution
+
+The C adapter implements the pinned `pl_gpu_fns` boundary with public OGPU calls.
+The separate C++ shaderc bridge shares declaration-lowering helpers with G0/G1;
+it is consumer glue, not part of the Rust runtime. Upstream source remains unchanged.
+Reference and consumer executables share the input/generation/dispatch workload;
+the consumer creates no upstream Vulkan device and has no reference/CPU fallback.
+
+An additive `ogpu_device_limits` query supplies actual local group dimensions,
+invocation/shared-memory bounds, grid bounds and image/root ceilings. This avoids
+assuming either tested GPU's properties when upstream chooses its compute layout.
+No existing ABI-7 structure or function signature changes. This is not optional
+capability negotiation or general executable reflection.
+
+The adapter creates native 1D R32F LUT and 2D RGBA8 images, retains per-image HOST
+staging, and uploads upstream-provided bytes unchanged. Prepared passes own SPIR-V,
+copied metadata, independent heaps and reusable vertex/indirect buffers. Descriptor
+bindings populate fixed native heap slots; four original vertices are address-pulled
+as a strip. Compute root bytes and actual specialization values remain upstream-owned
+contracts; changed specialization values recreate executables, unchanged values reuse
+them. Pass creation is reused across A/B/A frames.
+
+Every operation submits and waits. Previous writes are explicitly ordered before
+the next pass; first uploads/storage writes initialize GENERAL, raster uses CLEAR
+or LOAD, and readback uses OGPU image copies. Completions and recordings are destroyed
+before editing/clearing heaps. There is no in-flight image/vertex reuse and no implicit
+core allocator or dependency tracker. This deliberately tests correctness before
+asynchronous scheduling; per-operation waits are an adapter policy, not an API need.
+
+The adapter is not a general `pl_gpu` implementation: no general buffers/UBOs/global
+uniforms, emulation dispatcher, callbacks, timers, subregions, indexed draws or
+arbitrary raster state. Its push-only variable profile does not satisfy upstream's
+general-backend guarantee of UBO or global-uniform support. It therefore uses only
+the bounded public generation/dispatch paths, not the private general finalizer.
+Unsupported requests fail closed and mark the adapter failed; clean destruction
+remains available. Live-child device destruction is a caller-contract violation.
+
+### Verified results — 2026-09-14
+
+On each driver: six prepared passes reused across nine compute and nine raster
+operations, 12 uploads (including three upstream LUTs), 18 downloads, and zero live
+texture/pass objects after teardown. Both intermediate and final images compare
+byte-for-byte with upstream: **286,488 bytes, zero differing bytes**, tighter than
+the predeclared RGB tolerance of 2/255 (unchanged). Alpha, nearest copying and A/B/A
+determinism are exact. Vulkan and synchronization validation were enabled; no
+validation errors were reported. Remote CI remains unverified.
+
+Local paired artifacts under `target/libplacebo-integration/`:
+
+- llvmpipe: `reference.hTbDTka3` / `ogpu.q5DhoQs0`,
+  adapter checks `backend-checks.wEy9JeV7.log`.
+- RADV RX 5700 XT: `reference.zXVkdcBS` / `ogpu.sy8anKWa`,
+  adapter checks `backend-checks.CMFjH1Mv.log`.
+
+Ordinary tests (27), Vulkan tests (18 on each driver), Clippy and 745 ABI layout
+checks pass. Tests compare cached limits with driver properties and cover query
+errors/device-loss readability. Adapter tests exercise partial-transfer, unsupported
+image/shader rejection with cleanup, live-child destruction rejection, and actual
+A/B/A specialization updates on one live pass with pixel checks. The
+compiler-only gate remains independently reproducible.
+
+Next: review D1/D3/D4 using both consumers' actual integration code and restrictions.
+Identify better API alternatives before adding surface area; do not treat successful
+images as evidence for stability, general backend coverage or efficient scheduling.

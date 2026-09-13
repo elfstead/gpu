@@ -1,12 +1,15 @@
 # Open GPU Interface: current design
 
-Updated 2026-09-13. This is an experimental programming model with a working
+Updated 2026-09-14. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
 Initial feasibility and the first bounded consumer checkpoint are complete:
-[GGML's FP32 MNIST forward graph](consumer-ggml.md) works through the public API. The
-[milestone plan](plan.md) owns working status, scope, blocking decisions and exit
+[GGML's FP32 MNIST forward graph](consumer-ggml.md) works through the public API.
+The second bounded consumer, [libplacebo image processing](consumer-libplacebo.md),
+also executes upstream compute and raster passes through OGPU and matches its
+Vulkan reference on both tested drivers. Neither integration is a general backend.
+The [milestone plan](plan.md) owns working status, scope, blocking decisions and exit
 criteria. Experimental still means changes
 are allowed, not that a stable or broadly portable interface has been established.
 
@@ -71,7 +74,7 @@ retention; applications still own scratch-range reuse decisions.
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
 | Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents, upload/readback | 1D/2D RGBA8/R32F images with explicit usages; fixed-state RGBA8 rendering, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
-| Discovery | Device information and supported capability bits | Reporting is not feature negotiation or a complete matrix/type capability description |
+| Discovery | Device information, supported capability bits, cached execution limits on a created device | Reporting is not feature negotiation or a complete matrix/type capability description |
 
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
 shader barriers, and multi-level dispatch using this existing API. It adds workload

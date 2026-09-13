@@ -1,4 +1,4 @@
-# Working status and first integration milestone
+# Working status and integration milestones
 
 Updated 2026-09-14. This is the authoritative near-term work plan. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
@@ -34,14 +34,16 @@ cases on RADV and llvmpipe. Keep explicit placement/copies, with no implicit mig
 The comparison exposes staging overhead as well as shorter graph intervals; it does
 not select a universally fastest memory policy. The user selected
 [libplacebo image processing](consumer-libplacebo.md) as the second consumer.
-G0 passed: pinned upstream compute/fragment execution on RADV and llvmpipe, plus
-declaration-only native-heap compilation of the captured shaders. G1 is in progress:
-checked multidimensional dispatch, 1D/2D RGBA8/R32F image descriptions and explicit
-uploads, executable specialization and bounded vertex-input lowering are implemented,
-with existing callers migrated. All six captured upstream executables can be created
-through OGPU on both drivers. Next is the bounded `pl_gpu` adapter: resource/binding
-translation, pass submission and lifetimes, then G2 image comparison. No upstream
-pass has executed through OGPU yet; preparation is not integration acceptance.
+G0, G1 and the bounded G2 execution gate now pass: a `pl_gpu` adapter preserves
+upstream polar scaling, LUT generation and fragment sampling, with actual OGPU
+compute/raster submission. Both intermediate and final images match upstream
+byte-for-byte on RADV and llvmpipe across nine frames per driver. The adapter uses
+the ABI-7 shader/image/grid contracts plus an additive cached device-limits query.
+It waits after each operation; this establishes correctness, not throughput.
+Next: review the two consumers' evidence against D1/D3/D4, especially executable
+metadata, narrow image support and completion/heap lifetime rules. Identify better
+API alternatives before widening or stabilizing; asynchronous adapter scheduling
+and a general libplacebo backend are not implicitly approved next milestones.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Concurrent slot streaming, additional formats/subresources and compute-only image deployment

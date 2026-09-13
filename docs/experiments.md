@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-13. This page records evidence, not API-stability promises. See
+Updated 2026-09-14. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -29,20 +29,29 @@ The [libplacebo G1 grid checkpoint](consumer-libplacebo.md#g1-checkpoint-multidi
 introduces ABI 5: explicit X/Y/Z workgroup counts, with checked per-axis limits.
 Both C dispatch entry points execute 1D/2D/3D grids with unmodified builtin IDs;
 tail/guard/argument-copy tests and existing execution regressions pass on RADV and
-llvmpipe. This is an adapter prerequisite, not yet libplacebo-on-OGPU acceptance.
+llvmpipe. That checkpoint established an adapter prerequisite, not consumer acceptance.
 
 The [G1 image checkpoint](consumer-libplacebo.md#g1-checkpoint-image-descriptions-and-upload)
 introduces ABI 6: 1D/2D RGBA8/R32F images with explicit usage and retained upload /
 readback copies. Native float LUT sampling and repeated uploads exercise the image
 requirements observed in the upstream consumer. The target-only API is removed;
-the actual libplacebo adapter and upstream image comparison are still pending.
+the adapter and upstream comparison were deferred to G2.
 
 The [G1 executable checkpoint](consumer-libplacebo.md#g1-checkpoint-specialization-and-vertex-pulling)
 introduces ABI 7: copied per-stage 32-bit specialization and triangle-list/strip
 selection. The adapter's bounded declaration lowering pulls original vertex records
 through an address, leaving processing bodies unchanged. Dedicated GPU tests execute
 these contracts on both drivers; all six captured libplacebo executables prepare
-with their actual constants. Upstream passes are not yet submitted through OGPU.
+with their actual constants. That gate prepared, but did not submit, upstream passes.
+
+The [libplacebo G2 execution gate](consumer-libplacebo.md#g2-bounded-ogpu-execution)
+now passes on both drivers: 9 compute and 9 raster submissions, three extents with
+A/B/A updates, unchanged upstream generation/math, and exact intermediate/final
+matches against upstream (286,488 bytes per driver). A cached device-limits query
+is additive to ABI 7; no shader-contract change was needed in the adapter. Explicit
+uploads, heaps, barriers and completion cleanup implement the bounded workload.
+Operations block individually; this is not an asynchronous scheduling or performance
+result, a general libplacebo backend, or an API-stability decision.
 
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
