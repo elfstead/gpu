@@ -31,8 +31,7 @@ jobs:
       - run: spirv-val --target-env vulkan1.2 examples/shaders/image-read.frag.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/matmul-naive.comp.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/matmul-tiled.comp.spv
-      - run: spirv-val --target-env vulkan1.2 integrations/ggml/shaders/element.comp.spv
-      - run: spirv-val --target-env vulkan1.2 integrations/ggml/shaders/matrix.comp.spv
+      - run: bash integrations/ggml/check-shaders.sh
   minimum-rust:
     runs-on: ubuntu-24.04
     steps:

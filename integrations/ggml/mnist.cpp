@@ -25,10 +25,12 @@ static uint32_t be32(const std::vector<uint8_t> &b, size_t i) {
 }
 using BufferOwner = std::unique_ptr<ggml_backend_buffer, decltype(&ggml_backend_buffer_free)>;
 
-static ggml_cgraph *build(mnist_model &model) {
+static ggml_cgraph *build(mnist_model &model, bool half = false) {
     require(model.arch == "mnist-fc", "only the FC model is supported");
-    for (auto *t : {model.fc1_weight, model.fc1_bias, model.fc2_weight, model.fc2_bias})
-        require(t->type == GGML_TYPE_F32, "model weights must be F32");
+    for (auto *t : {model.fc1_weight, model.fc2_weight})
+        require(t->type == (half ? GGML_TYPE_F16 : GGML_TYPE_F32), "wrong matrix weight type");
+    for (auto *t : {model.fc1_bias, model.fc2_bias})
+        require(t->type == GGML_TYPE_F32, "bias must be F32");
     mnist_model_build(model); // The upstream application graph, unmodified.
     auto *graph = ggml_new_graph(model.ctx_compute);
     ggml_build_forward_expand(graph, model.logits);
@@ -64,7 +66,7 @@ static void rejection_checks(mnist_model &model, ggml_cgraph *graph,
             "partial execution of rejected graph");
 
     auto *half = ggml_new_tensor_2d(model.ctx_compute, GGML_TYPE_F16, 16, 16);
-    require(!ggml_backend_supports_op(backend, half), "advertised FP16 support");
+    require(ggml_backend_supports_op(backend, half), "missing F16 storage declaration support");
     auto *transposed = ggml_transpose(model.ctx_compute, model.images);
     require(!ggml_backend_supports_op(backend, transposed), "advertised strided view support");
 
@@ -148,12 +150,31 @@ static ggml_status scheduled_compute(mnist_model &model, ggml_cgraph *graph) {
 
 static void evaluate(const char *weights, const std::vector<uint8_t> &images,
                      const std::vector<uint8_t> &labels, int batch_size,
-                     const OgpuGgmlSession &session, bool scheduled, OgpuGgmlMemory memory) {
-    auto cpu = mnist_model_init_from_file(weights, "CPU", batch_size, batch_size);
-    auto gpu = mnist_model_init_from_file(weights, "OGPU", batch_size, batch_size);
+                     const OgpuGgmlSession &session, bool scheduled, OgpuGgmlMemory memory,
+                     const char *half_weights, const char *wide_weights) {
+    const bool mixed = half_weights != nullptr;
+    const auto before_load = session.stats();
+    auto cpu = mnist_model_init_from_file(mixed ? wide_weights : weights, "CPU", batch_size, batch_size);
+    auto gpu = mnist_model_init_from_file(mixed ? half_weights : weights, "OGPU", batch_size, batch_size);
+    const size_t matrix_bytes = ggml_nbytes(gpu.fc1_weight) + ggml_nbytes(gpu.fc2_weight);
+    const size_t expected_matrix_bytes = MNIST_NHIDDEN * (MNIST_NINPUT + MNIST_NCLASSES) * (mixed ? 2 : 4);
+    require(matrix_bytes == expected_matrix_bytes, "wrong GPU matrix payload size");
+    require(session.stats().upload_bytes - before_load.upload_bytes ==
+                matrix_bytes + ggml_nbytes(gpu.fc1_bias) + ggml_nbytes(gpu.fc2_bias),
+            "unexpected model upload payload (weight mirror or conversion?)");
     ggml_backend_cpu_set_n_threads(cpu.backends[0], 4);
     auto *cpu_graph = build(cpu);
-    auto *gpu_graph = build(gpu);
+    auto *gpu_graph = build(gpu, mixed);
+    std::unique_ptr<mnist_model> original;
+    ggml_cgraph *original_graph = nullptr;
+    BufferOwner original_compute(nullptr, ggml_backend_buffer_free);
+    if (mixed) {
+        original.reset(new mnist_model(mnist_model_init_from_file(weights, "CPU", batch_size, batch_size)));
+        ggml_backend_cpu_set_n_threads(original->backends[0], 4);
+        original_graph = build(*original);
+        original_compute.reset(ggml_backend_alloc_ctx_tensors(original->ctx_compute, original->backends[0]));
+        require(bool(original_compute), "original reference allocation failed");
+    }
     BufferOwner cpu_compute(ggml_backend_alloc_ctx_tensors(cpu.ctx_compute, cpu.backends[0]),
                             ggml_backend_buffer_free);
     BufferOwner gpu_compute(nullptr, ggml_backend_buffer_free);
@@ -204,10 +225,10 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
     const auto setup = session.stats();
     const auto initial_dispatches = session.dispatch_count();
     uint64_t calls = 0;
-    size_t correct = 0;
-    double max_error = 0;
+    size_t correct = 0, original_correct = 0, changed_predictions = 0;
+    double max_error = 0, max_drift = 0;
     std::vector<float> input(784 * batch_size), reference(10 * batch_size),
-        actual(reference.size());
+        actual(reference.size()), original_logits(reference.size());
     // All three sizes cover the complete test set. Tails are zero-padded; their
     // logits are also checked, but padded rows do not count toward accuracy.
     for (int start = 0; start < 10000; start += batch_size) {
@@ -236,22 +257,43 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
         ++calls;
         ggml_backend_tensor_get(cpu.logits, reference.data(), 0, reference.size() * sizeof(float));
         ggml_backend_tensor_get(gpu.logits, actual.data(), 0, actual.size() * sizeof(float));
+        if (mixed) {
+            ggml_backend_tensor_set(original->images, input.data(), 0, input.size() * sizeof(float));
+            require(ggml_backend_graph_compute(original->backends[0], original_graph) == GGML_STATUS_SUCCESS,
+                    "original FP32 reference failed");
+            ggml_backend_tensor_get(original->logits, original_logits.data(), 0, original_logits.size() * sizeof(float));
+        }
         for (size_t i = 0; i < actual.size(); ++i) {
             const double error = std::abs(double(actual[i]) - reference[i]);
             require(std::isfinite(actual[i]) && std::isfinite(reference[i]) &&
                         error <= 1e-4 + 1e-4 * std::abs(double(reference[i])),
                     "logit tolerance exceeded");
             max_error = std::max(max_error, error);
+            if (mixed) {
+                const double drift = std::abs(double(actual[i]) - original_logits[i]);
+                require(std::isfinite(original_logits[i]) &&
+                            drift <= 0.05 + 0.002 * std::abs(double(original_logits[i])),
+                        "FP32-model drift exceeded");
+                max_drift = std::max(max_drift, drift);
+            }
         }
         for (int row = 0; row < active; ++row) {
             const auto a = actual.begin() + row * 10, r = reference.begin() + row * 10;
             const auto prediction = std::max_element(a, a + 10) - a;
             require(prediction == std::max_element(r, r + 10) - r, "top-1 prediction mismatch");
             correct += prediction == labels[8 + start + row];
+            if (mixed) {
+                const auto o = original_logits.begin() + row * 10;
+                const auto old_prediction = std::max_element(o, o + 10) - o;
+                original_correct += old_prediction == labels[8 + start + row];
+                changed_predictions += prediction != old_prediction;
+            }
         }
     }
     require(session.dispatch_count() - initial_dispatches == 5 * calls, "wrong GPU dispatch count");
     require(correct >= 9000, "trained fixture accuracy below 90%");
+    require(!mixed || (changed_predictions <= 10 && correct + 10 >= original_correct),
+            "FP32-model prediction/accuracy drift exceeded");
     const auto stats = session.stats();
     require(stats.staging_allocations == setup.staging_allocations,
             "staging reallocated during repeated inference");
@@ -265,11 +307,13 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
             "wrong staging policy");
     std::printf(
         "batch=%d mode=%s memory=%s images=10000 calls=%llu dispatches=%llu correct=%zu max_logit_error=%.9g "
-        "intermediate_bytes=%zu separate_bytes=%zu aliases=%d PASS\n",
+        "intermediate_bytes=%zu separate_bytes=%zu aliases=%d weights=%s matrix_bytes=%zu "
+        "max_fp32_drift=%.9g changed_predictions=%zu original_correct=%zu PASS\n",
         batch_size, scheduled ? "scheduled" : "direct",
         memory == OgpuGgmlMemory::Host ? "host" : "device", static_cast<unsigned long long>(calls),
         static_cast<unsigned long long>(5 * calls), correct, max_error, allocated_bytes,
-        separate_bytes, aliases);
+        separate_bytes, aliases, mixed ? "f16" : "f32", matrix_bytes,
+        max_drift, changed_predictions, mixed ? original_correct : correct);
     std::printf("memory_stats batch=%d mode=%s memory=%s setup_upload_bytes=%llu "
                 "setup_transfer_ms=%.3f uploads=%llu downloads=%llu upload_bytes=%llu "
                 "download_bytes=%llu transfer_ms=%.3f graph_ms=%.3f staging_allocations=%llu\n",
@@ -286,9 +330,9 @@ static void evaluate(const char *weights, const std::vector<uint8_t> &images,
 }
 
 int main(int argc, char **argv) {
-    if (argc != 6 && argc != 7) {
+    if (argc != 6 && argc != 7 && argc != 9) {
         std::fprintf(stderr,
-                     "usage: %s model.gguf t10k-images t10k-labels shader-directory device-index [host|device]\n",
+                     "usage: %s model.gguf t10k-images t10k-labels shader-directory device-index [host|device [half.gguf widened.gguf]]\n",
                      argv[0]);
         return 2;
     }
@@ -303,7 +347,7 @@ int main(int argc, char **argv) {
         size_t end = 0;
         const auto index = std::stoul(argv[5], &end);
         require(end == std::string(argv[5]).size() && index <= UINT32_MAX, "bad device index");
-        const std::string placement = argc == 7 ? argv[6] : "device";
+        const std::string placement = argc >= 7 ? argv[6] : "device";
         require(placement == "host" || placement == "device", "bad memory placement");
         const auto memory = placement == "host" ? OgpuGgmlMemory::Host : OgpuGgmlMemory::Device;
         for (bool scheduled : {false, true})
@@ -316,7 +360,8 @@ int main(int argc, char **argv) {
                 ggml_backend_unload(cpu_reg);
                 OgpuGgmlSession session(static_cast<uint32_t>(index), argv[4], memory);
                 ggml_backend_register(cpu_reg);
-                evaluate(argv[1], images, labels, batch, session, scheduled, memory);
+                evaluate(argv[1], images, labels, batch, session, scheduled, memory,
+                         argc == 9 ? argv[7] : nullptr, argc == 9 ? argv[8] : nullptr);
                 // Includes explicit GPU device/kernel teardown, not process-exit cleanup.
             }
         return 0;

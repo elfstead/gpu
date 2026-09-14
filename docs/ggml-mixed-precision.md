@@ -79,4 +79,9 @@ implementation passes 27 ordinary tests, 745 C/Rust ABI layout checks, mock-load
 and binding-reproduction checks, Clippy, and all 20 existing GPU tests on both
 llvmpipe and RADV with validation. Device-creation interception checks the actual
 feature chain: buffer16 enabled; half arithmetic and other 16-bit storage disabled.
-Consumer implementation and mixed acceptance are next.
+The consumer implementation now passes all six full-dataset mixed cases on RADV
+under both placements and llvmpipe DEVICE. The RADV F32 controls also pass. Mixed
+results have zero changed predictions and 9,801 correct classifications, maximum
+semantic-reference logit error `2.67028809e-5` and original-model drift
+`0.00321006775`. No tolerance changed. Remaining llvmpipe placement/control and
+cross-consumer regression checks are in progress; final evidence follows below.

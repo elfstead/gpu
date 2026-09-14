@@ -163,7 +163,7 @@ brief requires them.
 | Queue and batch model | Replayed work, cross-queue dependencies, concurrency, and observable completion/error behavior |
 | Executable preparation | Entry points, workgroup variants, specialization, capability requirements, compilation/cache costs |
 | Images and graphics state | 1D/2D RGBA8/R32F uploads, native access/sampling, independent heaps and preserved cross-batch images work; additional formats/views, concurrent heap edits and broader raster state remain open ([contract](descriptor-heaps.md)) |
-| ML profiles | Beyond the tested reduction/FP32 baseline: required storage/arithmetic/conversion/accumulation combinations and accelerated matrix shapes |
+| ML profiles | Beyond reduction/FP32 and the bounded [FP16-weight checkpoint](ggml-mixed-precision.md): other storage/arithmetic/conversion/accumulation combinations and accelerated matrix shapes |
 | Portability boundary | One real compiler/runtime consumer and a second backend for the common compute subset |
 | Tooling | Finer profiling/calibrated clocks, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |
 

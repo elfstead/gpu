@@ -45,6 +45,7 @@ static_assert(sizeof(Root) == 40 && offsetof(Root, a) == 0 && offsetof(Root, b) 
 struct State : std::enable_shared_from_this<State> {
     Device device{nullptr, ogpu_device_destroy};
     Kernel matrix{nullptr, ogpu_kernel_destroy}, element{nullptr, ogpu_kernel_destroy};
+    Kernel matrix_f16{nullptr, ogpu_kernel_destroy};
     uint64_t dispatches = 0;
     OgpuGgmlMemory memory = OgpuGgmlMemory::Device;
     OgpuGgmlStats stats;
@@ -117,7 +118,7 @@ size_t offset(Allocation &a, const ggml_tensor *t, size_t off, size_t size) {
 uint64_t address(const ggml_tensor *t) {
     auto &a = allocation(t->buffer);
     const uint64_t result = a.address + offset(a, t, 0, ggml_nbytes(t));
-    if (result % 4 != 0)
+    if (result % (t->type == GGML_TYPE_F16 ? 2 : 4) != 0)
         throw std::runtime_error("unaligned tensor address");
     return result;
 }
@@ -245,18 +246,19 @@ ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size)
     }
 }
 
-bool tensor_profile(const ggml_tensor *t) {
-    return t && t->type == GGML_TYPE_F32 && !t->view_src && ggml_is_contiguous(t) && t->ne[0] > 0 &&
+bool tensor_profile(const ggml_tensor *t, bool half = false) {
+    return t && (t->type == GGML_TYPE_F32 || (half && t->type == GGML_TYPE_F16)) &&
+           !t->view_src && ggml_is_contiguous(t) && t->ne[0] > 0 &&
            t->ne[0] <= 1024 && t->ne[1] > 0 && t->ne[1] <= 1024 && t->ne[2] == 1 && t->ne[3] == 1;
 }
 bool supports_op(ggml_backend_dev_t, const ggml_tensor *t) {
-    if (!tensor_profile(t))
+    if (!tensor_profile(t, t && t->op == GGML_OP_NONE))
         return false;
     if (t->op == GGML_OP_NONE)
         return true;
     const auto *a = t->src[0];
     const auto *b = t->src[1];
-    if (!tensor_profile(a))
+    if (!tensor_profile(a, t->op == GGML_OP_MUL_MAT))
         return false;
     if (t->op == GGML_OP_UNARY)
         return ggml_get_unary_op(t) == GGML_UNARY_OP_RELU && ggml_are_same_shape(t, a);
@@ -325,7 +327,8 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
                 root.b = address(t->src[1]);
                 root.k = static_cast<uint32_t>(t->src[0]->ne[0]);
                 groups = ((root.m + 7) / 8) * ((root.n + 7) / 8);
-                kernel = state->matrix.get();
+                kernel = t->src[0]->type == GGML_TYPE_F16 ? state->matrix_f16.get()
+                                                         : state->matrix.get();
             } else if (t->op == GGML_OP_ADD) {
                 root.b = address(t->src[1]);
                 root.operation = 1;
@@ -403,7 +406,12 @@ OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMe
     OgpuDevice *raw_device = nullptr;
     GPU(ogpu_device_create(raw_probe, index, &raw_device, &error));
     state->device.reset(raw_device);
+    OgpuCapabilities enabled{};
+    GPU(ogpu_device_capabilities(raw_device, &enabled, &error));
+    if (!enabled.storage_buffer_16bit_access || enabled.shader_float16)
+        throw std::runtime_error("expected storage-only half baseline");
     state->matrix = load_kernel(*state, std::string(shaders) + "/matrix.comp.spv");
+    state->matrix_f16 = load_kernel(*state, std::string(shaders) + "/matrix-f16.comp.spv");
     state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv");
 
     device.context = state.get();

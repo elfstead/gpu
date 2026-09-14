@@ -1,5 +1,9 @@
 # First consumer: GGML MNIST forward inference
 
+This brief records the original FP32 checkpoint. The subsequent
+[mixed-precision brief](ggml-mixed-precision.md) extends only matrix-weight storage
+to F16 with FP32 arithmetic; its acceptance limits and evidence are separate.
+
 ## Brief and acceptance (C1)
 
 Use [GGML](https://github.com/ggml-org/ggml) revision

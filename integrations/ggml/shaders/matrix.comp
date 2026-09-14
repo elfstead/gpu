@@ -1,10 +1,16 @@
 #version 460
 #extension GL_EXT_buffer_reference : require
+#ifdef F16_WEIGHTS
+#extension GL_EXT_shader_16bit_storage : require
+layout(buffer_reference, std430, buffer_reference_align = 2) readonly buffer Weights { float16_t v[]; };
+#else
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Weights { float v[]; };
+#endif
 layout(local_size_x = 64) in;
 layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input { float v[]; };
 layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output { float v[]; };
 layout(push_constant, std430) uniform Root {
-    Input a; Input b; Output c;
+    Weights a; Input b; Output c;
     uint m; uint n; uint k; uint operation;
 } r;
 shared float a_tile[64];
@@ -17,7 +23,7 @@ void main() {
     float sum = 0.0;
     for (uint base = 0; base < r.k; base += 8u) {
         // GGML contiguous A[K,M], B[K,N], C[M,N], first dimension fastest.
-        a_tile[y * 8u + x] = m < r.m && base + y < r.k ? r.a.v[m * r.k + base + y] : 0.0;
+        a_tile[y * 8u + x] = m < r.m && base + y < r.k ? float(r.a.v[m * r.k + base + y]) : 0.0;
         b_tile[y * 8u + x] = n < r.n && base + x < r.k ? r.b.v[n * r.k + base + x] : 0.0;
         barrier();
         for (uint j = 0; j < 8u; ++j) sum += a_tile[j * 8u + x] * b_tile[y * 8u + j];
