@@ -28,10 +28,12 @@ struct operation {
     void *priv;
 };
 struct frame {
+    OgpuBatch *batch;
+    OgpuCompletion *done;
     struct operation ops[OPERATIONS];
     unsigned count;
     uint64_t generation;
-    bool pending;
+    bool pending, aggregated;
 };
 struct backend {
     struct pl_gpu_fns fns; // pinned private ABI: must remain first
@@ -72,6 +74,27 @@ static bool reject(pl_gpu gpu, const char *why)
 #define REQUIRE(test, why) do { if (!(test)) { reject(gpu, why); goto fail; } } while (0)
 static void gpu_finish(pl_gpu gpu);
 
+static OgpuResult begin_batch(pl_gpu gpu, OgpuBatch **batch, OgpuError *error)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (b->active >= 0 && b->frames[b->active].aggregated) {
+        struct frame *f = &b->frames[b->active];
+        if (!f->batch) {
+            OgpuResult r = ogpu_batch_create(b->device, &f->batch, error);
+            if (r != OGPU_SUCCESS) return r;
+        }
+        *batch = f->batch;
+        return OGPU_SUCCESS;
+    }
+    return ogpu_batch_create(b->device, batch, error);
+}
+static void end_batch(pl_gpu gpu, OgpuBatch *batch)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (b->active >= 0 && b->frames[b->active].batch == batch) return;
+    ogpu_batch_destroy(batch);
+}
+
 static bool finish(pl_gpu gpu, OgpuBatch *batch, struct bank *bank)
 {
     struct backend *b = PL_PRIV(gpu);
@@ -80,8 +103,10 @@ static bool finish(pl_gpu gpu, OgpuBatch *batch, struct bank *bank)
     bool ok = false;
     struct frame *frame = b->active < 0 ? NULL : &b->frames[b->active];
     REQUIRE(!frame || frame->count < OPERATIONS, "frame operation capacity exceeded");
-    TRY(ogpu_batch_submit(batch, &done, &error));
-    ++b->stats.submissions;
+    if (!frame || !frame->aggregated) {
+        TRY(ogpu_batch_submit(batch, &done, &error));
+        ++b->stats.submissions;
+    }
     if (frame) {
         frame->ops[frame->count++] = (struct operation) {.done=done, .bank=bank};
         if (bank) bank->busy = true;
@@ -103,7 +128,7 @@ fail:
     return ok;
 }
 
-bool ogpu_pl_frame_begin(pl_gpu gpu, unsigned slot)
+static bool frame_begin(pl_gpu gpu, unsigned slot, bool aggregated)
 {
     struct backend *b = PL_PRIV(gpu);
     if (b->failed || slot >= FRAMES || b->active >= 0 || b->frames[slot].pending ||
@@ -111,13 +136,26 @@ bool ogpu_pl_frame_begin(pl_gpu gpu, unsigned slot)
         return reject(gpu, "invalid or premature frame slot reuse");
     b->active = slot;
     b->frames[slot].generation = ++b->generation;
+    b->frames[slot].aggregated = aggregated;
     return true;
 }
+bool ogpu_pl_frame_begin(pl_gpu gpu, unsigned slot) { return frame_begin(gpu, slot, false); }
+bool ogpu_pl_frame_begin_batched(pl_gpu gpu, unsigned slot) { return frame_begin(gpu, slot, true); }
 bool ogpu_pl_frame_end(pl_gpu gpu)
 {
     struct backend *b = PL_PRIV(gpu);
     if (b->active < 0) return reject(gpu, "no active frame");
     struct frame *f = &b->frames[b->active];
+    if (f->batch) {
+        OgpuError error;
+        if (!b->failed) {
+            if (ogpu_batch_submit(f->batch, &f->done, &error) != OGPU_SUCCESS)
+                reject(gpu, error.message);
+            else ++b->stats.submissions;
+        }
+        ogpu_batch_destroy(f->batch);
+        f->batch = NULL;
+    }
     f->pending = true;
     b->active = -1;
     ++b->stats.frames;
@@ -133,26 +171,33 @@ bool ogpu_pl_frame_collect(pl_gpu gpu, unsigned slot, bool wait)
     struct frame *f = &b->frames[slot];
     if (!f->pending) return !b->failed;
     OgpuError error;
-    if (f->count) {
+    OgpuCompletion *last = f->aggregated ? f->done : f->count ? f->ops[f->count-1].done : NULL;
+    if (last) {
         uint32_t ready = 0;
         ++b->stats.polls;
-        OgpuResult result = ogpu_completion_poll(f->ops[f->count-1].done, &ready, &error);
+        OgpuResult result = ogpu_completion_poll(last, &ready, &error);
         if (result != OGPU_SUCCESS) reject(gpu, error.message);
         if (result == OGPU_SUCCESS && !ready) {
             if (!wait) return false;
             ++b->stats.waits;
-            if (ogpu_completion_wait(f->ops[f->count-1].done, &error) != OGPU_SUCCESS)
+            if (ogpu_completion_wait(last, &error) != OGPU_SUCCESS)
                 reject(gpu, error.message);
         }
     }
+    // A shared frame receipt retires every recorded operation at once. On errors
+    // destruction drains before bank/staging reuse. No receipt is multiply owned.
+    ogpu_completion_destroy(f->done);
+    f->done = NULL;
     // Observing a later timeline value does not retire earlier receipts. Retire
     // every operation before clearing heaps or delivering host readbacks.
     for (unsigned i = 0; i < f->count; ++i) {
         struct operation *op = &f->ops[i];
         uint32_t ready = 0;
-        ++b->stats.polls;
-        if (ogpu_completion_poll(op->done, &ready, &error) != OGPU_SUCCESS || !ready)
-            reject(gpu, "frame completion failed to retire");
+        if (op->done) {
+            ++b->stats.polls;
+            if (ogpu_completion_poll(op->done, &ready, &error) != OGPU_SUCCESS || !ready)
+                reject(gpu, "frame completion failed to retire");
+        }
         if (op->bank) {
             // Destruction drains error paths before releasing raw adapter operands.
             ogpu_completion_destroy(op->bank->receipt);
@@ -225,7 +270,7 @@ static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload,
         b->stats.peak_staging_bytes = PL_MAX(b->stats.peak_staging_bytes, b->stats.staging_bytes);
     }
     OgpuBuffer *staging = t->staging[slot];
-    TRY(ogpu_batch_create(b->device, &batch, &error));
+    TRY(begin_batch(gpu, &batch, &error));
     if (upload) {
         TRY(ogpu_buffer_write(staging, 0, ptr, t->size, &error));
         if (!t->initialized)
@@ -252,7 +297,7 @@ static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload,
     if (!f && callback) { ++b->stats.callbacks; callback(priv); }
     ok = true;
 fail:
-    ogpu_batch_destroy(batch);
+    end_batch(gpu, batch);
     return ok;
 }
 
@@ -481,7 +526,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
                 full_rect(in->scissors, in->target), "unsupported draw region/vertices");
         TRY(ogpu_buffer_write(bank->vertices, 0, in->vertex_data, 64, &error));
     }
-    TRY(ogpu_batch_create(b->device, &batch, &error));
+    TRY(begin_batch(gpu, &batch, &error));
     // One queue; order previous writes before this pass's reads/writes. Host writes
     // are made visible by OGPU submission. No guessed resource-pointer tracing.
     TRY(ogpu_batch_barrier(batch,
@@ -536,7 +581,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     if (compute) ++b->stats.compute;
     else { ((struct texture *) PL_PRIV(in->target))->initialized = true; ++b->stats.raster; }
 fail:
-    ogpu_batch_destroy(batch);
+    end_batch(gpu, batch);
     // Async banks are cleared only after their slot's receipts retire.
     if (!bank->busy && ogpu_image_heap_clear(bank->images, 0, SLOTS, &error) != OGPU_SUCCESS)
         reject(gpu, error.message);

@@ -53,4 +53,7 @@ kernel tuning, new formats or new runtime API is authorized by this milestone.
 
 ## Status
 
-Audit complete; benchmark and consumer-side batch aggregation implementation next.
+Benchmark and consumer-side aggregation implemented. All three engines match
+exactly on llvmpipe at all three extents and both data-flow modes. Existing
+per-operation and new grouped-batch pending/failure/queued-specialization checks
+pass. No runtime change. Radeon correctness and controlled timing are next.

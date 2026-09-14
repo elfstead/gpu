@@ -16,5 +16,8 @@ struct ogpu_stats ogpu_pl_stats(pl_gpu gpu);
 // false from nonblocking collect means pending OR failed; inspect gpu_is_failed.
 // Callback destinations stay live through collection; callbacks must not reenter.
 bool ogpu_pl_frame_begin(pl_gpu gpu, unsigned slot);
+// Same slot rules, but record one batch and submit at frame_end. Failure discards
+// unsubmitted commands and releases callbacks during collection with failed state.
+bool ogpu_pl_frame_begin_batched(pl_gpu gpu, unsigned slot);
 bool ogpu_pl_frame_end(pl_gpu gpu);
 bool ogpu_pl_frame_collect(pl_gpu gpu, unsigned slot, bool wait);

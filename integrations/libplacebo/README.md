@@ -57,6 +57,35 @@ polls, callbacks and resource high-water marks. No wall-time speedup claim.
 
 ## Bounded frame scheduling
 
+For the separate [performance comparison](../../docs/libplacebo-performance.md),
+`ogpu_pl_frame_begin_batched` uses the same slots/banks but records one batch until
+frame end. One frame receipt retires all commands; a failed frame discards its
+unsubmitted batch before clearing banks/delivering failure callbacks. The normal
+`ogpu_pl_frame_begin` retains per-operation submission as the diagnostic control.
+Both use unchanged runtime ABI 10.
+
+```sh
+# One driver at a time; validate every extent/mode, then measure without layers.
+bash integrations/libplacebo/run-perf.sh target/libplacebo-source
+# Software correctness only, with no measured runs:
+bash integrations/libplacebo/run-perf.sh target/libplacebo-source verify
+```
+
+`perf.c` runs native Vulkan and both OGPU policies with the same upstream
+processing helper. Its in-memory verification avoids large disk captures. The
+runner checks all configurations with validation, then runs three fresh processes
+per configuration, rotating engine order, with eight warmup and 64 timed frames.
+Inputs are prepared before timing; timed frames perform no output validation,
+logging or file I/O. Resident mode has no timed image transfers; transfer mode
+uploads input and reads back intermediate/final outputs. Setup/warmup are separate.
+`summary.txt` contains median/range results; raw `PERF` rows and an environment
+manifest remain under the printed ignored directory. All per-frame `*_ms` metrics
+are averages except latency p50/p95; setup/warm/elapsed are whole intervals.
+Latency is host-observed collection latency, not GPU or presentation latency.
+Native submissions/waits/polls use -1 for unavailable; native staging payload 0
+means unmeasured, not zero allocation. Common texture payload excludes the LUT;
+OGPU staging includes it. RSS is process memory, not VRAM. See the brief for limits.
+
 `stream.c` owns two source/intermediate/output texture sets and one shared
 upstream dispatch cache/LUT per extent. `ogpu_pl_frame_begin(gpu, slot)` selects
 slot 0 or 1; uploads, passes and callback readbacks submit immediately, without
