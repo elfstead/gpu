@@ -1,5 +1,60 @@
 use super::*;
 
+fn image_memory(flags: &[u32]) -> vk::VkPhysicalDeviceMemoryProperties {
+    let mut memory = vk::VkPhysicalDeviceMemoryProperties {
+        memoryTypeCount: flags.len() as u32,
+        ..Default::default()
+    };
+    for (ty, &flags) in memory.memoryTypes.iter_mut().zip(flags) {
+        ty.propertyFlags = flags;
+    }
+    memory
+}
+
+#[test]
+fn image_memory_prefers_device_only_local_in_either_order() {
+    let local = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    let visible = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    let memory = image_memory(&[local, local | visible, visible]);
+    assert_eq!(image_memory_type(&memory, 0b111), Some(0));
+    let reversed = image_memory(&[visible, local | visible, local]);
+    assert_eq!(image_memory_type(&reversed, 0b111), Some(2));
+    // Locality is the first preference, not invisibility by itself.
+    let memory = image_memory(&[local | visible, 0]);
+    assert_eq!(image_memory_type(&memory, 0b11), Some(0));
+}
+
+#[test]
+fn image_memory_accepts_visible_local_and_unified_memory() {
+    let local = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    let visible = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    let coherent = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    let memory = image_memory(&[local, local | visible, visible]);
+    // Requirements can exclude the otherwise preferred device-only type.
+    assert_eq!(image_memory_type(&memory, 0b110), Some(1));
+    assert_eq!(image_memory_type(&memory, 0b100), Some(2));
+    let unified = image_memory(&[local | visible | coherent]);
+    assert_eq!(image_memory_type(&unified, 1), Some(0));
+    assert_eq!(image_memory_type(&unified, 0), None);
+}
+
+#[test]
+fn image_memory_preserves_eligibility_and_exclusions() {
+    let local = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    let visible = vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    let memory = image_memory(&[
+        local | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD,
+        local | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_PROTECTED_BIT,
+        local | vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+        local | visible,
+    ]);
+    assert_eq!(image_memory_type(&memory, 0b1111), Some(3));
+    assert_eq!(image_memory_type(&memory, 0b0111), None);
+    assert_eq!(image_memory_type(&memory, 0), None);
+    assert_eq!(image_memory_type(&memory, 1 << 31), None);
+    assert_eq!(image_memory_type(&image_memory(&[]), u32::MAX), None);
+}
+
 #[test]
 fn image_description_respects_usage_and_dimension_limits() {
     let limits = vk::VkPhysicalDeviceLimits {

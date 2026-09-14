@@ -150,9 +150,15 @@ fn image_memory_type(memory: &vk::VkPhysicalDeviceMemoryProperties, mask: u32) -
                     == 0
         })
         .max_by_key(|&i| {
-            memory.memoryTypes[i as usize].propertyFlags
-                & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-                != 0
+            let flags = memory.memoryTypes[i as usize].propertyFlags;
+            let local =
+                flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT != 0;
+            let visible =
+                flags & vk::VkMemoryPropertyFlagBits_VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT != 0;
+            // Images are never mapped by this runtime. Prefer device-only local
+            // memory over a potentially small host-visible VRAM heap, but retain
+            // visible local memory on UMA and when required by the type mask.
+            (local, !visible)
         })
 }
 

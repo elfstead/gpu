@@ -1,6 +1,6 @@
 # Resident libplacebo performance diagnosis
 
-**Diagnosis complete; runtime fix not yet implemented.** Image memory-type
+**Diagnosis complete; runtime correction in validation.** Image memory-type
 preference is the dominant cause of the observed near-4K resident gap. Changing
 only that choice in a diagnostic loader control raises grouped OGPU from 104 to
 563 fps versus a fresh native control at 592 fps. See results and next action below.
@@ -176,3 +176,15 @@ shell syntax checks. Full logs remain under
 `profile.12ht5mnq`, `profile.M8mr41Rh`, `omission.O1TYQdCu`,
 `image-placement.UI06HUyX` and `placement.aNVpKXBL` in
 `target/libplacebo-integration`.
+
+## Runtime correction — 2026-09-15
+
+The selected implementation now ranks eligible image memory types by locality
+first, then absence of HOST_VISIBLE. It preserves every eligibility/exclusion
+check, accepts visible local/UMA memory and retains the existing non-local
+fallback. No type index, heap size or vendor is hardcoded. Buffer and descriptor
+heap placement, shader compilation, synchronization and ABI 10 are unchanged.
+Three selector tests cover ordering, masks, unified/visible-only memory and
+excluded types. Both-driver integration/GPU validation and the full original
+54-run hardware comparison are the acceptance gates, using the real Vulkan
+loader with no diagnostic variants. Their results are pending below.
