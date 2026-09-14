@@ -12,7 +12,9 @@ table. Image creation still checks the actual extent; this is not a general form
 Each pass keeps its last completed receipt while rewriting heaps/vertex data for
 the next frame. ABI 9 retires submission resources during wait, not receipt destruction.
 The consumer checks 12 such reuses; the A/B/A specialization check verifies two.
-Execution is still synchronous per operation; no scheduling/performance claim.
+Ordinary calls remain synchronous per operation. The separate
+[two-frame checkpoint](../../docs/libplacebo-inflight.md) adds bounded, explicit
+consumer-managed slots; the public OGPU runtime remains ABI 10.
 
 ## Reproduce
 
@@ -48,7 +50,40 @@ live under ignored `target/`. Do not run multiple builds in that directory at on
 The runner checks adapter rejection/cleanup, runs the independent reference and
 consumer, then compares both intermediate and final images at the predeclared RGB
 tolerance of 2/255 with exact alpha. Both tested drivers currently match exactly.
-No performance claim: the adapter waits after each upload/pass/readback.
+The runner additionally executes 36 frames in synchronous control and two-slot
+mode, comparing all intermediate/final images to the same reference's repeated
+A/B/A inputs. It checks allocations stabilize after warmup and reports waits,
+polls, callbacks and resource high-water marks. No wall-time speedup claim.
+
+## Bounded frame scheduling
+
+`stream.c` owns two source/intermediate/output texture sets and one shared
+upstream dispatch cache/LUT per extent. `ogpu_pl_frame_begin(gpu, slot)` selects
+slot 0 or 1; uploads, passes and callback readbacks submit immediately, without
+waiting. `ogpu_pl_frame_end` closes the frame. Both slots are submitted before
+the older one is collected; reuse requires `ogpu_pl_frame_collect` first.
+These helpers live in the adapter header, not `include/ogpu.h`.
+
+Each frame has a fixed eight-operation receipt array. Each pass has two mutable
+heap/vertex banks and shared prepared executables/immutable indirect arguments.
+Texture staging is separate per used slot. A bank or staging allocation may be
+used only once per frame; excess operations and premature reuse fail closed.
+This fixed limit describes this integration, not a general scheduler.
+
+Collection polls the last receipt and optionally waits for it, then observes
+every earlier receipt to release its retained resources before clearing banks.
+It copies readbacks and fires callbacks only after retirement. Uploads copy the
+caller bytes before returning; readback destinations and callback state must
+remain valid until callback delivery. Callbacks are serialized, must not reenter
+this adapter, and signal lifetime release even on failure; callers must check
+`pl_gpu_is_failed` before interpreting output. No background progress thread.
+
+`pl_tex_poll` can collect relevant closed slots; finite timeouts are nonblocking
+polls, while `UINT64_MAX` permits waiting. `pl_gpu_flush` needs no extra submission.
+Finish and child destruction drain outstanding frames (closing a partial frame
+if necessary), including failed frames. Outside explicit frames, operations drain
+pending slots and use the synchronous control path. Keep device teardown after
+all children. The two-slot harness does not destroy resources in its steady loop.
 
 ## Independent preparation audits
 
@@ -126,11 +161,12 @@ the reference's output. Executable preparation and G2 execution remain separate 
 
 The adapter supports only the selected push-root/image workflow. It does not provide
 general buffers, UBOs, global uniforms, upstream emulation, partial transfers, indexed
-draws, callbacks or timers. Private object/table layout is pinned; no private allocator
+draws or timers. Callback transfers use the bounded protocol above, not a general
+asynchronous backend. Private object/table layout is pinned; no private allocator
 or finalizer symbols are linked. This narrow push-only profile is not a replacement
 for upstream's general backend capability contract. Unsupported operations fail,
 with no alternate execution backend. Scheduling is externally serialized and each
-operation is drained before staging or heap reuse.
+slot is collected before staging or heap-bank reuse.
 
 ## Licensing boundary
 

@@ -3,8 +3,10 @@
 #pragma once
 #include <libplacebo/shaders/sampling.h>
 #include <libplacebo/dispatch.h>
+#ifndef OGPU_STREAM_WORKLOAD
 struct workload_counts { unsigned creates, compute, raster; };
 static struct workload_counts workload_counts(pl_gpu gpu);
+#endif
 
 static void pattern(uint8_t *data, int w, int h, unsigned frame)
 {
@@ -27,6 +29,23 @@ static uint64_t checksum(const uint8_t *data, size_t size)
     return hash;
 }
 
+static void process_frame(pl_gpu gpu, pl_dispatch dp, pl_shader_obj *lut,
+                          pl_tex src, pl_tex mid, pl_tex dst, int ow, int oh)
+{
+    pl_dispatch_reset_frame(dp);
+    pl_shader sh = pl_dispatch_begin(dp);
+    CHECK(pl_shader_sample_polar(sh, pl_sample_src(.tex = src, .new_w = ow, .new_h = oh),
+        pl_sample_filter_params(.filter = pl_filter_ewa_lanczos, .lut = lut)));
+    CHECK(pl_shader_is_compute(sh));
+    CHECK(pl_dispatch_finish(dp, pl_dispatch_params(.shader = &sh, .target = mid)));
+    sh = pl_dispatch_begin(dp);
+    CHECK(pl_shader_sample_nearest(sh, pl_sample_src(.tex = mid)));
+    CHECK(!pl_shader_is_compute(sh));
+    CHECK(pl_dispatch_finish(dp, pl_dispatch_params(.shader = &sh, .target = dst)));
+    CHECK(!pl_gpu_is_failed(gpu));
+}
+
+#ifndef OGPU_STREAM_WORKLOAD
 static void run_case(pl_gpu gpu, int w, int h, const char *label)
 {
     // Upscale by an odd, non-integer ratio, exercising workgroup tails.
@@ -55,17 +74,7 @@ static void run_case(pl_gpu gpu, int w, int h, const char *label)
         // A/B/A checks both live updates and return to a deterministic earlier result.
         pattern(input, w, h, frame == 1);
         CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex = src, .ptr = input)));
-        pl_dispatch_reset_frame(dp);
-        pl_shader sh = pl_dispatch_begin(dp);
-        CHECK(pl_shader_sample_polar(sh, pl_sample_src(.tex = src, .new_w = ow, .new_h = oh),
-            pl_sample_filter_params(.filter = pl_filter_ewa_lanczos, .lut = &lut)));
-        CHECK(pl_shader_is_compute(sh));
-        CHECK(pl_dispatch_finish(dp, pl_dispatch_params(.shader = &sh, .target = mid)));
-        sh = pl_dispatch_begin(dp);
-        CHECK(pl_shader_sample_nearest(sh, pl_sample_src(.tex = mid)));
-        CHECK(!pl_shader_is_compute(sh));
-        CHECK(pl_dispatch_finish(dp, pl_dispatch_params(.shader = &sh, .target = dst)));
-        CHECK(!pl_gpu_is_failed(gpu));
+        process_frame(gpu, dp, &lut, src, mid, dst, ow, oh);
         const struct workload_counts current = workload_counts(gpu);
         CHECK(current.compute - initial.compute == frame + 1);
         CHECK(current.raster - initial.raster == frame + 1);
@@ -97,3 +106,4 @@ static void run_case(pl_gpu gpu, int w, int h, const char *label)
     pl_tex_destroy(gpu, &src);
     free(first); free(output); free(middle); free(input);
 }
+#endif

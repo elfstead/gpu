@@ -21,19 +21,23 @@ static std::vector<unsigned char> read(const std::string &path, size_t expected)
 int main(int argc, char **argv) {
     try {
         const bool consumer = argc == 4 && std::string(argv[3]) == "--consumer";
-        if (argc != 3 && !consumer)
-            throw std::runtime_error("usage: compare-reference capture-a capture-b [--consumer]");
+        const bool stream = argc == 4 && std::string(argv[3]) == "--stream";
+        if (argc != 3 && !consumer && !stream)
+            throw std::runtime_error("usage: compare-reference capture-a capture-b [--consumer|--stream]");
         const int widths[] = {16, 31, 64}, heights[] = {16, 17, 33};
         unsigned maximum = 0;
         size_t differences = 0, total = 0;
         for (unsigned c = 0; c < 3; ++c) {
-            for (unsigned frame = 0; frame < 3; ++frame) {
-                for (unsigned stage = 0; stage < (consumer ? 2u : 1u); ++stage) {
-                    const auto file = "/pass-" + std::to_string(2 * (c + 1)) + "." +
+            for (unsigned frame = 0; frame < (stream ? 12u : 3u); ++frame) {
+                for (unsigned stage = 0; stage < (consumer || stream ? 2u : 1u); ++stage) {
+                    const auto prefix = "/pass-" + std::to_string(2 * (c + 1)) + "." +
                         std::to_string(widths[c]) + "x" + std::to_string(heights[c]) +
-                        "-frame" + std::to_string(frame) + (stage ? "-middle.rgba" : ".rgba");
+                        "-frame";
+                    const auto suffix = stage ? "-middle.rgba" : ".rgba";
+                    const auto file = prefix + std::to_string(frame) + suffix;
+                    const auto reference = prefix + std::to_string(stream ? frame % 3 : frame) + suffix;
                     const size_t size = (widths[c] * 2 + 1) * (heights[c] * 2 + 1) * 4;
-                    const auto a = read(argv[1] + file, size), b = read(argv[2] + file, size);
+                    const auto a = read(argv[1] + reference, size), b = read(argv[2] + file, size);
                     for (size_t i = 0; i < size; ++i) {
                         const unsigned delta = a[i] > b[i] ? a[i] - b[i] : b[i] - a[i];
                         maximum = std::max(maximum, delta);
@@ -45,7 +49,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        std::cout << (consumer ? "OGPU/reference intermediate+final" : "reference")
+        std::cout << (consumer || stream ? "OGPU/reference intermediate+final" : "reference")
                   << " comparison bytes=" << total << " differing=" << differences
                   << " max_byte_delta=" << maximum << " PASS\n";
     } catch (const std::exception &e) {

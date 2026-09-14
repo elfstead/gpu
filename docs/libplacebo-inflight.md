@@ -59,5 +59,12 @@ general libplacebo support, new formats or further streaming optimization.
 
 ## Status
 
-Adapter and pinned callback contracts audited. Implementation and paired-driver
-acceptance are next. Public runtime remains ABI 10.
+The adapter and 36-frame control/two-slot workload are implemented. The first
+llvmpipe acceptance passes all output comparisons exactly, including 1,145,952
+intermediate/final bytes in each 36-frame mode. Both modes submit 183 operations;
+the control makes 183 waits, the two-slot run made zero explicit waits and 219
+polls. Two frames and eleven operations were outstanding at the high-water mark.
+Allocations stabilized after warmup, with seven textures, four mutable pass banks
+and 156,208 staging payload bytes at peak. Native allocation padding is not measured.
+Radeon acceptance and additional forced-pending/failure checks are in progress.
+Public runtime remains ABI 10; no runtime code or public header change.

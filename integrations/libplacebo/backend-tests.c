@@ -3,6 +3,57 @@
 #include "backend.h"
 #include <stdio.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "check failed: %s\n", #x); exit(1); } } while (0)
+static void completed(void *ptr) { ++*(unsigned *) ptr; }
+
+static void frame_transfers(pl_gpu gpu, const char *mode)
+{
+    pl_tex textures[9] = {0};
+    for (unsigned i = 0; i < 9; ++i) {
+        textures[i] = pl_tex_create(gpu, pl_tex_params(.w=4, .h=4,
+            .format=pl_find_named_fmt(gpu, "rgba8"), .sampleable=true, .host_writable=true, .host_readable=true));
+        CHECK(textures[i]);
+    }
+    unsigned callbacks = 0;
+    uint8_t data[64]; memset(data, 0x5a, sizeof(data));
+    CHECK(ogpu_pl_frame_begin(gpu, 0));
+    unsigned uploads = !strcmp(mode, "frame-capacity") ? 8 : 1;
+    for (unsigned i = 0; i < uploads; ++i)
+        CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[i], .ptr=data,
+            .callback=completed, .priv=&callbacks)));
+    CHECK(!callbacks && ogpu_pl_stats(gpu).waits == 0);
+    CHECK(pl_tex_poll(gpu, textures[0], 0)); // Active slot cannot be collected yet.
+    bool failed = strcmp(mode, "frame-destroy") != 0;
+    if (!strcmp(mode, "frame-capacity")) {
+        CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[8], .ptr=data)));
+    } else if (!strcmp(mode, "frame-partial")) {
+        CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[1], .ptr=data, .rc={0,0,0,2,2,1})));
+    } else if (!strcmp(mode, "frame-staging")) {
+        CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[0], .ptr=data)));
+    } else if (!strcmp(mode, "frame-reuse")) {
+        CHECK(ogpu_pl_frame_end(gpu));
+        CHECK(ogpu_pl_frame_begin(gpu, 1));
+        CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[1], .ptr=data,
+            .callback=completed, .priv=&callbacks)));
+        ++uploads;
+        CHECK(ogpu_pl_frame_end(gpu));
+        CHECK(!ogpu_pl_frame_begin(gpu, 0));
+    } else {
+        CHECK(!strcmp(mode, "frame-destroy"));
+        CHECK(ogpu_pl_frame_end(gpu));
+    }
+    CHECK(pl_gpu_is_failed(gpu) == failed && ogpu_pl_stats(gpu).submissions == uploads);
+    // Child destruction must drain even a failed, partially open frame.
+    pl_tex_destroy(gpu, &textures[8]);
+    CHECK(callbacks == uploads && !ogpu_pl_stats(gpu).outstanding && !ogpu_pl_stats(gpu).inflight);
+    if (!failed) {
+        uint8_t result[64];
+        CHECK(!pl_tex_poll(gpu, textures[0], 0));
+        CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=textures[0], .ptr=result)));
+        CHECK(!memcmp(data, result, sizeof(data)));
+    }
+    for (unsigned i = 0; i < 9; ++i) pl_tex_destroy(gpu, &textures[i]);
+    CHECK(!ogpu_pl_stats(gpu).textures && !ogpu_pl_stats(gpu).staging_bytes);
+}
 
 static void specialization_updates(pl_gpu gpu)
 {
@@ -44,6 +95,12 @@ int main(int argc, char **argv)
     pl_log log = pl_log_create(PL_API_VER, NULL);
     pl_gpu gpu = ogpu_pl_create(log, 0);
     CHECK(gpu);
+    if (!strncmp(argv[1], "frame-", 6)) {
+        frame_transfers(gpu, argv[1]);
+        ogpu_pl_destroy(&gpu); pl_log_destroy(&log);
+        printf("adapter frame=%s live=0 PASS\n", argv[1]);
+        return 0;
+    }
     if (!strcmp(argv[1], "specialization-update")) {
         specialization_updates(gpu);
         ogpu_pl_destroy(&gpu);

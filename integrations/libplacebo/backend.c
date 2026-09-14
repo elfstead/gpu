@@ -1,5 +1,5 @@
 // Integration glue only: upstream owns generation/math/dispatch; OGPU owns execution.
-// Single-threaded and synchronous per operation. Unsupported requests fail closed.
+// Serialized, with an explicit bounded two-frame mode. Unsupported requests fail closed.
 #include "gpu.h"
 #include "backend.h"
 #include "compiler.h"
@@ -8,22 +8,53 @@
 
 #define SLOTS 8
 #define CONSTANTS 16
+#define FRAMES 2
+#define OPERATIONS 8
+struct bank {
+    OgpuCompletion *receipt;
+    OgpuImageHeap *images;
+    OgpuSamplerHeap *samplers;
+    OgpuBuffer *vertices;
+    uint64_t vertex_address;
+    bool allocated, busy;
+};
+struct operation {
+    OgpuCompletion *done;
+    struct bank *bank;
+    OgpuBuffer *readback;
+    void *ptr;
+    size_t size;
+    void (*callback)(void *);
+    void *priv;
+};
+struct frame {
+    struct operation ops[OPERATIONS];
+    unsigned count;
+    uint64_t generation;
+    bool pending;
+};
 struct backend {
     struct pl_gpu_fns fns; // pinned private ABI: must remain first
     OgpuDevice *device;
     struct ogpu_stats stats;
     bool failed;
+    int active; // -1 outside explicit frames
+    uint64_t generation;
+    struct frame frames[FRAMES];
 };
-struct texture { OgpuImage *image; OgpuBuffer *staging; size_t size; bool initialized; };
+struct texture {
+    OgpuImage *image;
+    OgpuBuffer *staging[FRAMES];
+    uint64_t used[FRAMES], staged[FRAMES];
+    size_t size;
+    bool initialized;
+};
 struct program {
-    OgpuCompletion *receipt; // Last completed pass, retained across heap/vertex reuse.
+    struct bank banks[FRAMES];
     struct shader_binary primary, vertex;
     OgpuKernel *kernel;
     OgpuRaster *raster;
-    OgpuImageHeap *images;
-    OgpuSamplerHeap *samplers;
-    OgpuBuffer *vertices, *indirect;
-    uint64_t vertex_address;
+    OgpuBuffer *indirect;
     OgpuSpecializationConstant values[CONSTANTS];
 };
 
@@ -39,17 +70,30 @@ static bool reject(pl_gpu gpu, const char *why)
 // can be released. Already-retired result receipts may survive resource reuse.
 #define TRY(call) do { if ((call) != OGPU_SUCCESS) { reject(gpu, error.message); goto fail; } } while (0)
 #define REQUIRE(test, why) do { if (!(test)) { reject(gpu, why); goto fail; } } while (0)
+static void gpu_finish(pl_gpu gpu);
 
-static bool finish(pl_gpu gpu, OgpuBatch *batch, OgpuCompletion **receipt)
+static bool finish(pl_gpu gpu, OgpuBatch *batch, struct bank *bank)
 {
+    struct backend *b = PL_PRIV(gpu);
     OgpuError error;
     OgpuCompletion *done = NULL;
     bool ok = false;
+    struct frame *frame = b->active < 0 ? NULL : &b->frames[b->active];
+    REQUIRE(!frame || frame->count < OPERATIONS, "frame operation capacity exceeded");
     TRY(ogpu_batch_submit(batch, &done, &error));
+    ++b->stats.submissions;
+    if (frame) {
+        frame->ops[frame->count++] = (struct operation) {.done=done, .bank=bank};
+        if (bank) bank->busy = true;
+        ++b->stats.outstanding;
+        b->stats.peak_outstanding = PL_MAX(b->stats.peak_outstanding, b->stats.outstanding);
+        return true;
+    }
+    ++b->stats.waits;
     TRY(ogpu_completion_wait(done, &error));
-    if (receipt) {
-        ogpu_completion_destroy(*receipt);
-        *receipt = done;
+    if (bank) {
+        ogpu_completion_destroy(bank->receipt);
+        bank->receipt = done;
         done = NULL;
     }
     ok = true;
@@ -59,17 +103,108 @@ fail:
     return ok;
 }
 
+bool ogpu_pl_frame_begin(pl_gpu gpu, unsigned slot)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (b->failed || slot >= FRAMES || b->active >= 0 || b->frames[slot].pending ||
+        b->generation == UINT64_MAX)
+        return reject(gpu, "invalid or premature frame slot reuse");
+    b->active = slot;
+    b->frames[slot].generation = ++b->generation;
+    return true;
+}
+bool ogpu_pl_frame_end(pl_gpu gpu)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (b->active < 0) return reject(gpu, "no active frame");
+    struct frame *f = &b->frames[b->active];
+    f->pending = true;
+    b->active = -1;
+    ++b->stats.frames;
+    ++b->stats.inflight;
+    b->stats.peak_inflight = PL_MAX(b->stats.peak_inflight, b->stats.inflight);
+    return !b->failed;
+}
+bool ogpu_pl_frame_collect(pl_gpu gpu, unsigned slot, bool wait)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (slot >= FRAMES || b->active >= 0)
+        return reject(gpu, "invalid collection or active frame");
+    struct frame *f = &b->frames[slot];
+    if (!f->pending) return !b->failed;
+    OgpuError error;
+    if (f->count) {
+        uint32_t ready = 0;
+        ++b->stats.polls;
+        OgpuResult result = ogpu_completion_poll(f->ops[f->count-1].done, &ready, &error);
+        if (result != OGPU_SUCCESS) reject(gpu, error.message);
+        if (result == OGPU_SUCCESS && !ready) {
+            if (!wait) return false;
+            ++b->stats.waits;
+            if (ogpu_completion_wait(f->ops[f->count-1].done, &error) != OGPU_SUCCESS)
+                reject(gpu, error.message);
+        }
+    }
+    // Observing a later timeline value does not retire earlier receipts. Retire
+    // every operation before clearing heaps or delivering host readbacks.
+    for (unsigned i = 0; i < f->count; ++i) {
+        struct operation *op = &f->ops[i];
+        uint32_t ready = 0;
+        ++b->stats.polls;
+        if (ogpu_completion_poll(op->done, &ready, &error) != OGPU_SUCCESS || !ready)
+            reject(gpu, "frame completion failed to retire");
+        if (op->bank) {
+            // Destruction drains error paths before releasing raw adapter operands.
+            ogpu_completion_destroy(op->bank->receipt);
+            op->bank->receipt = op->done;
+            if (b->failed) {
+                ogpu_completion_destroy(op->bank->receipt);
+                op->bank->receipt = NULL;
+            }
+            op->bank->busy = false;
+            if (ogpu_image_heap_clear(op->bank->images, 0, SLOTS, &error) != OGPU_SUCCESS)
+                reject(gpu, error.message);
+        } else {
+            ogpu_completion_destroy(op->done);
+        }
+        --b->stats.outstanding;
+    }
+    for (unsigned i = 0; i < f->count; ++i) {
+        struct operation *op = &f->ops[i];
+        if (op->readback && !b->failed &&
+            ogpu_buffer_read(op->readback, 0, op->ptr, op->size, &error) != OGPU_SUCCESS)
+            reject(gpu, error.message);
+        if (op->callback) { ++b->stats.callbacks; op->callback(op->priv); }
+    }
+    memset(f->ops, 0, sizeof(f->ops));
+    f->count = 0; f->pending = false;
+    --b->stats.inflight; ++b->stats.collected;
+    return !b->failed;
+}
+
+static void mark_use(pl_gpu gpu, struct texture *t)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (b->active >= 0) t->used[b->active] = b->frames[b->active].generation;
+}
+
 static void tex_destroy(pl_gpu gpu, pl_tex tex)
 {
     struct backend *b = PL_PRIV(gpu);
     struct texture *t = PL_PRIV(tex);
+    gpu_finish(gpu);
+    if (t->image) b->stats.texture_bytes -= t->size;
     ogpu_image_destroy(t->image);
-    ogpu_buffer_destroy(t->staging);
+    for (unsigned i = 0; i < FRAMES; ++i) {
+        if (t->staging[i]) b->stats.staging_bytes -= t->size;
+        ogpu_buffer_destroy(t->staging[i]);
+    }
     free((void *) tex);
     --b->stats.textures;
 }
 
-static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload)
+static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload,
+                     void (*callback)(void *), void *priv)
 {
     struct backend *b = PL_PRIV(gpu);
     struct texture *t = PL_PRIV(tex);
@@ -77,25 +212,44 @@ static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload)
     OgpuBatch *batch = NULL;
     bool ok = false;
     REQUIRE(!b->failed, "device already failed");
-    if (!t->staging)
-        TRY(ogpu_buffer_create(b->device, t->size, OGPU_MEMORY_HOST, &t->staging, &error));
+    if (b->active < 0) gpu_finish(gpu);
+    REQUIRE(!b->failed, "draining previous frames failed");
+    const unsigned slot = b->active < 0 ? 0 : b->active;
+    struct frame *f = b->active < 0 ? NULL : &b->frames[slot];
+    REQUIRE(!f || (f->count < OPERATIONS && t->staged[slot] != f->generation),
+            "frame capacity or repeated staging use");
+    REQUIRE(!f || upload || callback, "frame readback requires a callback");
+    if (!t->staging[slot]) {
+        TRY(ogpu_buffer_create(b->device, t->size, OGPU_MEMORY_HOST, &t->staging[slot], &error));
+        ++b->stats.staging_allocs; b->stats.staging_bytes += t->size;
+        b->stats.peak_staging_bytes = PL_MAX(b->stats.peak_staging_bytes, b->stats.staging_bytes);
+    }
+    OgpuBuffer *staging = t->staging[slot];
     TRY(ogpu_batch_create(b->device, &batch, &error));
     if (upload) {
-        TRY(ogpu_buffer_write(t->staging, 0, ptr, t->size, &error));
+        TRY(ogpu_buffer_write(staging, 0, ptr, t->size, &error));
         if (!t->initialized)
             TRY(ogpu_batch_discard_image(batch, t->image, &error));
-        TRY(ogpu_batch_copy_buffer_to_image(batch, t->staging, 0, t->image, &error));
+        TRY(ogpu_batch_copy_buffer_to_image(batch, staging, 0, t->image, &error));
     } else {
         REQUIRE(t->initialized, "readback of unwritten image");
-        TRY(ogpu_batch_copy_image_to_buffer(batch, t->image, t->staging, 0, &error));
+        TRY(ogpu_batch_copy_image_to_buffer(batch, t->image, staging, 0, &error));
     }
     if (!finish(gpu, batch, NULL)) goto fail;
     t->initialized = true;
+    mark_use(gpu, t);
+    if (f) {
+        t->staged[slot] = f->generation;
+        struct operation *op = &f->ops[f->count-1];
+        op->callback = callback; op->priv = priv;
+        if (!upload) { op->readback = staging; op->ptr = ptr; op->size = t->size; }
+    }
     if (upload) ++b->stats.uploads;
     else {
-        TRY(ogpu_buffer_read(t->staging, 0, ptr, t->size, &error));
+        if (!f) TRY(ogpu_buffer_read(staging, 0, ptr, t->size, &error));
         ++b->stats.downloads;
     }
+    if (!f && callback) { ++b->stats.callbacks; callback(priv); }
     ok = true;
 fail:
     ogpu_batch_destroy(batch);
@@ -115,6 +269,8 @@ static pl_tex tex_create(pl_gpu gpu, const struct pl_tex_params *p)
     tex = calloc(1, PL_ALIGN_MEM(sizeof(*tex)) + sizeof(struct texture));
     REQUIRE(tex, "image allocation failed");
     ++b->stats.textures;
+    ++b->stats.texture_creates;
+    b->stats.peak_textures = PL_MAX(b->stats.peak_textures, b->stats.textures);
     tex->params = *p;
     tex->params.initial_data = NULL;
     struct texture *t = PL_PRIV(tex);
@@ -130,7 +286,9 @@ static pl_tex tex_create(pl_gpu gpu, const struct pl_tex_params *p)
                  (p->host_writable || p->initial_data ? OGPU_IMAGE_USAGE_COPY_DST : 0),
     };
     TRY(ogpu_image_create(b->device, &desc, &t->image, &error));
-    if (p->initial_data && !transfer(gpu, tex, (void *) p->initial_data, true)) goto fail;
+    b->stats.texture_bytes += t->size;
+    b->stats.peak_texture_bytes = PL_MAX(b->stats.peak_texture_bytes, b->stats.texture_bytes);
+    if (p->initial_data && !transfer(gpu, tex, (void *) p->initial_data, true, NULL, NULL)) goto fail;
     return tex;
 fail:
     if (tex) tex_destroy(gpu, tex);
@@ -140,10 +298,10 @@ fail:
 static bool tex_transfer(pl_gpu gpu, const struct pl_tex_transfer_params *p, bool upload)
 {
     const struct pl_tex_params *t = &p->tex->params;
-    if (!p->ptr || p->buf || p->callback || p->timer || p->rc.x0 || p->rc.x1 != t->w ||
+    if (!p->ptr || p->buf || p->timer || p->rc.x0 || p->rc.x1 != t->w ||
         (t->h && (p->rc.y0 || p->rc.y1 != t->h || p->row_pitch != (size_t) t->w * 4)))
-        return reject(gpu, "only full packed synchronous host image transfers are supported");
-    return transfer(gpu, p->tex, p->ptr, upload);
+        return reject(gpu, "only full packed host image transfers are supported");
+    return transfer(gpu, p->tex, p->ptr, upload, p->callback, p->priv);
 }
 static bool tex_upload(pl_gpu gpu, const struct pl_tex_transfer_params *p) { return tex_transfer(gpu, p, true); }
 static bool tex_download(pl_gpu gpu, const struct pl_tex_transfer_params *p) { return tex_transfer(gpu, p, false); }
@@ -152,12 +310,17 @@ static void pass_destroy(pl_gpu gpu, pl_pass pass)
 {
     struct backend *b = PL_PRIV(gpu);
     struct program *p = PL_PRIV(pass);
-    ogpu_completion_destroy(p->receipt);
+    gpu_finish(gpu);
+    for (unsigned i = 0; i < FRAMES; ++i) {
+        struct bank *bank = &p->banks[i];
+        ogpu_completion_destroy(bank->receipt);
+        ogpu_image_heap_destroy(bank->images);
+        ogpu_sampler_heap_destroy(bank->samplers);
+        ogpu_buffer_destroy(bank->vertices);
+        if (bank->allocated) --b->stats.banks;
+    }
     ogpu_kernel_destroy(p->kernel);
     ogpu_raster_destroy(p->raster);
-    ogpu_image_heap_destroy(p->images);
-    ogpu_sampler_heap_destroy(p->samplers);
-    ogpu_buffer_destroy(p->vertices);
     ogpu_buffer_destroy(p->indirect);
     free(p->primary.words); free(p->vertex.words);
     for (int i = 0; i < pass->params.num_descriptors; ++i) free((void *) pass->params.descriptors[i].name);
@@ -270,14 +433,22 @@ static pl_pass pass_create(pl_gpu gpu, const struct pl_pass_params *in)
     if (!compute) {
         REQUIRE(compile_native(in->vertex_shader, 2, in->vertex_attribs[0].name,
                 in->vertex_attribs[1].name, &p->vertex), "vertex compilation failed");
-        TRY(ogpu_buffer_create(b->device, 64, OGPU_MEMORY_HOST, &p->vertices, &error));
-        TRY(ogpu_buffer_device_address(p->vertices, &p->vertex_address, &error));
         TRY(ogpu_buffer_create(b->device, 16, OGPU_MEMORY_HOST, &p->indirect, &error));
         const OgpuDrawArguments args = {4, 1, 0, 0};
         TRY(ogpu_buffer_write(p->indirect, 0, &args, sizeof(args), &error));
     }
-    TRY(ogpu_image_heap_create(b->device, SLOTS, &p->images, &error));
-    TRY(ogpu_sampler_heap_create(b->device, SLOTS, &p->samplers, &error));
+    for (unsigned i = 0; i < FRAMES; ++i) {
+        struct bank *bank = &p->banks[i];
+        bank->allocated = true;
+        ++b->stats.banks;
+        b->stats.peak_banks = PL_MAX(b->stats.peak_banks, b->stats.banks);
+        TRY(ogpu_image_heap_create(b->device, SLOTS, &bank->images, &error));
+        TRY(ogpu_sampler_heap_create(b->device, SLOTS, &bank->samplers, &error));
+        if (!compute) {
+            TRY(ogpu_buffer_create(b->device, 64, OGPU_MEMORY_HOST, &bank->vertices, &error));
+            TRY(ogpu_buffer_device_address(bank->vertices, &bank->vertex_address, &error));
+        }
+    }
     if (!specialize(gpu, pass, in->constant_data)) goto fail;
     ++b->stats.creates;
     return pass;
@@ -295,16 +466,20 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     struct program *p = PL_PRIV(in->pass);
     const struct pl_pass_params *params = &in->pass->params;
     const bool compute = params->type == PL_PASS_COMPUTE;
-    const bool reusing_receipt = p->receipt != NULL;
+    if (b->active < 0) gpu_finish(gpu);
+    struct bank *bank = &p->banks[b->active < 0 ? 0 : b->active];
+    const bool reusing_receipt = bank->receipt != NULL;
     OgpuError error;
     OgpuBatch *batch = NULL;
     REQUIRE(!b->failed && !in->num_var_updates && !in->timer, "unsupported run variables/timer or failed device");
+    REQUIRE(!bank->busy && (b->active < 0 || b->frames[b->active].count < OPERATIONS),
+            "pass bank already in use or frame capacity exceeded");
     if (!specialize(gpu, in->pass, in->constant_data)) goto fail;
     if (!compute) {
         REQUIRE(in->vertex_data && !in->vertex_buf && !in->index_data && !in->index_buf &&
                 in->vertex_count == 4 && full_rect(in->viewport, in->target) &&
                 full_rect(in->scissors, in->target), "unsupported draw region/vertices");
-        TRY(ogpu_buffer_write(p->vertices, 0, in->vertex_data, 64, &error));
+        TRY(ogpu_buffer_write(bank->vertices, 0, in->vertex_data, 64, &error));
     }
     TRY(ogpu_batch_create(b->device, &batch, &error));
     // One queue; order previous writes before this pass's reads/writes. Host writes
@@ -319,13 +494,14 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
         const struct pl_desc_binding *binding = &in->desc_bindings[i];
         pl_tex tex = binding->object;
         struct texture *t = PL_PRIV(tex);
+        mark_use(gpu, t);
         const bool sampled = d->type == PL_DESC_SAMPLED_TEX;
         if (!t->initialized) {
             REQUIRE(!sampled, "sample of unwritten image");
             TRY(ogpu_batch_discard_image(batch, t->image, &error));
         }
         const OgpuImageEntry entry = {t->image, sampled ? OGPU_IMAGE_SAMPLED : OGPU_IMAGE_STORAGE, 0};
-        TRY(ogpu_image_heap_write(p->images, d->binding, &entry, 1, &error));
+        TRY(ogpu_image_heap_write(bank->images, d->binding, &entry, 1, &error));
         if (sampled) {
             REQUIRE(binding->sample_mode == PL_TEX_SAMPLE_NEAREST || binding->sample_mode == PL_TEX_SAMPLE_LINEAR,
                     "unsupported sampler filter");
@@ -334,21 +510,22 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
             const uint32_t filter = binding->sample_mode == PL_TEX_SAMPLE_LINEAR ? OGPU_FILTER_LINEAR : OGPU_FILTER_NEAREST;
             const uint32_t address = binding->address_mode == PL_TEX_ADDRESS_REPEAT ? OGPU_ADDRESS_REPEAT : OGPU_ADDRESS_CLAMP;
             const OgpuSamplerDesc sampler = {filter, filter, address, address};
-            TRY(ogpu_sampler_heap_write(p->samplers, d->binding, &sampler, 1, &error));
+            TRY(ogpu_sampler_heap_write(bank->samplers, d->binding, &sampler, 1, &error));
         }
     }
-    TRY(ogpu_batch_bind_image_heap(batch, p->images, &error));
-    TRY(ogpu_batch_bind_sampler_heap(batch, p->samplers, &error));
+    TRY(ogpu_batch_bind_image_heap(batch, bank->images, &error));
+    TRY(ogpu_batch_bind_sampler_heap(batch, bank->samplers, &error));
     if (compute) {
         TRY(ogpu_batch_dispatch(batch, p->kernel, in->compute_groups[0], in->compute_groups[1],
             in->compute_groups[2], in->push_constants, params->push_constants_size, &error));
     } else {
         struct texture *target = PL_PRIV(in->target);
-        TRY(ogpu_batch_retain_buffer(batch, p->vertices, &error));
+        mark_use(gpu, target);
+        TRY(ogpu_batch_retain_buffer(batch, bank->vertices, &error));
         TRY(ogpu_batch_draw_indirect(batch, p->raster, target->image, p->indirect, 0,
-            &p->vertex_address, 8, params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR, &error));
+            &bank->vertex_address, 8, params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR, &error));
     }
-    if (!finish(gpu, batch, &p->receipt)) goto fail;
+    if (!finish(gpu, batch, bank)) goto fail;
     if (reusing_receipt) ++b->stats.receipt_reuses;
     for (int i = 0; i < params->num_descriptors; ++i) {
         struct texture *t = PL_PRIV((pl_tex) in->desc_bindings[i].object);
@@ -358,14 +535,38 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     else { ((struct texture *) PL_PRIV(in->target))->initialized = true; ++b->stats.raster; }
 fail:
     ogpu_batch_destroy(batch);
-    // ABI 9: wait retired the submission, but its receipt remains alive. The next
-    // run also rewrites heaps/vertices while this completed receipt still exists.
-    if (ogpu_image_heap_clear(p->images, 0, SLOTS, &error) != OGPU_SUCCESS)
+    // Async banks are cleared only after their slot's receipts retire.
+    if (!bank->busy && ogpu_image_heap_clear(bank->images, 0, SLOTS, &error) != OGPU_SUCCESS)
         reject(gpu, error.message);
 }
 
 static int desc_namespace(pl_gpu gpu, enum pl_desc_type type) { return 0; }
-static void gpu_finish(pl_gpu gpu) { /* Each submitted operation was already drained. */ }
+static void gpu_finish(pl_gpu gpu)
+{
+    struct backend *b = PL_PRIV(gpu);
+    if (b->active >= 0) ogpu_pl_frame_end(gpu);
+    // Collect in submission order, including after a partial-frame failure.
+    unsigned first = b->frames[0].generation < b->frames[1].generation ? 0 : 1;
+    ogpu_pl_frame_collect(gpu, first, true);
+    ogpu_pl_frame_collect(gpu, 1-first, true);
+}
+static bool tex_poll(pl_gpu gpu, pl_tex tex, uint64_t timeout)
+{
+    struct backend *b = PL_PRIV(gpu);
+    struct texture *t = PL_PRIV(tex);
+    bool busy = false;
+    for (unsigned i = 0; i < FRAMES; ++i) {
+        if (t->used[i] != b->frames[i].generation) continue;
+        if (b->active >= 0) {
+            busy |= b->frames[i].pending || b->active == (int) i;
+        } else if (b->frames[i].pending) {
+            ogpu_pl_frame_collect(gpu, i, timeout == UINT64_MAX);
+            busy |= b->frames[i].pending;
+        }
+    }
+    return busy;
+}
+static void gpu_flush(pl_gpu gpu) { /* Operations submit immediately. */ }
 static bool gpu_failed(pl_gpu gpu) { return ((struct backend *) PL_PRIV(gpu))->failed; }
 static pl_buf buf_create(pl_gpu gpu, const struct pl_buf_params *p)
 { reject(gpu, "general libplacebo buffers are outside this adapter"); return NULL; }
@@ -390,6 +591,7 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     if (!gpu) return NULL;
     gpu->log = log;
     struct backend *b = PL_PRIV(gpu);
+    b->active = -1;
     OgpuProbe *probe = NULL;
     OgpuError error;
     OgpuDeviceLimits limits;
@@ -419,6 +621,7 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
         .max_shmem_size=limits.max_shared_memory_bytes, .max_group_threads=limits.max_group_invocations};
     memcpy(gpu->glsl.max_group_size, limits.max_group_size, sizeof(limits.max_group_size));
     gpu->limits = (struct pl_gpu_limits) {
+        .callbacks=true,
         .max_tex_1d_dim=limits.max_image_1d, .max_tex_2d_dim=limits.max_image_2d,
         .max_constants=CONSTANTS, .array_size_constants=true,
         .max_pushc_size=PL_MIN(limits.max_push_data_bytes, 128),
@@ -433,7 +636,8 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     b->fns = (struct pl_gpu_fns) {
         .tex_create=tex_create, .tex_destroy=tex_destroy, .tex_upload=tex_upload, .tex_download=tex_download,
         .pass_create=pass_create, .pass_destroy=pass_destroy, .pass_run=pass_run,
-        .desc_namespace=desc_namespace, .gpu_finish=gpu_finish, .gpu_is_failed=gpu_failed, .buf_create=buf_create,
+        .desc_namespace=desc_namespace, .gpu_finish=gpu_finish, .gpu_flush=gpu_flush,
+        .tex_poll=tex_poll, .gpu_is_failed=gpu_failed, .buf_create=buf_create,
     };
     atomic_init(&b->fns.cache, NULL);
     // No private allocator/finalizer symbols are exported by upstream. This narrow
@@ -456,6 +660,7 @@ void ogpu_pl_destroy(pl_gpu *gpu)
         fprintf(stderr, "OGPU libplacebo: live children at device destruction\n");
         abort();
     }
+    gpu_finish(*gpu);
     ogpu_device_destroy(b->device);
     free((*gpu)->formats); free((void *) *gpu); *gpu = NULL;
 }

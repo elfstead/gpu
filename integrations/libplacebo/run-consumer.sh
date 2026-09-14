@@ -16,5 +16,14 @@ test "$(rg -c '^ogpu=.* PASS$' "$consumer/run.log")" = 9
 rg -q '^upstream-reference creates=6 compute=9 raster=9 PASS' "$reference/run.log"
 rg -q '^ogpu-consumer creates=6 compute=9 raster=9 uploads=12 downloads=18 live=0 PASS' "$consumer/run.log"
 "$out/compare-reference" "$reference" "$consumer" --consumer | tee "$consumer/comparison.log"
+for mode in sync two; do
+    stream=$(mktemp -d "$out/stream-$mode.XXXXXXXX")
+    "$out/stream" "$stream" "$mode" 2>&1 | tee "$stream/run.log"
+    if rg 'Validation Error:|runtime error:|ERROR: AddressSanitizer' "$stream/run.log"; then exit 1; fi
+    test "$(rg -c '^stream=.* PASS$' "$stream/run.log")" = 36
+    rg -q "^stream-summary mode=$mode .* live=0 PASS$" "$stream/run.log"
+    "$out/compare-reference" "$reference" "$stream" --stream | tee "$stream/comparison.log"
+    echo "Stream $mode: $stream"
+done
 echo "Reference: $reference"
 echo "OGPU: $consumer"
