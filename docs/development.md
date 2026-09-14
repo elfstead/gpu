@@ -1,5 +1,10 @@
 # Building the prototype
 
+Start with the [two-consumer checkpoint](checkpoint.md) for the shortest ordered
+build/acceptance path and its clean-checkout evidence. This page is the detailed
+command and regeneration reference, not a requirement to run every historical
+experiment before using the runtime.
+
 The initial backend is Rust with directly generated Vulkan declarations and a small
 C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
@@ -29,9 +34,10 @@ two-slot execution against a 36-frame synchronous control and tests frame failur
 cleanup; see the [scheduling checkpoint](libplacebo-inflight.md).
 These extra dependencies and checks
 are not currently wired into the manual GPU workflow.
-Acceptance uses checked-in, hash-pinned weights; CPU training is a separate optional
-script. Hosted CI covers build/mock/ABI/SPIR-V checks. GPU and consumer execution
-are in the manual `gpu.yml` workflow, requiring a separately provisioned
+GGML acceptance uses checked-in, hash-pinned weights; CPU training is a separate optional
+script. The hosted workflow defines build/mock/ABI/SPIR-V checks. The manual
+`gpu.yml` workflow defines runtime GPU tests and the original GGML DEVICE/F32
+acceptance, not libplacebo or the full GGML precision/placement matrix. It requires a separately provisioned
 `ogpu-modern-vulkan` runner with the selected baseline, validation layers, build
 tools and test-data download access. No runner was provisioned or remote run
 performed here. Automatic hosted CI is not currently an execution gate.

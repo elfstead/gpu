@@ -1,6 +1,6 @@
 # Open GPU Interface: current design
 
-Updated 2026-09-14. This is an experimental programming model with a working
+Updated 2026-09-15. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
@@ -11,7 +11,11 @@ also executes upstream compute and raster passes through OGPU and matches its
 Vulkan reference on both tested drivers. Neither integration is a general backend.
 Libplacebo's [two-frame follow-up](libplacebo-inflight.md) retains consumer-owned
 scheduling/reuse policy and uses existing completion/ownership rules to remove
-per-operation waits. It does not introduce a runtime scheduler or throughput claim.
+per-operation waits. Subsequent [frame batching and native comparisons](libplacebo-performance.md)
+measure the implementation; the [image-allocation correction](libplacebo-diagnosis.md)
+recovers most of the large resident-image gap on the tested Radeon. No runtime
+scheduler was introduced. The [two-consumer checkpoint](checkpoint.md) collects
+the current scope, reproduction path and evidence limits.
 The [milestone plan](plan.md) owns working status, scope, blocking decisions and exit
 criteria. Experimental still means changes
 are allowed, not that a stable or broadly portable interface has been established.
@@ -97,8 +101,9 @@ The [FP32 matrix experiment](matmul.md) adds numerical references, explicit row
 strides, baseline/tiled variants, and separated host timings without matrix-specific
 API changes. The [timing follow-up](timing.md) adds optional device batch durations.
 
-The examples establish functional paths and ownership/visibility behavior. They do
-not establish competitive performance, portability across hardware vendors, or a
+The examples establish functional paths and ownership/visibility behavior. The
+bounded consumer measurements do not establish general performance parity,
+portability across hardware vendors, or a
 complete graphics/ML programming model. The [experiment ledger](experiments.md)
 records what has been tested and what remains unproven.
 
@@ -122,7 +127,7 @@ The commitments below are project direction, not promises of stable signatures.
 
 Names such as `Buffer` versus `Allocation`, the exact object model, argument-passing
 forms, queue API, executable packaging, and raster-state API remain provisional.
-The current fixed root limits, single-dimensional dispatch, dedicated allocations,
+The current fixed root limits, dedicated allocations,
 and fixed-state rendering are experiment constraints, not the intended final shape.
 
 ## Ownership, execution, and safety
@@ -175,7 +180,7 @@ kernel-language/IR capabilities. The host interface needs to select executable
 variants and negotiate requirements, not add a host function for each arithmetic
 operation. Reusable low-level command sequences do not imply runtime-owned ML graphs.
 
-## First integration checkpoint
+## Completed integration checkpoints
 
 The reduction, mixed image loop, FP32 matrix and optional timing experiments have
 provided the initial feasibility evidence. They remain regression/diagnostic tools;
@@ -185,7 +190,11 @@ The [milestone plan](plan.md) records the completed GGML MNIST checkpoint and it
 retain/defer API decisions. The integration uses the unchanged public boundary,
 and its source revision, reproduction instructions, acceptance and limitations
 are recorded in the [consumer brief](consumer-ggml.md). This validates one bounded
-compute consumer, not a general GGML backend, graphics consumer, or stable release.
+compute consumer, not a general GGML backend or stable release. The subsequent
+libplacebo checkpoint supplies bounded mixed compute/raster evidence, including
+two-slot execution, frame batching and a native performance comparison. Neither
+integration constitutes a general consumer backend; current reproduction is
+collected in the [two-consumer checkpoint](checkpoint.md).
 
 Further experiments must resolve a named decision with a stopping condition.
 Benchmark expansion is paused unless that decision needs it. Presentation, broad
