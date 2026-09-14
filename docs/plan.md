@@ -63,9 +63,11 @@ device-selection API or FP16 arithmetic. The subsequent D4 milestone,
 36-frame synchronous and two-slot runs match the reference exactly on both drivers;
 two-slot execution removes per-operation waits with bounded resources. Retain
 consumer-managed frame/reuse policy and existing runtime ownership/completion
-contracts. No runtime API change was selected. Review this checkpoint before
-selecting another milestone; optional arithmetic, portability, submission
-aggregation and a general libplacebo backend remain separate future decisions.
+contracts. No runtime API change was selected. The next selected milestone is a
+[controlled native-Vulkan performance comparison](libplacebo-performance.md),
+including consumer-side one-batch-per-frame aggregation through the existing API.
+Optional arithmetic, portability and a general libplacebo backend remain separate
+future decisions.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Additional formats/subresources remain deferred scope decisions, not hidden
