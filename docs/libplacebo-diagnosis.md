@@ -55,3 +55,18 @@ The wrapper clocks and query retrieval can perturb timing. Whole-batch and nativ
 pass durations include their respective dependencies and need not be additive
 or exactly equivalent boundaries. Host poll/wait/destroy/query totals include
 measured-phase cleanup; they are not a disjoint CPU/GPU decomposition.
+
+Initial Radeon timestamps localize the baseline gap to device intervals, not
+receipt destruction: grouped frames take about 9.5 ms on-device; native passes
+about 1.53 ms compute and 0.13 ms raster. OGPU per-operation compute/raster
+intervals are each about 4.75 ms. Captured compute GLSL differs only by unused
+extension-enabling directives before adapter lowering; constants/grids match.
+
+Next isolation: `OGPU_DIAGNOSTIC_OMIT=compute|raster|both` skips only the selected
+public command-recording call during the measured phase in the diagnostic binary.
+Warmup still executes/validates the full workload; existing heap binds, global
+barriers, submissions and collection remain. Use resident images only; this is
+**not workload throughput**, and printed adapter pass counts represent attempted
+calls, not omitted GPU commands. Validate each omission mode before timing it.
+This distinguishes command work from remaining dependencies without modifying
+runtime code, shaders or the original benchmark.

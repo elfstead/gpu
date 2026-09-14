@@ -29,6 +29,7 @@ done
 "${CXX:-c++}" "$out/backend.o" "$out/perf-diagnostic.o" "$out/diagnostics-diagnostic.o" "$out/compiler.o" \
     -Wl,--wrap=ogpu_batch_create -Wl,--wrap=ogpu_batch_submit \
     -Wl,--wrap=ogpu_completion_poll -Wl,--wrap=ogpu_completion_wait -Wl,--wrap=ogpu_completion_destroy \
+    -Wl,--wrap=ogpu_batch_dispatch -Wl,--wrap=ogpu_batch_draw_indirect \
     -L"$repo/target/release" -Wl,-rpath,"$repo/target/release" -logpu \
     -L"$build/src" -Wl,-rpath,"$build/src" -lplacebo $(pkg-config --libs shaderc) \
     -o "$out/perf-diagnostic"

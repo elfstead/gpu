@@ -11,6 +11,8 @@
 enum { OTHER, COMPUTE, RASTER, KINDS };
 static const char *names[] = {"other-or-frame", "compute", "raster"};
 static bool native, measured, timed;
+static bool omit_compute, omit_raster;
+static unsigned omitted[2];
 static unsigned current, depth, creates, runs[KINDS], samples[KINDS];
 static double nanoseconds[KINDS], poll_ms, wait_ms, destroy_ms, query_ms;
 static pl_timer timers[KINDS];
@@ -65,6 +67,14 @@ void diagnostic_attach(pl_gpu gpu, bool is_native)
     const char *setting=getenv("OGPU_DIAGNOSTIC_TIMING");
     CHECK(setting && (!strcmp(setting,"0") || !strcmp(setting,"1")));
     timed=!strcmp(setting,"1");
+    const char *omit=getenv("OGPU_DIAGNOSTIC_OMIT");
+    if(!omit) omit="none";
+    CHECK(!strcmp(omit,"none") || !strcmp(omit,"compute") || !strcmp(omit,"raster") || !strcmp(omit,"both"));
+    omit_compute=!strcmp(omit,"compute") || !strcmp(omit,"both");
+    omit_raster=!strcmp(omit,"raster") || !strcmp(omit,"both");
+    CHECK(!native || (!omit_compute && !omit_raster));
+    omitted[0]=omitted[1]=0;
+    printf("OMISSION measured_only=%s (not workload throughput when non-none)\n",omit);
     printf("DIAGNOSTIC timing=%u native=%u threads=%u group=%u,%u,%u shared=%zu\n",
         timed,native,gpu->glsl.max_group_threads,gpu->glsl.max_group_size[0],
         gpu->glsl.max_group_size[1],gpu->glsl.max_group_size[2],gpu->glsl.max_shmem_size);
@@ -92,6 +102,7 @@ void diagnostic_detach(pl_gpu gpu)
     for(unsigned i=0;i<KINDS;++i) printf("DEVICE type=%s samples=%u mean_ms=%.6f\n",
         names[i],samples[i],samples[i]?nanoseconds[i]/samples[i]/1e6:0);
     printf("HOST totals_ms poll=%.6f wait=%.6f destroy=%.6f query=%.6f\n",poll_ms,wait_ms,destroy_ms,query_ms);
+    printf("OMITTED compute=%u raster=%u\n",omitted[0],omitted[1]);
     for(unsigned i=0;i<32;++i) CHECK(!receipts[i].handle);
     if(native) for(unsigned i=COMPUTE;i<KINDS;++i) pl_timer_destroy(gpu,&timers[i]);
     struct pl_gpu_fns *f=PL_PRIV(gpu); f->pass_create=original_create; f->pass_run=original_run;
@@ -148,4 +159,16 @@ void __wrap_ogpu_completion_destroy(OgpuCompletion *c)
     if(c) for(unsigned i=0;i<32;++i) if(receipts[i].handle==c) receipts[i]=(struct receipt){0};
     double start=now(); __real_ogpu_completion_destroy(c);
     if(measured) destroy_ms+=now()-start;
+}
+OgpuResult __real_ogpu_batch_dispatch(OgpuBatch *,OgpuKernel *,uint32_t,uint32_t,uint32_t,const void *,uint32_t,OgpuError *);
+OgpuResult __wrap_ogpu_batch_dispatch(OgpuBatch *b,OgpuKernel *k,uint32_t x,uint32_t y,uint32_t z,const void *args,uint32_t size,OgpuError *e)
+{
+    if(measured && omit_compute) { ++omitted[0]; return OGPU_SUCCESS; }
+    return __real_ogpu_batch_dispatch(b,k,x,y,z,args,size,e);
+}
+OgpuResult __real_ogpu_batch_draw_indirect(OgpuBatch *,OgpuRaster *,OgpuImage *,OgpuBuffer *,uint64_t,const void *,uint32_t,uint32_t,OgpuError *);
+OgpuResult __wrap_ogpu_batch_draw_indirect(OgpuBatch *b,OgpuRaster *r,OgpuImage *t,OgpuBuffer *i,uint64_t offset,const void *args,uint32_t size,uint32_t load,OgpuError *e)
+{
+    if(measured && omit_raster) { ++omitted[1]; return OGPU_SUCCESS; }
+    return __real_ogpu_batch_draw_indirect(b,r,t,i,offset,args,size,load,e);
 }
