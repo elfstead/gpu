@@ -90,6 +90,11 @@ MNIST test inputs can replace downloads. Cargo's source cache can be reused.
 Record this reuse explicitly: an empty build directory is not an empty machine
 or an independently reproduced dependency installation.
 
+On a space-constrained development machine, optional
+`CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0` disables debug symbols in
+those Cargo profiles without disabling assertions. The release consumer builds
+are unchanged. Leave `CARGO_TARGET_DIR` unset even in that case.
+
 ## Evidence and coverage
 
 Runtime image fix: `1f41d7e`; performance acceptance: `5b7acd2`. Existing evidence

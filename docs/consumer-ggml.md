@@ -3,6 +3,8 @@
 This brief records the original FP32 checkpoint. The subsequent
 [mixed-precision brief](ggml-mixed-precision.md) extends only matrix-weight storage
 to F16 with FP32 arithmetic; its acceptance limits and evidence are separate.
+The [two-consumer checkpoint](checkpoint.md) collects the current ABI-10 support
+and reproduction path; original ABI-1 decisions below are historical.
 
 ## Brief and acceptance (C1)
 

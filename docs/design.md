@@ -49,20 +49,16 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 10: attachment LOAD/CLEAR broke the draw signature in ABI 2; independent heaps
-replaced the coupled table API in ABI 3; explicit allocation placement changes
-buffer creation in ABI 4; explicit X/Y/Z workgroup counts replace 1D-only dispatch
-in ABI 5; image descriptions, usage and uploads replace the target API in ABI 6;
-shader descriptions with per-stage specialization and raster topology change
-executable creation in ABI 7. ABI 8 makes ordinary device creation explicitly
-compute/images-only, instead of opportunistically enabling rasterization. It adds
-[enabled-capability and exact image-support queries](execution-capabilities.md).
-ABI 9 retires submission resources on safe terminal observation, separating their
-lifetime from a surviving completion result/timing receipt.
-ABI 10 enables [16-bit buffer storage](ggml-mixed-precision.md) in the baseline,
-without enabling FP16 arithmetic or adding an optional creation profile.
-Rebuild callers against matching
-header/library/shaders; source revision still identifies the experimental checkpoint.
+ABI 10. Ordinary device creation enables compute/images/heaps; rasterization is
+explicitly opt-in. [Enabled capabilities and exact image-support queries](execution-capabilities.md)
+describe the created device, not just physical support. Terminal completion
+observation retires submission resources independently of the surviving result
+receipt. [16-bit buffer storage](ggml-mixed-precision.md) is enabled without FP16
+arithmetic. Image backing prefers eligible device-only local memory while accepting
+visible local/UMA memory; buffer placement remains explicit.
+Rebuild callers against matching header/library/shaders. Source revision identifies
+the experimental checkpoint; the [ledger](experiments.md) and
+[historical plan](plan-history.md) preserve the sequence of ABI changes.
 
 The backend is Rust over Vulkan, with a small C header and directly generated,
 pinned Vulkan declarations. It does not depend on ash or Vulkanalia. Only Linux

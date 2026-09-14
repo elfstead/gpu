@@ -1,11 +1,11 @@
 # Experiment ledger
 
-Updated 2026-09-14. This page records evidence, not API-stability promises. See
+Updated 2026-09-15. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
 The initial feasibility phase is complete. The [working plan](plan.md) now defines
-the API-candidate/integration milestone and its next task. This ledger is evidence,
+the current two-consumer checkpoint and selected work. This ledger is evidence,
 not a development queue; existing experiments remain regression and diagnostic tools.
 
 ## Implemented baseline
@@ -41,8 +41,9 @@ staging policy was documented and committed, with upstream unchanged. Fifty-four
 validation-disabled RX 5700 XT runs show batching lowers host recording cost but
 does not close the resident-image gap: near-4K median throughput is 553 fps native,
 98.9 per-operation, 99.1 per-frame; with transfers it is 45.10/41.83/41.91 fps.
-Retain frame grouping in consumer policy, not a new runtime scheduler. The cause
-of the remaining gap is unproven; measurements include different implementation
+Retain frame grouping in consumer policy, not a new runtime scheduler. At this
+pre-diagnosis checkpoint the cause was unproven; the later diagnosis and correction
+above supersede that uncertainty. Measurements include different implementation
 paths and are not isolated API overhead. Raw results and limits are in the brief.
 
 The [two-frame libplacebo checkpoint](libplacebo-inflight.md) retains ABI 10 with
