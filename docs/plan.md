@@ -20,7 +20,8 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 9**: [completion receipts survive submission-resource retirement](completion-resource-review.md#implementation-abi-9).
+The current interface is **ABI 10**: [16-bit buffer storage](ggml-mixed-precision.md)
+is enabled without FP16 arithmetic. It retains ABI 9's [completion-resource retirement](completion-resource-review.md#implementation-abi-9).
 [Enabled capabilities and exact image support](execution-capabilities.md)
 are queryable; ordinary creation enables compute/images/heaps with rasterization
 disabled. Graphics creation adds rasterization explicitly. Shader specialization,

@@ -20,6 +20,9 @@ uses this same baseline and brings the public interface to ABI 4.
 The execution target is Vulkan 1.4, buffer device addresses, synchronization2,
 timeline semaphores, maintenance5, `VK_EXT_descriptor_heap`,
 `VK_KHR_shader_untyped_pointers` and `VK_KHR_device_address_commands`.
+ABI 10 additionally enables `storageBuffer16BitAccess`, whose support Vulkan 1.4
+already mandates. This permits native half storage with FP32 conversion, not
+FP16 arithmetic. See the [mixed-precision audit](ggml-mixed-precision.md).
 Graphics additionally requires dynamic rendering and a shared graphics/compute queue.
 At ABI 8 this is an explicit creation choice; images and heaps also work on ordinary
 compute devices. [Enabled capabilities](execution-capabilities.md) are reported

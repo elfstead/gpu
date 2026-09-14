@@ -4,7 +4,7 @@ This directory contains a bounded OGPU backend and its independent upstream Vulk
 reference, plus declaration-lowering and executable-preparation audits. The selected
 compute/raster workflow passes on RADV and llvmpipe; this is **not a general libplacebo
 backend**. See the [consumer brief](../../docs/consumer-libplacebo.md). Use matching
-ABI-9 headers/library: specialization, triangle strips, grids/images/uploads and
+ABI-10 headers/library: specialization, triangle strips, grids/images/uploads and
 cached limits remain; enabled capabilities and exact image support are now queryable.
 Startup validates the bounded format/usage combinations before publishing its format
 table. Image creation still checks the actual extent; this is not a general format catalog.

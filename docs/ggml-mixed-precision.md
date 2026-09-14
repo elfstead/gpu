@@ -74,5 +74,9 @@ not automatically select another numeric type or a larger model.
 
 ## Working status
 
-Audit and acceptance contract recorded before mixed GPU results. Implementation
-and acceptance are next.
+Audit and acceptance contract recorded before mixed GPU results. ABI 10 baseline
+implementation passes 27 ordinary tests, 745 C/Rust ABI layout checks, mock-loader
+and binding-reproduction checks, Clippy, and all 20 existing GPU tests on both
+llvmpipe and RADV with validation. Device-creation interception checks the actual
+feature chain: buffer16 enabled; half arithmetic and other 16-bit storage disabled.
+Consumer implementation and mixed acceptance are next.

@@ -74,9 +74,11 @@ int main(void) {
         VkPhysicalDeviceVulkan12Features v12 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
         VkPhysicalDeviceVulkan13Features v13 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
         VkPhysicalDeviceVulkan14Features v14 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+        VkPhysicalDevice16BitStorageFeatures storage16 = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES};
         if (core) {
+            storage16.pNext = &v12;
             v12.pNext = &v13; v13.pNext = &v14;
-            VkPhysicalDeviceFeatures2 query = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &v12};
+            VkPhysicalDeviceFeatures2 query = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext = &storage16};
             vkGetPhysicalDeviceFeatures2(devices[i], &query);
         }
         VkPhysicalDeviceDescriptorHeapPropertiesEXT limits = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT};
@@ -90,6 +92,7 @@ int main(void) {
         SHOW("synchronization2", v13.synchronization2);
         SHOW("dynamicRendering", v13.dynamicRendering);
         SHOW("maintenance5", v14.maintenance5);
+        SHOW("storageBuffer16BitAccess", storage16.storageBuffer16BitAccess);
         SHOW("descriptorHeap", heap.descriptorHeap);
         SHOW("deviceAddressCommands", address.deviceAddressCommands);
         SHOW("shaderUntypedPointers", untyped.shaderUntypedPointers);
@@ -98,7 +101,7 @@ int main(void) {
         printf("  %-32s %" PRIu64 "\n", "maxPushDataSize", limits.maxPushDataSize);
 #undef SHOW
         int compute = core && v12.bufferDeviceAddress && v12.timelineSemaphore && v13.synchronization2
-            && v14.maintenance5 && heap.descriptorHeap && address.deviceAddressCommands && untyped.shaderUntypedPointers;
+            && v14.maintenance5 && storage16.storageBuffer16BitAccess && heap.descriptorHeap && address.deviceAddressCommands && untyped.shaderUntypedPointers;
         printf("  feature baseline: compute=%s graphics=%s (queue/creation/execution not tested)\n",
                compute ? "yes" : "no", compute && v13.dynamicRendering ? "yes" : "no");
         ready += compute;

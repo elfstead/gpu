@@ -123,6 +123,10 @@ fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
         (info.capabilities.timeline_semaphore, "timelineSemaphore"),
         (info.capabilities.synchronization2, "synchronization2"),
         (
+            info.capabilities.storage_buffer_16bit_access,
+            "storageBuffer16BitAccess",
+        ),
+        (
             info.capabilities.descriptor_heap,
             "VK_EXT_descriptor_heap: descriptorHeap",
         ),
@@ -349,9 +353,15 @@ impl Device {
             if unified_images {
                 extensions.push(c"VK_KHR_unified_image_layouts".as_ptr());
             }
+            let storage16 = vk::VkPhysicalDevice16BitStorageFeatures {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
+                storageBuffer16BitAccess: vk::VK_TRUE,
+                pNext: (&mut v12 as *mut vk::VkPhysicalDeviceVulkan12Features).cast(),
+                ..Default::default()
+            };
             let create = vk::VkDeviceCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                pNext: (&v12 as *const vk::VkPhysicalDeviceVulkan12Features).cast(),
+                pNext: (&storage16 as *const vk::VkPhysicalDevice16BitStorageFeatures).cast(),
                 enabledExtensionCount: extensions.len() as u32,
                 ppEnabledExtensionNames: extensions.as_ptr(),
                 queueCreateInfoCount: 1,
@@ -479,6 +489,7 @@ impl Device {
             descriptor_heap: 1,
             device_address_commands: 1,
             shader_untyped_pointers: 1,
+            storage_buffer_16bit_access: 1,
             ..Default::default()
         }
     }
@@ -983,6 +994,7 @@ mod tests {
         caps.descriptor_heap = 1;
         caps.device_address_commands = 1;
         caps.shader_untyped_pointers = 1;
+        caps.storage_buffer_16bit_access = 1;
         require_baseline(&info).unwrap();
         for (field, expected) in [
             (0, "bufferDeviceAddress"),
@@ -992,6 +1004,7 @@ mod tests {
             (4, "descriptorHeap"),
             (5, "deviceAddressCommands"),
             (6, "shaderUntypedPointers"),
+            (7, "storageBuffer16BitAccess"),
         ] {
             let mut absent = info;
             let c = &mut absent.capabilities;
@@ -1003,6 +1016,7 @@ mod tests {
                 &mut c.descriptor_heap,
                 &mut c.device_address_commands,
                 &mut c.shader_untyped_pointers,
+                &mut c.storage_buffer_16bit_access,
             ];
             *fields.into_iter().nth(field).unwrap() = 0;
             let error = require_baseline(&absent).unwrap_err();

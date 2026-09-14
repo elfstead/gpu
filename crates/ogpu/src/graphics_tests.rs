@@ -160,7 +160,21 @@ unsafe extern "C" fn checked_image_device(
             .iter()
             .any(|&name| std::ffi::CStr::from_ptr(name) == c"VK_KHR_unified_image_layouts");
         assert_eq!(enabled, EXPECT_UNIFIED.get());
-        let v12 = (*create)
+        let storage16 = (*create)
+            .pNext
+            .cast::<vk::VkPhysicalDevice16BitStorageFeatures>();
+        assert_eq!(
+            (*storage16).sType,
+            vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES
+        );
+        assert_eq!((*storage16).storageBuffer16BitAccess, vk::VK_TRUE);
+        assert_eq!(
+            (*storage16).uniformAndStorageBuffer16BitAccess,
+            vk::VK_FALSE
+        );
+        assert_eq!((*storage16).storagePushConstant16, vk::VK_FALSE);
+        assert_eq!((*storage16).storageInputOutput16, vk::VK_FALSE);
+        let v12 = (*storage16)
             .pNext
             .cast::<vk::VkPhysicalDeviceVulkan12Features>();
         let v13 = (*v12).pNext.cast::<vk::VkPhysicalDeviceVulkan13Features>();

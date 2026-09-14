@@ -354,6 +354,7 @@ fn float_image_sampling(graphics: bool) {
                 descriptor_heap: 1,
                 device_address_commands: 1,
                 shader_untyped_pointers: 1,
+                storage_buffer_16bit_access: 1,
                 ..Default::default()
             }
         );

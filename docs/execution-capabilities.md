@@ -18,9 +18,11 @@ The enabled query reuses `OgpuCapabilities`, with the same 0/1 fields as discove
 Compute, addresses, timeline, synchronization2, heaps, address commands and untyped
 pointers are enabled by the fixed [modern baseline](modern-baseline.md).
 `graphics_queue` is 1 only for graphics creation: it means graphics execution is
-enabled, not merely that the physical queue has a graphics flag. All optional
-numeric, narrow-storage and matrix fields currently remain 0, even on hardware
-that supports them. The existing fields are not an exhaustive Vulkan feature list;
+enabled, not merely that the physical queue has a graphics flag. ABI 10 also enables
+`storage_buffer_16bit_access`, already mandatory for physical Vulkan 1.4 support.
+All other numeric, narrow-storage and matrix fields remain 0, including
+`shader_float16`. See the [storage/arithmetic distinction](ggml-mixed-precision.md).
+The existing fields are not an exhaustive Vulkan feature list;
 the baseline document and header define additional fixed requirements.
 
 Enabled capabilities and limits are cached, externally serialized queries. Their

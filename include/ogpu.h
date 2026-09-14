@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(9)
+#define OGPU_ABI_VERSION UINT32_C(10)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -96,7 +96,7 @@ OgpuResult ogpu_probe_device_count(const OgpuProbe *probe, uint32_t *out_count);
 OgpuResult ogpu_probe_device_info(const OgpuProbe *probe, uint32_t index, OgpuDeviceInfo *out_info);
 
 /* Experimental execution slice: Linux x86-64, Vulkan 1.4 + compute queue;
- * requires BDA, timelineSemaphore, synchronization2, maintenance5,
+ * requires BDA, timelineSemaphore, synchronization2, maintenance5, storageBuffer16BitAccess,
  * VK_EXT_descriptor_heap, VK_KHR_device_address_commands and
  * VK_KHR_shader_untyped_pointers (including their feature bits).
  * Discovery remains independent: unsupported execution devices are still listed.
@@ -122,8 +122,10 @@ void ogpu_device_destroy(OgpuDevice *device);
 /* Enabled execution capabilities using the same field vocabulary as discovery.
  * Unlike probe_device_info.capabilities, these describe THIS created device.
  * compute_queue=1; graphics_queue=1 only for create_graphics. The fixed modern
- * baseline is enabled; optional numeric/storage/matrix features are currently 0,
- * even if the probe reports hardware support. No implicit feature negotiation.
+ * baseline includes storage_buffer_16bit_access=1 (also mandatory in Vulkan 1.4).
+ * All other numeric/storage/matrix fields are 0, including shader_float16:
+ * half buffer loads/stores with FP32 conversion do not imply half arithmetic.
+ * No implicit feature negotiation, even if the probe reports more hardware support.
  * Cached; works after device loss. Output unchanged on error; serialized. */
 OgpuResult ogpu_device_capabilities(const OgpuDevice *device,
     OgpuCapabilities *out_capabilities, OgpuError *out_error);
