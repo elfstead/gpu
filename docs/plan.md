@@ -51,8 +51,12 @@ retained objects, while the result/timing receipt survives. Pending/transient-er
 polls retain resources; draining/error and heap-reservation rules are preserved.
 Libplacebo now keeps old receipts alive during pass-resource reuse. No background
 collector, range allocator or new release operation was added.
-This completes the selected D1/D3/D4 cleanup. Review the checkpoint before selecting
-another named consumer-driven experiment; no additional runtime expansion is selected.
+This completes the selected D1/D3/D4 cleanup. The next selected D1 milestone is
+[GGML FP16 weights with FP32 arithmetic](ggml-mixed-precision.md): enable native
+16-bit buffer storage in the existing modern baseline, then validate the bounded
+consumer against independently stated numerical and integration gates. The audit
+found this storage feature is already mandatory for Vulkan 1.4; no optional
+device-selection API or FP16 arithmetic is needed for this workload.
 Asynchronous adapter scheduling and a general libplacebo backend are not implicitly
 approved next milestones.
 Runner provisioning remains a separate authorization/deployment task
