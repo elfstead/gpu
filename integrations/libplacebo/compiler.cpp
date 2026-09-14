@@ -18,6 +18,9 @@ extern "C" int compile_native(const char *source, int stage, const char *uv,
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_4);
+#ifdef OGPU_DIAGNOSTIC_OPTIMIZE
+        options.SetOptimizationLevel(shaderc_optimization_level_performance);
+#endif
         const auto kind = stage == 0 ? shaderc_compute_shader :
                           stage == 1 ? shaderc_fragment_shader : shaderc_vertex_shader;
         const auto result = compiler.CompileGlslToSpv(text, kind, "libplacebo-native", options);
