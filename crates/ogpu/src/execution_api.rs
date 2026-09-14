@@ -190,7 +190,7 @@ pub unsafe extern "C" fn ogpu_batch_bind_image_heap(
 }
 
 fn exclusive<T>(heap: &mut Rc<T>) -> Result<&mut T, Error> {
-    Rc::get_mut(heap).ok_or_else(|| Error::new(INVALID_ARGUMENT, "Heap is retained by a recording or completion; destroy those references before editing"))
+    Rc::get_mut(heap).ok_or_else(|| Error::new(INVALID_ARGUMENT, "Heap is retained by a recording or unretired submission; discard recordings or observe completion before editing"))
 }
 
 /// # Safety

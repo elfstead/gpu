@@ -113,8 +113,16 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         ogpu_batch_destroy(batch); batch = NULL;
         TRY(ogpu_completion_wait(completions[2], &error));
         if (pass != 3) {
+            // Earlier unobserved submission still retains both image heaps;
+            // the sampler heap was used only by the just-retired submission.
             REQUIRE(ogpu_image_heap_clear(heaps[0], 0, 1, &error) == OGPU_ERROR_INVALID_ARGUMENT);
-            REQUIRE(ogpu_sampler_heap_write(samplers, 0, descriptions, 2, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+            TRY(ogpu_sampler_heap_write(samplers, 0, descriptions, 2, &error));
+            TRY(ogpu_completion_wait(completions[1], &error));
+            TRY(ogpu_image_heap_clear(heaps[0], 0, 3, &error));
+            TRY(ogpu_image_heap_clear(heaps[1], 0, 3, &error));
+            uint32_t complete = 0;
+            TRY(ogpu_completion_poll(completions[2], &complete, &error));
+            REQUIRE(complete); // All receipts remain alive during edits.
         }
         TRY(ogpu_buffer_read(readback, 0, pixels, 2 * (size + 8), &error));
         for (unsigned image = 0; image < 2; ++image) {

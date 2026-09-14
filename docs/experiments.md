@@ -60,6 +60,13 @@ before advertisement. Both driver suites and paired libplacebo comparisons pass;
 compute-created devices execute native sampling/storage without enabling raster.
 The follow-up records the next D4 comparison without implementing reclamation.
 
+The [D4 receipt/resource follow-up](completion-resource-review.md#implementation-abi-9)
+implements ABI 9: wait/terminal poll retires command pools and retained objects,
+while result/timing receipts survive. Gated tests preserve pending/shared-use safety;
+lazy timing remains independent. The C heap example and libplacebo reuse resources
+with old receipts alive. No background collector, range allocator or asynchronous
+adapter scheduling is added.
+
 The [retirement experiment](retirement.md) adds completion polling and optional
 whole-buffer retention. Twelve jobs recycle three scratch ranges through the C API;
 a gated Vulkan test verifies reuse while another submission is still pending.

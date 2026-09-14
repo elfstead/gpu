@@ -5,7 +5,7 @@ C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
 supported and tested. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 8; rebuild callers with this checkout's
+execution interface. The current ABI is 9; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 The [capability contract](execution-capabilities.md) separates probe support from
@@ -13,6 +13,11 @@ enabled execution features and exact image support. `gpu_compute_image_sampling`
 checks images/heaps through ordinary C device creation; `gpu_optional_unified_layouts`
 also checks missing dynamic rendering and actual compute-only queue commands where
 available. These are included in `cargo xtask gpu-tests`.
+
+`gpu_completion_receipts` checks native destruction order, exactly-once retirement,
+surviving receipts and lazy timing. Gated heap/retirement tests cover other users
+that must still block edits; `cargo xtask heap-image` exercises this through C.
+See the [ABI-9 ownership change](completion-resource-review.md#implementation-abi-9).
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
 Its test-data downloads and CMake build are separate from ordinary Cargo builds.

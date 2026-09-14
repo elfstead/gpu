@@ -213,22 +213,35 @@ fn gpu_retirement() {
             POLL_STATUS.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
             assert!(gate.completions[1].poll().is_err());
             assert!(gate.completions[1].pending && gate.completions[1].outcome.is_none());
+            assert!(gate.completions[1].resources.is_some() && weak.upgrade().is_some());
             POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
             assert!(!gate.completions[1].poll().unwrap());
+            // A post-completion CPU read needs independent ownership at ABI 9.
+            let readback_owner = weak.upgrade().unwrap();
             gate.open();
             gate.completions[2].wait().unwrap();
+            assert!(gate.completions[2].resources.is_none());
+            assert!(
+                gate.completions[1].resources.is_some(),
+                "No queue-wide collection"
+            );
             assert!(gate.completions[1].poll().unwrap());
             if gate.completions[1].timed {
                 assert!(gate.completions[1].elapsed_ns().unwrap().is_finite());
             }
             let mut output = [0u32; 3];
             unsafe {
-                weak.upgrade()
-                    .unwrap()
+                readback_owner
                     .read(0, output.as_mut_ptr().cast(), 12)
                     .unwrap()
             };
             assert_eq!(output, [37, 13, 0xa5a5a5a5]);
+            drop(readback_owner);
+            assert_eq!(
+                weak.upgrade().is_some(),
+                !assisted,
+                "Receipts no longer pin the allocation"
+            );
             gate.completions.clear();
             assert_eq!(weak.upgrade().is_some(), !assisted);
             gate.caller_owner = None;

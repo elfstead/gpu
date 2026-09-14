@@ -287,8 +287,9 @@ fn gpu_image_transfers() {
                     drop(batch);
                     assert!(source_weak.upgrade().is_some() && image_weak.upgrade().is_some());
                     completion.wait().unwrap();
-                    drop(completion);
                     assert!(source_weak.upgrade().is_none() && image_weak.upgrade().is_none());
+                    assert!(completion.poll().unwrap());
+                    drop(completion);
                 }
             }
         }

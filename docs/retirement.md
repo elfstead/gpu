@@ -6,10 +6,9 @@ or a combined range-use declaration. These mechanisms provide different guarante
 Implementation: `26133a5`; preceding loader and timeline corrections: `3c23fef`
 and `e82cfff`.
 
-The later [completion-resource review](completion-resource-review.md) proposes
-shortening retention to safe terminal observation while preserving result handles.
-That is a separate, unimplemented ABI-9 experiment; the rules below still describe
-the implemented lifetime, including retention through completion destruction.
+The later [completion-resource follow-up](completion-resource-review.md#implementation-abi-9)
+implements retention until safe terminal observation at ABI 9, while preserving result
+handles. Range-reuse decisions and optional whole-allocation retention remain distinct.
 
 ## Decision
 
@@ -20,8 +19,8 @@ Adopt two independent, optional operations:
   on every outstanding use of that range. The runtime cannot discover those uses
   from arbitrary shader pointers.
 - `ogpu_batch_retain_buffer(batch, buffer, error)` keeps an entire backing allocation
-  alive through batch discard, failed-submission cleanup, or completion-handle
-  destruction. Duplicate declarations are harmless. It adds no access declaration,
+  alive through batch discard, failed-submission cleanup, or submission retirement
+  (wait, terminal poll, or draining destruction). Duplicate declarations are harmless. It adds no access declaration,
   dependency, range lock, or recursive pointer tracing.
 
 No mandatory range-use list or runtime allocator is selected. The example's
@@ -78,7 +77,9 @@ it does not block to drain, cache a terminal failure, or authorize reuse. A late
 poll or wait can succeed. Device loss is terminal and permits cleanup, but never
 reports successful completion. Repeated observations preserve a recorded wait
 failure. SUCCESS with `1` supplies the same visibility as waiting and permits
-timestamp retrieval. Resources remain retained until completion destruction.
+timestamp retrieval. At ABI 9, terminal observation retires submission resources;
+the receipt retains status and optional timing. Keep independent allocation ownership
+for post-retirement data/address use. Pending/transient-error polls release nothing.
 
 Whole-allocation retention does not prevent premature suballocation reuse. All
 pointer-reachable allocations must be retained explicitly or owned by the caller.

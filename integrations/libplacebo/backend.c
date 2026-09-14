@@ -16,6 +16,7 @@ struct backend {
 };
 struct texture { OgpuImage *image; OgpuBuffer *staging; size_t size; bool initialized; };
 struct program {
+    OgpuCompletion *receipt; // Last completed pass, retained across heap/vertex reuse.
     struct shader_binary primary, vertex;
     OgpuKernel *kernel;
     OgpuRaster *raster;
@@ -34,17 +35,23 @@ static bool reject(pl_gpu gpu, const char *why)
     return false;
 }
 
-// Every failure path below releases recordings/completions before their resources.
+// Failure paths discard recordings and drain/retire submitted uses before operands
+// can be released. Already-retired result receipts may survive resource reuse.
 #define TRY(call) do { if ((call) != OGPU_SUCCESS) { reject(gpu, error.message); goto fail; } } while (0)
 #define REQUIRE(test, why) do { if (!(test)) { reject(gpu, why); goto fail; } } while (0)
 
-static bool finish(pl_gpu gpu, OgpuBatch *batch)
+static bool finish(pl_gpu gpu, OgpuBatch *batch, OgpuCompletion **receipt)
 {
     OgpuError error;
     OgpuCompletion *done = NULL;
     bool ok = false;
     TRY(ogpu_batch_submit(batch, &done, &error));
     TRY(ogpu_completion_wait(done, &error));
+    if (receipt) {
+        ogpu_completion_destroy(*receipt);
+        *receipt = done;
+        done = NULL;
+    }
     ok = true;
 fail:
     // Destruction drains submitted work even after a wait error.
@@ -82,7 +89,7 @@ static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload)
         REQUIRE(t->initialized, "readback of unwritten image");
         TRY(ogpu_batch_copy_image_to_buffer(batch, t->image, t->staging, 0, &error));
     }
-    if (!finish(gpu, batch)) goto fail;
+    if (!finish(gpu, batch, NULL)) goto fail;
     t->initialized = true;
     if (upload) ++b->stats.uploads;
     else {
@@ -145,6 +152,7 @@ static void pass_destroy(pl_gpu gpu, pl_pass pass)
 {
     struct backend *b = PL_PRIV(gpu);
     struct program *p = PL_PRIV(pass);
+    ogpu_completion_destroy(p->receipt);
     ogpu_kernel_destroy(p->kernel);
     ogpu_raster_destroy(p->raster);
     ogpu_image_heap_destroy(p->images);
@@ -287,6 +295,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     struct program *p = PL_PRIV(in->pass);
     const struct pl_pass_params *params = &in->pass->params;
     const bool compute = params->type == PL_PASS_COMPUTE;
+    const bool reusing_receipt = p->receipt != NULL;
     OgpuError error;
     OgpuBatch *batch = NULL;
     REQUIRE(!b->failed && !in->num_var_updates && !in->timer, "unsupported run variables/timer or failed device");
@@ -339,7 +348,8 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
         TRY(ogpu_batch_draw_indirect(batch, p->raster, target->image, p->indirect, 0,
             &p->vertex_address, 8, params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR, &error));
     }
-    if (!finish(gpu, batch)) goto fail;
+    if (!finish(gpu, batch, &p->receipt)) goto fail;
+    if (reusing_receipt) ++b->stats.receipt_reuses;
     for (int i = 0; i < params->num_descriptors; ++i) {
         struct texture *t = PL_PRIV((pl_tex) in->desc_bindings[i].object);
         t->initialized = true;
@@ -348,7 +358,8 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     else { ((struct texture *) PL_PRIV(in->target))->initialized = true; ++b->stats.raster; }
 fail:
     ogpu_batch_destroy(batch);
-    // Waiting alone is insufficient for heap edits: finish destroyed completion.
+    // ABI 9: wait retired the submission, but its receipt remains alive. The next
+    // run also rewrites heaps/vertices while this completed receipt still exists.
     if (ogpu_image_heap_clear(p->images, 0, SLOTS, &error) != OGPU_SUCCESS)
         reject(gpu, error.message);
 }

@@ -375,6 +375,15 @@ fn gpu_heaps() {
             completion: None,
             opened: false,
         };
+        // A completed-but-unobserved submission and an abandoned recording each
+        // retain their own heap uses. Retiring the gated submission cannot clear them.
+        let mut earlier_batch = Batch::new(d.clone()).unwrap();
+        earlier_batch.bind_images(images.clone()).unwrap();
+        earlier_batch.bind_samplers(samplers.clone()).unwrap();
+        let mut earlier = unsafe { earlier_batch.submit().unwrap() };
+        let mut recording = Batch::new(d.clone()).unwrap();
+        recording.bind_images(images.clone()).unwrap();
+        recording.bind_samplers(samplers.clone()).unwrap();
         GATE.set(semaphore);
         let mut batch = Batch::new(d.clone()).unwrap();
         batch.bind_images(images.clone()).unwrap();
@@ -389,12 +398,18 @@ fn gpu_heaps() {
         gate.open();
         gate.completion.as_mut().unwrap().wait().unwrap();
         assert!(Rc::get_mut(&mut images).is_none() && Rc::get_mut(&mut samplers).is_none());
-        gate.completion = None;
+        assert!(earlier.poll().unwrap());
+        assert!(Rc::get_mut(&mut images).is_none() && Rc::get_mut(&mut samplers).is_none());
+        drop(recording);
         Rc::get_mut(&mut images).unwrap().clear(0, 2).unwrap();
         Rc::get_mut(&mut samplers)
             .unwrap()
             .write(0, &[desc])
             .unwrap();
+        // Both receipts survive the successful heap edits.
+        assert!(earlier.poll().unwrap());
+        assert!(gate.completion.as_mut().unwrap().poll().unwrap());
+        gate.completion = None;
         // Force the noncoherent maintenance path on this coherent-capable device;
         // the injected error occurs after copying live bytes and is terminal per heap.
         let h = Rc::get_mut(&mut images).unwrap();

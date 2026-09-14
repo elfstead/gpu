@@ -35,6 +35,7 @@ static void specialization_updates(pl_gpu gpu)
     pl_tex_destroy(gpu, &tex);
     const struct ogpu_stats s = ogpu_pl_stats(gpu);
     CHECK(s.creates == 1 && s.compute == 3 && s.downloads == 3 && !s.raster && !s.textures && !s.passes);
+    CHECK(s.receipt_reuses == 2);
 }
 
 int main(int argc, char **argv)

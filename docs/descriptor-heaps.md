@@ -35,12 +35,13 @@ samplers are format-independent. At ABI 8, both heap types and non-color images
 work on compute-created devices; rasterization is no longer a prerequisite for
 compute image access. See [the capability follow-up](execution-capabilities.md).
 
-Bindings retain the entire heap through recording and completion destruction,
-including earlier bindings superseded later in the batch. Editing is rejected while
-any such reference exists: during recording, pending execution, and after wait/poll
-reports completion. Destroy retained completions/abandoned batches before editing;
-waiting alone is insufficient. A submitted batch has transferred its references to
-the completion. Public heap/image handles may be released while retained uses exist.
+Bindings retain the entire heap through recording and submission retirement,
+including earlier bindings superseded later in the batch. At ABI 9, wait/terminal
+poll destroys that submission's native command pool before releasing these references.
+Editing remains rejected while any other recording or unretired submission retains
+the heap. Discard recordings and observe all retaining submissions; the completed
+receipts themselves may survive edits. A submitted batch transfers its references to
+the submission resources. Public heap/image handles may be released while retained uses exist.
 
 This deliberately gives exclusive mutation rather than slot streaming. Internally,
 `Rc::get_mut` enforces the rule at the C boundary. It also ensures native command

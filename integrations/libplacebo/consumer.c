@@ -46,6 +46,7 @@ int main(int argc, char **argv)
     const struct ogpu_stats s = ogpu_pl_stats(gpu);
     CHECK(!pl_gpu_is_failed(gpu) && !s.textures && !s.passes);
     CHECK(s.creates == 6 && s.compute == 9 && s.raster == 9 && s.uploads == 12 && s.downloads == 18);
+    CHECK(s.receipt_reuses == 12);
     ogpu_pl_destroy(&gpu);
     pl_log_destroy(&log);
     CHECK(!log_errors);

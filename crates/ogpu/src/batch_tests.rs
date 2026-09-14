@@ -1,5 +1,115 @@
 use super::*;
 
+thread_local! {
+    static DESTROY_COUNTS: Cell<[u32; 4]> = const { Cell::new([0; 4]) };
+    static POOL_DESTROY: Cell<vk::PFN_vkDestroyCommandPool> = const { Cell::new(None) };
+    static BUFFER_DESTROY: Cell<vk::PFN_vkDestroyBuffer> = const { Cell::new(None) };
+    static PIPELINE_DESTROY: Cell<vk::PFN_vkDestroyPipeline> = const { Cell::new(None) };
+    static QUERY_DESTROY: Cell<vk::PFN_vkDestroyQueryPool> = const { Cell::new(None) };
+}
+
+macro_rules! counted_destroy {
+    ($name:ident, $real:ident, $ty:ty, $index:expr) => {
+        unsafe extern "C" fn $name(d: vk::VkDevice, h: $ty, a: *const vk::VkAllocationCallbacks) {
+            let mut counts = DESTROY_COUNTS.get();
+            if $index != 0 {
+                assert_eq!(counts[0], 1, "Native pool must be destroyed first");
+            }
+            assert_eq!(counts[$index], 0, "Destruction must happen exactly once");
+            unsafe {
+                ($real.get().unwrap())(d, h, a);
+            }
+            counts[$index] += 1;
+            DESTROY_COUNTS.set(counts);
+        }
+    };
+}
+counted_destroy!(destroy_pool, POOL_DESTROY, vk::VkCommandPool, 0);
+counted_destroy!(destroy_buffer, BUFFER_DESTROY, vk::VkBuffer, 1);
+counted_destroy!(destroy_pipeline, PIPELINE_DESTROY, vk::VkPipeline, 2);
+counted_destroy!(destroy_queries, QUERY_DESTROY, vk::VkQueryPool, 3);
+
+#[test]
+#[ignore = "requires Vulkan; receipt lifetime, exact destruction order and lazy timing"]
+fn gpu_completion_receipts() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
+        .chunks_exact(4)
+        .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+        .collect();
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        for timed in [false, true] {
+            for mode in 0..3 {
+                let mut device = match Device::new(instance.clone(), physical) {
+                    Ok(d) => d,
+                    Err(e) if e.status == UNSUPPORTED => continue,
+                    Err(e) => panic!("{e:?}"),
+                };
+                if timed && device.timing_info().is_err() {
+                    continue;
+                }
+                let f = &mut Rc::get_mut(&mut device).unwrap().f;
+                POOL_DESTROY.set(f.vkDestroyCommandPool);
+                BUFFER_DESTROY.set(f.vkDestroyBuffer);
+                PIPELINE_DESTROY.set(f.vkDestroyPipeline);
+                QUERY_DESTROY.set(f.vkDestroyQueryPool);
+                f.vkDestroyCommandPool = Some(destroy_pool);
+                f.vkDestroyBuffer = Some(destroy_buffer);
+                f.vkDestroyPipeline = Some(destroy_pipeline);
+                f.vkDestroyQueryPool = Some(destroy_queries);
+                DESTROY_COUNTS.set([0; 4]);
+                let buffer = Rc::new(Buffer::new(device.clone(), 4).unwrap());
+                buffer.write(0, &1u32.to_ne_bytes()).unwrap();
+                let weak_buffer = Rc::downgrade(&buffer);
+                let kernel =
+                    Rc::new(unsafe { Kernel::new(device.clone(), &words, 16, &[]).unwrap() });
+                let weak_kernel = Rc::downgrade(&kernel);
+                let mut root = [0u8; 16];
+                root[..8].copy_from_slice(&buffer.address().unwrap().to_ne_bytes());
+                root[8..12].copy_from_slice(&1u32.to_ne_bytes());
+                let mut batch = Batch::new(device.clone()).unwrap();
+                if timed {
+                    batch.enable_timing().unwrap();
+                }
+                batch.retain_buffer(buffer).unwrap();
+                batch.dispatch(kernel, [1, 1, 1], &root).unwrap();
+                let mut done = unsafe { batch.submit().unwrap() };
+                drop(batch);
+                assert!(weak_buffer.upgrade().is_some() && weak_kernel.upgrade().is_some());
+                assert_eq!(DESTROY_COUNTS.get(), [0; 4]);
+                if mode != 2 {
+                    if mode == 0 {
+                        done.wait().unwrap();
+                    } else {
+                        // Make this poll deterministic; pending polls are independently gated.
+                        assert_eq!(
+                            unsafe { (device.f.vkQueueWaitIdle.unwrap())(device.queue) },
+                            vk::VkResult_VK_SUCCESS
+                        );
+                        assert!(done.poll().unwrap());
+                    }
+                    assert!(done.resources.is_none());
+                    assert!(weak_buffer.upgrade().is_none() && weak_kernel.upgrade().is_none());
+                    assert_eq!(DESTROY_COUNTS.get(), [1, 1, 1, 0]);
+                    assert!(done.poll().unwrap());
+                    done.wait().unwrap();
+                    if timed {
+                        let elapsed = done.elapsed_ns().unwrap();
+                        assert!(elapsed.is_finite());
+                        assert_eq!(done.elapsed_ns().unwrap(), elapsed);
+                    }
+                }
+                drop(done); // Also tests draining destruction without prior observation.
+                assert!(weak_buffer.upgrade().is_none() && weak_kernel.upgrade().is_none());
+                assert_eq!(DESTROY_COUNTS.get(), [1, 1, 1, u32::from(timed)]);
+                tested += 1;
+            }
+        }
+    }
+    assert!(tested >= 3);
+}
+
 #[test]
 fn dispatch_grid_checks_each_axis_inclusively() {
     let limits = [7, 3, 5];
@@ -257,6 +367,10 @@ fn gpu_batch_failures() {
                 assert_eq!(completion.elapsed_ns().unwrap_err().vk, expected);
             }
             assert!(!completion.pending);
+            assert!(
+                completion.resources.is_none(),
+                "Drained errors and loss still retire resources"
+            );
             assert_eq!(completion.wait().unwrap_err().vk, expected);
             drop(completion);
             assert_eq!(

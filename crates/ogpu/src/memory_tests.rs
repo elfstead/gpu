@@ -196,7 +196,7 @@ fn gpu_buffer_transfers() {
         assert!(weak.upgrade().is_some());
         let mut completed = unsafe { compute.submit() }.unwrap();
         completed.wait().unwrap();
-        assert!(weak.upgrade().is_some()); // waiting doesn't retire ownership
+        assert!(weak.upgrade().is_none()); // Receipt survives retired copy operands.
         unsafe { host.read(0, unchanged.as_mut_ptr(), 64) }.unwrap();
         for (i, bytes) in unchanged.chunks_exact(4).enumerate() {
             assert_eq!(

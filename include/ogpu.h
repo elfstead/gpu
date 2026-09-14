@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(8)
+#define OGPU_ABI_VERSION UINT32_C(9)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -261,8 +261,9 @@ OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
     uint32_t destination_access, OgpuError *out_error);
 
 /* Records a byte-granular GPU copy between in-bounds ranges on this batch's device.
- * Both buffers are retained until discard, failed submission cleanup or completion
- * destruction. Either placement is legal. Same-buffer ranges must not overlap;
+ * Both buffers are retained until discard, failed submission cleanup or submission
+ * retirement (see completion_wait). Either placement is legal. Same-buffer ranges
+ * must not overlap;
  * this is not memmove. Zero size is a validated no-op (end offsets legal), retaining
  * nothing. Invalid arguments leave recording unchanged. No implicit GPU dependency:
  * order producers/consumers with TRANSFER_READ/WRITE and the existing barriers.
@@ -285,6 +286,11 @@ OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, 
 /* Waits for this submission, not queue idle. No timeout. Repeated waits preserve
  * the wait outcome. Non-loss wait errors are reported only AFTER draining; device
  * loss also permits cleanup. Persistent wait failures can block indefinitely.
+ * Before returning after completion/draining/loss, retires this submission: frees
+ * command resources, then releases recorded objects and explicitly retained buffers.
+ * The completion handle keeps its outcome and optional timing, not those objects.
+ * Keep an owning buffer handle if its address/data is needed after retirement.
+ * Other recordings/unobserved submissions retain their own uses; no queue-wide sweep.
  * Completion does not imply correctness of the shader or its output. */
 OgpuResult ogpu_completion_wait(OgpuCompletion *completion, OgpuError *out_error);
 /* Does not wait for GPU progress. SUCCESS writes 0 (pending) or 1 (complete) to
@@ -292,22 +298,29 @@ OgpuResult ogpu_completion_wait(OgpuCompletion *completion, OgpuError *out_error
  * and can be retried. Device loss is an error, never successful completion.
  * SUCCESS + 1 establishes the same completion/visibility guarantee as wait and
  * permits timing retrieval. It grants no permission over later uses of an allocation.
- * Recorded wait errors remain errors on subsequent polls. No resources are released
- * until completion destruction. Same external serialization rules as wait. */
+ * Recorded wait errors remain errors on subsequent polls. A terminal observation
+ * retires submission resources as in wait, including on device loss, but pending
+ * or transient-error polls release nothing. Successful polling may incur significant
+ * host cleanup cost; no GPU-progress wait does NOT mean constant-time polling.
+ * Same external serialization rules as wait. */
 OgpuResult ogpu_completion_poll(OgpuCompletion *completion, uint32_t *out_complete,
     OgpuError *out_error);
 /* Optional whole-allocation ownership assistance for addresses in shader roots.
  * Retains buffer (same device) until batch discard, failed submission cleanup, or
- * completion-handle destruction (which drains pending work). Duplicates are harmless.
- * The public buffer handle may then be destroyed; its address remains backed.
+ * submission retirement (wait, terminal poll, or draining destruction). Duplicates
+ * are harmless. The public buffer handle may be destroyed before GPU completion;
+ * its address remains backed only until retirement unless another owner retains it.
+ * Keeping a completed receipt does NOT keep that allocation alive.
  * This declares NO access, adds NO barrier, and does NOT prevent an allocator from
  * reusing a range too early. Declare every reachable allocation or own it elsewhere.
  * Only valid while batch is recording. It does not retain pointer-reachable buffers. */
 OgpuResult ogpu_batch_retain_buffer(OgpuBatch *batch, const OgpuBuffer *buffer,
     OgpuError *out_error);
-/* Waits if pending, then destroys; does NOT cancel. Explicitly wait first for error
- * diagnostics. Keep referenced allocations alive, either through retained ownership
- * or their public handles, until this returns. NULL is a no-op. */
+/* Waits if pending, retires any remaining resources, then destroys the receipt and
+ * unread timing; does NOT cancel. Explicitly wait first for error
+ * diagnostics. Pending work still needs its referenced allocations alive through
+ * retirement (retained ownership or public handles). A previously retired receipt
+ * needs none of those allocations for destruction. NULL is a no-op. */
 void ogpu_completion_destroy(OgpuCompletion *completion);
 
 /* Optional timing of the selected execution queue; not a new requirement for
@@ -324,8 +337,10 @@ OgpuResult ogpu_device_timing_info(OgpuDevice *device, OgpuTimingInfo *out_info,
 OgpuResult ogpu_batch_enable_timing(OgpuBatch *batch, OgpuError *out_error);
 /* Requires a timed completion and SUCCESS from completion_wait or poll with 1.
  * Does not poll or wait. Untimed/unconfirmed reads are INVALID_ARGUMENT. Required
- * output is zero on error. Successful reads are cached; query failures can be
- * retried unless device-lost, and do not change the previous wait outcome.
+ * output is zero on error. Timing remains available after submission retirement;
+ * wait/poll never retrieve queries. Successful reads are cached and release the
+ * native query pool; query failures can be retried unless device-lost, and do not
+ * change the previous wait outcome.
  * Approximate device-side batch duration, including barriers and scheduling;
  * not a CPU timestamp, isolated shader time, or a memory dependency. Caller must
  * keep intervals below 2^timestamp_valid_bits * timestamp_period_ns: subtraction
@@ -381,9 +396,11 @@ void ogpu_image_destroy(OgpuImage *target);
  * are copied; no sampler/view handles or raw descriptor bytes escape. Every shader
  * access requires a written slot with matching kind/format and an initialized image.
  * No recursive resource tracing, implicit data dependencies, or index validation.
- * Mutation requires exclusive ownership: rejected while ANY recording/completion
- * retains the heap, including completed-but-live completions and earlier bindings
- * superseded by another bind. Destroy those references first; waiting is insufficient.
+ * Mutation requires exclusive ownership: rejected while ANY recording/unretired
+ * submission retains the heap, including earlier bindings superseded by another bind.
+ * Discard recordings or observe completion of ALL retaining submissions first.
+ * Retired receipts may remain alive during edits; a later submission's completion
+ * does not retire earlier unobserved receipts. Device loss still prohibits edits.
  * Validate/generate before commit: argument/descriptor-generation errors preserve
  * old entries. A flush failure after commit poisons the heap (only destruction then
  * succeeds). Device loss follows the device-wide terminal contract. */
@@ -421,7 +438,7 @@ OgpuResult ogpu_sampler_heap_create(OgpuDevice *device, uint32_t capacity,
 void ogpu_sampler_heap_destroy(OgpuSamplerHeap *heap);
 OgpuResult ogpu_sampler_heap_write(OgpuSamplerHeap *heap, uint32_t first,
     const OgpuSamplerDesc *entries, uint32_t count, OgpuError *out_error);
-/* Recording-only; retains heap through discard/failed submit/completion destruction.
+/* Recording-only; retains heap through discard/failed submit/submission retirement.
  * Affects subsequent draws/dispatches until replaced; no binding-layout compatibility.
  * Does NOT initialize images: each accessed target must first be cleared/drawn or
  * discarded in this or an earlier successfully submitted batch. Later uses preserve

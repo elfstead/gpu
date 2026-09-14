@@ -119,8 +119,7 @@ remote-CI results. No shader binaries or pinned upstream revisions changed.
 
 ## Subsequent D4 review
 
-The [completion-resource comparison](completion-resource-review.md) now recommends
-separating the result/timing receipt from resources retired on safe terminal
-observation. Its ABI-9 implementation gate is proposed, not implemented. This ABI-8
-checkpoint adds no automatic reclamation, mutable in-flight heaps, asynchronous
-adapter scheduling or generalized runtime allocator.
+The [completion-resource follow-up](completion-resource-review.md#implementation-abi-9)
+now implements the result/timing receipt split at ABI 9. It retires submission
+resources on safe terminal observation, with no background collector, mutable
+in-flight heaps, asynchronous adapter scheduling or generalized runtime allocator.

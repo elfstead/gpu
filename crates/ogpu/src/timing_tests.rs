@@ -177,17 +177,25 @@ fn gpu_timing() {
         assert_eq!(done.elapsed_ns().unwrap_err().status, INVALID_ARGUMENT);
         assert_eq!(QUERY_CALLS.get(), 0);
         done.wait().unwrap();
+        assert!(done.resources.is_none());
+        assert!(!done.queries.is_null());
+        assert_eq!(QUERY_CALLS.get(), 0, "Retirement must not retrieve timing");
         for status in [
             vk::VkResult_VK_NOT_READY,
             vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY,
         ] {
             QUERY_STATUS.set(status);
             assert_eq!(done.elapsed_ns().unwrap_err().vk, status);
+            assert!(done.resources.is_none() && !done.queries.is_null());
             done.wait().unwrap();
         }
         QUERY_STATUS.set(vk::VkResult_VK_SUCCESS);
         let elapsed = done.elapsed_ns().unwrap();
         assert!(elapsed.is_finite() && elapsed >= 0.0);
+        assert!(
+            done.queries.is_null(),
+            "Cached duration no longer needs a query pool"
+        );
         assert_eq!(done.elapsed_ns().unwrap(), elapsed);
         assert_eq!(QUERY_CALLS.get(), 3, "Successful timing must be cached");
         drop(done);

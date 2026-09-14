@@ -6,9 +6,9 @@ per device. The [offscreen graphics profile](graphics.md) uses this same model f
 raster draws, images, and image readback. Additional queues remain future work.
 See [the design overview](design.md) and [experiment ledger](experiments.md).
 
-The [D4 completion-resource review](completion-resource-review.md) proposes retiring
-submission resources before destroying the result handle. It is not implemented;
-the ABI-8 contracts below still retain them until completion destruction.
+The [D4 completion-resource review](completion-resource-review.md#implementation-abi-9)
+is implemented at ABI 9: terminal observation retires submission resources while
+the result/timing receipt can remain alive.
 
 [Optional timing](timing.md) can bracket a whole batch with device timestamps.
 Enable it while recording, successfully wait or poll complete, then read the duration
@@ -74,14 +74,15 @@ The caller keeps every allocation reachable through recorded GPU addresses alive
 from recording until completion (or until the unsubmitted batch is discarded).
 Recorded addresses are non-owning; retaining kernels cannot retain pointees.
 `ogpu_batch_retain_buffer` optionally keeps a whole allocation alive through
-recording and completion-handle destruction. It is independent of access barriers
+recording and submission retirement. It is independent of access barriers
 and does not protect a suballocation against early reuse. See the
 [retirement experiment](retirement.md) for the comparison and example.
 
 Bindings retain independent [image/sampler heaps](descriptor-heaps.md), including
-earlier bindings superseded later in a recording. Heap edits require destroying
-all such recording/completion references; waiting or polling complete alone does
-not release them. Image entries retain their targets until replaced, cleared or
+earlier bindings superseded later in a recording. Heap edits require discarding
+all retaining recordings and retiring all submitted uses. Wait/terminal poll releases
+that submission's references; retired receipts may stay alive during edits. Observing
+a later submission does not retire earlier unobserved receipts. Image entries retain their targets until replaced, cleared or
 destroyed. Binding does not initialize images or add data dependencies.
 
 Do not perform CPU reads/writes while submitted work can access the buffer. Keep
@@ -103,13 +104,21 @@ and the first error is returned only after draining or device loss. Timeout
 responses are retried, not treated as completed work. Persistent failures can
 block indefinitely, as in the existing synchronous helper.
 
-`ogpu_completion_poll` returns immediately with SUCCESS and `out_complete=0` for
+`ogpu_completion_poll` does not wait for GPU progress: SUCCESS and `out_complete=0` for
 pending work, or SUCCESS and `1` once completion is established. Transient errors
 leave the work pending and return an error with `0`; retry or drain later. Device
 loss is an error and permits cleanup. A prior recorded wait error stays an error.
 Successful polling with `1` permits timing retrieval and the same visibility as a
-successful wait. Polling does not release retained resources; destroy the completion
-to release them. It does not establish completion of later uses of a shared buffer.
+successful wait. At ABI 9, wait or a terminal poll retires the native command pool
+before releasing recorded objects/explicit buffer retention. Drained wait errors and
+device loss also permit retirement, but remain errors. Pending/transient-error polls
+retain everything. Cleanup may be significant host work; polling is not promised
+constant-time. No query-result retrieval occurs in either operation.
+
+The receipt preserves status and optional lazy timing. Keeping it alive no longer
+keeps shader-address allocations backed: retain an owning buffer handle when data
+or addresses are needed after retirement. Retirement does not establish completion
+of later uses of a shared buffer, and does not sweep other completion objects.
 
 The device enforces `maxTimelineSemaphoreValueDifference` before submission and
 rejects exhausted 64-bit values without wrapping. Both cases return OUT_OF_RANGE

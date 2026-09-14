@@ -1,4 +1,4 @@
-//! Host-side one-shot recordings and timeline-owned submitted resources.
+//! One-shot recordings, retirable submission resources and durable completion receipts.
 use super::*;
 
 pub(crate) const COMPUTE_READ: u32 = 1;
@@ -407,15 +407,18 @@ impl Batch {
         self.device.ready()?;
         let mut completion = Completion {
             device: self.device.clone(),
-            steps,
-            pool: ptr::null_mut(),
+            resources: Some(SubmissionResources {
+                device: self.device.clone(),
+                steps,
+                pool: ptr::null_mut(),
+                _retained: retained,
+            }),
             timeline_value: 0,
             pending: false,
             outcome: None,
             timed: self.timed,
             queries: ptr::null_mut(),
             elapsed: None,
-            _retained: retained,
         };
         // SAFETY: the caller guarantees shader semantics/lifetimes. Preparation retains
         // every kernel, and the completion owns partial construction immediately.
@@ -474,19 +477,39 @@ fn submission_is_unaccepted(status: vk::VkResult) -> bool {
     )
 }
 
-pub(crate) struct Completion {
+// Own partial preparation immediately. Drop only after draining or before acceptance.
+// The pool must die BEFORE steps release heaps and their driver-reserved storage.
+struct SubmissionResources {
     device: Rc<Device>,
-    // Retained until command pool destruction, even if public kernel handles are gone.
     steps: Vec<Step>,
     pool: vk::VkCommandPool,
+    _retained: Vec<Rc<Buffer>>,
+}
+
+impl Drop for SubmissionResources {
+    fn drop(&mut self) {
+        if !self.pool.is_null() {
+            unsafe {
+                (self.device.f.vkDestroyCommandPool.unwrap())(
+                    self.device.handle,
+                    self.pool,
+                    ptr::null(),
+                );
+            }
+        }
+        // Owning fields are dropped after this body, never before pool destruction.
+    }
+}
+
+pub(crate) struct Completion {
+    device: Rc<Device>,
+    resources: Option<SubmissionResources>,
     timeline_value: u64,
     pending: bool,
     outcome: Option<vk::VkResult>,
     timed: bool,
     queries: vk::VkQueryPool,
     elapsed: Option<f64>,
-    // Explicit ownership assistance, independent of shader access declarations.
-    _retained: Vec<Rc<Buffer>>,
 }
 
 impl Completion {
@@ -509,6 +532,7 @@ impl Completion {
                 _ => return d.result("vkWaitSemaphores (poll)", status).map(|()| false),
             }
         }
+        self.retire();
         self.device.result(
             "completion poll",
             self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
@@ -530,6 +554,7 @@ impl Completion {
 
     unsafe fn prepare(&mut self) -> Result<vk::VkCommandBuffer, Error> {
         let d = &self.device;
+        let resources = self.resources.as_mut().expect("preparation owns resources");
         // SAFETY: Vulkan pointers refer to initialized local structures. This object
         // owns each successful allocation before another fallible call can occur.
         unsafe {
@@ -557,11 +582,16 @@ impl Completion {
             };
             d.result(
                 "vkCreateCommandPool",
-                (d.f.vkCreateCommandPool.unwrap())(d.handle, &pool, ptr::null(), &mut self.pool),
+                (d.f.vkCreateCommandPool.unwrap())(
+                    d.handle,
+                    &pool,
+                    ptr::null(),
+                    &mut resources.pool,
+                ),
             )?;
             let allocate = vk::VkCommandBufferAllocateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                commandPool: self.pool,
+                commandPool: resources.pool,
                 level: vk::VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 commandBufferCount: 1,
                 ..Default::default()
@@ -596,7 +626,7 @@ impl Completion {
                 vk::VK_ACCESS_2_HOST_WRITE_BIT,
                 vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
             );
-            for step in &self.steps {
+            for step in &resources.steps {
                 match step {
                     Step::CopyBuffer {
                         source,
@@ -708,10 +738,31 @@ impl Completion {
             self.pending = false;
             self.outcome = Some(status);
         }
+        self.retire();
         self.device.result(
             "vkWaitSemaphores",
             self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
         )
+    }
+
+    fn retire(&mut self) {
+        // Non-pending also covers unaccepted partial preparation in Drop. Wait
+        // reaches this point only after draining; transient/pending polls return early.
+        assert!(!self.pending);
+        drop(self.resources.take());
+    }
+
+    fn discard_queries(&mut self) {
+        let queries = std::mem::replace(&mut self.queries, ptr::null_mut());
+        if !queries.is_null() {
+            unsafe {
+                (self.device.f.vkDestroyQueryPool.unwrap())(
+                    self.device.handle,
+                    queries,
+                    ptr::null(),
+                );
+            }
+        }
     }
 
     pub(crate) fn elapsed_ns(&mut self) -> Result<f64, Error> {
@@ -748,6 +799,7 @@ impl Completion {
         self.device.result("vkGetQueryPoolResults", status)?;
         let elapsed = timestamp_delta_ns(ticks[0], ticks[1], bits, period);
         self.elapsed = Some(elapsed);
+        self.discard_queries();
         Ok(elapsed)
     }
 }
@@ -763,15 +815,7 @@ impl Drop for Completion {
     fn drop(&mut self) {
         // No cancellation: command resources and retained kernels must outlive GPU use.
         let _ = self.wait();
-        unsafe {
-            let d = &self.device;
-            if !self.pool.is_null() {
-                (d.f.vkDestroyCommandPool.unwrap())(d.handle, self.pool, ptr::null());
-            }
-            if !self.queries.is_null() {
-                (d.f.vkDestroyQueryPool.unwrap())(d.handle, self.queries, ptr::null());
-            }
-        }
+        self.discard_queries();
     }
 }
 

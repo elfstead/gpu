@@ -105,11 +105,12 @@ the draw. Draw order alone does not establish this data dependency. Batch bounda
 dependencies now cover host writes and GPU writes across all supported command
 types. A target copy followed by compute requires TRANSFER_WRITE → COMPUTE_READ.
 
-Batches and completions retain directly supplied targets, raster executables,
-image/sampler heaps, indirect buffers, and copy destinations. Image heaps retain
-their populated entries; editing requires releasing all recording/completion
-references, even after a successful wait. Destroying those public handles does not
-free the retained resources. Allocations referenced ONLY through GPU addresses
+Batches and submission resources retain directly supplied targets, raster executables,
+image/sampler heaps, indirect buffers, and copy destinations. At ABI 9, wait/terminal
+poll retires native commands before releasing these references. Image heaps retain
+their populated entries; editing requires releasing every recording/unretired use,
+but completed receipts may remain alive. Destroying public resource handles does not
+free resources while retained uses remain. Allocations referenced ONLY through GPU addresses
 still need caller-managed lifetime. Do not perform CPU buffer access until all
 submitted uses of that whole allocation complete. The existing external
 serialization, one-shot state, failure cleanup, and draining-destruction rules apply.

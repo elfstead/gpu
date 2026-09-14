@@ -20,7 +20,8 @@ intermediate image-to-buffer copy. Both checkpoints from the
 [cross-submission preservation and LOAD/CLEAR](image-preservation.md), then
 [independent image/sampler heaps](descriptor-heaps.md) with exclusive mutation,
 copied descriptions and configurable sampling. The old coupled table API is removed.
-The current interface is **ABI 8**: [enabled capabilities and exact image support](execution-capabilities.md)
+The current interface is **ABI 9**: [completion receipts survive submission-resource retirement](completion-resource-review.md#implementation-abi-9).
+[Enabled capabilities and exact image support](execution-capabilities.md)
 are queryable; ordinary creation enables compute/images/heaps with rasterization
 disabled. Graphics creation adds rasterization explicitly. Shader specialization,
 triangle list/strip, images/uploads and X/Y/Z dispatch remain available;
@@ -39,17 +40,19 @@ G0, G1 and the bounded G2 execution gate now pass: a `pl_gpu` adapter preserves
 upstream polar scaling, LUT generation and fragment sampling, with actual OGPU
 compute/raster submission. Both intermediate and final images match upstream
 byte-for-byte on RADV and llvmpipe across nine frames per driver. The adapter uses
-shader/image/grid contracts introduced through ABI 7, now retained in ABI 8,
+shader/image/grid contracts introduced through ABI 7, now retained in ABI 9,
 plus the cached device-limits query.
 It waits after each operation; this establishes correctness, not throughput.
 The two-consumer review's capability cleanup is now implemented: enabled-feature
 reporting, shared image-support preflight, compute-image deployment and validated
-adapter format advertisements. Existing ownership/completion rules are unchanged.
-The [D4 completion-resource comparison](completion-resource-review.md) is complete.
-Recommendation: retain a result/timing receipt, but release submission resources on
-safe terminal wait/poll observation. This is not implemented: ABI 8 still retains
-resources until completion destruction. Next proposed step is the bounded ABI-9
-experiment in that review, preserving failure/draining and heap-reservation rules.
+adapter format advertisements. The subsequent [D4 completion-resource follow-up](completion-resource-review.md#implementation-abi-9)
+is implemented: safe terminal wait/poll observation retires native commands and
+retained objects, while the result/timing receipt survives. Pending/transient-error
+polls retain resources; draining/error and heap-reservation rules are preserved.
+Libplacebo now keeps old receipts alive during pass-resource reuse. No background
+collector, range allocator or new release operation was added.
+This completes the selected D1/D3/D4 cleanup. Review the checkpoint before selecting
+another named consumer-driven experiment; no additional runtime expansion is selected.
 Asynchronous adapter scheduling and a general libplacebo backend are not implicitly
 approved next milestones.
 Runner provisioning remains a separate authorization/deployment task
@@ -157,7 +160,7 @@ The inventory below records the questions those decisions address.
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Fixed baseline, per-stage specialization, enabled-feature and limit queries; root/stage/local/shared compatibility stays caller-checked | Capability follow-up separates supported/enabled/required; general optional profiles and reflection remain deferred |
 | D2 | What memory placement and transfer behavior best serves this consumer and the project? | Both explicit placements pass GGML; staging adds visible submission/wait costs | Follow-up adopts explicit HOST/DEVICE and retained range copies; stable addresses and explicit synchronization remain, automatic policy stays above the runtime |
 | D3 | Which image operations belong in the first offscreen profile? | Native images/heaps on compute and graphics devices, exact support queries and libplacebo execution work | Follow-ups separate images from rasterization and validate advertised combinations; general formats/views, filtering split and concurrent edits remain deferred |
-| D4 | Which submission/ownership model best serves the project? | Both consumer cleanup paths and gated ownership/timing tests reviewed | Completion-resource review recommends retirement on terminal observation with a surviving receipt; ABI-9 experiment proposed, not implemented |
+| D4 | Which submission/ownership model best serves the project? | Both consumer cleanup paths, gated lifetime tests and receipt-held resource reuse | ABI 9 implements retirement on terminal observation with a surviving receipt; no collector, range allocator or asynchronous adapter scheduling |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |
 
 Do not turn this inventory into a mandate for reflection, a shader package format,

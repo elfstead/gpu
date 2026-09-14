@@ -25,7 +25,13 @@ query-pool handles, or mandatory timestamp support.
   when a valid output object is supplied; NULL outputs are invalid.
 
 All existing error-pointer, external serialization, and resource-lifetime rules
-apply. A timed completion owns its query resources through draining destruction.
+apply. At ABI 9, timing resources are separate from retired command/ownership resources.
+A timed receipt owns its query pool until successful retrieval caches the duration,
+or until receipt destruction discards unread timing. Wait/poll never read queries;
+retryable timing errors do not prevent submission-resource retirement.
+The CPU time of a successful first timing read now includes query-pool destruction;
+historical query-read timings below used the earlier cleanup placement. Neither
+placement changes the device timestamp interval.
 Discarding a recording allocates no Vulkan resources. Untimed submissions make no
 query allocation/reset/write/read calls. The C ABI remains experimental.
 

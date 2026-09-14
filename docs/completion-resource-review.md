@@ -1,7 +1,8 @@
 # Completion receipts and submission resources
 
-D4 review, 2026-09-14, against `d2462e3` (ABI 8). **Recommendation, not implemented.**
-The runtime and header still retain submission resources until completion destruction.
+D4 review, 2026-09-14, against `d2462e3` (ABI 8). The recommendation is now
+[implemented at ABI 9](#implementation-abi-9). The review below records the comparison
+and pre-implementation evidence; the final section records the implementation.
 This follows the [capability cleanup](execution-capabilities.md) and revisits the
 completion lifetime, not the [allocation/range-retirement decision](retirement.md).
 
@@ -22,7 +23,7 @@ already-used GPU allocations alive or prevent heap mutation.
 It would change explicit lifetime guarantees, so the implementation experiment must
 bump to **ABI 9**, even without changing signatures. This document does not do so.
 
-## What the code establishes today
+## What the code established at ABI 8
 
 [`Completion`](../crates/ogpu/src/batch.rs) combines three responsibilities:
 
@@ -178,3 +179,76 @@ They verify the **existing** lifetime behavior, not the proposed split. The prec
 [capability checkpoint](execution-capabilities.md#verification) records the physical
 RADV and paired consumer regressions; they were not rerun for this documentation-only
 review. No runtime/header/shader code, upstream source or dependency changes here.
+
+## Implementation (ABI 9)
+
+Implemented 2026-09-14. The bounded gate above is complete. Adopt retirement on
+safe terminal observation, retaining one completion receipt, with no legacy
+retention mode, additional public operation or background collector.
+
+`Completion` now owns an optional `SubmissionResources` containing the native
+command pool, recorded steps and explicit buffer retention. Its destructor frees
+the pool before Rust releases owning fields. Wait and terminal poll take/drop
+these resources exactly once; pending and transient-error polls leave them owned.
+Partial construction and uncertain-submit draining use the same ownership path.
+Repeated observations preserve the recorded status without native re-waits.
+
+Timing remains separate. No wait/poll retrieves timestamp results. The receipt
+retains an unread/retryable query pool; a successful read caches the duration and
+destroys that pool. Destruction drains pending work and discards unread timing.
+No native objects need to survive solely to preserve a cached duration except the
+device retained by the receipt. Loss and sticky wait-error rules are unchanged.
+
+The public header now identifies ABI 9 and rejects callers using ABI 1–8. Names,
+signatures, public layouts and shader inputs are unchanged. Callers must rebuild
+and retain independent ownership for buffers needed after wait/poll; an old receipt
+no longer backs their addresses. The assisted retirement test now acquires an owner
+for post-wait readback and proves the allocation dies when that owner is released,
+while all receipts remain alive.
+
+Verification of the lifetime change:
+
+- `gpu_completion_receipts` intercepts real command-pool/buffer/pipeline/query-pool
+  destruction: exact ordering and one destruction each under wait, terminal poll
+  and pending destruction, timed and untimed. Weak references prove resource death
+  while the receipt survives, and timestamp reads remain cached.
+- Gated heap tests combine another unobserved submission and an unsubmitted
+  recording. Retiring just one use still prohibits edits; retiring/discarding all
+  uses permits edits while both result handles survive. Pending/transient-error
+  retention, simulated loss and drained wait failures remain covered.
+- Timing tests retry injected query failures after command-resource retirement;
+  no query read occurs inside wait/poll. Image/copy tests now assert endpoint
+  release before receipt destruction instead of relying on the old lifetime.
+- The C heap example checks sampler reuse after its sole submission retires,
+  continued image-heap rejection from an earlier unobserved submission, then image
+  edits after observing that submission. All receipts remain alive during edits.
+- Libplacebo retains the last completed receipt per pass across the next run's
+  heap/vertex/specialization updates and replaces it after the new successful wait.
+  The full consumer checks 12 such reuses, and the one-pass A/B/A check checks two.
+  Pass destruction releases its last receipt. The processing and per-operation
+  waits are unchanged; this tests ownership semantics, not asynchronous throughput.
+
+27 ordinary tests, 20 GPU tests on each of llvmpipe and RX 5700 XT/RADV, Clippy,
+745 C/Rust layout values, loader mocks and pinned-binding reproduction pass.
+Both libplacebo comparisons still have zero differences across 286,488 bytes,
+with six created passes, nine compute and nine raster operations, and clean
+child teardown. Vulkan and synchronization validation were enabled.
+
+Local ignored paired artifacts under `target/libplacebo-integration/`:
+
+- llvmpipe: `reference.9UEizwHG` / `ogpu.IDZYk29M`, `receipts-llvmpipe.log`.
+- RADV: `reference.7PLut4Kv` / `ogpu.MvhbVbLw`, `receipts-radv.log`.
+
+All eight C execution examples pass on both drivers. GGML passes all 24 cases:
+six direct/scheduled cases under HOST and DEVICE placement on each driver, including
+lifecycle/rejection checks. Each processes 10,000 images with the same CPU top-1
+predictions (9,801 correct) and maximum logit error 0.0000343322754.
+Ignored logs under `target/ggml-integration/`:
+
+- llvmpipe HOST/DEVICE: `acceptance.zMvEWFJW.log` / `acceptance.dduE2mVA.log`.
+- RADV HOST/DEVICE: `acceptance.1KFn2DEt.log` / `acceptance.cxiOQVHc.log`.
+
+This establishes lifetime correctness, not a poll-latency improvement, nonblocking
+consumer scheduling, portable backend coverage or API stability. No remote CI run
+is claimed. The explicit-release alternative remains a future option if a named
+caller needs separate placement of host cleanup cost.

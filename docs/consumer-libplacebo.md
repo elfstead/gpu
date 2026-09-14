@@ -300,6 +300,16 @@ queries](execution-capabilities.md), plus compute image/heap support independent
 of rasterization. The adapter now validates its required combinations before
 publishing formats, while exact extents remain checked at creation. Both paired
 driver comparisons still have zero differing bytes; processing and scheduling are
-unchanged. The follow-up records tests/artifacts and the next D4 completion-resource
+unchanged. The follow-up records tests/artifacts and the subsequent D4 completion-resource
 comparison. Successful images do not establish stability, general backend coverage
 or efficient scheduling.
+
+### Receipt-held resource reuse (ABI 9)
+
+The [completion-resource implementation](completion-resource-review.md#implementation-abi-9)
+lets each pass retain its last completed receipt during the next run's specialization,
+heap and vertex updates. Every pass still submits and waits; its new receipt survives
+the image-heap clear after execution. The consumer verifies 12 old-receipt reuses;
+the one-pass specialization A/B/A check verifies two. There is no new scheduling,
+shader rewrite or compiler feature. Paired pixel results and failure cleanup remain
+the acceptance criteria; retained receipts are not in-flight GPU work.

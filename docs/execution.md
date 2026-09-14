@@ -75,7 +75,7 @@ for exact image checks and the remaining trusted executable obligations.
 `ogpu_device_limits` returns cached workgroup dimensions/invocations, shared-memory
 bytes, dispatch counts, image dimension ceilings and the push-data byte ceiling.
 It submits no work and remains readable after device loss. Introduced additively
-at ABI 7, its layout and signature are unchanged in ABI 8. The libplacebo adapter
+at ABI 7, its layout and signature are unchanged in ABI 9. The libplacebo adapter
 needs these limits to preserve upstream
 workgroup/shared-memory choices without assuming the tested GPUs' values. Image
 limits do not replace `ogpu_image_check_support` or checks at creation, and this is not optional
