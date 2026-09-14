@@ -1,9 +1,37 @@
 // Fail-closed/cleanup checks against the pinned callback boundary, not Vulkan fallback.
 #include "gpu.h"
 #include "backend.h"
+#include "ogpu.h"
 #include <stdio.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "check failed: %s\n", #x); exit(1); } } while (0)
 static void completed(void *ptr) { ++*(unsigned *) ptr; }
+// Link-time shims only in this test executable. Real receipts still own real
+// GPU work; never fabricate success/retirement. Exercise rare adapter branches.
+static unsigned pending_polls, poll_errors, reject_submit;
+OgpuResult __real_ogpu_completion_poll(OgpuCompletion *, uint32_t *, OgpuError *);
+OgpuResult __wrap_ogpu_completion_poll(OgpuCompletion *c, uint32_t *ready, OgpuError *error)
+{
+    if (pending_polls) {
+        --pending_polls; *ready = 0;
+        return OGPU_SUCCESS;
+    }
+    if (poll_errors) {
+        --poll_errors;
+        if (error) { memset(error, 0, sizeof(*error)); strcpy(error->message, "injected transient poll failure"); }
+        return OGPU_ERROR_VULKAN;
+    }
+    return __real_ogpu_completion_poll(c, ready, error);
+}
+OgpuResult __real_ogpu_batch_submit(OgpuBatch *, OgpuCompletion **, OgpuError *);
+OgpuResult __wrap_ogpu_batch_submit(OgpuBatch *b, OgpuCompletion **out, OgpuError *error)
+{
+    if (reject_submit) {
+        --reject_submit; *out = NULL;
+        if (error) { memset(error, 0, sizeof(*error)); strcpy(error->message, "injected submission rejection"); }
+        return OGPU_ERROR_INTERNAL;
+    }
+    return __real_ogpu_batch_submit(b, out, error);
+}
 
 static void frame_transfers(pl_gpu gpu, const char *mode)
 {
@@ -22,13 +50,29 @@ static void frame_transfers(pl_gpu gpu, const char *mode)
             .callback=completed, .priv=&callbacks)));
     CHECK(!callbacks && ogpu_pl_stats(gpu).waits == 0);
     CHECK(pl_tex_poll(gpu, textures[0], 0)); // Active slot cannot be collected yet.
-    bool failed = strcmp(mode, "frame-destroy") != 0;
+    bool failed = strcmp(mode, "frame-destroy") != 0 && strcmp(mode, "frame-pending") != 0;
     if (!strcmp(mode, "frame-capacity")) {
         CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[8], .ptr=data)));
     } else if (!strcmp(mode, "frame-partial")) {
         CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[1], .ptr=data, .rc={0,0,0,2,2,1})));
     } else if (!strcmp(mode, "frame-staging")) {
         CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[0], .ptr=data)));
+    } else if (!strcmp(mode, "frame-submit-error")) {
+        reject_submit = 1;
+        CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[1], .ptr=data)));
+        CHECK(!reject_submit);
+    } else if (!strcmp(mode, "frame-poll-error")) {
+        CHECK(ogpu_pl_frame_end(gpu));
+        poll_errors = 1;
+        CHECK(!ogpu_pl_frame_collect(gpu, 0, true));
+        CHECK(!poll_errors && callbacks == uploads);
+    } else if (!strcmp(mode, "frame-pending")) {
+        CHECK(ogpu_pl_frame_end(gpu));
+        pending_polls = 2;
+        CHECK(!ogpu_pl_frame_collect(gpu, 0, false));
+        CHECK(!callbacks && ogpu_pl_stats(gpu).outstanding == 1 && ogpu_pl_stats(gpu).waits == 0);
+        CHECK(ogpu_pl_frame_collect(gpu, 0, true));
+        CHECK(!pending_polls && ogpu_pl_stats(gpu).waits == 1);
     } else if (!strcmp(mode, "frame-reuse")) {
         CHECK(ogpu_pl_frame_end(gpu));
         CHECK(ogpu_pl_frame_begin(gpu, 1));
@@ -55,7 +99,7 @@ static void frame_transfers(pl_gpu gpu, const char *mode)
     CHECK(!ogpu_pl_stats(gpu).textures && !ogpu_pl_stats(gpu).staging_bytes);
 }
 
-static void specialization_updates(pl_gpu gpu)
+static void specialization_updates(pl_gpu gpu, bool async, bool premature)
 {
     pl_tex tex = pl_tex_create(gpu, pl_tex_params(.w=4, .h=3,
         .format=pl_find_named_fmt(gpu, "rgba8"), .storable=true, .host_readable=true));
@@ -72,21 +116,44 @@ static void specialization_updates(pl_gpu gpu)
             "void main() { imageStore(image_out, ivec2(gl_GlobalInvocationID.xy), vec4(value, 0, 0, 1)); }\n"));
     CHECK(pass);
     struct pl_desc_binding binding = {.object=tex};
+    uint8_t pixels[3][48];
+    unsigned callbacks[3] = {0};
     for (unsigned frame = 0; frame < 3; ++frame) {
+        if (async) {
+            if (frame == 2) CHECK(ogpu_pl_frame_collect(gpu, 0, true));
+            CHECK(ogpu_pl_frame_begin(gpu, frame % 2));
+        }
         value = frame == 1 ? 1.0f : 0.0f;
         pl_pass_run(gpu, pl_pass_run_params(.pass=pass, .constant_data=&value,
             .desc_bindings=&binding, .compute_groups={4,3,1}));
         CHECK(!pl_gpu_is_failed(gpu));
-        uint8_t pixels[48];
-        CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=tex, .ptr=pixels)));
-        for (unsigned i = 0; i < sizeof(pixels); i += 4)
-            CHECK(pixels[i] == (frame == 1 ? 255 : 0) && !pixels[i+1] && !pixels[i+2] && pixels[i+3] == 255);
+        memset(pixels[frame], 0x55, sizeof(pixels[frame]));
+        CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=tex, .ptr=pixels[frame],
+            .callback=completed, .priv=&callbacks[frame])));
+        if (premature) {
+            pl_pass_run(gpu, pl_pass_run_params(.pass=pass, .constant_data=&value,
+                .desc_bindings=&binding, .compute_groups={4,3,1}));
+            CHECK(pl_gpu_is_failed(gpu) && ogpu_pl_stats(gpu).compute == 1);
+            break;
+        }
+        if (async) CHECK(ogpu_pl_frame_end(gpu));
     }
+    // Destroy the shared executable with slots still queued (including old
+    // specialization variants) or with a partially failed active frame.
     pl_pass_destroy(gpu, &pass);
+    for (unsigned frame = 0; frame < (premature ? 1u : 3u); ++frame) {
+        CHECK(callbacks[frame] == 1);
+        if (premature) for (unsigned i = 0; i < sizeof(pixels[frame]); ++i)
+            CHECK(pixels[frame][i] == 0x55); // Failure releases lifetime, not valid output.
+        if (!premature) for (unsigned i = 0; i < sizeof(pixels[frame]); i += 4)
+            CHECK(pixels[frame][i] == (frame == 1 ? 255 : 0) && !pixels[frame][i+1] &&
+                  !pixels[frame][i+2] && pixels[frame][i+3] == 255);
+    }
     pl_tex_destroy(gpu, &tex);
     const struct ogpu_stats s = ogpu_pl_stats(gpu);
-    CHECK(s.creates == 1 && s.compute == 3 && s.downloads == 3 && !s.raster && !s.textures && !s.passes);
-    CHECK(s.receipt_reuses == 2);
+    CHECK(s.creates == 1 && s.compute == (premature ? 1u : 3u) && s.downloads == s.compute &&
+          !s.raster && !s.textures && !s.passes && !s.banks && !s.outstanding && !s.inflight);
+    CHECK(s.receipt_reuses == (premature ? 0u : async ? 1u : 2u));
 }
 
 int main(int argc, char **argv)
@@ -101,11 +168,13 @@ int main(int argc, char **argv)
         printf("adapter frame=%s live=0 PASS\n", argv[1]);
         return 0;
     }
-    if (!strcmp(argv[1], "specialization-update")) {
-        specialization_updates(gpu);
+    if (!strcmp(argv[1], "specialization-update") || !strcmp(argv[1], "queued-specialization") ||
+        !strcmp(argv[1], "queued-bank-reuse")) {
+        specialization_updates(gpu, strcmp(argv[1], "specialization-update") != 0,
+                               !strcmp(argv[1], "queued-bank-reuse"));
         ogpu_pl_destroy(&gpu);
         pl_log_destroy(&log);
-        puts("adapter specialization A/B/A live=0 PASS");
+        printf("adapter specialization mode=%s live=0 PASS\n", argv[1]);
         return 0;
     }
     const struct pl_gpu_fns *f = PL_PRIV(gpu);

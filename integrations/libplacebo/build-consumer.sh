@@ -16,7 +16,12 @@ done
 "${CXX:-c++}" -std=c++17 -O2 -Wall -Wextra -Werror $(pkg-config --cflags shaderc) \
     -c "$repo/integrations/libplacebo/compiler.cpp" -o "$out/compiler.o"
 for unit in consumer backend-tests stream; do
+    extra=()
+    if test "$unit" = backend-tests; then
+        extra=(-Wl,--wrap=ogpu_completion_poll -Wl,--wrap=ogpu_batch_submit)
+    fi
     "${CXX:-c++}" "$out/backend.o" "$out/$unit.o" "$out/compiler.o" \
+        "${extra[@]}" \
         -L"$repo/target/release" -Wl,-rpath,"$repo/target/release" -logpu \
         -L"$build/src" -Wl,-rpath,"$build/src" -lplacebo $(pkg-config --libs shaderc) \
         -o "$out/$unit"

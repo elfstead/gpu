@@ -485,7 +485,9 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     // One queue; order previous writes before this pass's reads/writes. Host writes
     // are made visible by OGPU submission. No guessed resource-pointer tracing.
     TRY(ogpu_batch_barrier(batch,
-        OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_COLOR_WRITE | OGPU_ACCESS_TRANSFER_WRITE,
+        OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_COLOR_READ |
+        OGPU_ACCESS_COLOR_WRITE | OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE |
+        OGPU_ACCESS_FRAGMENT_READ | OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ,
         OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_FRAGMENT_READ |
         OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ | OGPU_ACCESS_COLOR_READ |
         OGPU_ACCESS_COLOR_WRITE, &error));

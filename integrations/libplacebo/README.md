@@ -150,6 +150,13 @@ checkpoints: the compiler gate now requires captured vertex metadata.
   other cases check failed-state reporting and clean resource destruction. A separate
   A/B/A specialization test updates one live pass and checks its pixels after each
   executable replacement, then verifies clean teardown.
+- Frame tests reject premature slots, repeated staging/bank use and operation
+  overflow, drain partial-frame failures and queued child destruction, and replace
+  specialization executables while two slots remain uncollected. Test-only link
+  wrappers force a pending poll, transient poll error and submission rejection;
+  real GPU receipts still drain before callbacks/resource release. Failed-frame
+  callbacks do not make poisoned output valid. No injection code is linked into
+  the normal consumer or streaming executable.
 
 The compiler probe uses fixed per-pass heap slots corresponding to original binding
 numbers. Neither audit binds heaps or executes the upstream binaries. The compiler

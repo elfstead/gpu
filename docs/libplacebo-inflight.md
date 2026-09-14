@@ -66,5 +66,11 @@ the control makes 183 waits, the two-slot run made zero explicit waits and 219
 polls. Two frames and eleven operations were outstanding at the high-water mark.
 Allocations stabilized after warmup, with seven textures, four mutable pass banks
 and 156,208 staging payload bytes at peak. Native allocation padding is not measured.
-Radeon acceptance and additional forced-pending/failure checks are in progress.
+The first Radeon acceptance also matched exactly, with six explicit waits versus
+the control's 183. Additional checks now exercise forced pending polling, transient
+poll failure, rejected submission, queued specialization replacement, and failed
+active-bank reuse with callback lifetime release but no valid output. Test wrappers
+are linked only into `backend-tests`, never the normal consumer. Pass dependencies
+include prior reads as well as writes for ordered reuse of shared images.
+Final paired-driver acceptance of this hardening is in progress.
 Public runtime remains ABI 10; no runtime code or public header change.

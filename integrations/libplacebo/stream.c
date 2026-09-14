@@ -80,6 +80,7 @@ static void run(pl_gpu gpu, int w, int h, bool async, const char *dir)
         unsigned index = frame % 2;
         struct slot *s = &slots[index];
         collect(gpu, s, index, async, dir, pass, w, h, known);
+        const unsigned waits_before_recording = ogpu_pl_stats(gpu).waits;
         s->frame = frame; s->callbacks = 0;
         if (async) CHECK(ogpu_pl_frame_begin(gpu, index));
         pattern(input, w, h, frame % 3 == 1);
@@ -98,7 +99,7 @@ static void run(pl_gpu gpu, int w, int h, bool async, const char *dir)
         s->pending = true;
         const struct ogpu_stats current = ogpu_pl_stats(gpu);
         CHECK(current.compute-initial.compute == frame+1 && current.raster-initial.raster == frame+1);
-        if (async) CHECK(current.waits-initial.waits <= frame);
+        if (async) CHECK(current.waits == waits_before_recording && current.waits-initial.waits <= frame);
         if (frame == 0) pass = current.creates;
         CHECK(current.creates == pass && current.creates-initial.creates == 2);
         if (frame == 1) {
