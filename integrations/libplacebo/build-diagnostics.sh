@@ -19,6 +19,8 @@ for unit in perf backend-tests; do
         -o "$out/$unit-optimized"
 done
 source_dir=$(cd -- "$1" && pwd)
+"${CC:-cc}" -std=c11 -O2 -Wall -Wextra -Werror -fPIC -shared -Wl,-Bsymbolic $(pkg-config --cflags vulkan) \
+    "$repo/integrations/libplacebo/trace-allocations.c" -ldl -o "$out/trace-allocations.so"
 for unit in perf diagnostics; do
     "${CC:-cc}" -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter \
         -DOGPU_DIAGNOSTICS -I"$source_dir/src" -I"$build/src" \

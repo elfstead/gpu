@@ -70,3 +70,14 @@ barriers, submissions and collection remain. Use resident images only; this is
 calls, not omitted GPU commands. Validate each omission mode before timing it.
 This distinguishes command work from remaining dependencies without modifying
 runtime code, shaders or the original benchmark.
+
+Allocation tracing found every OGPU image selected host-visible device-local
+type 3, in the 256 MiB visible heap, rather than non-host-visible type 0/1 in
+the larger device heap. The runtime's image allocator prefers DEVICE_LOCAL but
+breaks ties in favor of the last eligible memory type. Descriptor heaps/staging
+are host-visible system memory. Test a separate loader-shim control that chooses
+an eligible non-host-visible DEVICE_LOCAL type **only for dedicated images**,
+using each image's queried memoryTypeBits. Leave heaps, buffers and all other
+parameters unchanged. Validate the full workload against native before timing;
+no runtime selection change is adopted merely from this trace. Visible-heap
+pressure/residency remains a hypothesis until the placement control is measured.
