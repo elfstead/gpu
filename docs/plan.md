@@ -57,16 +57,14 @@ This completes the selected D1/D3/D4 cleanup. The subsequent D1 milestone,
 24 mixed and 24 F32 control cases pass across both placements and drivers, with
 half the matrix-weight payload and unchanged predictions. The storage feature is
 already mandatory for Vulkan 1.4; retain it in the baseline, without an optional
-device-selection API or FP16 arithmetic. Review the checkpoint's retain/revise
-discussion before selecting the next bounded milestone. No further expansion is
-selected; genuinely optional arithmetic profiles, sustained asynchronous execution
-and portability remain separate future decisions.
-Asynchronous adapter scheduling and a general libplacebo backend are not implicitly
-approved next milestones.
+device-selection API or FP16 arithmetic. The next selected D4 milestone is
+[bounded two-frame libplacebo execution](libplacebo-inflight.md), comparing
+consumer-managed slots against the synchronous control. Optional arithmetic,
+portability and a general libplacebo backend remain separate future decisions.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
-Concurrent slot streaming and additional formats/subresources
-remain deferred scope decisions, not hidden requirements to finish this checkpoint.
+Additional formats/subresources remain deferred scope decisions, not hidden
+requirements of the selected two-frame checkpoint.
 The completed integration checkpoints below remain historical regression evidence;
 the new hardware result and its limits are recorded separately.
 
