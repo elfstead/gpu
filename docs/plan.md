@@ -68,10 +68,13 @@ contracts. No runtime API change was selected. The subsequent
 complete: all three policies match exactly on both drivers; 54 hardware timing
 runs retain consumer-side frame batching through the existing API. Batching lowers
 host cost but leaves a substantial large resident-image gap against native Vulkan.
-The selected next task is a [separately scoped diagnosis](libplacebo-diagnosis.md)
-of that gap, separating device work from collection and comparing
-compiler/shader/image/barrier paths. It is not
-an automatic API expansion or an established flaw in the API model.
+The [resident-gap diagnosis](libplacebo-diagnosis.md) is now complete: image
+allocation unintentionally favors the small host-visible VRAM heap. A validated
+diagnostic change to non-host-visible local images raises near-4K grouped throughput
+from 104 to 563 fps against a fresh native 592 fps control. Runtime code is still
+unchanged. The recommended next implementation is a tested image-memory preference
+correction, preserving unified-memory compatibility, followed by ordinary both-driver
+regressions and fresh timing without the diagnostic loader. No API expansion is selected.
 Optional arithmetic, portability and a general libplacebo backend remain separate
 future decisions.
 Runner provisioning remains a separate authorization/deployment task

@@ -57,6 +57,22 @@ polls, callbacks and resource high-water marks. No wall-time speedup claim.
 
 ## Bounded frame scheduling
 
+The [resident-gap diagnosis](../../docs/libplacebo-diagnosis.md) uses separate
+diagnostic binaries, leaving the ordinary runtime and benchmark unchanged:
+
+```sh
+# Baseline capture/timestamps; optional final "verify" skips timing.
+bash integrations/libplacebo/run-profile.sh /path/to/pinned/libplacebo
+# Radeon placement control: requires an eligible non-host-visible local image type.
+bash integrations/libplacebo/run-image-placement.sh /path/to/pinned/libplacebo
+```
+
+Both expect one ICD and the existing build environment. `run-diagnostics.sh`
+tests the isolated optimized-compiler variant; that variant currently fails the
+SPIR-V validation gate and is intentionally not adopted. Command omissions via
+`OGPU_DIAGNOSTIC_OMIT` are diagnostic-only and must not be called workload throughput.
+See the brief for boundaries, raw results and the recommended allocator correction.
+
 For the separate [performance comparison](../../docs/libplacebo-performance.md),
 `ogpu_pl_frame_begin_batched` uses the same slots/banks but records one batch until
 frame end. One frame receipt retires all commands; a failed frame discards its

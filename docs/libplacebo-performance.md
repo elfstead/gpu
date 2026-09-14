@@ -152,6 +152,11 @@ Native allocation totals remain unmeasured; process RSS must not substitute for 
 
 ## Decision and stopping point
 
+Follow-up: the [resident-gap diagnosis](libplacebo-diagnosis.md) is complete.
+An isolated image-memory placement correction recovers most of the gap; these
+original results remain unchanged historical measurements. The runtime correction
+is the next recommended implementation task, not an API redesign.
+
 Retain consumer-side one-frame batching as the preferred measured policy for this
 bounded workload, with per-operation submission preserved as a diagnostic control.
 Do not add a runtime frame scheduler or new submission API: the existing batch

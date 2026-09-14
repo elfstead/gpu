@@ -10,6 +10,18 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [resident performance diagnosis](libplacebo-diagnosis.md) identifies image
+memory-type preference as the dominant near-4K cost on RX 5700 XT. Runtime images
+select a 256 MiB host-visible local heap; a validated diagnostic loader control
+selects eligible non-host-visible local memory, changing nothing else. Three rotated
+ordinary-harness runs improve median grouped throughput from 104.04 to 562.93 fps,
+against a fresh native 591.60 fps. Separate device timestamps fall from 9.497 to
+1.672 ms per frame. All sizes/modes still match native exactly under validation.
+Residency/eviction is an unmeasured possible mechanism, not an established fact.
+Recommend correcting allocator preference with UMA/eligibility tests; no runtime
+fix or API change is included in this diagnostic checkpoint. An isolated shaderc
+optimization variant failed SPIR-V validation and was not timed or adopted.
+
 The [controlled libplacebo performance comparison](libplacebo-performance.md) is
 complete at `90dd3d7`, without runtime changes. Native Vulkan, OGPU per-operation
 and consumer-side per-frame batches produce byte-identical outputs on RADV and
