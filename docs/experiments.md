@@ -10,6 +10,16 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [mixed-precision GGML checkpoint](ggml-mixed-precision.md) adds ABI 10's native
+16-bit buffer storage, already required physically by Vulkan 1.4. Twenty-four
+FP16-weight/FP32-arithmetic cases and twenty-four F32 controls pass on llvmpipe and
+RADV under both placements. Matrix payload halves; predictions remain unchanged.
+The CPU oracle widens rounded weights without rounding activations; a separate
+original-model reference measures weight-rounding drift. No optional creation
+profile, half arithmetic, tensor operator or accelerated matrix facility was added.
+Runtime/C examples and the libplacebo byte-for-byte comparison still pass on both
+drivers. This is correctness and integration evidence, not a speedup claim.
+
 The [original heap-image experiment](heap-images.md) established direct compute image
 load/store and fragment sampling without intermediate copies. The
 [preservation](image-preservation.md) and [independent-heap follow-up](descriptor-heaps.md)

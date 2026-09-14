@@ -72,16 +72,82 @@ GPU result. Completion means the contracts, implementation, reproducible command
 and paired-driver evidence agree, followed by a retain/revise discussion. It does
 not automatically select another numeric type or a larger model.
 
-## Working status
+## Implementation and acceptance — 2026-09-14
 
-Audit and acceptance contract recorded before mixed GPU results. ABI 10 baseline
-implementation passes 27 ordinary tests, 745 C/Rust ABI layout checks, mock-loader
-and binding-reproduction checks, Clippy, and all 20 existing GPU tests on both
-llvmpipe and RADV with validation. Device-creation interception checks the actual
+Complete. The scope and numerical gates were committed before mixed GPU results
+at `53403d2`; baseline implementation is `6ca1d19`, consumer implementation
+`5900679`. No numerical limit was changed after observing results.
+
+All **24 mixed cases and 24 original-F32 controls** pass: each precision runs
+the full dataset at batches 1/17/64, direct/scheduled, HOST/DEVICE, on llvmpipe
+and physical RX 5700 XT / RADV. Every case reports 9,801 correct predictions.
+Mixed results match all semantic-reference top-1 predictions and change **zero**
+predictions from the original FP32 model. Across mixed cases, maximum logit error
+against the rounded/widened GGML CPU reference is `2.67028809e-5`; maximum drift
+from the original model is `0.00321006775`. Original F32 controls retain maximum
+reference error `3.43322754e-5`. The two error figures use different weight sets;
+their ordering does not mean half storage improves arithmetic accuracy.
+
+The two matrix payloads shrink from 1,588,000 to 794,000 bytes. Bias payload stays
+2,040 bytes. Model-upload counters verify these exact totals, and steady-state
+checks retain resident weights/intermediates, reusable staging, five dispatches
+per graph and three scheduled intermediate aliases. There is no GPU-side widened
+weight allocation. Timings remain diagnostics, not a performance gate or speedup
+claim.
+
+The 13×11×3 diagnostic passes with maximum error `1.31609067e-6`; the 1×1×1
+activation-precision sentinel is exact against its double reference. Both pass
+three repeats and bit-exact two-byte-aligned weight transfers under both placements
+on both drivers. F16 activations/outputs/elementwise operations and an in-range
+odd weight address reject without dispatch or output changes. The pre-existing
+graph rejection tests still ensure that a late unsupported operation causes no
+partial execution. Lifecycle checks include repeated creation/destruction, failed
+initialization and live-child death tests.
+
+ABI 10 also passes 27 ordinary tests, 745 C/Rust ABI layout checks, mock-loader
+and binding-reproduction checks, Clippy, all 20 runtime GPU tests and all eight C
+execution examples on both drivers. Device-creation interception checks the actual
 feature chain: buffer16 enabled; half arithmetic and other 16-bit storage disabled.
-The consumer implementation now passes all six full-dataset mixed cases on RADV
-under both placements and llvmpipe DEVICE. The RADV F32 controls also pass. Mixed
-results have zero changed predictions and 9,801 correct classifications, maximum
-semantic-reference logit error `2.67028809e-5` and original-model drift
-`0.00321006775`. No tolerance changed. Remaining llvmpipe placement/control and
-cross-consumer regression checks are in progress; final evidence follows below.
+Shader validation checks the mixed SPIR-V's exact capability set and absence of
+relaxed precision. Libplacebo still matches its same-driver reference for all
+286,488 intermediate/final bytes on each driver. Validation/synchronization
+validation reported no errors. These are local checks, not a remote-CI claim.
+
+Reproduce using the [consumer commands](../integrations/ggml/README.md). Local
+acceptance logs below live under ignored `target/ggml-integration/`:
+
+| Driver / placement | Mixed log | Original F32 control log |
+|---|---|---|
+| llvmpipe HOST | `acceptance.HtTt0MB4.log` | `acceptance.vetSbqoX.log` |
+| llvmpipe DEVICE | `acceptance.ktTHwrbb.log` | `acceptance.LrHbkFVQ.log` |
+| RADV HOST | `acceptance.IClIuERe.log` | `acceptance.9xUe3HCU.log` |
+| RADV DEVICE | `acceptance.j0U70Xtl.log` | `acceptance.nhQxGbrB.log` |
+
+Additional odd-address checks on RADV are in
+`storage16-radv-alignment-{host,device}.log`. Libplacebo comparison logs are
+`target/libplacebo-integration/storage16-{llvmpipe,radv}.log`; runtime/C-example
+logs are `target/storage16-*`. Logs are local artifacts; commands and fixture
+provenance, not those filenames, are the reproducibility contract.
+
+All four conversions produced the same derivative SHA-256 values:
+
+```text
+74b76688dc7388b9cee7147ca30c1b412b9e72377fae0a3baaf7196d93d4a4b5  half.gguf
+7c41d857d2212993082644fcc11e45dd2433cb6e0ae219db411928eecff46b4c  widened.gguf
+```
+
+## Retain/revise discussion
+
+Retain native 16-bit buffer storage in the baseline. It expresses this consumer's
+data layout directly and adds neither a fallback path nor a genuinely new
+hardware requirement beyond Vulkan 1.4. No better optional-creation API alternative
+emerged from this workload; inventing one now would not exercise a real distinction.
+Storage type, activation precision and accumulation precision must remain separate
+in executable contracts: the GGML CPU audit demonstrates why a generic "FP16"
+label is insufficient.
+
+This checkpoint establishes narrow storage and conversion through the existing
+memory/shader boundary, not native FP16 arithmetic, matrix acceleration or modern
+ML coverage generally. Keep those questions open, along with sustained asynchronous
+execution and backend/hardware portability. The API remains experimental; completing
+this gate does not authorize the next expansion or make stabilization imminent.
