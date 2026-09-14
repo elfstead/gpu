@@ -10,6 +10,15 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [two-frame libplacebo checkpoint](libplacebo-inflight.md) retains ABI 10 with
+no runtime changes. Per driver, synchronous and two-slot 36-frame runs each match
+1,145,952 reference bytes exactly. Both submit 183 operations; final two-slot runs
+make zero explicit waits on llvmpipe and one on RADV versus 183 in each control.
+Two frames, fixed receipt arrays and duplicated mutable pass banks bound ownership;
+allocations stop after warmup. Pending/error/destruction and queued specialization
+tests pass. Keep frame scheduling and reuse policy in the consumer; this is reduced
+host synchronization, not a throughput or simultaneous-GPU-execution claim.
+
 The [mixed-precision GGML checkpoint](ggml-mixed-precision.md) adds ABI 10's native
 16-bit buffer storage, already required physically by Vulkan 1.4. Twenty-four
 FP16-weight/FP32-arithmetic cases and twenty-four F32 controls pass on llvmpipe and

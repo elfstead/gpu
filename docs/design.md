@@ -9,6 +9,9 @@ Initial feasibility and the first bounded consumer checkpoint are complete:
 The second bounded consumer, [libplacebo image processing](consumer-libplacebo.md),
 also executes upstream compute and raster passes through OGPU and matches its
 Vulkan reference on both tested drivers. Neither integration is a general backend.
+Libplacebo's [two-frame follow-up](libplacebo-inflight.md) retains consumer-owned
+scheduling/reuse policy and uses existing completion/ownership rules to remove
+per-operation waits. It does not introduce a runtime scheduler or throughput claim.
 The [milestone plan](plan.md) owns working status, scope, blocking decisions and exit
 criteria. Experimental still means changes
 are allowed, not that a stable or broadly portable interface has been established.

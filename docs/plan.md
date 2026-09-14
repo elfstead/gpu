@@ -43,7 +43,8 @@ compute/raster submission. Both intermediate and final images match upstream
 byte-for-byte on RADV and llvmpipe across nine frames per driver. The adapter uses
 shader/image/grid contracts introduced through ABI 7, now retained in ABI 9,
 plus the cached device-limits query.
-It waits after each operation; this establishes correctness, not throughput.
+The original G2 adapter waited after each operation; the subsequent two-slot
+checkpoint below tests a bounded asynchronous policy, not a throughput claim.
 The two-consumer review's capability cleanup is now implemented: enabled-feature
 reporting, shared image-support preflight, compute-image deployment and validated
 adapter format advertisements. The subsequent [D4 completion-resource follow-up](completion-resource-review.md#implementation-abi-9)
@@ -57,10 +58,14 @@ This completes the selected D1/D3/D4 cleanup. The subsequent D1 milestone,
 24 mixed and 24 F32 control cases pass across both placements and drivers, with
 half the matrix-weight payload and unchanged predictions. The storage feature is
 already mandatory for Vulkan 1.4; retain it in the baseline, without an optional
-device-selection API or FP16 arithmetic. The next selected D4 milestone is
-[bounded two-frame libplacebo execution](libplacebo-inflight.md), comparing
-consumer-managed slots against the synchronous control. Optional arithmetic,
-portability and a general libplacebo backend remain separate future decisions.
+device-selection API or FP16 arithmetic. The subsequent D4 milestone,
+[bounded two-frame libplacebo execution](libplacebo-inflight.md), is complete:
+36-frame synchronous and two-slot runs match the reference exactly on both drivers;
+two-slot execution removes per-operation waits with bounded resources. Retain
+consumer-managed frame/reuse policy and existing runtime ownership/completion
+contracts. No runtime API change was selected. Review this checkpoint before
+selecting another milestone; optional arithmetic, portability, submission
+aggregation and a general libplacebo backend remain separate future decisions.
 Runner provisioning remains a separate authorization/deployment task
 (this host now qualifies), not a blocker for the memory decision.
 Additional formats/subresources remain deferred scope decisions, not hidden
@@ -166,7 +171,7 @@ The inventory below records the questions those decisions address.
 | D1 | How does a consumer describe executable requirements and choose a compatible variant? | Fixed baseline, per-stage specialization, enabled-feature and limit queries; root/stage/local/shared compatibility stays caller-checked | Capability follow-up separates supported/enabled/required; general optional profiles and reflection remain deferred |
 | D2 | What memory placement and transfer behavior best serves this consumer and the project? | Both explicit placements pass GGML; staging adds visible submission/wait costs | Follow-up adopts explicit HOST/DEVICE and retained range copies; stable addresses and explicit synchronization remain, automatic policy stays above the runtime |
 | D3 | Which image operations belong in the first offscreen profile? | Native images/heaps on compute and graphics devices, exact support queries and libplacebo execution work | Follow-ups separate images from rasterization and validate advertised combinations; general formats/views, filtering split and concurrent edits remain deferred |
-| D4 | Which submission/ownership model best serves the project? | Both consumer cleanup paths, gated lifetime tests and receipt-held resource reuse | ABI 9 implements retirement on terminal observation with a surviving receipt; no collector, range allocator or asynchronous adapter scheduling |
+| D4 | Which submission/ownership model best serves the project? | Both consumer cleanup paths, gated lifetime tests, surviving receipts and bounded two-frame execution | Retain terminal-observation retirement and consumer-owned slots/reuse policy; no runtime collector, range allocator or scheduler |
 | D5 | What identifies a compatible runtime and executable contract? | Fixed-width C layouts are checked, but the ABI remains experimental | Define checkpoint identification, version mismatch/feature-availability behavior, shader-contract identification, and how breaking changes are recorded; no accidental stable-ABI promise |
 
 Do not turn this inventory into a mandate for reflection, a shader package format,

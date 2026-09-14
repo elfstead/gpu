@@ -3,6 +3,9 @@
 Approved 2026-09-13; updated 2026-09-14. Status: G0/G1 and bounded G2 execution pass
 on RADV and llvmpipe. Upstream-generated compute/raster work now executes through
 OGPU; intermediate and final images match the independent reference exactly.
+The later [two-frame follow-up](libplacebo-inflight.md) also passes: bounded
+consumer-managed asynchronous execution, unchanged runtime ABI 10. The G0–G2
+sections below record the original synchronous checkpoint.
 Pinned upstream: `3330a515d62139259c26239014f286e233bd3a5c` (2026-09-03),
 [official mirror](https://github.com/haasn/libplacebo).
 

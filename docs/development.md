@@ -24,7 +24,10 @@ Its test-data downloads and CMake build are separate from ordinary Cargo builds.
 The second consumer has separate [libplacebo build/acceptance commands](../integrations/libplacebo/README.md):
 Meson builds pinned upstream; a C adapter and C++ shaderc bridge preserve its
 generation and dispatch while executing through OGPU. Select one ICD and run the
-reference/consumer comparison on that driver. These extra dependencies and checks
+reference/consumer comparison on that driver. The runner also checks bounded
+two-slot execution against a 36-frame synchronous control and tests frame failure
+cleanup; see the [scheduling checkpoint](libplacebo-inflight.md).
+These extra dependencies and checks
 are not currently wired into the manual GPU workflow.
 Acceptance uses checked-in, hash-pinned weights; CPU training is a separate optional
 script. Hosted CI covers build/mock/ABI/SPIR-V checks. GPU and consumer execution

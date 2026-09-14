@@ -57,20 +57,101 @@ is sufficient, or the integration exposes a better API alternative. Do not turn
 successful execution into automatic approval for a scheduler/allocator framework,
 general libplacebo support, new formats or further streaming optimization.
 
-## Status
+## Implementation and acceptance — 2026-09-14
 
-The adapter and 36-frame control/two-slot workload are implemented. The first
-llvmpipe acceptance passes all output comparisons exactly, including 1,145,952
-intermediate/final bytes in each 36-frame mode. Both modes submit 183 operations;
-the control makes 183 waits, the two-slot run made zero explicit waits and 219
-polls. Two frames and eleven operations were outstanding at the high-water mark.
-Allocations stabilized after warmup, with seven textures, four mutable pass banks
-and 156,208 staging payload bytes at peak. Native allocation padding is not measured.
-The first Radeon acceptance also matched exactly, with six explicit waits versus
-the control's 183. Additional checks now exercise forced pending polling, transient
-poll failure, rejected submission, queued specialization replacement, and failed
-active-bank reuse with callback lifetime release but no valid output. Test wrappers
-are linked only into `backend-tests`, never the normal consumer. Pass dependencies
-include prior reads as well as writes for ordered reuse of shared images.
-Final paired-driver acceptance of this hardening is in progress.
-Public runtime remains ABI 10; no runtime code or public header change.
+Complete. Contract committed at `1e257c9` before asynchronous results; implementation
+`bcbe72b`, lifetime hardening `c6fd4f3`. Public runtime remains ABI 10, with no runtime
+code or public header change. New begin/end/collect helpers are consumer glue only.
+The [runner](../integrations/libplacebo/run-consumer.sh) now executes the original
+nine-frame acceptance plus the 36-frame synchronous and two-slot modes.
+
+All intermediate/final comparisons are exact on llvmpipe and physical RX 5700 XT /
+RADV: **1,145,952 bytes, zero differences**, per 36-frame mode per driver. The
+original nine-frame control also retains its exact 286,488-byte comparison. Both
+streaming modes execute 36 compute passes, 36 raster passes, 39 uploads (including
+three LUTs), 72 downloads and 72 callbacks. No tolerance changed.
+
+| Final acceptance | Submissions | Explicit waits | Polls | Peak uncollected frames |
+|---|---:|---:|---:|---:|
+| llvmpipe synchronous | 183 | 183 | 0 | 0 |
+| llvmpipe two-slot | 183 | 0 | 219 | 2 |
+| RADV synchronous | 183 | 183 | 0 | 0 |
+| RADV two-slot | 183 | 1 | 221 | 2 |
+
+Wait counts depend on when the GPU finishes; an earlier RADV run made six waits.
+The gate is <=one explicit wait per frame and **zero waits while recording normal
+frame operations**, not a fixed number or a speedup. Polls are zero-timeout queries;
+driver calls still have overhead. No timing comparison or physical GPU overlap is
+claimed. Two frames are demonstrably submitted before either is collected; completed
+but uncollected receipts still reserve their banks until explicitly observed.
+
+Both modes intentionally use the same two texture sets and two banks per pass,
+isolating wait policy rather than minimizing the synchronous control's memory.
+Allocations stop after both slots warm up. Peak resources: seven textures (six
+frame images plus one LUT), four mutable pass banks (eight-slot image/sampler heaps,
+with 64 vertex bytes per raster bank), 156,208 texture payload bytes and 156,208
+staging payload bytes. There are 21 staging allocations across the three extents;
+the two-slot peak is eleven operation receipts, bounded by two fixed arrays of
+eight. Last completed pass receipts can also survive separately, at most one per
+bank. These are adapter ownership/payload counters, not total resident GPU memory;
+driver allocation padding, caches and transient pipeline compilation are unmeasured.
+All live texture/pass/bank/staging/frame ownership counters return to zero.
+
+Both drivers pass eight frame-transfer checks: premature slot reuse, operation
+capacity, partial transfer, repeated staging, destruction while queued, forced
+pending poll, transient poll error and rejected submission. Three pass checks cover
+synchronous specialization A/B/A, queued specialization replacement with two slots,
+and premature bank reuse. The failed active-bank test delivers its callback only
+after draining and leaves poisoned output invalid. Child destruction also drains
+partially open frames. A pending poll preserves callbacks and ownership; forced
+blocking collection makes exactly one wait. Test-only link wrappers never fabricate
+GPU success or retirement and are absent from normal consumer executables.
+The existing three rejection tests and live-child abort test also pass.
+
+Ordinary Rust tests (27), Clippy, formatting, shell syntax and 745 C/Rust ABI layout
+checks pass; all 20 runtime GPU tests pass on both drivers. Validation and
+synchronization validation reported no errors. This is local acceptance, not a
+remote-CI or arbitrary device-loss recovery claim.
+
+Local artifacts under ignored `target/libplacebo-integration/`:
+
+| Driver | Reference | Sync | Two-slot |
+|---|---|---|---|
+| llvmpipe | `reference.L8UYcRCG` | `stream-sync.pnh6ri3T` | `stream-two.YP2yw07l` |
+| RADV | `reference.TNJs572g` | `stream-sync.XTekEZOT` | `stream-two.Y5PhhTbj` |
+
+Full logs: `inflight-final-lvp.log`, `inflight-final-radv.log`; backend checks:
+`backend-checks.Qq5JnGnm.log`, `backend-checks.fV8zcogn.log`. Runtime logs are
+`target/inflight-{lvp,radv}-tests.log`. Reproduction uses the documented runner
+and pinned sources, not retained local artifacts.
+
+## Decision and remaining friction
+
+**Retain consumer-managed bounded scheduling.** The workload removes per-operation
+host waits without changing the runtime's memory, submission or ownership model.
+The consumer knows frame identity, output-buffer lifetime, reuse policy and the
+acceptable number of outstanding frames; those are not facts the runtime should
+guess. Prepared executables can remain shared while mutable banks are duplicated.
+The same public completion and heap-exclusion rules suffice for ordinary and
+queued specialization changes.
+
+The comparison does expose costs. Waiting for a frame's last timeline receipt
+does not retire earlier receipts: collection explicitly observes every operation.
+This adds bookkeeping and polls. A future single-batch-per-frame adapter could
+reduce those costs with the existing API, but that was deliberately excluded
+from this comparison. A runtime-owned collector might also hide the bookkeeping,
+but would introduce collection triggers, shutdown/error policy and ownership
+machinery without a demonstrated benefit for this bounded workload. Do not add it
+on this evidence alone.
+
+Exclusive heap mutation means distinct outstanding uses need distinct banks. That
+is explicit memory expenditure, not a discovered need for concurrent heap writes.
+The fixed two-slot/eight-operation policy, conservative drain-on-child-destruction,
+full-image transfers and non-reentrant callbacks remain adapter restrictions. A
+general backend would need broader scheduling/lifetime decisions; this checkpoint
+does not establish it. No better runtime API alternative emerged strongly enough
+to select a change; that conclusion remains revisable with different consumers.
+
+The selected experiment is finished. Submission aggregation, a general scheduler,
+additional formats, optional numeric profiles and portability are separate future
+scope decisions, not automatic follow-ups.
