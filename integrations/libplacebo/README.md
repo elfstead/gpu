@@ -71,7 +71,10 @@ Both expect one ICD and the existing build environment. `run-diagnostics.sh`
 tests the isolated optimized-compiler variant; that variant currently fails the
 SPIR-V validation gate and is intentionally not adopted. Command omissions via
 `OGPU_DIAGNOSTIC_OMIT` are diagnostic-only and must not be called workload throughput.
-See the brief for boundaries, raw results and the recommended allocator correction.
+See the brief for boundaries, raw results and the completed allocator correction
+(`1f41d7e`). Placement controls reproduce the pre-fix diagnosis only when built
+at its recorded source revision; on current source both choices already prefer
+non-host-visible local images where available. Use `run-perf.sh` for current results.
 
 For the separate [performance comparison](../../docs/libplacebo-performance.md),
 `ogpu_pl_frame_begin_batched` uses the same slots/banks but records one batch until

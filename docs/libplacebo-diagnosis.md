@@ -1,6 +1,6 @@
 # Resident libplacebo performance diagnosis
 
-**Diagnosis complete; runtime correction in validation.** Image memory-type
+**Diagnosis and runtime correction complete (`1f41d7e`).** Image memory-type
 preference is the dominant cause of the observed near-4K resident gap. Changing
 only that choice in a diagnostic loader control raises grouped OGPU from 104 to
 563 fps versus a fresh native control at 592 fps. See results and next action below.
@@ -160,11 +160,11 @@ devices). Preserve requirements masks and existing exclusion rules; do not hardc
 Radeon type indices, add a new public image-placement flag, or change HOST buffer
 policy. The public image model already leaves backing-memory selection to the runtime.
 
-That correction needs selector unit tests covering separate/visible-only/unified
+At the diagnostic checkpoint, that correction still needed selector unit tests covering separate/visible-only/unified
 memory and eligibility masks, both-driver image/consumer regressions, and the
 ordinary native performance comparison repeated without the diagnostic loader.
-It is the recommended next implementation task, **not yet applied** by this
-diagnostic turn. ABI 10, runtime source and ordinary adapter behavior are unchanged.
+It was not applied by the diagnostic turn. The subsequent implementation and
+acceptance are recorded below; ABI 10 and ordinary adapter behavior remain unchanged.
 
 Diagnostic baseline correctness passes on RADV and llvmpipe at every extent/mode.
 All 64 timestamp samples are observed in each measured pass/frame. The ordinary
@@ -187,4 +187,46 @@ heap placement, shader compilation, synchronization and ABI 10 are unchanged.
 Three selector tests cover ordering, masks, unified/visible-only memory and
 excluded types. Both-driver integration/GPU validation and the full original
 54-run hardware comparison are the acceptance gates, using the real Vulkan
-loader with no diagnostic variants. Their results are pending below.
+loader with no diagnostic variants. All gates now pass at `1f41d7e`:
+
+- All three engines match native exactly at all three extents and both modes on
+  RADV and llvmpipe, with synchronization validation and adapter failure tests.
+- Original nine-frame and both 36-frame consumer controls pass on both drivers;
+  all 20 runtime GPU tests pass per driver.
+- 30 ordinary Rust tests, 745 ABI layout checks, clippy and formatting pass.
+  UMA compatibility is covered by synthetic selector tests and llvmpipe execution,
+  not a new physical integrated-GPU test.
+- All 54 ordinary hardware timing processes finish; no loader shim, command
+  omissions, extra timestamps or compiler variant participates.
+
+Fresh RX 5700 XT / RADV Mesa 26.2.1 results, median completed fps of three runs:
+
+| Input / mode | Native Vulkan | OGPU per operation | OGPU per frame |
+|---|---:|---:|---:|
+| 64x33 resident | 13,782 | 2,700 | 5,588 |
+| 64x33 transfers | 9,465 | 1,804 | 5,395 |
+| 960x540 resident | 2,385 | 1,831 | 1,944 |
+| 960x540 transfers | 301.67 | 274.94 | 294.47 |
+| 1920x1080 resident | 593.17 | 554.75 | 563.54 |
+| 1920x1080 transfers | 45.63 | 63.97 | 65.22 |
+
+Output extents remain 129x67, 1921x1081 and 3841x2161. Near-4K resident ranges
+are 591.79–593.37 fps native and 560.70–564.42 grouped OGPU: the remaining
+throughput gap is about 5.0%. Near-1080p resident remains about 18.5% below native;
+the small workload retains a substantial host-overhead gap and wider variation.
+This correction does not establish universal parity.
+
+The near-4K transfer result favors OGPU under these declared adapter/staging
+policies, but is not isolated GPU/API throughput. Collection includes host copies,
+native readback/allocation policies differ, and wait counts depend on work completed
+while the CPU copies prior outputs. No new explanation for that mode is claimed.
+Use the [full raw observations and ranges](results/libplacebo-image-fix-radv-2026-09-15.txt),
+not comparisons between different days' unmatched runs. GPU clocks/load are still
+uncontrolled; shader generation and native/OGPU paths are not identical binaries.
+
+Retain the corrected runtime preference and consumer-side frame batching. This
+completes the selected fix; no public API change, generalized allocator, memory
+migration policy or further performance target is selected. The remaining gaps
+are documented implementation work, not grounds for another automatic API experiment.
+Local full results: `target/libplacebo-integration/perf.2QfNDRcd` (RADV timing and
+validation), `perf.uOANsWmu` (llvmpipe validation), and `image-fix-*` regression logs.

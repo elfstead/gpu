@@ -1,6 +1,11 @@
 # libplacebo performance comparison
 
-Selected 2026-09-14. Next bounded decision: does the measured cost come from
+Selected 2026-09-14; original results below are pre-fix history. The
+[2026-09-15 allocator correction and fresh full comparison](libplacebo-diagnosis.md#runtime-correction--2026-09-15)
+are complete: near-4K resident grouped OGPU now measures 563.54 fps versus native
+593.17 fps using the ordinary runtime, with no diagnostic loader.
+
+Original bounded decision: does the measured cost come from
 consumer submission policy, or expose a better runtime API alternative? Compare
 pinned libplacebo's native Vulkan backend, OGPU per-operation submissions, and
 OGPU one-batch-per-frame submission using the existing public API (ABI 10).
@@ -155,7 +160,7 @@ Native allocation totals remain unmeasured; process RSS must not substitute for 
 Follow-up: the [resident-gap diagnosis](libplacebo-diagnosis.md) is complete.
 An isolated image-memory placement correction recovers most of the gap; these
 original results remain unchanged historical measurements. The runtime correction
-is the next recommended implementation task, not an API redesign.
+is now implemented and validated at `1f41d7e`, without API redesign.
 
 Retain consumer-side one-frame batching as the preferred measured policy for this
 bounded workload, with per-operation submission preserved as a diagnostic control.

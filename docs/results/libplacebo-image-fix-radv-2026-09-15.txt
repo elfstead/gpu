@@ -1,0 +1,230 @@
+Corrected runtime image-memory preference — 2026-09-15 Europe/Amsterdam
+Source: 1f41d7e; ABI 10. Real Vulkan loader, no diagnostic variants.
+Pinned libplacebo: 3330a515d62139259c26239014f286e233bd3a5c, unmodified.
+See ../libplacebo-diagnosis.md and ../libplacebo-performance.md for method and limits.
+54 fresh processes: 3 extents x 2 modes x 3 engines x 3 rotated repetitions.
+8 warmup / 64 measured frames. Timing validation disabled after both-driver correctness.
+FILE labels are in filename order, not execution order.
+
+ENVIRONMENT
+Mon Sep 14 23:41:29 UTC 2026
+1f41d7e4fce5ce306d0028f5f82121026bda301d
+Linux homelander 6.18.47 #1-NixOS SMP PREEMPT_DYNAMIC Thu Aug 27 12:32:55 UTC 2026 x86_64 GNU/Linux
+clang version 21.1.8
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /nix/store/603yaax3l2jmc0hfv6g3hgjr1qk5jfxk-clang-21.1.8/bin
+shaderc v2026.1
+spirv-tools v1.4.357.0
+glslang v16.4.0
+
+Target: SPIR-V 1.0
+ICD=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+OGPU_LOADER=/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1
+5fd8c68c25391a48b32129becae2f53fab20988bbbd68752a58870410031b74b  /home/elf/dev/gpu/target/libplacebo-integration/perf
+38ab03e70c663b8eb5d7a1f8c6a90bdf49c36441d257490a9ac9e283feb44854  /home/elf/dev/gpu/target/release/libogpu.so
+463ce0dcb2f75f0e4da8868e0734c7e4d6bfae409e8d6e786769482110d74dce  /home/elf/dev/gpu/target/libplacebo-upstream/src/libplacebo.so
+timing: VK_INSTANCE_LAYERS unset; VK_LAYER_VALIDATE_SYNC unset; VK_LOADER_LAYERS_DISABLE=*
+
+SUMMARY
+1920x1080 resident batched 563.543 560.698 564.416 0.118078 0.104599 1.665116 3.475606 3.741673 40.733107 480.819887 0.149693 233144.000000
+1920x1080 resident operations 554.747 553.271 554.787 0.182659 0.172582 1.619694 3.529585 3.838092 40.278411 484.617700 0.257788 232912.000000
+1920x1080 resident vulkan 593.169 591.791 593.367 0.108328 0.105378 1.577024 3.305378 3.456386 36.820336 409.652592 0.123983 254600.000000
+1920x1080 transfers batched 65.218 64.958 65.630 0.709770 0.705470 14.623125 30.170631 30.467428 40.056554 487.648118 15.036323 233336.000000
+1920x1080 transfers operations 63.972 63.946 64.159 0.931626 0.924709 14.697979 30.743056 31.157052 39.372490 501.224505 15.330467 214348.000000
+1920x1080 transfers vulkan 45.631 45.459 45.682 0.755234 0.746257 21.159383 43.844846 44.063493 36.443959 412.283125 14.965499 254932.000000
+64x33 resident batched 5587.696 5317.553 5978.758 0.102974 0.096822 0.071451 0.341687 0.396836 21.111191 231.128762 0.139935 99204.000000
+64x33 resident operations 2699.836 2648.026 4099.601 0.154025 0.143071 0.219432 0.722553 0.794192 21.322818 249.028255 0.214879 99408.000000
+64x33 resident vulkan 13782.368 12452.091 14224.068 0.070333 0.063713 0.002139 0.136629 0.173708 17.255349 131.177141 0.066450 101108.000000
+64x33 transfers batched 5395.392 5068.390 5491.458 0.103474 0.091476 0.088406 0.359647 0.426286 21.336259 244.127312 0.133014 98824.000000
+64x33 transfers operations 1804.191 1403.026 1988.026 0.346473 0.341817 0.185244 1.025840 1.376586 20.723515 232.013912 0.497940 99304.000000
+64x33 transfers vulkan 9464.833 9389.104 9717.267 0.100220 0.092759 0.005279 0.208148 0.235957 16.767174 133.400849 0.098142 101136.000000
+960x540 resident batched 1943.615 1935.268 1962.055 0.105430 0.096600 0.405319 1.017680 1.056470 25.307479 319.949912 0.145939 105288.000000
+960x540 resident operations 1830.930 1806.889 1848.510 0.155964 0.149410 0.387310 1.075869 1.168129 25.936043 321.110359 0.226413 105540.000000
+960x540 resident vulkan 2384.723 2377.118 2390.911 0.079949 0.077321 0.339257 0.820521 0.919581 21.723935 203.547954 0.092839 139684.000000
+960x540 transfers batched 294.465 294.108 295.255 0.278179 0.272390 3.112347 6.732694 6.956421 26.474238 326.216529 1.554820 104820.000000
+960x540 transfers operations 274.941 274.725 275.036 0.507054 0.490540 3.132750 7.226459 7.507606 25.706835 320.026090 1.955478 105384.000000
+960x540 transfers vulkan 301.667 301.586 301.809 0.277550 0.273766 3.035604 6.564245 6.812283 21.437978 206.784381 1.539096 139196.000000
+input mode engine fps_median fps_min fps_max submit_wall_ms submit_cpu_ms collect_wall_ms latency_p50_ms latency_p95_ms setup_ms warm_ms process_cpu_ms peak_rss_kib
+
+INDIVIDUAL RESULTS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-0-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=42.065274 warm_ms=511.138287 elapsed_ms=113.567275 fps=563.542622 latency_mean_ms=3.519923 latency_p50_ms=3.475606 latency_p95_ms=3.741673 submit_wall_ms=0.103851 submit_cpu_ms=0.102559 collect_wall_ms=1.670457 process_cpu_ms=0.147141 submissions=64 waits=64 polls=64 texture_payload=149395216 ogpu_staging_payload=149396240 peak_rss_kib=214192 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-0-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=40.278411 warm_ms=484.617700 elapsed_ms=115.675584 fps=553.271466 latency_mean_ms=3.582815 latency_p50_ms=3.538904 latency_p95_ms=4.043210 submit_wall_ms=0.170949 submit_cpu_ms=0.168741 collect_wall_ms=1.636275 process_cpu_ms=0.255568 submissions=128 waits=64 polls=192 texture_payload=149395216 ogpu_staging_payload=149396240 peak_rss_kib=233688 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-0-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=36.820336 warm_ms=415.611683 elapsed_ms=108.146369 fps=591.790558 latency_mean_ms=3.351714 latency_p50_ms=3.303087 latency_p95_ms=3.456386 submit_wall_ms=0.108328 submit_cpu_ms=0.104779 collect_wall_ms=1.581282 process_cpu_ms=0.123983 submissions=-1 waits=-1 polls=-1 texture_payload=149395216 ogpu_staging_payload=0 peak_rss_kib=254600 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-1-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=39.671097 warm_ms=480.819887 elapsed_ms=114.143470 fps=560.697866 latency_mean_ms=3.535621 latency_p50_ms=3.477066 latency_p95_ms=4.042970 submit_wall_ms=0.118078 submit_cpu_ms=0.104599 collect_wall_ms=1.665116 process_cpu_ms=0.158711 submissions=64 waits=64 polls=64 texture_payload=149395216 ogpu_staging_payload=149396240 peak_rss_kib=233144 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-1-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=41.737106 warm_ms=506.905089 elapsed_ms=115.367837 fps=554.747334 latency_mean_ms=3.573342 latency_p50_ms=3.529585 latency_p95_ms=3.659044 submit_wall_ms=0.182659 submit_cpu_ms=0.172582 collect_wall_ms=1.619694 process_cpu_ms=0.257788 submissions=128 waits=64 polls=192 texture_payload=149395216 ogpu_staging_payload=149396240 peak_rss_kib=213436 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-1-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=37.575658 warm_ms=409.652592 elapsed_ms=107.895101 fps=593.168730 latency_mean_ms=3.341482 latency_p50_ms=3.305378 latency_p95_ms=3.436996 submit_wall_ms=0.109846 submit_cpu_ms=0.108356 collect_wall_ms=1.575849 process_cpu_ms=0.128352 submissions=-1 waits=-1 polls=-1 texture_payload=149395216 ogpu_staging_payload=0 peak_rss_kib=254936 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-2-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=40.733107 warm_ms=478.896806 elapsed_ms=113.391607 fps=564.415672 latency_mean_ms=3.514111 latency_p50_ms=3.466506 latency_p95_ms=3.694383 submit_wall_ms=0.119506 submit_cpu_ms=0.104948 collect_wall_ms=1.652051 process_cpu_ms=0.149693 submissions=64 waits=64 polls=64 texture_payload=149395216 ogpu_staging_payload=149396240 peak_rss_kib=233472 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-2-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=40.160783 warm_ms=482.175153 elapsed_ms=115.359557 fps=554.787152 latency_mean_ms=3.572881 latency_p50_ms=3.515855 latency_p95_ms=3.838092 submit_wall_ms=0.183434 submit_cpu_ms=0.179423 collect_wall_ms=1.618856 process_cpu_ms=0.265454 submissions=128 waits=64 polls=192 texture_payload=149395216 ogpu_staging_payload=149396240 peak_rss_kib=232912 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-resident-2-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=1920x1080 output=3841x2161 frames=64 setup_ms=35.900064 warm_ms=409.630642 elapsed_ms=107.859122 fps=593.366595 latency_mean_ms=3.342020 latency_p50_ms=3.306597 latency_p95_ms=3.459606 submit_wall_ms=0.108103 submit_cpu_ms=0.105378 collect_wall_ms=1.577024 process_cpu_ms=0.123773 submissions=-1 waits=-1 polls=-1 texture_payload=149395216 ogpu_staging_payload=0 peak_rss_kib=254572 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-0-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=40.119072 warm_ms=485.282393 elapsed_ms=985.258729 fps=64.957557 latency_mean_ms=30.554074 latency_p50_ms=30.246150 latency_p95_ms=31.021102 submit_wall_ms=0.746014 submit_cpu_ms=0.740187 collect_wall_ms=14.648383 process_cpu_ms=15.084957 submissions=64 waits=1 polls=64 texture_payload=149395216 ogpu_staging_payload=157690640 peak_rss_kib=233672 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-0-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=39.372490 warm_ms=506.964578 elapsed_ms=1000.437539 fps=63.972010 latency_mean_ms=31.024895 latency_p50_ms=30.743056 latency_p95_ms=31.157052 submit_wall_ms=0.930691 submit_cpu_ms=0.924594 collect_wall_ms=14.700940 process_cpu_ms=15.330467 submissions=320 waits=1 polls=384 texture_payload=149395216 ogpu_staging_payload=157690640 peak_rss_kib=213888 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-0-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=36.693536 warm_ms=414.405625 elapsed_ms=1407.848234 fps=45.459445 latency_mean_ms=43.983207 latency_p50_ms=43.968814 latency_p95_ms=44.184282 submit_wall_ms=0.782682 submit_cpu_ms=0.777093 collect_wall_ms=21.214714 process_cpu_ms=15.111146 submissions=-1 waits=-1 polls=-1 texture_payload=149395216 ogpu_staging_payload=0 peak_rss_kib=254920 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-1-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=40.056554 warm_ms=487.648118 elapsed_ms=981.317088 fps=65.218471 latency_mean_ms=30.431740 latency_p50_ms=30.170631 latency_p95_ms=30.467428 submit_wall_ms=0.709770 submit_cpu_ms=0.705470 collect_wall_ms=14.623125 process_cpu_ms=15.036323 submissions=64 waits=1 polls=64 texture_payload=149395216 ogpu_staging_payload=157690640 peak_rss_kib=233336 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-1-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=37.989693 warm_ms=501.224505 elapsed_ms=1000.848334 fps=63.945753 latency_mean_ms=31.038581 latency_p50_ms=30.809215 latency_p95_ms=30.994753 submit_wall_ms=0.940090 submit_cpu_ms=0.933890 collect_wall_ms=14.697979 process_cpu_ms=15.336462 submissions=320 waits=1 polls=384 texture_payload=149395216 ogpu_staging_payload=157690640 peak_rss_kib=214348 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-1-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=35.892935 warm_ms=412.283125 elapsed_ms=1402.546384 fps=45.631289 latency_mean_ms=43.816375 latency_p50_ms=43.844846 latency_p95_ms=43.923695 submit_wall_ms=0.755234 submit_cpu_ms=0.746257 collect_wall_ms=21.159383 process_cpu_ms=14.947806 submissions=-1 waits=-1 polls=-1 texture_payload=149395216 ogpu_staging_payload=0 peak_rss_kib=255228 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-2-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=39.908785 warm_ms=492.176173 elapsed_ms=975.165308 fps=65.629898 latency_mean_ms=30.240583 latency_p50_ms=29.992793 latency_p95_ms=30.209790 submit_wall_ms=0.670755 submit_cpu_ms=0.666874 collect_wall_ms=14.566003 process_cpu_ms=14.910257 submissions=64 waits=1 polls=64 texture_payload=149395216 ogpu_staging_payload=157690640 peak_rss_kib=214388 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-2-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=41.428549 warm_ms=482.720187 elapsed_ms=997.523396 fps=64.158896 latency_mean_ms=30.933491 latency_p50_ms=30.682026 latency_p95_ms=31.225501 submit_wall_ms=0.931626 submit_cpu_ms=0.924709 collect_wall_ms=14.654499 process_cpu_ms=15.286003 submissions=320 waits=1 polls=384 texture_payload=149395216 ogpu_staging_payload=157690640 peak_rss_kib=233296 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-1920-1080-transfers-2-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=1920x1080 output=3841x2161 frames=64 setup_ms=36.443959 warm_ms=407.988278 elapsed_ms=1400.999238 fps=45.681681 latency_mean_ms=43.768800 latency_p50_ms=43.745956 latency_p95_ms=44.063493 submit_wall_ms=0.748503 submit_cpu_ms=0.742562 collect_wall_ms=21.141923 process_cpu_ms=14.965499 submissions=-1 waits=-1 polls=-1 texture_payload=149395216 ogpu_staging_payload=0 peak_rss_kib=254932 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-0-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=64x33 output=129x67 frames=64 setup_ms=20.728955 warm_ms=238.004023 elapsed_ms=12.035611 fps=5317.553037 latency_mean_ms=0.371589 latency_p50_ms=0.353637 latency_p95_ms=0.396836 submit_wall_ms=0.102974 submit_cpu_ms=0.100285 collect_wall_ms=0.084904 process_cpu_ms=0.139935 submissions=64 waits=58 polls=64 texture_payload=155184 ogpu_staging_payload=156208 peak_rss_kib=99424 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-0-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=64x33 output=129x67 frames=64 setup_ms=21.322818 warm_ms=233.739526 elapsed_ms=23.705145 fps=2699.835837 latency_mean_ms=0.732683 latency_p50_ms=0.722553 latency_p95_ms=0.794192 submit_wall_ms=0.150816 submit_cpu_ms=0.147989 collect_wall_ms=0.219432 process_cpu_ms=0.215059 submissions=128 waits=63 polls=192 texture_payload=155184 ogpu_staging_payload=156208 peak_rss_kib=99576 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-0-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=64x33 output=129x67 frames=64 setup_ms=17.255349 warm_ms=127.833714 elapsed_ms=4.499416 fps=14224.068210 latency_mean_ms=0.139236 latency_p50_ms=0.135479 latency_p95_ms=0.158698 submit_wall_ms=0.068130 submit_cpu_ms=0.061971 collect_wall_ms=0.002087 process_cpu_ms=0.064693 submissions=-1 waits=-1 polls=-1 texture_payload=155184 ogpu_staging_payload=0 peak_rss_kib=101108 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-1-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=64x33 output=129x67 frames=64 setup_ms=21.515427 warm_ms=230.345609 elapsed_ms=10.704564 fps=5978.758233 latency_mean_ms=0.330363 latency_p50_ms=0.331797 latency_p95_ms=0.367616 submit_wall_ms=0.101815 submit_cpu_ms=0.084627 collect_wall_ms=0.065221 process_cpu_ms=0.121063 submissions=64 waits=58 polls=64 texture_payload=155184 ogpu_staging_payload=156208 peak_rss_kib=98932 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-1-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=64x33 output=129x67 frames=64 setup_ms=20.678435 warm_ms=251.853016 elapsed_ms=24.168951 fps=2648.025569 latency_mean_ms=0.747071 latency_p50_ms=0.738913 latency_p95_ms=1.091379 submit_wall_ms=0.154025 submit_cpu_ms=0.143071 collect_wall_ms=0.223437 process_cpu_ms=0.214879 submissions=128 waits=59 polls=192 texture_payload=155184 ogpu_staging_payload=156208 peak_rss_kib=99160 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-1-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=64x33 output=129x67 frames=64 setup_ms=17.401718 warm_ms=134.893474 elapsed_ms=4.643614 fps=13782.368487 latency_mean_ms=0.143621 latency_p50_ms=0.136629 latency_p95_ms=0.173708 submit_wall_ms=0.070333 submit_cpu_ms=0.063713 collect_wall_ms=0.002139 process_cpu_ms=0.066450 submissions=-1 waits=-1 polls=-1 texture_payload=155184 ogpu_staging_payload=0 peak_rss_kib=101104 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-2-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=64x33 output=129x67 frames=64 setup_ms=21.111191 warm_ms=231.128762 elapsed_ms=11.453736 fps=5587.696419 latency_mean_ms=0.353007 latency_p50_ms=0.341687 latency_p95_ms=0.431846 submit_wall_ms=0.107295 submit_cpu_ms=0.096822 collect_wall_ms=0.071451 process_cpu_ms=0.144901 submissions=64 waits=44 polls=64 texture_payload=155184 ogpu_staging_payload=156208 peak_rss_kib=99204 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-2-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=64x33 output=129x67 frames=64 setup_ms=21.514527 warm_ms=249.028255 elapsed_ms=15.611275 fps=4099.601101 latency_mean_ms=0.483683 latency_p50_ms=0.478215 latency_p95_ms=0.532425 submit_wall_ms=0.173233 submit_cpu_ms=0.141105 collect_wall_ms=0.070452 process_cpu_ms=0.199605 submissions=128 waits=0 polls=192 texture_payload=155184 ogpu_staging_payload=156208 peak_rss_kib=99408 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-resident-2-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=64x33 output=129x67 frames=64 setup_ms=17.039921 warm_ms=131.177141 elapsed_ms=5.139699 fps=12452.091109 latency_mean_ms=0.159084 latency_p50_ms=0.156369 latency_p95_ms=0.232588 submit_wall_ms=0.077204 submit_cpu_ms=0.074846 collect_wall_ms=0.002995 process_cpu_ms=0.078212 submissions=-1 waits=-1 polls=-1 texture_payload=155184 ogpu_staging_payload=0 peak_rss_kib=101356 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-0-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=64x33 output=129x67 frames=64 setup_ms=21.336259 warm_ms=226.541967 elapsed_ms=12.627285 fps=5068.389601 latency_mean_ms=0.390121 latency_p50_ms=0.367787 latency_p95_ms=0.440916 submit_wall_ms=0.108665 submit_cpu_ms=0.091476 collect_wall_ms=0.088406 process_cpu_ms=0.137293 submissions=64 waits=59 polls=64 texture_payload=155184 ogpu_staging_payload=164656 peak_rss_kib=98788 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-0-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=64x33 output=129x67 frames=64 setup_ms=20.723515 warm_ms=232.013912 elapsed_ms=35.472969 fps=1804.190682 latency_mean_ms=1.073253 latency_p50_ms=1.025840 latency_p95_ms=1.376586 submit_wall_ms=0.368836 submit_cpu_ms=0.355409 collect_wall_ms=0.185244 process_cpu_ms=0.538256 submissions=320 waits=0 polls=384 texture_payload=155184 ogpu_staging_payload=164656 peak_rss_kib=99304 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-0-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=64x33 output=129x67 frames=64 setup_ms=17.370098 warm_ms=127.710495 elapsed_ms=6.816412 fps=9389.103702 latency_mean_ms=0.211011 latency_p50_ms=0.208827 latency_p95_ms=0.236567 submit_wall_ms=0.101190 submit_cpu_ms=0.092759 collect_wall_ms=0.005220 process_cpu_ms=0.098142 submissions=-1 waits=-1 polls=-1 texture_payload=155184 ogpu_staging_payload=0 peak_rss_kib=101176 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-1-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=64x33 output=129x67 frames=64 setup_ms=20.901293 warm_ms=244.127312 elapsed_ms=11.654465 fps=5491.457585 latency_mean_ms=0.360581 latency_p50_ms=0.347427 latency_p95_ms=0.420206 submit_wall_ms=0.103474 submit_cpu_ms=0.093135 collect_wall_ms=0.078462 process_cpu_ms=0.133014 submissions=64 waits=55 polls=64 texture_payload=155184 ogpu_staging_payload=164656 peak_rss_kib=99508 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-1-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=64x33 output=129x67 frames=64 setup_ms=21.836613 warm_ms=229.547477 elapsed_ms=32.192741 fps=1988.025815 latency_mean_ms=0.996212 latency_p50_ms=0.960780 latency_p95_ms=1.289147 submit_wall_ms=0.346473 submit_cpu_ms=0.341817 collect_wall_ms=0.156360 process_cpu_ms=0.497940 submissions=320 waits=0 polls=384 texture_payload=155184 ogpu_staging_payload=164656 peak_rss_kib=99492 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-1-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=64x33 output=129x67 frames=64 setup_ms=16.767174 warm_ms=136.572408 elapsed_ms=6.586214 fps=9717.267086 latency_mean_ms=0.203725 latency_p50_ms=0.201578 latency_p95_ms=0.235957 submit_wall_ms=0.097537 submit_cpu_ms=0.096249 collect_wall_ms=0.005279 process_cpu_ms=0.101897 submissions=-1 waits=-1 polls=-1 texture_payload=155184 ogpu_staging_payload=0 peak_rss_kib=101136 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-2-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=64x33 output=129x67 frames=64 setup_ms=24.700765 warm_ms=251.544859 elapsed_ms=11.861973 fps=5395.392465 latency_mean_ms=0.366624 latency_p50_ms=0.359647 latency_p95_ms=0.426286 submit_wall_ms=0.092353 submit_cpu_ms=0.090621 collect_wall_ms=0.092824 process_cpu_ms=0.129963 submissions=64 waits=62 polls=64 texture_payload=155184 ogpu_staging_payload=164656 peak_rss_kib=98824 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-2-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=64x33 output=129x67 frames=64 setup_ms=20.435067 warm_ms=236.711456 elapsed_ms=45.615698 fps=1403.025775 latency_mean_ms=1.410415 latency_p50_ms=1.461165 latency_p95_ms=1.594284 submit_wall_ms=0.341464 submit_cpu_ms=0.334403 collect_wall_ms=0.371096 process_cpu_ms=0.490840 submissions=320 waits=53 polls=384 texture_payload=155184 ogpu_staging_payload=164656 peak_rss_kib=99164 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-64-33-transfers-2-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=64x33 output=129x67 frames=64 setup_ms=16.646075 warm_ms=133.400849 elapsed_ms=6.761873 fps=9464.833181 latency_mean_ms=0.209291 latency_p50_ms=0.208148 latency_p95_ms=0.224638 submit_wall_ms=0.100220 submit_cpu_ms=0.092401 collect_wall_ms=0.005286 process_cpu_ms=0.097730 submissions=-1 waits=-1 polls=-1 texture_payload=155184 ogpu_staging_payload=0 peak_rss_kib=100404 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-0-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=26.323279 warm_ms=322.469096 elapsed_ms=32.928334 fps=1943.614882 latency_mean_ms=1.019269 latency_p50_ms=1.017810 latency_p95_ms=1.042729 submit_wall_ms=0.108981 submit_cpu_ms=0.096600 collect_wall_ms=0.405319 process_cpu_ms=0.145939 submissions=64 waits=63 polls=64 texture_payload=37372816 ogpu_staging_payload=37373840 peak_rss_kib=105172 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-0-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=25.977643 warm_ms=322.703284 elapsed_ms=34.954914 fps=1830.929982 latency_mean_ms=1.080918 latency_p50_ms=1.075869 latency_p95_ms=1.168129 submit_wall_ms=0.160641 submit_cpu_ms=0.149410 collect_wall_ms=0.385258 process_cpu_ms=0.222593 submissions=128 waits=64 polls=192 texture_payload=37372816 ogpu_staging_payload=37373840 peak_rss_kib=105540 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-0-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=20.794544 warm_ms=205.532865 elapsed_ms=26.923353 fps=2377.118475 latency_mean_ms=0.832893 latency_p50_ms=0.822112 latency_p95_ms=0.926121 submit_wall_ms=0.085275 submit_cpu_ms=0.080727 collect_wall_ms=0.335265 process_cpu_ms=0.096983 submissions=-1 waits=-1 polls=-1 texture_payload=37372816 ogpu_staging_payload=0 peak_rss_kib=139752 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-1-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=25.043172 warm_ms=318.133799 elapsed_ms=32.618867 fps=1962.054658 latency_mean_ms=1.008874 latency_p50_ms=1.010150 latency_p95_ms=1.056470 submit_wall_ms=0.105430 submit_cpu_ms=0.093900 collect_wall_ms=0.404027 process_cpu_ms=0.134984 submissions=64 waits=64 polls=64 texture_payload=37372816 ogpu_staging_payload=37373840 peak_rss_kib=105392 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-1-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=25.936043 warm_ms=296.903010 elapsed_ms=35.419989 fps=1806.889325 latency_mean_ms=1.095128 latency_p50_ms=1.076109 latency_p95_ms=1.187398 submit_wall_ms=0.155964 submit_cpu_ms=0.150615 collect_wall_ms=0.397279 process_cpu_ms=0.229447 submissions=128 waits=63 polls=192 texture_payload=37372816 ogpu_staging_payload=37373840 peak_rss_kib=117960 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-1-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=22.171170 warm_ms=203.547954 elapsed_ms=26.837495 fps=2384.723316 latency_mean_ms=0.830652 latency_p50_ms=0.819692 latency_p95_ms=0.919581 submit_wall_ms=0.079949 submit_cpu_ms=0.077321 collect_wall_ms=0.339257 process_cpu_ms=0.092839 submissions=-1 waits=-1 polls=-1 texture_payload=37372816 ogpu_staging_payload=0 peak_rss_kib=139684 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-2-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=25.307479 warm_ms=319.949912 elapsed_ms=33.070352 fps=1935.268178 latency_mean_ms=1.023658 latency_p50_ms=1.017680 latency_p95_ms=1.141189 submit_wall_ms=0.102486 submit_cpu_ms=0.098823 collect_wall_ms=0.414048 process_cpu_ms=0.149137 submissions=64 waits=62 polls=64 texture_payload=37372816 ogpu_staging_payload=37373840 peak_rss_kib=105288 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-2-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=25.452048 warm_ms=321.110359 elapsed_ms=34.622478 fps=1848.510092 latency_mean_ms=1.071246 latency_p50_ms=1.071430 latency_p95_ms=1.137849 submit_wall_ms=0.153494 submit_cpu_ms=0.148657 collect_wall_ms=0.387310 process_cpu_ms=0.226413 submissions=128 waits=63 polls=192 texture_payload=37372816 ogpu_staging_payload=37373840 peak_rss_kib=105488 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-resident-2-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=resident input=960x540 output=1921x1081 frames=64 setup_ms=21.723935 warm_ms=200.975870 elapsed_ms=26.768034 fps=2390.911490 latency_mean_ms=0.828421 latency_p50_ms=0.820521 latency_p95_ms=0.898851 submit_wall_ms=0.077092 submit_cpu_ms=0.075114 collect_wall_ms=0.341052 process_cpu_ms=0.089920 submissions=-1 waits=-1 polls=-1 texture_payload=37372816 ogpu_staging_payload=0 peak_rss_kib=139568 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-0-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=26.760376 warm_ms=326.216529 elapsed_ms=217.607125 fps=294.108017 latency_mean_ms=6.743827 latency_p50_ms=6.750293 latency_p95_ms=6.956421 submit_wall_ms=0.287535 submit_cpu_ms=0.279837 collect_wall_ms=3.112347 process_cpu_ms=1.537554 submissions=64 waits=64 polls=64 texture_payload=37372816 ogpu_staging_payload=39447440 peak_rss_kib=104548 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-0-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=25.573206 warm_ms=302.673063 elapsed_ms=232.777185 fps=274.941034 latency_mean_ms=7.212462 latency_p50_ms=7.245219 latency_p95_ms=7.508176 submit_wall_ms=0.514670 submit_cpu_ms=0.504632 collect_wall_ms=3.122263 process_cpu_ms=1.955478 submissions=320 waits=64 polls=384 texture_payload=37372816 ogpu_staging_payload=39447440 peak_rss_kib=105384 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-0-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=20.628286 warm_ms=203.331767 elapsed_ms=212.211418 fps=301.586034 latency_mean_ms=6.577619 latency_p50_ms=6.564245 latency_p95_ms=6.799103 submit_wall_ms=0.271789 submit_cpu_ms=0.268054 collect_wall_ms=3.043848 process_cpu_ms=1.522128 submissions=-1 waits=-1 polls=-1 texture_payload=37372816 ogpu_staging_payload=0 peak_rss_kib=139628 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-1-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=26.474238 warm_ms=311.997680 elapsed_ms=216.761894 fps=295.254848 latency_mean_ms=6.720335 latency_p50_ms=6.731153 latency_p95_ms=6.976321 submit_wall_ms=0.278179 submit_cpu_ms=0.272390 collect_wall_ms=3.108500 process_cpu_ms=1.624684 submissions=64 waits=64 polls=64 texture_payload=37372816 ogpu_staging_payload=39447440 peak_rss_kib=104820 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-1-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=27.300480 warm_ms=320.026090 elapsed_ms=232.696625 fps=275.036219 latency_mean_ms=7.207592 latency_p50_ms=7.216209 latency_p95_ms=7.463996 submit_wall_ms=0.501932 submit_cpu_ms=0.490540 collect_wall_ms=3.133759 process_cpu_ms=1.883341 submissions=320 waits=64 polls=384 texture_payload=37372816 ogpu_staging_payload=39447440 peak_rss_kib=105292 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-1-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=21.437978 warm_ms=206.784381 elapsed_ms=212.054630 fps=301.809020 latency_mean_ms=6.571846 latency_p50_ms=6.546855 latency_p95_ms=6.812283 submit_wall_ms=0.277550 submit_cpu_ms=0.273766 collect_wall_ms=3.035604 process_cpu_ms=1.539096 submissions=-1 waits=-1 polls=-1 texture_payload=37372816 ogpu_staging_payload=0 peak_rss_kib=139196 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-2-batched.log
+device engine=batched name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=batched mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=25.024662 warm_ms=326.268478 elapsed_ms=217.343218 fps=294.465135 latency_mean_ms=6.735127 latency_p50_ms=6.732694 latency_p95_ms=6.953751 submit_wall_ms=0.270344 submit_cpu_ms=0.262605 collect_wall_ms=3.125426 process_cpu_ms=1.554820 submissions=64 waits=64 polls=64 texture_payload=37372816 ogpu_staging_payload=39447440 peak_rss_kib=104908 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-2-operations.log
+device engine=operations name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 api=1.4.354
+PERF engine=operations mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=25.706835 warm_ms=324.357618 elapsed_ms=232.960552 fps=274.724624 latency_mean_ms=7.212771 latency_p50_ms=7.226459 latency_p95_ms=7.507606 submit_wall_ms=0.507054 submit_cpu_ms=0.489419 collect_wall_ms=3.132750 process_cpu_ms=1.972140 submissions=320 waits=64 polls=384 texture_payload=37372816 ogpu_staging_payload=39447440 peak_rss_kib=105572 PASS
+FILE=target/libplacebo-integration/perf.2QfNDRcd/run-960-540-transfers-2-vulkan.log
+device engine=vulkan name=AMD Radeon RX 5700 XT (RADV NAVI10) vendor=4098 device=29471 driver=109060097 api=4211042
+driver name=radv info=Mesa 26.2.1
+PERF engine=vulkan mode=transfers input=960x540 output=1921x1081 frames=64 setup_ms=23.057732 warm_ms=208.663893 elapsed_ms=212.154499 fps=301.666947 latency_mean_ms=6.575235 latency_p50_ms=6.564335 latency_p95_ms=6.904952 submit_wall_ms=0.283956 submit_cpu_ms=0.277923 collect_wall_ms=3.030761 process_cpu_ms=1.579398 submissions=-1 waits=-1 polls=-1 texture_payload=37372816 ogpu_staging_payload=0 peak_rss_kib=138992 PASS

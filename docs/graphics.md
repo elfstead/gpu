@@ -47,6 +47,13 @@ or CPU mapping. Format/dimension/usage support is checked; color use is limited 
 2D RGBA8. Image-heap slots supply sampled/storage descriptors for the actual format
 and dimension. The older RGBA8-only target constructor and type were removed.
 
+Backing-memory selection is runtime policy: prefer eligible device-local memory,
+then non-host-visible memory within that preference. Host-visible local memory
+remains usable on unified-memory devices or when the image's requirements exclude
+device-only types. Images remain unmapped. This avoids unintentionally preferring
+a small visible VRAM heap; it does not add memory-budget tracking or allocation
+retry/migration. See the [measured allocator correction](libplacebo-diagnosis.md#runtime-correction--2026-09-15).
+
 `ogpu_image_check_support` checks the exact description on the created device
 without allocating image/memory/descriptor resources. It shares creation's preflight,
 including linear-filter support for sampled images; success does not guarantee

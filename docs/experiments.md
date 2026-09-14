@@ -10,16 +10,26 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [image-memory preference correction](libplacebo-diagnosis.md#runtime-correction--2026-09-15)
+is implemented at `1f41d7e`, following the diagnosis below. Images prefer eligible
+non-host-visible local memory, while visible local/UMA and existing eligibility
+rules remain supported. Three selector tests, 30 ordinary tests, 745 ABI checks,
+both-driver consumer comparisons and all 20 GPU tests per driver pass. All 54
+fresh ordinary timing runs complete without diagnostic controls: near-4K resident
+median fps is 593.17 native / 554.75 per-operation / 563.54 grouped OGPU; transfers
+45.63 / 63.97 / 65.22 under the declared differing staging/readback policies.
+Retain the fix; ABI 10, shaders, barriers and buffer policy are unchanged.
+
 The [resident performance diagnosis](libplacebo-diagnosis.md) identifies image
-memory-type preference as the dominant near-4K cost on RX 5700 XT. Runtime images
-select a 256 MiB host-visible local heap; a validated diagnostic loader control
+memory-type preference as the dominant near-4K cost on RX 5700 XT. Pre-fix images
+selected a 256 MiB host-visible local heap; a validated diagnostic loader control
 selects eligible non-host-visible local memory, changing nothing else. Three rotated
 ordinary-harness runs improve median grouped throughput from 104.04 to 562.93 fps,
 against a fresh native 591.60 fps. Separate device timestamps fall from 9.497 to
 1.672 ms per frame. All sizes/modes still match native exactly under validation.
 Residency/eviction is an unmeasured possible mechanism, not an established fact.
-Recommend correcting allocator preference with UMA/eligibility tests; no runtime
-fix or API change is included in this diagnostic checkpoint. An isolated shaderc
+The runtime correction above follows this diagnostic checkpoint, which itself
+included no runtime fix or API change. An isolated shaderc
 optimization variant failed SPIR-V validation and was not timed or adopted.
 
 The [controlled libplacebo performance comparison](libplacebo-performance.md) is
