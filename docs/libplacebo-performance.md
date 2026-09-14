@@ -12,6 +12,11 @@ program, and not isolated runtime overhead when generated shaders differ.
 Use the same upstream EWA Lanczos compute and nearest raster processing, RGBA8,
 two source/intermediate/output texture sets and at most two uncollected frames.
 Native Vulkan uses a single queue policy (async compute/transfer disabled).
+Native source uploads use two explicitly allocated, reusable host-visible
+`pl_buf` staging buffers, one per frame slot, through public libplacebo APIs.
+OGPU uses its adapter's existing two-slot host staging. Both copy input bytes
+inside transfer-mode timing; native downloads retain the pointer/callback path.
+This compares these declared staging policies, not native's default upload heuristic.
 No external shader cache is loaded. Compile/allocate/first-use costs belong to
 setup/warmup, not steady-state throughput. Inputs are pre-generated outside timing.
 
@@ -52,6 +57,16 @@ attribution limits and retain/change recommendation. No allocator, scheduler,
 kernel tuning, new formats or new runtime API is authorized by this milestone.
 
 ## Status
+
+Pre-timing method amendment: the initial Radeon validation gate stopped on a
+native upload READ_AFTER_WRITE hazard at 960x540. In pinned libplacebo
+`src/vulkan/gpu_buf.c`, the unmapped-buffer write path barriers with COPY stage
+then issues `vkCmdUpdateBuffer` (CLEAR stage), followed by an image-copy read.
+The original pointer-upload heuristic selected this path on Radeon, but not
+llvmpipe. The failed run is preserved locally in
+`target/libplacebo-integration/perf.D5NKRBRe`; no timing was accepted.
+Explicit HOST staging above avoids that path without patching upstream or
+disabling validation. Both-driver validation must be repeated before timing.
 
 Benchmark and consumer-side aggregation implemented. All three engines match
 exactly on llvmpipe at all three extents and both data-flow modes. Existing

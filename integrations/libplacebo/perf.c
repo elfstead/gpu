@@ -33,6 +33,7 @@ static double process_cpu(void) { return clock_ms(CLOCK_PROCESS_CPUTIME_ID); }
 static void completed(void *ptr) { atomic_fetch_add((atomic_uint *)ptr, 1); }
 struct slot {
     pl_tex src, mid, dst;
+    pl_buf upload;
     uint8_t *middle, *output;
     atomic_uint callbacks;
     unsigned frame, pattern;
@@ -41,6 +42,18 @@ struct slot {
 };
 struct reference { uint8_t *middle[3], *output[3]; bool seen[3]; size_t differences; unsigned maximum; };
 struct measurement { double submit_wall, submit_cpu, collect_wall, latency[4096]; };
+static void upload(pl_gpu gpu, struct slot *s, uint8_t *data, size_t size)
+{
+    if (s->upload) {
+        // Explicit reusable host staging avoids the native pointer-upload
+        // heuristic's device-local vkCmdUpdateBuffer path. Slot collection
+        // precedes reuse; this copy remains inside transfer-mode timing.
+        pl_buf_write(gpu, s->upload, 0, data, size);
+        CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=s->src, .buf=s->upload)));
+    } else {
+        CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=s->src, .ptr=data, .no_import=true)));
+    }
+}
 static void check_bytes(const uint8_t *a, const uint8_t *b, size_t size, struct reference *ref)
 {
     for (size_t i = 0; i < size; ++i) {
@@ -137,7 +150,13 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
         s->dst = pl_tex_create(gpu, pl_tex_params(.w=ow, .h=oh, .format=rgba, .renderable=true, .host_readable=true));
         s->middle = malloc(out_size); s->output = malloc(out_size);
         CHECK(s->src && s->mid && s->dst && s->middle && s->output);
-        CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=s->src, .ptr=input[i], .no_import=true)));
+        if (engine == NATIVE) {
+            CHECK(gpu->limits.buf_transfer);
+            s->upload = pl_buf_create(gpu, pl_buf_params(.size=in_size,
+                .host_writable=true, .memory_type=PL_BUF_MEM_HOST));
+            CHECK(s->upload);
+        }
+        upload(gpu, s, input[i], in_size);
     }
     pl_gpu_finish(gpu);
     pl_dispatch dp = pl_dispatch_create(log, gpu); CHECK(dp);
@@ -158,7 +177,7 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
             s->start = now(); double begin_cpu = cpu();
             if (engine == OPERATIONS) CHECK(ogpu_pl_frame_begin(gpu, index));
             if (engine == BATCHED) CHECK(ogpu_pl_frame_begin_batched(gpu, index));
-            if (transfers) CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=s->src, .ptr=input[s->pattern], .no_import=true)));
+            if (transfers) upload(gpu, s, input[s->pattern], in_size);
             process_frame(gpu, dp, &lut, s->src, s->mid, s->dst, ow, oh);
             if (s->readback) {
                 CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=s->mid, .ptr=s->middle, .no_import=true,
@@ -212,6 +231,7 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
     pl_dispatch_destroy(&dp); pl_shader_obj_destroy(&lut);
     for (unsigned i = 0; i < 2; ++i) {
         pl_tex_destroy(gpu,&slots[i].src); pl_tex_destroy(gpu,&slots[i].mid); pl_tex_destroy(gpu,&slots[i].dst);
+        pl_buf_destroy(gpu,&slots[i].upload);
         free(slots[i].middle); free(slots[i].output);
     }
     for (unsigned i = 0; i < 3; ++i) free(input[i]);

@@ -64,6 +64,9 @@ unsubmitted batch before clearing banks/delivering failure callbacks. The normal
 `ogpu_pl_frame_begin` retains per-operation submission as the diagnostic control.
 Both use unchanged runtime ABI 10.
 
+Native source uploads use explicit reusable host-visible staging through the
+public libplacebo buffer API; this is not its default pointer-upload heuristic.
+
 ```sh
 # One driver at a time; validate every extent/mode, then measure without layers.
 bash integrations/libplacebo/run-perf.sh target/libplacebo-source
