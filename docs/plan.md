@@ -68,8 +68,9 @@ contracts. No runtime API change was selected. The subsequent
 complete: all three policies match exactly on both drivers; 54 hardware timing
 runs retain consumer-side frame batching through the existing API. Batching lowers
 host cost but leaves a substantial large resident-image gap against native Vulkan.
-The recommended next task is a separately scoped diagnosis of that gap, separating
-device work from collection and comparing shader/image/barrier paths. It is not
+The selected next task is a [separately scoped diagnosis](libplacebo-diagnosis.md)
+of that gap, separating device work from collection and comparing
+compiler/shader/image/barrier paths. It is not
 an automatic API expansion or an established flaw in the API model.
 Optional arithmetic, portability and a general libplacebo backend remain separate
 future decisions.
