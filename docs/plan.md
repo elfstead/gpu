@@ -63,9 +63,14 @@ device-selection API or FP16 arithmetic. The subsequent D4 milestone,
 36-frame synchronous and two-slot runs match the reference exactly on both drivers;
 two-slot execution removes per-operation waits with bounded resources. Retain
 consumer-managed frame/reuse policy and existing runtime ownership/completion
-contracts. No runtime API change was selected. The next selected milestone is a
-[controlled native-Vulkan performance comparison](libplacebo-performance.md),
-including consumer-side one-batch-per-frame aggregation through the existing API.
+contracts. No runtime API change was selected. The subsequent
+[controlled native-Vulkan performance comparison](libplacebo-performance.md) is
+complete: all three policies match exactly on both drivers; 54 hardware timing
+runs retain consumer-side frame batching through the existing API. Batching lowers
+host cost but leaves a substantial large resident-image gap against native Vulkan.
+The recommended next task is a separately scoped diagnosis of that gap, separating
+device work from collection and comparing shader/image/barrier paths. It is not
+an automatic API expansion or an established flaw in the API model.
 Optional arithmetic, portability and a general libplacebo backend remain separate
 future decisions.
 Runner provisioning remains a separate authorization/deployment task

@@ -10,6 +10,19 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [controlled libplacebo performance comparison](libplacebo-performance.md) is
+complete at `90dd3d7`, without runtime changes. Native Vulkan, OGPU per-operation
+and consumer-side per-frame batches produce byte-identical outputs on RADV and
+llvmpipe at three extents in resident/transfer modes, with synchronization validation.
+A native upload-path hazard was caught before timing; an explicit public-API HOST
+staging policy was documented and committed, with upstream unchanged. Fifty-four
+validation-disabled RX 5700 XT runs show batching lowers host recording cost but
+does not close the resident-image gap: near-4K median throughput is 553 fps native,
+98.9 per-operation, 99.1 per-frame; with transfers it is 45.10/41.83/41.91 fps.
+Retain frame grouping in consumer policy, not a new runtime scheduler. The cause
+of the remaining gap is unproven; measurements include different implementation
+paths and are not isolated API overhead. Raw results and limits are in the brief.
+
 The [two-frame libplacebo checkpoint](libplacebo-inflight.md) retains ABI 10 with
 no runtime changes. Per driver, synchronous and two-slot 36-frame runs each match
 1,145,952 reference bytes exactly. Both submit 183 operations; final two-slot runs
