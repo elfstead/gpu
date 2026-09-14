@@ -24,3 +24,34 @@ Stop when the dominant gap has an evidenced cause and a retain/change decision,
 or report precisely what attribution remains unresolved. A validated compiler
 policy correction is within this implementation investigation; a public API
 alternative or larger optimization program needs a separate decision.
+
+## Compiler-policy gate
+
+The isolated `OGPU_DIAGNOSTIC_OPTIMIZE` build fails the first llvmpipe backend
+specialization test: validation reports an undefined forward-referenced SPIR-V
+ID, and compute pipeline creation fails. No optimized timing is accepted.
+Reproducer: build with `build-diagnostics.sh`, then run
+`backend-tests-optimized specialization-update` under validation. Full local
+failure: `target/libplacebo-integration/diagnosis.xUcPLUQX/backend-checks.log`.
+The ordinary compiler passes; this does not establish optimization's performance
+impact or justify accepting invalid shaders. Upstream sources remain unchanged.
+
+## Baseline profiling instrumentation
+
+`run-profile.sh` builds a separate `perf-diagnostic` executable. It captures the
+upstream GLSL, constants, device limits and dispatch grids before measurement.
+A pinned backend-table hook (as in the existing reference capture) substitutes
+separate native libplacebo compute/raster timers. Link wrappers opt OGPU batches
+into the existing public timing API and retrieve durations after terminal
+observation, before receipt destruction. Fixed bookkeeping holds at most 32
+receipts; no runtime or normal adapter change is needed.
+
+Run all extent/mode correctness gates on both drivers, then three rotated
+near-4K resident runs each for native/per-operation/grouped execution with
+diagnostic timing off and on. Require all 64 measured timer samples per relevant
+pass/frame. Native already uses an internal timer in ordinary dispatch; "off"
+means no extra diagnostic timing, not removal of that upstream behavior.
+The wrapper clocks and query retrieval can perturb timing. Whole-batch and native
+pass durations include their respective dependencies and need not be additive
+or exactly equivalent boundaries. Host poll/wait/destroy/query totals include
+measured-phase cleanup; they are not a disjoint CPU/GPU decomposition.

@@ -18,3 +18,17 @@ for unit in perf backend-tests; do
         -L"$build/src" -Wl,-rpath,"$build/src" -lplacebo $(pkg-config --libs shaderc) \
         -o "$out/$unit-optimized"
 done
+source_dir=$(cd -- "$1" && pwd)
+for unit in perf diagnostics; do
+    "${CC:-cc}" -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter \
+        -DOGPU_DIAGNOSTICS -I"$source_dir/src" -I"$build/src" \
+        -I"$source_dir/src/include" -I"$build/src/include" -I"$repo/include" \
+        $(pkg-config --cflags vulkan) \
+        -c "$repo/integrations/libplacebo/$unit.c" -o "$out/$unit-diagnostic.o"
+done
+"${CXX:-c++}" "$out/backend.o" "$out/perf-diagnostic.o" "$out/diagnostics-diagnostic.o" "$out/compiler.o" \
+    -Wl,--wrap=ogpu_batch_create -Wl,--wrap=ogpu_batch_submit \
+    -Wl,--wrap=ogpu_completion_poll -Wl,--wrap=ogpu_completion_wait -Wl,--wrap=ogpu_completion_destroy \
+    -L"$repo/target/release" -Wl,-rpath,"$repo/target/release" -logpu \
+    -L"$build/src" -Wl,-rpath,"$build/src" -lplacebo $(pkg-config --libs shaderc) \
+    -o "$out/perf-diagnostic"
