@@ -9,6 +9,11 @@ cached limits remain; enabled capabilities and exact image support are now query
 Startup validates the bounded format/usage combinations before publishing its format
 table. Image creation still checks the actual extent; this is not a general format catalog.
 
+The next [HDR experiment](../../docs/libplacebo-hdr.md) currently has a native-only
+capture runner, `run-hdr-reference.sh`. It deliberately exits 2 on the recorded
+exact intermediate-alpha gate failure. HDR is not supported by this adapter yet;
+the existing SDR acceptance below is unchanged.
+
 Each pass keeps its last completed receipt while rewriting heaps/vertex data for
 the next frame. ABI 9 retires submission resources during wait, not receipt destruction.
 The consumer checks 12 such reuses; the A/B/A specialization check verifies two.

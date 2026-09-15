@@ -54,7 +54,7 @@ checks pass; all 20 GPU tests and libplacebo acceptance pass on both available
 drivers. GGML's full four-variant matrix passes on Radeon, with a representative
 DEVICE/F16 six-case cross-check on llvmpipe. Installed tools, source/data caches
 and driver caches were reused explicitly; this is not clean-machine provisioning.
-No runtime/build-script changes were needed. No new implementation is selected.
+No runtime/build-script changes were needed to complete that checkpoint.
 
 ## Decisions blocking the candidate
 
@@ -81,6 +81,13 @@ then the smallest coherent extension for floating-point resize and tone mapping
 to SDR. It declares input representation, tone/gamut policy, numerical gates and
 scope exclusions before results. This uses the existing Radeon and llvmpipe;
 additional physical hardware is not a prerequisite.
+
+Native capture is now complete on both drivers, but its original exact
+intermediate-alpha gate fails on upstream rounding. It also exposes a renderable
+RGBA16F target requirement and a 208-byte raster parameter block that the current
+adapter cannot accept. No runtime/API change yet. The brief records the evidence
+and proposed format/root-packing/alpha-gate decisions; resolve these before the
+OGPU implementation, rather than reporting the native capture as HDR acceptance.
 
 ## After the checkpoint
 

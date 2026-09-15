@@ -1,0 +1,32 @@
+Native HDR capture, 2026-09-15
+Upstream libplacebo: 3330a515d62139259c26239014f286e233bd3a5c (unmodified)
+Runtime remains ABI 10; native harness only. Same environment as docs/checkpoint.md.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1.
+First run: lvp_icd.x86_64.json. Second run: radeon_icd.x86_64.json.
+Both run-hdr-reference.sh invocations exit 2 (declared exact-alpha gate failed).
+No logged validation errors; NOT a passing HDR acceptance or OGPU comparison.
+
+HDR input=16x16 output=33x33 frame=0 above_one=2475 peak=4.51953 rounded_alpha=120 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=16x16 output=33x33 frame=1 above_one=2475 peak=4.51953 rounded_alpha=120 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=16x16 output=33x33 frame=2 above_one=2475 peak=4.51953 rounded_alpha=120 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=31x17 output=63x35 frame=0 above_one=3824 peak=4.84766 rounded_alpha=221 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=31x17 output=63x35 frame=1 above_one=3824 peak=4.84766 rounded_alpha=221 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=31x17 output=63x35 frame=2 above_one=3824 peak=4.84766 rounded_alpha=221 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=64x33 output=129x67 frame=0 above_one=15146 peak=4.83203 rounded_alpha=930 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=64x33 output=129x67 frame=1 above_one=15146 peak=4.83203 rounded_alpha=930 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=64x33 output=129x67 frame=2 above_one=15146 peak=4.83203 rounded_alpha=930 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR-reference creates=6 compute=9 raster=9 exact_alpha_failures=3813 GATE FAILED (native only)
+Native HDR capture: /home/elf/dev/gpu/target/libplacebo-integration/hdr-native.mY8AVHIS
+Native capture complete; acceptance gate failed. See docs/libplacebo-hdr.md.
+HDR input=16x16 output=33x33 frame=0 above_one=2475 peak=4.51953 rounded_alpha=151 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=16x16 output=33x33 frame=1 above_one=2475 peak=4.51953 rounded_alpha=151 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=16x16 output=33x33 frame=2 above_one=2475 peak=4.51953 rounded_alpha=151 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=31x17 output=63x35 frame=0 above_one=3824 peak=4.84766 rounded_alpha=303 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=31x17 output=63x35 frame=1 above_one=3824 peak=4.84766 rounded_alpha=303 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=31x17 output=63x35 frame=2 above_one=3824 peak=4.84766 rounded_alpha=303 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=64x33 output=129x67 frame=0 above_one=15146 peak=4.83203 rounded_alpha=1287 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=64x33 output=129x67 frame=1 above_one=15146 peak=4.83203 rounded_alpha=1287 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR input=64x33 output=129x67 frame=2 above_one=15146 peak=4.83203 rounded_alpha=1287 max_alpha_error=0.000488281 gates=FAIL(exact intermediate alpha)
+HDR-reference creates=6 compute=9 raster=9 exact_alpha_failures=5223 GATE FAILED (native only)
+Native HDR capture: /home/elf/dev/gpu/target/libplacebo-integration/hdr-native.aXq7G1r0
+Native capture complete; acceptance gate failed. See docs/libplacebo-hdr.md.
