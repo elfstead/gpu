@@ -1,0 +1,142 @@
+Bounded HDR acceptance and regressions, 2026-09-15
+Source: this receipt's containing commit, following ABI 11 runtime checkpoint a12323b.
+Pinned libplacebo 3330a515d62139259c26239014f286e233bd3a5c, unmodified.
+Pinned GGML 7840aaba1989c6deeefede1d77d5aaf8f52b947e, unmodified.
+Toolchain/dependencies: same installed environment as docs/checkpoint.md.
+Current workspace rebuilds, not a second fresh-checkout or clean-machine audit.
+RX 5700 XT (RADV NAVI10) and llvmpipe selected separately with VK_DRIVER_FILES.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1.
+No validation errors reported. No new performance measurement or additional GPU.
+
+Commands and results:
+cargo test --locked: 30 ordinary tests PASS.
+cargo xtask gpu-tests: 21 tests PASS on each driver, including extended four-format
+1D/2D HOST/DEVICE transfer and ownership checks, RGBA16F HDR raster/guard checks.
+cargo xtask abi: 745 layout values PASS.
+cargo xtask mock: empty enumeration, cleanup/error and missing loader cases PASS.
+cargo clippy --locked --workspace --all-targets -- -D warnings: PASS.
+cargo fmt --all -- --check; bash -n for HDR/check-backend scripts: PASS.
+hdr.frag.spv: spirv-val Vulkan 1.4 and byte-identical glslc rebuild PASS.
+
+On EACH driver:
+bash integrations/libplacebo/run-hdr.sh /tmp/ogpu-libplacebo-consumer
+  Nine native/OGPU A/B/A cases; exact intermediate and final matches;
+  cmp of all 18 upstream push-data captures PASS, selected clipping policy preserved.
+  Alpha bound abs(alpha-1)<=2^-10 was accepted before OGPU comparison.
+  RGB <=2/255 and intermediate abs+relative bounds were not relaxed.
+  Lowering tests include HDR root offsets/body, rejection and storage formats.
+bash integrations/libplacebo/run-consumer.sh /tmp/ogpu-libplacebo-consumer
+  Existing nine-frame and two 36-frame SDR cases, adapter failure/cleanup checks,
+  new genuine RGBA16 UNORM transfer/linear sampling test PASS.
+bash integrations/libplacebo/run-perf.sh /tmp/ogpu-libplacebo-consumer verify
+  Three policies x three extents x two modes PASS, no timing run.
+bash integrations/ggml/run.sh /tmp/ogpu-ggml-consumer 0 device f16
+  Six full-dataset direct/scheduled cases, mixed matrix and lifecycle/rejection PASS.
+  This regression repeats DEVICE/F16 only, not the earlier full four-variant matrix.
+
+Selected unedited execution lines follow; complete logs/captures are ignored target artifacts.
+
+target/hdr-consumer-radv.log:HDR-reference creates=6 compute=9 raster=9 alpha_failures=0 PASS (native)
+target/hdr-consumer-radv.log:HDR-ogpu live=0 receipt_reuses=12 PASS
+target/hdr-consumer-radv.log:HDR-reference creates=6 compute=9 raster=9 alpha_failures=0 PASS (ogpu)
+target/hdr-consumer-radv.log:HDR-compare=16x16 frame=0 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=16x16 frame=1 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=16x16 frame=2 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=31x17 frame=0 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=31x17 frame=1 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=31x17 frame=2 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=64x33 frame=0 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=64x33 frame=1 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-compare=64x33 frame=2 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-radv.log:HDR-comparison cases=9 PASS
+target/hdr-consumer-radv.log:HDR native: /home/elf/dev/gpu/target/libplacebo-integration/hdr-native.K0BEH9l6
+target/hdr-consumer-radv.log:HDR OGPU: /home/elf/dev/gpu/target/libplacebo-integration/hdr-ogpu.jxM9MHro
+target/hdr-consumer-lvp.log:HDR-reference creates=6 compute=9 raster=9 alpha_failures=0 PASS (native)
+target/hdr-consumer-lvp.log:HDR-ogpu live=0 receipt_reuses=12 PASS
+target/hdr-consumer-lvp.log:HDR-reference creates=6 compute=9 raster=9 alpha_failures=0 PASS (ogpu)
+target/hdr-consumer-lvp.log:HDR-compare=16x16 frame=0 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=16x16 frame=1 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=16x16 frame=2 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=31x17 frame=0 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=31x17 frame=1 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=31x17 frame=2 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=64x33 frame=0 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=64x33 frame=1 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-compare=64x33 frame=2 max_intermediate=0 max_rgb=0 PASS
+target/hdr-consumer-lvp.log:HDR-comparison cases=9 PASS
+target/hdr-consumer-lvp.log:HDR native: /home/elf/dev/gpu/target/libplacebo-integration/hdr-native.UneARpVH
+target/hdr-consumer-lvp.log:HDR OGPU: /home/elf/dev/gpu/target/libplacebo-integration/hdr-ogpu.nC4D6bbD
+target/hdr-sdr-radv.log:adapter unorm16 sampling/transfer live=0 PASS
+target/hdr-sdr-radv.log:Adapter rejection/cleanup and live-child checks PASS: /home/elf/dev/gpu/target/libplacebo-integration/backend-checks.wg5wPQUa.log
+target/hdr-sdr-radv.log:upstream-reference creates=6 compute=9 raster=9 PASS (not OGPU execution)
+target/hdr-sdr-radv.log:ogpu-consumer creates=6 compute=9 raster=9 uploads=12 downloads=18 live=0 PASS
+target/hdr-sdr-radv.log:OGPU/reference intermediate+final comparison bytes=286488 differing=0 max_byte_delta=0 PASS
+target/hdr-sdr-radv.log:stream-summary mode=sync frames=0 collected=0 peak_inflight=0 submissions=183 waits=183 polls=0 peak_operations=0 callbacks=72 staging_allocs=21 peak_staging_bytes=156208 peak_banks=4 peak_textures=7 peak_texture_bytes=156208 live=0 PASS
+target/hdr-sdr-radv.log:OGPU/reference intermediate+final comparison bytes=1145952 differing=0 max_byte_delta=0 PASS
+target/hdr-sdr-radv.log:stream-summary mode=two frames=36 collected=36 peak_inflight=2 submissions=183 waits=2 polls=221 peak_operations=11 callbacks=72 staging_allocs=21 peak_staging_bytes=156208 peak_banks=4 peak_textures=7 peak_texture_bytes=156208 live=0 PASS
+target/hdr-sdr-radv.log:OGPU/reference intermediate+final comparison bytes=1145952 differing=0 max_byte_delta=0 PASS
+target/hdr-sdr-lvp.log:adapter unorm16 sampling/transfer live=0 PASS
+target/hdr-sdr-lvp.log:Adapter rejection/cleanup and live-child checks PASS: /home/elf/dev/gpu/target/libplacebo-integration/backend-checks.EyZmvN33.log
+target/hdr-sdr-lvp.log:upstream-reference creates=6 compute=9 raster=9 PASS (not OGPU execution)
+target/hdr-sdr-lvp.log:ogpu-consumer creates=6 compute=9 raster=9 uploads=12 downloads=18 live=0 PASS
+target/hdr-sdr-lvp.log:OGPU/reference intermediate+final comparison bytes=286488 differing=0 max_byte_delta=0 PASS
+target/hdr-sdr-lvp.log:stream-summary mode=sync frames=0 collected=0 peak_inflight=0 submissions=183 waits=183 polls=0 peak_operations=0 callbacks=72 staging_allocs=21 peak_staging_bytes=156208 peak_banks=4 peak_textures=7 peak_texture_bytes=156208 live=0 PASS
+target/hdr-sdr-lvp.log:OGPU/reference intermediate+final comparison bytes=1145952 differing=0 max_byte_delta=0 PASS
+target/hdr-sdr-lvp.log:stream-summary mode=two frames=36 collected=36 peak_inflight=2 submissions=183 waits=0 polls=219 peak_operations=11 callbacks=72 staging_allocs=21 peak_staging_bytes=156208 peak_banks=4 peak_textures=7 peak_texture_bytes=156208 live=0 PASS
+target/hdr-sdr-lvp.log:OGPU/reference intermediate+final comparison bytes=1145952 differing=0 max_byte_delta=0 PASS
+target/hdr-perf-radv.log:VERIFY engine=vulkan mode=resident input=64x33 output=129x67 differences=0 max_delta=0 checksum=877603bb4a291db6 PASS
+target/hdr-perf-radv.log:VERIFY engine=operations mode=resident input=64x33 output=129x67 differences=0 max_delta=0 checksum=877603bb4a291db6 PASS
+target/hdr-perf-radv.log:VERIFY engine=batched mode=resident input=64x33 output=129x67 differences=0 max_delta=0 checksum=877603bb4a291db6 PASS
+target/hdr-perf-radv.log:VERIFY engine=vulkan mode=transfers input=64x33 output=129x67 differences=0 max_delta=0 checksum=c939cd3459af40b7 PASS
+target/hdr-perf-radv.log:VERIFY engine=operations mode=transfers input=64x33 output=129x67 differences=0 max_delta=0 checksum=c939cd3459af40b7 PASS
+target/hdr-perf-radv.log:VERIFY engine=batched mode=transfers input=64x33 output=129x67 differences=0 max_delta=0 checksum=c939cd3459af40b7 PASS
+target/hdr-perf-radv.log:VERIFY engine=vulkan mode=resident input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=84b77531be5cf37e PASS
+target/hdr-perf-radv.log:VERIFY engine=operations mode=resident input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=84b77531be5cf37e PASS
+target/hdr-perf-radv.log:VERIFY engine=batched mode=resident input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=84b77531be5cf37e PASS
+target/hdr-perf-radv.log:VERIFY engine=vulkan mode=transfers input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=188067996bb410c1 PASS
+target/hdr-perf-radv.log:VERIFY engine=operations mode=transfers input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=188067996bb410c1 PASS
+target/hdr-perf-radv.log:VERIFY engine=batched mode=transfers input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=188067996bb410c1 PASS
+target/hdr-perf-radv.log:VERIFY engine=vulkan mode=resident input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=1cff154a3fd8da13 PASS
+target/hdr-perf-radv.log:VERIFY engine=operations mode=resident input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=1cff154a3fd8da13 PASS
+target/hdr-perf-radv.log:VERIFY engine=batched mode=resident input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=1cff154a3fd8da13 PASS
+target/hdr-perf-radv.log:VERIFY engine=vulkan mode=transfers input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=82081688fd1e3483 PASS
+target/hdr-perf-radv.log:VERIFY engine=operations mode=transfers input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=82081688fd1e3483 PASS
+target/hdr-perf-radv.log:VERIFY engine=batched mode=transfers input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=82081688fd1e3483 PASS
+target/hdr-perf-radv.log:Verified benchmark: /home/elf/dev/gpu/target/libplacebo-integration/perf.QmfPnEsi
+target/hdr-perf-lvp.log:VERIFY engine=vulkan mode=resident input=64x33 output=129x67 differences=0 max_delta=0 checksum=8a55c25a683857d3 PASS
+target/hdr-perf-lvp.log:VERIFY engine=operations mode=resident input=64x33 output=129x67 differences=0 max_delta=0 checksum=8a55c25a683857d3 PASS
+target/hdr-perf-lvp.log:VERIFY engine=batched mode=resident input=64x33 output=129x67 differences=0 max_delta=0 checksum=8a55c25a683857d3 PASS
+target/hdr-perf-lvp.log:VERIFY engine=vulkan mode=transfers input=64x33 output=129x67 differences=0 max_delta=0 checksum=17d7da61c92dce5c PASS
+target/hdr-perf-lvp.log:VERIFY engine=operations mode=transfers input=64x33 output=129x67 differences=0 max_delta=0 checksum=17d7da61c92dce5c PASS
+target/hdr-perf-lvp.log:VERIFY engine=batched mode=transfers input=64x33 output=129x67 differences=0 max_delta=0 checksum=17d7da61c92dce5c PASS
+target/hdr-perf-lvp.log:VERIFY engine=vulkan mode=resident input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=d5e4c53648e595d6 PASS
+target/hdr-perf-lvp.log:VERIFY engine=operations mode=resident input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=d5e4c53648e595d6 PASS
+target/hdr-perf-lvp.log:VERIFY engine=batched mode=resident input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=d5e4c53648e595d6 PASS
+target/hdr-perf-lvp.log:VERIFY engine=vulkan mode=transfers input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=b3989ad78ac92e90 PASS
+target/hdr-perf-lvp.log:VERIFY engine=operations mode=transfers input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=b3989ad78ac92e90 PASS
+target/hdr-perf-lvp.log:VERIFY engine=batched mode=transfers input=960x540 output=1921x1081 differences=0 max_delta=0 checksum=b3989ad78ac92e90 PASS
+target/hdr-perf-lvp.log:VERIFY engine=vulkan mode=resident input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=7c1eaeec2d278923 PASS
+target/hdr-perf-lvp.log:VERIFY engine=operations mode=resident input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=7c1eaeec2d278923 PASS
+target/hdr-perf-lvp.log:VERIFY engine=batched mode=resident input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=7c1eaeec2d278923 PASS
+target/hdr-perf-lvp.log:VERIFY engine=vulkan mode=transfers input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=c7c5e73b72ee1c74 PASS
+target/hdr-perf-lvp.log:VERIFY engine=operations mode=transfers input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=c7c5e73b72ee1c74 PASS
+target/hdr-perf-lvp.log:VERIFY engine=batched mode=transfers input=1920x1080 output=3841x2161 differences=0 max_delta=0 checksum=c7c5e73b72ee1c74 PASS
+target/hdr-perf-lvp.log:Verified benchmark: /home/elf/dev/gpu/target/libplacebo-integration/perf.Qv1NUzIO
+target/hdr-ggml-radv.log:mixed_matrix k=13 m=11 n=3 alignment=2 repeated=3 max_error=1.31609067e-06 PASS
+target/hdr-ggml-radv.log:mixed_matrix k=1 m=1 n=1 alignment=2 repeated=3 max_error=0 PASS
+target/hdr-ggml-radv.log:batch=1 mode=direct memory=device images=10000 calls=10000 dispatches=50000 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=6272 separate_bytes=6272 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-radv.log:batch=17 mode=direct memory=device images=10000 calls=589 dispatches=2945 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=103552 separate_bytes=103552 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-radv.log:batch=64 mode=direct memory=device images=10000 calls=157 dispatches=785 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=389120 separate_bytes=389120 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-radv.log:batch=1 mode=scheduled memory=device images=10000 calls=10000 dispatches=50000 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=2112 separate_bytes=6272 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-radv.log:batch=17 mode=scheduled memory=device images=10000 calls=589 dispatches=2945 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=34752 separate_bytes=103552 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-radv.log:batch=64 mode=scheduled memory=device images=10000 calls=157 dispatches=785 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=130560 separate_bytes=389120 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-radv.log:Acceptance log: /home/elf/dev/gpu/target/ggml-integration/acceptance.6UKpIT0b.log
+target/hdr-ggml-lvp.log:mixed_matrix k=13 m=11 n=3 alignment=2 repeated=3 max_error=1.31609067e-06 PASS
+target/hdr-ggml-lvp.log:mixed_matrix k=1 m=1 n=1 alignment=2 repeated=3 max_error=0 PASS
+target/hdr-ggml-lvp.log:batch=1 mode=direct memory=device images=10000 calls=10000 dispatches=50000 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=6272 separate_bytes=6272 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-lvp.log:batch=17 mode=direct memory=device images=10000 calls=589 dispatches=2945 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=103552 separate_bytes=103552 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-lvp.log:batch=64 mode=direct memory=device images=10000 calls=157 dispatches=785 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=389120 separate_bytes=389120 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-lvp.log:batch=1 mode=scheduled memory=device images=10000 calls=10000 dispatches=50000 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=2112 separate_bytes=6272 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-lvp.log:batch=17 mode=scheduled memory=device images=10000 calls=589 dispatches=2945 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=34752 separate_bytes=103552 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-lvp.log:batch=64 mode=scheduled memory=device images=10000 calls=157 dispatches=785 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=130560 separate_bytes=389120 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+target/hdr-ggml-lvp.log:Acceptance log: /home/elf/dev/gpu/target/ggml-integration/acceptance.s2I2QD2B.log

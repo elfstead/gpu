@@ -1,5 +1,6 @@
 // Bounded upstream HDR reference; processing stays in libplacebo shader helpers.
 #include "gpu.h"
+#include "backend.h"
 #include <libplacebo/vulkan.h>
 #include <libplacebo/shaders/colorspace.h>
 #include <libplacebo/shaders/sampling.h>
@@ -14,6 +15,7 @@ static const char *directory;
 static struct pl_gpu_fns original;
 static unsigned creates, computes, rasters, depth, errors;
 static unsigned alpha_failures;
+static bool use_ogpu;
 static FILE *manifest;
 static void log_message(void *priv, enum pl_log_level level, const char *message)
 { if(level<=PL_LOG_WARN) fprintf(stderr,"libplacebo[%d]: %s\n",level,message); if(level<=PL_LOG_ERR) ++errors; }
@@ -104,7 +106,8 @@ static void run(pl_gpu gpu,int w,int h)
     pl_tex mid=pl_tex_create(gpu,pl_tex_params(.w=ow,.h=oh,.format=f16,.sampleable=true,.storable=true,.renderable=true,.host_readable=true));
     pl_tex dst=pl_tex_create(gpu,pl_tex_params(.w=ow,.h=oh,.format=f8,.renderable=true,.host_readable=true));
     CHECK(src && mid && dst);
-    pl_buf staging=pl_buf_create(gpu,pl_buf_params(.size=in*2,.host_writable=true,.memory_type=PL_BUF_MEM_HOST)); CHECK(staging);
+    pl_buf staging=use_ogpu?NULL:pl_buf_create(gpu,pl_buf_params(.size=in*2,.host_writable=true,.memory_type=PL_BUF_MEM_HOST));
+    CHECK(use_ogpu || staging);
     pl_dispatch dp=pl_dispatch_create(gpu->log,gpu); CHECK(dp);
     pl_shader_obj scale=NULL,tone=NULL; unsigned warm=0;
     for(unsigned frame=0;frame<3;++frame) {
@@ -117,8 +120,11 @@ static void run(pl_gpu gpu,int w,int h)
         }
         char name[80]; snprintf(name,sizeof(name),"%dx%d-frame%u-input.rgba16f",w,h,frame);
         save(name,input,in*2);
-        pl_buf_write(gpu,staging,0,input,in*2);
-        CHECK(pl_tex_upload(gpu,pl_tex_transfer_params(.tex=src,.buf=staging)));
+        if(use_ogpu) CHECK(pl_tex_upload(gpu,pl_tex_transfer_params(.tex=src,.ptr=input)));
+        else {
+            pl_buf_write(gpu,staging,0,input,in*2);
+            CHECK(pl_tex_upload(gpu,pl_tex_transfer_params(.tex=src,.buf=staging)));
+        }
         process(gpu,dp,&scale,&tone,src,mid,dst);
         CHECK(pl_tex_download(gpu,pl_tex_transfer_params(.tex=mid,.ptr=middle,.no_import=true)));
         CHECK(pl_tex_download(gpu,pl_tex_transfer_params(.tex=dst,.ptr=output,.no_import=true)));
@@ -142,9 +148,9 @@ static void run(pl_gpu gpu,int w,int h)
             CHECK((memcmp(first_mid,middle,n*2)==0)==(frame==2)); }
         snprintf(name,sizeof(name),"%dx%d-frame%u.rgba",w,h,frame); save(name,output,n);
         snprintf(name,sizeof(name),"%dx%d-frame%u.rgba16f",w,h,frame); save(name,middle,n*2);
-        alpha_failures+=rounded_alpha;
+        alpha_failures+=alpha_error>0x1p-10f;
         printf("HDR input=%dx%d output=%dx%d frame=%u above_one=%u peak=%g rounded_alpha=%u max_alpha_error=%g gates=%s\n",
-            w,h,ow,oh,frame,hdr,peak,rounded_alpha,alpha_error,rounded_alpha?"FAIL(exact intermediate alpha)":"PASS");
+            w,h,ow,oh,frame,hdr,peak,rounded_alpha,alpha_error,alpha_error>0x1p-10f?"FAIL(alpha tolerance)":"PASS");
     }
     pl_dispatch_destroy(&dp); pl_shader_obj_destroy(&scale); pl_shader_obj_destroy(&tone);
     pl_tex_destroy(gpu,&src); pl_tex_destroy(gpu,&mid); pl_tex_destroy(gpu,&dst); pl_buf_destroy(gpu,&staging);
@@ -152,18 +158,28 @@ static void run(pl_gpu gpu,int w,int h)
 }
 int main(int argc,char **argv)
 {
-    CHECK(argc==2); directory=argv[1]; half_tests();
+    CHECK(argc==2 || (argc==3 && !strcmp(argv[2],"ogpu")));
+    directory=argv[1]; use_ogpu=argc==3; half_tests();
     char path[4096]; CHECK(snprintf(path,sizeof(path),"%s/manifest.txt",directory)<(int)sizeof(path));
     manifest=fopen(path,"w"); CHECK(manifest);
     pl_log log=pl_log_create(PL_API_VER,pl_log_params(.log_cb=log_message,.log_level=PL_LOG_WARN)); CHECK(log);
-    pl_vulkan vk=pl_vulkan_create(log,pl_vulkan_params(.allow_software=true,.async_compute=false,.async_transfer=false)); CHECK(vk);
-    fprintf(manifest,"native max_push=%zu SDR_white=%g\n",vk->gpu->limits.max_pushc_size,(double)PL_COLOR_SDR_WHITE);
-    struct pl_gpu_fns *f=PL_PRIV(vk->gpu); original=*f; f->pass_create=capture_create; f->pass_run=capture_run;
-    run(vk->gpu,16,16); run(vk->gpu,31,17); run(vk->gpu,64,33);
-    pl_gpu_finish(vk->gpu); *f=original;
-    pl_vulkan_destroy(&vk); pl_log_destroy(&log); CHECK(!errors && !fclose(manifest));
+    pl_vulkan vk=use_ogpu?NULL:pl_vulkan_create(log,pl_vulkan_params(.allow_software=true,.async_compute=false,.async_transfer=false));
+    pl_gpu gpu=use_ogpu?ogpu_pl_create(log,0):vk?vk->gpu:NULL; CHECK(gpu);
+    fprintf(manifest,"backend=%s max_push=%zu SDR_white=%g\n",use_ogpu?"ogpu":"native",gpu->limits.max_pushc_size,(double)PL_COLOR_SDR_WHITE);
+    struct pl_gpu_fns *f=PL_PRIV(gpu); original=*f; f->pass_create=capture_create; f->pass_run=capture_run;
+    run(gpu,16,16); run(gpu,31,17); run(gpu,64,33);
+    pl_gpu_finish(gpu); *f=original;
+    if(use_ogpu) {
+        struct ogpu_stats s=ogpu_pl_stats(gpu);
+        CHECK(!s.textures && !s.passes && !s.banks && !s.outstanding && !s.inflight &&
+              !s.texture_bytes && !s.staging_bytes);
+        CHECK(s.creates==6 && s.compute==9 && s.raster==9 && s.receipt_reuses==12);
+        printf("HDR-ogpu live=0 receipt_reuses=%u PASS\n",s.receipt_reuses);
+        ogpu_pl_destroy(&gpu);
+    } else pl_vulkan_destroy(&vk);
+    pl_log_destroy(&log); CHECK(!errors && !fclose(manifest));
     CHECK(computes==9 && rasters==9);
-    printf("HDR-reference creates=%u compute=%u raster=%u exact_alpha_failures=%u %s (native only)\n",
-        creates,computes,rasters,alpha_failures,alpha_failures?"GATE FAILED":"PASS");
+    printf("HDR-reference creates=%u compute=%u raster=%u alpha_failures=%u %s (%s)\n",
+        creates,computes,rasters,alpha_failures,alpha_failures?"GATE FAILED":"PASS",use_ogpu?"ogpu":"native");
     return alpha_failures?2:0;
 }

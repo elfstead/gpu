@@ -56,6 +56,10 @@ observation retires submission resources independently of the surviving result
 receipt. [16-bit buffer storage](ggml-mixed-precision.md) is enabled without FP16
 arithmetic. Image backing prefers eligible device-only local memory while accepting
 visible local/UMA memory; buffer placement remains explicit.
+The [bounded HDR consumer](libplacebo-hdr.md) adds RGBA16F image/render targets,
+sampled/transfer RGBA16 UNORM, and explicit raster target-format matching.
+Raster parameter packing remains consumer-side; no new public uniform-buffer or
+color-management object is introduced.
 Rebuild callers against matching header/library/shaders. Source revision identifies
 the experimental checkpoint; the [ledger](experiments.md) and
 [historical plan](plan-history.md) preserve the sequence of ABI changes.

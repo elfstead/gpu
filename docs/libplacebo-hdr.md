@@ -25,7 +25,8 @@ a general format catalog or speculative rendering-state API.
 
 - Three inputs (16x16, 31x17, 64x33), odd output extents (2w+1, 2h+1), three A/B/A
   frames each. Preserve high-dynamic-range values in the FP16 intermediate;
-  confirm some components exceed 1, all are finite, and alpha remains 1.
+  confirm some components exceed 1, all are finite, and alpha remains 1 within
+  `2^-10` (the explicitly accepted revision after the native checkpoint below).
 - Native and OGPU intermediate components: absolute difference <=0.005 plus
   relative difference <=0.005*abs(reference), combined as a single error bound.
   Final RGB differs by <=2/255; alpha exactly 255. Repeat A exactly on each backend,
@@ -43,9 +44,9 @@ a general format catalog or speculative rendering-state API.
 
 ## Native checkpoint: captured, acceptance not passed
 
-2026-09-15: native-only capture is complete on RX 5700 XT/RADV and llvmpipe.
-No runtime/API or existing adapter change has been made. The runner intentionally
-returns **2**, because the original exact intermediate-alpha gate fails. See the
+2026-09-15 at `77ca4c5`: native-only capture completed on RX 5700 XT/RADV and llvmpipe.
+At that revision no runtime/API or existing adapter change had been made. The runner
+returned **2**, because the original exact intermediate-alpha gate failed. See the
 [execution receipt](results/libplacebo-hdr-native-2026-09-15.txt).
 
 Both drivers execute nine compute and nine raster passes, with six prepared
@@ -87,9 +88,10 @@ The failed alpha gate is separate: EWA float accumulation followed by binary16
 storage produces 0.99951171875 at some otherwise opaque pixels. Maximum absolute
 alpha error is 0.00048828125 on both drivers. Across all nine frames this affects
 3,813 intermediate pixels on llvmpipe and 5,223 on RADV. Final alpha remains 255.
-The original exact gate is retained in code; this is not silently relabeled PASS.
+The original exact-gate failure is preserved in that commit and receipt. The user
+subsequently accepted a numerical tolerance; the historical result is not relabeled PASS.
 
-## Accepted revisions and implementation progress
+## Completed implementation and retain/revise decision
 
 The user accepted these revisions. ABI 11 now adds `OGPU_FORMAT_RGBA16_FLOAT`
 and a target-format argument to raster creation. Images retain their exact support
@@ -102,28 +104,47 @@ tests on each driver pass. The added GPU test checks packed HDR/negative/alpha
 values through offset transfers with guards, range/alignment rejection, and actual
 RGBA16F raster output above 1 and below 0. Rebuild `hdr.frag.spv` with
 `glslc --target-env=vulkan1.4 examples/shaders/hdr.frag -o examples/shaders/hdr.frag.spv`.
-Consumer parameter packing and end-to-end comparisons remain next.
 
-Retain this consumer, but revise the initial "format-only" implementation estimate:
+The adapter now keeps the upstream raster parameter block at its original offsets
+and appends the vertex-buffer address at the next eight-byte boundary. This workload
+uses 208+8=216 push bytes. It advertises at most 240 upstream bytes, reserving the
+address within the queried OGPU limit, and rejects unsupported root declarations
+or metadata. Both stage interfaces and processing statements remain upstream-owned.
+Tests cover preserved offsets/body, overlapping or wrong-size members, unsupported
+types, duplicate blocks and unsupported image declarations. Inline data fits on
+both drivers, so an addressed parameter allocation or public uniform-buffer API
+was not needed. Lifetime/retirement and frame scheduling are unchanged.
 
-- Add RGBA16F image storage/sampling/transfers and a narrowly selected raster
-  target format, with exact support queries and matching executable/target
-  validation. Keep existing fixed raster state; do not add a general format catalog.
-- Extend adapter raster parameter packing to coexist with the vertex address,
-  preserving upstream member offsets and processing statements. Compare inline
-  push data (checking the actual combined size against OGPU limits) with an
-  addressed parameter block if that budget is insufficient. No automatic public
-  uniform-buffer API is justified by this capture.
-- Revise intermediate alpha acceptance to `abs(alpha - 1) <= 2^-10`, one binary16
-  step above 1, while retaining exact final alpha and the original native/OGPU
-  comparison tolerances. This acknowledges measured upstream rounding without
-  changing shader math or forcing alpha to 1 in the harness.
+An additional capability dependency emerged during comparison: pinned upstream
+`src/shaders/colorspace.c` queries a linearly filterable RGBA16 **UNORM** format,
+then unconditionally switches to saturation gamut mapping if it is absent, even
+for the selected clipping path that needs no 3D LUT. Before the fix, intermediates
+matched but a final colored pixel differed by 11/255; captured color matrices
+proved generation had selected different processing, not merely rounded differently.
 
-The historical native gate failure above remains evidence, not a passing result.
-The consumer will adopt the accepted alpha tolerance explicitly and compare both
-backends; completion is not claimed by this runtime checkpoint.
+`OGPU_FORMAT_RGBA16_UNORM` therefore adds genuine 1D/2D sampled/transfer support,
+eight-byte texels and offsets; storage/color usages are intentionally not admitted
+in this bounded profile. The adapter checks exact support before advertising it.
+A dedicated test uploads/downloads packed UNORM16 values and linearly samples
+black/white into black/mid-gray/white RGBA8 output, then checks cleanup. C-boundary
+transfer/ownership tests now exercise all four image formats, both dimensions and
+HOST/DEVICE sources. No fake capability, hidden CPU color conversion or upstream
+patch is used. The accepted alpha bound is now explicit in both harness and comparator.
 
-## Reproduce the native gate
+**Retain:** the existing buffer/address/heap/batch model, shared raster root data,
+fixed raster state and the two evidenced image-format additions. **Revise:** the
+RGBA8-only raster format assumption and the adapter's parameter-free raster shape.
+No new scheduler, uniform-buffer object or general color-management API is justified.
+
+On both RADV and llvmpipe all nine HDR A/B/A cases match native intermediate and
+final pixels **exactly**, within the unchanged comparison tolerances. Per-run
+upstream parameter bytes also match exactly, guarding the selected color policy.
+Six passes are prepared, twelve completed-receipt reuses occur, and no child,
+bank, pending operation, texture or staging allocation remains at shutdown.
+The accepted bounded HDR milestone is complete; no timing or broader HDR claim.
+See the [final receipt](results/libplacebo-hdr-2026-09-15.txt) for regression coverage.
+
+## Reproduce acceptance
 
 Use the dependencies and pinned unmodified checkout from the
 [integration instructions](../integrations/libplacebo/README.md). The HDR fixture
@@ -133,11 +154,12 @@ with Clang 21.1.8; known-bit conversion checks run before Vulkan creation.
 ```sh
 VK_DRIVER_FILES=/path/to/one/icd.json \
   VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 \
-  bash integrations/libplacebo/run-hdr-reference.sh /path/to/pinned/libplacebo
+  bash integrations/libplacebo/run-hdr.sh /path/to/pinned/libplacebo
 ```
 
-Expect exit 2 for the currently recorded alpha mismatch, not success. Other
-execution/check failures exit nonzero as well. The runner creates a fresh ignored
+Expect exit 0. `run-hdr-reference.sh` remains available for native-only checks and
+uses the accepted alpha tolerance too; reproduce the original failure at `77ca4c5`.
+Execution/check failures exit nonzero. The runner creates fresh ignored
 capture directory containing input bytes, intermediate/final images, generated
 shaders, per-run push bytes, a requirement manifest and a log. Generated upstream
 shader bodies are not checked into this MIT repository. Native uploads use an

@@ -2,6 +2,8 @@
 #include "gpu.h"
 #include "backend.h"
 #include "ogpu.h"
+#include <libplacebo/dispatch.h>
+#include <libplacebo/shaders/sampling.h>
 #include <stdio.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "check failed: %s\n", #x); exit(1); } } while (0)
 static void completed(void *ptr) { ++*(unsigned *) ptr; }
@@ -162,6 +164,34 @@ static void specialization_updates(pl_gpu gpu, bool async, bool premature)
     CHECK(s.receipt_reuses == (premature || (async && batched) ? 0u : async ? 1u : 2u));
 }
 
+static void unorm16_sampling(pl_gpu gpu)
+{
+    pl_fmt fmt = pl_find_named_fmt(gpu, "rgba16");
+    CHECK(fmt && fmt->texel_size == 8 && (fmt->caps & PL_FMT_CAP_LINEAR));
+    CHECK(!(fmt->caps & (PL_FMT_CAP_STORABLE | PL_FMT_CAP_RENDERABLE)));
+    const uint16_t pixels[8] = {0,0,0,65535,65535,65535,65535,65535};
+    uint16_t readback[8] = {0};
+    pl_tex src = pl_tex_create(gpu, pl_tex_params(.w=2,.h=1,.format=fmt,
+        .sampleable=true,.host_writable=true,.host_readable=true));
+    pl_tex dst = pl_tex_create(gpu, pl_tex_params(.w=3,.h=1,
+        .format=pl_find_named_fmt(gpu,"rgba8"),.renderable=true,.host_readable=true));
+    CHECK(src && dst);
+    CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=src,.ptr=(void *)pixels)));
+    CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=src,.ptr=readback)));
+    CHECK(!memcmp(pixels,readback,sizeof(pixels)));
+    pl_dispatch dp = pl_dispatch_create(gpu->log,gpu); CHECK(dp);
+    pl_shader sh = pl_dispatch_begin(dp);
+    CHECK(pl_shader_sample_bilinear(sh,pl_sample_src(.tex=src,.new_w=3,.new_h=1)));
+    CHECK(pl_dispatch_finish(dp,pl_dispatch_params(.shader=&sh,.target=dst)));
+    uint8_t result[12];
+    CHECK(pl_tex_download(gpu,pl_tex_transfer_params(.tex=dst,.ptr=result)));
+    for (unsigned c=0;c<3;++c) CHECK(result[c]==0 && result[4+c]>=127 && result[4+c]<=128 && result[8+c]==255);
+    CHECK(result[3]==255 && result[7]==255 && result[11]==255);
+    pl_dispatch_destroy(&dp); pl_tex_destroy(gpu,&src); pl_tex_destroy(gpu,&dst);
+    const struct ogpu_stats s = ogpu_pl_stats(gpu);
+    CHECK(!pl_gpu_is_failed(gpu) && !s.textures && !s.passes && !s.banks && !s.texture_bytes && !s.staging_bytes);
+}
+
 int main(int argc, char **argv)
 {
     CHECK(argc == 2 || (argc == 3 && !strcmp(argv[2], "batched")));
@@ -169,6 +199,12 @@ int main(int argc, char **argv)
     pl_log log = pl_log_create(PL_API_VER, NULL);
     pl_gpu gpu = ogpu_pl_create(log, 0);
     CHECK(gpu);
+    if (!strcmp(argv[1], "unorm16-sampling")) {
+        unorm16_sampling(gpu);
+        ogpu_pl_destroy(&gpu); pl_log_destroy(&log);
+        puts("adapter unorm16 sampling/transfer live=0 PASS");
+        return 0;
+    }
     if (!strncmp(argv[1], "frame-", 6)) {
         frame_transfers(gpu, argv[1]);
         ogpu_pl_destroy(&gpu); pl_log_destroy(&log);

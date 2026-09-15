@@ -73,7 +73,8 @@ filterability may expose a better API alternative later; this checkpoint does no
 silently change that promise or add a new format catalog.
 
 The libplacebo adapter now checks enabled compute/raster/heaps and its bounded
-RGBA8/R32F image combinations before advertising formats. Small startup descriptions
+RGBA8/R32F image combinations before advertising formats (extended at ABI 11 to
+RGBA16F and sampled/transfer RGBA16 UNORM for the HDR consumer). Small startup descriptions
 establish combination support, not support for all extents; actual creation checks
 each image's exact extent and usages. Its `rg32f` format is a host vertex-record
 layout, not a newly supported OGPU image. The adapter remains deliberately bounded

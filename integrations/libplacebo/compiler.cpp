@@ -7,12 +7,12 @@
 #include <iostream>
 
 extern "C" int compile_native(const char *source, int stage, const char *uv,
-                              const char *pos, shader_binary *out) {
+                              const char *pos, uint32_t push_bytes, shader_binary *out) {
     *out = {};
     try {
         std::string text = source;
         if (stage == 2)
-            text = pull_vertices(text, {{{0, 0, uv}, {1, 8, pos}}}, 16, 0);
+            text = pull_vertices(text, {{{0, 0, uv}, {1, 8, pos}}}, 16, push_bytes);
         unsigned resources = 0;
         text = lower(text, resources);
         shaderc::Compiler compiler;

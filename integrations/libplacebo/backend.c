@@ -10,6 +10,7 @@
 #define CONSTANTS 16
 #define FRAMES 2
 #define OPERATIONS 8
+#define PARAMETERS 240u
 struct bank {
     OgpuCompletion *receipt;
     OgpuImageHeap *images;
@@ -58,6 +59,7 @@ struct program {
     OgpuRaster *raster;
     OgpuBuffer *indirect;
     OgpuSpecializationConstant values[CONSTANTS];
+    uint32_t root_size, vertex_offset;
 };
 
 static bool reject(pl_gpu gpu, const char *why)
@@ -307,10 +309,12 @@ static pl_tex tex_create(pl_gpu gpu, const struct pl_tex_params *p)
     OgpuError error;
     struct pl_tex_t *tex = NULL;
     const bool rgba = !strcmp(p->format->name, "rgba8");
-    REQUIRE(!b->failed && (rgba || !strcmp(p->format->name, "r32f")), "unsupported image format");
+    const bool half = !strcmp(p->format->name, "rgba16hf");
+    const bool unorm16 = !strcmp(p->format->name, "rgba16");
+    REQUIRE(!b->failed && (rgba || half || unorm16 || !strcmp(p->format->name, "r32f")), "unsupported image format");
     REQUIRE(!p->d && !p->blit_src && !p->blit_dst && !p->import_handle && !p->export_handle,
             "unsupported image dimension/interop/blit");
-    REQUIRE(!p->renderable || (rgba && p->h), "unsupported color attachment");
+    REQUIRE(!p->renderable || ((rgba || half) && p->h), "unsupported color attachment");
     tex = calloc(1, PL_ALIGN_MEM(sizeof(*tex)) + sizeof(struct texture));
     REQUIRE(tex, "image allocation failed");
     ++b->stats.textures;
@@ -319,11 +323,12 @@ static pl_tex tex_create(pl_gpu gpu, const struct pl_tex_params *p)
     tex->params = *p;
     tex->params.initial_data = NULL;
     struct texture *t = PL_PRIV(tex);
-    t->size = (size_t) p->w * (p->h ? p->h : 1) * 4;
+    t->size = (size_t) p->w * (p->h ? p->h : 1) * p->format->texel_size;
     const OgpuImageDesc desc = {
         .dimension = p->h ? OGPU_IMAGE_2D : OGPU_IMAGE_1D,
         .width = p->w, .height = p->h ? p->h : 1,
-        .format = rgba ? OGPU_FORMAT_RGBA8_UNORM : OGPU_FORMAT_R32_FLOAT,
+        .format = rgba ? OGPU_FORMAT_RGBA8_UNORM : half ? OGPU_FORMAT_RGBA16_FLOAT :
+                  unorm16 ? OGPU_FORMAT_RGBA16_UNORM : OGPU_FORMAT_R32_FLOAT,
         .usage = (p->sampleable ? OGPU_IMAGE_USAGE_SAMPLED : 0) |
                  (p->storable ? OGPU_IMAGE_USAGE_STORAGE : 0) |
                  (p->renderable ? OGPU_IMAGE_USAGE_COLOR : 0) |
@@ -344,7 +349,7 @@ static bool tex_transfer(pl_gpu gpu, const struct pl_tex_transfer_params *p, boo
 {
     const struct pl_tex_params *t = &p->tex->params;
     if (!p->ptr || p->buf || p->timer || p->rc.x0 || p->rc.x1 != t->w ||
-        (t->h && (p->rc.y0 || p->rc.y1 != t->h || p->row_pitch != (size_t) t->w * 4)))
+        (t->h && (p->rc.y0 || p->rc.y1 != t->h || p->row_pitch != (size_t) t->w * t->format->texel_size)))
         return reject(gpu, "only full packed host image transfers are supported");
     return transfer(gpu, p->tex, p->ptr, upload, p->callback, p->priv);
 }
@@ -398,7 +403,10 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
         TRY(ogpu_kernel_create(b->device, &shader, pass->params.push_constants_size, &kernel, &error));
     } else {
         const OgpuShaderDesc vertex = {p->vertex.words, p->vertex.count, values, count, 0};
-        TRY(ogpu_raster_create(b->device, &vertex, &shader, 8, OGPU_TOPOLOGY_TRIANGLE_STRIP, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
+        const uint32_t format = !strcmp(pass->params.target_format->name, "rgba8") ?
+            OGPU_FORMAT_RGBA8_UNORM : OGPU_FORMAT_RGBA16_FLOAT;
+        TRY(ogpu_raster_create(b->device, &vertex, &shader, p->root_size,
+            OGPU_TOPOLOGY_TRIANGLE_STRIP, format, &raster, &error));
     }
     ogpu_kernel_destroy(p->kernel); ogpu_raster_destroy(p->raster);
     p->kernel = kernel; p->raster = raster;
@@ -418,11 +426,15 @@ static pl_pass pass_create(pl_gpu gpu, const struct pl_pass_params *in)
             in->num_descriptors > 0 && in->num_descriptors <= SLOTS,
             "unsupported pass variables/constants/descriptors");
     const bool compute = in->type == PL_PASS_COMPUTE;
+    REQUIRE(in->push_constants_size <= gpu->limits.max_pushc_size &&
+            in->push_constants_size <= PARAMETERS && in->push_constants_size % 4 == 0,
+            "unsupported pass root size");
     REQUIRE(compute || in->type == PL_PASS_RASTER, "unsupported pass type");
     if (!compute) {
         REQUIRE(in->vertex_stride == 16 && in->num_vertex_attribs == 2 &&
-                in->vertex_type == PL_PRIM_TRIANGLE_STRIP && !in->push_constants_size &&
-                !in->blend_params && !strcmp(in->target_format->name, "rgba8"), "unsupported raster layout");
+                in->vertex_type == PL_PRIM_TRIANGLE_STRIP &&
+                !in->blend_params && (!strcmp(in->target_format->name, "rgba8") ||
+                !strcmp(in->target_format->name, "rgba16hf")), "unsupported raster layout");
         for (int i = 0; i < 2; ++i)
             REQUIRE(in->vertex_attribs[i].location == i && in->vertex_attribs[i].offset == (size_t) i * 8 &&
                     !strcmp(in->vertex_attribs[i].fmt->name, "rg32f"), "unsupported vertex metadata");
@@ -474,10 +486,12 @@ static pl_pass pass_create(pl_gpu gpu, const struct pl_pass_params *in)
         pass->params.num_constants = in->num_constants;
     }
     struct program *p = PL_PRIV(pass);
-    REQUIRE(compile_native(in->glsl_shader, compute ? 0 : 1, NULL, NULL, &p->primary), "shader compilation failed");
+    p->vertex_offset = (in->push_constants_size + 7u) & ~7u;
+    p->root_size = compute ? in->push_constants_size : p->vertex_offset + 8;
+    REQUIRE(compile_native(in->glsl_shader, compute ? 0 : 1, NULL, NULL, in->push_constants_size, &p->primary), "shader compilation failed");
     if (!compute) {
         REQUIRE(compile_native(in->vertex_shader, 2, in->vertex_attribs[0].name,
-                in->vertex_attribs[1].name, &p->vertex), "vertex compilation failed");
+                in->vertex_attribs[1].name, in->push_constants_size, &p->vertex), "vertex compilation failed");
         TRY(ogpu_buffer_create(b->device, 16, OGPU_MEMORY_HOST, &p->indirect, &error));
         const OgpuDrawArguments args = {4, 1, 0, 0};
         TRY(ogpu_buffer_write(p->indirect, 0, &args, sizeof(args), &error));
@@ -567,10 +581,14 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
             in->compute_groups[2], in->push_constants, params->push_constants_size, &error));
     } else {
         struct texture *target = PL_PRIV(in->target);
+        uint8_t root[PARAMETERS + 8] = {0};
+        REQUIRE(!params->push_constants_size || in->push_constants, "missing raster parameters");
+        if (params->push_constants_size) memcpy(root, in->push_constants, params->push_constants_size);
+        memcpy(root + p->vertex_offset, &bank->vertex_address, 8);
         mark_use(gpu, target);
         TRY(ogpu_batch_retain_buffer(batch, bank->vertices, &error));
         TRY(ogpu_batch_draw_indirect(batch, p->raster, target->image, p->indirect, 0,
-            &bank->vertex_address, 8, params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR, &error));
+            root, p->root_size, params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR, &error));
     }
     if (!finish(gpu, batch, bank)) goto fail;
     if (reusing_receipt) ++b->stats.receipt_reuses;
@@ -619,6 +637,14 @@ static pl_buf buf_create(pl_gpu gpu, const struct pl_buf_params *p)
 { reject(gpu, "general libplacebo buffers are outside this adapter"); return NULL; }
 
 static const struct pl_fmt_t formats[] = {
+    {.name="rgba16", .signature=5, .type=PL_FMT_UNORM,
+     .caps=PL_FMT_CAP_SAMPLEABLE|PL_FMT_CAP_LINEAR|PL_FMT_CAP_HOST_READABLE,
+     .num_components=4, .component_depth={16,16,16,16}, .internal_size=8,
+     .texel_size=8, .texel_align=2, .host_bits={16,16,16,16}, .sample_order={0,1,2,3}},
+    {.name="rgba16hf", .signature=4, .type=PL_FMT_FLOAT,
+     .caps=PL_FMT_CAP_SAMPLEABLE|PL_FMT_CAP_LINEAR|PL_FMT_CAP_STORABLE|PL_FMT_CAP_RENDERABLE|PL_FMT_CAP_HOST_READABLE,
+     .num_components=4, .component_depth={16,16,16,16}, .internal_size=8,
+     .texel_size=8, .texel_align=2, .host_bits={16,16,16,16}, .sample_order={0,1,2,3}, .glsl_format="rgba16f"},
     {.name="rgba8", .signature=1, .type=PL_FMT_UNORM,
      .caps=PL_FMT_CAP_SAMPLEABLE|PL_FMT_CAP_LINEAR|PL_FMT_CAP_STORABLE|PL_FMT_CAP_RENDERABLE|PL_FMT_CAP_HOST_READABLE,
      .num_components=4, .component_depth={8,8,8,8}, .internal_size=4,
@@ -653,6 +679,14 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     // check combinations, not all extents; actual texture creation checks its exact
     // description. rg32f below is a host vertex layout, not an OGPU image format.
     const OgpuImageDesc required_images[] = {
+        {.dimension=2, .width=1, .height=1, .format=OGPU_FORMAT_RGBA16_UNORM,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+        {.dimension=1, .width=1, .height=1, .format=OGPU_FORMAT_RGBA16_UNORM,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+        {.dimension=2, .width=1, .height=1, .format=OGPU_FORMAT_RGBA16_FLOAT,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_STORAGE|OGPU_IMAGE_USAGE_COLOR|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
+        {.dimension=1, .width=1, .height=1, .format=OGPU_FORMAT_RGBA16_FLOAT,
+         .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_STORAGE|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
         {.dimension=2, .width=1, .height=1, .format=OGPU_FORMAT_RGBA8_UNORM,
          .usage=OGPU_IMAGE_USAGE_SAMPLED|OGPU_IMAGE_USAGE_STORAGE|OGPU_IMAGE_USAGE_COLOR|OGPU_IMAGE_USAGE_COPY_SRC|OGPU_IMAGE_USAGE_COPY_DST},
         {.dimension=1, .width=1, .height=1, .format=OGPU_FORMAT_RGBA8_UNORM,
@@ -671,15 +705,17 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
         .callbacks=true,
         .max_tex_1d_dim=limits.max_image_1d, .max_tex_2d_dim=limits.max_image_2d,
         .max_constants=CONSTANTS, .array_size_constants=true,
-        .max_pushc_size=PL_MIN(limits.max_push_data_bytes, 128),
+        // Reserve the aligned appended vertex address alongside native parameters.
+        .max_pushc_size=PL_MIN(limits.max_push_data_bytes >= 8 ? (limits.max_push_data_bytes - 8) & ~7ull : 0, PARAMETERS),
         .align_vertex_stride=1, .align_tex_xfer_pitch=4, .align_tex_xfer_offset=4,
         .fragment_queues=1, .compute_queues=1,
     };
     memcpy(gpu->limits.max_dispatch, limits.max_dispatch, sizeof(limits.max_dispatch));
-    gpu->formats = calloc(3, sizeof(pl_fmt));
+    const int format_count = sizeof(formats) / sizeof(formats[0]);
+    gpu->formats = calloc(format_count, sizeof(pl_fmt));
     REQUIRE(gpu->formats, "format allocation failed");
-    for (int i = 0; i < 3; ++i) gpu->formats[i] = &formats[i];
-    gpu->num_formats = 3;
+    for (int i = 0; i < format_count; ++i) gpu->formats[i] = &formats[i];
+    gpu->num_formats = format_count;
     b->fns = (struct pl_gpu_fns) {
         .tex_create=tex_create, .tex_destroy=tex_destroy, .tex_upload=tex_upload, .tex_download=tex_download,
         .pass_create=pass_create, .pass_destroy=pass_destroy, .pass_run=pass_run,

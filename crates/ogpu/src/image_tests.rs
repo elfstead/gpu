@@ -114,10 +114,10 @@ fn gpu_image_transfers() {
         };
         let foreign = Device::new_graphics(instance.clone(), physical).unwrap();
         for dimension in [1, 2] {
-            for format in [0, 1] {
+            for format in [0, 1, 2, 3] {
                 for placement in [Placement::Host, Placement::Device] {
                     let (width, height) = (17, if dimension == 1 { 1 } else { 7 });
-                    let size = width as usize * height as usize * 4;
+                    let size = width as usize * height as usize * if format >= 2 { 8 } else { 4 };
                     let desc = OgpuImageDesc {
                         dimension,
                         width,

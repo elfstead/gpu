@@ -205,6 +205,23 @@ fn image_description_respects_usage_and_dimension_limits() {
     };
     assert_eq!(desc.validate(&limits).unwrap(), 1024);
     assert_eq!(
+        ImageDesc { format: 3, ..desc }.validate(&limits).unwrap(),
+        2048
+    );
+    for usage in [STORAGE, COLOR] {
+        assert_eq!(
+            ImageDesc {
+                format: 3,
+                usage,
+                ..desc
+            }
+            .validate(&limits)
+            .unwrap_err()
+            .status,
+            INVALID_ARGUMENT
+        );
+    }
+    assert_eq!(
         ImageDesc { format: 2, ..desc }.validate(&limits).unwrap(),
         2048
     );
@@ -251,7 +268,7 @@ fn image_description_respects_usage_and_dimension_limits() {
         ImageDesc { width: 257, ..desc },
         ImageDesc { height: 0, ..desc },
         ImageDesc { height: 2, ..desc },
-        ImageDesc { format: 3, ..desc },
+        ImageDesc { format: 4, ..desc },
         ImageDesc {
             reserved: 1,
             ..desc

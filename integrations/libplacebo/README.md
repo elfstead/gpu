@@ -9,10 +9,13 @@ cached limits remain; enabled capabilities and exact image support are now query
 Startup validates the bounded format/usage combinations before publishing its format
 table. Image creation still checks the actual extent; this is not a general format catalog.
 
-The next [HDR experiment](../../docs/libplacebo-hdr.md) currently has a native-only
-capture runner, `run-hdr-reference.sh`. It deliberately exits 2 on the recorded
-exact intermediate-alpha gate failure. HDR is not supported by this adapter yet;
-the existing SDR acceptance below is unchanged.
+The [bounded HDR experiment](../../docs/libplacebo-hdr.md) now uses `run-hdr.sh`
+to compare RGBA16F EWA resize and spline/clipping HDR-to-sRGB mapping against native
+Vulkan. All nine A/B/A cases match exactly on both tested drivers. The adapter
+supports packed `rgba16hf` and sampled/transfer `rgba16` UNORM, and preserves
+upstream raster parameters alongside its vertex address. This is not arbitrary
+HDR/color management. The native-only `run-hdr-reference.sh` and existing SDR
+acceptance below remain available.
 
 Each pass keeps its last completed receipt while rewriting heaps/vertex data for
 the next frame. ABI 9 retires submission resources during wait, not receipt destruction.

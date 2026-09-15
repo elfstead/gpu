@@ -25,7 +25,8 @@ Shader indices, descriptor kinds and valid image contents remain trusted caller
 obligations, not runtime-checked accesses or recursive pointer tracing.
 
 At ABI 6, views follow the image's RGBA8 UNORM or R32F format and 1D/2D dimension,
-with one mip/layer/sample. Sampled/storage descriptors require the matching creation
+with one mip/layer/sample. ABI 11 adds RGBA16F and sampled-only RGBA16 UNORM views.
+Sampled/storage descriptors require the matching creation
 usage. No view handle or subresource selection is exposed. Sampler
 descriptions independently select nearest/linear minification and magnification,
 and clamp-to-edge/repeat U and V addressing. Coordinates are normalized, LOD is zero,

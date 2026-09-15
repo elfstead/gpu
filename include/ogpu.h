@@ -370,6 +370,8 @@ typedef struct OgpuRaster OgpuRaster;
 #define OGPU_FORMAT_RGBA8_UNORM 0u
 #define OGPU_FORMAT_R32_FLOAT 1u
 #define OGPU_FORMAT_RGBA16_FLOAT 2u
+/* Packed uint16 normalized components; currently SAMPLED/COPY usages only. */
+#define OGPU_FORMAT_RGBA16_UNORM 3u
 #define OGPU_IMAGE_USAGE_SAMPLED 1u
 #define OGPU_IMAGE_USAGE_STORAGE 2u
 #define OGPU_IMAGE_USAGE_COLOR 4u
@@ -510,7 +512,7 @@ OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
  * successfully submitted batch. No hidden initialization or host-side layout tracker.
  * Requires COPY_SRC usage; orders earlier GPU writes before readback.
  * Copies whole images as tightly packed rows preserving format bits (four bytes
- * per texel for RGBA8/R32F, eight for RGBA16F). Offset must be texel-size aligned;
+ * per texel for RGBA8/R32F, eight for RGBA16F/RGBA16_UNORM). Offset must be texel-size aligned;
  * width*height*texel_size bytes must fit. Retains target and destination. Wait before
  * CPU access; explicit TRANSFER_WRITE dependencies precede subsequent GPU consumers.
  * Invalid draw/copy arguments leave the recording unchanged. Destruction is NULL-safe. */

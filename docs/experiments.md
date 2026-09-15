@@ -284,6 +284,23 @@ Query retrieval is reported separately, and untimed controls expose instrumentat
 cost. These intervals do not isolate individual shader/barrier costs or yield an
 exact CPU/GPU latency decomposition. The machine was not benchmark-isolated.
 
+## Bounded HDR consumer — 2026-09-15
+
+The [HDR brief](libplacebo-hdr.md) and [receipt](results/libplacebo-hdr-2026-09-15.txt)
+close the selected RGBA16F resize and static BT.2020-to-sRGB tone-mapping workload.
+ABI 11 adds explicit raster target format, RGBA16F images/rendering and sampled/
+transfer RGBA16 UNORM. The latter preserves pinned libplacebo's clipping policy:
+without it, upstream silently selects saturation mapping. Raster parameters fit
+inline with an appended vertex address; no new public uniform-buffer abstraction.
+
+The original native exact-alpha gate failed and is preserved at `77ca4c5`; the user
+accepted a one-step binary16 alpha tolerance before OGPU comparison. All nine HDR
+cases now match native intermediate/final bytes exactly on both available drivers,
+with equal upstream parameter bytes, A/B/A reuse and cleanup checks. Runtime,
+existing SDR/scheduling/benchmark-correctness and GGML DEVICE/F16 regressions pass.
+Retain the existing ownership/address/heap/batch model and the evidenced format
+extensions; no general HDR profile, timing target or automatic expansion follows.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

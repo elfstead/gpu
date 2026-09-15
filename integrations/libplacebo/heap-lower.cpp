@@ -17,6 +17,32 @@ int main(int argc, char **argv) {
             const auto vertex_source = "#version 450\nlayout(location=0) in vec2 uv;\nlayout(location=1) in vec2 position;\n" + vertex_body;
             const std::array<VertexAttribute, 2> attrs{{{0, 0, "uv"}, {1, 8, "position"}}};
             const auto pulled = pull_vertices(vertex_source, attrs, 16, 0);
+            const std::string root = "layout(std430, push_constant) uniform PushC {\n"
+                "    layout(offset=0) float exposure;\n"
+                "    layout(offset=16) mat3 m0;\n"
+                "    layout(offset=64) mat3 m1;\n"
+                "    layout(offset=112) mat3 m2;\n"
+                "    layout(offset=160) mat3 m3;\n};\n";
+            auto with_root = vertex_source;
+            with_root.insert(with_root.find('\n') + 1, root);
+            const auto hdr = pull_vertices(with_root, attrs, 16, 208);
+            if (hdr.find("layout(offset=208) ogpu_vertex_data ogpu_vertex_address;") == std::string::npos ||
+                hdr.find(root.substr(0, root.size()-3)) == std::string::npos ||
+                hdr.substr(hdr.size()-vertex_body.size()) != vertex_body)
+                throw std::runtime_error("HDR root offsets/body not preserved");
+            for (unsigned bad = 0; bad < 5; ++bad) {
+                auto malformed = with_root;
+                unsigned bytes = 208;
+                if (bad == 0) bytes = 204;
+                if (bad == 1) bytes = 212;
+                if (bad == 2) malformed.replace(malformed.find("offset=160"), 10, "offset=112");
+                if (bad == 3) malformed.replace(malformed.find("mat3 m3"), 7, "vec4 m3");
+                if (bad == 4) malformed += root;
+                bool rejected = false;
+                try { pull_vertices(malformed, attrs, 16, bytes); }
+                catch (const std::exception &) { rejected = true; }
+                if (!rejected) throw std::runtime_error("malformed HDR root accepted");
+            }
             if (pulled.substr(pulled.size() - vertex_body.size()) != vertex_body ||
                 pulled.find("ogpu_vertex_push.vertices.values[gl_VertexIndex].a1") == std::string::npos)
                 throw std::runtime_error("vertex body preservation / address fetching failed");
@@ -35,12 +61,21 @@ int main(int argc, char **argv) {
             }
             const std::string body = "void main() { vec4 c = textureLod(tex, vec2(0.5), 0.0); }\n";
             unsigned count = 0;
+            for (const auto &format : {"rgba8", "rgba16f"}) {
+                unsigned images = 0;
+                const auto text = lower(std::string("#version 450\nlayout(binding=2, ") + format +
+                    ") writeonly restrict uniform image2D dst;\n" + body, images);
+                if (images != 1 || text.find(std::string("layout(descriptor_heap, ") + format + ")") == std::string::npos ||
+                    text.substr(text.size()-body.size()) != body)
+                    throw std::runtime_error("storage format/body not preserved");
+            }
             const auto result = lower("#version 450\nlayout(binding=3) uniform  sampler2D tex;\n" + body, count);
             if (count != 1 || result.substr(result.size() - body.size()) != body ||
                 result.find("#define tex sampler2D(ogpu_tex3[3], ogpu_sampler3[3])") == std::string::npos)
                 throw std::runtime_error("body preservation / slot mapping test failed");
             for (const auto &bad : {
                 "#version 450\nlayout(binding=0) uniform sampler3D unsupported;\n",
+                "#version 450\nlayout(binding=2, rgba32f) writeonly restrict uniform image2D unsupported;\n",
                 "#version 450\nlayout(set = 0, binding = 1) uniform sampler2D unsupported;\n",
                 "#version 460\nvoid main() {}\n"}) {
                 bool rejected = false;

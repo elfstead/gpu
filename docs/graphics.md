@@ -48,6 +48,12 @@ or CPU mapping. Format/dimension/usage support is checked; color use is limited 
 draws reject a mismatched image before modifying the recording. Image-heap slots supply sampled/storage descriptors for the actual format
 and dimension. The older RGBA8-only target constructor and type were removed.
 
+ABI 11 also admits RGBA16 UNORM for sampled/copy usage only, with real linear
+filter support checks. It preserves pinned libplacebo's selected clipping-gamut
+policy; see the [HDR consumer](libplacebo-hdr.md). Both sixteen-bit RGBA formats
+use eight-byte packed texels and eight-byte copy offsets. Neither requires FP16
+shader arithmetic.
+
 Backing-memory selection is runtime policy: prefer eligible device-local memory,
 then non-host-visible memory within that preference. Host-visible local memory
 remains usable on unified-memory devices or when the image's requirements exclude

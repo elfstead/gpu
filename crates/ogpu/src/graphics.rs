@@ -35,7 +35,8 @@ impl ImageDesc {
 
     fn validate(&self, limits: &vk::VkPhysicalDeviceLimits) -> Result<usize, Error> {
         if !matches!(self.dimension, 1 | 2)
-            || self.format > 2
+            || self.format > 3
+            || (self.format == 3 && self.usage & (STORAGE | COLOR) != 0)
             || self.reserved != 0
             || self.usage == 0
             || self.usage & !(SAMPLED | STORAGE | COLOR | COPY_SRC | COPY_DST) != 0
@@ -65,12 +66,13 @@ impl ImageDesc {
             0 => FORMAT,
             1 => vk::VkFormat_VK_FORMAT_R32_SFLOAT,
             2 => vk::VkFormat_VK_FORMAT_R16G16B16A16_SFLOAT,
+            3 => vk::VkFormat_VK_FORMAT_R16G16B16A16_UNORM,
             _ => unreachable!("validated image format"),
         }
     }
 
     pub(super) fn texel_size(&self) -> usize {
-        if self.format == 2 {
+        if self.format >= 2 {
             8
         } else {
             4

@@ -20,9 +20,9 @@ from one source revision. No release/tag or cross-version stability is implied.
 | Core model | Explicit HOST/DEVICE buffers, addresses, prepared executables, X/Y/Z dispatch, batches, dependencies, terminal completion retirement | One queue, externally serialized calls, trusted shaders and caller-owned pointer lifetimes |
 | Graphics/images | Compute and raster share batches; independent heaps, preservation, uploads/readbacks and indirect draws | Narrow offscreen state and formats; no presentation or general rendering backend |
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
-| libplacebo | Upstream EWA compute and nearest raster, exact reference comparisons, bounded two-frame reuse and frame batching | Bounded adapter, not a general libplacebo backend |
+| libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Performance | Controlled native comparison; image allocation correction `1f41d7e` closes the large resident bottleneck | Near-4K grouped 563.54 vs native 593.17 fps on this GPU; smaller workloads retain larger gaps, not isolated API overhead |
-| Validation | RX 5700 XT / RADV and llvmpipe, 30 ordinary tests, 20 GPU tests per driver, 745 ABI layout checks | One physical GPU; synthetic capability/memory tests are not other-hardware evidence |
+| Validation | RX 5700 XT / RADV and llvmpipe, 30 ordinary tests, 21 GPU tests per driver, 745 ABI layout checks | One physical GPU; synthetic capability/memory tests are not other-hardware evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -74,7 +74,7 @@ is not a new work queue.
 - D5: Source revision plus matching ABI/header/library/shaders identify this
   experimental checkpoint. Breaking C layouts/signatures increment the ABI.
 
-## Selected next use case: HDR-to-SDR processing
+## Completed next use case: HDR-to-SDR processing
 
 The [bounded HDR brief](libplacebo-hdr.md) selects a native-first libplacebo capture,
 then the smallest coherent extension for floating-point resize and tone mapping
@@ -82,12 +82,15 @@ to SDR. It declares input representation, tone/gamut policy, numerical gates and
 scope exclusions before results. This uses the existing Radeon and llvmpipe;
 additional physical hardware is not a prerequisite.
 
-Native capture is now complete on both drivers, but its original exact
-intermediate-alpha gate fails on upstream rounding. It also exposes a renderable
-RGBA16F target requirement and a 208-byte raster parameter block that the current
-adapter cannot accept. No runtime/API change yet. The brief records the evidence
-and proposed format/root-packing/alpha-gate decisions; resolve these before the
-OGPU implementation, rather than reporting the native capture as HDR acceptance.
+Completed with ABI 11: RGBA16F images/rendering, explicit executable target format,
+and genuine sampled/transfer RGBA16 UNORM support to preserve upstream's clipping
+policy. The adapter packs 208 upstream raster parameter bytes plus the vertex
+address without new public resource abstractions. The user-approved intermediate
+alpha tolerance is explicit; the initial exact-alpha failure remains recorded.
+All nine HDR cases match native intermediate/final pixels exactly on both drivers,
+with identical upstream parameter bytes and checked cleanup. See the brief for
+the retain/revise decision and regression receipt. No new performance target or
+general HDR profile is selected.
 
 ## After the checkpoint
 
