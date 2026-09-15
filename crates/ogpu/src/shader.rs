@@ -36,6 +36,7 @@ pub(crate) struct Shader<'a> {
     pub(crate) local_size: [u32; 3],
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a> Shader<'a> {
     // SAFETY: descriptor and all non-NULL input pointers obey the C header contract.
     pub(crate) unsafe fn read(desc: *const OgpuShaderDesc) -> Result<Self, Error> {

@@ -270,7 +270,8 @@ pub unsafe extern "C" fn ogpu_device_create(
     unsafe {
         create(out, error, || {
             required(probe)?;
-            let raw = (&(*probe).metal_devices)
+            let raw = (*probe)
+                .metal_devices
                 .get(index as usize)
                 .ok_or_else(|| fail(OUT_OF_RANGE, "Device index out of range"))?
                 .to_owned();
@@ -343,7 +344,7 @@ pub unsafe extern "C" fn ogpu_device_limits(
         call(error, || {
             required(device)?;
             required(out)?;
-            out.write(limits(&(&(*device).inner).raw));
+            out.write(limits(&(*device).inner.raw));
             Ok(())
         })
     }
@@ -395,7 +396,7 @@ pub unsafe extern "C" fn ogpu_buffer_create(
             } else {
                 MTLResourceOptions::StorageModePrivate
             };
-            let device_raw = &(&(*device).inner).raw;
+            let device_raw = &(*device).inner.raw;
             if size as u64 > device_raw.max_buffer_length() {
                 return Err(fail(OUT_OF_RANGE, "Buffer exceeds Metal maxBufferLength"));
             }
@@ -408,7 +409,7 @@ pub unsafe extern "C" fn ogpu_buffer_create(
             }
             let raw = MetalBuffer::from_ptr(pointer);
             let inner = Rc::new(Buffer {
-                device: (&(*device).inner).clone(),
+                device: (*device).inner.clone(),
                 raw,
                 size,
                 host,
@@ -504,7 +505,7 @@ pub unsafe extern "C" fn ogpu_buffer_device_address(
         call(error, || {
             required(buffer)?;
             required(out)?;
-            out.write((&(*buffer).inner).raw.gpu_address());
+            out.write((*buffer).inner.raw.gpu_address());
             Ok(())
         })
     }
@@ -521,15 +522,12 @@ pub unsafe extern "C" fn ogpu_kernel_create(
     unsafe {
         create(out, error, || {
             required(device)?;
-            contract::root_size(
-                push_size,
-                limits(&(&(*device).inner).raw).max_push_data_bytes,
-            )?;
+            contract::root_size(push_size, limits(&(*device).inner.raw).max_push_data_bytes)?;
             let shader = crate::shader::Shader::read(desc)?;
-            let (pipeline, group) = prepare(&(&(*device).inner).raw, shader)?;
+            let (pipeline, group) = prepare(&(*device).inner.raw, shader)?;
             Ok(OgpuKernel {
                 inner: Rc::new(Kernel {
-                    device: (&(*device).inner).clone(),
+                    device: (*device).inner.clone(),
                     pipeline,
                     group,
                     push_size,
@@ -556,7 +554,7 @@ pub unsafe extern "C" fn ogpu_batch_create(
         create(out, error, || {
             required(device)?;
             Ok(OgpuBatch {
-                inner: Batch::new((&(*device).inner).clone()),
+                inner: Batch::new((*device).inner.clone()),
             })
         })
     }
@@ -594,7 +592,7 @@ pub unsafe extern "C" fn ogpu_batch_dispatch(
             };
             (*batch)
                 .inner
-                .dispatch((&(*kernel).inner).clone(), [x, y, z], args)
+                .dispatch((*kernel).inner.clone(), [x, y, z], args)
         })
     }
 }
@@ -615,13 +613,13 @@ pub unsafe extern "C" fn ogpu_dispatch_wait(
             if bytes != 0 {
                 required(args)?;
             }
-            let mut batch = Batch::new((&(*kernel).inner).device.clone());
+            let mut batch = Batch::new((*kernel).inner.device.clone());
             let args = if bytes == 0 {
                 &[]
             } else {
                 std::slice::from_raw_parts(args.cast::<u8>(), bytes as usize)
             };
-            batch.dispatch((&(*kernel).inner).clone(), [x, y, z], args)?;
+            batch.dispatch((*kernel).inner.clone(), [x, y, z], args)?;
             let cb = contract::take_recording(&mut batch.commands)?;
             cb.commit();
             cb.wait_until_completed();
@@ -658,11 +656,11 @@ pub unsafe extern "C" fn ogpu_batch_retain_buffer(
         call(error, || {
             required(batch)?;
             required(buffer)?;
-            if !Rc::ptr_eq(&(*batch).inner.device, &(&(*buffer).inner).device) {
+            if !Rc::ptr_eq(&(*batch).inner.device, &(*buffer).inner.device) {
                 return Err(fail(INVALID_ARGUMENT, "Buffer belongs to another device"));
             }
             (*batch).inner.cb()?;
-            contract::retain(&mut (*batch).inner.retained, (&(*buffer).inner).clone());
+            contract::retain(&mut (*batch).inner.retained, (*buffer).inner.clone());
             Ok(())
         })
     }
@@ -893,6 +891,7 @@ pub unsafe extern "C" fn ogpu_image_destroy(_p: *mut OgpuImage) {}
 pub unsafe extern "C" fn ogpu_raster_destroy(_p: *mut OgpuRaster) {}
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod tests {
     use super::*;
     #[cfg(feature = "spirv-to-msl")]
