@@ -104,9 +104,37 @@ near-4K resident grouped OGPU 563.54 vs native 593.17 fps. Smaller workloads ret
 larger overhead gaps; these are workload-specific local measurements, not a general
 Vulkan comparison or isolated API cost.
 
-Clean-checkout reproduction is in progress; its exact revision, commands, reused
-dependencies, results and limitations will be recorded here before closing the
-checkpoint. No additional physical GPU is available. Cross-vendor and physical UMA
+Clean-checkout reproduction **passed at `798e186`** (runtime code includes
+`1f41d7e`). Later consolidation edits are documentation-only. The
+[acceptance receipt](results/checkpoint-2026-09-15.txt) records commands, pins,
+toolchain, hashes, actual cases and log locations.
+
+| Fresh-checkout check | Result |
+|---|---|
+| Rust build/tests, ABI, mock loader | 30 ordinary tests, 745 layout checks and mock cases pass |
+| Clippy / formatting | Pass; Rust 1.97.1 toolchain, not a new minimum-Rust verification |
+| GPU tests | All 20 pass on Radeon and llvmpipe |
+| GGML on Radeon | HOST/DEVICE x F32/F16, six full-dataset direct/scheduled cases each: 24 cases pass, unchanged predictions |
+| GGML on llvmpipe | Representative DEVICE/F16 six-case run passes; other combinations were not repeated in this fresh-checkout audit |
+| libplacebo on both drivers | Original nine-frame plus two 36-frame controls match exactly; failure/cleanup checks pass |
+| libplacebo benchmark correctness | All three policies x three extents x two modes match exactly on each driver; no new timings |
+
+No runtime, adapter or build-script repair was needed. Dynamic-link inspection
+confirmed both consumers use the freshly built runtime and upstream libraries,
+not the original workspace's outputs. Local source clones, installed Nix tools,
+Cargo source cache, driver caches and verified MNIST inputs were reused. Dev/test
+debug symbols and incremental compilation were disabled to fit available disk;
+release consumer builds were unchanged. The documented input-preparation script
+verified hashes without downloading because those inputs were already present.
+This establishes a **fresh source/build checkout on the existing machine**, not
+dependency provisioning, a clean-machine install, or a network-download audit.
+The temporary checkout and full logs remain at `/tmp/ogpu-checkpoint.D3VZCjLO`.
+
+No additional physical GPU is available. Cross-vendor and physical UMA
 coverage remain unproven; synthetic selectors, mocks and llvmpipe are complementary
 checks, not substitutes. No remote runner has been provisioned or remote workflow
 execution demonstrated by this local checkpoint.
+
+This closes the selected checkpoint, without freezing the API or publishing a
+release/tag. Further implementation should start with a selected use case or a
+specific documented defect, not a requirement to obtain another GPU.

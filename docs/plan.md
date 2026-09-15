@@ -30,7 +30,7 @@ framework, runtime scheduler, new public placement flag or further performance
 target was selected. The failed shaderc optimized-heap diagnostic remains a known
 toolchain limitation; ordinary shader compilation is unchanged.
 
-## Selected work: consolidate a reproducible two-consumer checkpoint
+## Completed work: reproducible two-consumer checkpoint
 
 1. Reconcile current design, support boundaries and build instructions, keeping
    chronology in the ledger/historical plan rather than the active status page.
@@ -47,9 +47,14 @@ hardware acquisition, remote CI deployment or external coordination is selected.
 Use the existing Radeon and software driver where useful; do not manufacture
 portability claims from software execution or mocks.
 
-Done when the current documents agree, the clean-checkout evidence is recorded,
-both selected consumers work without old build artifacts, and remaining setup
-requirements/limitations are explicit. See [checkpoint and reproduction](checkpoint.md).
+Complete: [checkpoint and reproduction](checkpoint.md), tested at `798e186` with
+later documentation-only reconciliation. The fresh checkout rebuilt the runtime
+and both consumers without old build artifacts. All 30 ordinary/745 ABI/mock
+checks pass; all 20 GPU tests and libplacebo acceptance pass on both available
+drivers. GGML's full four-variant matrix passes on Radeon, with a representative
+DEVICE/F16 six-case cross-check on llvmpipe. Installed tools, source/data caches
+and driver caches were reused explicitly; this is not clean-machine provisioning.
+No runtime/build-script changes were needed. No new implementation is selected.
 
 ## Decisions blocking the candidate
 

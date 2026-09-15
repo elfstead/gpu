@@ -10,6 +10,16 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [consolidated two-consumer checkpoint](checkpoint.md) passes fresh-checkout
+acceptance at `798e186`, using newly built runtime/upstream/consumer binaries.
+All 30 ordinary tests, 745 ABI checks, mock cases and 20 GPU tests per driver pass;
+Radeon covers all four GGML placement/precision combinations (24 dataset cases),
+llvmpipe repeats DEVICE/F16 (six). Both drivers pass libplacebo controls and all
+benchmark correctness configurations. Installed tools and pinned source/data caches
+were reused; no clean-machine, minimum-Rust or extra-hardware claim follows.
+No runtime/build-script fix, API change or new performance measurement was needed.
+See the [receipt](results/checkpoint-2026-09-15.txt) for exact coverage and provenance.
+
 The [image-memory preference correction](libplacebo-diagnosis.md#runtime-correction--2026-09-15)
 is implemented at `1f41d7e`, following the diagnosis below. Images prefer eligible
 non-host-visible local memory, while visible local/UMA and existing eligibility
