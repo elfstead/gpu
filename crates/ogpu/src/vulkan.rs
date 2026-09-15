@@ -353,6 +353,7 @@ impl Instance {
         name[255] = 0;
         Ok(OgpuDeviceInfo {
             name,
+            backend: crate::BACKEND_VULKAN,
             vendor_id: props.vendorID,
             device_id: props.deviceID,
             device_type: match props.deviceType {

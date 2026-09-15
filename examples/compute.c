@@ -70,8 +70,8 @@ int main(int argc, char **argv) {
     ogpu_buffer_destroy(buffer); buffer = NULL;
     TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &buffer, &error));
     uint32_t invalid_module[5] = {0};
-    REQUIRE(ogpu_kernel_create(device, &(OgpuShaderDesc){invalid_module, 5, NULL, 0, 0}, 16, &kernel, &error) == OGPU_ERROR_INVALID_ARGUMENT && kernel == NULL);
-    TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, (uint64_t)byte_count / 4, NULL, 0, 0}, sizeof(Root), &kernel, &error));
+    REQUIRE(ogpu_kernel_create(device, &(OgpuShaderDesc){invalid_module, (5) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, 16, &kernel, &error) == OGPU_ERROR_INVALID_ARGUMENT && kernel == NULL);
+    TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, ((uint64_t)byte_count / 4) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &kernel, &error));
     /* Children retain their device too. This tests ownership, not just shutdown order. */
     ogpu_device_destroy(device); device = NULL;
 

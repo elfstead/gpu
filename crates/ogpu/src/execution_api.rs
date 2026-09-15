@@ -3,7 +3,8 @@
 use crate::SUCCESS;
 use crate::{
     compute::{Batch, Buffer, Completion, Device, Image, ImageHeap, Kernel, Raster, SamplerHeap},
-    Error, OgpuError, OgpuProbe, OgpuResult, INVALID_ARGUMENT, OUT_OF_RANGE,
+    Error, OgpuDeviceLimits, OgpuError, OgpuProbe, OgpuResult, OgpuShaderDesc,
+    OgpuSpecializationConstant, OgpuTimingInfo, INVALID_ARGUMENT, OUT_OF_RANGE,
 };
 use std::{ffi::c_void, ptr, rc::Rc};
 
@@ -22,10 +23,8 @@ pub struct OgpuImageHeap {
 pub struct OgpuSamplerHeap {
     inner: Rc<SamplerHeap>,
 }
-pub use crate::compute::DeviceLimits as OgpuDeviceLimits;
 pub use crate::compute::ImageDesc as OgpuImageDesc;
 pub use crate::compute::SamplerDesc as OgpuSamplerDesc;
-pub use crate::compute::SpecializationConstant as OgpuSpecializationConstant;
 
 /// # Safety
 /// Live device and writable, non-overlapping outputs; externally serialized.
@@ -80,36 +79,11 @@ pub unsafe extern "C" fn ogpu_device_limits(
     }
 }
 
-#[repr(C)]
-pub struct OgpuShaderDesc {
-    pub words: *const u32,
-    pub word_count: u64,
-    pub constants: *const OgpuSpecializationConstant,
-    pub constant_count: u32,
-    pub reserved: u32,
-}
-
 unsafe fn shader<'a>(
     desc: *const OgpuShaderDesc,
 ) -> Result<(&'a [u32], &'a [OgpuSpecializationConstant]), Error> {
-    unsafe {
-        required(desc)?;
-        let desc = &*desc;
-        if desc.reserved != 0 {
-            return Err(Error::new(
-                INVALID_ARGUMENT,
-                "Reserved shader description field",
-            ));
-        }
-        let words = shader_words(desc.words, desc.word_count)?;
-        let constants = if desc.constant_count == 0 {
-            &[]
-        } else {
-            required(desc.constants)?;
-            std::slice::from_raw_parts(desc.constants, desc.constant_count as usize)
-        };
-        Ok((words, constants))
-    }
+    let shader = unsafe { crate::shader::Shader::read(desc)? };
+    Ok((shader.spirv()?, shader.constants))
 }
 
 /// # Safety
@@ -129,12 +103,7 @@ pub unsafe extern "C" fn ogpu_batch_discard_image(
     }
 }
 
-#[repr(C)]
-pub struct OgpuImageEntry {
-    pub image: *const OgpuImage,
-    pub kind: u32,
-    pub reserved: u32,
-}
+pub use crate::api_types::OgpuImageEntry;
 
 /// # Safety
 /// Live device; writable, non-overlapping outputs; external serialization.
@@ -316,13 +285,6 @@ pub struct OgpuRaster {
     inner: Rc<Raster>,
 }
 
-#[repr(C)]
-pub struct OgpuDrawArguments {
-    pub vertex_count: u32,
-    pub instance_count: u32,
-    pub first_vertex: u32,
-    pub first_instance: u32,
-}
 pub struct OgpuKernel {
     inner: Rc<Kernel>,
 }
@@ -331,14 +293,6 @@ pub struct OgpuBatch {
 }
 pub struct OgpuCompletion {
     inner: Completion,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct OgpuTimingInfo {
-    pub timestamp_period_ns: f64,
-    pub timestamp_valid_bits: u32,
-    pub reserved: u32,
 }
 
 /// # Safety
@@ -862,18 +816,6 @@ pub unsafe extern "C" fn ogpu_image_destroy(target: *mut OgpuImage) {
             drop(Box::from_raw(target));
         }
     }
-}
-
-// SAFETY: caller supplies word_count readable words with a lifetime covering the call.
-unsafe fn shader_words<'a>(words: *const u32, word_count: u64) -> Result<&'a [u32], Error> {
-    required(words)?;
-    if word_count < 5 || word_count > (isize::MAX as u64) / 4 || words as usize % 4 != 0 {
-        return Err(Error::new(
-            INVALID_ARGUMENT,
-            "Invalid SPIR-V word count/alignment",
-        ));
-    }
-    unsafe { Ok(std::slice::from_raw_parts(words, word_count as usize)) }
 }
 
 /// # Safety

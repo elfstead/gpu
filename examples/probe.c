@@ -86,8 +86,12 @@ int main(int argc, char **argv) {
         OgpuDeviceInfo info;
         CHECK(ogpu_probe_device_info(probe, i, &info) == OGPU_SUCCESS);
         CHECK(info.name[255] == 0);
-        printf("%s (vendor %04" PRIx32 ", device %04" PRIx32 ", Vulkan %" PRIu32 ".%" PRIu32 ".%" PRIu32 ")\n",
-               info.name, info.vendor_id, info.device_id, info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch);
+        printf("%s (vendor %04" PRIx32 ", device %04" PRIx32 ", backend %s)\n",
+               info.name, info.vendor_id, info.device_id,
+               info.backend == OGPU_BACKEND_METAL ? "Metal" : "Vulkan");
+        if (info.backend == OGPU_BACKEND_VULKAN)
+            printf("  Vulkan %" PRIu32 ".%" PRIu32 ".%" PRIu32 "\n",
+                   info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch);
         print_capabilities(&info.capabilities);
         if (!strcmp(mode, "--expect-mock")) {
             CHECK(!strcmp(info.name, "OGPU mock device"));

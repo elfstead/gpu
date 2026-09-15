@@ -398,11 +398,11 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
         memcpy(&values[i].bits, (const char *) data + pass->params.constants[i].offset, 4);
     }
     if ((p->kernel || p->raster) && !memcmp(values, p->values, count * sizeof(*values))) return true;
-    const OgpuShaderDesc shader = {p->primary.words, p->primary.count, values, count, 0};
+    const OgpuShaderDesc shader = {p->primary.words, (p->primary.count) * 4, NULL, values, count, OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
     if (pass->params.type == PL_PASS_COMPUTE) {
         TRY(ogpu_kernel_create(b->device, &shader, pass->params.push_constants_size, &kernel, &error));
     } else {
-        const OgpuShaderDesc vertex = {p->vertex.words, p->vertex.count, values, count, 0};
+        const OgpuShaderDesc vertex = {p->vertex.words, (p->vertex.count) * 4, NULL, values, count, OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
         const uint32_t format = !strcmp(pass->params.target_format->name, "rgba8") ?
             OGPU_FORMAT_RGBA8_UNORM : OGPU_FORMAT_RGBA16_FLOAT;
         TRY(ogpu_raster_create(b->device, &vertex, &shader, p->root_size,

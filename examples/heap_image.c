@@ -189,11 +189,11 @@ int main(int argc, char **argv) {
         OgpuDeviceInfo info;
         TRY(ogpu_probe_device_info(probe, i, &info));
         printf("Executing heap-image on %s\n", info.name);
-        TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[2], counts[2], NULL, 0, 0}, sizeof(Root), &compute, &error));
-        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[0], counts[0], NULL, 0, 0},
-            &(OgpuShaderDesc){words[1], counts[1], NULL, 0, 0}, 0, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &pattern, &error));
-        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[0], counts[0], NULL, 0, 0},
-            &(OgpuShaderDesc){words[3], counts[3], NULL, 0, 0}, sizeof(SampleRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &sample, &error));
+        TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[2], (counts[2]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &compute, &error));
+        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[0], (counts[0]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
+            &(OgpuShaderDesc){words[1], (counts[1]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, 0, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &pattern, &error));
+        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[0], (counts[0]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
+            &(OgpuShaderDesc){words[3], (counts[3]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(SampleRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &sample, &error));
         const uint32_t sizes[][2] = {{1, 1}, {2, 3}, {63, 65}, {64, 64}, {65, 63}, {97, 65}};
         for (unsigned j = 0; j < sizeof(sizes) / sizeof(sizes[0]); ++j)
             REQUIRE(run_case(device, compute, pattern, sample, sizes[j][0], sizes[j][1]) == EXIT_SUCCESS);

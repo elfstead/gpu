@@ -1,66 +1,30 @@
 //! Native Metal implementation of the backend-independent compute slice.
 #![allow(clippy::missing_safety_doc)]
 use crate::contract;
+mod copy;
+#[cfg(test)]
+#[path = "metal/tests.rs"]
+mod native_tests;
+#[cfg(feature = "spirv-to-msl")]
+mod spirv;
 use crate::{
-    Error, OgpuCapabilities, OgpuDeviceInfo, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR,
-    INVALID_ARGUMENT, OUT_OF_RANGE, SUCCESS, UNSUPPORTED,
+    Error, OgpuCapabilities, OgpuDeviceInfo, OgpuDeviceLimits, OgpuError, OgpuProbe, OgpuResult,
+    OgpuShaderDesc, OgpuTimingInfo, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE, UNSUPPORTED,
 };
 use ::metal::{
     Buffer as MetalBuffer, CommandBuffer, CommandQueue, ComputePipelineState,
-    Device as MetalDevice, FunctionConstantValues, MTLCommandBufferStatus, MTLDataType,
-    MTLResourceOptions, MTLSize,
+    Device as MetalDevice, FunctionConstantValues, MTLCommandBufferStatus, MTLResourceOptions,
+    MTLSize,
 };
 use foreign_types::ForeignType;
 use objc::{msg_send, sel, sel_impl};
-use spirv_cross2::{
-    compile::{msl::MslVersion, CompilableTarget},
-    spirv,
-    targets::Msl,
-    Compiler, Module,
-};
 use std::{
-    cell::RefCell,
-    collections::{BTreeMap, BTreeSet},
+    cell::{OnceCell, RefCell},
+    collections::BTreeMap,
     ffi::c_void,
     ptr,
     rc::{Rc, Weak},
 };
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct OgpuDeviceLimits {
-    pub max_group_size: [u32; 3],
-    pub max_group_invocations: u32,
-    pub max_shared_memory_bytes: u32,
-    pub max_dispatch: [u32; 3],
-    pub max_image_1d: u32,
-    pub max_image_2d: u32,
-    pub max_push_data_bytes: u64,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct OgpuSpecializationConstant {
-    pub id: u32,
-    pub bits: u32,
-}
-
-#[repr(C)]
-pub struct OgpuShaderDesc {
-    pub words: *const u32,
-    pub word_count: u64,
-    pub constants: *const OgpuSpecializationConstant,
-    pub constant_count: u32,
-    pub reserved: u32,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct OgpuTimingInfo {
-    pub timestamp_period_ns: f64,
-    pub timestamp_valid_bits: u32,
-    pub reserved: u32,
-}
 
 pub struct OgpuDevice {
     inner: Rc<Device>,
@@ -86,6 +50,7 @@ struct Device {
     raw: MetalDevice,
     queue: CommandQueue,
     buffers: RefCell<BTreeMap<usize, Weak<Buffer>>>,
+    byte_copy: OnceCell<ComputePipelineState>,
 }
 
 struct Buffer {
@@ -140,13 +105,22 @@ pub(crate) fn device_info(device: &MetalDevice) -> OgpuDeviceInfo {
     }
     OgpuDeviceInfo {
         name,
-        vendor_id: 0x106b,
+        backend: crate::BACKEND_METAL,
+        vendor_id: if device.supports_family(::metal::MTLGPUFamily::Apple7) {
+            0x106b
+        } else {
+            0
+        },
         device_id: device.registry_id() as u32,
         device_type: 1,
         vulkan_api_major: 0,
         vulkan_api_minor: 0,
         vulkan_api_patch: 0,
-        capabilities: capabilities(),
+        capabilities: if supported(device) {
+            capabilities()
+        } else {
+            OgpuCapabilities::default()
+        },
     }
 }
 
@@ -154,8 +128,6 @@ fn capabilities() -> OgpuCapabilities {
     OgpuCapabilities {
         compute_queue: 1,
         buffer_device_address: 1,
-        timeline_semaphore: 1,
-        synchronization2: 1,
         storage_buffer_8bit_access: 1,
         storage_buffer_16bit_access: 1,
         shader_float16: 1,
@@ -302,12 +274,19 @@ pub unsafe extern "C" fn ogpu_device_create(
                 .get(index as usize)
                 .ok_or_else(|| fail(OUT_OF_RANGE, "Device index out of range"))?
                 .to_owned();
+            if !supported(&raw) {
+                return Err(fail(
+                    UNSUPPORTED,
+                    "Metal execution requires Apple Silicon with Metal 3 (macOS 13+)",
+                ));
+            }
             let queue = raw.new_command_queue();
             Ok(OgpuDevice {
                 inner: Rc::new(Device {
                     raw,
                     queue,
                     buffers: RefCell::new(BTreeMap::new()),
+                    byte_copy: OnceCell::new(),
                 }),
             })
         })
@@ -546,169 +525,8 @@ pub unsafe extern "C" fn ogpu_kernel_create(
                 push_size,
                 limits(&(&(*device).inner).raw).max_push_data_bytes,
             )?;
-            required(desc)?;
-            let desc = &*desc;
-            if desc.reserved != 0
-                || desc.word_count < 5
-                || desc.word_count > isize::MAX as u64 / 4
-                || desc.words as usize % 4 != 0
-            {
-                return Err(fail(INVALID_ARGUMENT, "Invalid shader description"));
-            }
-            required(desc.words)?;
-            let words = std::slice::from_raw_parts(desc.words, desc.word_count as usize);
-            if words[0] != 0x0723_0203 {
-                return Err(fail(INVALID_ARGUMENT, "Invalid SPIR-V magic"));
-            }
-            let constants = if desc.constant_count == 0 {
-                &[][..]
-            } else {
-                required(desc.constants)?;
-                std::slice::from_raw_parts(desc.constants, desc.constant_count as usize)
-            };
-            let mut ids = BTreeSet::new();
-            if constants.iter().any(|c| !ids.insert(c.id)) {
-                return Err(fail(INVALID_ARGUMENT, "Duplicate specialization ID"));
-            }
-            let module = Module::from_words(words);
-            let mut compiler = Compiler::<Msl>::new(module)
-                .map_err(|e| fail(INVALID_ARGUMENT, format!("SPIR-V parse failed: {e:?}")))?;
-            let has_entry = compiler
-                .entry_points()
-                .map_err(|e| {
-                    fail(
-                        INVALID_ARGUMENT,
-                        format!("SPIR-V entry query failed: {e:?}"),
-                    )
-                })?
-                .any(|e| e.name == "main" && e.execution_model == spirv::ExecutionModel::GLCompute);
-            if !has_entry {
-                return Err(fail(
-                    INVALID_ARGUMENT,
-                    "SPIR-V compute entry point main not found",
-                ));
-            }
-            compiler
-                .set_entry_point("main", spirv::ExecutionModel::GLCompute)
-                .map_err(|e| {
-                    fail(
-                        INVALID_ARGUMENT,
-                        format!("Entry point selection failed: {e:?}"),
-                    )
-                })?;
-            let declared: Vec<_> = compiler
-                .specialization_constants()
-                .map_err(|e| {
-                    fail(
-                        INVALID_ARGUMENT,
-                        format!("Specialization query failed: {e:?}"),
-                    )
-                })?
-                .collect();
-            for found in &declared {
-                compiler
-                    .set_name(found.id, format!("ogpu_spec_{}", found.constant_id))
-                    .map_err(|e| {
-                        fail(
-                            INVALID_ARGUMENT,
-                            format!("Specialization rename failed: {e:?}"),
-                        )
-                    })?;
-            }
-            let mut metal_constants = Vec::new();
-            for c in constants {
-                if let Some(found) = declared.iter().find(|v| v.constant_id == c.id) {
-                    let type_id = compiler
-                        .specialization_constant_type(found.id)
-                        .map_err(|e| {
-                            fail(
-                                INVALID_ARGUMENT,
-                                format!("Specialization type query failed: {e:?}"),
-                            )
-                        })?;
-                    let ty = compiler.type_description(type_id).map_err(|e| {
-                        fail(
-                            INVALID_ARGUMENT,
-                            format!("Specialization type query failed: {e:?}"),
-                        )
-                    })?;
-                    let data_type = match ty.inner {
-                        spirv_cross2::reflect::TypeInner::Scalar(scalar)
-                            if scalar.size == spirv_cross2::reflect::BitWidth::Word =>
-                        {
-                            match scalar.kind {
-                                spirv_cross2::reflect::ScalarKind::Int => MTLDataType::Int,
-                                spirv_cross2::reflect::ScalarKind::Uint => MTLDataType::UInt,
-                                spirv_cross2::reflect::ScalarKind::Float => MTLDataType::Float,
-                                spirv_cross2::reflect::ScalarKind::Bool => MTLDataType::Bool,
-                            }
-                        }
-                        spirv_cross2::reflect::TypeInner::Scalar(scalar)
-                            if scalar.kind == spirv_cross2::reflect::ScalarKind::Bool =>
-                        {
-                            MTLDataType::Bool
-                        }
-                        _ => {
-                            return Err(fail(
-                                INVALID_ARGUMENT,
-                                "Specialization constants must be 32-bit scalars or bool",
-                            ))
-                        }
-                    };
-                    compiler
-                        .set_specialization_constant_value(found.id, c.bits)
-                        .map_err(|e| {
-                            fail(INVALID_ARGUMENT, format!("Specialization failed: {e:?}"))
-                        })?;
-                    metal_constants.push((c.id, c.bits, data_type));
-                }
-            }
-            let local = match compiler
-                .execution_mode_arguments(spirv::ExecutionMode::LocalSize)
-                .map_err(|e| {
-                    fail(
-                        INVALID_ARGUMENT,
-                        format!("Workgroup size query failed: {e:?}"),
-                    )
-                })? {
-                Some(spirv_cross2::reflect::ExecutionModeArguments::LocalSize { x, y, z }) => {
-                    [x, y, z]
-                }
-                _ => return Err(fail(INVALID_ARGUMENT, "Invalid workgroup size")),
-            };
-            let mut options = Msl::options();
-            options.version = MslVersion::new(2, 3, 0);
-            let artifact = compiler
-                .compile(&options)
-                .map_err(|e| fail(UNSUPPORTED, format!("SPIR-V to MSL failed: {e:?}")))?;
-            let source = artifact.to_string();
-            let library = (&(*device).inner)
-                .raw
-                .new_library_with_source(&source, &::metal::CompileOptions::new())
-                .map_err(|e| fail(UNSUPPORTED, format!("Metal shader compilation failed: {e}")))?;
-            let values = FunctionConstantValues::new();
-            for (id, bits, data_type) in &metal_constants {
-                values.set_constant_value_at_index(
-                    (bits as *const u32).cast(),
-                    *data_type,
-                    *id as u64,
-                );
-            }
-            let function = library
-                .get_function("main0", Some(values))
-                .map_err(|e| fail(UNSUPPORTED, format!("Metal entry point failed: {e}")))?;
-            let pipeline = (&(*device).inner)
-                .raw
-                .new_compute_pipeline_state_with_function(&function)
-                .map_err(|e| fail(UNSUPPORTED, format!("Metal pipeline creation failed: {e}")))?;
-            let group = MTLSize {
-                width: local[0] as _,
-                height: local[1] as _,
-                depth: local[2] as _,
-            };
-            if group.width == 0 || group.height == 0 || group.depth == 0 {
-                return Err(fail(INVALID_ARGUMENT, "Invalid workgroup size"));
-            }
+            let shader = crate::shader::Shader::read(desc)?;
+            let (pipeline, group) = prepare(&(&(*device).inner).raw, shader)?;
             Ok(OgpuKernel {
                 inner: Rc::new(Kernel {
                     device: (&(*device).inner).clone(),
@@ -883,12 +701,7 @@ pub unsafe extern "C" fn ogpu_batch_copy_buffer(
             if n == 0 {
                 return Ok(());
             }
-            let enc = b.cb()?.new_blit_command_encoder();
-            enc.copy_from_buffer(&s.raw, so as u64, &d.raw, doff as u64, n as u64);
-            enc.end_encoding();
-            contract::retain(&mut b.retained, s.clone());
-            contract::retain(&mut b.retained, d.clone());
-            Ok(())
+            b.copy(s, so, d, doff, n)
         })
     }
 }
@@ -958,9 +771,9 @@ pub unsafe extern "C" fn ogpu_completion_poll(
 ) -> OgpuResult {
     unsafe {
         call(error, || {
-            required(completion)?;
             required(out)?;
             out.write(0);
+            required(completion)?;
             out.write((*completion).inner.observe(false)? as u32);
             Ok(())
         })
@@ -1082,6 +895,8 @@ pub unsafe extern "C" fn ogpu_raster_destroy(_p: *mut OgpuRaster) {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "spirv-to-msl")]
+    use crate::{OgpuSpecializationConstant, SUCCESS};
     #[test]
     fn ranges_are_checked() {
         assert_eq!(check_range(16, 16, 0).unwrap(), (16, 0));
@@ -1090,14 +905,15 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "spirv-to-msl")]
+    #[ignore = "requires Apple Silicon Metal GPU and SPIR-V adapter"]
     fn specialized_spirv_executes_on_metal() {
-        let Some(raw) = MetalDevice::system_default() else {
-            return;
-        };
+        let raw = MetalDevice::system_default().expect("Metal GPU required");
         let device = Rc::new(Device {
             queue: raw.new_command_queue(),
             raw,
             buffers: RefCell::new(BTreeMap::new()),
+            byte_copy: OnceCell::new(),
         });
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../examples/shaders/specialize.comp.spv");
@@ -1120,8 +936,11 @@ mod tests {
             OgpuSpecializationConstant { id: 5, bits: 0 },
         ];
         let desc = OgpuShaderDesc {
-            words: words.as_ptr(),
-            word_count: words.len() as u64,
+            code: words.as_ptr().cast(),
+            entry_point: ptr::null(),
+            format: crate::SHADER_SPIRV,
+            local_size: [0; 3],
+            code_size: (words.len() * 4) as u64,
             constants: constants.as_ptr(),
             constant_count: constants.len() as u32,
             reserved: 0,
@@ -1168,4 +987,106 @@ mod tests {
             ogpu_buffer_destroy(buffer);
         }
     }
+}
+
+fn prepare(
+    device: &MetalDevice,
+    shader: crate::shader::Shader<'_>,
+) -> Result<(ComputePipelineState, MTLSize), Error> {
+    debug_assert!(shader.format == crate::SHADER_SPIRV || shader.constants.is_empty());
+    let (library, entry, local, constants) = match shader.format {
+        crate::SHADER_SPIRV => {
+            #[cfg(feature = "spirv-to-msl")]
+            {
+                let translated = spirv::translate(shader.spirv()?, shader.constants)?;
+                let library = device
+                    .new_library_with_source(&translated.source, &::metal::CompileOptions::new())
+                    .map_err(|e| {
+                        fail(
+                            UNSUPPORTED,
+                            format!("Translated MSL compilation failed: {e}"),
+                        )
+                    })?;
+                (library, "main0", translated.local, translated.constants)
+            }
+            #[cfg(not(feature = "spirv-to-msl"))]
+            return Err(fail(
+                UNSUPPORTED,
+                "SPIR-V to MSL adapter disabled; supply MSL or metallib",
+            ));
+        }
+        crate::SHADER_MSL => {
+            let source = std::str::from_utf8(shader.code)
+                .map_err(|_| fail(INVALID_ARGUMENT, "MSL source is not UTF-8"))?;
+            if source.contains('\0') {
+                return Err(fail(INVALID_ARGUMENT, "MSL contains NUL"));
+            }
+            let library = device
+                .new_library_with_source(source, &::metal::CompileOptions::new())
+                .map_err(|e| fail(UNSUPPORTED, format!("MSL compilation failed: {e}")))?;
+            (
+                library,
+                shader.entry,
+                shader.local_size,
+                Vec::<(u32, u32, ::metal::MTLDataType)>::new(),
+            )
+        }
+        crate::SHADER_METALLIB => {
+            let library = device
+                .new_library_with_data(shader.code)
+                .map_err(|e| fail(UNSUPPORTED, format!("Metal library loading failed: {e}")))?;
+            (
+                library,
+                shader.entry,
+                shader.local_size,
+                Vec::<(u32, u32, ::metal::MTLDataType)>::new(),
+            )
+        }
+        _ => unreachable!("shared shader validation"),
+    };
+    let values = FunctionConstantValues::new();
+    for (id, bits, data_type) in &constants {
+        if *data_type == ::metal::MTLDataType::Bool {
+            let value = *bits != 0;
+            values.set_constant_value_at_index(
+                (&value as *const bool).cast(),
+                *data_type,
+                *id as u64,
+            );
+        } else {
+            values.set_constant_value_at_index((bits as *const u32).cast(), *data_type, *id as u64);
+        }
+    }
+    let function = library
+        .get_function(entry, Some(values))
+        .map_err(|e| fail(UNSUPPORTED, format!("Metal entry point failed: {e}")))?;
+    let pipeline = device
+        .new_compute_pipeline_state_with_function(&function)
+        .map_err(|e| fail(UNSUPPORTED, format!("Metal pipeline creation failed: {e}")))?;
+    let limits = limits(device);
+    contract::dispatch(local, limits.max_group_size, 0, 0)?;
+    let invocations = local
+        .into_iter()
+        .try_fold(1u64, |n, axis| n.checked_mul(u64::from(axis)));
+    if invocations.is_none_or(|n| n > pipeline.max_total_threads_per_threadgroup())
+        || pipeline.static_threadgroup_memory_length() > limits.max_shared_memory_bytes as u64
+    {
+        return Err(fail(
+            INVALID_ARGUMENT,
+            "Kernel exceeds Metal threadgroup limits",
+        ));
+    }
+    Ok((
+        pipeline,
+        MTLSize {
+            width: local[0] as _,
+            height: local[1] as _,
+            depth: local[2] as _,
+        },
+    ))
+}
+
+fn supported(device: &MetalDevice) -> bool {
+    device.supports_family(::metal::MTLGPUFamily::Apple7)
+        && device.supports_family(::metal::MTLGPUFamily::Metal3)
 }

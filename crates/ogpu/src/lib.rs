@@ -1,7 +1,13 @@
 //! Experimental C ABI. Ownership and pointer requirements are defined in include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
+mod api_types;
 mod boundary;
 mod contract;
+mod shader;
+pub use api_types::*;
+pub use shader::{
+    OgpuShaderDesc, OgpuSpecializationConstant, SHADER_METALLIB, SHADER_MSL, SHADER_SPIRV,
+};
 
 #[cfg(target_os = "linux")]
 mod compute;
@@ -25,7 +31,9 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 11;
+pub const ABI_VERSION: u32 = 12;
+pub const BACKEND_VULKAN: u32 = 1;
+pub const BACKEND_METAL: u32 = 2;
 pub const SUCCESS: OgpuResult = 0;
 pub const INVALID_ARGUMENT: OgpuResult = -1;
 pub const ABI_MISMATCH: OgpuResult = -2;
@@ -75,6 +83,7 @@ pub struct OgpuCapabilities {
 #[derive(Clone, Copy)]
 pub struct OgpuDeviceInfo {
     pub name: [c_char; 256],
+    pub backend: u32,
     pub vendor_id: u32,
     pub device_id: u32,
     pub device_type: u32,

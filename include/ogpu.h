@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(11)
+#define OGPU_ABI_VERSION UINT32_C(12)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -31,7 +31,11 @@ typedef struct OgpuError {
 /* Every field is exactly 0 or 1. Probe queries report physical support;
  * device_capabilities reports enabled execution. Supported does not mean enabled.
  * Matrix flags do NOT guarantee particular shapes/types, speed, or compiler support.
- * Numeric shader types and storage access are deliberately separate capabilities. */
+ * Numeric shader types and storage access are deliberately separate capabilities.
+ * timeline_semaphore, synchronization2, descriptor_heap, device_address_commands,
+ * shader_untyped_pointers are native Vulkan feature audit fields: zero on Metal.
+ * They are NOT portable feature tests for OGPU batches, barriers or completion
+ * receipts. Those execution/ownership contracts apply to every created device. */
 typedef struct OgpuCapabilities {
     uint32_t graphics_queue;
     uint32_t compute_queue;
@@ -66,8 +70,11 @@ typedef struct OgpuCapabilities {
 #define OGPU_DEVICE_VIRTUAL UINT32_C(3)
 #define OGPU_DEVICE_CPU UINT32_C(4)
 
+#define OGPU_BACKEND_VULKAN UINT32_C(1)
+#define OGPU_BACKEND_METAL UINT32_C(2)
 typedef struct OgpuDeviceInfo {
     char name[256];
+    uint32_t backend;
     uint32_t vendor_id;
     uint32_t device_id;
     uint32_t device_type;
@@ -78,7 +85,8 @@ typedef struct OgpuDeviceInfo {
 } OgpuDeviceInfo;
 
 /* Creates an immutable snapshot; no logical GPU device or GPU work is created.
- * Requires a Vulkan 1.1+ loader; optional device features are never required.
+ * Vulkan discovery requires a Vulkan 1.1+ loader; macOS uses native Metal discovery.
+ * Optional execution features are never required for discovery.
  * out_probe is required and set to NULL on failure. out_error is optional and
  * cleared on success. Zero devices is a successful empty snapshot.
  * Pass OGPU_ABI_VERSION: a mismatch is rejected before writing versioned structs.
@@ -95,7 +103,8 @@ void ogpu_probe_destroy(OgpuProbe *probe);
 OgpuResult ogpu_probe_device_count(const OgpuProbe *probe, uint32_t *out_count);
 OgpuResult ogpu_probe_device_info(const OgpuProbe *probe, uint32_t index, OgpuDeviceInfo *out_info);
 
-/* Experimental execution slice: Linux x86-64, Vulkan 1.4 + compute queue;
+/* Experimental execution: Linux x86-64 uses Vulkan; macOS arm64 uses native Metal
+ * on Apple Silicon, currently compute only (macOS 13+). Vulkan requires 1.4 + compute queue;
  * requires BDA, timelineSemaphore, synchronization2, maintenance5, storageBuffer16BitAccess,
  * VK_EXT_descriptor_heap, VK_KHR_device_address_commands and
  * VK_KHR_shader_untyped_pointers (including their feature bits).
@@ -123,9 +132,10 @@ void ogpu_device_destroy(OgpuDevice *device);
  * Unlike probe_device_info.capabilities, these describe THIS created device.
  * compute_queue=1; graphics_queue=1 only for create_graphics. The fixed modern
  * baseline includes storage_buffer_16bit_access=1 (also mandatory in Vulkan 1.4).
- * All other numeric/storage/matrix fields are 0, including shader_float16:
+ * On Vulkan, all other numeric/storage/matrix fields are 0, including shader_float16:
  * half buffer loads/stores with FP32 conversion do not imply half arithmetic.
- * No implicit feature negotiation, even if the probe reports more hardware support.
+ * Metal enables its documented native numeric baseline; query rather than infer
+ * capabilities from another backend. No implicit optional-feature negotiation.
  * Cached; works after device loss. Output unchanged on error; serialized. */
 OgpuResult ogpu_device_capabilities(const OgpuDevice *device,
     OgpuCapabilities *out_capabilities, OgpuError *out_error);
@@ -184,22 +194,37 @@ OgpuResult ogpu_buffer_device_address(const OgpuBuffer *buffer, uint64_t *out_ad
  * specialized shader (including local size/shared memory) fits enabled limits.
  * Specialization affects executable creation, never later dispatch arguments. */
 typedef struct OgpuSpecializationConstant { uint32_t id, bits; } OgpuSpecializationConstant;
+#define OGPU_SHADER_SPIRV UINT32_C(0)
+#define OGPU_SHADER_MSL UINT32_C(1)
+#define OGPU_SHADER_METALLIB UINT32_C(2)
 typedef struct OgpuShaderDesc {
-    const uint32_t *words;
-    uint64_t word_count;
+    const void *code;
+    uint64_t code_size; /* Bytes, not words; excludes a source string's terminator. */
+    const char *entry_point; /* NUL-terminated UTF-8; NULL means "main". */
     const OgpuSpecializationConstant *constants;
     uint32_t constant_count;
+    uint32_t format;
+    uint32_t local_size[3]; /* All zero for SPIR-V; explicit XYZ for native Metal. */
     uint32_t reserved;
 } OgpuShaderDesc;
-/* Description, words and constants are consumed before creation returns.
+/* Description, code, entry name and constants are consumed before creation returns.
+ * Vulkan accepts SPIR-V. Metal accepts MSL source or metallib; SPIR-V requires the
+ * optional spirv-to-msl build feature. Formats describe artifacts, not a common
+ * source language or a promise that one artifact runs on every backend.
+ * Native Metal artifacts must be pre-specialized (constant_count=0), with explicit
+ * nonzero local_size within device/pipeline limits. Root data is constant buffer(0);
+ * pointers inside it are native GPU addresses. No other buffer/texture bindings are
+ * supplied. MSL is UTF-8 without embedded NUL; metallib is trusted native code.
+ * The remainder of this paragraph describes SPIR-V inputs:
  * reserved=0; constant_count=0 permits NULL constants. All pointers are naturally
- * aligned. words is a 4-byte-aligned SPIR-V module. The caller
+ * aligned. code is a 4-byte-aligned SPIR-V module with byte size divisible by 4. The caller
  * must provide VALID SPIR-V for the enabled modern Vulkan baseline with a compute
  * entry named "main" and no descriptor-set bindings. Core capabilities, BDA,
  * untyped pointers and native descriptor-heap access are supported. Heap shaders
  * require bound image/sampler heaps with matching descriptor kinds, formats and valid indices.
  * Legacy descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
- * push_size_bytes must be a multiple of 4 within maxPushDataSize; zero is legal.
+ * For every format, push_size_bytes must be a multiple of 4 within
+ * max_push_data_bytes; zero is legal.
  * All shader push accesses must fit this range. Header checks are NOT validation
  * or sandboxing; malformed/incompatible shaders may cause driver faults. */
 OgpuResult ogpu_kernel_create(OgpuDevice *device, const OgpuShaderDesc *shader,

@@ -6,11 +6,13 @@ command and regeneration reference, not a requirement to run every historical
 experiment before using the runtime.
 
 The runtime has a Rust Vulkan backend on Linux x86-64 and a native Metal compute
-backend on macOS arm64 behind the same small C ABI. The Metal path translates
-SPIR-V to MSL in-process. The Vulkan runtime does not use ash or Vulkanalia. The optional
+backend on macOS arm64 behind the same small C ABI. Metal accepts native MSL and
+metallib, with optional in-process SPIR-V translation (disable with
+`--no-default-features`). See [native acceptance and remaining work](metal.md).
+The Vulkan runtime does not use ash or Vulkanalia. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 11; rebuild callers with this checkout's
+execution interface. The current ABI is 12; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 The [capability contract](execution-capabilities.md) separates probe support from
@@ -95,8 +97,8 @@ done
 ```
 
 Requirements: Rust 1.85+ with Cargo and a C11 compiler/linker. Linux execution needs
-a Vulkan loader with Vulkan 1.1+ support. macOS execution needs Apple Silicon and
-Metal; graphics, images, descriptor heaps and queue timing remain explicitly
+a Vulkan loader with Vulkan 1.1+ support. macOS execution needs Apple Silicon,
+macOS 13+ and Metal 3; graphics, images, descriptor heaps and queue timing remain explicitly
 unsupported there. A GPU is not required to compile or run the Linux mock tests.
 
 ```sh

@@ -4,13 +4,24 @@ use std::{
     panic::{catch_unwind, AssertUnwindSafe},
     ptr,
 };
+
+pub(crate) fn native_scope<T>(f: impl FnOnce() -> T) -> T {
+    #[cfg(target_os = "macos")]
+    {
+        objc::rc::autoreleasepool(f)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        f()
+    }
+}
 // SAFETY (for callers of these private helpers): error, when non-NULL, is writable
 // and does not overlap inputs. The outer FFI functions document all pointer contracts.
 pub(crate) unsafe fn call(
     error: *mut OgpuError,
     f: impl FnOnce() -> Result<(), Error>,
 ) -> OgpuResult {
-    let result = catch_unwind(AssertUnwindSafe(f)).unwrap_or_else(|_| {
+    let result = native_scope(|| catch_unwind(AssertUnwindSafe(f))).unwrap_or_else(|_| {
         Err(Error::new(
             INTERNAL_ERROR,
             "Rust panic contained at C boundary",

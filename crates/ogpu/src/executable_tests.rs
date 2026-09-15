@@ -10,8 +10,11 @@ fn words(bytes: &[u8]) -> Vec<u32> {
 }
 fn desc(words: &[u32], constants: &[OgpuSpecializationConstant]) -> OgpuShaderDesc {
     OgpuShaderDesc {
-        words: words.as_ptr(),
-        word_count: words.len() as u64,
+        code: words.as_ptr().cast(),
+        entry_point: ptr::null(),
+        format: crate::SHADER_SPIRV,
+        local_size: [0; 3],
+        code_size: (words.len() * 4) as u64,
         constants: constants.as_ptr(),
         constant_count: constants.len() as u32,
         reserved: 0,
@@ -44,7 +47,7 @@ fn shader_descriptions_reject_invalid_pointer_count_and_reserved_fields() {
         shader_desc.reserved = 1;
         assert!(shader(&shader_desc).is_err());
         shader_desc.reserved = 0;
-        shader_desc.word_count = 4;
+        shader_desc.code_size = 16;
         assert!(shader(&shader_desc).is_err());
     }
 }

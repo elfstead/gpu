@@ -149,17 +149,7 @@ fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
     Ok(())
 }
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct DeviceLimits {
-    pub max_group_size: [u32; 3],
-    pub max_group_invocations: u32,
-    pub max_shared_memory_bytes: u32,
-    pub max_dispatch: [u32; 3],
-    pub max_image_1d: u32,
-    pub max_image_2d: u32,
-    pub max_push_data_bytes: u64,
-}
+pub use crate::api_types::OgpuDeviceLimits as DeviceLimits;
 
 pub(crate) struct Device {
     handle: vk::VkDevice,
@@ -968,6 +958,7 @@ mod tests {
     fn modern_baseline_rejects_each_missing_requirement() {
         let mut info = crate::OgpuDeviceInfo {
             name: [0; 256],
+            backend: crate::BACKEND_VULKAN,
             vendor_id: 0,
             device_id: 0,
             device_type: 0,

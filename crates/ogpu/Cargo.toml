@@ -12,6 +12,10 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 libloading = "=0.8.9"
 
+[features]
+default = ["spirv-to-msl"]
+spirv-to-msl = ["dep:spirv-cross2"]
+
 [target.'cfg(target_os = "linux")'.dependencies]
 ogpu-vulkan-sys = { path = "../vulkan-sys" }
 
@@ -19,4 +23,4 @@ ogpu-vulkan-sys = { path = "../vulkan-sys" }
 metal = "=0.33.0"
 objc = "=0.2.7"
 foreign-types = "=0.5.0"
-spirv-cross2 = { version = "=0.7.1", default-features = false, features = ["msl"] }
+spirv-cross2 = { version = "=0.7.1", optional = true, default-features = false, features = ["msl"] }

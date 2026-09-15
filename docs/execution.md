@@ -49,8 +49,12 @@ workgroup size. The original experiment introduced execution at ABI 1; use the
 current matching header/library after subsequent breaking changes. No
 execution-facing Vulkan types are exposed.
 
-ABI 7 uses `OgpuShaderDesc`: SPIR-V words, a list of `{id, bits}` specialization
-constants, and a zero reserved field. Descriptions, words and constants are consumed
+ABI 12 uses a format-tagged `OgpuShaderDesc` with a code pointer and **byte count**,
+entry name, local dimensions and specialization list. SPIR-V requires `main` (or
+a null entry name), zero local dimensions and four-byte-aligned code. Metal also
+accepts native MSL/metallib without translation; see [the artifact contract](metal.md).
+For SPIR-V, the list contains `{id, bits}` specialization constants and the reserved
+field is zero. Descriptions, code and constants are consumed
 before creation returns; they need not remain alive with the executable. Each value
 is exactly 32 bits (int, uint, float, or bool encoded as 0/1). IDs must be unique
 within a stage; absent IDs are ignored and unspecified constants retain shader

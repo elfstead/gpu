@@ -1,12 +1,7 @@
 //! Creation-time scalar specialization; each shader stage owns its ID namespace.
 use super::*;
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct SpecializationConstant {
-    pub id: u32,
-    pub bits: u32,
-}
+pub use crate::shader::OgpuSpecializationConstant as SpecializationConstant;
 
 pub(super) struct Specialization {
     entries: Vec<vk::VkSpecializationMapEntry>,

@@ -4,14 +4,7 @@ use super::*;
 pub(crate) const SAMPLED: u32 = 0;
 pub(crate) const STORAGE: u32 = 1;
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default)]
-pub struct SamplerDesc {
-    pub min_filter: u32,
-    pub mag_filter: u32,
-    pub address_u: u32,
-    pub address_v: u32,
-}
+pub use crate::api_types::OgpuSamplerDesc as SamplerDesc;
 
 fn align_up(value: u64, alignment: u64) -> Result<u64, Error> {
     if !alignment.is_power_of_two() {

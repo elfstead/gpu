@@ -9,16 +9,7 @@ pub(crate) const COLOR: u32 = 4;
 pub(crate) const COPY_SRC: u32 = 8;
 pub(crate) const COPY_DST: u32 = 16;
 
-#[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct ImageDesc {
-    pub dimension: u32,
-    pub width: u32,
-    pub height: u32,
-    pub format: u32,
-    pub usage: u32,
-    pub reserved: u32,
-}
+pub use crate::api_types::OgpuImageDesc as ImageDesc;
 
 impl ImageDesc {
     #[cfg(test)]

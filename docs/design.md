@@ -1,6 +1,6 @@
 # Open GPU Interface: current design
 
-Updated 2026-09-15. This is an experimental programming model with a working
+Updated 2026-09-16. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
@@ -49,7 +49,7 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 11. Ordinary device creation enables compute/images/heaps; rasterization is
+ABI 12 on the Metal branch. On Vulkan, ordinary device creation enables compute/images/heaps; rasterization is
 explicitly opt-in. [Enabled capabilities and exact image-support queries](execution-capabilities.md)
 describe the created device, not just physical support. Terminal completion
 observation retires submission resources independently of the surviving result
@@ -64,9 +64,16 @@ Rebuild callers against matching header/library/shaders. Source revision identif
 the experimental checkpoint; the [ledger](experiments.md) and
 [historical plan](plan-history.md) preserve the sequence of ABI changes.
 
-The backend is Rust over Vulkan, with a small C header and directly generated,
-pinned Vulkan declarations. It does not depend on ash or Vulkanalia. Only Linux
-x86-64 is currently supported. Discovery needs a Vulkan 1.1 loader; execution needs
+The backends are Rust over Vulkan on Linux x86-64 and native Metal compute on
+macOS arm64. Common contract/state code is shared; native encoding is not forced
+through a Vulkan-shaped abstraction. The [Metal handoff](metal.md) distinguishes
+implemented code from outstanding native acceptance and Metal 4 work. Shader
+artifacts are explicitly tagged: Vulkan uses SPIR-V; Metal also accepts native MSL
+and metallib, with SPIR-V translation an optional input adapter rather than the
+definition of the programming model. Native inputs initially require pre-specialization.
+
+Vulkan uses directly generated, pinned declarations, not ash or Vulkanalia.
+Vulkan discovery needs a Vulkan 1.1 loader; execution needs
 Vulkan 1.4, descriptor heaps, untyped pointers, address commands and the core
 features listed in the baseline decision. The optional graphics path additionally
 requires dynamic rendering and a shared graphics/compute queue. Unified image layouts
@@ -82,7 +89,7 @@ retention; applications still own scratch-range reuse decisions.
 |---|---|---|
 | Host boundary | Opaque ownership handles, fixed-width values, explicit errors and lifetime rules | Experimental ABI; some diagnostics/capability fields are Vulkan-specific |
 | Linear memory | Owning buffers and separate non-owning GPU addresses | Dedicated HOST/DEVICE placement, checked host access and retained GPU copies; [memory checkpoint](memory-transfers.md) |
-| Executables | Prepared compute kernels and raster programs, caller-defined root bytes, per-stage 32-bit specialization | Trusted Vulkan SPIR-V, `main` entry points, limited enabled capabilities; caller validates specialized shader requirements |
+| Executables | Prepared compute kernels and raster programs, caller-defined root bytes, explicit artifact formats | Vulkan SPIR-V and optional Metal translation use `main` and scalar specialization; native Metal inputs are pre-specialized, compute-only; trusted code throughout |
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |

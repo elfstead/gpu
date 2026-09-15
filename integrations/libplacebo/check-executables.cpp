@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
             if (pass.id != i || pass.constants != pass.values.size()) throw std::runtime_error("incomplete or reordered pass constants");
             const auto stem = std::filesystem::path(argv[2]) / ("pass-" + std::to_string(pass.id));
             auto primary = read_words(stem.string() + (pass.compute ? ".comp.spv" : ".frag.spv"));
-            const OgpuShaderDesc shader = {primary.data(), primary.size(), pass.values.data(), static_cast<uint32_t>(pass.values.size()), 0};
+            const OgpuShaderDesc shader = {primary.data(), (primary.size()) * 4, nullptr, pass.values.data(), static_cast<uint32_t>(pass.values.size()), OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
             if (pass.compute) {
                 OgpuKernel *raw = nullptr;
                 status = ogpu_kernel_create(device.get(), &shader, pass.push, &raw, &error);
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
                 check(status, error);
             } else {
                 auto vertex = read_words(stem.string() + ".vert.spv");
-                const OgpuShaderDesc vs = {vertex.data(), vertex.size(), pass.values.data(), static_cast<uint32_t>(pass.values.size()), 0};
+                const OgpuShaderDesc vs = {vertex.data(), (vertex.size()) * 4, nullptr, pass.values.data(), static_cast<uint32_t>(pass.values.size()), OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
                 OgpuRaster *raw = nullptr;
                 status = ogpu_raster_create(device.get(), &vs, &shader, 8, OGPU_TOPOLOGY_TRIANGLE_STRIP, OGPU_FORMAT_RGBA8_UNORM, &raw, &error);
                 std::unique_ptr<OgpuRaster, decltype(&ogpu_raster_destroy)> raster(raw, ogpu_raster_destroy);

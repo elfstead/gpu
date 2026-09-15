@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-15. This page owns current status and selected work. The
+Updated 2026-09-16. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [historical plan](plan-history.md) preserves earlier milestones.
 
@@ -11,8 +11,10 @@ an **experimental runtime/API candidate**, not a stable API, a portable standard
 a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
-The runtime is Rust over the modern Vulkan baseline, with a language-neutral
-C boundary at **ABI 11**. Linux x86-64 only. Use matching header/library/shaders
+The runtime is Rust over the modern Vulkan baseline, plus an experimental native
+Metal compute backend. The Metal branch has a language-neutral C boundary at
+**ABI 12**. Linux x86-64 execution is locally verified; macOS arm64 native acceptance
+of this refactor is assigned to the original implementor. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
 
 | Area | Current evidence | Important boundary |
@@ -94,7 +96,24 @@ general HDR profile is selected.
 
 ## After the checkpoint
 
-Beyond the selected HDR brief, no further implementation is automatically selected. Choose a concrete user
+Selected follow-up: refactor `metal-backend` around common contracts and native
+execution, then hand off Mac testing. Shared checks/retirement, explicit backend
+identity, format-tagged native artifacts and optional translation are implemented.
+See [the scope and native acceptance checklist](metal.md). The classic Metal path
+remains transitional; a Metal 4 replacement and native consumer validation are
+outstanding, not implied by Linux type-checking. The historical Vulkan milestones
+above remain evidence for their recorded revisions, not Mac acceptance.
+
+Refactor regression receipt (2026-09-16): 37 ordinary Rust tests, Clippy, 749
+C/Rust layout checks and the mock-loader checks pass. All 21 Vulkan GPU tests
+pass on Radeon/RADV and llvmpipe with validation. On llvmpipe, GGML DEVICE/F16
+acceptance and libplacebo SDR/two-frame and nine-case HDR acceptance pass after
+the ABI migration (HDR intermediate/final results match exactly).
+Apple-target Rust checks pass with and without the SPIR-V adapter, including the
+native test code, using `DOCS_RS=1` to skip the cross-compiled C++ dependency.
+No native Apple linking, MSL compilation or GPU execution was possible here.
+
+Beyond this handoff, choose a concrete user
 workflow before widening the API: broader graphics, accelerated ML and a source
 language are separate directions. Remaining small-workload overhead, descriptor
 compiler optimization and broader tooling are potential implementation work,
