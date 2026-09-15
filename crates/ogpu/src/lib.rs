@@ -1,16 +1,25 @@
 //! Experimental C ABI. Ownership and pointer requirements are defined in include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
 
+#[cfg(target_os = "linux")]
 mod compute;
+#[cfg(target_os = "linux")]
 mod execution_api;
+#[cfg(target_os = "linux")]
 pub use execution_api::*;
+#[cfg(target_os = "macos")]
+mod metal;
+#[cfg(target_os = "linux")]
 mod vulkan;
+#[cfg(target_os = "macos")]
+pub use metal::*;
 
+#[cfg(target_os = "linux")]
+use std::sync::Arc;
 use std::{
     ffi::c_char,
     panic::{catch_unwind, AssertUnwindSafe},
     ptr,
-    sync::Arc,
 };
 
 pub type OgpuResult = i32;
@@ -76,9 +85,13 @@ pub struct OgpuDeviceInfo {
 /// Opaque C ownership handle. Device information is immutable after construction.
 pub struct OgpuProbe {
     devices: Vec<OgpuDeviceInfo>,
+    #[cfg(target_os = "linux")]
     physical_devices: Vec<ogpu_vulkan_sys::VkPhysicalDevice>,
     // Keeps the instance and its dynamic library alive until the probe is destroyed.
+    #[cfg(target_os = "linux")]
     _vulkan: Arc<vulkan::Instance>,
+    #[cfg(target_os = "macos")]
+    metal_devices: Vec<::metal::Device>,
 }
 
 #[derive(Debug)]
@@ -96,6 +109,7 @@ impl Error {
             message: message.into(),
         }
     }
+    #[cfg(target_os = "linux")]
     fn vulkan(operation: &str, vk: i32) -> Self {
         Self {
             status: VULKAN_ERROR,
@@ -148,17 +162,29 @@ pub unsafe extern "C" fn ogpu_probe_create(
         return ABI_MISMATCH;
     }
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let instance = Arc::new(vulkan::Instance::new()?);
-        let physical_devices = instance.physical_devices()?;
-        let devices = physical_devices
-            .iter()
-            .map(|&device| instance.device_info(device))
-            .collect::<Result<_, _>>()?;
-        Ok::<_, Error>(Box::new(OgpuProbe {
-            devices,
-            physical_devices,
-            _vulkan: instance,
-        }))
+        #[cfg(target_os = "linux")]
+        {
+            let instance = Arc::new(vulkan::Instance::new()?);
+            let physical_devices = instance.physical_devices()?;
+            let devices = physical_devices
+                .iter()
+                .map(|&device| instance.device_info(device))
+                .collect::<Result<_, _>>()?;
+            Ok::<_, Error>(Box::new(OgpuProbe {
+                devices,
+                physical_devices,
+                _vulkan: instance,
+            }))
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let metal_devices = ::metal::Device::all();
+            let devices = metal_devices.iter().map(metal::device_info).collect();
+            Ok::<_, Error>(Box::new(OgpuProbe {
+                devices,
+                metal_devices,
+            }))
+        }
     }));
     let result = result.unwrap_or_else(|_| {
         Err(Error::new(

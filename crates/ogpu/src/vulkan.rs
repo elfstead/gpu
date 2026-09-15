@@ -384,7 +384,7 @@ fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
 }
 
 /// Handles count changes without exposing uninitialized elements or looping forever.
-fn enumerate<T: Default + Clone>(
+fn enumerate<T>(
     operation: &str,
     mut call: impl FnMut(*mut u32, *mut T) -> vk::VkResult,
 ) -> Result<Vec<T>, Error> {
@@ -398,19 +398,22 @@ fn enumerate<T: Default + Clone>(
         if count == 0 {
             return Ok(Vec::new());
         }
-        let mut items = vec![T::default(); count as usize];
+        let capacity = count as usize;
+        let mut items = Vec::<T>::with_capacity(capacity);
         let result = call(&mut count, items.as_mut_ptr());
         if result == vk::VkResult_VK_INCOMPLETE {
             continue;
         }
         check(operation, result)?;
-        if count as usize > items.len() {
+        if count as usize > capacity {
             return Err(Error::new(
                 INTERNAL_ERROR,
                 "Vulkan enumeration count exceeded capacity",
             ));
         }
-        items.truncate(count as usize);
+        // SAFETY: a successful enumeration initialized `count` entries within
+        // the capacity supplied from the preceding count query.
+        unsafe { items.set_len(count as usize) };
         return Ok(items);
     }
     Err(Error::vulkan(operation, vk::VkResult_VK_INCOMPLETE))

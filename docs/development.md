@@ -5,12 +5,12 @@ build/acceptance path and its clean-checkout evidence. This page is the detailed
 command and regeneration reference, not a requirement to run every historical
 experiment before using the runtime.
 
-The initial backend is Rust with directly generated Vulkan declarations and a small
-C ABI. The runtime does not use ash, Vulkanalia, C++, or Kotlin. The optional
+The runtime has a Rust Vulkan backend on Linux x86-64 and a native Metal compute
+backend on macOS arm64 behind the same small C ABI. The Metal path translates
+SPIR-V to MSL in-process. The Vulkan runtime does not use ash or Vulkanalia. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
-it uses the public C ABI and does not change the Rust runtime. Only Linux x86-64 is currently
-supported and tested. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 10; rebuild callers with this checkout's
+it uses the public C ABI and does not change the Rust runtime. The ABI is experimental, not a specification of the eventual
+execution interface. The current ABI is 11; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 The [capability contract](execution-capabilities.md) separates probe support from
@@ -94,8 +94,10 @@ for stage in comp vert frag; do
 done
 ```
 
-Requirements: Rust 1.85+ with Cargo, a C11 compiler/linker, and a Vulkan loader with
-Vulkan 1.1+ support. A GPU is not required to compile or run the mock tests.
+Requirements: Rust 1.85+ with Cargo and a C11 compiler/linker. Linux execution needs
+a Vulkan loader with Vulkan 1.1+ support. macOS execution needs Apple Silicon and
+Metal; graphics, images, descriptor heaps and queue timing remain explicitly
+unsupported there. A GPU is not required to compile or run the Linux mock tests.
 
 ```sh
 cargo build --locked
