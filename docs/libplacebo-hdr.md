@@ -89,7 +89,20 @@ alpha error is 0.00048828125 on both drivers. Across all nine frames this affect
 3,813 intermediate pixels on llvmpipe and 5,223 on RADV. Final alpha remains 255.
 The original exact gate is retained in code; this is not silently relabeled PASS.
 
-## Proposed next decision
+## Accepted revisions and implementation progress
+
+The user accepted these revisions. ABI 11 now adds `OGPU_FORMAT_RGBA16_FLOAT`
+and a target-format argument to raster creation. Images retain their exact support
+queries; draws validate executable/target format equality. Transfers use eight
+bytes per RGBA16F texel and require eight-byte offsets. No FP16 arithmetic feature,
+buffer-placement change, or additional raster state is introduced.
+
+Runtime checkpoint: 30 ordinary tests, 745 ABI layout checks, clippy, and 21 GPU
+tests on each driver pass. The added GPU test checks packed HDR/negative/alpha
+values through offset transfers with guards, range/alignment rejection, and actual
+RGBA16F raster output above 1 and below 0. Rebuild `hdr.frag.spv` with
+`glslc --target-env=vulkan1.4 examples/shaders/hdr.frag -o examples/shaders/hdr.frag.spv`.
+Consumer parameter packing and end-to-end comparisons remain next.
 
 Retain this consumer, but revise the initial "format-only" implementation estimate:
 
@@ -106,8 +119,9 @@ Retain this consumer, but revise the initial "format-only" implementation estima
   comparison tolerances. This acknowledges measured upstream rounding without
   changing shader math or forcing alpha to 1 in the harness.
 
-This is the native-first decision checkpoint, not a completed implementation.
-Resolve these choices before widening the runtime or adopting the revised gate.
+The historical native gate failure above remains evidence, not a passing result.
+The consumer will adopt the accepted alpha tolerance explicitly and compare both
+backends; completion is not claimed by this runtime checkpoint.
 
 ## Reproduce the native gate
 

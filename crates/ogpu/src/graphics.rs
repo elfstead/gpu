@@ -35,7 +35,7 @@ impl ImageDesc {
 
     fn validate(&self, limits: &vk::VkPhysicalDeviceLimits) -> Result<usize, Error> {
         if !matches!(self.dimension, 1 | 2)
-            || self.format > 1
+            || self.format > 2
             || self.reserved != 0
             || self.usage == 0
             || self.usage & !(SAMPLED | STORAGE | COLOR | COPY_SRC | COPY_DST) != 0
@@ -46,25 +46,34 @@ impl ImageDesc {
             || (self.dimension == 2
                 && (self.width > limits.maxImageDimension2D
                     || self.height > limits.maxImageDimension2D))
-            || (self.usage & COLOR != 0 && (self.dimension != 2 || self.format != 0))
+            || (self.usage & COLOR != 0 && (self.dimension != 2 || self.format == 1))
         {
             return Err(Error::new(INVALID_ARGUMENT, "Invalid image description"));
         }
         if self.usage & COLOR != 0 {
-            return target_size(self.width, self.height, limits);
+            target_size(self.width, self.height, limits)?;
         }
         (self.width as usize)
             .checked_mul(self.height as usize)
-            .and_then(|n| n.checked_mul(4))
+            .and_then(|n| n.checked_mul(self.texel_size()))
             .filter(|&n| n <= isize::MAX as usize)
             .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Image byte size overflow"))
     }
 
     pub(super) fn vk_format(&self) -> vk::VkFormat {
-        if self.format == 0 {
-            FORMAT
+        match self.format {
+            0 => FORMAT,
+            1 => vk::VkFormat_VK_FORMAT_R32_SFLOAT,
+            2 => vk::VkFormat_VK_FORMAT_R16G16B16A16_SFLOAT,
+            _ => unreachable!("validated image format"),
+        }
+    }
+
+    pub(super) fn texel_size(&self) -> usize {
+        if self.format == 2 {
+            8
         } else {
-            vk::VkFormat_VK_FORMAT_R32_SFLOAT
+            4
         }
     }
 
@@ -535,6 +544,7 @@ impl Drop for Image {
 pub(crate) struct Raster {
     pub(super) device: Rc<Device>,
     pub(super) push_size: u32,
+    pub(super) target_format: u32,
     modules: [vk::VkShaderModule; 2],
     pipeline: vk::VkPipeline,
 }
@@ -551,8 +561,30 @@ impl Raster {
         push_size: u32,
         constants: [&[SpecializationConstant]; 2],
         topology: u32,
+        target_format: u32,
     ) -> Result<Self, Error> {
         ready(&device)?;
+        // The executable fixes attachment format, independently of any image.
+        Image::check_support(
+            &device,
+            ImageDesc {
+                dimension: 2,
+                width: 1,
+                height: 1,
+                format: target_format,
+                usage: COLOR,
+                reserved: 0,
+            },
+        )?;
+        let format = ImageDesc {
+            dimension: 2,
+            width: 1,
+            height: 1,
+            format: target_format,
+            usage: COLOR,
+            reserved: 0,
+        }
+        .vk_format();
         let topology = match topology {
             0 => vk::VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
             1 => vk::VkPrimitiveTopology_VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
@@ -577,6 +609,7 @@ impl Raster {
         let mut result = Self {
             device,
             push_size,
+            target_format,
             modules: [ptr::null_mut(); 2],
             pipeline: ptr::null_mut(),
         };
@@ -677,7 +710,7 @@ impl Raster {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                 pNext: (&flags as *const vk::VkPipelineCreateFlags2CreateInfo).cast(),
                 colorAttachmentCount: 1,
-                pColorAttachmentFormats: &FORMAT,
+                pColorAttachmentFormats: &format,
                 ..Default::default()
             };
             let create = vk::VkGraphicsPipelineCreateInfo {

@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(10)
+#define OGPU_ABI_VERSION UINT32_C(11)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -361,7 +361,7 @@ typedef struct OgpuImage OgpuImage;
 typedef struct OgpuRaster OgpuRaster;
 
 /* Copied description, one mip/layer/sample, no CPU mapping. 1D requires height=1.
- * Extents and usage must be nonzero; reserved=0. COLOR requires 2D RGBA8.
+ * Extents and usage must be nonzero; reserved=0. COLOR requires 2D RGBA8 or RGBA16F.
  * Device support is checked for the requested format/dimension/usage combination.
  * SAMPLED promises nearest and linear filtering. Operations require matching usage.
  * Initial contents/layout are undefined: discard or CLEAR before first use. */
@@ -369,6 +369,7 @@ typedef struct OgpuRaster OgpuRaster;
 #define OGPU_IMAGE_2D 2u
 #define OGPU_FORMAT_RGBA8_UNORM 0u
 #define OGPU_FORMAT_R32_FLOAT 1u
+#define OGPU_FORMAT_RGBA16_FLOAT 2u
 #define OGPU_IMAGE_USAGE_SAMPLED 1u
 #define OGPU_IMAGE_USAGE_STORAGE 2u
 #define OGPU_IMAGE_USAGE_COLOR 4u
@@ -468,10 +469,14 @@ OgpuResult ogpu_batch_discard_image(OgpuBatch *batch, const OgpuImage *target,
  * size/alignment/trusted-shader rules match kernel_create. No source compiler. */
 #define OGPU_TOPOLOGY_TRIANGLE_LIST 0u
 #define OGPU_TOPOLOGY_TRIANGLE_STRIP 1u
-/* Vertex and fragment specialization IDs are independent, even when equal. */
+/* Vertex and fragment specialization IDs are independent, even when equal.
+ * target_format is RGBA8_UNORM or RGBA16_FLOAT and must match each draw target.
+ * RGBA16_FLOAT is packed four-component IEEE binary16 storage (8 bytes/texel);
+ * shaders may use ordinary float32 arithmetic. */
 OgpuResult ogpu_raster_create(OgpuDevice *device,
     const OgpuShaderDesc *vertex, const OgpuShaderDesc *fragment,
-    uint32_t push_size_bytes, uint32_t topology, OgpuRaster **out_raster, OgpuError *out_error);
+    uint32_t push_size_bytes, uint32_t topology, uint32_t target_format,
+    OgpuRaster **out_raster, OgpuError *out_error);
 void ogpu_raster_destroy(OgpuRaster *raster);
 
 /* GPU-readable draw record, four consecutive uint32 values. first_instance MUST
@@ -505,15 +510,15 @@ OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
  * successfully submitted batch. No hidden initialization or host-side layout tracker.
  * Requires COPY_SRC usage; orders earlier GPU writes before readback.
  * Copies whole images as tightly packed rows preserving format bits (four bytes
- * per texel for both supported formats). Destination offset must be 4-byte
- * aligned; width*height*4 bytes must fit. Retains target and destination. Wait before
+ * per texel for RGBA8/R32F, eight for RGBA16F). Offset must be texel-size aligned;
+ * width*height*texel_size bytes must fit. Retains target and destination. Wait before
  * CPU access; explicit TRANSFER_WRITE dependencies precede subsequent GPU consumers.
  * Invalid draw/copy arguments leave the recording unchanged. Destruction is NULL-safe. */
 OgpuResult ogpu_batch_copy_image_to_buffer(OgpuBatch *batch, OgpuImage *target,
     OgpuBuffer *destination, uint64_t destination_offset, OgpuError *out_error);
 
 /* Requires COPY_DST and initialized GENERAL (discard_image before first use).
- * Copies the full image from a tightly packed, 4-byte-aligned, in-bounds buffer
+ * Copies the full image from a tightly packed, texel-size-aligned, in-bounds buffer
  * range, without conversion. Orders prior GPU accesses before the copy; explicit
  * TRANSFER_WRITE dependencies precede later shader/attachment consumers.
  * Retains source and image. HOST or DEVICE buffers are legal. Finish host writes

@@ -12,7 +12,7 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, with a language-neutral
-C boundary at **ABI 10**. Linux x86-64 only. Use matching header/library/shaders
+C boundary at **ABI 11**. Linux x86-64 only. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
 
 | Area | Current evidence | Important boundary |

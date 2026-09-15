@@ -35,16 +35,17 @@ validity, stage interfaces, and reachable address bounds remain trusted contract
 
 Raster creation selects triangle list or triangle strip (ABI 7); other topology
 values are rejected. Primitive restart is disabled. Remaining state is fixed: fill, no culling, full-target
-viewport/scissor, one sample, one RGBA8 UNORM color output, no blending/depth/stencil.
+viewport/scissor, one sample, one RGBA8 UNORM or RGBA16F color output, no blending/depth/stencil.
 This is an experiment constraint, not a commitment to hard-code graphics state.
 
 ## Images and drawing
 
-`ogpu_image_create` (ABI 6) takes a copied description: 1D/2D, RGBA8 UNORM/R32F,
+`ogpu_image_create` (ABI 6) takes a copied description: 1D/2D, RGBA8 UNORM/R32F/RGBA16F,
 extents and explicit sampled/storage/color/copy usages. The image owns specialized
 optimal storage and a view when used as a color attachment. It has no device address
 or CPU mapping. Format/dimension/usage support is checked; color use is limited to
-2D RGBA8. Image-heap slots supply sampled/storage descriptors for the actual format
+2D RGBA8/RGBA16F. ABI 11 raster creation specifies the target format;
+draws reject a mismatched image before modifying the recording. Image-heap slots supply sampled/storage descriptors for the actual format
 and dimension. The older RGBA8-only target constructor and type were removed.
 
 Backing-memory selection is runtime policy: prefer eligible device-local memory,
@@ -76,7 +77,8 @@ writes the same memory. The public handle is an ownership choice, not a workarou
 for an older Vulkan command interface.
 
 `ogpu_batch_copy_image_to_buffer` copies the whole image into an ordinary buffer at a
-four-byte-aligned offset, tightly packed as width × height × 4 bytes in the image's
+texel-size-aligned offset, tightly packed as width × height × texel-size bytes
+(four for RGBA8/R32F, eight for RGBA16F) in the image's
 format, row by
 row starting at image coordinate (0,0). The caller must initialize the target through
 CLEAR or explicit discard followed by writes, in this or an earlier successfully

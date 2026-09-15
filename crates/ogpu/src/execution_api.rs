@@ -941,6 +941,7 @@ pub unsafe extern "C" fn ogpu_raster_create(
     fragment_desc: *const OgpuShaderDesc,
     push_size: u32,
     topology: u32,
+    target_format: u32,
     out_raster: *mut *mut OgpuRaster,
     error: *mut OgpuError,
 ) -> OgpuResult {
@@ -957,6 +958,7 @@ pub unsafe extern "C" fn ogpu_raster_create(
                     push_size,
                     [vertex_constants, fragment_constants],
                     topology,
+                    target_format,
                 )?),
             })
         })
@@ -1142,6 +1144,7 @@ mod tests {
                     ptr::null_mut(),
                     ptr::null(),
                     ptr::null(),
+                    0,
                     0,
                     0,
                     &mut raster,

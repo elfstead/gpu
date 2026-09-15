@@ -190,9 +190,9 @@ int main(int argc, char **argv) {
         TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[0], counts[0], NULL, 0, 0}, sizeof(DrawRoot), &producer, &error));
         TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[3], counts[3], NULL, 0, 0}, sizeof(ProcessRoot), &processor, &error));
         TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[1], counts[1], NULL, 0, 0},
-            &(OgpuShaderDesc){words[2], counts[2], NULL, 0, 0}, sizeof(DrawRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, &first, &error));
+            &(OgpuShaderDesc){words[2], counts[2], NULL, 0, 0}, sizeof(DrawRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &first, &error));
         TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[4], counts[4], NULL, 0, 0},
-            &(OgpuShaderDesc){words[5], counts[5], NULL, 0, 0}, sizeof(ReadRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, &last, &error));
+            &(OgpuShaderDesc){words[5], counts[5], NULL, 0, 0}, sizeof(ReadRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &last, &error));
         const uint32_t sizes[][2] = {{1, 1}, {2, 3}, {63, 65}, {64, 64}, {65, 63}, {97, 65}};
         for (unsigned j = 0; j < sizeof(sizes) / sizeof(sizes[0]); ++j)
             REQUIRE(run_case(device, producer, processor, first, last, sizes[j][0], sizes[j][1]) == EXIT_SUCCESS);

@@ -188,12 +188,21 @@ fn gpu_raster_specialization_and_vertex_pulling() {
         let mut raster = ptr::null_mut();
         unsafe {
             assert_eq!(
-                ogpu_raster_create(&mut handle, &vd, &fd, 8, 99, &mut raster, ptr::null_mut()),
+                ogpu_raster_create(
+                    &mut handle,
+                    &vd,
+                    &fd,
+                    8,
+                    99,
+                    0,
+                    &mut raster,
+                    ptr::null_mut()
+                ),
                 INVALID_ARGUMENT
             );
             assert!(raster.is_null());
             assert_eq!(
-                ogpu_raster_create(&mut handle, &vd, &fd, 8, 1, &mut raster, ptr::null_mut()),
+                ogpu_raster_create(&mut handle, &vd, &fd, 8, 1, 0, &mut raster, ptr::null_mut()),
                 SUCCESS
             );
         }

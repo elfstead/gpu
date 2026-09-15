@@ -45,7 +45,7 @@ the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
 errors and leaves a uniquely named acceptance log under `target/ggml-integration`.
 Use matching header/library/shaders from the same OGPU checkout, not an arbitrary
-older shared library. The current checkout uses ABI 10 (native 16-bit buffer storage);
+older shared library. The current checkout uses ABI 11 (native 16-bit buffer storage);
 GGML retains its ABI-5 dispatch signatures with Y=Z=1 and explicit allocation placement.
 Leave `CARGO_TARGET_DIR` unset.
 

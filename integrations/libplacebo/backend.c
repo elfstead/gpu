@@ -398,7 +398,7 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
         TRY(ogpu_kernel_create(b->device, &shader, pass->params.push_constants_size, &kernel, &error));
     } else {
         const OgpuShaderDesc vertex = {p->vertex.words, p->vertex.count, values, count, 0};
-        TRY(ogpu_raster_create(b->device, &vertex, &shader, 8, OGPU_TOPOLOGY_TRIANGLE_STRIP, &raster, &error));
+        TRY(ogpu_raster_create(b->device, &vertex, &shader, 8, OGPU_TOPOLOGY_TRIANGLE_STRIP, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
     }
     ogpu_kernel_destroy(p->kernel); ogpu_raster_destroy(p->raster);
     p->kernel = kernel; p->raster = raster;

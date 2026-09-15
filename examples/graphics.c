@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     REQUIRE(read_shader(argv[3], &fragment_words, &fragment_count) == EXIT_SUCCESS);
     TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){compute_words, compute_count, NULL, 0, 0}, sizeof(Root), &producer, &error));
     TRY(ogpu_raster_create(device, &(OgpuShaderDesc){vertex_words, vertex_count, NULL, 0, 0},
-            &(OgpuShaderDesc){fragment_words, fragment_count, NULL, 0, 0}, sizeof(Root), OGPU_TOPOLOGY_TRIANGLE_LIST, &raster, &error));
+            &(OgpuShaderDesc){fragment_words, fragment_count, NULL, 0, 0}, sizeof(Root), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
     const OgpuImageDesc image_desc = {OGPU_IMAGE_2D, 64, 64, OGPU_FORMAT_RGBA8_UNORM,
         OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC, 0};
     TRY(ogpu_image_create(device, &image_desc, &target, &error));

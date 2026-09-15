@@ -1,5 +1,134 @@
 use super::*;
 
+#[test]
+#[ignore = "requires a graphics+compute Vulkan device"]
+fn gpu_rgba16_transfers_and_raster() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::new_graphics(instance.clone(), physical) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        let desc = ImageDesc {
+            format: 2,
+            ..ImageDesc::rgba8(3, 5)
+        };
+        assert_eq!(Image::check_support(&d, desc).unwrap(), 120);
+        let image = Rc::new(Image::new(d.clone(), desc).unwrap());
+        let buffer = Rc::new(Buffer::new(d.clone(), 136).unwrap());
+        // Packed binary16: >1, fractional, negative, opaque. Prefix/suffix guards.
+        let pixel: Vec<u8> = [0x4400u16, 0x3800, 0xc000, 0x3c00]
+            .into_iter()
+            .flat_map(u16::to_ne_bytes)
+            .collect();
+        let expected = pixel.repeat(15);
+        buffer.write(0, &[0x5a; 136]).unwrap();
+        buffer.write(8, &expected).unwrap();
+        let mut batch = Batch::new(d.clone()).unwrap();
+        for offset in [1, 4, 12] {
+            assert_eq!(
+                batch
+                    .copy_buffer_to_image(buffer.clone(), offset, image.clone())
+                    .unwrap_err()
+                    .status,
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                batch
+                    .copy_image_to_buffer(image.clone(), buffer.clone(), offset)
+                    .unwrap_err()
+                    .status,
+                INVALID_ARGUMENT
+            );
+        }
+        assert_eq!(
+            batch
+                .copy_buffer_to_image(buffer.clone(), 24, image.clone())
+                .unwrap_err()
+                .status,
+            OUT_OF_RANGE
+        );
+        batch.discard_image(image.clone()).unwrap();
+        batch
+            .copy_buffer_to_image(buffer.clone(), 8, image.clone())
+            .unwrap();
+        unsafe {
+            batch.submit().unwrap().wait().unwrap();
+        }
+        buffer.write(8, &[0; 120]).unwrap();
+        let mut batch = Batch::new(d.clone()).unwrap();
+        batch
+            .copy_image_to_buffer(image.clone(), buffer.clone(), 8)
+            .unwrap();
+        unsafe {
+            batch.submit().unwrap().wait().unwrap();
+        }
+        let mut actual = [0u8; 136];
+        unsafe {
+            buffer.read(0, actual.as_mut_ptr(), actual.len()).unwrap();
+        }
+        assert_eq!(&actual[8..128], expected.as_slice());
+        assert_eq!(&actual[..8], &[0x5a; 8]);
+        assert_eq!(&actual[128..], &[0x5a; 8]);
+        let vertex = words(include_bytes!(
+            "../../../examples/shaders/fullscreen.vert.spv"
+        ));
+        let fragment = words(include_bytes!("../../../examples/shaders/hdr.frag.spv"));
+        for format in [1, 3] {
+            assert!(
+                matches!(unsafe { Raster::new(d.clone(), &vertex, &fragment, 0, [&[], &[]], 0, format) },
+                Err(e) if e.status == INVALID_ARGUMENT)
+            );
+        }
+        let raster = Rc::new(unsafe {
+            Raster::new(d.clone(), &vertex, &fragment, 0, [&[], &[]], 0, 2).unwrap()
+        });
+        let rgba8 = Rc::new(Image::new(d.clone(), ImageDesc::rgba8(3, 5)).unwrap());
+        let indirect = Rc::new(Buffer::new(d.clone(), 16).unwrap());
+        indirect
+            .write(
+                0,
+                &[3u32, 1, 0, 0]
+                    .into_iter()
+                    .flat_map(u32::to_ne_bytes)
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
+        let mut batch = Batch::new(d.clone()).unwrap();
+        assert_eq!(
+            batch
+                .draw(
+                    raster.clone(),
+                    rgba8,
+                    indirect.clone(),
+                    0,
+                    &[],
+                    batch::CLEAR
+                )
+                .unwrap_err()
+                .status,
+            INVALID_ARGUMENT
+        );
+        batch
+            .draw(raster, image.clone(), indirect, 0, &[], batch::CLEAR)
+            .unwrap();
+        batch
+            .copy_image_to_buffer(image, buffer.clone(), 8)
+            .unwrap();
+        unsafe {
+            batch.submit().unwrap().wait().unwrap();
+            buffer.read(0, actual.as_mut_ptr(), actual.len()).unwrap();
+        }
+        assert_eq!(&actual[8..128], expected.as_slice());
+        assert_eq!(&actual[..8], &[0x5a; 8]);
+        assert_eq!(&actual[128..], &[0x5a; 8]);
+        tested += 1;
+    }
+    assert!(tested > 0, "no suitable device");
+}
+
 fn image_memory(flags: &[u32]) -> vk::VkPhysicalDeviceMemoryProperties {
     let mut memory = vk::VkPhysicalDeviceMemoryProperties {
         memoryTypeCount: flags.len() as u32,
@@ -76,6 +205,29 @@ fn image_description_respects_usage_and_dimension_limits() {
     };
     assert_eq!(desc.validate(&limits).unwrap(), 1024);
     assert_eq!(
+        ImageDesc { format: 2, ..desc }.validate(&limits).unwrap(),
+        2048
+    );
+    assert_eq!(
+        ImageDesc {
+            format: 2,
+            ..ImageDesc::rgba8(64, 64)
+        }
+        .validate(&limits)
+        .unwrap(),
+        32768
+    );
+    assert_eq!(
+        ImageDesc {
+            format: 2,
+            ..ImageDesc::rgba8(65, 1)
+        }
+        .validate(&limits)
+        .unwrap_err()
+        .status,
+        INVALID_ARGUMENT
+    );
+    assert_eq!(
         ImageDesc {
             dimension: 2,
             width: 512,
@@ -99,7 +251,7 @@ fn image_description_respects_usage_and_dimension_limits() {
         ImageDesc { width: 257, ..desc },
         ImageDesc { height: 0, ..desc },
         ImageDesc { height: 2, ..desc },
-        ImageDesc { format: 2, ..desc },
+        ImageDesc { format: 3, ..desc },
         ImageDesc {
             reserved: 1,
             ..desc
@@ -374,6 +526,7 @@ fn gpu_image_preservation() {
                 0,
                 [&[], &[]],
                 0,
+                0,
             )
             .unwrap()
         });
@@ -388,6 +541,7 @@ fn gpu_image_preservation() {
                 )),
                 16,
                 [&[], &[]],
+                0,
                 0,
             )
             .unwrap()
@@ -669,7 +823,7 @@ fn gpu_graphics_failures() {
                 );
                 Image::new(device.clone(), ImageDesc::rgba8(64, 64)).map(drop)
             } else {
-                unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0) }
+                unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0, 0) }
                     .map(drop)
             };
             assert_eq!(
@@ -688,7 +842,7 @@ fn gpu_graphics_failures() {
             matches!(Image::new(device.clone(), ImageDesc::rgba8(64, 64)), Err(e) if e.status == UNSUPPORTED)
         );
         assert!(
-            matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0) }, Err(e) if e.status == UNSUPPORTED)
+            matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0, 0) }, Err(e) if e.status == UNSUPPORTED)
         );
         let mut batch = Batch::new(device).unwrap();
         assert_eq!(
@@ -807,11 +961,11 @@ fn gpu_graphics() {
             matches!(Image::new(device.clone(), ImageDesc::rgba8(0, 64)), Err(e) if e.status == INVALID_ARGUMENT)
         );
         assert!(
-            matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, 16, [&[], &[]], 0) }, Err(e) if e.status == INVALID_ARGUMENT)
+            matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, 16, [&[], &[]], 0, 0) }, Err(e) if e.status == INVALID_ARGUMENT)
         );
         let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &compute, 16, &[]).unwrap() });
         let raster = Rc::new(unsafe {
-            Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0).unwrap()
+            Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0, 0).unwrap()
         });
         let target = Rc::new(Image::new(device.clone(), ImageDesc::rgba8(64, 64)).unwrap());
         let vertices = Buffer::new(device.clone(), 48).unwrap();

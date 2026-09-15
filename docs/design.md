@@ -49,7 +49,7 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 10. Ordinary device creation enables compute/images/heaps; rasterization is
+ABI 11. Ordinary device creation enables compute/images/heaps; rasterization is
 explicitly opt-in. [Enabled capabilities and exact image-support queries](execution-capabilities.md)
 describe the created device, not just physical support. Terminal completion
 observation retires submission resources independently of the surviving result
@@ -82,7 +82,7 @@ retention; applications still own scratch-range reuse decisions.
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
 | Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
-| Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents, upload/readback | 1D/2D RGBA8/R32F images with explicit usages; fixed-state RGBA8 rendering, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
+| Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents, upload/readback | 1D/2D RGBA8/R32F/RGBA16F images with explicit usages; fixed-state RGBA8/RGBA16F rendering, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
 | Discovery | Physical support, cached enabled capabilities/limits, exact image-description checks | Reporting is not feature negotiation, shader reflection or a complete matrix/type capability description |
 
 The [completion-resource follow-up](completion-resource-review.md#implementation-abi-9)
@@ -166,7 +166,7 @@ brief requires them.
 | Memory placement and transfer model | Explicit HOST/DEVICE and staged GGML work on RADV/llvmpipe; physical UMA/BAR evidence, mixed access/locality contracts and allocation strategy remain open ([checkpoint](memory-transfers.md)) |
 | Queue and batch model | Replayed work, cross-queue dependencies, concurrency, and observable completion/error behavior |
 | Executable preparation | Entry points, workgroup variants, specialization, capability requirements, compilation/cache costs |
-| Images and graphics state | 1D/2D RGBA8/R32F uploads, native access/sampling, independent heaps and preserved cross-batch images work; additional formats/views, concurrent heap edits and broader raster state remain open ([contract](descriptor-heaps.md)) |
+| Images and graphics state | 1D/2D RGBA8/R32F/RGBA16F uploads, native access/sampling, independent heaps and preserved cross-batch images work; additional formats/views, concurrent heap edits and broader raster state remain open ([contract](descriptor-heaps.md)) |
 | ML profiles | Beyond reduction/FP32 and the bounded [FP16-weight checkpoint](ggml-mixed-precision.md): other storage/arithmetic/conversion/accumulation combinations and accelerated matrix shapes |
 | Portability boundary | One real compiler/runtime consumer and a second backend for the common compute subset |
 | Tooling | Finer profiling/calibrated clocks, allocation tracking, asynchronous diagnostics, and address-aware capture/replay |

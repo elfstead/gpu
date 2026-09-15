@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
                 auto vertex = read_words(stem.string() + ".vert.spv");
                 const OgpuShaderDesc vs = {vertex.data(), vertex.size(), pass.values.data(), static_cast<uint32_t>(pass.values.size()), 0};
                 OgpuRaster *raw = nullptr;
-                status = ogpu_raster_create(device.get(), &vs, &shader, 8, OGPU_TOPOLOGY_TRIANGLE_STRIP, &raw, &error);
+                status = ogpu_raster_create(device.get(), &vs, &shader, 8, OGPU_TOPOLOGY_TRIANGLE_STRIP, OGPU_FORMAT_RGBA8_UNORM, &raw, &error);
                 std::unique_ptr<OgpuRaster, decltype(&ogpu_raster_destroy)> raster(raw, ogpu_raster_destroy);
                 check(status, error);
             }

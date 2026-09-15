@@ -322,10 +322,10 @@ impl Batch {
                 "Invalid indirect offset or raster argument size",
             ));
         }
-        if target.desc.usage & graphics::COLOR == 0 {
+        if target.desc.usage & graphics::COLOR == 0 || target.desc.format != raster.target_format {
             return Err(Error::new(
                 INVALID_ARGUMENT,
-                "Image is not a color attachment",
+                "Image is not a matching color attachment",
             ));
         }
         indirect.range(offset, 16)?;
@@ -376,7 +376,7 @@ impl Batch {
         } else {
             graphics::COPY_SRC
         };
-        if offset % 4 != 0 || image.desc.usage & usage == 0 {
+        if offset % image.desc.texel_size() != 0 || image.desc.usage & usage == 0 {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Unaligned buffer offset or invalid image copy usage",
