@@ -74,9 +74,17 @@ is not a new work queue.
 - D5: Source revision plus matching ABI/header/library/shaders identify this
   experimental checkpoint. Breaking C layouts/signatures increment the ABI.
 
+## Selected next use case: HDR-to-SDR processing
+
+The [bounded HDR brief](libplacebo-hdr.md) selects a native-first libplacebo capture,
+then the smallest coherent extension for floating-point resize and tone mapping
+to SDR. It declares input representation, tone/gamut policy, numerical gates and
+scope exclusions before results. This uses the existing Radeon and llvmpipe;
+additional physical hardware is not a prerequisite.
+
 ## After the checkpoint
 
-No further implementation is automatically selected. Choose a concrete user
+Beyond the selected HDR brief, no further implementation is automatically selected. Choose a concrete user
 workflow before widening the API: broader graphics, accelerated ML and a source
 language are separate directions. Remaining small-workload overhead, descriptor
 compiler optimization and broader tooling are potential implementation work,
