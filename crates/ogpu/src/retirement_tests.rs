@@ -177,7 +177,7 @@ fn gpu_retirement() {
                 if gate.completions.len() == 2 {
                     // The second submission cannot complete before we open the gate.
                     assert!(!gate.completions[1].poll().unwrap());
-                    assert!(gate.completions[1].pending);
+                    assert!(gate.completions[1].submission.pending);
                     gate.completions[0].wait().unwrap();
                     assert!(gate.completions[0].poll().unwrap());
                     // Retire range 0 while range 1 remains unavailable. No host copies
@@ -212,17 +212,20 @@ fn gpu_retirement() {
             assert!(weak.upgrade().is_some());
             POLL_STATUS.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
             assert!(gate.completions[1].poll().is_err());
-            assert!(gate.completions[1].pending && gate.completions[1].outcome.is_none());
-            assert!(gate.completions[1].resources.is_some() && weak.upgrade().is_some());
+            assert!(
+                gate.completions[1].submission.pending
+                    && gate.completions[1].submission.outcome.is_none()
+            );
+            assert!(gate.completions[1].submission.resources.is_some() && weak.upgrade().is_some());
             POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
             assert!(!gate.completions[1].poll().unwrap());
             // A post-completion CPU read needs independent ownership at ABI 9.
             let readback_owner = weak.upgrade().unwrap();
             gate.open();
             gate.completions[2].wait().unwrap();
-            assert!(gate.completions[2].resources.is_none());
+            assert!(gate.completions[2].submission.resources.is_none());
             assert!(
-                gate.completions[1].resources.is_some(),
+                gate.completions[1].submission.resources.is_some(),
                 "No queue-wide collection"
             );
             assert!(gate.completions[1].poll().unwrap());
@@ -257,7 +260,7 @@ fn gpu_retirement() {
                 lost.poll().unwrap_err().vk,
                 vk::VkResult_VK_ERROR_DEVICE_LOST
             );
-            assert!(!lost.pending && device.lost.get());
+            assert!(!lost.submission.pending && device.lost.get());
             assert!(lost.poll().is_err() && lost.wait().is_err());
             POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
             println!("Gated scratch reuse passed: assisted={assisted}, range 0 reused while range 1 pending");

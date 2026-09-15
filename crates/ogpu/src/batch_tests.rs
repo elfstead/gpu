@@ -89,7 +89,7 @@ fn gpu_completion_receipts() {
                         );
                         assert!(done.poll().unwrap());
                     }
-                    assert!(done.resources.is_none());
+                    assert!(done.submission.resources.is_none());
                     assert!(weak_buffer.upgrade().is_none() && weak_kernel.upgrade().is_none());
                     assert_eq!(DESTROY_COUNTS.get(), [1, 1, 1, 0]);
                     assert!(done.poll().unwrap());
@@ -112,6 +112,7 @@ fn gpu_completion_receipts() {
 
 #[test]
 fn dispatch_grid_checks_each_axis_inclusively() {
+    let valid_grid = |groups, limits| crate::contract::dispatch(groups, limits, 0, 0).is_ok();
     let limits = [7, 3, 5];
     assert!(valid_grid([1, 1, 1], limits));
     assert!(valid_grid(limits, limits));
@@ -366,9 +367,9 @@ fn gpu_batch_failures() {
             if timed {
                 assert_eq!(completion.elapsed_ns().unwrap_err().vk, expected);
             }
-            assert!(!completion.pending);
+            assert!(!completion.submission.pending);
             assert!(
-                completion.resources.is_none(),
+                completion.submission.resources.is_none(),
                 "Drained errors and loss still retire resources"
             );
             assert_eq!(completion.wait().unwrap_err().vk, expected);

@@ -115,7 +115,7 @@ fn gpu_timing() {
                 completion.elapsed_ns().unwrap_err().status,
                 INVALID_ARGUMENT
             );
-            assert!(completion.pending);
+            assert!(completion.submission.pending);
             completions.push(completion);
         }
         drop(kernel); // Recorded executables are retained; the raw-address buffer is not.
@@ -177,7 +177,7 @@ fn gpu_timing() {
         assert_eq!(done.elapsed_ns().unwrap_err().status, INVALID_ARGUMENT);
         assert_eq!(QUERY_CALLS.get(), 0);
         done.wait().unwrap();
-        assert!(done.resources.is_none());
+        assert!(done.submission.resources.is_none());
         assert!(!done.queries.is_null());
         assert_eq!(QUERY_CALLS.get(), 0, "Retirement must not retrieve timing");
         for status in [
@@ -186,7 +186,7 @@ fn gpu_timing() {
         ] {
             QUERY_STATUS.set(status);
             assert_eq!(done.elapsed_ns().unwrap_err().vk, status);
-            assert!(done.resources.is_none() && !done.queries.is_null());
+            assert!(done.submission.resources.is_none() && !done.queries.is_null());
             done.wait().unwrap();
         }
         QUERY_STATUS.set(vk::VkResult_VK_SUCCESS);

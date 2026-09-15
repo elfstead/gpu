@@ -1,5 +1,7 @@
 //! Experimental C ABI. Ownership and pointer requirements are defined in include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
+mod boundary;
+mod contract;
 
 #[cfg(target_os = "linux")]
 mod compute;
@@ -94,7 +96,7 @@ pub struct OgpuProbe {
     metal_devices: Vec<::metal::Device>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Error {
     status: OgpuResult,
     vk: i32,

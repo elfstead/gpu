@@ -1,15 +1,11 @@
 //! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
+#[cfg(test)]
+use crate::SUCCESS;
 use crate::{
     compute::{Batch, Buffer, Completion, Device, Image, ImageHeap, Kernel, Raster, SamplerHeap},
-    Error, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
-    SUCCESS,
+    Error, OgpuError, OgpuProbe, OgpuResult, INVALID_ARGUMENT, OUT_OF_RANGE,
 };
-use std::{
-    ffi::c_void,
-    panic::{catch_unwind, AssertUnwindSafe},
-    ptr,
-    rc::Rc,
-};
+use std::{ffi::c_void, ptr, rc::Rc};
 
 pub struct OgpuDevice {
     inner: Rc<Device>,
@@ -403,58 +399,7 @@ pub unsafe extern "C" fn ogpu_completion_elapsed_ns(
     }
 }
 
-// SAFETY (for callers of these private helpers): error, when non-NULL, is writable
-// and does not overlap inputs. The outer FFI functions document all pointer contracts.
-unsafe fn call(error: *mut OgpuError, f: impl FnOnce() -> Result<(), Error>) -> OgpuResult {
-    let result = catch_unwind(AssertUnwindSafe(f)).unwrap_or_else(|_| {
-        Err(Error::new(
-            INTERNAL_ERROR,
-            "Rust panic contained at C boundary",
-        ))
-    });
-    let (status, diagnostic) = match result {
-        Ok(()) => (
-            SUCCESS,
-            OgpuError {
-                vulkan_result: 0,
-                message: [0; 256],
-            },
-        ),
-        Err(e) => (e.status, e.diagnostic()),
-    };
-    if !error.is_null() {
-        unsafe {
-            error.write(diagnostic);
-        }
-    }
-    status
-}
-
-unsafe fn create<T>(
-    out: *mut *mut T,
-    error: *mut OgpuError,
-    f: impl FnOnce() -> Result<T, Error>,
-) -> OgpuResult {
-    unsafe {
-        call(error, || {
-            if out.is_null() {
-                return Err(Error::new(INVALID_ARGUMENT, "NULL creation output"));
-            }
-            out.write(ptr::null_mut());
-            let value = Box::new(f()?);
-            out.write(Box::into_raw(value));
-            Ok(())
-        })
-    }
-}
-
-fn required<T>(pointer: *const T) -> Result<(), Error> {
-    if pointer.is_null() {
-        Err(Error::new(INVALID_ARGUMENT, "NULL required argument"))
-    } else {
-        Ok(())
-    }
-}
+use crate::boundary::{call, create, required};
 
 /// # Safety
 /// See include/ogpu.h: live probe, valid non-overlapping output objects.

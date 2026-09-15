@@ -734,14 +734,7 @@ impl Buffer {
     }
 
     pub(crate) fn range(&self, offset: usize, length: usize) -> Result<(), Error> {
-        if offset > self.size || length > self.size - offset {
-            Err(Error::new(
-                OUT_OF_RANGE,
-                "Buffer transfer exceeds allocation",
-            ))
-        } else {
-            Ok(())
-        }
+        crate::contract::range(self.size, offset as u64, length as u64).map(|_| ())
     }
 
     fn cache(&self, flush: bool) -> Result<(), Error> {
@@ -860,11 +853,8 @@ impl Kernel {
         device.ready()?;
         let specialization = Specialization::new(constants)?;
         let specialization_info = specialization.info();
-        if words.len() < 5
-            || words[0] != 0x07230203
-            || push_size % 4 != 0
-            || u64::from(push_size) > device.max_push_data
-        {
+        crate::contract::root_size(push_size, device.max_push_data)?;
+        if words.len() < 5 || words[0] != 0x07230203 {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Invalid SPIR-V header or push-constant size",

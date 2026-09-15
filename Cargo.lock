@@ -296,8 +296,10 @@ dependencies = [
 name = "ogpu"
 version = "0.1.0"
 dependencies = [
+ "foreign-types",
  "libloading",
  "metal",
+ "objc",
  "ogpu-vulkan-sys",
  "spirv-cross2",
 ]

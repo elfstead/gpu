@@ -1,5 +1,6 @@
 //! Native Metal implementation of the backend-independent compute slice.
 #![allow(clippy::missing_safety_doc)]
+use crate::contract;
 use crate::{
     Error, OgpuCapabilities, OgpuDeviceInfo, OgpuError, OgpuProbe, OgpuResult, INTERNAL_ERROR,
     INVALID_ARGUMENT, OUT_OF_RANGE, SUCCESS, UNSUPPORTED,
@@ -9,6 +10,8 @@ use ::metal::{
     Device as MetalDevice, FunctionConstantValues, MTLCommandBufferStatus, MTLDataType,
     MTLResourceOptions, MTLSize,
 };
+use foreign_types::ForeignType;
+use objc::{msg_send, sel, sel_impl};
 use spirv_cross2::{
     compile::{msl::MslVersion, CompilableTarget},
     spirv,
@@ -17,9 +20,8 @@ use spirv_cross2::{
 };
 use std::{
     cell::RefCell,
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     ffi::c_void,
-    panic::{catch_unwind, AssertUnwindSafe},
     ptr,
     rc::{Rc, Weak},
 };
@@ -83,7 +85,7 @@ pub enum OgpuRaster {}
 struct Device {
     raw: MetalDevice,
     queue: CommandQueue,
-    buffers: RefCell<Vec<Weak<Buffer>>>,
+    buffers: RefCell<BTreeMap<usize, Weak<Buffer>>>,
 }
 
 struct Buffer {
@@ -91,6 +93,17 @@ struct Buffer {
     raw: MetalBuffer,
     size: usize,
     host: bool,
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        // Remove dead allocations immediately; dispatch cost follows live buffers,
+        // not the number ever allocated. This registry does not retain resources.
+        self.device
+            .buffers
+            .borrow_mut()
+            .remove(&(self as *const Self as usize));
+    }
 }
 
 struct Kernel {
@@ -108,7 +121,12 @@ struct Batch {
 
 struct Completion {
     _device: Rc<Device>,
-    commands: Option<CommandBuffer>,
+    submission: contract::Submission<SubmissionResources, Result<(), Error>>,
+}
+
+// Field order matters: release the native command buffer before OGPU allocations.
+struct SubmissionResources {
+    commands: CommandBuffer,
     _retained: Vec<Rc<Buffer>>,
 }
 
@@ -152,47 +170,7 @@ fn fail(status: OgpuResult, message: impl Into<String>) -> Error {
     Error::new(status, message)
 }
 
-unsafe fn call(error: *mut OgpuError, f: impl FnOnce() -> Result<(), Error>) -> OgpuResult {
-    let result = catch_unwind(AssertUnwindSafe(f))
-        .unwrap_or_else(|_| Err(fail(INTERNAL_ERROR, "Rust panic contained at C boundary")));
-    let (status, diagnostic) = match result {
-        Ok(()) => (
-            SUCCESS,
-            OgpuError {
-                vulkan_result: 0,
-                message: [0; 256],
-            },
-        ),
-        Err(e) => (e.status, e.diagnostic()),
-    };
-    if !error.is_null() {
-        unsafe { error.write(diagnostic) }
-    }
-    status
-}
-
-fn required<T>(p: *const T) -> Result<(), Error> {
-    if p.is_null() {
-        Err(fail(INVALID_ARGUMENT, "NULL required argument"))
-    } else {
-        Ok(())
-    }
-}
-
-unsafe fn create<T>(
-    out: *mut *mut T,
-    error: *mut OgpuError,
-    f: impl FnOnce() -> Result<T, Error>,
-) -> OgpuResult {
-    unsafe {
-        call(error, || {
-            required(out)?;
-            out.write(ptr::null_mut());
-            out.write(Box::into_raw(Box::new(f()?)));
-            Ok(())
-        })
-    }
-}
+use crate::boundary::{call, create, required};
 
 fn limits(d: &MetalDevice) -> OgpuDeviceLimits {
     let group = d.max_threads_per_threadgroup();
@@ -207,16 +185,7 @@ fn limits(d: &MetalDevice) -> OgpuDeviceLimits {
     }
 }
 
-fn check_range(size: usize, offset: u64, length: u64) -> Result<(usize, usize), Error> {
-    let offset =
-        usize::try_from(offset).map_err(|_| fail(OUT_OF_RANGE, "Buffer range out of bounds"))?;
-    let length =
-        usize::try_from(length).map_err(|_| fail(OUT_OF_RANGE, "Buffer range out of bounds"))?;
-    if offset > size || length > size - offset {
-        return Err(fail(OUT_OF_RANGE, "Buffer range out of bounds"));
-    }
-    Ok((offset, length))
-}
+use crate::contract::range as check_range;
 
 fn command_error(cb: &CommandBuffer) -> Result<(), Error> {
     if cb.status() == MTLCommandBufferStatus::Error {
@@ -239,10 +208,8 @@ impl Batch {
         }
     }
 
-    fn cb(&self) -> Result<&CommandBuffer, Error> {
-        self.commands
-            .as_ref()
-            .ok_or_else(|| fail(INVALID_ARGUMENT, "Batch already submitted"))
+    fn cb(&mut self) -> Result<&CommandBuffer, Error> {
+        contract::recording(&mut self.commands).map(|commands| &*commands)
     }
 
     fn dispatch(
@@ -254,18 +221,19 @@ impl Batch {
         if !Rc::ptr_eq(&self.device, &kernel.device) {
             return Err(fail(INVALID_ARGUMENT, "Kernel belongs to another device"));
         }
-        if groups.contains(&0) || arguments.len() != kernel.push_size as usize {
-            return Err(fail(
-                INVALID_ARGUMENT,
-                "Invalid dispatch dimensions or argument size",
-            ));
-        }
-        let enc = self.cb()?.new_compute_command_encoder();
+        contract::dispatch(
+            groups,
+            limits(&self.device.raw).max_dispatch,
+            arguments.len(),
+            kernel.push_size,
+        )?;
+        let cb = self.cb()?.to_owned();
+        let enc = cb.new_compute_command_encoder();
         enc.set_compute_pipeline_state(&kernel.pipeline);
         if !arguments.is_empty() {
             enc.set_bytes(0, arguments.len() as u64, arguments.as_ptr().cast());
         }
-        for weak in self.device.buffers.borrow().iter() {
+        for weak in self.device.buffers.borrow().values() {
             if let Some(buffer) = weak.upgrade() {
                 enc.use_resource(
                     &buffer.raw,
@@ -287,16 +255,30 @@ impl Batch {
 }
 
 impl Completion {
-    fn observe(&self, wait: bool) -> Result<bool, Error> {
-        let cb = self.commands.as_ref().expect("completion command buffer");
-        if wait {
-            cb.wait_until_completed();
+    fn observe(&mut self, wait: bool) -> Result<bool, Error> {
+        if self.submission.pending {
+            let cb = &self
+                .submission
+                .resources
+                .as_ref()
+                .expect("pending resources")
+                .commands;
+            if wait {
+                cb.wait_until_completed();
+            }
+            let outcome = match cb.status() {
+                MTLCommandBufferStatus::Completed => Ok(()),
+                MTLCommandBufferStatus::Error => command_error(cb),
+                _ => return Ok(false),
+            };
+            self.submission.finish(outcome);
         }
-        match cb.status() {
-            MTLCommandBufferStatus::Completed => Ok(true),
-            MTLCommandBufferStatus::Error => command_error(cb).map(|_| false),
-            _ => Ok(false),
-        }
+        self.submission
+            .outcome
+            .as_ref()
+            .expect("accepted submission")
+            .clone()?;
+        Ok(true)
     }
 }
 
@@ -316,8 +298,7 @@ pub unsafe extern "C" fn ogpu_device_create(
     unsafe {
         create(out, error, || {
             required(probe)?;
-            let raw = (*probe)
-                .metal_devices
+            let raw = (&(*probe).metal_devices)
                 .get(index as usize)
                 .ok_or_else(|| fail(OUT_OF_RANGE, "Device index out of range"))?
                 .to_owned();
@@ -326,7 +307,7 @@ pub unsafe extern "C" fn ogpu_device_create(
                 inner: Rc::new(Device {
                     raw,
                     queue,
-                    buffers: RefCell::new(Vec::new()),
+                    buffers: RefCell::new(BTreeMap::new()),
                 }),
             })
         })
@@ -383,7 +364,7 @@ pub unsafe extern "C" fn ogpu_device_limits(
         call(error, || {
             required(device)?;
             required(out)?;
-            out.write(limits(&(*device).inner.raw));
+            out.write(limits(&(&(*device).inner).raw));
             Ok(())
         })
     }
@@ -409,6 +390,7 @@ pub unsafe extern "C" fn ogpu_device_timing_info(
 }
 
 #[no_mangle]
+#[allow(unexpected_cfgs)] // objc 0.2's selector macro checks its historical cargo-clippy feature.
 pub unsafe extern "C" fn ogpu_buffer_create(
     device: *mut OgpuDevice,
     size: u64,
@@ -434,9 +416,20 @@ pub unsafe extern "C" fn ogpu_buffer_create(
             } else {
                 MTLResourceOptions::StorageModePrivate
             };
-            let raw = (*device).inner.raw.new_buffer(size as u64, options);
+            let device_raw = &(&(*device).inner).raw;
+            if size as u64 > device_raw.max_buffer_length() {
+                return Err(fail(OUT_OF_RANGE, "Buffer exceeds Metal maxBufferLength"));
+            }
+            // Apple's allocator is nullable; metal-rs new_buffer wraps nil in a
+            // non-null owning type. Check the Objective-C result BEFORE wrapping.
+            let pointer: *mut ::metal::MTLBuffer = msg_send![device_raw.as_ptr(),
+                newBufferWithLength: size as u64 options: options];
+            if pointer.is_null() {
+                return Err(fail(INTERNAL_ERROR, "Metal buffer allocation failed"));
+            }
+            let raw = MetalBuffer::from_ptr(pointer);
             let inner = Rc::new(Buffer {
-                device: (*device).inner.clone(),
+                device: (&(*device).inner).clone(),
                 raw,
                 size,
                 host,
@@ -445,7 +438,7 @@ pub unsafe extern "C" fn ogpu_buffer_create(
                 .device
                 .buffers
                 .borrow_mut()
-                .push(Rc::downgrade(&inner));
+                .insert(Rc::as_ptr(&inner) as usize, Rc::downgrade(&inner));
             Ok(OgpuBuffer { inner })
         })
     }
@@ -469,7 +462,7 @@ pub unsafe extern "C" fn ogpu_buffer_write(
     unsafe {
         call(error, || {
             required(buffer)?;
-            let b = &(*buffer).inner;
+            let b = &(&(*buffer).inner);
             if !b.host {
                 return Err(fail(
                     INVALID_ARGUMENT,
@@ -501,7 +494,7 @@ pub unsafe extern "C" fn ogpu_buffer_read(
     unsafe {
         call(error, || {
             required(buffer)?;
-            let b = &(*buffer).inner;
+            let b = &(&(*buffer).inner);
             if !b.host {
                 return Err(fail(
                     INVALID_ARGUMENT,
@@ -532,7 +525,7 @@ pub unsafe extern "C" fn ogpu_buffer_device_address(
         call(error, || {
             required(buffer)?;
             required(out)?;
-            out.write((*buffer).inner.raw.gpu_address());
+            out.write((&(*buffer).inner).raw.gpu_address());
             Ok(())
         })
     }
@@ -549,9 +542,16 @@ pub unsafe extern "C" fn ogpu_kernel_create(
     unsafe {
         create(out, error, || {
             required(device)?;
+            contract::root_size(
+                push_size,
+                limits(&(&(*device).inner).raw).max_push_data_bytes,
+            )?;
             required(desc)?;
             let desc = &*desc;
-            if desc.reserved != 0 || desc.word_count < 5 || desc.word_count > isize::MAX as u64 / 4
+            if desc.reserved != 0
+                || desc.word_count < 5
+                || desc.word_count > isize::MAX as u64 / 4
+                || desc.words as usize % 4 != 0
             {
                 return Err(fail(INVALID_ARGUMENT, "Invalid shader description"));
             }
@@ -682,8 +682,7 @@ pub unsafe extern "C" fn ogpu_kernel_create(
                 .compile(&options)
                 .map_err(|e| fail(UNSUPPORTED, format!("SPIR-V to MSL failed: {e:?}")))?;
             let source = artifact.to_string();
-            let library = (*device)
-                .inner
+            let library = (&(*device).inner)
                 .raw
                 .new_library_with_source(&source, &::metal::CompileOptions::new())
                 .map_err(|e| fail(UNSUPPORTED, format!("Metal shader compilation failed: {e}")))?;
@@ -698,8 +697,7 @@ pub unsafe extern "C" fn ogpu_kernel_create(
             let function = library
                 .get_function("main0", Some(values))
                 .map_err(|e| fail(UNSUPPORTED, format!("Metal entry point failed: {e}")))?;
-            let pipeline = (*device)
-                .inner
+            let pipeline = (&(*device).inner)
                 .raw
                 .new_compute_pipeline_state_with_function(&function)
                 .map_err(|e| fail(UNSUPPORTED, format!("Metal pipeline creation failed: {e}")))?;
@@ -713,7 +711,7 @@ pub unsafe extern "C" fn ogpu_kernel_create(
             }
             Ok(OgpuKernel {
                 inner: Rc::new(Kernel {
-                    device: (*device).inner.clone(),
+                    device: (&(*device).inner).clone(),
                     pipeline,
                     group,
                     push_size,
@@ -740,7 +738,7 @@ pub unsafe extern "C" fn ogpu_batch_create(
         create(out, error, || {
             required(device)?;
             Ok(OgpuBatch {
-                inner: Batch::new((*device).inner.clone()),
+                inner: Batch::new((&(*device).inner).clone()),
             })
         })
     }
@@ -778,7 +776,7 @@ pub unsafe extern "C" fn ogpu_batch_dispatch(
             };
             (*batch)
                 .inner
-                .dispatch((*kernel).inner.clone(), [x, y, z], args)
+                .dispatch((&(*kernel).inner).clone(), [x, y, z], args)
         })
     }
 }
@@ -799,14 +797,14 @@ pub unsafe extern "C" fn ogpu_dispatch_wait(
             if bytes != 0 {
                 required(args)?;
             }
-            let mut batch = Batch::new((*kernel).inner.device.clone());
+            let mut batch = Batch::new((&(*kernel).inner).device.clone());
             let args = if bytes == 0 {
                 &[]
             } else {
                 std::slice::from_raw_parts(args.cast::<u8>(), bytes as usize)
             };
-            batch.dispatch((*kernel).inner.clone(), [x, y, z], args)?;
-            let cb = batch.commands.take().unwrap();
+            batch.dispatch((&(*kernel).inner).clone(), [x, y, z], args)?;
+            let cb = contract::take_recording(&mut batch.commands)?;
             cb.commit();
             cb.wait_until_completed();
             command_error(&cb)
@@ -824,9 +822,8 @@ pub unsafe extern "C" fn ogpu_batch_barrier(
     unsafe {
         call(error, || {
             required(batch)?;
-            if source == 0 || destination == 0 || source & !255 != 0 || destination & !255 != 0 {
-                return Err(fail(INVALID_ARGUMENT, "Invalid access mask"));
-            }
+            contract::access(source, false)?;
+            contract::access(destination, false)?;
             (*batch).inner.cb()?;
             Ok(())
         })
@@ -843,11 +840,11 @@ pub unsafe extern "C" fn ogpu_batch_retain_buffer(
         call(error, || {
             required(batch)?;
             required(buffer)?;
-            if !Rc::ptr_eq(&(*batch).inner.device, &(*buffer).inner.device) {
+            if !Rc::ptr_eq(&(*batch).inner.device, &(&(*buffer).inner).device) {
                 return Err(fail(INVALID_ARGUMENT, "Buffer belongs to another device"));
             }
             (*batch).inner.cb()?;
-            (*batch).inner.retained.push((*buffer).inner.clone());
+            contract::retain(&mut (*batch).inner.retained, (&(*buffer).inner).clone());
             Ok(())
         })
     }
@@ -874,11 +871,23 @@ pub unsafe extern "C" fn ogpu_batch_copy_buffer(
             if !Rc::ptr_eq(&b.device, &s.device) || !Rc::ptr_eq(&b.device, &d.device) {
                 return Err(fail(INVALID_ARGUMENT, "Buffer belongs to another device"));
             }
-            let (so, n) = check_range(s.size, source_offset, size)?;
-            let (doff, _) = check_range(d.size, destination_offset, size)?;
+            b.cb()?;
+            let (so, doff, n) = contract::copy_ranges(
+                s.size,
+                source_offset,
+                d.size,
+                destination_offset,
+                size,
+                Rc::ptr_eq(s, d),
+            )?;
+            if n == 0 {
+                return Ok(());
+            }
             let enc = b.cb()?.new_blit_command_encoder();
             enc.copy_from_buffer(&s.raw, so as u64, &d.raw, doff as u64, n as u64);
             enc.end_encoding();
+            contract::retain(&mut b.retained, s.clone());
+            contract::retain(&mut b.retained, d.clone());
             Ok(())
         })
     }
@@ -911,16 +920,17 @@ pub unsafe extern "C" fn ogpu_batch_submit(
         create(out, error, || {
             required(batch)?;
             let b = &mut (*batch).inner;
-            let cb = b
-                .commands
-                .take()
-                .ok_or_else(|| fail(INVALID_ARGUMENT, "Batch already submitted"))?;
-            cb.commit();
+            let cb = contract::take_recording(&mut b.commands)?;
+            let mut submission = contract::Submission::preparing(SubmissionResources {
+                commands: cb,
+                _retained: std::mem::take(&mut b.retained),
+            });
+            submission.resources.as_ref().unwrap().commands.commit();
+            submission.accept();
             Ok(OgpuCompletion {
                 inner: Completion {
                     _device: b.device.clone(),
-                    commands: Some(cb),
-                    _retained: std::mem::take(&mut b.retained),
+                    submission,
                 },
             })
         })
@@ -950,6 +960,7 @@ pub unsafe extern "C" fn ogpu_completion_poll(
         call(error, || {
             required(completion)?;
             required(out)?;
+            out.write(0);
             out.write((*completion).inner.observe(false)? as u32);
             Ok(())
         })
@@ -1086,7 +1097,7 @@ mod tests {
         let device = Rc::new(Device {
             queue: raw.new_command_queue(),
             raw,
-            buffers: RefCell::new(Vec::new()),
+            buffers: RefCell::new(BTreeMap::new()),
         });
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../examples/shaders/specialize.comp.spv");

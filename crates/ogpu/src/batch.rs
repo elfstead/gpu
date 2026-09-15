@@ -1,5 +1,6 @@
 //! One-shot recordings, retirable submission resources and durable completion receipts.
 use super::*;
+use crate::contract;
 
 pub(crate) const COMPUTE_READ: u32 = 1;
 pub(crate) const COMPUTE_WRITE: u32 = 2;
@@ -13,7 +14,6 @@ pub(crate) const FRAGMENT_READ: u32 = 128;
 pub(crate) const COLOR_READ: u32 = 256;
 pub(crate) const CLEAR: u32 = 0;
 pub(crate) const LOAD: u32 = 1;
-const GRAPHICS_ACCESS: u32 = VERTEX_READ | INDIRECT_READ | COLOR_WRITE | FRAGMENT_READ | COLOR_READ;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Access {
@@ -22,9 +22,7 @@ struct Access {
 }
 
 fn access(mask: u32) -> Result<Access, Error> {
-    if mask == 0 || mask & !511 != 0 {
-        return Err(Error::new(INVALID_ARGUMENT, "Invalid access mask"));
-    }
+    contract::access(mask, true)?;
     let mut result = Access {
         stages: 0,
         flags: 0,
@@ -120,13 +118,6 @@ enum Step {
     },
 }
 
-fn valid_grid(groups: [u32; 3], limits: [u32; 3]) -> bool {
-    groups
-        .into_iter()
-        .zip(limits)
-        .all(|(count, limit)| count != 0 && count <= limit)
-}
-
 pub(crate) struct Batch {
     device: Rc<Device>,
     // None means a submission was attempted; even failed attempts are terminal.
@@ -153,16 +144,16 @@ impl Batch {
                 "Copy buffers belong to another device",
             ));
         }
-        source.range(source_offset, size)?;
-        destination.range(destination_offset, size)?;
+        contract::copy_ranges(
+            source.size,
+            source_offset as u64,
+            destination.size,
+            destination_offset as u64,
+            size as u64,
+            Rc::ptr_eq(&source, &destination),
+        )?;
         if size == 0 {
             return Ok(());
-        }
-        if Rc::ptr_eq(&source, &destination)
-            && source_offset < destination_offset + size
-            && destination_offset < source_offset + size
-        {
-            return Err(Error::new(INVALID_ARGUMENT, "Copy ranges overlap"));
         }
         self.recording()?.push(Step::CopyBuffer {
             source,
@@ -221,9 +212,7 @@ impl Batch {
 
     fn recording(&mut self) -> Result<&mut Vec<Step>, Error> {
         self.device.ready()?;
-        self.steps
-            .as_mut()
-            .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Batch already submitted"))
+        contract::recording(&mut self.steps)
     }
 
     pub(crate) fn enable_timing(&mut self) -> Result<(), Error> {
@@ -241,9 +230,7 @@ impl Batch {
                 "Buffer belongs to another device",
             ));
         }
-        if !self.retained.iter().any(|b| Rc::ptr_eq(b, &buffer)) {
-            self.retained.push(buffer);
-        }
+        contract::retain(&mut self.retained, buffer);
         Ok(())
     }
 
@@ -259,14 +246,12 @@ impl Batch {
                 "Kernel belongs to another device",
             ));
         }
-        if !valid_grid(groups, self.device.limits.maxComputeWorkGroupCount)
-            || root.len() != kernel.push_size as usize
-        {
-            return Err(Error::new(
-                INVALID_ARGUMENT,
-                "Invalid dispatch size or argument byte count",
-            ));
-        }
+        contract::dispatch(
+            groups,
+            self.device.limits.maxComputeWorkGroupCount,
+            root.len(),
+            kernel.push_size,
+        )?;
         self.recording()?.push(Step::Dispatch {
             kernel,
             groups,
@@ -276,15 +261,11 @@ impl Batch {
     }
 
     pub(crate) fn barrier(&mut self, source: u32, destination: u32) -> Result<(), Error> {
-        let graphics_access = (source | destination) & GRAPHICS_ACCESS != 0;
+        contract::access(source, self.device.graphics)?;
+        contract::access(destination, self.device.graphics)?;
         let source = access(source)?;
         let destination = access(destination)?;
-        if !self.device.graphics && graphics_access {
-            return Err(Error::new(
-                UNSUPPORTED,
-                "Graphics access on a compute-only queue",
-            ));
-        }
+
         self.recording()?.push(Step::Barrier {
             source,
             destination,
@@ -399,23 +380,18 @@ impl Batch {
     /// allocations live and do not perform host accesses until all GPU uses complete.
     /// Calls on this device and its children must be externally serialized.
     pub(crate) unsafe fn submit(&mut self) -> Result<Completion, Error> {
-        let steps = self
-            .steps
-            .take()
-            .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Batch already submitted"))?;
+        let steps = contract::take_recording(&mut self.steps)?;
         let retained = std::mem::take(&mut self.retained);
         self.device.ready()?;
         let mut completion = Completion {
             device: self.device.clone(),
-            resources: Some(SubmissionResources {
+            submission: contract::Submission::preparing(SubmissionResources {
                 device: self.device.clone(),
                 steps,
                 pool: ptr::null_mut(),
                 _retained: retained,
             }),
             timeline_value: 0,
-            pending: false,
-            outcome: None,
             timed: self.timed,
             queries: ptr::null_mut(),
             elapsed: None,
@@ -450,7 +426,7 @@ impl Batch {
             let status = (d.f.vkQueueSubmit2.unwrap())(d.queue, 1, &submit, ptr::null_mut());
             if status == vk::VkResult_VK_SUCCESS {
                 // No fallible operation between accepted submission and recording ownership.
-                completion.pending = true;
+                completion.submission.accept();
             } else {
                 // Vulkan guarantees unchanged submission state for OOM, and cleanup on
                 // device loss. An unexpected error has no such guarantee: drain the queue,
@@ -503,10 +479,8 @@ impl Drop for SubmissionResources {
 
 pub(crate) struct Completion {
     device: Rc<Device>,
-    resources: Option<SubmissionResources>,
+    submission: contract::Submission<SubmissionResources, vk::VkResult>,
     timeline_value: u64,
-    pending: bool,
-    outcome: Option<vk::VkResult>,
     timed: bool,
     queries: vk::VkQueryPool,
     elapsed: Option<f64>,
@@ -516,7 +490,7 @@ impl Completion {
     // SUCCESS means this submission's accesses have finished. A transient query
     // error gives no release permission and leaves the completion pending.
     pub(crate) fn poll(&mut self) -> Result<bool, Error> {
-        if self.pending {
+        if self.submission.pending {
             let d = &self.device;
             let status = if d.lost.get() {
                 vk::VkResult_VK_ERROR_DEVICE_LOST
@@ -526,8 +500,7 @@ impl Completion {
             match status {
                 vk::VkResult_VK_TIMEOUT => return Ok(false),
                 vk::VkResult_VK_SUCCESS | vk::VkResult_VK_ERROR_DEVICE_LOST => {
-                    self.pending = false;
-                    self.outcome = Some(status);
+                    self.submission.finish(status);
                 }
                 _ => return d.result("vkWaitSemaphores (poll)", status).map(|()| false),
             }
@@ -535,7 +508,7 @@ impl Completion {
         self.retire();
         self.device.result(
             "completion poll",
-            self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
+            self.submission.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
         )?;
         Ok(true)
     }
@@ -554,7 +527,11 @@ impl Completion {
 
     unsafe fn prepare(&mut self) -> Result<vk::VkCommandBuffer, Error> {
         let d = &self.device;
-        let resources = self.resources.as_mut().expect("preparation owns resources");
+        let resources = self
+            .submission
+            .resources
+            .as_mut()
+            .expect("preparation owns resources");
         // SAFETY: Vulkan pointers refer to initialized local structures. This object
         // owns each successful allocation before another fallible call can occur.
         unsafe {
@@ -726,7 +703,7 @@ impl Completion {
     }
 
     pub(crate) fn wait(&mut self) -> Result<(), Error> {
-        if self.pending {
+        if self.submission.pending {
             let d = &self.device;
             let status = if d.lost.get() {
                 vk::VkResult_VK_ERROR_DEVICE_LOST
@@ -735,21 +712,19 @@ impl Completion {
                 // resources. Wait errors retain them until draining establishes safety.
                 drain(|| unsafe { self.timeline_wait(u64::MAX) })
             };
-            self.pending = false;
-            self.outcome = Some(status);
+            self.submission.finish(status);
         }
         self.retire();
         self.device.result(
             "vkWaitSemaphores",
-            self.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
+            self.submission.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
         )
     }
 
     fn retire(&mut self) {
         // Non-pending also covers unaccepted partial preparation in Drop. Wait
         // reaches this point only after draining; transient/pending polls return early.
-        assert!(!self.pending);
-        drop(self.resources.take());
+        self.submission.retire();
     }
 
     fn discard_queries(&mut self) {
@@ -769,7 +744,7 @@ impl Completion {
         if !self.timed {
             return Err(Error::new(INVALID_ARGUMENT, "Completion was not timed"));
         }
-        let outcome = self.outcome.ok_or_else(|| {
+        let outcome = self.submission.outcome.ok_or_else(|| {
             Error::new(
                 INVALID_ARGUMENT,
                 "Timing requires a successful completion wait or poll",
