@@ -1,0 +1,139 @@
+2026-09-17; shaderc 2026.1; SPIRV-Tools 2026.3; CPython 3.14.7.
+VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1
+Application SHA256 da6bdd9320a665c75fd8165c7a6f2d988cb55dec1788ced21399272049dc923c
+Model SHA256 59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0
+Timing is incidental validation-run instrumentation, including cold first use;
+not a warmed benchmark or a normal/diagnostic performance comparison.
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 57.914 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.015 host_execute=94.822 read=0.002 query=0.019 ms; device_batch=94.484 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.111 host_execute=0.834 read=0.003 query=0.013 ms; device_batch=0.517 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 59.635 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.023 host_execute=94.407 read=0.002 query=0.020 ms; device_batch=94.045 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.097 host_execute=0.875 read=0.004 query=0.015 ms; device_batch=0.551 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 58.112 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.021 host_execute=96.151 read=0.002 query=0.021 ms; device_batch=95.784 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.100 host_execute=0.843 read=0.003 query=0.013 ms; device_batch=0.558 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 57.299 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.018 host_execute=95.877 read=0.002 query=0.020 ms; device_batch=95.555 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.104 host_execute=0.855 read=0.004 query=0.015 ms; device_batch=0.528 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 59.194 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.061 host_execute=95.126 read=0.004 query=0.021 ms; device_batch=94.749 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.382 host_execute=0.901 read=0.010 query=0.018 ms; device_batch=0.577 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 60.962 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.061 host_execute=96.657 read=0.004 query=0.020 ms; device_batch=96.299 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.351 host_execute=0.887 read=0.010 query=0.015 ms; device_batch=0.571 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 59.840 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.067 host_execute=103.506 read=0.005 query=0.021 ms; device_batch=103.139 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.353 host_execute=0.972 read=0.009 query=0.013 ms; device_batch=0.632 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 69.222 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.067 host_execute=113.858 read=0.005 query=0.021 ms; device_batch=113.493 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.353 host_execute=0.935 read=0.010 query=0.014 ms; device_batch=0.642 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 61.753 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x1 -> 3x3: host_write=0.006 host_execute=97.570 read=0.001 query=0.020 ms; device_batch=97.227 ms; GPU upload=132 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x1 -> 3x3: host_write=0.000 host_execute=0.509 read=0.000 query=0.018 ms; device_batch=0.301 ms; GPU upload=132 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x1 -> 3x3: host_write=0.000 host_execute=0.506 read=0.000 query=0.016 ms; device_batch=0.307 ms; GPU upload=132 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x1 -> 3x3: host_write=0.001 host_execute=0.601 read=0.000 query=0.013 ms; device_batch=0.394 ms; GPU upload=132 final_copy=36 diagnostic_copy=1180 bytes; guards PASS
+diagnostic frame 1 1x1 -> 3x3: host_write=0.000 host_execute=0.529 read=0.000 query=0.018 ms; device_batch=0.343 ms; GPU upload=132 final_copy=36 diagnostic_copy=1180 bytes; guards PASS
+diagnostic frame 2 1x1 -> 3x3: host_write=0.000 host_execute=0.560 read=0.000 query=0.014 ms; device_batch=0.358 ms; GPU upload=132 final_copy=36 diagnostic_copy=1180 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 61.261 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x1 -> 1x1: host_write=0.010 host_execute=99.638 read=0.002 query=0.029 ms; device_batch=99.253 ms; GPU upload=132 final_copy=4 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x1 -> 1x1: host_write=0.001 host_execute=0.640 read=0.000 query=0.019 ms; device_batch=0.319 ms; GPU upload=132 final_copy=4 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x1 -> 1x1: host_write=0.001 host_execute=0.491 read=0.000 query=0.015 ms; device_batch=0.285 ms; GPU upload=132 final_copy=4 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x1 -> 1x1: host_write=0.001 host_execute=0.703 read=0.001 query=0.016 ms; device_batch=0.410 ms; GPU upload=132 final_copy=4 diagnostic_copy=1052 bytes; guards PASS
+diagnostic frame 1 1x1 -> 1x1: host_write=0.000 host_execute=0.553 read=0.001 query=0.016 ms; device_batch=0.348 ms; GPU upload=132 final_copy=4 diagnostic_copy=1052 bytes; guards PASS
+diagnostic frame 2 1x1 -> 1x1: host_write=0.000 host_execute=0.521 read=0.000 query=0.022 ms; device_batch=0.335 ms; GPU upload=132 final_copy=4 diagnostic_copy=1052 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 58.931 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x17 -> 3x35: host_write=0.005 host_execute=99.534 read=0.001 query=0.020 ms; device_batch=99.187 ms; GPU upload=196 final_copy=420 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x17 -> 3x35: host_write=0.000 host_execute=0.612 read=0.000 query=0.014 ms; device_batch=0.382 ms; GPU upload=196 final_copy=420 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x17 -> 3x35: host_write=0.000 host_execute=0.504 read=0.000 query=0.013 ms; device_batch=0.305 ms; GPU upload=196 final_copy=420 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x17 -> 3x35: host_write=0.001 host_execute=0.569 read=0.000 query=0.014 ms; device_batch=0.348 ms; GPU upload=196 final_copy=420 diagnostic_copy=3356 bytes; guards PASS
+diagnostic frame 1 1x17 -> 3x35: host_write=0.000 host_execute=0.579 read=0.000 query=0.013 ms; device_batch=0.369 ms; GPU upload=196 final_copy=420 diagnostic_copy=3356 bytes; guards PASS
+diagnostic frame 2 1x17 -> 3x35: host_write=0.000 host_execute=0.572 read=0.000 query=0.015 ms; device_batch=0.362 ms; GPU upload=196 final_copy=420 diagnostic_copy=3356 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 58.819 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x17 -> 1x8: host_write=0.008 host_execute=96.043 read=0.001 query=0.022 ms; device_batch=95.734 ms; GPU upload=196 final_copy=32 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x17 -> 1x8: host_write=0.001 host_execute=0.595 read=0.000 query=0.015 ms; device_batch=0.323 ms; GPU upload=196 final_copy=32 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x17 -> 1x8: host_write=0.000 host_execute=0.530 read=0.000 query=0.014 ms; device_batch=0.332 ms; GPU upload=196 final_copy=32 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x17 -> 1x8: host_write=0.001 host_execute=0.580 read=0.000 query=0.014 ms; device_batch=0.359 ms; GPU upload=196 final_copy=32 diagnostic_copy=1804 bytes; guards PASS
+diagnostic frame 1 1x17 -> 1x8: host_write=0.000 host_execute=0.536 read=0.000 query=0.015 ms; device_batch=0.335 ms; GPU upload=196 final_copy=32 diagnostic_copy=1804 bytes; guards PASS
+diagnostic frame 2 1x17 -> 1x8: host_write=0.000 host_execute=0.552 read=0.000 query=0.017 ms; device_batch=0.347 ms; GPU upload=196 final_copy=32 diagnostic_copy=1804 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 61.711 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 19x1 -> 39x3: host_write=0.005 host_execute=93.957 read=0.001 query=0.019 ms; device_batch=93.624 ms; GPU upload=204 final_copy=468 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 19x1 -> 39x3: host_write=0.000 host_execute=0.534 read=0.000 query=0.014 ms; device_batch=0.312 ms; GPU upload=204 final_copy=468 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 19x1 -> 39x3: host_write=0.000 host_execute=0.488 read=0.000 query=0.014 ms; device_batch=0.318 ms; GPU upload=204 final_copy=468 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 19x1 -> 39x3: host_write=0.005 host_execute=0.532 read=0.000 query=0.014 ms; device_batch=0.354 ms; GPU upload=204 final_copy=468 diagnostic_copy=3628 bytes; guards PASS
+diagnostic frame 1 19x1 -> 39x3: host_write=0.000 host_execute=0.538 read=0.000 query=0.014 ms; device_batch=0.360 ms; GPU upload=204 final_copy=468 diagnostic_copy=3628 bytes; guards PASS
+diagnostic frame 2 19x1 -> 39x3: host_write=0.000 host_execute=0.590 read=0.000 query=0.014 ms; device_batch=0.409 ms; GPU upload=204 final_copy=468 diagnostic_copy=3628 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 61.115 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 19x1 -> 9x1: host_write=0.006 host_execute=98.068 read=0.001 query=0.023 ms; device_batch=97.628 ms; GPU upload=204 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 19x1 -> 9x1: host_write=0.001 host_execute=0.550 read=0.000 query=0.014 ms; device_batch=0.296 ms; GPU upload=204 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 19x1 -> 9x1: host_write=0.000 host_execute=0.505 read=0.000 query=0.014 ms; device_batch=0.318 ms; GPU upload=204 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 19x1 -> 9x1: host_write=0.001 host_execute=0.559 read=0.000 query=0.014 ms; device_batch=0.354 ms; GPU upload=204 final_copy=36 diagnostic_copy=1900 bytes; guards PASS
+diagnostic frame 1 19x1 -> 9x1: host_write=0.000 host_execute=0.587 read=0.000 query=0.014 ms; device_batch=0.378 ms; GPU upload=204 final_copy=36 diagnostic_copy=1900 bytes; guards PASS
+diagnostic frame 2 19x1 -> 9x1: host_write=0.000 host_execute=0.562 read=0.000 query=0.014 ms; device_batch=0.372 ms; GPU upload=204 final_copy=36 diagnostic_copy=1900 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 58.829 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.019 host_execute=94.778 read=0.002 query=0.020 ms; device_batch=94.439 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 33x25 -> 67x51: host_write=0.002 host_execute=0.615 read=0.001 query=0.014 ms; device_batch=0.359 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 33x25 -> 67x51: host_write=0.001 host_execute=0.553 read=0.001 query=0.013 ms; device_batch=0.351 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.097 host_execute=0.735 read=0.003 query=0.013 ms; device_batch=0.495 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+diagnostic frame 1 33x25 -> 67x51: host_write=0.004 host_execute=0.697 read=0.003 query=0.013 ms; device_batch=0.488 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+diagnostic frame 2 33x25 -> 67x51: host_write=0.007 host_execute=0.745 read=0.004 query=0.014 ms; device_batch=0.524 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 61.472 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 16x12: host_write=0.005 host_execute=94.463 read=0.001 query=0.020 ms; device_batch=94.104 ms; GPU upload=3428 final_copy=768 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 33x25 -> 16x12: host_write=0.001 host_execute=0.644 read=0.000 query=0.014 ms; device_batch=0.396 ms; GPU upload=3428 final_copy=768 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 33x25 -> 16x12: host_write=0.000 host_execute=0.565 read=0.000 query=0.015 ms; device_batch=0.372 ms; GPU upload=3428 final_copy=768 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 16x12: host_write=0.050 host_execute=0.691 read=0.001 query=0.014 ms; device_batch=0.473 ms; GPU upload=3428 final_copy=768 diagnostic_copy=37068 bytes; guards PASS
+diagnostic frame 1 33x25 -> 16x12: host_write=0.009 host_execute=0.687 read=0.001 query=0.017 ms; device_batch=0.479 ms; GPU upload=3428 final_copy=768 diagnostic_copy=37068 bytes; guards PASS
+diagnostic frame 2 33x25 -> 16x12: host_write=0.010 host_execute=0.604 read=0.001 query=0.015 ms; device_batch=0.410 ms; GPU upload=3428 final_copy=768 diagnostic_copy=37068 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 57.713 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.064 host_execute=95.333 read=0.004 query=0.021 ms; device_batch=94.978 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 65x47 -> 131x95: host_write=0.004 host_execute=0.741 read=0.003 query=0.017 ms; device_batch=0.496 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 65x47 -> 131x95: host_write=0.003 host_execute=0.613 read=0.003 query=0.016 ms; device_batch=0.426 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.362 host_execute=0.817 read=0.015 query=0.015 ms; device_batch=0.608 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+diagnostic frame 1 65x47 -> 131x95: host_write=0.026 host_execute=0.855 read=0.010 query=0.014 ms; device_batch=0.590 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+diagnostic frame 2 65x47 -> 131x95: host_write=0.021 host_execute=0.807 read=0.011 query=0.015 ms; device_batch=0.603 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Setup: 60.131 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 32x23: host_write=0.012 host_execute=95.003 read=0.001 query=0.019 ms; device_batch=94.651 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 65x47 -> 32x23: host_write=0.001 host_execute=0.683 read=0.000 query=0.016 ms; device_batch=0.418 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 65x47 -> 32x23: host_write=0.001 host_execute=0.610 read=0.000 query=0.029 ms; device_batch=0.405 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 32x23: host_write=0.124 host_execute=0.761 read=0.004 query=0.015 ms; device_batch=0.559 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=134972 bytes; guards PASS
+diagnostic frame 1 65x47 -> 32x23: host_write=0.009 host_execute=0.733 read=0.004 query=0.014 ms; device_batch=0.517 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=134972 bytes; guards PASS
+diagnostic frame 2 65x47 -> 32x23: host_write=0.008 host_execute=0.778 read=0.004 query=0.017 ms; device_batch=0.559 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=134972 bytes; guards PASS
+
+Learned-image Vulkan PASS: 38 cases in both normal/diagnostic modes; max float error=1.1085317e-06, error/bound=0.0334141227, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies

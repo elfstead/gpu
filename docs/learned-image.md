@@ -80,9 +80,9 @@ this same graphics workload on Metal and packaging an experimental release are
 later milestones. Metal currently has compute acceptance, not graphics support;
 this work does not trigger another Mac validation round trip.
 
-## Working status
+## CPU fixture checkpoint
 
-CPU fixture complete on 2026-09-17; Vulkan implementation is next. The first fixed
+CPU fixture completed at `f28bd28` on 2026-09-17. The first fixed
 training run passed unchanged gates over 15,520 held-out pixels: 6.0236 dB gain
 over noisy input and 2.4932 dB over the box control, with improvement in every
 scene. All 13 analytical/provenance/quality tests pass. Repeating training on
@@ -94,5 +94,71 @@ The [fixture and reproduction instructions](../examples/learned_image/README.md)
 include 38 exported CPU cases: eight quality scenes and ten A/B/A reuse groups
 covering all five input shapes and both resize directions. The source recipe and
 89 FP32 weights are versioned; generated inputs, scalar intermediate/final oracles
-and a viewable preview live under `target/learned-image/reference`. No GPU result
-has been accepted yet.
+and a viewable preview live under `target/learned-image/reference`. This checkpoint
+preceded GPU implementation and did not itself establish GPU correctness.
+
+## Vulkan result — 2026-09-17
+
+Complete at `21dc090`, against the unchanged gates committed in `b4e4aee`.
+`cargo xtask learned-image` executes 38 cases in each of two modes on both
+RX 5700 XT / RADV and llvmpipe, with Vulkan and synchronization validation.
+
+The application owns five DEVICE allocations (input, weights, hidden features,
+denoised pixels and processed RGBA floats), a final RGBA8 render target and HOST
+staging/readback/draw buffers. Three compute dispatches produce hidden features,
+residual output and resized/color-processed pixels. A fullscreen fragment shader
+reads the last allocation directly; rasterization writes the final image.
+
+Per frame: **input upload → convolution/ReLU → residual output → resize/palette
+→ raster → final readback**. Weights upload once during setup. The ordinary path
+uses one submission and final wait, with no intermediate host access, heap binding,
+buffer-to-image conversion or other GPU representation copy. This is a useful
+address-based handoff, not a claim that arbitrary texture workloads need no
+images/samplers. Resize here is explicit shader arithmetic, not hardware filtering.
+
+Diagnostic mode additionally poisons all scratch allocations with NaNs on the
+GPU and appends guarded buffer copies after rendering. It checks every hidden,
+denoised and processed scalar against the independent FP64 reference. Input and
+weights remain byte-identical; guards are intact. Ordinary and diagnostic final
+pixels agree exactly with each other. All ten A/B/A groups distinguish B and
+reproduce A exactly, including diagnostic intermediates. Neither mode has an
+intermediate CPU wait/read.
+
+| Driver | Maximum scalar error | Maximum error / allowed bound | Maximum RGB code difference |
+|---|---:|---:|---:|
+| Radeon / RADV | 2.2891e-6 | 0.08458 | 1 |
+| llvmpipe | 1.1085e-6 | 0.03342 | 1 |
+
+Alpha is exactly 255. The scalar maxima cover hidden features, denoised values and
+processed colors; they are not relative-error claims. The quality gates remain
+those of the frozen synthetic fixture, not a new photographic-quality claim.
+Raw receipts: [Radeon](results/learned-image-radv-2026-09-17.txt) and
+[llvmpipe](results/learned-image-llvmpipe-2026-09-17.txt).
+
+Setup, host staging/readback, record-submit-wait and optional whole-batch timing
+are reported separately, with upload/final/diagnostic byte counts. These runs
+include validation, instrumentation and cold first-use costs, with no performance
+acceptance threshold. They are not a native-Vulkan comparison, steady-state
+benchmark, or isolated GPU transfer/kernel timings. Diagnostic mode follows the
+normal mode and therefore is not a valid overhead comparison. Readback poisoning
+is included in host-write time. File I/O and CPU references are outside execution
+timings; device batch time includes transfers/barriers and any diagnostic work.
+
+Regression receipt: 13 reference/provenance tests, four numerical-checker rejection
+tests, byte-identical retraining, shader validation, no-GPU build/check, 37 ordinary
+Rust tests, strict Clippy, formatting and 749 ABI layout checks pass. All 21 existing
+GPU tests pass on both drivers. Tool versions: CPython 3.14.7, shaderc 2026.1 /
+glslang 16.4, SPIRV-Tools 2026.3. Runtime/header unchanged; GGML/libplacebo were
+not rerun for this application-only addition. No new Metal run or support claim.
+
+**Decision:** keep the existing runtime model. This application has not exposed
+a better host operator/resource API alternative. Model knowledge, storage choices,
+dependencies and reuse fit in the consumer without a tensor API or scheduler.
+This bounded success does not stabilize the API or establish general performance.
+
+The visible remaining duplication is mechanical: handwritten C/GLSL root layouts,
+local sizes, executable requirements and artifact wiring. The next large milestone
+is to carry this application through the compiler-generated workflow, preserving
+the frozen fixtures, public ownership rules and all acceptance gates. Prefer that
+over further network/kernel tuning. Same-application Metal graphics and an
+externally usable experimental release remain later milestones.

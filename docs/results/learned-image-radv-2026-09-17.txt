@@ -1,0 +1,139 @@
+2026-09-17; shaderc 2026.1; SPIRV-Tools 2026.3; CPython 3.14.7.
+VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1
+Application SHA256 da6bdd9320a665c75fd8165c7a6f2d988cb55dec1788ced21399272049dc923c
+Model SHA256 59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0
+Timing is incidental validation-run instrumentation, including cold first use;
+not a warmed benchmark or a normal/diagnostic performance comparison.
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 42.444 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.014 host_execute=3.011 read=0.001 query=0.022 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.041 host_execute=0.411 read=0.004 query=0.019 ms; device_batch=0.057 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.975 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.013 host_execute=0.833 read=0.001 query=0.027 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.041 host_execute=0.420 read=0.004 query=0.021 ms; device_batch=0.057 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.709 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.012 host_execute=0.766 read=0.001 query=0.020 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.040 host_execute=0.389 read=0.004 query=0.016 ms; device_batch=0.057 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.705 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.012 host_execute=0.797 read=0.001 query=0.020 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.038 host_execute=0.398 read=0.003 query=0.016 ms; device_batch=0.057 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.022 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.035 host_execute=0.896 read=0.004 query=0.025 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.181 host_execute=0.476 read=0.016 query=0.027 ms; device_batch=0.113 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.771 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.026 host_execute=0.790 read=0.003 query=0.020 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.156 host_execute=0.442 read=0.013 query=0.017 ms; device_batch=0.114 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.770 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.026 host_execute=0.816 read=0.003 query=0.020 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.157 host_execute=0.944 read=0.015 query=0.017 ms; device_batch=0.113 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 21.640 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.027 host_execute=0.805 read=0.003 query=0.021 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.157 host_execute=0.457 read=0.014 query=0.019 ms; device_batch=0.114 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.964 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x1 -> 3x3: host_write=0.004 host_execute=0.837 read=0.001 query=0.021 ms; device_batch=0.032 ms; GPU upload=132 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x1 -> 3x3: host_write=0.000 host_execute=0.376 read=0.000 query=0.018 ms; device_batch=0.032 ms; GPU upload=132 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x1 -> 3x3: host_write=0.000 host_execute=0.375 read=0.000 query=0.018 ms; device_batch=0.032 ms; GPU upload=132 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x1 -> 3x3: host_write=0.001 host_execute=0.365 read=0.000 query=0.017 ms; device_batch=0.038 ms; GPU upload=132 final_copy=36 diagnostic_copy=1180 bytes; guards PASS
+diagnostic frame 1 1x1 -> 3x3: host_write=0.000 host_execute=0.383 read=0.000 query=0.016 ms; device_batch=0.037 ms; GPU upload=132 final_copy=36 diagnostic_copy=1180 bytes; guards PASS
+diagnostic frame 2 1x1 -> 3x3: host_write=0.000 host_execute=0.373 read=0.000 query=0.017 ms; device_batch=0.038 ms; GPU upload=132 final_copy=36 diagnostic_copy=1180 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.671 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x1 -> 1x1: host_write=0.003 host_execute=0.755 read=0.001 query=0.020 ms; device_batch=0.033 ms; GPU upload=132 final_copy=4 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x1 -> 1x1: host_write=0.000 host_execute=0.331 read=0.000 query=0.016 ms; device_batch=0.032 ms; GPU upload=132 final_copy=4 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x1 -> 1x1: host_write=0.000 host_execute=0.342 read=0.000 query=0.016 ms; device_batch=0.032 ms; GPU upload=132 final_copy=4 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x1 -> 1x1: host_write=0.001 host_execute=0.349 read=0.000 query=0.016 ms; device_batch=0.037 ms; GPU upload=132 final_copy=4 diagnostic_copy=1052 bytes; guards PASS
+diagnostic frame 1 1x1 -> 1x1: host_write=0.000 host_execute=0.360 read=0.000 query=0.016 ms; device_batch=0.037 ms; GPU upload=132 final_copy=4 diagnostic_copy=1052 bytes; guards PASS
+diagnostic frame 2 1x1 -> 1x1: host_write=0.000 host_execute=0.352 read=0.000 query=0.016 ms; device_batch=0.038 ms; GPU upload=132 final_copy=4 diagnostic_copy=1052 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.804 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x17 -> 3x35: host_write=0.003 host_execute=0.783 read=0.001 query=0.019 ms; device_batch=0.033 ms; GPU upload=196 final_copy=420 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x17 -> 3x35: host_write=0.000 host_execute=0.326 read=0.000 query=0.016 ms; device_batch=0.033 ms; GPU upload=196 final_copy=420 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x17 -> 3x35: host_write=0.000 host_execute=0.329 read=0.000 query=0.016 ms; device_batch=0.033 ms; GPU upload=196 final_copy=420 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x17 -> 3x35: host_write=0.001 host_execute=0.348 read=0.000 query=0.016 ms; device_batch=0.039 ms; GPU upload=196 final_copy=420 diagnostic_copy=3356 bytes; guards PASS
+diagnostic frame 1 1x17 -> 3x35: host_write=0.000 host_execute=0.352 read=0.000 query=0.016 ms; device_batch=0.039 ms; GPU upload=196 final_copy=420 diagnostic_copy=3356 bytes; guards PASS
+diagnostic frame 2 1x17 -> 3x35: host_write=0.000 host_execute=0.343 read=0.000 query=0.016 ms; device_batch=0.039 ms; GPU upload=196 final_copy=420 diagnostic_copy=3356 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.205 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 1x17 -> 1x8: host_write=0.004 host_execute=0.866 read=0.001 query=0.022 ms; device_batch=0.033 ms; GPU upload=196 final_copy=32 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 1x17 -> 1x8: host_write=0.000 host_execute=0.355 read=0.000 query=0.018 ms; device_batch=0.032 ms; GPU upload=196 final_copy=32 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 1x17 -> 1x8: host_write=0.000 host_execute=0.358 read=0.000 query=0.019 ms; device_batch=0.032 ms; GPU upload=196 final_copy=32 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 1x17 -> 1x8: host_write=0.001 host_execute=0.373 read=0.000 query=0.018 ms; device_batch=0.038 ms; GPU upload=196 final_copy=32 diagnostic_copy=1804 bytes; guards PASS
+diagnostic frame 1 1x17 -> 1x8: host_write=0.000 host_execute=0.383 read=0.000 query=0.017 ms; device_batch=0.038 ms; GPU upload=196 final_copy=32 diagnostic_copy=1804 bytes; guards PASS
+diagnostic frame 2 1x17 -> 1x8: host_write=0.000 host_execute=0.360 read=0.000 query=0.018 ms; device_batch=0.038 ms; GPU upload=196 final_copy=32 diagnostic_copy=1804 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 19.589 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 19x1 -> 39x3: host_write=0.003 host_execute=0.711 read=0.001 query=0.017 ms; device_batch=0.033 ms; GPU upload=204 final_copy=468 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 19x1 -> 39x3: host_write=0.000 host_execute=0.339 read=0.000 query=0.016 ms; device_batch=0.033 ms; GPU upload=204 final_copy=468 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 19x1 -> 39x3: host_write=0.000 host_execute=0.324 read=0.000 query=0.016 ms; device_batch=0.033 ms; GPU upload=204 final_copy=468 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 19x1 -> 39x3: host_write=0.001 host_execute=0.353 read=0.000 query=0.016 ms; device_batch=0.039 ms; GPU upload=204 final_copy=468 diagnostic_copy=3628 bytes; guards PASS
+diagnostic frame 1 19x1 -> 39x3: host_write=0.000 host_execute=0.348 read=0.000 query=0.016 ms; device_batch=0.039 ms; GPU upload=204 final_copy=468 diagnostic_copy=3628 bytes; guards PASS
+diagnostic frame 2 19x1 -> 39x3: host_write=0.001 host_execute=0.382 read=0.000 query=0.016 ms; device_batch=0.038 ms; GPU upload=204 final_copy=468 diagnostic_copy=3628 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.016 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 19x1 -> 9x1: host_write=0.003 host_execute=0.820 read=0.001 query=0.020 ms; device_batch=0.033 ms; GPU upload=204 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 19x1 -> 9x1: host_write=0.000 host_execute=0.349 read=0.000 query=0.017 ms; device_batch=0.033 ms; GPU upload=204 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 19x1 -> 9x1: host_write=0.000 host_execute=0.350 read=0.000 query=0.017 ms; device_batch=0.033 ms; GPU upload=204 final_copy=36 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 19x1 -> 9x1: host_write=0.000 host_execute=0.357 read=0.000 query=0.016 ms; device_batch=0.038 ms; GPU upload=204 final_copy=36 diagnostic_copy=1900 bytes; guards PASS
+diagnostic frame 1 19x1 -> 9x1: host_write=0.000 host_execute=0.364 read=0.000 query=0.017 ms; device_batch=0.038 ms; GPU upload=204 final_copy=36 diagnostic_copy=1900 bytes; guards PASS
+diagnostic frame 2 19x1 -> 9x1: host_write=0.000 host_execute=0.361 read=0.000 query=0.018 ms; device_batch=0.039 ms; GPU upload=204 final_copy=36 diagnostic_copy=1900 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.891 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 67x51: host_write=0.014 host_execute=0.776 read=0.003 query=0.023 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 33x25 -> 67x51: host_write=0.001 host_execute=0.345 read=0.001 query=0.021 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 33x25 -> 67x51: host_write=0.001 host_execute=0.341 read=0.001 query=0.019 ms; device_batch=0.035 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 67x51: host_write=0.046 host_execute=0.390 read=0.004 query=0.019 ms; device_batch=0.058 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+diagnostic frame 1 33x25 -> 67x51: host_write=0.007 host_execute=0.402 read=0.004 query=0.019 ms; device_batch=0.057 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+diagnostic frame 2 33x25 -> 67x51: host_write=0.006 host_execute=0.377 read=0.006 query=0.020 ms; device_batch=0.057 ms; GPU upload=3428 final_copy=13668 diagnostic_copy=88668 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 21.684 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 33x25 -> 16x12: host_write=0.005 host_execute=0.816 read=0.001 query=0.021 ms; device_batch=0.034 ms; GPU upload=3428 final_copy=768 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 33x25 -> 16x12: host_write=0.000 host_execute=0.342 read=0.000 query=0.018 ms; device_batch=0.034 ms; GPU upload=3428 final_copy=768 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 33x25 -> 16x12: host_write=0.002 host_execute=0.338 read=0.000 query=0.024 ms; device_batch=0.034 ms; GPU upload=3428 final_copy=768 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 33x25 -> 16x12: host_write=0.023 host_execute=0.681 read=0.003 query=0.029 ms; device_batch=0.046 ms; GPU upload=3428 final_copy=768 diagnostic_copy=37068 bytes; guards PASS
+diagnostic frame 1 33x25 -> 16x12: host_write=0.003 host_execute=0.407 read=0.002 query=0.019 ms; device_batch=0.045 ms; GPU upload=3428 final_copy=768 diagnostic_copy=37068 bytes; guards PASS
+diagnostic frame 2 33x25 -> 16x12: host_write=0.003 host_execute=0.400 read=0.002 query=0.018 ms; device_batch=0.046 ms; GPU upload=3428 final_copy=768 diagnostic_copy=37068 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.372 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 131x95: host_write=0.029 host_execute=0.811 read=0.003 query=0.020 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 65x47 -> 131x95: host_write=0.003 host_execute=0.356 read=0.002 query=0.016 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 65x47 -> 131x95: host_write=0.003 host_execute=0.347 read=0.002 query=0.017 ms; device_batch=0.046 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 131x95: host_write=0.159 host_execute=0.435 read=0.014 query=0.016 ms; device_batch=0.114 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+diagnostic frame 1 65x47 -> 131x95: host_write=0.024 host_execute=0.437 read=0.013 query=0.016 ms; device_batch=0.113 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+diagnostic frame 2 65x47 -> 131x95: host_write=0.024 host_execute=0.432 read=0.013 query=0.016 ms; device_batch=0.114 ms; GPU upload=12348 final_copy=49780 diagnostic_copy=322316 bytes; guards PASS
+
+Learned-image device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Setup: 20.902 ms; weights upload=356 payload bytes (guards +128); no per-frame model upload
+normal frame 0 65x47 -> 32x23: host_write=0.007 host_execute=0.819 read=0.001 query=0.023 ms; device_batch=0.036 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=0 bytes; guards PASS
+normal frame 1 65x47 -> 32x23: host_write=0.001 host_execute=0.347 read=0.000 query=0.018 ms; device_batch=0.036 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=0 bytes; guards PASS
+normal frame 2 65x47 -> 32x23: host_write=0.001 host_execute=0.343 read=0.000 query=0.019 ms; device_batch=0.037 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=0 bytes; guards PASS
+diagnostic frame 0 65x47 -> 32x23: host_write=0.065 host_execute=0.387 read=0.006 query=0.019 ms; device_batch=0.068 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=134972 bytes; guards PASS
+diagnostic frame 1 65x47 -> 32x23: host_write=0.009 host_execute=0.403 read=0.006 query=0.018 ms; device_batch=0.068 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=134972 bytes; guards PASS
+diagnostic frame 2 65x47 -> 32x23: host_write=0.008 host_execute=0.386 read=0.006 query=0.061 ms; device_batch=0.068 ms; GPU upload=12348 final_copy=2944 diagnostic_copy=134972 bytes; guards PASS
+
+Learned-image Vulkan PASS: 38 cases in both normal/diagnostic modes; max float error=2.28905469e-06, error/bound=0.0845759022, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies

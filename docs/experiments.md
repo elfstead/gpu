@@ -317,6 +317,18 @@ existing SDR/scheduling/benchmark-correctness and GGML DEVICE/F16 regressions pa
 Retain the existing ownership/address/heap/batch model and the evidenced format
 extensions; no general HDR profile, timing target or automatic expansion follows.
 
+## Mixed learned-image application — 2026-09-17
+
+The [flagship brief and results](learned-image.md) close the first complete mixed
+ML/graphics application at `21dc090`. A frozen, reproducible 89-parameter residual
+CNN feeds resize/palette compute and offscreen raster through shared DEVICE
+buffers. All 38 cases pass in normal and diagnostic modes on Radeon and llvmpipe,
+with independent scalar checks, guarded buffers and A/B/A reuse. There are no
+intermediate CPU reads/waits or GPU representation copies in the ordinary path.
+Runtime/API unchanged. Synthetic quality and small correctness fixtures are not
+a photographic or performance claim. Grow compiler-owned executable mechanics
+around this application next; do not turn it into a kernel-tuning work queue.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

@@ -6,7 +6,8 @@ evidence. The [historical plan](plan-history.md) preserves earlier milestones.
 
 ## Current phase
 
-Initial feasibility and two bounded consumer integrations are complete. We have
+Initial feasibility, two bounded consumer integrations and a mixed learned-image
+application are complete. We have
 an **experimental runtime/API candidate**, not a stable API, a portable standard,
 a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
@@ -23,6 +24,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | Graphics/images | Compute and raster share batches; independent heaps, preservation, uploads/readbacks and indirect draws | Narrow offscreen state and formats; no presentation or general rendering backend |
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
+| Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 cases, diagnostic checks and A/B/A reuse pass on both Vulkan drivers | Tiny synthetic-trained model; no photographic quality, performance or Metal graphics claim |
 | Performance | Controlled native comparison; image allocation correction `1f41d7e` closes the large resident bottleneck | Near-4K grouped 563.54 vs native 593.17 fps on this GPU; smaller workloads retain larger gaps, not isolated API overhead |
 | Validation | RX 5700 XT / RADV and llvmpipe; Apple M4 compute/GGML acceptance; 37 Linux ordinary tests and 749 ABI layout checks | Metal has no graphics acceptance; synthetic failures are not real device-loss evidence |
 
@@ -155,19 +157,27 @@ synchronization and numerical policy explicit. This is not a general compiler
 framework or a source-language selection. The experiment is closed; broader
 shader types/workloads and graphics portability remain separate milestone choices.
 
-## Active milestone: one mixed ML/graphics application
+## Completed milestone: one mixed ML/graphics application
 
-Build the [learned-image flagship](learned-image.md): a small residual denoiser,
-conventional resize/color processing and offscreen rendering, with GPU-resident
-intermediates and repeated allocation reuse. First freeze the project-owned
-training/reference fixture, then implement and validate the Vulkan path on the
-existing Radeon and llvmpipe. The brief fixes quality, numerical and lifecycle
-gates before results. No host operator API, new hardware or Mac round trip.
+The [learned-image flagship](learned-image.md) is complete at `21dc090`: a small
+residual denoiser, conventional resize/color processing and offscreen rendering,
+with GPU-resident intermediates and repeated allocation reuse. The project-owned
+training/reference fixture was frozen first; the Vulkan path passes 38 cases in
+each of final-only and diagnostic modes on Radeon and llvmpipe. It meets the
+unchanged quality, numerical and lifecycle gates with no runtime/API change,
+intermediate representation copy, new hardware or Mac round trip.
 
-The next large steps, in order, are to grow the compiler workflow around this
-application, bring the same application to Metal graphics, and package an
-externally usable experimental release. Those are directional milestones, not
-claims of completed support or authorization to provision other machines.
+## Next large milestone: compiler workflow for the application
+
+Grow the compiler workflow around this application: replace handwritten executable
+mechanics (root layouts, local sizes, requirements, artifact coupling), while
+keeping storage, dependencies and numerical semantics with the consumer. Preserve
+the frozen model/reference fixture and all application acceptance gates. This is
+the next substantial development step, not another network/kernel tuning sweep.
+
+After that, bring the same application to Metal graphics, then package an
+externally usable experimental release. Those later milestones are not claims
+of completed support or authorization to provision other machines.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization
