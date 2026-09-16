@@ -2,9 +2,8 @@
 
 Updated 2026-09-16 on `metal-backend`. ABI **12**; use matching headers, library
 and callers. This is an experimental compute backend, not a portability claim.
-The initial Metal 4 migration (`8704f62`) was validated natively on Apple M4 with
-macOS 26 and Xcode 26.5. The synchronization, feedback and lifetime corrections
-below are a new handoff: native revalidation is pending.
+The Metal 4 migration and subsequent synchronization, feedback and lifetime
+corrections are validated natively on Apple M4 with macOS 26 and Xcode 26.5.
 
 ## Boundary and current implementation
 
@@ -116,10 +115,10 @@ cover barriers at the producer end, consumer start and in an intervening empty
 batch, all blit/dispatch copy pairings, retained batch handles, injected nullable
 allocations, gated pending polls, owned NSError diagnostics and error retirement.
 
-The previous native acceptance covered pending polls, destruction of pending
-receipts, byte-copy validation and argument-table residency. Re-run it after these
-changes. The new failure-retirement test substitutes an error only AFTER actual
-native feedback confirms termination; it does not deliberately fault the GPU.
+Native acceptance on 2026-09-16 covered pending polls, destruction of pending
+receipts, byte-copy validation, argument-table residency and the new cases above.
+The failure-retirement test substitutes an error only AFTER actual native feedback
+confirms termination; it does not deliberately fault the GPU.
 Real device-loss/error delivery and allocation pressure remain native validation
 work, distinct from the deterministic injected-null and NSError tests.
 
@@ -136,8 +135,11 @@ The harness selects `.dylib` on macOS, accepts extra arithmetic capabilities,
 uses portable core-limit/checksum handling and disables GGML's own Metal backend.
 Expected gates: lifecycle checks, two mixed-matrix cases, and six full-dataset
 direct/scheduled inference cases without fallback. Keep the numerical tolerances
-unchanged; report any failure for investigation. No Metal ML acceptance,
-performance, or images/graphics acceptance is claimed yet.
+unchanged; report any failure for investigation. The Apple M4 DEVICE/F16 run passed
+the lifecycle gates, both mixed-matrix cases and all six 10,000-image inference
+cases without fallback (9,801 correct, zero changed predictions, maximum FP32
+drift 0.00321006775). This is bounded consumer acceptance, not a performance or
+images/graphics claim.
 
 Linux verification and exact remaining coverage are recorded in [the plan](plan.md).
 Apple-target `cargo check` can catch Rust errors here using `DOCS_RS=1` to skip the

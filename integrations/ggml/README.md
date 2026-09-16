@@ -11,7 +11,7 @@ adds FP16 matrix weights with FP32 activations and arithmetic; F32 remains the c
 ## Reproduce
 
 Run from the repository root on Linux x86-64 or Apple Silicon with macOS 26+.
-The macOS path is prepared for validation; Metal consumer acceptance is pending.
+The DEVICE/F16 path is validated on Apple M4 with Metal API validation.
 Requirements: the runtime's Rust
 toolchain/loader, C/C++17 compilers, CMake 3.20+, Ninja, Git, Bash, curl, gzip,
 sha256sum (or macOS `shasum`), ripgrep, awk, and SPIRV-Tools. The modern execution baseline is required;

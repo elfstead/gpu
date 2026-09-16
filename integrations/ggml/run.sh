@@ -9,7 +9,7 @@ precision=${4:-f32}
 case "$memory" in host|device) ;; *) echo 'memory must be host or device' >&2; exit 2;; esac
 case "$precision" in f32|f16) ;; *) echo 'precision must be f32 or f16' >&2; exit 2;; esac
 cd "$repo"
-if command -v sha256sum >/dev/null; then
+if [[ $(uname -s) != Darwin ]] && command -v sha256sum >/dev/null; then
     sha256=(sha256sum)
 else
     sha256=(shasum -a 256)
@@ -22,7 +22,7 @@ cmake -S integrations/ggml -B target/ggml-integration -G Ninja \
     -DGGML_SOURCE="$source_dir" -DCMAKE_BUILD_TYPE=Release
 cmake --build target/ggml-integration -j 8
 bash integrations/ggml/check-lifecycle.sh "$memory"
-log=$(mktemp "$repo/target/ggml-integration/acceptance.XXXXXXXX.log")
+log=$(mktemp "$repo/target/ggml-integration/acceptance.XXXXXXXX")
 target/ggml-integration/ogpu-ggml-matrix-check integrations/ggml/shaders "$device_index" "$memory" 2>&1 | tee "$log"
 extra=()
 if test "$precision" = f16; then

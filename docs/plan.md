@@ -102,10 +102,10 @@ format-tagged native artifacts, optional translation, argument tables, residency
 sets, command allocators and explicit barriers are implemented and validated on
 Apple M4 at `8704f62`. A subsequent focused review identified cross-submission
 barrier scope, missing commit-error feedback, nullable internal allocations and
-allocator retention by consumed batches. Corrections and regression tests are
-implemented; their native revalidation and GGML DEVICE/F16 run are assigned to
-the Mac agent. See [the native acceptance handoff](metal.md). The historical Vulkan
-milestones above remain evidence for their recorded revisions.
+allocator retention by consumed batches. Corrections and regression tests passed
+native revalidation on Apple M4, followed by the pinned GGML DEVICE/F16 lifecycle,
+mixed-matrix and six-case dataset acceptance. See [the native acceptance record](metal.md).
+The historical Vulkan milestones above remain evidence for their recorded revisions.
 
 Refactor regression receipt (2026-09-16): 37 ordinary Rust tests, Clippy, 749
 C/Rust layout checks and the mock-loader checks pass. All 21 Vulkan GPU tests

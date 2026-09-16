@@ -4,7 +4,7 @@ repo=$(cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$repo"
 ulimit -c 0
 memory=${1:-device}
-log=$(mktemp "$repo/target/ggml-integration/lifecycle.XXXXXXXX.log")
+log=$(mktemp "$repo/target/ggml-integration/lifecycle.XXXXXXXX")
 target/ggml-integration/ogpu-ggml-lifecycle integrations/ggml/shaders normal "$memory" 2>&1 | tee "$log"
 if rg 'Validation Error:' "$log"; then exit 1; fi
 for mode in live-backend live-buffer; do
