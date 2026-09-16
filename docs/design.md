@@ -66,8 +66,8 @@ the experimental checkpoint; the [ledger](experiments.md) and
 
 The backends are Rust over Vulkan on Linux x86-64 and native Metal compute on
 macOS arm64. Common contract/state code is shared; native encoding is not forced
-through a Vulkan-shaped abstraction. The [Metal handoff](metal.md) distinguishes
-implemented code from outstanding native acceptance and Metal 4 work. Shader
+through a Vulkan-shaped abstraction. The [Metal backend](metal.md) records its
+native Metal 4 implementation and acceptance. Shader
 artifacts are explicitly tagged: Vulkan uses SPIR-V; Metal also accepts native MSL
 and metallib, with SPIR-V translation an optional input adapter rather than the
 definition of the programming model. Native inputs initially require pre-specialization.

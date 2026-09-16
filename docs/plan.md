@@ -96,13 +96,12 @@ general HDR profile is selected.
 
 ## After the checkpoint
 
-Selected follow-up: refactor `metal-backend` around common contracts and native
-execution, then hand off Mac testing. Shared checks/retirement, explicit backend
-identity, format-tagged native artifacts and optional translation are implemented.
-See [the scope and native acceptance checklist](metal.md). The classic Metal path
-remains transitional; a Metal 4 replacement and native consumer validation are
-outstanding, not implied by Linux type-checking. The historical Vulkan milestones
-above remain evidence for their recorded revisions, not Mac acceptance.
+Selected follow-up completed: `metal-backend` uses common contracts and native
+Metal 4 execution. Shared checks/retirement, explicit backend identity,
+format-tagged native artifacts, optional translation, argument tables, residency
+sets, command allocators and explicit barriers are implemented and validated on
+Apple M4. See [the native acceptance record](metal.md). The historical Vulkan
+milestones above remain evidence for their recorded revisions.
 
 Refactor regression receipt (2026-09-16): 37 ordinary Rust tests, Clippy, 749
 C/Rust layout checks and the mock-loader checks pass. All 21 Vulkan GPU tests

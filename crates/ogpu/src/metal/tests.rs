@@ -6,12 +6,7 @@ fn device() -> OgpuDevice {
     let raw = MetalDevice::system_default().expect("Apple Silicon GPU required");
     assert!(supported(&raw));
     OgpuDevice {
-        inner: Rc::new(Device {
-            queue: raw.new_command_queue(),
-            raw,
-            buffers: RefCell::new(BTreeMap::new()),
-            byte_copy: OnceCell::new(),
-        }),
+        inner: make_device(raw).unwrap(),
     }
 }
 

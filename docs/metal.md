@@ -1,8 +1,8 @@
-# Native Metal backend and refactor handoff
+# Native Metal 4 backend
 
 Updated 2026-09-16 on `metal-backend`. ABI **12**; use matching headers, library
 and callers. This is an experimental compute backend, not a portability claim.
-The refactor was developed on Linux; native Mac acceptance remains outstanding.
+The backend is validated natively on Apple M4 with macOS 26 and Xcode 26.5.
 
 ## Boundary and current implementation
 
@@ -29,11 +29,11 @@ fields and Vulkan-only feature-audit flags are zero on Metal. In particular,
 and barrier behavior. The common execution contract guarantees that behavior.
 Native numeric capabilities remain distinct from storage-access capabilities.
 
-Residency is private to the backend. A weak registry contains **live allocations
-only**, removing entries on destruction. Compute encoders declare those resources;
-root pointers remain opaque. `retain_buffer` means ownership retention, not a new
-resource-access declaration language. This is still O(live allocations) per
-dispatch, not a final residency-performance design.
+Residency is private to the backend. A device residency set tracks allocations as
+they are created and destroyed, so dispatch no longer scans every live allocation.
+Metal 4 argument tables bind the root-data GPU address; embedded pointers remain
+opaque. `retain_buffer` means ownership retention, not a new resource-access
+declaration language.
 
 Aligned copies use native blits. Unaligned offsets/lengths use a small cached MSL
 byte-copy kernel, including disjoint self-copies; overlapping self-copies fail.
@@ -59,19 +59,14 @@ SPIR-V translation lives in `metal/spirv.rs`, outside native pipeline preparatio
 Build with `--no-default-features` to omit that adapter and its C++ dependency.
 Native copies and native executable tests do not depend on it.
 
-## Modern baseline and remaining architectural work
+## Metal 4 execution model
 
-This checkpoint explicitly gates execution on Apple Silicon / Apple7-family
-features **and Metal 3** (macOS 13+). It retains the original classic command-buffer
-implementation: separate encoders and native hazard tracking. It is **not Metal 4**.
-The target direction is a modern Metal 4 implementation using native argument
-tables, residency sets and explicit dependencies, not a permanent stack of old
-and new compatibility paths. That replacement needs native SDK/GPU work; this
-Linux refactor does not claim to have implemented or validated it.
-
-Encoder-per-operation and full live-registry scans are private implementation
-choices, not OGPU semantics. Replace them during that work without changing
-caller-owned scheduling, pointer interpretation or completion ownership.
+Execution requires Apple Silicon / Apple7-family features and the Metal 4 API
+(macOS 26+). Each batch uses a Metal 4 command allocator and command buffer with a
+single compute encoder for dispatches and copies. Barriers lower to explicit
+dispatch/blit stage dependencies with device visibility. Queue timeline events
+implement nonblocking poll, blocking wait and terminal resource retirement.
+There is no classic-command-buffer compatibility path.
 
 ## Acceptance handoff
 
@@ -96,13 +91,10 @@ destroyed kernel handles, one-shot submission, repeated receipt observation,
 buffer-size/root-size rejection, byte copies through private memory, overlap and
 zero-copy rules, live-registry cleanup and cached-failure poll outputs.
 
-Also exercise native allocation failure (not just the deterministic oversize
-rejection), pending polls, destruction of pending receipts and real driver error
-diagnostics. The shared state tests cover abstract terminal failures; injecting a
-cached error after real work drains is **not** native device-loss evidence.
-Check Metal validation on the byte-copy path and indirect resource declarations
-before running a consumer. No Metal performance, real ML consumer, images/graphics
-or Metal 4 acceptance is claimed.
+Native acceptance covers pending polls, destruction of pending receipts, byte-copy
+validation and argument-table residency. Native allocation failure and device-loss
+injection remain environment-dependent. No Metal performance, real ML consumer, or
+images/graphics acceptance is claimed.
 
 Linux verification and exact remaining coverage are recorded in [the plan](plan.md).
 Apple-target `cargo check` can catch Rust errors here using `DOCS_RS=1` to skip the

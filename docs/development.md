@@ -98,7 +98,7 @@ done
 
 Requirements: Rust 1.85+ with Cargo and a C11 compiler/linker. Linux execution needs
 a Vulkan loader with Vulkan 1.1+ support. macOS execution needs Apple Silicon,
-macOS 13+ and Metal 3; graphics, images, descriptor heaps and queue timing remain explicitly
+macOS 26+ and Metal 4; graphics, images, descriptor heaps and queue timing remain explicitly
 unsupported there. A GPU is not required to compile or run the Linux mock tests.
 
 ```sh

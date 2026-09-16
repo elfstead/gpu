@@ -1,5 +1,6 @@
 //! Native Metal implementation of the backend-independent compute slice.
 #![allow(clippy::missing_safety_doc)]
+#![allow(unexpected_cfgs)] // objc 0.2 selectors probe a historical cargo-clippy feature.
 use crate::contract;
 mod copy;
 #[cfg(test)]
@@ -12,19 +13,62 @@ use crate::{
     OgpuShaderDesc, OgpuTimingInfo, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE, UNSUPPORTED,
 };
 use ::metal::{
-    Buffer as MetalBuffer, CommandBuffer, CommandQueue, ComputePipelineState,
-    Device as MetalDevice, FunctionConstantValues, MTLCommandBufferStatus, MTLResourceOptions,
-    MTLSize,
+    Buffer as MetalBuffer, ComputePipelineState, Device as MetalDevice, FunctionConstantValues,
+    MTLResourceOptions, MTLSize, SharedEvent,
 };
 use foreign_types::ForeignType;
-use objc::{msg_send, sel, sel_impl};
+use objc::runtime::Object;
+use objc::{class, msg_send, sel, sel_impl};
 use std::{
     cell::{OnceCell, RefCell},
     collections::BTreeMap,
     ffi::c_void,
     ptr,
     rc::{Rc, Weak},
+    thread,
+    time::Duration,
 };
+
+/// Retained Objective-C object used for Metal 4 types not yet exposed by metal-rs.
+struct Mtl4(*mut Object);
+
+impl Mtl4 {
+    unsafe fn owned(pointer: *mut Object, what: &str) -> Result<Self, Error> {
+        if pointer.is_null() {
+            Err(fail(
+                INTERNAL_ERROR,
+                format!("Metal 4 {what} creation failed"),
+            ))
+        } else {
+            Ok(Self(pointer))
+        }
+    }
+
+    unsafe fn retained(pointer: *mut Object, what: &str) -> Result<Self, Error> {
+        let object = unsafe { Self::owned(pointer, what)? };
+        unsafe {
+            let _: () = msg_send![object.0, retain];
+        }
+        Ok(object)
+    }
+}
+
+impl Clone for Mtl4 {
+    fn clone(&self) -> Self {
+        unsafe {
+            let _: () = msg_send![self.0, retain];
+        }
+        Self(self.0)
+    }
+}
+
+impl Drop for Mtl4 {
+    fn drop(&mut self) {
+        unsafe {
+            let _: () = msg_send![self.0, release];
+        }
+    }
+}
 
 pub struct OgpuDevice {
     inner: Rc<Device>,
@@ -48,9 +92,38 @@ pub enum OgpuRaster {}
 
 struct Device {
     raw: MetalDevice,
-    queue: CommandQueue,
+    queue: Mtl4,
+    residency: Mtl4,
+    event: SharedEvent,
+    next_event: RefCell<u64>,
     buffers: RefCell<BTreeMap<usize, Weak<Buffer>>>,
     byte_copy: OnceCell<ComputePipelineState>,
+}
+
+fn make_device(raw: MetalDevice) -> Result<Rc<Device>, Error> {
+    unsafe {
+        let queue = Mtl4::owned(
+            msg_send![raw.as_ptr(), newMTL4CommandQueue],
+            "command queue",
+        )?;
+        let descriptor: *mut Object = msg_send![class!(MTLResidencySetDescriptor), new];
+        let residency = Mtl4::owned(
+            msg_send![raw.as_ptr(), newResidencySetWithDescriptor: descriptor error: ptr::null_mut::<*mut Object>()],
+            "residency set",
+        )?;
+        let _: () = msg_send![descriptor, release];
+        let _: () = msg_send![queue.0, addResidencySet: residency.0];
+        let event = raw.new_shared_event();
+        Ok(Rc::new(Device {
+            raw,
+            queue,
+            residency,
+            event,
+            next_event: RefCell::new(1),
+            buffers: RefCell::new(BTreeMap::new()),
+            byte_copy: OnceCell::new(),
+        }))
+    }
 }
 
 struct Buffer {
@@ -68,6 +141,10 @@ impl Drop for Buffer {
             .buffers
             .borrow_mut()
             .remove(&(self as *const Self as usize));
+        unsafe {
+            let _: () = msg_send![self.device.residency.0, removeAllocation: self.raw.as_ptr()];
+            let _: () = msg_send![self.device.residency.0, commit];
+        }
     }
 }
 
@@ -80,18 +157,26 @@ struct Kernel {
 
 struct Batch {
     device: Rc<Device>,
-    commands: Option<CommandBuffer>,
+    commands: Option<Mtl4>,
+    allocator: Mtl4,
+    encoder: Mtl4,
     retained: Vec<Rc<Buffer>>,
+    transient: Vec<MetalBuffer>,
+    tables: Vec<Mtl4>,
 }
 
 struct Completion {
     _device: Rc<Device>,
+    target: u64,
     submission: contract::Submission<SubmissionResources, Result<(), Error>>,
 }
 
 // Field order matters: release the native command buffer before OGPU allocations.
 struct SubmissionResources {
-    commands: CommandBuffer,
+    commands: Mtl4,
+    _allocator: Mtl4,
+    _transient: Vec<MetalBuffer>,
+    _tables: Vec<Mtl4>,
     _retained: Vec<Rc<Buffer>>,
 }
 
@@ -159,29 +244,82 @@ fn limits(d: &MetalDevice) -> OgpuDeviceLimits {
 
 use crate::contract::range as check_range;
 
-fn command_error(cb: &CommandBuffer) -> Result<(), Error> {
-    if cb.status() == MTLCommandBufferStatus::Error {
-        Err(fail(
-            INTERNAL_ERROR,
-            "Metal command buffer execution failed",
-        ))
-    } else {
-        Ok(())
-    }
-}
-
 impl Batch {
-    fn new(device: Rc<Device>) -> Self {
-        let commands = device.queue.new_command_buffer().to_owned();
-        Self {
-            device,
-            commands: Some(commands),
-            retained: Vec::new(),
+    fn new(device: Rc<Device>) -> Result<Self, Error> {
+        unsafe {
+            let allocator = Mtl4::owned(
+                msg_send![device.raw.as_ptr(), newCommandAllocator],
+                "command allocator",
+            )?;
+            let commands = Mtl4::owned(
+                msg_send![device.raw.as_ptr(), newCommandBuffer],
+                "command buffer",
+            )?;
+            let _: () = msg_send![commands.0, beginCommandBufferWithAllocator: allocator.0];
+            let _: () = msg_send![commands.0, useResidencySet: device.residency.0];
+            let encoder = Mtl4::retained(
+                msg_send![commands.0, computeCommandEncoder],
+                "compute encoder",
+            )?;
+            Ok(Self {
+                device,
+                commands: Some(commands),
+                allocator,
+                encoder,
+                retained: Vec::new(),
+                transient: Vec::new(),
+                tables: Vec::new(),
+            })
         }
     }
 
-    fn cb(&mut self) -> Result<&CommandBuffer, Error> {
+    fn cb(&mut self) -> Result<&Mtl4, Error> {
         contract::recording(&mut self.commands).map(|commands| &*commands)
+    }
+
+    fn argument_table(&mut self, addresses: &[u64]) -> Result<Mtl4, Error> {
+        unsafe {
+            let descriptor: *mut Object = msg_send![class!(MTL4ArgumentTableDescriptor), new];
+            let _: () = msg_send![descriptor, setMaxBufferBindCount: addresses.len()];
+            let table = Mtl4::owned(
+                msg_send![self.device.raw.as_ptr(), newArgumentTableWithDescriptor: descriptor error: ptr::null_mut::<*mut Object>()],
+                "argument table",
+            )?;
+            let _: () = msg_send![descriptor, release];
+            for (index, address) in addresses.iter().copied().enumerate() {
+                let _: () = msg_send![table.0, setAddress: address atIndex: index];
+            }
+            Ok(table)
+        }
+    }
+
+    fn upload(&mut self, bytes: &[u8]) -> Result<u64, Error> {
+        let size = bytes.len().max(1);
+        let buffer = self
+            .device
+            .raw
+            .new_buffer(size as u64, MTLResourceOptions::StorageModeShared);
+        if !bytes.is_empty() {
+            unsafe {
+                ptr::copy_nonoverlapping(bytes.as_ptr(), buffer.contents().cast(), bytes.len())
+            };
+        }
+        let address = buffer.gpu_address();
+        unsafe {
+            let _: () = msg_send![self.device.residency.0, addAllocation: buffer.as_ptr()];
+            let _: () = msg_send![self.device.residency.0, commit];
+        }
+        self.transient.push(buffer);
+        Ok(address)
+    }
+
+    fn release_transients(&mut self) {
+        unsafe {
+            for buffer in &self.transient {
+                let _: () = msg_send![self.device.residency.0, removeAllocation: buffer.as_ptr()];
+            }
+            let _: () = msg_send![self.device.residency.0, commit];
+        }
     }
 
     fn dispatch(
@@ -199,51 +337,67 @@ impl Batch {
             arguments.len(),
             kernel.push_size,
         )?;
-        let cb = self.cb()?.to_owned();
-        let enc = cb.new_compute_command_encoder();
-        enc.set_compute_pipeline_state(&kernel.pipeline);
-        if !arguments.is_empty() {
-            enc.set_bytes(0, arguments.len() as u64, arguments.as_ptr().cast());
-        }
-        for weak in self.device.buffers.borrow().values() {
-            if let Some(buffer) = weak.upgrade() {
-                enc.use_resource(
-                    &buffer.raw,
-                    ::metal::MTLResourceUsage::Read | ::metal::MTLResourceUsage::Write,
-                );
-            }
-        }
-        enc.dispatch_thread_groups(
-            MTLSize {
+        self.cb()?;
+        let address = self.upload(arguments)?;
+        let table = self.argument_table(&[address])?;
+        unsafe {
+            let pipeline = &*kernel.pipeline.as_ptr().cast::<Object>();
+            let table_object = &*table.0;
+            let _: () = msg_send![self.encoder.0, setComputePipelineState: pipeline];
+            let _: () = msg_send![self.encoder.0, setArgumentTable: table_object];
+            let grid = MTLSize {
                 width: groups[0] as _,
                 height: groups[1] as _,
                 depth: groups[2] as _,
-            },
-            kernel.group,
-        );
-        enc.end_encoding();
+            };
+            let _: () = msg_send![self.encoder.0, dispatchThreadgroups: grid threadsPerThreadgroup: kernel.group];
+        }
+        self.tables.push(table);
         Ok(())
+    }
+
+    fn finish(&mut self) -> Result<Mtl4, Error> {
+        let cb = contract::take_recording(&mut self.commands)?;
+        unsafe {
+            let _: () = msg_send![self.encoder.0, endEncoding];
+            let _: () = msg_send![cb.0, endCommandBuffer];
+        }
+        Ok(cb)
+    }
+}
+
+impl Drop for Batch {
+    fn drop(&mut self) {
+        if let Some(cb) = self.commands.take() {
+            unsafe {
+                let _: () = msg_send![self.encoder.0, endEncoding];
+                let _: () = msg_send![cb.0, endCommandBuffer];
+            }
+        }
+        self.release_transients();
     }
 }
 
 impl Completion {
     fn observe(&mut self, wait: bool) -> Result<bool, Error> {
         if self.submission.pending {
-            let cb = &self
-                .submission
-                .resources
-                .as_ref()
-                .expect("pending resources")
-                .commands;
-            if wait {
-                cb.wait_until_completed();
+            let target = self.target;
+            while self._device.event.signaled_value() < target {
+                if !wait {
+                    return Ok(false);
+                }
+                thread::sleep(Duration::from_micros(50));
             }
-            let outcome = match cb.status() {
-                MTLCommandBufferStatus::Completed => Ok(()),
-                MTLCommandBufferStatus::Error => command_error(cb),
-                _ => return Ok(false),
-            };
-            self.submission.finish(outcome);
+            if let Some(resources) = self.submission.resources.as_ref() {
+                unsafe {
+                    for buffer in &resources._transient {
+                        let _: () =
+                            msg_send![self._device.residency.0, removeAllocation: buffer.as_ptr()];
+                    }
+                    let _: () = msg_send![self._device.residency.0, commit];
+                }
+            }
+            self.submission.finish(Ok(()));
         }
         self.submission
             .outcome
@@ -278,17 +432,11 @@ pub unsafe extern "C" fn ogpu_device_create(
             if !supported(&raw) {
                 return Err(fail(
                     UNSUPPORTED,
-                    "Metal execution requires Apple Silicon with Metal 3 (macOS 13+)",
+                    "Metal execution requires Apple Silicon with Metal 4 (macOS 26+)",
                 ));
             }
-            let queue = raw.new_command_queue();
             Ok(OgpuDevice {
-                inner: Rc::new(Device {
-                    raw,
-                    queue,
-                    buffers: RefCell::new(BTreeMap::new()),
-                    byte_copy: OnceCell::new(),
-                }),
+                inner: make_device(raw)?,
             })
         })
     }
@@ -419,6 +567,8 @@ pub unsafe extern "C" fn ogpu_buffer_create(
                 .buffers
                 .borrow_mut()
                 .insert(Rc::as_ptr(&inner) as usize, Rc::downgrade(&inner));
+            let _: () = msg_send![inner.device.residency.0, addAllocation: inner.raw.as_ptr()];
+            let _: () = msg_send![inner.device.residency.0, commit];
             Ok(OgpuBuffer { inner })
         })
     }
@@ -554,7 +704,7 @@ pub unsafe extern "C" fn ogpu_batch_create(
         create(out, error, || {
             required(device)?;
             Ok(OgpuBatch {
-                inner: Batch::new((*device).inner.clone()),
+                inner: Batch::new((*device).inner.clone())?,
             })
         })
     }
@@ -613,17 +763,26 @@ pub unsafe extern "C" fn ogpu_dispatch_wait(
             if bytes != 0 {
                 required(args)?;
             }
-            let mut batch = Batch::new((*kernel).inner.device.clone());
+            let mut batch = Batch::new((*kernel).inner.device.clone())?;
             let args = if bytes == 0 {
                 &[]
             } else {
                 std::slice::from_raw_parts(args.cast::<u8>(), bytes as usize)
             };
             batch.dispatch((*kernel).inner.clone(), [x, y, z], args)?;
-            let cb = contract::take_recording(&mut batch.commands)?;
-            cb.commit();
-            cb.wait_until_completed();
-            command_error(&cb)
+            let cb = batch.finish()?;
+            let queue = batch.device.queue.0;
+            let command_buffers = [cb.0];
+            let target = *batch.device.next_event.borrow();
+            *batch.device.next_event.borrow_mut() = target + 1;
+            let _: () = msg_send![queue, commit: command_buffers.as_ptr() count: 1usize];
+            let _: () = msg_send![queue, signalEvent: batch.device.event.as_ptr() value: target];
+            while batch.device.event.signaled_value() < target {
+                thread::sleep(Duration::from_micros(50));
+            }
+            batch.release_transients();
+            batch.transient.clear();
+            Ok(())
         })
     }
 }
@@ -641,6 +800,12 @@ pub unsafe extern "C" fn ogpu_batch_barrier(
             contract::access(source, false)?;
             contract::access(destination, false)?;
             (*batch).inner.cb()?;
+            const DISPATCH: usize = 1 << 27;
+            const BLIT: usize = 1 << 28;
+            let _: () = msg_send![(*batch).inner.encoder.0,
+                barrierAfterEncoderStages: DISPATCH | BLIT
+                beforeEncoderStages: DISPATCH | BLIT
+                visibilityOptions: 1usize];
             Ok(())
         })
     }
@@ -731,16 +896,25 @@ pub unsafe extern "C" fn ogpu_batch_submit(
         create(out, error, || {
             required(batch)?;
             let b = &mut (*batch).inner;
-            let cb = contract::take_recording(&mut b.commands)?;
+            let cb = b.finish()?;
+            let target = *b.device.next_event.borrow();
+            *b.device.next_event.borrow_mut() = target + 1;
             let mut submission = contract::Submission::preparing(SubmissionResources {
                 commands: cb,
+                _allocator: b.allocator.clone(),
+                _transient: std::mem::take(&mut b.transient),
+                _tables: std::mem::take(&mut b.tables),
                 _retained: std::mem::take(&mut b.retained),
             });
-            submission.resources.as_ref().unwrap().commands.commit();
+            let command_buffers = [submission.resources.as_ref().unwrap().commands.0];
+            let _: () = msg_send![b.device.queue.0, commit: command_buffers.as_ptr() count: 1usize];
+            let _: () =
+                msg_send![b.device.queue.0, signalEvent: b.device.event.as_ptr() value: target];
             submission.accept();
             Ok(OgpuCompletion {
                 inner: Completion {
                     _device: b.device.clone(),
+                    target,
                     submission,
                 },
             })
@@ -908,12 +1082,7 @@ mod tests {
     #[ignore = "requires Apple Silicon Metal GPU and SPIR-V adapter"]
     fn specialized_spirv_executes_on_metal() {
         let raw = MetalDevice::system_default().expect("Metal GPU required");
-        let device = Rc::new(Device {
-            queue: raw.new_command_queue(),
-            raw,
-            buffers: RefCell::new(BTreeMap::new()),
-            byte_copy: OnceCell::new(),
-        });
+        let device = make_device(raw).unwrap();
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../examples/shaders/specialize.comp.spv");
         let bytes = std::fs::read(path).unwrap();
@@ -1086,6 +1255,7 @@ fn prepare(
 }
 
 fn supported(device: &MetalDevice) -> bool {
-    device.supports_family(::metal::MTLGPUFamily::Apple7)
-        && device.supports_family(::metal::MTLGPUFamily::Metal3)
+    let has_metal4: bool =
+        unsafe { msg_send![device.as_ptr(), respondsToSelector: sel!(newMTL4CommandQueue)] };
+    device.supports_family(::metal::MTLGPUFamily::Apple7) && has_metal4
 }

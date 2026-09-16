@@ -10,16 +10,16 @@ impl Batch {
         doff: usize,
         size: usize,
     ) -> Result<(), Error> {
+        self.cb()?;
         if (so | doff | size) % 4 == 0 {
-            let enc = self.cb()?.new_blit_command_encoder();
-            enc.copy_from_buffer(
-                &source.raw,
-                so as u64,
-                &destination.raw,
-                doff as u64,
-                size as u64,
-            );
-            enc.end_encoding();
+            unsafe {
+                let _: () = msg_send![self.encoder.0,
+                    copyFromBuffer: source.raw.as_ptr()
+                    sourceOffset: so
+                    toBuffer: destination.raw.as_ptr()
+                    destinationOffset: doff
+                    size: size];
+            }
         } else {
             if self.device.byte_copy.get().is_none() {
                 let library = self
@@ -46,28 +46,37 @@ impl Batch {
             let width = pipeline.max_total_threads_per_threadgroup().min(256);
             let groups = (size as u64).div_ceil(width).min(65535);
             let parameters = [so as u64, doff as u64, size as u64, groups * width];
-            let enc = self.cb()?.new_compute_command_encoder();
-            enc.set_compute_pipeline_state(&pipeline);
-            enc.set_buffer(0, Some(&source.raw), 0);
-            enc.set_buffer(1, Some(&destination.raw), 0);
-            enc.set_bytes(
-                2,
-                std::mem::size_of_val(&parameters) as u64,
-                parameters.as_ptr().cast(),
-            );
-            enc.dispatch_thread_groups(
-                MTLSize {
+            let bytes = unsafe {
+                std::slice::from_raw_parts(
+                    parameters.as_ptr().cast::<u8>(),
+                    std::mem::size_of_val(&parameters),
+                )
+            };
+            let parameters_address = self.upload(bytes)?;
+            let table = self.argument_table(&[
+                source.raw.gpu_address(),
+                destination.raw.gpu_address(),
+                parameters_address,
+            ])?;
+            unsafe {
+                let pipeline_object = &*pipeline.as_ptr().cast::<Object>();
+                let table_object = &*table.0;
+                let _: () = msg_send![self.encoder.0, setComputePipelineState: pipeline_object];
+                let _: () = msg_send![self.encoder.0, setArgumentTable: table_object];
+                let grid = MTLSize {
                     width: groups,
                     height: 1,
                     depth: 1,
-                },
-                MTLSize {
+                };
+                let group = MTLSize {
                     width,
                     height: 1,
                     depth: 1,
-                },
-            );
-            enc.end_encoding();
+                };
+                let _: () = msg_send![self.encoder.0,
+                    dispatchThreadgroups: grid threadsPerThreadgroup: group];
+            }
+            self.tables.push(table);
         }
         contract::retain(&mut self.retained, source.clone());
         contract::retain(&mut self.retained, destination.clone());
