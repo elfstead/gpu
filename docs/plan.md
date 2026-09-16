@@ -123,15 +123,23 @@ cases and all six inference cases pass. Apple-target Rust checks include the new
 tests with and without the SPIR-V adapter. These are Linux regressions and
 cross-checks, not native evidence for the corrections.
 
-## Selected next experiment: executable numerical requirements
+## Completed follow-up: executable numerical requirements
 
-Extend the matrix experiment with paired FP16 products and FP32 accumulation,
-compared against a matching FP32 implementation. The local Radeon supports
+The matrix experiment now compares paired FP16 products and FP32 accumulation
+against a matching FP32 implementation. The local Radeon supports
 `shaderFloat16`, but exposes no cooperative-matrix extension and reports no
-accelerated integer dot products. Do not emulate matrix hardware or expand GGML
-operators. The [experiment brief](ml-executable-requirements.md) declares the
-numerical contract, capability selection, measurements and stopping condition.
-This work needs no additional hardware or new Mac acceptance round.
+accelerated integer dot products. Numerical/memory gates pass on Radeon and
+llvmpipe, but this candidate is about 3–9% slower in measured Radeon device batch
+time. Retain optional FP16 enablement and caller-owned requirements; do not adopt
+the candidate as a default or change GGML arithmetic. No new C API or ABI change.
+The [brief and result](ml-executable-requirements.md) record the predeclared
+contract, measurements, regression coverage and the release-library runner fix.
+No additional hardware or new Mac acceptance round was needed.
+
+This experiment is closed. A further matrix-acceleration profile needs actual
+shape/type/subgroup evidence; additional numeric types or tuning are not selected
+automatically. A broader compiler consumer or graphics portability milestone
+remains a separate project choice, not unfinished feasibility work.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization

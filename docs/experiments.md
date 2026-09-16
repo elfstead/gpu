@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-15. This page records evidence, not API-stability promises. See
+Updated 2026-09-16. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -9,6 +9,14 @@ the current two-consumer checkpoint and selected work. This ledger is evidence,
 not a development queue; existing experiments remain regression and diagnostic tools.
 
 ## Implemented baseline
+
+The [numerical executable experiment](ml-executable-requirements.md) is complete
+at `f663a4b`, after merging Metal compute/GGML acceptance. Optional Float16
+enablement and caller-owned numerical/capability requirements suffice for the
+bounded paired-product variants. Numerical/memory gates pass on Radeon and
+llvmpipe; the FP16-product candidate is about 3–9% slower in measured Radeon batch
+time, so it is not selected automatically. Existing GGML arithmetic is unchanged.
+The brief records the corrected xtask release-library lookup and evidence limits.
 
 The [consolidated two-consumer checkpoint](checkpoint.md) passes fresh-checkout
 acceptance at `798e186`, using newly built runtime/upstream/consumer binaries.

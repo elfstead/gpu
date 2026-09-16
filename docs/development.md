@@ -48,6 +48,14 @@ compute/graphics results, explicit ICD selection and remaining runner provisioni
 
 ## Build and run
 
+`cargo xtask matmul-half` compares paired FP32 products with explicit FP16 products
+and FP32 accumulation. It checks executable capabilities, numerical permission,
+SPIR-V arithmetic, guards, tails and timings. FP16 is optional; unsupported
+candidates are reported, not silently substituted. See the [brief and results](ml-executable-requirements.md).
+`cargo xtask matmul` remains the original FP32 experiment. C execution runners put
+the selected debug/release library first on the loader path, overriding Cargo's
+inherited debug-directory preference.
+
 `cargo xtask heap-image` runs direct image load/store and sampling through independent
 image/sampler heaps: three submissions, four sampler/index variants per size, and
 checked retention/mutation. Shader binaries are checked in; regeneration uses pinned Slang

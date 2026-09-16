@@ -85,3 +85,85 @@ families, a compiler framework, tensor operators or a larger model. A later
 matrix-capability profile will need shape/type/subgroup constraints, not just a
 Boolean; this experiment does not settle that richer contract. No new Metal
 execution claim is made for the new candidate.
+
+## Result — 2026-09-16
+
+Completed at `f663a4b`; numerical gates were fixed in `5548584` before execution.
+No tolerance was changed. Radeon and llvmpipe pass all 50 shape/pattern cases per
+variant in both timed and untimed modes, plus every benchmark sample. The
+precision sentinel distinguishes the two multiplication semantics. Maximum error
+over all cases is 0.0157013 for FP32 and 0.299042 for FP16 products; maximum
+error/bound is 0.0110872 and 0.242544 respectively. These maxima are not relative
+error claims. Inputs, row padding and allocation guards remain intact.
+
+Three additional Radeon runs disabled validation after the agent's other
+regression jobs finished. Each run uses two warmups and nine samples per mode,
+alternating variant order. The table reports the median of the three per-run
+medians (milliseconds). Clocks were not locked; these are bounded observations,
+not a general performance ranking.
+
+| M × N × K | FP32 device batch | FP16-product device batch | FP32 untimed host execution | FP16-product untimed host execution |
+|---|---:|---:|---:|---:|
+| 128 × 128 × 128 | 0.0541 | 0.0561 | 0.2000 | 0.2030 |
+| 257 × 193 × 129 | 0.0968 | 0.0998 | 0.2476 | 0.2511 |
+| 256 × 256 × 256 | 0.1597 | 0.1735 | 0.3122 | 0.3247 |
+
+Device intervals include batch-boundary barriers; host execution includes
+recording, submission, wait and cleanup, excluding transfer and query retrieval.
+The candidate's device-batch medians are roughly 3–9% slower. Smaller workgroup
+storage and narrower products did not deliver a speedup for these kernels/shapes.
+This does not isolate the cause or predict an optimized GEMM implementation.
+Raw per-run min/median/max, creation and transfer measurements:
+[run 1](results/ml-fp16-radv-2026-09-16-run1.txt),
+[run 2](results/ml-fp16-radv-2026-09-16-run2.txt),
+[run 3](results/ml-fp16-radv-2026-09-16-run3.txt).
+
+**Decision:** retain optional FP16 enablement, explicit enabled-capability queries,
+and caller-owned variant requirements. Hardware permission, numerical permission
+and performance preference are three separate decisions. Do not select this
+candidate automatically or change GGML's FP32 arithmetic. No host matrix API,
+general device-feature negotiation API or new executable package is justified by
+this experiment. The richer matrix shape/type/subgroup contract remains open.
+
+The first run exposed a pre-existing xtask problem: Cargo's inherited loader
+path could pick an old debug library instead of the newly built release library.
+The enabled-feature check rejected the candidate, so it was not executed under
+an incompatible device. The runner now puts its selected library directory first
+on the platform loader path. All results above are from the corrected runner.
+Earlier xtask-based host timings are not retroactively certified as release
+measurements; this does not imply the independent consumer runners had that issue.
+
+Regression receipt: 37 ordinary tests, strict workspace Clippy, 749 C/Rust layout
+checks and loader mocks pass. All 21 GPU tests pass with validation on Radeon and
+llvmpipe. The feature-chain interceptor covers both present and synthetically
+absent Float16 on compute and graphics creation, while leaving Int8 disabled.
+The original FP32 matrix experiment passes on Radeon. GGML DEVICE/F16 passes its
+lifecycle, two matrix and six inference cases on llvmpipe. Shader inspection
+confirms actual half-vector multiply, widening and FP32 addition with
+NoContraction, and no Float16 capability in the control. No new Metal run is claimed.
+
+## Reproduce
+
+Use the normal Rust/C build environment, ripgrep and SPIRV-Tools supporting Vulkan
+1.4. Checked-in binaries were generated with shaderc 2026.1 / glslang 16.4:
+
+```sh
+glslc --target-env=vulkan1.4 examples/shaders/matmul-paired.comp -o examples/shaders/matmul-paired.comp.spv
+glslc --target-env=vulkan1.4 -DHALF_PRODUCTS=1 examples/shaders/matmul-paired.comp -o examples/shaders/matmul-half.comp.spv
+bash examples/check-matmul-shaders.sh
+VK_DRIVER_FILES=/path/to/radeon_icd.x86_64.json \
+  VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 \
+  cargo xtask matmul-half
+```
+
+For measurements, run separately without other regression jobs:
+
+```sh
+env -u VK_INSTANCE_LAYERS -u VK_LAYER_VALIDATE_SYNC \
+  VK_DRIVER_FILES=/path/to/radeon_icd.x86_64.json \
+  VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation cargo xtask matmul-half
+```
+
+Repeat three times; retain full output. `cargo xtask matmul` remains the original
+FP32 control. Missing Float16 is reported as an unsupported candidate while the
+FP32 control still runs; that result is not acceptance of the half variant.

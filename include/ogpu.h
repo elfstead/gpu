@@ -222,6 +222,8 @@ typedef struct OgpuShaderDesc {
  * must provide VALID SPIR-V for the enabled modern Vulkan baseline with a compute
  * entry named "main" and no descriptor-set bindings. Core capabilities, BDA,
  * untyped pointers and native descriptor-heap access are supported. Heap shaders
+ * and optional arithmetic require their corresponding enabled device capabilities;
+ * physical probe support alone is not permission to use them. Heap shaders
  * require bound image/sampler heaps with matching descriptor kinds, formats and valid indices.
  * Legacy descriptor-free Vulkan 1.2-targeted modules remain valid inputs.
  * For every format, push_size_bytes must be a multiple of 4 within

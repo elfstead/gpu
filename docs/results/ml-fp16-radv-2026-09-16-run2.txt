@@ -1,0 +1,35 @@
+Recorded from f663a4b on RX 5700 XT / RADV Mesa 26.2.1.
+Isolated repeat 2: no concurrent agent-launched regression jobs.
+Validation disabled; numerical/memory checks retained. CPU/GPU clocks not locked.
+Command: cargo xtask matmul-half (see ../ml-executable-requirements.md for environment).
+
+C experiment: release Rust runtime, C -O2 -DNDEBUG (no fast-math).
+Executable capability/numerical-policy selection PASS
+Host-clock measurements: median [min, max], 2 warmups + 9 samples.
+Execution includes recording/submission/wait/cleanup, not isolated GPU time.
+Optional device-batch timings include boundary barriers; query read is separate.
+Validation environment: VK_INSTANCE_LAYERS=(unset); VK_LAYER_VALIDATE_SYNC=(unset)
+VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation (environment reporting is not layer enumeration).
+  FP16 arithmetic supported=1 enabled=1; numerical profile=FP16 products / FP32 accumulation versus FP32
+Matrix experiment on AMD Radeon RX 5700 XT (RADV NAVI10), Vulkan 1.4.354; device creation 1.3901 ms
+  Timestamp clock: 10 ns/tick, 64 valid bits, wrap 1.84467e+11 seconds
+  paired-fp32 kernel/pipeline creation 0.2486 ms
+  paired-fp16-products kernel/pipeline creation 0.0513 ms
+Verified 50 shapes/patterns per kernel (2 variants) in untimed and timed mode(s), including padding, guards, and unchanged inputs.
+M=128 N=128 K=128: allocations+host staging 0.1132 ms, initial upload 0.0254 ms
+  paired-fp32 untimed: host-execution 0.2000 [0.1958, 0.2058] ms output-reset 0.0084 [0.0080, 0.0086] ms readback 0.0028 [0.0025, 0.0030] ms
+  paired-fp32 timed: host-execution 0.2143 [0.2140, 0.2340] ms device-batch 0.0534 [0.0500, 0.0549] ms query-read 0.0144 [0.0124, 0.0156] ms output-reset 0.0084 [0.0079, 0.0085] ms readback 0.0027 [0.0024, 0.0033] ms
+  paired-fp16-products untimed: host-execution 0.2030 [0.1999, 0.2222] ms output-reset 0.0085 [0.0080, 0.0101] ms readback 0.0029 [0.0023, 0.0035] ms
+  paired-fp16-products timed: host-execution 0.2148 [0.2130, 0.2183] ms device-batch 0.0557 [0.0537, 0.0567] ms query-read 0.0138 [0.0129, 0.0156] ms output-reset 0.0085 [0.0079, 0.0101] ms readback 0.0028 [0.0024, 0.0032] ms
+M=257 N=193 K=129: allocations+host staging 0.2279 ms, initial upload 0.0476 ms
+  paired-fp32 untimed: host-execution 0.2476 [0.2463, 0.2568] ms output-reset 0.0232 [0.0227, 0.0234] ms readback 0.0090 [0.0088, 0.0097] ms
+  paired-fp32 timed: host-execution 0.2662 [0.2640, 0.2712] ms device-batch 0.0968 [0.0963, 0.0976] ms query-read 0.0163 [0.0159, 0.0187] ms output-reset 0.0231 [0.0231, 0.0267] ms readback 0.0094 [0.0065, 0.0101] ms
+  paired-fp16-products untimed: host-execution 0.2514 [0.2485, 0.2605] ms output-reset 0.0231 [0.0226, 0.0235] ms readback 0.0089 [0.0088, 0.0096] ms
+  paired-fp16-products timed: host-execution 0.2705 [0.2670, 0.2772] ms device-batch 0.1004 [0.0980, 0.1028] ms query-read 0.0163 [0.0158, 0.0213] ms output-reset 0.0231 [0.0227, 0.0232] ms readback 0.0092 [0.0065, 0.0099] ms
+M=256 N=256 K=256: allocations+host staging 0.3830 ms, initial upload 0.0848 ms
+  paired-fp32 untimed: host-execution 0.3114 [0.3055, 0.3309] ms output-reset 0.0302 [0.0301, 0.0368] ms readback 0.0090 [0.0084, 0.0138] ms
+  paired-fp32 timed: host-execution 0.3234 [0.3191, 0.3347] ms device-batch 0.1608 [0.1579, 0.1638] ms query-read 0.0116 [0.0114, 0.0166] ms output-reset 0.0302 [0.0300, 0.0306] ms readback 0.0119 [0.0098, 0.0180] ms
+  paired-fp16-products untimed: host-execution 0.3214 [0.3159, 0.3327] ms output-reset 0.0302 [0.0300, 0.0409] ms readback 0.0090 [0.0084, 0.0137] ms
+  paired-fp16-products timed: host-execution 0.3448 [0.3327, 0.6032] ms device-batch 0.1735 [0.1715, 0.1753] ms query-read 0.0134 [0.0111, 0.0198] ms output-reset 0.0302 [0.0300, 0.0382] ms readback 0.0115 [0.0090, 0.0128] ms
+  paired-fp32 maximum absolute error 0.0157013; maximum error/bound 0.0110872
+  paired-fp16-products maximum absolute error 0.299042; maximum error/bound 0.242544
