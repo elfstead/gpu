@@ -513,10 +513,16 @@ fn main() -> Result {
             run(Command::new("bash").arg(root.join("examples/check-matmul-shaders.sh")))?;
             c_execution_profile_args(&root, "matmul", &["matmul-paired.comp", "matmul-half.comp"], true, &["--half-products"])
         },
+        Some("compiler-workflow") if args.len() == 1 || (args.len() == 2 && args[1] == "--check") => {
+            let output = run(Command::new("python3").arg(root.join("examples/compiler/run.py")).args(&args[1..]))?;
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            Ok(())
+        },
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }
