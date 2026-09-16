@@ -138,8 +138,22 @@ No additional hardware or new Mac acceptance round was needed.
 
 This experiment is closed. A further matrix-acceleration profile needs actual
 shape/type/subgroup evidence; additional numeric types or tuning are not selected
-automatically. A broader compiler consumer or graphics portability milestone
-remains a separate project choice, not unfinished feasibility work.
+automatically.
+
+## Completed follow-up: compiler-facing workflow
+
+The [bounded compiler workflow](compiler-workflow.md) is complete at `66854db`.
+Pinned Slang reflection plus checked SPIR-V generates the C root layout, embedded
+artifact, local dimensions and enabled-capability predicate for the existing
+integer transform. The unchanged host consumer passes on Radeon and llvmpipe
+after reordering shader fields and changing local size. Sixteen generator tests,
+no-GPU reproduction/build, original compute controls, 37 ordinary Rust tests,
+Clippy and 749 ABI checks pass. No runtime/public API change or Metal round trip.
+
+Keep compiler-derived mechanics outside the runtime and application-owned memory,
+synchronization and numerical policy explicit. This is not a general compiler
+framework or a source-language selection. The experiment is closed; broader
+shader types/workloads and graphics portability remain separate milestone choices.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization

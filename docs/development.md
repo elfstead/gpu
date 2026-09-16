@@ -48,6 +48,12 @@ compute/graphics results, explicit ICD selection and remaining runner provisioni
 
 ## Build and run
 
+`SLANGC=/path/to/slangc cargo xtask compiler-workflow` builds and runs a compiler-
+generated C interface for the existing integer transform. It uses pinned Slang
+2026.14.1, Python 3 standard library and SPIRV-Tools; `--check` checks reproduction
+and compiles both layouts without GPU execution. See the [compiler workflow](compiler-workflow.md)
+for the generated metadata boundary, rejection tests and supported subset.
+
 `cargo xtask matmul-half` compares paired FP32 products with explicit FP16 products
 and FP32 accumulation. It checks executable capabilities, numerical permission,
 SPIR-V arithmetic, guards, tails and timings. FP16 is optional; unsupported

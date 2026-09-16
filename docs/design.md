@@ -73,6 +73,13 @@ artifacts are explicitly tagged: Vulkan uses SPIR-V; Metal also accepts native M
 and metallib, with SPIR-V translation an optional input adapter rather than the
 definition of the programming model. Native inputs initially require pre-specialization.
 
+The [compiler-facing experiment](compiler-workflow.md) adds a bounded offline
+Slang-to-C adapter: reflection and checked SPIR-V generate argument layout,
+entry/local-size metadata and capability requirements together with the artifact.
+The runtime does not depend on Slang or reflection. Application code still owns
+memory, dispatch extent, synchronization and numerical permission; broader shader
+types and a general compiler/runtime package contract remain open.
+
 Vulkan uses directly generated, pinned declarations, not ash or Vulkanalia.
 Vulkan discovery needs a Vulkan 1.1 loader; execution needs
 Vulkan 1.4, descriptor heaps, untyped pointers, address commands and the core

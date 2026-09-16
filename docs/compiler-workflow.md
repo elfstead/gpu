@@ -60,3 +60,98 @@ Stop with this consumer running on Radeon and llvmpipe, reproducible commands,
 an explicit supported generator subset and an assessment of whether a better
 runtime API alternative emerged. No performance target, Slang adoption decision,
 cross-language universal ABI or new Metal execution claim follows.
+
+## Result — 2026-09-16
+
+Completed at `66854db`, with the brief committed first at `0d58358`. The same C
+consumer passes on RX 5700 XT / RADV and llvmpipe with Vulkan/synchronization
+validation, both for the original source and for a generated field-order/local-size
+mutation. Each executes 4,099 integers across three passes, checks all results and
+guards, performs a partial upload and destroys parent handles before child work
+finishes. The original `cargo xtask compute` control passes on both drivers.
+
+The original root has a pointer at offset 0 and count at offset 8, with local size
+64. The mutation moves count to offset 0 and the pointer to offset 8, with local
+size 32. Both roots occupy 16 bytes with different explicit padding. No host source
+change is needed. Generated static assertions verify field offsets, size and
+alignment; the host derives group count from generated local size and its own
+logical element count. Both modules require only Shader and physical addresses.
+
+Sixteen generator tests pass, including offset/type/entry/local-size disagreement,
+unmapped capability/extension, descriptors, shared storage, specialization,
+unexpected builtins/execution modes, duplicate roots and inconsistent reflection.
+The optional Float16 mapping is a synthetic metadata test, not a new arithmetic
+execution claim. `--check` reproduces the checked-in header byte-for-byte and
+compiles both layouts without GPU execution. The 37 ordinary Rust tests, strict
+Clippy and 749 C/Rust layout checks also pass. Runtime and public API are unchanged;
+the full consumer/GPU suites were not rerun for this build-tool-only change.
+
+**Decision:** keep this adapter outside the runtime. The experiment removes
+duplicated layout, entry, local-size and capability declarations without exposing
+a better runtime API alternative yet. It supports a compiler-owned mechanical
+interface and application-owned execution policy. Do not generalize it into a
+universal shader package, promote its generated helper names to public API, or
+treat the pinned reflection JSON as a stable format.
+
+## Reproduce and use
+
+Requirements: the normal Rust/C environment, Python 3 (standard library only),
+Slang **2026.14.1**, and SPIRV-Tools with Vulkan 1.4 validation. The existing
+[Slang archive/version/checksum record](heap-images.md#shadertoolchain-gate) applies.
+No compiler is downloaded automatically. Leave `CARGO_TARGET_DIR` unset, and
+serialize runs sharing this checkout's generated/build files.
+
+```sh
+SLANGC=/path/to/slangc cargo xtask compiler-workflow
+SLANGC=/path/to/slangc cargo xtask compiler-workflow --check
+```
+
+The first command compiles `examples/compiler/transform.slang`, emits reflection,
+validates SPIR-V, regenerates `transform.generated.h`, runs rejection tests,
+compiles the release runtime/C consumer, then runs original and mutated layouts.
+The second checks the checked-in header instead of replacing it and does not
+execute GPU work. Generated intermediates and the mutated fixture live in
+`target/compiler-workflow`; only the original combined header is checked in.
+Use `VK_DRIVER_FILES` and the normal Vulkan validation environment to select and
+validate a driver. The runner selects its release library ahead of Cargo's
+inherited debug-library directories.
+
+For generator-only use:
+
+```sh
+SLANGC=/path/to/slangc python3 examples/compiler/generate.py
+SLANGC=/path/to/slangc python3 examples/compiler/generate.py --check
+```
+
+The [consumer](../examples/compiler/consumer.c) uses `TransformArguments`,
+`transform_shader()`, `transform_local` and `transform_compatible()`. It names
+fields by their semantic role (`arg_data`, `arg_count`), not their byte offsets.
+It explicitly creates buffers, obtains GPU addresses, records dependencies,
+retains allocations and waits for completion. There is no generated hidden
+allocation, migration, dispatch, graph scheduler or numerical policy.
+
+## Exact limits and remaining obligations
+
+This is a pinned compiler adapter for one compute entry named `main`, one flat
+push-constant struct of uint32 fields and device pointers to uint32, and a dispatch
+ID input. Supported capability mappings are Shader, PhysicalStorageBufferAddresses
+and Float16; unknown capabilities/extensions are rejected. Float16 permission is
+not a claim about precision semantics. Shared storage, descriptor bindings,
+specialization, nested/array/vector roots, other scalar/pointer types and other
+builtins/execution modes are intentionally unsupported.
+
+SPIR-V field offsets/types, entry and local size are cross-checked against Slang
+reflection. Trailing struct padding comes from the reflected C layout, checked
+against supported field alignment and then by the C compiler; SPIR-V alone does
+not provide that complete host struct size. Embedded words tie the checked
+artifact to its declarations. The source hash is provenance, not a security or
+cross-version compatibility mechanism. Generation assumes trusted compiler output
+and uses `spirv-val`; the adapter itself is not a full SPIR-V parser or sandbox.
+
+The caller must still establish allocation extent, pointee alignment, lifetime,
+aliasing, access order, logical extent and algorithm semantics. The compatible
+predicate checks the bounded capability/root/workgroup requirements, not all
+possible shader correctness or resource obligations. This narrow success does
+not yet prove a general compiler workflow for matrices, graphics or native Metal
+artifacts. Those would be new selected consumers, not reasons to keep this
+experiment open.

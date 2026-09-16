@@ -10,6 +10,14 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [compiler-facing workflow](compiler-workflow.md) is complete at `66854db`.
+Generated host roots and executable metadata replace manual declarations for
+the existing integer transform. Original and field-order/workgroup-mutated
+variants pass on Radeon and llvmpipe using unchanged host code. Sixteen generator
+tests, byte-for-byte reproduction and C layout assertions establish the bounded
+compiler/host interface; runtime/public ABI stay unchanged. This is a pinned
+adapter experiment, not a source-language choice or universal shader package.
+
 The [numerical executable experiment](ml-executable-requirements.md) is complete
 at `f663a4b`, after merging Metal compute/GGML acceptance. Optional Float16
 enablement and caller-owned numerical/capability requirements suffice for the
