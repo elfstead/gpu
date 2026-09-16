@@ -10,10 +10,10 @@ impl Batch {
         doff: usize,
         size: usize,
     ) -> Result<(), Error> {
-        self.cb()?;
+        let encoder = self.encoder()?;
         if (so | doff | size) % 4 == 0 {
             unsafe {
-                let _: () = msg_send![self.encoder.0,
+                let _: () = msg_send![encoder,
                     copyFromBuffer: source.raw.as_ptr()
                     sourceOffset: so
                     toBuffer: destination.raw.as_ptr()
@@ -61,8 +61,8 @@ impl Batch {
             unsafe {
                 let pipeline_object = &*pipeline.as_ptr().cast::<Object>();
                 let table_object = &*table.0;
-                let _: () = msg_send![self.encoder.0, setComputePipelineState: pipeline_object];
-                let _: () = msg_send![self.encoder.0, setArgumentTable: table_object];
+                let _: () = msg_send![encoder, setComputePipelineState: pipeline_object];
+                let _: () = msg_send![encoder, setArgumentTable: table_object];
                 let grid = MTLSize {
                     width: groups,
                     height: 1,
@@ -73,7 +73,7 @@ impl Batch {
                     height: 1,
                     depth: 1,
                 };
-                let _: () = msg_send![self.encoder.0,
+                let _: () = msg_send![encoder,
                     dispatchThreadgroups: grid threadsPerThreadgroup: group];
             }
             self.tables.push(table);

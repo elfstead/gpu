@@ -78,8 +78,14 @@ fn native_roundtrip(code: &[u8], format: u32) {
             INVALID_ARGUMENT
         );
         assert!(duplicate.is_null());
-        ogpu_batch_destroy(batch);
+        assert!((*batch).inner.recording.is_none());
         assert_eq!(ogpu_completion_wait(done, &mut error), SUCCESS);
+        assert!((*done).inner.submission.resources.is_none());
+        // Keep both consumed batch and receipt alive through terminal observation.
+        assert!((*batch).inner.transient.is_empty());
+        assert!((*batch).inner.tables.is_empty());
+        assert!((*batch).inner.retained.is_empty());
+        ogpu_batch_destroy(batch);
         let mut data = [0u32; 8];
         assert_eq!(
             ogpu_buffer_read(output, 0, data.as_mut_ptr().cast(), 32, &mut error),
@@ -230,6 +236,196 @@ fn byte_copies_retirement_and_registry() {
         assert_eq!(ready, 0);
         assert_eq!(ogpu_completion_wait(done, ptr::null_mut()), INTERNAL_ERROR);
         ogpu_completion_destroy(done);
+        ogpu_buffer_destroy(output);
+        assert!(device.inner.buffers.borrow().is_empty());
+    });
+}
+
+#[test]
+#[ignore = "requires Apple Silicon Metal GPU"]
+fn barriers_across_submissions() {
+    crate::boundary::native_scope(|| unsafe {
+        let mut device = device();
+        // Barrier in producer only, consumer only, or a separate empty batch.
+        // Cover every blit/dispatch copy pairing, with no intervening CPU wait.
+        for placement in 0..3 {
+            for producer_unaligned in [false, true] {
+                for consumer_unaligned in [false, true] {
+                    for iteration in 0..8u8 {
+                        let source = buffer(&mut device, 4096, 0);
+                        let private = buffer(&mut device, 4096, 1);
+                        let output = buffer(&mut device, 4096, 0);
+                        let bytes: Vec<u8> = (0..4096)
+                            .map(|i| (i as u8).wrapping_add(iteration))
+                            .collect();
+                        assert_eq!(
+                            ogpu_buffer_write(
+                                source,
+                                0,
+                                bytes.as_ptr().cast(),
+                                4096,
+                                ptr::null_mut()
+                            ),
+                            SUCCESS
+                        );
+                        let mut producer = OgpuBatch {
+                            inner: Batch::new(device.inner.clone()).unwrap(),
+                        };
+                        let mut consumer = OgpuBatch {
+                            inner: Batch::new(device.inner.clone()).unwrap(),
+                        };
+                        let source_offset = u64::from(producer_unaligned);
+                        let output_offset = u64::from(consumer_unaligned);
+                        assert_eq!(
+                            ogpu_batch_copy_buffer(
+                                &mut producer,
+                                source,
+                                source_offset,
+                                private,
+                                0,
+                                4092,
+                                ptr::null_mut()
+                            ),
+                            SUCCESS
+                        );
+                        if placement == 0 {
+                            assert_eq!(
+                                ogpu_batch_barrier(&mut producer, 64, 32, ptr::null_mut()),
+                                SUCCESS
+                            );
+                        }
+                        let mut produced = producer.inner.submit().unwrap();
+                        let mut middle = None;
+                        if placement == 2 {
+                            let mut barrier = OgpuBatch {
+                                inner: Batch::new(device.inner.clone()).unwrap(),
+                            };
+                            assert_eq!(
+                                ogpu_batch_barrier(&mut barrier, 64, 32, ptr::null_mut()),
+                                SUCCESS
+                            );
+                            middle = Some(barrier.inner.submit().unwrap());
+                        }
+                        if placement == 1 {
+                            assert_eq!(
+                                ogpu_batch_barrier(&mut consumer, 64, 32, ptr::null_mut()),
+                                SUCCESS
+                            );
+                        }
+                        assert_eq!(
+                            ogpu_batch_copy_buffer(
+                                &mut consumer,
+                                private,
+                                0,
+                                output,
+                                output_offset,
+                                4092,
+                                ptr::null_mut()
+                            ),
+                            SUCCESS
+                        );
+                        let mut consumed = consumer.inner.submit().unwrap();
+                        consumed.observe(true).unwrap();
+                        let mut actual = vec![0u8; 4092];
+                        assert_eq!(
+                            ogpu_buffer_read(
+                                output,
+                                output_offset,
+                                actual.as_mut_ptr().cast(),
+                                4092,
+                                ptr::null_mut()
+                            ),
+                            SUCCESS
+                        );
+                        assert_eq!(actual, bytes[source_offset as usize..source_offset as usize + 4092],
+                            "placement={placement} producer_unaligned={producer_unaligned} consumer_unaligned={consumer_unaligned}");
+                        produced.observe(true).unwrap();
+                        if let Some(done) = middle.as_mut() {
+                            done.observe(true).unwrap();
+                        }
+                        ogpu_buffer_destroy(source);
+                        ogpu_buffer_destroy(private);
+                        ogpu_buffer_destroy(output);
+                        assert!(device.inner.buffers.borrow().is_empty());
+                    }
+                }
+            }
+        }
+    });
+}
+
+#[test]
+#[ignore = "requires Apple Silicon Metal GPU"]
+fn nullable_public_and_internal_allocations() {
+    crate::boundary::native_scope(|| unsafe {
+        let mut device = device();
+        let mut output = ptr::dangling_mut();
+        FAIL_NEXT_BUFFER_ALLOCATION.with(|flag| flag.set(true));
+        assert_eq!(
+            ogpu_buffer_create(&mut device, 16, 0, &mut output, ptr::null_mut()),
+            INTERNAL_ERROR
+        );
+        assert!(output.is_null());
+        let mut batch = Batch::new(device.inner.clone()).unwrap();
+        for bytes in [&[][..], &[1, 2, 3, 4][..]] {
+            FAIL_NEXT_BUFFER_ALLOCATION.with(|flag| flag.set(true));
+            assert_eq!(batch.upload(bytes).unwrap_err().status, INTERNAL_ERROR);
+            assert!(batch.transient.is_empty());
+            assert!(batch.recording.is_some());
+        }
+        // Failure leaves the recording usable and does not add a nil allocation
+        // to residency. A following real upload/submit still succeeds.
+        batch.upload(&[1, 2, 3, 4]).unwrap();
+        batch.submit().unwrap().observe(true).unwrap();
+    });
+}
+
+#[test]
+#[ignore = "requires Apple Silicon Metal GPU"]
+fn feedback_pending_failure_and_retirement() {
+    crate::boundary::native_scope(|| unsafe {
+        let mut device = device();
+        let source = buffer(&mut device, 16, 0);
+        let output = buffer(&mut device, 16, 0);
+        let weak = Rc::downgrade(&(*source).inner);
+        let mut batch = OgpuBatch {
+            inner: Batch::new(device.inner.clone()).unwrap(),
+        };
+        assert_eq!(
+            ogpu_batch_copy_buffer(&mut batch, source, 1, output, 1, 7, ptr::null_mut()),
+            SUCCESS
+        );
+        ogpu_buffer_destroy(source);
+        // A CPU-controlled gate makes a pending poll deterministic.
+        let gate = device.inner.raw.new_shared_event();
+        let _: () = msg_send![device.inner.queue.0, waitForEvent: gate.as_ptr() value: 1u64];
+        let mut done = OgpuCompletion {
+            inner: batch.inner.submit().unwrap(),
+        };
+        let mut ready = 99;
+        let pending_status = ogpu_completion_poll(&mut done, &mut ready, ptr::null_mut());
+        // Unblock before assertions, so a regression cannot strand Drop waiting.
+        gate.set_signaled_value(1);
+        assert_eq!(pending_status, SUCCESS);
+        assert_eq!(ready, 0);
+        assert!(done.inner.submission.resources.is_some());
+        assert!(weak.upgrade().is_some());
+        // Wait for REAL native feedback before substituting its result. Unlike
+        // the cached-outcome test, this exercises failure retirement itself.
+        done.inner.feedback.observe(true).unwrap().unwrap();
+        done.inner.feedback.inject_drained_error();
+        assert_eq!(
+            ogpu_completion_poll(&mut done, &mut ready, ptr::null_mut()),
+            INTERNAL_ERROR
+        );
+        assert_eq!(ready, 0);
+        assert!(done.inner.submission.resources.is_none());
+        assert!(batch.inner.recording.is_none());
+        assert!(weak.upgrade().is_none());
+        assert_eq!(
+            ogpu_completion_wait(&mut done, ptr::null_mut()),
+            INTERNAL_ERROR
+        );
         ogpu_buffer_destroy(output);
         assert!(device.inner.buffers.borrow().is_empty());
     });

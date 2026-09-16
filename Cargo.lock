@@ -296,6 +296,7 @@ dependencies = [
 name = "ogpu"
 version = "0.1.0"
 dependencies = [
+ "block",
  "foreign-types",
  "libloading",
  "metal",

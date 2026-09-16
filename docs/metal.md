@@ -2,7 +2,9 @@
 
 Updated 2026-09-16 on `metal-backend`. ABI **12**; use matching headers, library
 and callers. This is an experimental compute backend, not a portability claim.
-The backend is validated natively on Apple M4 with macOS 26 and Xcode 26.5.
+The initial Metal 4 migration (`8704f62`) was validated natively on Apple M4 with
+macOS 26 and Xcode 26.5. The synchronization, feedback and lifetime corrections
+below are a new handoff: native revalidation is pending.
 
 ## Boundary and current implementation
 
@@ -63,9 +65,28 @@ Native copies and native executable tests do not depend on it.
 
 Execution requires Apple Silicon / Apple7-family features and the Metal 4 API
 (macOS 26+). Each batch uses a Metal 4 command allocator and command buffer with a
-single compute encoder for dispatches and copies. Barriers lower to explicit
-dispatch/blit stage dependencies with device visibility. Queue timeline events
-implement nonblocking poll, blocking wait and terminal resource retirement.
+single compute encoder for dispatches and copies. Each barrier uses dispatch/blit
+stages and device visibility in three scopes: intra-encoder, queue consumer and
+queue producer. This covers earlier commands in the current pass, earlier
+submissions, and consumers in later submissions (including a barrier-only batch).
+Copies may lower to either stage, so the stage masks are deliberately conservative.
+See Apple's [consumer barriers](https://developer.apple.com/documentation/metal/synchronizing-passes-with-consumer-barriers)
+and [producer barriers](https://developer.apple.com/documentation/metal/synchronizing-passes-with-producer-barriers).
+
+Per-commit [Metal feedback](https://developer.apple.com/documentation/metal/mtl4commitfeedback)
+establishes terminal success or failure. Its callback copies the native diagnostic
+into shared Rust state; it never accesses `Rc` resource owners. Poll reads that
+state, wait sleeps on a condition variable, and observation retires resources on
+the calling thread. Errors report `INTERNAL_ERROR` with the native code/description
+and a zero Vulkan result. The synchronous dispatch convenience uses the same
+submission/completion path. No timeline-event success inference or busy-wait loop
+remains. As before, no timeout or recovery from a driver that never reports
+completion is promised.
+
+Submission moves the command buffer and backing allocator out of the batch;
+terminal observation releases them even if both public batch and receipt handles
+survive. Public buffers and internal root/copy uploads share checked nullable
+allocation. Descriptor objects also have scoped ownership on failure paths.
 There is no classic-command-buffer compatibility path.
 
 ## Acceptance handoff
@@ -77,6 +98,7 @@ cargo test --locked -p ogpu
 cargo test --locked -p ogpu metal:: -- --ignored --nocapture --test-threads=1
 cargo test --locked -p ogpu --no-default-features
 cargo test --locked -p ogpu --no-default-features metal::native_tests -- --ignored --nocapture --test-threads=1
+cargo clippy --locked -p ogpu --all-targets -- -D warnings
 cargo xtask smoke
 cargo xtask compute
 cargo xtask batch
@@ -89,12 +111,33 @@ silently pass when a GPU/compiler is missing. Tests cover translated specializat
 MSL and compiled-metallib execution without translation, copied root data,
 destroyed kernel handles, one-shot submission, repeated receipt observation,
 buffer-size/root-size rejection, byte copies through private memory, overlap and
-zero-copy rules, live-registry cleanup and cached-failure poll outputs.
+zero-copy rules, live-registry cleanup and cached-failure poll outputs. New tests
+cover barriers at the producer end, consumer start and in an intervening empty
+batch, all blit/dispatch copy pairings, retained batch handles, injected nullable
+allocations, gated pending polls, owned NSError diagnostics and error retirement.
 
-Native acceptance covers pending polls, destruction of pending receipts, byte-copy
-validation and argument-table residency. Native allocation failure and device-loss
-injection remain environment-dependent. No Metal performance, real ML consumer, or
-images/graphics acceptance is claimed.
+The previous native acceptance covered pending polls, destruction of pending
+receipts, byte-copy validation and argument-table residency. Re-run it after these
+changes. The new failure-retirement test substitutes an error only AFTER actual
+native feedback confirms termination; it does not deliberately fault the GPU.
+Real device-loss/error delivery and allocation pressure remain native validation
+work, distinct from the deterministic injected-null and NSError tests.
+
+Then run the real consumer with the default SPIR-V adapter enabled (do not use
+`--no-default-features` for this step). Install CMake, Ninja, SPIRV-Tools and ripgrep;
+use the pinned GGML checkout and dataset steps in [the consumer README](../integrations/ggml/README.md):
+
+```sh
+bash integrations/ggml/prepare.sh
+bash integrations/ggml/run.sh /path/to/pinned/ggml 0 device f16
+```
+
+The harness selects `.dylib` on macOS, accepts extra arithmetic capabilities,
+uses portable core-limit/checksum handling and disables GGML's own Metal backend.
+Expected gates: lifecycle checks, two mixed-matrix cases, and six full-dataset
+direct/scheduled inference cases without fallback. Keep the numerical tolerances
+unchanged; report any failure for investigation. No Metal ML acceptance,
+performance, or images/graphics acceptance is claimed yet.
 
 Linux verification and exact remaining coverage are recorded in [the plan](plan.md).
 Apple-target `cargo check` can catch Rust errors here using `DOCS_RS=1` to skip the
