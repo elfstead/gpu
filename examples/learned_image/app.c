@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include "ogpu.h"
+#include <application.generated.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -10,16 +11,6 @@
 #define REQUIRE(x) do { if (!(x)) { fprintf(stderr, "Check failed line %d: %s\n", __LINE__, #x); goto cleanup; } } while (0)
 #define TRY(x) do { OgpuResult s_ = (x); if (s_ != OGPU_SUCCESS) { fprintf(stderr, "%s: %d %s\n", #x, s_, error.message); goto cleanup; } } while (0)
 enum { INPUT, WEIGHTS, HIDDEN, DENOISED, COLOR, BUFFER_COUNT, GUARD = 64 };
-typedef struct HiddenRoot { uint64_t input, weights, output; uint32_t width, height; } HiddenRoot;
-typedef struct DenoiseRoot { uint64_t input, weights, hidden, output; uint32_t count, reserved; } DenoiseRoot;
-typedef struct ProcessRoot { uint64_t input, output; uint32_t width, height, out_width, out_height; } ProcessRoot;
-typedef struct ReadRoot { uint64_t pixels; uint32_t width, reserved; } ReadRoot;
-typedef struct PoisonRoot { uint64_t output; uint32_t count, reserved; } PoisonRoot;
-_Static_assert(sizeof(HiddenRoot) == 32 && offsetof(HiddenRoot, width) == 24, "hidden root");
-_Static_assert(sizeof(DenoiseRoot) == 40 && offsetof(DenoiseRoot, count) == 32, "denoise root");
-_Static_assert(sizeof(ProcessRoot) == 32 && offsetof(ProcessRoot, width) == 16, "process root");
-_Static_assert(sizeof(ReadRoot) == 16 && offsetof(ReadRoot, width) == 8, "read root");
-_Static_assert(sizeof(PoisonRoot) == 16 && offsetof(PoisonRoot, count) == 8, "poison root");
 
 static double now_ms(void) {
     struct timespec time;
@@ -48,25 +39,12 @@ static int write_exact(const char *path, const void *data, size_t size) {
     return okay;
 }
 
-static int read_shader(const char *directory, const char *name, OgpuShaderDesc *shader) {
-    char path[4096];
-    if (!path_join(path, directory, name)) return 0;
-    FILE *file = fopen(path, "rb");
-    if (!file) { perror(path); return 0; }
-    int okay = 0;
-    void *data = NULL;
-    if (fseek(file, 0, SEEK_END)) goto cleanup;
-    long size = ftell(file);
-    if (size < 20 || size % 4 || fseek(file, 0, SEEK_SET)) goto cleanup;
-    data = malloc((size_t)size);
-    if (!data || fread(data, 1, (size_t)size, file) != (size_t)size) goto cleanup;
-    *shader = (OgpuShaderDesc){.code = data, .code_size = (uint64_t)size, .format = OGPU_SHADER_SPIRV};
-    data = NULL;
-    okay = 1;
-cleanup:
-    free(data);
-    fclose(file);
-    return okay;
+static uint32_t groups(uint32_t count, const uint32_t local[3], const OgpuDeviceLimits *limits) {
+    // The application owns logical extent and chooses a 1D launch. The compiler
+    // owns workgroup dimensions; a different decomposition needs explicit policy.
+    if (!count || !local[0] || local[1] != 1 || local[2] != 1) return 0;
+    uint32_t result = count / local[0] + (count % local[0] != 0);
+    return result <= limits->max_dispatch[0] ? result : 0;
 }
 
 static uint32_t extent(const char *text) {
@@ -101,16 +79,15 @@ int main(int argc, char **argv) {
     OgpuImage *target = NULL;
     OgpuBatch *batch = NULL;
     OgpuCompletion *done = NULL;
-    OgpuShaderDesc shaders[6] = {0};
     unsigned char *host = NULL, *weights = NULL, *pixels = NULL;
     char path[4096], name[96];
     double setup_start = now_ms();
     // All files are trusted, generated little-endian fixtures, not a model format.
-    REQUIRE(argc >= 9);
+    REQUIRE(argc >= 8);
     const uint16_t endian = 1;
     REQUIRE(*(const unsigned char *)&endian == 1);
-    uint32_t width = extent(argv[3]), height = extent(argv[4]);
-    uint32_t ow = extent(argv[5]), oh = extent(argv[6]);
+    uint32_t width = extent(argv[2]), height = extent(argv[3]);
+    uint32_t ow = extent(argv[4]), oh = extent(argv[5]);
     REQUIRE(width && height && ow && oh);
     uint32_t count = width * height, output_count = ow * oh;
     size_t payloads[BUFFER_COUNT] = {count * 4u, 89u * 4u, count * 32u, count * 4u, output_count * 16u};
@@ -125,7 +102,7 @@ int main(int argc, char **argv) {
     host = malloc(upload_size); weights = malloc(sizes[WEIGHTS]); pixels = malloc(total);
     REQUIRE(host && weights && pixels);
     poison_host(weights, sizes[WEIGHTS]);
-    REQUIRE(read_exact(argv[2], weights + GUARD, payloads[WEIGHTS]));
+    REQUIRE(read_exact(argv[1], weights + GUARD, payloads[WEIGHTS]));
     TRY(ogpu_probe_create(OGPU_ABI_VERSION, &probe, &error));
     uint32_t devices = 0;
     TRY(ogpu_probe_device_count(probe, &devices));
@@ -141,21 +118,35 @@ int main(int argc, char **argv) {
     REQUIRE(device);
     OgpuDeviceLimits limits;
     TRY(ogpu_device_limits(device, &limits, &error));
-    REQUIRE(limits.max_push_data_bytes >= sizeof(DenoiseRoot) && limits.max_group_invocations >= 64
-        && limits.max_group_size[0] >= 64 && limits.max_group_size[1] >= 1 && limits.max_group_size[2] >= 1);
+    OgpuCapabilities caps, missing;
+    TRY(ogpu_device_capabilities(device, &caps, &error));
+    REQUIRE(hidden_compatible(&caps, &limits) && denoise_compatible(&caps, &limits)
+        && process_compatible(&caps, &limits) && poison_compatible(&caps, &limits)
+        && fullscreen_compatible(&caps, &limits) && display_compatible(&caps, &limits));
+    missing = caps; missing.buffer_device_address = 0;
+    REQUIRE(!hidden_compatible(&missing, &limits) && !denoise_compatible(&missing, &limits)
+        && !process_compatible(&missing, &limits) && !poison_compatible(&missing, &limits)
+        && !display_compatible(&missing, &limits) && fullscreen_compatible(&missing, &limits));
+    missing = caps; missing.graphics_queue = 0;
+    REQUIRE(!fullscreen_compatible(&missing, &limits) && !display_compatible(&missing, &limits));
+    missing = caps; missing.compute_queue = 0;
+    REQUIRE(!hidden_compatible(&missing, &limits) && !denoise_compatible(&missing, &limits)
+        && !process_compatible(&missing, &limits) && !poison_compatible(&missing, &limits));
     REQUIRE(ow <= limits.max_image_2d && oh <= limits.max_image_2d);
-    REQUIRE((count * 8u + 32u + 63u) / 64u <= limits.max_dispatch[0]);
-    REQUIRE((output_count * 4u + 32u + 63u) / 64u <= limits.max_dispatch[0]);
+    uint32_t hidden_groups = groups(count * 8u, hidden_local, &limits);
+    uint32_t denoise_groups = groups(count, denoise_local, &limits);
+    uint32_t process_groups = groups(output_count, process_local, &limits);
+    REQUIRE(hidden_groups && denoise_groups && process_groups);
     OgpuTimingInfo timing;
     OgpuResult timing_status = ogpu_device_timing_info(device, &timing, &error);
     REQUIRE(timing_status == OGPU_SUCCESS || timing_status == OGPU_ERROR_UNSUPPORTED);
     int timed = timing_status == OGPU_SUCCESS;
-    const char *shader_names[] = {"hidden.comp.spv", "denoise.comp.spv", "process.comp.spv",
-        "poison.comp.spv", "fullscreen.vert.spv", "display.frag.spv"};
-    const uint32_t roots[] = {sizeof(HiddenRoot), sizeof(DenoiseRoot), sizeof(ProcessRoot), sizeof(PoisonRoot)};
-    for (unsigned i = 0; i < 6; ++i) REQUIRE(read_shader(argv[1], shader_names[i], &shaders[i]));
+    OgpuShaderDesc shaders[] = {hidden_shader(), denoise_shader(), process_shader(), poison_shader(),
+        fullscreen_shader(), display_shader()};
+    const uint32_t roots[] = {hidden_push_size, denoise_push_size, process_push_size, poison_push_size};
     for (unsigned i = 0; i < 4; ++i) TRY(ogpu_kernel_create(device, &shaders[i], roots[i], &kernels[i], &error));
-    TRY(ogpu_raster_create(device, &shaders[4], &shaders[5], sizeof(ReadRoot),
+    REQUIRE(fullscreen_push_size == 0);
+    TRY(ogpu_raster_create(device, &shaders[4], &shaders[5], display_push_size,
         OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
     for (unsigned i = 0; i < BUFFER_COUNT; ++i) {
         TRY(ogpu_buffer_create(device, sizes[i], OGPU_MEMORY_DEVICE, &buffers[i], &error));
@@ -175,8 +166,10 @@ int main(int argc, char **argv) {
     TRY(ogpu_batch_create(device, &batch, &error));
     TRY(ogpu_batch_copy_buffer(batch, upload, 0, buffers[WEIGHTS], 0, sizes[WEIGHTS], &error));
     for (unsigned i = HIDDEN; i < BUFFER_COUNT; ++i) {
-        PoisonRoot root = {addresses[i] - GUARD, (uint32_t)(sizes[i] / 4), 0};
-        TRY(ogpu_batch_dispatch(batch, kernels[3], (root.count + 63) / 64, 1, 1, &root, sizeof(root), &error));
+        PoisonArguments root = {.arg_output_data = addresses[i] - GUARD, .arg_count = (uint32_t)(sizes[i] / 4)};
+        uint32_t dispatch = groups(root.arg_count, poison_local, &limits);
+        REQUIRE(dispatch);
+        TRY(ogpu_batch_dispatch(batch, kernels[3], dispatch, 1, 1, &root, sizeof(root), &error));
     }
     TRY(ogpu_batch_submit(batch, &done, &error));
     TRY(ogpu_completion_wait(done, &error));
@@ -185,12 +178,15 @@ int main(int argc, char **argv) {
     printf("Setup: %.3f ms; weights upload=%zu payload bytes (guards +%u); no per-frame model upload\n",
         now_ms() - setup_start, payloads[WEIGHTS], 2 * GUARD);
 
-    HiddenRoot hidden = {addresses[INPUT], addresses[WEIGHTS], addresses[HIDDEN], width, height};
-    DenoiseRoot denoise = {addresses[INPUT], addresses[WEIGHTS], addresses[HIDDEN], addresses[DENOISED], count, 0};
-    ProcessRoot process = {addresses[DENOISED], addresses[COLOR], width, height, ow, oh};
-    ReadRoot display = {addresses[COLOR], ow, 0};
+    HiddenArguments hidden = {.arg_input_data = addresses[INPUT], .arg_weights = addresses[WEIGHTS],
+        .arg_output_data = addresses[HIDDEN], .arg_width = width, .arg_height = height};
+    DenoiseArguments denoise = {.arg_input_data = addresses[INPUT], .arg_weights = addresses[WEIGHTS],
+        .arg_hidden = addresses[HIDDEN], .arg_output_data = addresses[DENOISED], .arg_count = count};
+    ProcessArguments process = {.arg_input_data = addresses[DENOISED], .arg_output_data = addresses[COLOR],
+        .arg_width = width, .arg_height = height, .arg_out_width = ow, .arg_out_height = oh};
+    DisplayArguments display = {.arg_pixels = addresses[COLOR], .arg_width = ow};
     for (unsigned diagnostic = 0; diagnostic < 2; ++diagnostic) {
-        for (int frame = 8; frame < argc; ++frame) {
+        for (int frame = 7; frame < argc; ++frame) {
             REQUIRE(path_join(path, argv[frame], "input.f32"));
             poison_host(host, sizes[INPUT]);
             REQUIRE(read_exact(path, host + GUARD, payloads[INPUT]));
@@ -212,16 +208,18 @@ int main(int argc, char **argv) {
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_TRANSFER_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
             if (diagnostic) {
                 for (unsigned i = HIDDEN; i < BUFFER_COUNT; ++i) {
-                    PoisonRoot root = {addresses[i] - GUARD, (uint32_t)(sizes[i] / 4), 0};
-                    TRY(ogpu_batch_dispatch(batch, kernels[3], (root.count + 63) / 64, 1, 1, &root, sizeof(root), &error));
+                    PoisonArguments root = {.arg_output_data = addresses[i] - GUARD, .arg_count = (uint32_t)(sizes[i] / 4)};
+                    uint32_t dispatch = groups(root.arg_count, poison_local, &limits);
+                    REQUIRE(dispatch);
+                    TRY(ogpu_batch_dispatch(batch, kernels[3], dispatch, 1, 1, &root, sizeof(root), &error));
                 }
                 TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_WRITE, &error));
             }
-            TRY(ogpu_batch_dispatch(batch, kernels[0], (count * 8u + 63u) / 64u, 1, 1, &hidden, sizeof(hidden), &error));
+            TRY(ogpu_batch_dispatch(batch, kernels[0], hidden_groups, 1, 1, &hidden, sizeof(hidden), &error));
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
-            TRY(ogpu_batch_dispatch(batch, kernels[1], (count + 63u) / 64u, 1, 1, &denoise, sizeof(denoise), &error));
+            TRY(ogpu_batch_dispatch(batch, kernels[1], denoise_groups, 1, 1, &denoise, sizeof(denoise), &error));
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
-            TRY(ogpu_batch_dispatch(batch, kernels[2], (output_count + 63u) / 64u, 1, 1, &process, sizeof(process), &error));
+            TRY(ogpu_batch_dispatch(batch, kernels[2], process_groups, 1, 1, &process, sizeof(process), &error));
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
             // The fragment shader reads the compute-written allocation directly.
             // No intermediate buffer->image representation copy is necessary.
@@ -247,22 +245,22 @@ int main(int argc, char **argv) {
             TRY(ogpu_buffer_read(readback, 0, pixels, read_size, &error));
             double read_ms = now_ms() - read_start;
             REQUIRE(guards(pixels, output_count * 4u + 2 * GUARD));
-            snprintf(name, sizeof(name), "%s-%d-final.rgba", diagnostic ? "diagnostic" : "normal", frame - 8);
-            REQUIRE(path_join(path, argv[7], name));
+            snprintf(name, sizeof(name), "%s-%d-final.rgba", diagnostic ? "diagnostic" : "normal", frame - 7);
+            REQUIRE(path_join(path, argv[6], name));
             REQUIRE(write_exact(path, pixels + GUARD, output_count * 4u));
             if (diagnostic) {
                 const char *names[] = {"input", "weights", "hidden", "denoised", "processed"};
                 for (unsigned i = 0; i < BUFFER_COUNT; ++i) {
                     REQUIRE(guards(pixels + offsets[i], sizes[i]));
-                    snprintf(name, sizeof(name), "diagnostic-%d-%s.f32", frame - 8, names[i]);
-                    REQUIRE(path_join(path, argv[7], name));
+                    snprintf(name, sizeof(name), "diagnostic-%d-%s.f32", frame - 7, names[i]);
+                    REQUIRE(path_join(path, argv[6], name));
                     REQUIRE(write_exact(path, pixels + offsets[i] + GUARD, payloads[i]));
                 }
                 REQUIRE(memcmp(pixels + offsets[INPUT], host, sizes[INPUT]) == 0);
                 REQUIRE(memcmp(pixels + offsets[WEIGHTS], weights, sizes[WEIGHTS]) == 0);
             }
             printf("%s frame %d %ux%u -> %ux%u: host_write=%.3f host_execute=%.3f read=%.3f query=%.3f ms; ",
-                diagnostic ? "diagnostic" : "normal", frame - 8, width, height, ow, oh,
+                diagnostic ? "diagnostic" : "normal", frame - 7, width, height, ow, oh,
                 host_write_ms, execute_ms, read_ms, query_ms);
             if (timed) printf("device_batch=%.3f ms", device_ns / 1e6);
             else printf("device_batch=unsupported");
@@ -281,7 +279,6 @@ cleanup:
     for (unsigned i = 0; i < BUFFER_COUNT; ++i) ogpu_buffer_destroy(buffers[i]);
     ogpu_buffer_destroy(draw); ogpu_buffer_destroy(readback); ogpu_buffer_destroy(upload);
     ogpu_device_destroy(device); ogpu_probe_destroy(probe);
-    for (unsigned i = 0; i < 6; ++i) free((void *)shaders[i].code);
     free(host); free(weights); free(pixels);
     return result;
 }

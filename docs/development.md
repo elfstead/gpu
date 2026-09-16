@@ -48,11 +48,13 @@ compute/graphics results, explicit ICD selection and remaining runner provisioni
 
 ## Build and run
 
-`cargo xtask learned-image` builds and validates a complete residual denoising,
+`SLANGC=/path/to/slangc cargo xtask learned-image` builds and validates a complete residual denoising,
 resize/color and offscreen-rendering application against a frozen synthetic
-training/reference fixture. It needs Python 3 standard library, shaderc (`glslc`)
-and modern SPIRV-Tools in addition to the normal Rust/C/Vulkan environment.
-`--check` runs CPU checks and builds shaders/the application without GPU execution.
+training/reference fixture. It needs Python 3 standard library, pinned Slang
+2026.14.1 and modern SPIRV-Tools in addition to the normal Rust/C/Vulkan environment.
+The compiler generates checked host interfaces for compute, vertex and fragment
+executables; the application runs with both original and mutated root/local-size
+layouts. `--check` verifies generated headers and builds both variants without GPU execution.
 See [application reproduction](../examples/learned_image/README.md) and
 [acceptance/results](learned-image.md). No training framework or data download.
 

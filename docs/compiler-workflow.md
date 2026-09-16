@@ -132,13 +132,18 @@ allocation, migration, dispatch, graph scheduler or numerical policy.
 
 ## Exact limits and remaining obligations
 
-This is a pinned compiler adapter for one compute entry named `main`, one flat
-push-constant struct of uint32 fields and device pointers to uint32, and a dispatch
-ID input. Supported capability mappings are Shader, PhysicalStorageBufferAddresses
-and Float16; unknown capabilities/extensions are rejected. Float16 permission is
-not a claim about precision semantics. Shared storage, descriptor bindings,
-specialization, nested/array/vector roots, other scalar/pointer types and other
-builtins/execution modes are intentionally unsupported.
+The original experiment above covered one compute entry, a flat root of uint32
+fields/device uint32 pointers and dispatch ID input. The subsequent
+[learned-image migration](learned-image-compiler.md) extends this same adapter to
+FP32 pointers, independently named artifacts, a rootless fullscreen vertex entry
+and a display fragment entry. It does not introduce another parser or runtime
+dependency. That page owns the current exact stage/interface subset.
+
+Supported capability mappings remain Shader, PhysicalStorageBufferAddresses and
+Float16; Shader maps to the corresponding enabled compute/graphics profile.
+Unknown capabilities/extensions are rejected. Float16 permission is not a claim
+about precision semantics. Shared storage, descriptor bindings, specialization,
+nested/array/vector roots and other scalar/pointer types remain unsupported.
 
 SPIR-V field offsets/types, entry and local size are cross-checked against Slang
 reflection. Trailing struct padding comes from the reflected C layout, checked
@@ -152,6 +157,6 @@ The caller must still establish allocation extent, pointee alignment, lifetime,
 aliasing, access order, logical extent and algorithm semantics. The compatible
 predicate checks the bounded capability/root/workgroup requirements, not all
 possible shader correctness or resource obligations. This narrow success does
-not yet prove a general compiler workflow for matrices, graphics or native Metal
-artifacts. Those would be new selected consumers, not reasons to keep this
-experiment open.
+not prove a general compiler workflow for matrices or native Metal artifacts.
+The later graphics subset is bounded, not a general vertex/fragment linker or
+graphics profile. Those limits do not keep the original experiment open.

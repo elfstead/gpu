@@ -3,6 +3,8 @@
 #ifndef OGPU_GENERATED_TRANSFORM_H
 #define OGPU_GENERATED_TRANSFORM_H
 #include "ogpu.h"
+/* Stage tags are generator-local: compute=0, vertex=1, fragment=2. */
+enum { transform_stage = 0, transform_push_size = 16 };
 typedef struct TransformArguments {
     uint64_t arg_data;
     uint32_t arg_count;
@@ -52,8 +54,6 @@ static inline OgpuShaderDesc transform_shader(void) {
         .entry_point = "main", .format = OGPU_SHADER_SPIRV};
 }
 static inline int transform_compatible(const OgpuCapabilities *c, const OgpuDeviceLimits *l) {
-    return c->buffer_device_address && c->compute_queue &&
-        l->max_push_data_bytes >= 16 && l->max_group_invocations >= 64 &&
-        l->max_group_size[0] >= 64 && l->max_group_size[1] >= 1 && l->max_group_size[2] >= 1;
+    return c->buffer_device_address && c->compute_queue && l->max_push_data_bytes >= 16 && l->max_group_invocations >= 64 && l->max_group_size[0] >= 64 && l->max_group_size[1] >= 1 && l->max_group_size[2] >= 1;
 }
 #endif

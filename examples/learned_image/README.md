@@ -6,26 +6,31 @@ A project-owned, synthetic-data residual denoiser, scalar reference and complete
 ## Vulkan application
 
 ```sh
-cargo xtask learned-image
-cargo xtask learned-image --check
+SLANGC=/path/to/slangc cargo xtask learned-image
+SLANGC=/path/to/slangc cargo xtask learned-image --check
 ```
 
-Requirements: the normal Rust/C environment, Python 3 standard library, `glslc`
-(recorded shaderc 2026.1 / glslang 16.4), and SPIRV-Tools supporting Vulkan 1.4.
-The runner compiles and validates all shaders into `target/learned-image/shaders`,
-builds the release runtime/C application, and checks the CPU fixture. No shader
-compiler is downloaded automatically; `GLSLC`, `CC`, and `CARGO` can select tools.
-`--check` builds/checks without GPU execution. The normal command needs the
+Requirements: the normal Rust/C environment, Python 3 standard library, pinned
+Slang **2026.14.1**, and SPIRV-Tools supporting Vulkan 1.4. The runner compiles and
+validates all six Slang stages, generates checked C interfaces with embedded
+SPIR-V, builds the release runtime/C application, and checks the CPU fixture.
+No compiler is downloaded automatically; `SLANGC`, `CC`, and `CARGO` select tools.
+`--check` byte-compares the checked-in headers and builds/checks without GPU
+execution. Ordinary runs regenerate the headers. The normal command needs the
 modern Vulkan graphics profile. Select a driver with `VK_DRIVER_FILES`; enable
 `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and `VK_LAYER_VALIDATE_SYNC=1`
 for acceptance. Leave `CARGO_TARGET_DIR` unset and serialize application runs
 sharing this checkout's generated files.
 
-The runner executes 38 cases in both final-image-only and diagnostic modes,
-checks scalar references and repeated A/B/A frames, and rejects Vulkan validation
-errors. GPU files are under `target/learned-image/gpu`; `last-run.txt` records the
-latest successful run, replacing the previous receipt. Save it before testing a
-different driver if both receipts are needed. Failure is not a successful receipt.
+The runner executes 38 cases in both final-image-only and diagnostic modes for
+two interface variants: original and mutated (reversed root fields, local size
+64 to 32). Both compile the same host source and must produce identical outputs.
+It checks scalar references and repeated A/B/A frames and rejects Vulkan validation
+errors. GPU files are under `target/learned-image/gpu/{original,mutated}`;
+`last-run-original.txt` and `last-run-mutated.txt` record the latest successful
+variant runs, replacing previous receipts. Save them before testing another
+driver if both receipts are needed. Overall acceptance also requires the final
+cross-variant equality check; a stale/partial receipt is not a successful run.
 
 `app.c` owns allocation/lifetime, command order and semantic parameter packing.
 Three compute executables implement hidden convolution, residual output, and
@@ -52,8 +57,16 @@ includes device/executable creation, allocation and weight upload. These cold,
 validation-enabled correctness runs are **not benchmarks** or an isolated transfer
 cost measurement. File I/O/reference comparisons are outside execution timings.
 
-The hand-maintained C/GLSL roots are deliberate first-implementation scaffolding;
-extending the compiler-generated interface to this workload is the next milestone.
+The generated headers in `generated/` supply C roots/padding/assertions, embedded
+artifacts, push sizes, stage, local dimensions and enabled-capability predicates.
+`generate_interfaces.py` selects the application sources and mutation fixture;
+the shared [compiler adapter](../compiler/generate.py) checks the reflected
+mechanics against SPIR-V. Compiler scratch/reflection files and mutated headers
+live in `target/learned-image/compiler`. The C code uses semantic field names and
+derives dispatch groups from generated dimensions; no handwritten root layouts
+or shader file loading remain. See [migration acceptance and exact supported
+subset](../../docs/learned-image-compiler.md). The old GLSL implementations remain
+in git history, not as a maintained alternate path.
 The application does not add a public model/tensor/operator API. It is Linux
 Vulkan acceptance, not a Metal graphics implementation or portability claim.
 
