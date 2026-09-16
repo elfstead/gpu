@@ -1,0 +1,26 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Read { float v[]; };
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Write { float v[]; };
+layout(push_constant, std430) uniform Root {
+    Read input_data; Write output_data; uint width; uint height; uint out_width; uint out_height;
+} root;
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= root.out_width * root.out_height) return;
+    vec2 p = (vec2(i % root.out_width, i / root.out_width) + 0.5)
+        * vec2(root.width, root.height) / vec2(root.out_width, root.out_height) - 0.5;
+    ivec2 base = ivec2(floor(p)), limit = ivec2(root.width, root.height) - 1;
+    ivec2 a = clamp(base, ivec2(0), limit), b = clamp(base + 1, ivec2(0), limit);
+    vec2 f = p - floor(p);
+    precise float top = root.input_data.v[uint(a.y) * root.width + uint(a.x)] * (1.0 - f.x)
+        + root.input_data.v[uint(a.y) * root.width + uint(b.x)] * f.x;
+    precise float bottom = root.input_data.v[uint(b.y) * root.width + uint(a.x)] * (1.0 - f.x)
+        + root.input_data.v[uint(b.y) * root.width + uint(b.x)] * f.x;
+    precise float gray = top * (1.0 - f.y) + bottom * f.y;
+    root.output_data.v[i * 4u] = 0.95 * gray;
+    root.output_data.v[i * 4u + 1u] = 0.8 * gray + 0.05;
+    root.output_data.v[i * 4u + 2u] = 0.6 * gray + 0.15;
+    root.output_data.v[i * 4u + 3u] = 1.0;
+}

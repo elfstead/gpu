@@ -84,7 +84,7 @@ def main():
     print(f"Pooled {report['pixels']} pixels: gain over noisy {report['gain_db']:.4f} dB, "
           f"over box {report['versus_box_db']:.4f} dB; quality PASS")
     print(f"Exported {len(manifest['cases'])} CPU cases to {directory}")
-    print("CPU fixture PASS; Vulkan application acceptance is still pending")
+    print("CPU fixture PASS; this command does not execute or accept GPU work")
 
 
 if __name__ == "__main__":
