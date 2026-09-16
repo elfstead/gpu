@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-16. This page owns current status and selected work. The
+Updated 2026-09-17. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [historical plan](plan-history.md) preserves earlier milestones.
 
@@ -154,6 +154,20 @@ Keep compiler-derived mechanics outside the runtime and application-owned memory
 synchronization and numerical policy explicit. This is not a general compiler
 framework or a source-language selection. The experiment is closed; broader
 shader types/workloads and graphics portability remain separate milestone choices.
+
+## Active milestone: one mixed ML/graphics application
+
+Build the [learned-image flagship](learned-image.md): a small residual denoiser,
+conventional resize/color processing and offscreen rendering, with GPU-resident
+intermediates and repeated allocation reuse. First freeze the project-owned
+training/reference fixture, then implement and validate the Vulkan path on the
+existing Radeon and llvmpipe. The brief fixes quality, numerical and lifecycle
+gates before results. No host operator API, new hardware or Mac round trip.
+
+The next large steps, in order, are to grow the compiler workflow around this
+application, bring the same application to Metal graphics, and package an
+externally usable experimental release. Those are directional milestones, not
+claims of completed support or authorization to provision other machines.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization
