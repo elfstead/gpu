@@ -10,11 +10,16 @@ adds FP16 matrix weights with FP32 activations and arithmetic; F32 remains the c
 
 ## Reproduce
 
-Run from the repository root on Linux x86-64. Requirements: the runtime's Rust
+Run from the repository root on Linux x86-64 or Apple Silicon with macOS 26+.
+The macOS path is prepared for validation; Metal consumer acceptance is pending.
+Requirements: the runtime's Rust
 toolchain/loader, C/C++17 compilers, CMake 3.20+, Ninja, Git, Bash, curl, gzip,
-sha256sum, ripgrep, awk, and SPIRV-Tools. The modern execution baseline is required;
+sha256sum (or macOS `shasum`), ripgrep, awk, and SPIRV-Tools. The modern execution baseline is required;
 neither graphics nor timestamps is required. GGML's configured CPU
-reference currently requires AVX2/FMA/F16C, even though the GPU kernels use FP32.
+reference on x86-64 currently requires AVX2/FMA/F16C, even though the GPU kernels
+use FP32. On Apple Silicon it uses GGML's ARM CPU implementation. Keep the default
+OGPU SPIR-V-to-MSL adapter enabled for this consumer. GGML's own Metal backend is
+explicitly disabled, along with its Vulkan/CUDA/BLAS alternatives.
 
 ```sh
 git clone --no-checkout https://github.com/ggml-org/ggml.git target/ggml-source
@@ -23,6 +28,12 @@ bash integrations/ggml/prepare.sh
 VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 \
     bash integrations/ggml/run.sh target/ggml-source
 ```
+
+On macOS, omit the Vulkan environment variables and run
+`bash integrations/ggml/run.sh target/ggml-source 0 device f16` with Metal API
+validation enabled. See [the Metal handoff](../../docs/metal.md) for native runtime
+regressions to run first. The library path uses the platform's `.so`/`.dylib`
+suffix; if an old CMake cache overrides it, unset `OGPU_LIBRARY` in that cache.
 
 `prepare.sh` downloads only MNIST test data into ignored `target/ggml-data` and
 verifies the [dataset checksums](dataset.sha256). Routine local/CI acceptance
@@ -45,7 +56,7 @@ the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
 errors and leaves a uniquely named acceptance log under `target/ggml-integration`.
 Use matching header/library/shaders from the same OGPU checkout, not an arbitrary
-older shared library. The current checkout uses ABI 11 (native 16-bit buffer storage);
+older shared library. The current checkout uses ABI 12 (format-tagged shader artifacts);
 GGML retains its ABI-5 dispatch signatures with Y=Z=1 and explicit allocation placement.
 Leave `CARGO_TARGET_DIR` unset.
 
@@ -158,8 +169,9 @@ values, guarding the tail. These bounds fit Vulkan's minimum core limits, so no
 new optional profile or workgroup-limit query is needed. The mixed matrix variant
 requires the ABI-10 `storage_buffer_16bit_access` baseline bit. It loads aligned-2
 half values, widens them into FP32 shared tiles, and uses FP32 multiplication and
-accumulation. It does not require or enable `shader_float16`. Session creation
-checks the enabled capability contract before preparing shaders.
+accumulation. It does not require `shader_float16`; devices supporting that extra
+capability are accepted. Session creation checks FP16 storage before preparing
+shaders, while `check-shaders.sh` enforces storage-only half use in the artifact.
 
 ## Deliberate costs and remaining friction
 

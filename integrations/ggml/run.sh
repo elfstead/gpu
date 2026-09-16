@@ -9,8 +9,13 @@ precision=${4:-f32}
 case "$memory" in host|device) ;; *) echo 'memory must be host or device' >&2; exit 2;; esac
 case "$precision" in f32|f16) ;; *) echo 'precision must be f32 or f16' >&2; exit 2;; esac
 cd "$repo"
-(cd target/ggml-data && rg '  t10k-' "$repo/integrations/ggml/dataset.sha256" | sha256sum --check)
-(cd integrations/ggml/fixtures && sha256sum --check SHA256SUMS)
+if command -v sha256sum >/dev/null; then
+    sha256=(sha256sum)
+else
+    sha256=(shasum -a 256)
+fi
+(cd target/ggml-data && rg '  t10k-' "$repo/integrations/ggml/dataset.sha256" | "${sha256[@]}" -c)
+(cd integrations/ggml/fixtures && "${sha256[@]}" -c SHA256SUMS)
 cargo build --locked --release -p ogpu
 bash integrations/ggml/check-shaders.sh
 cmake -S integrations/ggml -B target/ggml-integration -G Ninja \
@@ -24,7 +29,7 @@ if test "$precision" = f16; then
     derivatives=$(mktemp -d "$repo/target/ggml-integration/weights.XXXXXXXX")
     extra=("$derivatives/half.gguf" "$derivatives/widened.gguf")
     target/ggml-integration/ogpu-ggml-convert integrations/ggml/fixtures/mnist-fc-f32.gguf "${extra[@]}" 2>&1 | tee -a "$log"
-    sha256sum "${extra[@]}" | tee -a "$log"
+    "${sha256[@]}" "${extra[@]}" | tee -a "$log"
 fi
 target/ggml-integration/ogpu-mnist integrations/ggml/fixtures/mnist-fc-f32.gguf \
     target/ggml-data/t10k-images-idx3-ubyte target/ggml-data/t10k-labels-idx1-ubyte \

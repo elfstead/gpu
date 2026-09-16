@@ -100,7 +100,11 @@ Selected follow-up completed: `metal-backend` uses common contracts and native
 Metal 4 execution. Shared checks/retirement, explicit backend identity,
 format-tagged native artifacts, optional translation, argument tables, residency
 sets, command allocators and explicit barriers are implemented and validated on
-Apple M4. See [the native acceptance record](metal.md). The historical Vulkan
+Apple M4 at `8704f62`. A subsequent focused review identified cross-submission
+barrier scope, missing commit-error feedback, nullable internal allocations and
+allocator retention by consumed batches. Corrections and regression tests are
+implemented; their native revalidation and GGML DEVICE/F16 run are assigned to
+the Mac agent. See [the native acceptance handoff](metal.md). The historical Vulkan
 milestones above remain evidence for their recorded revisions.
 
 Refactor regression receipt (2026-09-16): 37 ordinary Rust tests, Clippy, 749
@@ -111,6 +115,12 @@ the ABI migration (HDR intermediate/final results match exactly).
 Apple-target Rust checks pass with and without the SPIR-V adapter, including the
 native test code, using `DOCS_RS=1` to skip the cross-compiled C++ dependency.
 No native Apple linking, MSL compilation or GPU execution was possible here.
+
+Metal 4 review-fix receipt (2026-09-16): 37 ordinary Rust tests, Linux Clippy,
+21 llvmpipe GPU tests with validation, and GGML DEVICE/F16 lifecycle, two matrix
+cases and all six inference cases pass. Apple-target Rust checks include the new
+tests with and without the SPIR-V adapter. These are Linux regressions and
+cross-checks, not native evidence for the corrections.
 
 Beyond this handoff, choose a concrete user
 workflow before widening the API: broader graphics, accelerated ML and a source

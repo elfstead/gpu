@@ -3,7 +3,10 @@
 #include <cstdio>
 #include <stdexcept>
 #include <string>
+#include <sys/resource.h>
+#ifdef __linux__
 #include <sys/prctl.h>
+#endif
 
 static void require(bool value, const char *message) {
     if (!value)
@@ -18,7 +21,12 @@ int main(int argc, char **argv) {
         require(placement == "host" || placement == "device", "bad memory placement");
         const auto memory = placement == "host" ? OgpuGgmlMemory::Host : OgpuGgmlMemory::Device;
         if (mode == "live-backend" || mode == "live-buffer") {
+            const rlimit no_core{0, 0};
+            require(setrlimit(RLIMIT_CORE, &no_core) == 0, "cannot disable core dumps for death test");
+#ifdef __linux__
+            // Piped Linux core handlers can ignore RLIMIT_CORE.
             require(prctl(PR_SET_DUMPABLE, 0) == 0, "cannot disable core dumps for death test");
+#endif
             OgpuGgmlSession session(0, argv[1], memory);
             auto backend = ggml_backend_init_by_name("OGPU", nullptr);
             require(backend != nullptr, "backend creation failed");

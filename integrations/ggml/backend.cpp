@@ -408,8 +408,10 @@ OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMe
     state->device.reset(raw_device);
     OgpuCapabilities enabled{};
     GPU(ogpu_device_capabilities(raw_device, &enabled, &error));
-    if (!enabled.storage_buffer_16bit_access || enabled.shader_float16)
-        throw std::runtime_error("expected storage-only half baseline");
+    // The shader, not the absence of a device capability, guarantees FP32
+    // arithmetic. check-shaders.sh verifies that it does not require Float16.
+    if (!enabled.storage_buffer_16bit_access)
+        throw std::runtime_error("FP16 storage support is required");
     state->matrix = load_kernel(*state, std::string(shaders) + "/matrix.comp.spv");
     state->matrix_f16 = load_kernel(*state, std::string(shaders) + "/matrix-f16.comp.spv");
     state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv");
