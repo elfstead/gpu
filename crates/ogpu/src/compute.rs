@@ -157,6 +157,7 @@ pub(crate) struct Device {
     family: u32,
     physical: vk::VkPhysicalDevice,
     graphics: bool,
+    float16: bool,
     timestamp_bits: u32,
     memory: vk::VkPhysicalDeviceMemoryProperties,
     limits: vk::VkPhysicalDeviceLimits,
@@ -279,6 +280,9 @@ impl Device {
                 })?;
             // Capabilities follow the requested contract, not incidental queue flags.
             let graphics = require_graphics;
+            // Optional arithmetic does not strengthen the baseline. Callers must
+            // query the enabled bit before selecting a Float16 executable.
+            let float16 = v12.shaderFloat16 != 0;
             // GENERAL is legal for the current image operations without this
             // extension. Enable its layout-efficiency guarantee when available;
             // command recording is identical either way.
@@ -332,6 +336,7 @@ impl Device {
                 sType: v12.sType,
                 bufferDeviceAddress: vk::VK_TRUE,
                 timelineSemaphore: vk::VK_TRUE,
+                shaderFloat16: u32::from(float16),
                 pNext: (&mut v13 as *mut vk::VkPhysicalDeviceVulkan13Features).cast(),
                 ..Default::default()
             };
@@ -391,6 +396,7 @@ impl Device {
                 family,
                 physical,
                 graphics,
+                float16,
                 timestamp_bits: families[family as usize].timestampValidBits,
                 memory,
                 limits: properties.limits,
@@ -480,6 +486,7 @@ impl Device {
             device_address_commands: 1,
             shader_untyped_pointers: 1,
             storage_buffer_16bit_access: 1,
+            shader_float16: u32::from(self.float16),
             ..Default::default()
         }
     }

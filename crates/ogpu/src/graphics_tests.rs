@@ -309,6 +309,7 @@ thread_local! {
     static FEATURE_MODE: Cell<u32> = const { Cell::new(0) };
     static EXPECT_UNIFIED: Cell<bool> = const { Cell::new(false) };
     static EXPECT_RASTER: Cell<bool> = const { Cell::new(true) };
+    static EXPECT_FLOAT16: Cell<bool> = const { Cell::new(false) };
     static CREATED: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -352,6 +353,10 @@ unsafe extern "C" fn optional_image_features(
             .pNext
             .cast::<vk::VkPhysicalDeviceVulkan12Features>();
         let v13 = (*v12).pNext.cast::<vk::VkPhysicalDeviceVulkan13Features>();
+        if FEATURE_MODE.get() == 3 {
+            (*v12).shaderFloat16 = vk::VK_FALSE;
+        }
+        EXPECT_FLOAT16.set((*v12).shaderFloat16 != 0);
         let v14 = (*v13).pNext.cast::<vk::VkPhysicalDeviceVulkan14Features>();
         let images = (*v14)
             .pNext
@@ -403,7 +408,7 @@ unsafe extern "C" fn checked_image_device(
             .cast::<vk::VkPhysicalDeviceVulkan12Features>();
         let v13 = (*v12).pNext.cast::<vk::VkPhysicalDeviceVulkan13Features>();
         assert_eq!((*v13).dynamicRendering != 0, EXPECT_RASTER.get());
-        assert_eq!((*v12).shaderFloat16, vk::VK_FALSE);
+        assert_eq!((*v12).shaderFloat16 != 0, EXPECT_FLOAT16.get());
         assert_eq!((*v12).shaderInt8, vk::VK_FALSE);
         assert!((*create).pEnabledFeatures.is_null());
         let v14 = (*v13).pNext.cast::<vk::VkPhysicalDeviceVulkan14Features>();
@@ -447,6 +452,8 @@ fn gpu_optional_unified_layouts() {
             (false, 0),
             (false, 1),
             (false, 2),
+            (true, 3),
+            (false, 3),
         ] {
             FEATURE_MODE.set(mode);
             EXPECT_RASTER.set(graphics);
@@ -467,6 +474,10 @@ fn gpu_optional_unified_layouts() {
             } else {
                 let device = result.unwrap();
                 assert_eq!(device.graphics, graphics);
+                assert_eq!(
+                    device.enabled_capabilities().shader_float16 != 0,
+                    EXPECT_FLOAT16.get()
+                );
                 assert!(CREATED.get());
                 let desc = ImageDesc {
                     usage: if graphics {

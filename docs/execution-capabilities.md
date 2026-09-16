@@ -20,8 +20,10 @@ pointers are enabled by the fixed [modern baseline](modern-baseline.md).
 `graphics_queue` is 1 only for graphics creation: it means graphics execution is
 enabled, not merely that the physical queue has a graphics flag. ABI 10 also enables
 `storage_buffer_16bit_access`, already mandatory for physical Vulkan 1.4 support.
-All other numeric, narrow-storage and matrix fields remain 0, including
-`shader_float16`. See the [storage/arithmetic distinction](ggml-mixed-precision.md).
+The subsequent [numerical executable experiment](ml-executable-requirements.md)
+also enables optional `shader_float16` when supported, without strengthening the
+baseline or changing C layouts. Other numeric, narrow-storage and matrix fields
+remain 0 on Vulkan. See the [storage/arithmetic distinction](ggml-mixed-precision.md).
 The existing fields are not an exhaustive Vulkan feature list;
 the baseline document and header define additional fixed requirements.
 

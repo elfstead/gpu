@@ -53,8 +53,9 @@ ABI 12. On Vulkan, ordinary device creation enables compute/images/heaps; raster
 explicitly opt-in. [Enabled capabilities and exact image-support queries](execution-capabilities.md)
 describe the created device, not just physical support. Terminal completion
 observation retires submission resources independently of the surviving result
-receipt. [16-bit buffer storage](ggml-mixed-precision.md) is enabled without FP16
-arithmetic. Image backing prefers eligible device-only local memory while accepting
+receipt. [16-bit buffer storage](ggml-mixed-precision.md) is baseline; the later
+[numerical experiment](ml-executable-requirements.md) enables FP16 arithmetic when
+supported, with caller-owned variant selection. Image backing prefers eligible device-only local memory while accepting
 visible local/UMA memory; buffer placement remains explicit.
 The [bounded HDR consumer](libplacebo-hdr.md) adds RGBA16F image/render targets,
 sampled/transfer RGBA16 UNORM, and explicit raster target-format matching.

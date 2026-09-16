@@ -132,8 +132,9 @@ void ogpu_device_destroy(OgpuDevice *device);
  * Unlike probe_device_info.capabilities, these describe THIS created device.
  * compute_queue=1; graphics_queue=1 only for create_graphics. The fixed modern
  * baseline includes storage_buffer_16bit_access=1 (also mandatory in Vulkan 1.4).
- * On Vulkan, all other numeric/storage/matrix fields are 0, including shader_float16:
- * half buffer loads/stores with FP32 conversion do not imply half arithmetic.
+ * Vulkan also enables shader_float16 when physically supported; query the enabled
+ * bit before selecting a Float16 executable. Other numeric/storage/matrix fields
+ * remain 0. Half storage and half arithmetic are separate requirements.
  * Metal enables its documented native numeric baseline; query rather than infer
  * capabilities from another backend. No implicit optional-feature negotiation.
  * Cached; works after device loss. Output unchanged on error; serialized. */

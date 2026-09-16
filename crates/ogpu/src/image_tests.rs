@@ -355,6 +355,7 @@ fn float_image_sampling(graphics: bool) {
                 device_address_commands: 1,
                 shader_untyped_pointers: 1,
                 storage_buffer_16bit_access: 1,
+                shader_float16: probe.devices[0].capabilities.shader_float16,
                 ..Default::default()
             }
         );

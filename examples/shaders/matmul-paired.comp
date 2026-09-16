@@ -1,0 +1,48 @@
+#version 460
+#extension GL_EXT_buffer_reference : require
+#ifdef HALF_PRODUCTS
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#define Scalar float16_t
+#define Pair f16vec2
+#else
+#define Scalar float
+#define Pair vec2
+#endif
+layout(local_size_x = 64) in;
+layout(buffer_reference, std430, buffer_reference_align = 4) readonly buffer Input {
+    float values[];
+};
+layout(buffer_reference, std430, buffer_reference_align = 4) writeonly buffer Output {
+    float values[];
+};
+layout(push_constant, std430) uniform Root {
+    Input a; Input b; Output c;
+    uint m; uint n; uint k; uint lda; uint ldb; uint ldc;
+} root;
+shared Scalar a_tile[64];
+shared Pair b_tile[64];
+void main() {
+    uint lane = gl_LocalInvocationID.x;
+    uint y = lane / 8u, x = lane % 8u;
+    uint column_tiles = root.n / 16u + uint(root.n % 16u != 0u);
+    uint row = (gl_WorkGroupID.x / column_tiles) * 8u + y;
+    uint col = (gl_WorkGroupID.x % column_tiles) * 16u + 2u * x;
+    precise vec2 sum = vec2(0.0);
+    for (uint base = 0; base < root.k; base += 8u) {
+        a_tile[lane] = Scalar(row < root.m && base + x < root.k
+            ? root.a.values[row * root.lda + base + x] : 0.0);
+        b_tile[lane] = Pair(
+            base + y < root.k && col < root.n ? root.b.values[(base + y) * root.ldb + col] : 0.0,
+            base + y < root.k && col + 1u < root.n ? root.b.values[(base + y) * root.ldb + col + 1u] : 0.0);
+        barrier();
+        for (uint j = 0; j < 8u; ++j) {
+            precise Pair product = Pair(a_tile[y * 8u + j]) * b_tile[j * 8u + x];
+            sum += vec2(product);
+        }
+        barrier();
+    }
+    if (row < root.m && col < root.n) {
+        root.c.values[row * root.ldc + col] = sum.x;
+        if (col + 1u < root.n) root.c.values[row * root.ldc + col + 1u] = sum.y;
+    }
+}

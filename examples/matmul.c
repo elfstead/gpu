@@ -17,7 +17,22 @@
 
 enum { WARMUPS = 2, SAMPLES = 9 };
 static const uint32_t poison = 0x7fc0a5a5u;
-static const char *names[2] = {"naive", "tiled8"};
+typedef struct Variant {
+    const char *name;
+    int requires_float16, rounded_products;
+} Variant;
+static const Variant original_variants[2] = {{"naive", 0, 0}, {"tiled8", 0, 0}};
+static const Variant half_variants[2] = {{"paired-fp32", 0, 0}, {"paired-fp16-products", 1, 1}};
+static const Variant *variants = original_variants;
+static int half_products;
+static unsigned variant_count = 2;
+
+/* Caller-owned executable requirements and numerical permission, not physical
+ * support bits or a runtime tensor operation. */
+static int compatible(const Variant *variant, const OgpuCapabilities *enabled, int allow_rounding) {
+    return enabled->compute_queue && (!variant->requires_float16 || enabled->shader_float16)
+        && (!variant->rounded_products || allow_rounding);
+}
 typedef struct Root {
     uint64_t a, b, c;
     uint32_t m, n, k, lda, ldb, ldc;
@@ -63,6 +78,25 @@ cleanup:
 }
 
 static float input_value(unsigned pattern, unsigned which, uint32_t row, uint32_t col) {
+    if (half_products) {
+        const unsigned hash = row * 17u + col * 13u + which * 7u;
+        const float sign = hash % 2 ? -1.0f : 1.0f;
+        switch (pattern) {
+            case 0: return 0.0f;
+            case 1: return row == col ? 1.0f : 0.0f;
+            case 2:
+                // The singleton square has a FP32-exact but not FP16-exact
+                // product, distinguishing precision semantics on the GPU.
+                if (row == 0 && col == 0) return 1025.0f / 1024.0f;
+                return sign * (float)(17u + hash % 2031u) / 256.0f;
+            case 3: return which == 0 ? (col % 2 ? -1.0f : 1.0f)
+                : 1.0f + (float)((row + col) % 3u) / 1024.0f;
+            default: {
+                const float scales[3] = {0.0625f, 1.0f, 8.0f};
+                return sign * scales[hash % 3u];
+            }
+        }
+    }
     const int signed_value = (int)((row * 17u + col * 13u + which * 7u) % 23u) - 11;
     switch (pattern) {
         case 0: return 0.0f;
@@ -114,7 +148,7 @@ cleanup:
 }
 
 static int check_output(const Matrix *c, const double *reference, const double *magnitudes,
-    uint32_t k, double *max_absolute, double *max_scaled) {
+    uint32_t k, int rounded_products, double *max_absolute, double *max_scaled) {
     for (size_t i = 0; i < c->count; ++i) {
         const size_t offset = i == 0 ? 0 : i - 1;
         const size_t row = offset / c->stride, col = offset % c->stride;
@@ -125,7 +159,8 @@ static int check_output(const Matrix *c, const double *reference, const double *
         } else {
             const size_t index = row * c->cols + col;
             const double error = absolute((double)c->host[i] - reference[index]);
-            const double tolerance = 1e-6 + 8.0 * (k ? k : 1) * FLT_EPSILON * magnitudes[index];
+            const double tolerance = 1e-6 + ((rounded_products ? 1.0 / 1024.0 : 0.0)
+                + 8.0 * (k ? k : 1) * FLT_EPSILON) * magnitudes[index];
             if (!isfinite(c->host[i]) || error > tolerance) {
                 fprintf(stderr, "C[%zu,%zu]: got %.9g, reference %.17g, error %.4g > bound %.4g\n",
                     row, col, (double)c->host[i], reference[index], error, tolerance);
@@ -193,11 +228,12 @@ static int run_case(OgpuDevice *device, OgpuKernel *kernels[2], uint32_t m, uint
     TRY(ogpu_buffer_device_address(matrices[1].buffer, &root.b, &error));
     TRY(ogpu_buffer_device_address(matrices[2].buffer, &root.c, &error));
     root.a += 4; root.b += 4; root.c += 4;
-    const uint32_t groups[2] = {(m * n + 63) / 64, ((m + 7) / 8) * ((n + 7) / 8)};
+    uint32_t groups[2] = {(m * n + 63) / 64, ((m + 7) / 8) * ((n + 7) / 8)};
+    if (half_products) groups[0] = groups[1] = ((m + 7) / 8) * ((n + 15) / 16);
     Matrix *c = &matrices[2];
     for (unsigned round = 0; round < (benchmark ? WARMUPS + SAMPLES : 1); ++round) {
-        for (unsigned order = 0; order < 2; ++order) {
-            const unsigned variant = (order + round) % 2;
+        for (unsigned order = 0; order < variant_count; ++order) {
+            const unsigned variant = (order + round) % variant_count;
             for (unsigned mode_order = 0; mode_order < modes; ++mode_order) {
                 const unsigned mode = (mode_order + round) % modes;
                 start = now_ms();
@@ -213,7 +249,11 @@ static int run_case(OgpuDevice *device, OgpuKernel *kernels[2], uint32_t m, uint
                 start = now_ms();
                 TRY(ogpu_buffer_read(c->buffer, 0, c->host, c->count * 4, &error));
                 const double read_ms = now_ms() - start;
-                REQUIRE(check_output(c, reference, magnitudes, k, &max_error[variant], &max_scaled[variant]));
+                REQUIRE(check_output(c, reference, magnitudes, k, variants[variant].rounded_products,
+                    &max_error[variant], &max_scaled[variant]));
+                if (half_products && m == 1 && n == 1 && k == 1 && pattern == 2) {
+                    REQUIRE((c->host[1] != (float)reference[0]) == variants[variant].rounded_products);
+                }
                 if (benchmark && round >= WARMUPS) {
                     const unsigned sample = round - WARMUPS;
                     execution[mode][variant][sample] = elapsed;
@@ -237,9 +277,9 @@ static int run_case(OgpuDevice *device, OgpuKernel *kernels[2], uint32_t m, uint
     if (benchmark) {
         printf("M=%" PRIu32 " N=%" PRIu32 " K=%" PRIu32 ": allocations+host staging %.4f ms, initial upload %.4f ms\n",
             m, n, k, allocation_ms, upload_ms);
-        for (unsigned i = 0; i < 2; ++i) {
+        for (unsigned i = 0; i < variant_count; ++i) {
             for (unsigned mode = 0; mode < modes; ++mode) {
-                printf("  %s %s:", names[i], mode ? "timed" : "untimed");
+                printf("  %s %s:", variants[i].name, mode ? "timed" : "untimed");
                 print_samples("host-execution", execution[mode][i]);
                 if (mode) {
                     print_samples("device-batch", device_times[i]);
@@ -289,7 +329,17 @@ int main(int argc, char **argv) {
     OgpuKernel *kernels[2] = {0};
     uint32_t *words[2] = {0};
     uint64_t counts[2] = {0};
-    REQUIRE(argc == 3);
+    REQUIRE(argc == 3 || (argc == 4 && strcmp(argv[3], "--half-products") == 0));
+    half_products = argc == 4;
+    if (half_products) variants = half_variants;
+    // Test policy rejection before native preparation, separately from hardware.
+    OgpuCapabilities synthetic = {.compute_queue = 1};
+    REQUIRE(compatible(&half_variants[0], &synthetic, 0));
+    REQUIRE(!compatible(&half_variants[1], &synthetic, 1));
+    synthetic.shader_float16 = 1;
+    REQUIRE(!compatible(&half_variants[1], &synthetic, 0));
+    REQUIRE(compatible(&half_variants[1], &synthetic, 1));
+    printf("Executable capability/numerical-policy selection PASS\n");
     for (unsigned i = 0; i < 2; ++i) REQUIRE(read_shader(argv[i + 1], &words[i], &counts[i]) == EXIT_SUCCESS);
     printf("Host-clock measurements: median [min, max], %d warmups + %d samples.\n", WARMUPS, SAMPLES);
     printf("Execution includes recording/submission/wait/cleanup, not isolated GPU time.\n");
@@ -310,6 +360,14 @@ int main(int argc, char **argv) {
         TRY(status);
         OgpuDeviceInfo info;
         TRY(ogpu_probe_device_info(probe, i, &info));
+        OgpuCapabilities enabled = {0};
+        TRY(ogpu_device_capabilities(device, &enabled, &error));
+        variant_count = compatible(&variants[1], &enabled, half_products) ? 2 : 1;
+        REQUIRE(compatible(&variants[0], &enabled, half_products));
+        if (variant_count == 1) printf("FP16 candidate UNSUPPORTED: running FP32 control only, not substituting its semantics.\n");
+        printf("  FP16 arithmetic supported=%u enabled=%u; numerical profile=%s\n",
+            info.capabilities.shader_float16, enabled.shader_float16,
+            half_products ? "FP16 products / FP32 accumulation versus FP32" : "FP32");
         printf("Matrix experiment on %s, Vulkan %" PRIu32 ".%" PRIu32 ".%" PRIu32 "; device creation %.4f ms\n",
             info.name, info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch, device_ms);
         OgpuTimingInfo timing = {0};
@@ -326,10 +384,10 @@ int main(int argc, char **argv) {
             printf("  Timestamp clock: %.9g ns/tick, %" PRIu32 " valid bits, wrap %.6g seconds\n",
                 timing.timestamp_period_ns, timing.timestamp_valid_bits, wrap_ns / 1e9);
         }
-        for (unsigned variant = 0; variant < 2; ++variant) {
+        for (unsigned variant = 0; variant < variant_count; ++variant) {
             start = now_ms();
             TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[variant], (counts[variant]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &kernels[variant], &error));
-            printf("  %s kernel/pipeline creation %.4f ms\n", names[variant], now_ms() - start);
+            printf("  %s kernel/pipeline creation %.4f ms\n", variants[variant].name, now_ms() - start);
         }
         const uint32_t shapes[][3] = {{1, 1, 0}, {1, 1, 1}, {3, 5, 7}, {7, 9, 8}, {8, 8, 9},
             {9, 7, 17}, {17, 19, 31}, {31, 17, 33}, {65, 63, 129}, {4, 3, 1025}};
@@ -338,15 +396,15 @@ int main(int argc, char **argv) {
             for (unsigned pattern = 0; pattern < 5; ++pattern)
                 REQUIRE(run_case(device, kernels, shapes[shape][0], shapes[shape][1], shapes[shape][2],
                     pattern, 0, wrap_ns, max_error, max_scaled) == EXIT_SUCCESS);
-        printf("Verified 50 shapes/patterns per kernel in %s mode(s), including padding, guards, and unchanged inputs.\n",
-            wrap_ns > 0 ? "untimed and timed" : "untimed");
+        printf("Verified 50 shapes/patterns per kernel (%u variants) in %s mode(s), including padding, guards, and unchanged inputs.\n",
+            variant_count, wrap_ns > 0 ? "untimed and timed" : "untimed");
         const uint32_t benchmarks[][3] = {{128, 128, 128}, {257, 193, 129}, {256, 256, 256}};
         for (unsigned shape = 0; shape < sizeof(benchmarks) / sizeof(benchmarks[0]); ++shape)
             REQUIRE(run_case(device, kernels, benchmarks[shape][0], benchmarks[shape][1], benchmarks[shape][2],
                 2, 1, wrap_ns, max_error, max_scaled) == EXIT_SUCCESS);
-        for (unsigned variant = 0; variant < 2; ++variant) {
+        for (unsigned variant = 0; variant < variant_count; ++variant) {
             printf("  %s maximum absolute error %.6g; maximum error/bound %.6g\n",
-                names[variant], max_error[variant], max_scaled[variant]);
+                variants[variant].name, max_error[variant], max_scaled[variant]);
             ogpu_kernel_destroy(kernels[variant]); kernels[variant] = NULL;
         }
         ogpu_device_destroy(device); device = NULL;

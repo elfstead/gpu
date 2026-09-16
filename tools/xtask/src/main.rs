@@ -396,6 +396,16 @@ fn c_execution(root: &Path, name: &str, shaders: &[&str]) -> Result {
 }
 
 fn c_execution_profile(root: &Path, name: &str, shaders: &[&str], release: bool) -> Result {
+    c_execution_profile_args(root, name, shaders, release, &[])
+}
+
+fn c_execution_profile_args(
+    root: &Path,
+    name: &str,
+    shaders: &[&str],
+    release: bool,
+    args: &[&str],
+) -> Result {
     if release {
         println!("C experiment: release Rust runtime, C -O2 -DNDEBUG (no fast-math).");
         run(
@@ -424,11 +434,24 @@ fn c_execution_profile(root: &Path, name: &str, shaders: &[&str], release: bool)
         .arg("-logpu")
         .arg("-o")
         .arg(&executable))?;
-    let output = run(Command::new(executable).args(
-        shaders
-            .iter()
-            .map(|name| root.join(format!("examples/shaders/{name}.spv"))),
-    ))?;
+    // Cargo adds debug directories to the dynamic loader path when launching
+    // xtask. They must not override the release library this experiment built.
+    let library_path = if cfg!(target_os = "macos") {
+        "DYLD_LIBRARY_PATH"
+    } else {
+        "LD_LIBRARY_PATH"
+    };
+    let inherited = env::var_os(library_path).unwrap_or_default();
+    let selected_path =
+        env::join_paths(std::iter::once(target.clone()).chain(env::split_paths(&inherited)))?;
+    let output = run(Command::new(executable)
+        .env(library_path, selected_path)
+        .args(
+            shaders
+                .iter()
+                .map(|name| root.join(format!("examples/shaders/{name}.spv"))),
+        )
+        .args(args))?;
     checked_vulkan_output(output)
 }
 
@@ -486,10 +509,14 @@ fn main() -> Result {
         Some("reduction") if args.len() == 1 => reduction(&root),
         Some("matmul") if args.len() == 1 =>
             c_execution_profile(&root, "matmul", &["matmul-naive.comp", "matmul-tiled.comp"], true),
+        Some("matmul-half") if args.len() == 1 => {
+            run(Command::new("bash").arg(root.join("examples/check-matmul-shaders.sh")))?;
+            c_execution_profile_args(&root, "matmul", &["matmul-paired.comp", "matmul-half.comp"], true, &["--half-products"])
+        },
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }
