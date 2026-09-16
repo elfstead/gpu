@@ -82,5 +82,17 @@ this work does not trigger another Mac validation round trip.
 
 ## Working status
 
-Acceptance brief selected; training/reference implementation is next. No learned
-image result or GPU execution has been accepted yet.
+CPU fixture complete on 2026-09-17; Vulkan implementation is next. The first fixed
+training run passed unchanged gates over 15,520 held-out pixels: 6.0236 dB gain
+over noisy input and 2.4932 dB over the box control, with improvement in every
+scene. All 13 analytical/provenance/quality tests pass. Repeating training on
+CPython 3.14.7 / Linux x86-64 reproduced `model.json` byte-for-byte. Training never
+evaluates held-out scenes; there was no hyperparameter/checkpoint selection after
+these results. This is synthetic-distribution evidence only.
+
+The [fixture and reproduction instructions](../examples/learned_image/README.md)
+include 38 exported CPU cases: eight quality scenes and ten A/B/A reuse groups
+covering all five input shapes and both resize directions. The source recipe and
+89 FP32 weights are versioned; generated inputs, scalar intermediate/final oracles
+and a viewable preview live under `target/learned-image/reference`. No GPU result
+has been accepted yet.
