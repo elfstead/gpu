@@ -177,7 +177,19 @@ unchanged host source. Outputs are byte-identical between interface variants.
 The frozen model and acceptance gates are unchanged. Duplicated application GLSL
 and handwritten host interfaces were removed; runtime/API remains unchanged.
 
-## Next large milestone: the same application on Metal graphics
+## Active follow-up: independent Linux consumption
+
+The user selected independent third-party usability without waiting for Metal
+graphics. Add a revision-identified local installation, standalone quickstart,
+optional installed shader generator and an out-of-tree build/run gate consuming
+only installed files. No new GPU abstraction, registry publication, portable
+binary release or API stabilization. This validates a dependency boundary, not
+actual independent adoption or a clean-machine installation.
+
+The [quickstart](quickstart.md) owns the consumer instructions. Preserve matching
+header/library/artifact revisions and the documented modern Vulkan requirements.
+
+## Later large milestone: the same application on Metal graphics
 
 Bring the same application to Metal graphics, then package an externally usable
 experimental release. Start with the executable/artifact boundary and the narrow

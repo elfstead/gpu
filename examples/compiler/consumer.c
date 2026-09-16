@@ -26,7 +26,10 @@ int main(void) {
     TRY(ogpu_probe_device_count(probe, &devices));
     for (uint32_t i = 0; i < devices; ++i) {
         OgpuResult status = ogpu_device_create(probe, i, &device, &error);
-        if (status == OGPU_ERROR_UNSUPPORTED) continue;
+        if (status == OGPU_ERROR_UNSUPPORTED) {
+            fprintf(stderr, "Device %u unsupported: %s\n", i, error.message);
+            continue;
+        }
         TRY(status);
         TRY(ogpu_device_capabilities(device, &caps, &error));
         TRY(ogpu_device_limits(device, &limits, &error));

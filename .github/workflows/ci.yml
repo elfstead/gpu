@@ -2,6 +2,16 @@ name: Check
 on: [push, pull_request]
 
 jobs:
+  installed-sdk:
+    runs-on: ubuntu-24.04
+    steps:
+      # No submodule, shader compiler or Vulkan driver required for this lane.
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config python3
+      - run: python3 -B tools/test_installer.py
+      - run: python3 tools/install.py --prefix "$RUNNER_TEMP/ogpu-sdk"
+      - run: python3 tools/test-install.py --prefix "$RUNNER_TEMP/ogpu-sdk" --no-gpu
   probe:
     runs-on: ubuntu-24.04
     steps:

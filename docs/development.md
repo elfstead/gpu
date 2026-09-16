@@ -48,6 +48,15 @@ compute/graphics results, explicit ICD selection and remaining runner provisioni
 
 ## Build and run
 
+For standalone use, start with the [Linux installation and independent-application
+quickstart](quickstart.md). `python3 tools/install.py --prefix /new/absolute/prefix`
+builds and installs a revision-identified release SDK without overwriting an
+existing prefix. `python3 tools/test-install.py --prefix /installed/prefix`
+checks manifest hashes, relocates the SDK and builds/runs a C consumer outside
+the checkout. `--no-gpu` checks build/link/loader failure only; `--shader-check`
+also checks optional installed shader generation and interface mutation with
+pinned Slang. Tests keep their temporary artifacts and do not provision tools.
+
 `SLANGC=/path/to/slangc cargo xtask learned-image` builds and validates a complete residual denoising,
 resize/color and offscreen-rendering application against a frozen synthetic
 training/reference fixture. It needs Python 3 standard library, pinned Slang
