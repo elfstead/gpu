@@ -329,6 +329,18 @@ Runtime/API unchanged. Synthetic quality and small correctness fixtures are not
 a photographic or performance claim. Grow compiler-owned executable mechanics
 around this application next; do not turn it into a kernel-tuning work queue.
 
+## Application compiler interface — 2026-09-17
+
+The [learned-image compiler migration](learned-image-compiler.md) is complete at
+`e363377`. The existing adapter now checks FP32 scalar pointers and bounded
+vertex/fragment interfaces, generating six distinct embedded-artifact C headers.
+All original application gates pass on both Vulkan drivers with original and
+reversed-root/32-thread interfaces, using unchanged C source; outputs between
+variants are byte-identical. No runtime/API change. Remove duplicated host layouts
+and superseded GLSL sources; keep semantic execution policy in the application.
+The next large milestone is the same application on Metal graphics, not automatic
+expansion of the compiler subset or network tuning.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

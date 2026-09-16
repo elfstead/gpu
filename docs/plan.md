@@ -167,17 +167,25 @@ each of final-only and diagnostic modes on Radeon and llvmpipe. It meets the
 unchanged quality, numerical and lifecycle gates with no runtime/API change,
 intermediate representation copy, new hardware or Mac round trip.
 
-## Next large milestone: compiler workflow for the application
+## Completed milestone: compiler workflow for the application
 
-Grow the compiler workflow around this application: replace handwritten executable
-mechanics (root layouts, local sizes, requirements, artifact coupling), while
-keeping storage, dependencies and numerical semantics with the consumer. Preserve
-the frozen model/reference fixture and all application acceptance gates. This is
-the next substantial development step, not another network/kernel tuning sweep.
+The [compiler migration](learned-image-compiler.md) is complete at `e363377`.
+Six Slang executables use generated C roots, stage/launch requirements and embedded
+artifacts. All 38 cases pass on Radeon and llvmpipe, in normal/diagnostic modes,
+with both original interfaces and reversed-field/32-thread variants built from
+unchanged host source. Outputs are byte-identical between interface variants.
+The frozen model and acceptance gates are unchanged. Duplicated application GLSL
+and handwritten host interfaces were removed; runtime/API remains unchanged.
 
-After that, bring the same application to Metal graphics, then package an
-externally usable experimental release. Those later milestones are not claims
-of completed support or authorization to provision other machines.
+## Next large milestone: the same application on Metal graphics
+
+Bring the same application to Metal graphics, then package an externally usable
+experimental release. Start with the executable/artifact boundary and the narrow
+compute-to-render-to-readback path this application needs, not a general renderer.
+Preserve its fixtures, explicit ownership/dependencies and generated-interface
+boundary. Native acceptance remains necessary before claiming support; Linux
+checks cannot substitute for it. No machine provisioning or new Mac coordination
+has been selected by completing the compiler milestone.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization

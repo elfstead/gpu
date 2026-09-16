@@ -1,0 +1,47 @@
+Learned-image compiler migration acceptance — 2026-09-17
+Implementation: e363377; predeclared gates: 3e3a041.
+Slang 2026.14.1; SPIRV-Tools 2026.3; CPython 3.14.7; Linux x86-64.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1.
+Explicit ICD selection: radeon_icd.x86_64.json and lvp_icd.x86_64.json,
+under /run/opengl-driver/share/vulkan/icd.d.
+
+Commands (SLANGC set to the pinned compiler):
+cargo xtask learned-image --check
+cargo xtask learned-image
+cargo xtask compiler-workflow --check
+cargo xtask compiler-workflow
+cargo xtask gpu-tests
+
+Each learned-image run executes the original and mutated interfaces:
+38 cases x 2 modes x 2 interface variants = 152 frame executions per driver.
+Mutation reverses all five root layouts, including fragment, and changes all
+four compute local sizes from 64 to 32. Same app.c compiled against each header set.
+All 266 checked output files match byte-for-byte between variants within each
+driver. Normal and diagnostic final pixels match; A/B/A repeats exactly.
+No between-driver byte-equality or new compiler performance claim.
+
+Radeon RX 5700 XT / RADV:
+Learned-image Vulkan original PASS: 38 cases in both normal/diagnostic modes; max float error=2.28905469e-06, error/bound=0.0845759022, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+Learned-image Vulkan mutated PASS: 38 cases in both normal/diagnostic modes; max float error=2.28905469e-06, error/bound=0.0845759022, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+Original/mutated interfaces: unchanged host source, all GPU outputs byte-identical PASS
+Existing GPU tests: 21 passed.
+Original integer compiler consumer: both original/mutated layouts PASS.
+
+llvmpipe (LLVM 21.1.8, 256 bits):
+Learned-image Vulkan original PASS: 38 cases in both normal/diagnostic modes; max float error=1.1085317e-06, error/bound=0.0334141227, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+Learned-image Vulkan mutated PASS: 38 cases in both normal/diagnostic modes; max float error=1.1085317e-06, error/bound=0.0334141227, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+Original/mutated interfaces: unchanged host source, all GPU outputs byte-identical PASS
+Existing GPU tests: 21 passed.
+Original integer compiler consumer: both original/mutated layouts PASS.
+
+No-GPU generated header reproduction/build: PASS.
+Compiler/interface tests: 16 original + 20 application PASS.
+Frozen reference/provenance tests: 13 PASS; numerical-checker tests: 4 PASS.
+Ordinary Rust tests: 37 PASS; Clippy -D warnings: PASS; formatting: PASS.
+C/Rust ABI layout values: 749 PASS.
+No runtime/header changes. No new native Metal, GGML/libplacebo or training run.
+
+Application SHA256:
+d7d56aeafb9c673895cd257f22000b611d88f78793fa2be39028bb1b43e4e14f
+Unchanged model SHA256:
+59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0

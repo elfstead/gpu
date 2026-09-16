@@ -76,6 +76,10 @@ definition of the programming model. Native inputs initially require pre-special
 The [compiler-facing experiment](compiler-workflow.md) adds a bounded offline
 Slang-to-C adapter: reflection and checked SPIR-V generate argument layout,
 entry/local-size metadata and capability requirements together with the artifact.
+The [learned-image application](learned-image-compiler.md) extends it across
+FP32-pointer compute and bounded vertex/fragment executables; changing root order
+and workgroup size preserves the host source and checked output on both Vulkan
+drivers. This is an evidenced compiler boundary, not a general shader package.
 The runtime does not depend on Slang or reflection. Application code still owns
 memory, dispatch extent, synchronization and numerical permission; broader shader
 types and a general compiler/runtime package contract remain open.

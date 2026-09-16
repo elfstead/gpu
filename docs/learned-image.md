@@ -156,9 +156,11 @@ a better host operator/resource API alternative. Model knowledge, storage choice
 dependencies and reuse fit in the consumer without a tensor API or scheduler.
 This bounded success does not stabilize the API or establish general performance.
 
-The visible remaining duplication is mechanical: handwritten C/GLSL root layouts,
-local sizes, executable requirements and artifact wiring. The next large milestone
-is to carry this application through the compiler-generated workflow, preserving
-the frozen fixtures, public ownership rules and all acceptance gates. Prefer that
-over further network/kernel tuning. Same-application Metal graphics and an
-externally usable experimental release remain later milestones.
+That first implementation left handwritten C/GLSL root layouts, local sizes,
+executable requirements and artifact wiring. The subsequent
+[compiler migration](learned-image-compiler.md) removes this duplication at
+`e363377`, preserving the frozen fixtures and all gates. Current reproduction uses
+`SLANGC=/path/to/slangc cargo xtask learned-image`, with pinned Slang 2026.14.1.
+The GLSL results above remain evidence for `21dc090`, not a second maintained path.
+Same-application Metal graphics and an externally usable experimental release
+remain later milestones.
