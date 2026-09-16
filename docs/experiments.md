@@ -341,6 +341,16 @@ and superseded GLSL sources; keep semantic execution policy in the application.
 The next large milestone is the same application on Metal graphics, not automatic
 expansion of the compiler subset or network tuning.
 
+## Installed consumer boundary — 2026-09-17
+
+The [Linux quickstart](quickstart.md) and [installation receipt](results/installed-sdk-2026-09-17.txt)
+establish standalone consumption at `6d34967`. A clean-revision SDK was installed,
+relocated and used to build/run a C application from another directory on Radeon
+and llvmpipe. The consumer finds only installed headers/library via pkg-config;
+shader regeneration is optional and also works through the installed tool.
+No runtime/API change or portable binary-distribution claim. This is a tested
+installation boundary, not evidence that an independent third party has adopted it.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

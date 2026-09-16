@@ -1,0 +1,82 @@
+Installed Linux SDK acceptance — 2026-09-17
+
+Implementation revision: 6d3496715591ea4bf06dcd074a124b5fabac0be9
+Installed manifest source_dirty: false
+ABI: 12; experimental package version: 0.1.0
+Target: x86_64-unknown-linux-gnu, release
+Rust 1.97.1; CPython 3.14.7; clang 21.1.8; pkg-config 0.29.2
+Optional shader check: Slang 2026.14.1, SPIRV-Tools 2026.3
+
+Build/install:
+CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/ogpu-sdk-build-20260917 \
+  python3 tools/install.py --prefix /tmp/ogpu-sdk-acceptance-20260917
+
+The separate Cargo target directory rebuilt ogpu, ogpu-vulkan-sys, libloading and
+cfg-if. Cargo locked source cache and installed build tools were reused. No
+submodule, binding generator or shader compiler was used by the installer.
+Runtime dependency licenses (libloading ISC, cfg-if MIT/Apache), OGPU MIT and the
+Vulkan-Headers notice are included. Host libc/toolchain libraries are not bundled.
+
+Manifest SHA256:
+d21e0d49fd5c24dabe469e0c5b09a35f28bfbd89f45b565a3817d1b097f0645c
+Installed libogpu.so SHA256:
+ae41233842602730cc145629bbb09683f826f5dd67ada5afb2137f4be5e02acf
+
+No-GPU installed check:
+python3 tools/test-install.py --prefix /tmp/ogpu-sdk-acceptance-20260917 --no-gpu
+PASS; retained /tmp/ogpu-external-4z12_k6g
+
+llvmpipe execution:
+SLANGC=/tmp/ogpu-slang.yunI5tdx/bin/slangc \
+VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json \
+  python3 tools/test-install.py --prefix /tmp/ogpu-sdk-acceptance-20260917 --shader-check
+PASS; retained /tmp/ogpu-external-67gidge1
+Device: llvmpipe (LLVM 21.1.8, 256 bits), backend 1
+4,099 integers, three passes, guards, partial upload, parent destruction PASS
+Original root=16 local=64; reordered generated root=16 local=32: both PASS
+
+Radeon execution:
+SLANGC=/tmp/ogpu-slang.yunI5tdx/bin/slangc \
+VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json \
+  python3 tools/test-install.py --prefix /tmp/ogpu-sdk-acceptance-20260917 --shader-check
+PASS; retained /tmp/ogpu-external-8bwm3k7i
+Device: AMD Radeon RX 5700 XT (RADV NAVI10), backend 1
+4,099 integers, three passes, guards, partial upload, parent destruction PASS
+Original root=16 local=64; reordered generated root=16 local=32: both PASS
+
+Both execution runs used Vulkan and synchronization validation:
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1
+No validation errors. Tests clear inherited loader/header/library search overrides
+and deliberately make CARGO and SLANGC unavailable for the initial consumer build.
+
+Every installed test:
+- verifies installed file hashes against the manifest;
+- copies only the installed SDK into a new 'relocated sdk' directory;
+- copies only installed example sources into a separate 'independent app';
+- uses pkg-config to check revision/ABI and find headers/library;
+- builds through the consumer's own build.py, not Cargo/xtask;
+- uses ldd to confirm libogpu resolves to the relocated installation;
+- reports an explicit failure with a deliberately absent Vulkan loader.
+Spaces in both SDK and application directories are exercised.
+
+Optional installed shader checks:
+- reproduce supplied header byte-for-byte;
+- change the consumer-owned shader's root order and local size;
+- reject the stale header with --check;
+- regenerate through installed bin/ogpu-shader, rebuild unchanged main.c, execute.
+This uses the same installed adapter, not imports from the source checkout.
+
+Safety/regression checks:
+Six installer tests PASS: existing directory/file/dangling symlink, missing parent,
+unsupported platform and unsupported architecture reject before Cargo is invoked.
+Reinstall over actual accepted prefix with nonexistent CARGO rejects and preserves
+the manifest bytes. Installed clean-revision identity verified.
+37 ordinary Rust tests, strict Clippy, formatting, 749 ABI checks and diff check PASS.
+Full GPU/GGML/libplacebo/learned-image suites were not rerun for this packaging-only
+change. Runtime/header/shader code unchanged; example now reports skipped-device
+incompatibility reasons. Hosted no-GPU CI lane added, not remotely executed here.
+
+Limits:
+Not a clean-machine provision, minimum-Rust audit, arbitrary Linux binary bundle,
+native Metal run, actual independent adoption, registry publication or stable ABI.
+The library/executable still depend on this host's Nix toolchain/libc paths.

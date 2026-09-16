@@ -177,14 +177,22 @@ unchanged host source. Outputs are byte-identical between interface variants.
 The frozen model and acceptance gates are unchanged. Duplicated application GLSL
 and handwritten host interfaces were removed; runtime/API remains unchanged.
 
-## Active follow-up: independent Linux consumption
+## Completed follow-up: independent Linux consumption
 
-The user selected independent third-party usability without waiting for Metal
-graphics. Add a revision-identified local installation, standalone quickstart,
-optional installed shader generator and an out-of-tree build/run gate consuming
-only installed files. No new GPU abstraction, registry publication, portable
-binary release or API stabilization. This validates a dependency boundary, not
-actual independent adoption or a clean-machine installation.
+Completed at `6d34967`: a revision-identified local Linux installation, standalone
+quickstart, optional installed shader generator and an out-of-tree build/run gate
+consuming only installed files. A clean-revision package built in a separate Cargo
+target directory passes relocation, space-containing paths, pkg-config discovery,
+actual dynamic-link resolution, absent-loader rejection and original/regenerated
+shader execution on Radeon and llvmpipe. Initial consumer builds need neither
+Cargo nor a shader compiler. Existing installations are never merged/overwritten.
+
+The [acceptance receipt](results/installed-sdk-2026-09-17.txt) records exact scope,
+hashes and retained artifacts. Six installer safety tests, 37 ordinary tests,
+Clippy, formatting and 749 ABI checks pass. A no-GPU hosted CI lane is defined but
+has not been run remotely here. No new GPU abstraction, registry publication,
+portable binary release or API stabilization. This validates a dependency boundary,
+not actual independent adoption or a clean-machine installation.
 
 The [quickstart](quickstart.md) owns the consumer instructions. Preserve matching
 header/library/artifact revisions and the documented modern Vulkan requirements.
