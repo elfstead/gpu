@@ -13,8 +13,8 @@ allowed when evidence exposes a better API alternative; compatibility is not a v
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
 Metal compute backend. The Metal branch has a language-neutral C boundary at
-**ABI 12**. Linux x86-64 execution is locally verified; macOS arm64 native acceptance
-of this refactor is assigned to the original implementor. Use matching header/library/shaders
+**ABI 12**. Linux x86-64 execution and the bounded macOS arm64 compute/GGML path
+are verified; the validated Metal branch is merged into `master`. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
 
 | Area | Current evidence | Important boundary |
@@ -24,7 +24,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Performance | Controlled native comparison; image allocation correction `1f41d7e` closes the large resident bottleneck | Near-4K grouped 563.54 vs native 593.17 fps on this GPU; smaller workloads retain larger gaps, not isolated API overhead |
-| Validation | RX 5700 XT / RADV and llvmpipe, 30 ordinary tests, 21 GPU tests per driver, 745 ABI layout checks | One physical GPU; synthetic capability/memory tests are not other-hardware evidence |
+| Validation | RX 5700 XT / RADV and llvmpipe; Apple M4 compute/GGML acceptance; 37 Linux ordinary tests and 749 ABI layout checks | Metal has no graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -43,8 +43,9 @@ toolchain limitation; ordinary shader compilation is unchanged.
 3. Finish with a version-identified checkpoint and explicit remaining limits,
    without freezing the API or automatically widening its surface.
 
-No additional GPU is available. Cross-vendor and physical UMA validation are
-**deferred coverage limits**, not blockers for this work. No runner provisioning,
+The original checkpoint used the Radeon and software driver; later Apple M4
+compute acceptance supplies bounded second-backend/UMA evidence. Further hardware
+coverage is not a blocker for local work. No runner provisioning,
 hardware acquisition, remote CI deployment or external coordination is selected.
 Use the existing Radeon and software driver where useful; do not manufacture
 portability claims from software execution or mocks.
@@ -122,11 +123,15 @@ cases and all six inference cases pass. Apple-target Rust checks include the new
 tests with and without the SPIR-V adapter. These are Linux regressions and
 cross-checks, not native evidence for the corrections.
 
-Beyond this handoff, choose a concrete user
-workflow before widening the API: broader graphics, accelerated ML and a source
-language are separate directions. Remaining small-workload overhead, descriptor
-compiler optimization and broader tooling are potential implementation work,
-not grounds to restart feasibility indefinitely.
+## Selected next experiment: executable numerical requirements
+
+Extend the matrix experiment with paired FP16 products and FP32 accumulation,
+compared against a matching FP32 implementation. The local Radeon supports
+`shaderFloat16`, but exposes no cooperative-matrix extension and reports no
+accelerated integer dot products. Do not emulate matrix hardware or expand GGML
+operators. The [experiment brief](ml-executable-requirements.md) declares the
+numerical contract, capability selection, measurements and stopping condition.
+This work needs no additional hardware or new Mac acceptance round.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization
