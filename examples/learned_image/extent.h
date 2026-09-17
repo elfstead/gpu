@@ -47,6 +47,9 @@ static inline int launch(uint32_t count, const uint32_t local[3],
         || !maximum[0] || !maximum[1] || !maximum[2]) return 0;
     uint64_t groups = ((uint64_t)count + local[0] - 1) / local[0];
     uint64_t x = groups < maximum[0] ? groups : maximum[0];
+    // Application row policy, not a device requirement or tuning claim. Some
+    // devices permit huge X grids; bounded rows exercise real Y/tail addressing.
+    if (x > 1024) x = 1024;
     uint64_t y = (groups + x - 1) / x;
     uint64_t stride = x * local[0];
     // Includes tail invocations: even rejected lanes must not wrap their index.

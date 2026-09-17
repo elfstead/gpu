@@ -23,6 +23,10 @@ roots. Reject unrepresentable sizes and padded invocation grids before allocatin
 or submitting. The shaders still use uint32 indexing; do not silently wrap counts,
 guard sizes, signed image coordinates, or host allocation arithmetic.
 
+Use at most 1024 workgroups per X row, clipped to queried device limits, so the
+large cases exercise Y addressing even on devices permitting very wide X grids.
+This application policy is not a new runtime limit or a tuning result.
+
 ## Reference and checks
 
 Add a scalar C binary64 reference compiled without contraction or fast math.

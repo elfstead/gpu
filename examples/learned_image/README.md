@@ -80,7 +80,10 @@ artifacts, push sizes, stage, local dimensions and enabled-capability predicates
 the shared [compiler adapter](../compiler/generate.py) checks the reflected
 mechanics against SPIR-V. Compiler scratch/reflection files and mutated headers
 live in `target/learned-image/compiler`. The C code uses semantic field names and
-derives X/Y dispatch grids from generated dimensions and device limits. An
+derives X/Y dispatch grids from generated dimensions and device limits, with an
+application row policy of at most 1024 workgroups in X (clipped to the device
+limit). This ensures large acceptance exercises Y/tail addressing even on GPUs
+with very wide X limits; it is not a claim of optimal launch geometry. An
 explicit generated root field carries the invocation-row stride; shaders flatten
 `id.x + id.y * dispatch_width`. Logical and padded invocation counts, guarded
 buffer sizes and signed coordinates are checked before allocations/submissions.

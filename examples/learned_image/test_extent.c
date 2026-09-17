@@ -37,6 +37,10 @@ int main(void) {
     assert(!launch(769, local, limit, &grid));
     assert(!launch(0, local, limit, &grid));
     const uint32_t wide[] = {UINT32_MAX, UINT32_MAX, 1};
+    assert(launch(65537, local, wide, &grid));
+    assert(grid.x == 1024 && grid.y == 2 && grid.stride == 65536);
+    assert(launch(1280u * 720u * 8u, local, wide, &grid));
+    assert(grid.x == 1024 && grid.y == 113);
     assert(!launch(UINT32_MAX, local, wide, &grid));
     const uint32_t zero[] = {3, 0, 1}, multidimensional[] = {32, 2, 1};
     assert(!launch(1, local, zero, &grid));
