@@ -1,8 +1,9 @@
 # Working status and next milestone
 
-Updated 2026-09-17. This page owns current status and selected work. The
+Updated 2026-09-18. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
-evidence. The [historical plan](plan-history.md) preserves earlier milestones.
+evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
+sequence. The [historical plan](plan-history.md) preserves earlier milestones.
 
 ## Current phase
 
@@ -33,6 +34,22 @@ Keep runtime image-memory preference and consumer-side batching. No allocator
 framework, runtime scheduler, new public placement flag or further performance
 target was selected. The failed shaderc optimized-heap diagnostic remains a known
 toolchain limitation; ordinary shader compilation is unchanged.
+
+## Next proposed work: useful-scale execution
+
+[Roadmap M1](roadmap.md#m1--make-the-existing-application-useful-sized) takes the
+existing learned-image application to video-sized inputs before widening the API.
+Start with checked extents, multidimensional launch mapping and full-reference
+correctness at 720p/1080p. Then cover 4K and odd extents, measure memory and
+resident/end-to-end costs, and add a matched native Vulkan control. Preserve the
+frozen model and numerical gates. Use the existing Radeon and small llvmpipe
+controls; no other GPU or Mac is needed. Implementation has not begun.
+
+The proposed sequence then covers compiler/programming contracts, sustained
+resource reuse, an experimental release checkpoint, and substantial graphics/ML
+consumers. Metal parity is a separate native-validation track. The roadmap assigns
+remaining gaps either a milestone or an explicit deferral with entry criteria;
+they are not all prerequisites for the next checkpoint.
 
 ## Completed work: reproducible two-consumer checkpoint
 
@@ -197,15 +214,16 @@ not actual independent adoption or a clean-machine installation.
 The [quickstart](quickstart.md) owns the consumer instructions. Preserve matching
 header/library/artifact revisions and the documented modern Vulkan requirements.
 
-## Later large milestone: the same application on Metal graphics
+## Separate track: the same application on Metal graphics
 
-Bring the same application to Metal graphics, then package an externally usable
-experimental release. Start with the executable/artifact boundary and the narrow
-compute-to-render-to-readback path this application needs, not a general renderer.
-Preserve its fixtures, explicit ownership/dependencies and generated-interface
-boundary. Native acceptance remains necessary before claiming support; Linux
-checks cannot substitute for it. No machine provisioning or new Mac coordination
-has been selected by completing the compiler milestone.
+[Roadmap M6](roadmap.md#m6--metal-parity-for-a-mixed-application) brings the same
+application to Metal graphics when native validation is available. Start with the
+executable/artifact boundary and the narrow compute-to-render-to-readback path
+this application needs, not a general renderer. Preserve its fixtures, explicit
+ownership/dependencies and generated-interface boundary. Native acceptance remains
+necessary before claiming support; Linux checks cannot substitute for it. This
+track does not block a Vulkan-scoped experimental release. No machine provisioning
+or new Mac coordination is selected by this plan.
 
 Any new experiment needs a named design decision, alternatives, a discriminating
 check and a stopping condition. Pure tuning needs its own scope. Stabilization
