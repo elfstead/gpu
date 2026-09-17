@@ -35,6 +35,12 @@ static inline int add_size(size_t a, size_t b, size_t *out) {
     return 1;
 }
 
+static inline int resize_axis(uint32_t input, uint32_t output) {
+    // Shader numerator = (2*output_pixel + 1)*input, denominator = 2*output.
+    return input && output && output < INT32_MAX
+        && (2 * (uint64_t)output - 1) * input <= UINT32_MAX;
+}
+
 static inline int launch(uint32_t count, const uint32_t local[3],
                          const uint32_t maximum[3], Launch *out) {
     if (!count || !local[0] || local[1] != 1 || local[2] != 1

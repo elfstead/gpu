@@ -77,6 +77,7 @@ int main(int argc, char **argv) {
     REQUIRE(width && height && ow && oh);
     uint32_t count, output_count;
     REQUIRE(image_count(width, height, 8, &count) && image_count(ow, oh, 4, &output_count));
+    REQUIRE(resize_axis(width, ow) && resize_axis(height, oh));
     size_t payloads[BUFFER_COUNT] = {(size_t)count * 4, 89u * 4u, (size_t)count * 32,
         (size_t)count * 4, (size_t)output_count * 16};
     size_t final_bytes = (size_t)output_count * 4;

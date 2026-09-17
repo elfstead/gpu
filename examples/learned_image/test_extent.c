@@ -16,6 +16,11 @@ int main(void) {
     size_t total;
     assert(add_size(3, 4, &total) && total == 7);
     assert(!add_size(SIZE_MAX, 1, &total));
+    assert(resize_axis(3840, 7680) && resize_axis(1, 1));
+    assert(resize_axis(65535, 32768));
+    assert(!resize_axis(65537, 32769));
+    assert(!resize_axis(1, INT32_MAX));
+    assert(!resize_axis(0, 1) && !resize_axis(1, 0));
     const uint32_t local[] = {64, 1, 1}, limit[] = {3, 4, 1};
     Launch grid;
     assert(launch(193, local, limit, &grid));

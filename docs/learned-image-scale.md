@@ -64,3 +64,11 @@ Raw failed invocation: `/tmp/ogpu-scale-radv-20260918.log` (local artifact).
 The resize source computes `(coordinate + 0.5) * input_extent / output_extent`
 in FP32. Investigate its coordinate precision at large extents without changing
 the mathematical half-pixel resize, model, scalar tolerance or pixel gate.
+
+At `db5d8ad`, forming the floating-point scale before the coordinate multiply
+still produced the exact same failing value; reassociation alone is not accepted
+as a correction. Raw retry: `/tmp/ogpu-scale-radv-retry-20260918.log`.
+The next implementation uses checked integer quotient/remainder for source-pixel
+selection and FP32 only for the bounded interpolation fraction. This preserves
+the mathematical half-pixel rule without multiplying fractional rounding error
+by a large coordinate. Its extra uint32 product limit must be checked explicitly.

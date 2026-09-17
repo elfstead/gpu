@@ -84,6 +84,10 @@ derives X/Y dispatch grids from generated dimensions and device limits. An
 explicit generated root field carries the invocation-row stride; shaders flatten
 `id.x + id.y * dispatch_width`. Logical and padded invocation counts, guarded
 buffer sizes and signed coordinates are checked before allocations/submissions.
+Resize uses an integer quotient/remainder to select the source pixel and converts
+only the interpolation fraction to FP32. Each axis must satisfy
+`(2 * output_extent - 1) * input_extent <= UINT32_MAX`; unsupported products reject
+before allocation rather than wrapping. This covers the planned video extents.
 The current shader contract keeps local Y/Z equal to one; a different local
 decomposition needs an explicit policy. No handwritten root layouts
 or shader file loading remain. See [migration acceptance and exact supported
