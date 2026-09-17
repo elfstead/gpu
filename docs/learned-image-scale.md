@@ -50,3 +50,17 @@ This slice does not add warmed performance modes, a native Vulkan control,
 allocation policy changes, concurrent frames, or Metal graphics. Cold timings
 remain diagnostics, not benchmark results. It does not close M1: 4K/odd extents,
 general resize ratios, repeated timing and the matched native control remain.
+
+## Initial failed run
+
+At `770ffe2`, Radeon small fixtures and C/Python byte-equality checks passed.
+The first large group failed the processed-color scalar gate, despite guard and
+normal/diagnostic final-image checks passing. At output pixel (303, 1325), red
+was `0.5249907970428467` versus reference `0.5249600958985924`: error
+`3.07011442543e-5`, exceeding the existing bound `3.04992019180e-5`.
+The checker stopped; neither this group nor the scale suite was accepted.
+Raw failed invocation: `/tmp/ogpu-scale-radv-20260918.log` (local artifact).
+
+The resize source computes `(coordinate + 0.5) * input_extent / output_extent`
+in FP32. Investigate its coordinate precision at large extents without changing
+the mathematical half-pixel resize, model, scalar tolerance or pixel gate.
