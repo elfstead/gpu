@@ -4,12 +4,13 @@ struct Arguments {
     float* output_data;
     uint width;
     uint height;
+    uint dispatch_width;
 };
 [[vk::push_constant]] ConstantBuffer<Arguments> root;
 [shader("compute")]
 [numthreads(64, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID) {
-    uint i = id.x;
+    uint i = id.x + id.y * root.dispatch_width;
     if (i >= root.width * root.height * 8u) return;
     uint channel = i % 8u, pixel = i / 8u;
     int x = int(pixel % root.width), y = int(pixel / root.width);

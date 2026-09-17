@@ -5,12 +5,13 @@ struct Arguments {
     uint height;
     uint out_width;
     uint out_height;
+    uint dispatch_width;
 };
 [[vk::push_constant]] ConstantBuffer<Arguments> root;
 [shader("compute")]
 [numthreads(64, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID) {
-    uint i = id.x;
+    uint i = id.x + id.y * root.dispatch_width;
     if (i >= root.out_width * root.out_height) return;
     float2 p = (float2(i % root.out_width, i / root.out_width) + 0.5)
         * float2(root.width, root.height) / float2(root.out_width, root.out_height) - 0.5;

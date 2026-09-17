@@ -519,7 +519,10 @@ fn main() -> Result {
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
             Ok(())
         },
-        Some("learned-image") if args.len() == 1 || (args.len() == 2 && args[1] == "--check") => {
+        Some("learned-image")
+            if args.len() <= 3
+                && args[1..].iter().all(|arg| arg == "--check" || arg == "--scale") =>
+        {
             let output = run(Command::new("python3").arg(root.join("examples/learned_image/run.py")).args(&args[1..]))?;
             print!("{}", String::from_utf8_lossy(&output.stdout));
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
@@ -528,7 +531,7 @@ fn main() -> Result {
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

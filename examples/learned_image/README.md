@@ -8,6 +8,7 @@ A project-owned, synthetic-data residual denoiser, scalar reference and complete
 ```sh
 SLANGC=/path/to/slangc cargo xtask learned-image
 SLANGC=/path/to/slangc cargo xtask learned-image --check
+SLANGC=/path/to/slangc cargo xtask learned-image --scale
 ```
 
 Requirements: the normal Rust/C environment, Python 3 standard library, pinned
@@ -26,11 +27,27 @@ The runner executes 38 cases in both final-image-only and diagnostic modes for
 two interface variants: original and mutated (reversed root fields, local size
 64 to 32). Both compile the same host source and must produce identical outputs.
 It checks scalar references and repeated A/B/A frames and rejects Vulkan validation
-errors. GPU files are under `target/learned-image/gpu/{original,mutated}`;
-`last-run-original.txt` and `last-run-mutated.txt` record the latest successful
+errors. GPU files are under `target/learned-image/gpu/small/{original,mutated}`;
+`last-run-small-original.txt` and `last-run-small-mutated.txt` record the latest successful
 variant runs, replacing previous receipts. Save them before testing another
 driver if both receipts are needed. Overall acceptance also requires the final
 cross-variant equality check; a stale/partial receipt is not a successful run.
+
+`--scale` additionally checks two video-sized A/B/A groups: 1280x720 -> 2560x1440
+and 1920x1080 -> 960x540, in both modes and both interface variants. Allow several
+GB of disk space and several minutes for full-output CPU comparisons. Large
+fixtures are in `reference-scale`, GPU outputs in `gpu/scale/{original,mutated}`,
+and receipts in `last-run-scale-{original,mutated}.txt` beneath the same build
+directory. `--check --scale` generates/cross-checks references and builds without
+GPU execution. Large acceptance targets Radeon; keep the default small run for
+llvmpipe. This remains correctness work, not a performance benchmark.
+
+Every run builds `reference_stream.c` with binary64 arithmetic and contraction
+disabled, and requires all six files from each of the 38 Python cases to match
+byte-for-byte. This row-based reference then supplies the large oracles without
+whole-image Python number arrays. Comparisons and hashing stream through files
+and check every value. The input generator/model/border policy and numerical
+gates are unchanged. See the [scale acceptance brief](../../docs/learned-image-scale.md).
 
 `app.c` owns allocation/lifetime, command order and semantic parameter packing.
 Three compute executables implement hidden convolution, residual output, and
@@ -63,7 +80,12 @@ artifacts, push sizes, stage, local dimensions and enabled-capability predicates
 the shared [compiler adapter](../compiler/generate.py) checks the reflected
 mechanics against SPIR-V. Compiler scratch/reflection files and mutated headers
 live in `target/learned-image/compiler`. The C code uses semantic field names and
-derives dispatch groups from generated dimensions; no handwritten root layouts
+derives X/Y dispatch grids from generated dimensions and device limits. An
+explicit generated root field carries the invocation-row stride; shaders flatten
+`id.x + id.y * dispatch_width`. Logical and padded invocation counts, guarded
+buffer sizes and signed coordinates are checked before allocations/submissions.
+The current shader contract keeps local Y/Z equal to one; a different local
+decomposition needs an explicit policy. No handwritten root layouts
 or shader file loading remain. See [migration acceptance and exact supported
 subset](../../docs/learned-image-compiler.md). The old GLSL implementations remain
 in git history, not as a maintained alternate path.
