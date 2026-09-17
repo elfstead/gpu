@@ -1,0 +1,52 @@
+# Learned-image scale: first correctness slice
+
+Selected 2026-09-18, implementing the first slice of [roadmap M1](roadmap.md).
+This brief precedes implementation/results. It is not the complete performance
+milestone, a new model, or a public API extension.
+
+## Contract and cases
+
+Keep the frozen 89-parameter model and existing Python oracle authoritative.
+Preserve the scalar bound `2e-5 + 2e-5 * abs(reference)`, RGB error at most one
+code, alpha 255, guard words, unchanged inputs/weights, and A/B/A reuse checks.
+Do not reinterpret video-sized inputs as a photographic-quality claim.
+
+First add two scale groups: 1280x720 -> 2560x1440 (upscale) and
+1920x1080 -> 960x540 (downscale), each with seeds 2001/2002/2001. These exact
+factor-two resizes isolate scale/dispatch correctness; arbitrary ratios, 4K and
+odd video extents remain the next M1 slice. Run both normal/diagnostic modes and
+both generated-interface variants (64/32 local threads and reversed root fields).
+
+Map the existing flat invocation sequence onto an X/Y grid using device limits
+and generated local dimensions. Pass the row stride explicitly in generated
+roots. Reject unrepresentable sizes and padded invocation grids before allocating
+or submitting. The shaders still use uint32 indexing; do not silently wrap counts,
+guard sizes, signed image coordinates, or host allocation arithmetic.
+
+## Reference and checks
+
+Add a scalar C binary64 reference compiled without contraction or fast math.
+It must reproduce input generation and every intermediate/final output of all 38
+existing Python fixtures before it can supply large oracles. Use only a few rows
+of memory: convolution reads clamped neighboring source rows; resize reads the
+two required denoised rows. Clamp at the image boundary, not a chunk boundary.
+Stream files and comparisons, including hashes and cross-variant equality, so
+Python does not materialize large arrays of boxed numbers. Compare every value,
+not a sample. No GPU output feeds the CPU reference.
+
+Test size/dispatch boundaries without a GPU, including padding, overflow and
+insufficient limits; test rejection of corruption beyond comparison chunk
+boundaries. Preserve all small fixtures on Radeon and llvmpipe. Large acceptance
+uses the existing Radeon with Vulkan and synchronization validation. Software
+execution of the large cases is optional, not a new prerequisite.
+
+## Completion and deferrals
+
+Done when the above reference, boundary, small-regression and large GPU gates
+pass with a recorded revision/toolchain/driver receipt. Record any failed gate
+before changing the implementation or proposing a semantic/tolerance revision.
+
+This slice does not add warmed performance modes, a native Vulkan control,
+allocation policy changes, concurrent frames, or Metal graphics. Cold timings
+remain diagnostics, not benchmark results. It does not close M1: 4K/odd extents,
+general resize ratios, repeated timing and the matched native control remain.
