@@ -351,6 +351,20 @@ shader regeneration is optional and also works through the installed tool.
 No runtime/API change or portable binary-distribution claim. This is a tested
 installation boundary, not evidence that an independent third party has adopted it.
 
+## Video-scale correctness — 2026-09-18
+
+The [scale brief and results](learned-image-scale.md) close the first roadmap M1
+slice at `86dd16e`. A bounded-row binary64 C oracle matches all 38 Python fixtures
+byte-for-byte; both video-scale A/B/A groups pass full intermediate/final checks
+on Radeon. Small regressions pass on Radeon and llvmpipe. Both interface variants
+and normal/diagnostic modes pass, with real multi-row dispatch and checked size
+arithmetic. Initial floating resize-coordinate failures and the unsuccessful
+reassociation attempt are retained; integer quotient/remainder pixel selection
+passes without changing the model or numerical gates. Runtime/API unchanged.
+This is correctness evidence, not a benchmark. The next M1 slice is 4K/odd extents
+and general resize ratios; timing/native control follows. See the
+[roadmap](roadmap.md) for current sequencing, including the separate Metal track.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

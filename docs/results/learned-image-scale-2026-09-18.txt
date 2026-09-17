@@ -1,0 +1,86 @@
+Learned-image video-scale correctness — 2026-09-18
+Predeclared brief: 31db0ef. Initial implementation: 770ffe2.
+Final implementation: 86dd16e (integer coordinate correction b3b6845).
+Only docs/development.md was additionally dirty during final execution.
+
+Linux x86-64; Radeon RX 5700 XT / RADV NAVI10; Mesa 26.2.1.
+Small cross-check: llvmpipe (LLVM 21.1.8, 256 bits), same Mesa package.
+CPython 3.14.7; Clang 21.1.8; Rust 1.97.1; Slang 2026.14.1;
+SPIRV-Tools 2026.3. Reference C: -O2 -ffp-contract=off -fno-fast-math.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1.
+Explicit ICD selection under /run/opengl-driver/share/vulkan/icd.d:
+radeon_icd.x86_64.json and lvp_icd.x86_64.json.
+
+Reproduce (SLANGC set to pinned compiler and appropriate Vulkan environment):
+cargo xtask learned-image --check --scale
+cargo xtask learned-image                   # small llvmpipe controls
+cargo xtask learned-image --scale           # Radeon small + scale
+
+The xtask forwards to python3 examples/learned_image/run.py. The no-GPU
+--check --scale route was exercised through xtask; final GPU runs invoked
+that Python runner directly for live log progress. Default and combined
+argument forwarding also ran through xtask during the initial attempts.
+
+Reference/build gates:
+- 13 frozen reference/provenance tests; unchanged quality gates PASS.
+- C row-based binary64 oracle reproduces all six files of each of the 38
+  Python fixtures byte-for-byte, including independent input generation.
+- C size/launch tests: parsing, uint32/size_t bounds, guarded counts, resize
+  numerator overflow, missing/insufficient axes, padding, Y indexing PASS.
+- Five checker tests, including corruption beyond the first chunk, PASS.
+- Six generated stages, original/reversed roots and 64/32-thread locals,
+  checked with reflection and SPIR-V validation; 20 interface tests PASS.
+- Reference peak allocated row payload: 112,640 bytes for 720p upscale;
+  161,280 bytes for 1080p downscale. Excludes stack/stdio/allocator overhead.
+  File comparisons/hashing/equality are streamed and check all values.
+
+Final GPU gates (86dd16e):
+- Radeon: 38 small + 6 scale cases, two modes, two interface variants:
+  176 frame executions PASS. Scale groups use seeds 2001/2002/2001:
+  1280x720 -> 2560x1440 and 1920x1080 -> 960x540.
+- llvmpipe: all 38 small cases, both modes and variants: 152 frames PASS.
+- Scalar tolerance unchanged: 2e-5 + 2e-5*abs(reference).
+- Small maximum error on each driver/variant: 1.71016513e-7;
+  maximum error/bound 0.00667210166; RGB code delta at most 1.
+- Radeon scale maximum error on both variants: 2.00820588e-7;
+  maximum error/bound 0.00676239066; RGB code delta at most 1.
+- Alpha 255; guards; unchanged inputs/weights; A/B/A reproduction;
+  normal/diagnostic final equality; cross-variant equality of every checked
+  output file PASS. No validation errors. No cross-driver equality claim.
+- Real hidden grids (original/mutated): 720p 1024x113 / 1024x225;
+  1080p 1024x254 / 1024x507. Poison/denoise/process also use multiple rows.
+  Row policy is application-owned, clipped to device limits, not tuned.
+
+Failed gates retained:
+- 770ffe2: first 720p processed-color failure at pixel (303,1325), red
+  0.5249907970428467 vs reference 0.5249600958985924;
+  error 3.07011442543e-5 > bound 3.04992019180e-5. Suite stopped.
+- db5d8ad: floating scale-first reassociation produced the same failure.
+- b3b6845: integer quotient/remainder source-pixel selection fixed the
+  failure with no reference/model/tolerance change. Both complete Radeon
+  suites passed, but this device used wide X/one Y row; 86dd16e added the
+  bounded-row policy and repeated acceptance with actual Y/tail addressing.
+
+Additional checks:
+37 ordinary Rust tests, Clippy -D warnings, formatting, 749 ABI layout values
+and 16 shared compiler adapter tests PASS. Clang static analysis of app.c and
+reference_stream.c reports no diagnostics (Nix's unused linker argument was
+suppressed for this compile-only check). Runtime/API/header unchanged.
+The separate 21 runtime GPU tests and GGML/libplacebo/SDK acceptance were not
+rerun; no runtime/shared compiler adapter code changed. No native Metal run.
+
+Local logs (not distribution artifacts):
+/tmp/ogpu-scale-radv-20260918.log             initial failure
+/tmp/ogpu-scale-radv-retry-20260918.log       reassociation failure
+/tmp/ogpu-scale-radv-integer-20260918.log     integer correction, wide-X control
+/tmp/ogpu-scale-radv-final-20260918.log       final multi-row acceptance
+/tmp/ogpu-scale-lvp-final-20260918.log        final small software controls
+
+Frozen model SHA256, unchanged:
+59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0
+
+This closes only the first M1 correctness slice. 4K/odd video extents,
+arbitrary resize ratios at scale, warmed resident/end-to-end timings, memory
+accounting and matched native Vulkan comparison remain. Cold validation-run
+timings are not benchmarks; no photographic quality, new hardware or Metal
+graphics claim. No public API expansion or ABI increment.

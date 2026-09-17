@@ -76,3 +76,25 @@ The next implementation uses checked integer quotient/remainder for source-pixel
 selection and FP32 only for the bounded interpolation fraction. This preserves
 the mathematical half-pixel rule without multiplying fractional rounding error
 by a large coordinate. Its extra uint32 product limit must be checked explicitly.
+
+## Accepted first slice
+
+Complete at `86dd16e`; [receipt](results/learned-image-scale-2026-09-18.txt).
+The checked integer-coordinate implementation passes all 38 small cases on
+Radeon and llvmpipe, and both video-scale A/B/A groups on Radeon. Both modes and
+both interface variants pass, including byte-identical outputs between variants.
+Final acceptance uses real multi-row grids (hidden Y reaches 507), not merely
+a code path that could use Y. Guards, full intermediate comparisons and all
+original numerical gates remain intact. Maximum scale scalar error is
+`2.00820588e-7`; maximum RGB code difference is one.
+
+The C oracle reproduces all 38 Python cases byte-for-byte and uses at most
+161,280 bytes of allocated row payload for these cases. The GPU still retains
+full-image activations; this is not a tiled GPU inference implementation.
+Integer resize products are checked per axis before allocations. Unsupported
+products reject; no FP64 shader capability or hidden fallback was added.
+
+Retain this implementation. Next: 4K/odd extents and arbitrary resize ratios
+with unchanged gates, then warmed measurements and the matched native control.
+The large case exposed an application precision defect, not a reason to widen
+the public API. M1 as a whole remains active.
