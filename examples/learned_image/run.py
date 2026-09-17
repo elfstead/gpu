@@ -82,10 +82,12 @@ def compare_float(actual, expected):
     reference = struct.unpack(f"<{count}d", expected)
     maximum, ratio = 0.0, 0.0
     for index, (value, correct) in enumerate(zip(observed, reference)):
-        require(math.isfinite(value) and math.isfinite(correct), f"nonfinite float at {index}")
+        if not (math.isfinite(value) and math.isfinite(correct)):
+            raise ValueError(f"nonfinite float at {index}")
         delta = abs(value - correct)
         bound = 2e-5 + 2e-5 * abs(correct)
-        require(delta <= bound, f"float mismatch at {index}: {value} vs {correct}, bound {bound}")
+        if not delta <= bound:
+            raise ValueError(f"float mismatch at {index}: {value} vs {correct}, bound {bound}")
         maximum, ratio = max(maximum, delta), max(ratio, delta / bound)
     return maximum, ratio
 
@@ -96,10 +98,12 @@ def compare_pixels(actual, expected):
     maximum = 0
     for index, (value, correct) in enumerate(zip(actual, expected)):
         if index % 4 == 3:
-            require(value == correct == 255, f"alpha mismatch at {index // 4}")
+            if not value == correct == 255:
+                raise ValueError(f"alpha mismatch at {index // 4}")
         else:
             delta = abs(value - correct)
-            require(delta <= 1, f"RGB mismatch at byte {index}: {value} vs {correct}")
+            if not delta <= 1:
+                raise ValueError(f"RGB mismatch at byte {index}: {value} vs {correct}")
             maximum = max(maximum, delta)
     return maximum
 

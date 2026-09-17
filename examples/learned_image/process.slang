@@ -13,8 +13,10 @@ struct Arguments {
 void main(uint3 id : SV_DispatchThreadID) {
     uint i = id.x + id.y * root.dispatch_width;
     if (i >= root.out_width * root.out_height) return;
-    float2 p = (float2(i % root.out_width, i / root.out_width) + 0.5)
-        * float2(root.width, root.height) / float2(root.out_width, root.out_height) - 0.5;
+    // Form the scale before multiplying pixel coordinates. Dividing the large
+    // coordinate*extent product lost enough precision to fail video-size gates.
+    float2 scale = float2(root.width, root.height) / float2(root.out_width, root.out_height);
+    float2 p = (float2(i % root.out_width, i / root.out_width) + 0.5) * scale - 0.5;
     int2 base = int2(floor(p)), limit = int2(root.width, root.height) - 1;
     int2 a = clamp(base, int2(0), limit), b = clamp(base + 1, int2(0), limit);
     float2 f = p - floor(p);
