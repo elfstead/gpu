@@ -74,3 +74,32 @@ Then implement the benchmark-only native Vulkan control with identical SPIR-V,
 grids, memory placement, stage/transfer/queue policy and timing boundaries. M1
 remains open until that comparison is completed; no runtime/API expansion or
 kernel optimization is selected just to improve these baseline numbers.
+
+## Acceptance interruption — 2026-09-19
+
+At `5befd7f`, the Radeon measurement sequence completed all 24 timing processes,
+eight allocation traces and twelve mode/interface validation processes. Its local
+report is `target/learned-image/measurement-jtn0ggzk/report.json`. Do not treat it
+as full accepted regression evidence: a subsequent ordinary llvmpipe run crashed
+in the mutated 65x47 -> 131x95 A/B/A case. An unmodified retry crashed in the same
+group with the original interface. Radeon ordinary small regression passed.
+
+The retained core for PID 1528135 identifies a faulting llvmpipe fragment raster
+worker while the main thread waits for completion. Register values include row
+95 for a 95-row target. The display shader uses unchecked fragment coordinates
+to read the raw color pointer and carries width but not height: invocations past
+the image edge can form out-of-range reads. This is an application shader defect,
+not evidence that moving batch destruction after completion is invalid or proof
+of a driver bug. Guard words only detect writes; they do not make reads safe.
+
+Vulkan permits additional helper fragment invocations, and physical-storage
+pointer accesses must stay inside a buffer's address range. See the
+[fragment execution model](https://docs.vulkan.org/spec/latest/chapters/shaders.html)
+and [physical storage buffer rules](https://docs.vulkan.org/spec/latest/chapters/descriptors.html).
+Clamp coordinates to both image dimensions before forming the pointer index,
+preserving all visible pixels. Regenerate both interfaces and rerun acceptance;
+do not loosen tolerances or accept the earlier timings as the corrected baseline.
+
+Local failed logs: `/tmp/ogpu-measure-small-lvp-20260918.log` and
+`/tmp/ogpu-measure-small-lvp-retry-20260919.log`. Core extracted to
+`/tmp/ogpu-app-mutated-1528135.core`; systemd also retained the original core.
