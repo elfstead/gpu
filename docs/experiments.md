@@ -365,6 +365,18 @@ This is correctness evidence, not a benchmark. The next M1 slice is 4K/odd exten
 and general resize ratios; timing/native control follows. See the
 [roadmap](roadmap.md) for current sequencing, including the separate Metal track.
 
+## 4K and odd-ratio correctness — 2026-09-18
+
+The [second scale slice](learned-image-scale.md#accepted-second-slice) completes
+M1's declared extent/correctness matrix at `6d36e93`. All six A/B/A scale groups
+pass on Radeon with original/reversed interfaces and both modes; 38 small cases
+also pass on Radeon and llvmpipe. This includes 4K inputs, odd input/output extents,
+non-integer up/down ratios and full intermediate comparisons. No new failed gate,
+tolerance change or shader/runtime change. Keep the current implementation and
+proceed to warmed measurement, allocation accounting and a matched native Vulkan
+control; this acceptance is not performance evidence. See the
+[receipt](results/learned-image-4k-2026-09-18.txt).
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

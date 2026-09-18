@@ -1,4 +1,4 @@
-# Learned-image scale: first correctness slice
+# Learned-image scale: correctness slices
 
 Selected 2026-09-18, implementing the first slice of [roadmap M1](roadmap.md).
 This brief precedes implementation/results. It is not the complete performance
@@ -129,3 +129,26 @@ Done when all six scale groups pass, with a committed result covering failures
 as well as successful checks. This closes M1's declared extent/correctness matrix,
 not M1 itself: warmed timing modes, allocation accounting and a matched native
 Vulkan control remain separate work. No new performance or portability claim.
+
+## Accepted second slice
+
+Complete at `6d36e93`; [4K/odd-ratio receipt](results/learned-image-4k-2026-09-18.txt).
+All six scale groups pass on Radeon with both interface variants and both modes,
+including full intermediate checks, guards, unchanged inputs/weights, A/B/A reuse
+and byte-identical cross-variant outputs. Small controls also pass on Radeon and
+llvmpipe. The full run covers 224 Radeon frames and 152 llvmpipe frames.
+
+Maximum scale scalar error is `2.07155088e-7`, maximum error/bound is
+`0.00768996319`, and RGB code difference remains at most one. No tolerance,
+model, shader, application execution or runtime change was needed in this slice;
+the first slice's integer-coordinate correction handles the non-integer ratios.
+No new failed gates. Host boundary tests cover each selected extent and both
+generated workgroup sizes, including guarded counts and incomplete final rows.
+The C reference's allocated row payload peaks at 322,560 bytes, not counting
+stdio/stack/allocator overhead; GPU activations remain full-image allocations.
+
+The declared extent/correctness portion of M1 is complete. Next add warmed
+resident/end-to-end timing modes and allocation accounting, then the matched
+native Vulkan control with the same shaders and execution policy. Cold validation
+timings here are not a benchmark or a parity claim; M1 remains active until its
+measurement/control deliverables are complete.

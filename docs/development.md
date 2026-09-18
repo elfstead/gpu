@@ -64,10 +64,11 @@ training/reference fixture. It needs Python 3 standard library, pinned Slang
 The compiler generates checked host interfaces for compute, vertex and fragment
 executables; the application runs with both original and mutated root/local-size
 layouts. `--check` verifies generated headers and builds both variants without GPU execution.
-`--scale` adds full-reference 720p/1080p A/B/A groups on the physical GPU; it can
+`--scale` adds six full-reference A/B/A groups covering 720p, 1080p, 4K and odd
+video extents, with both integer and non-integer resize ratios on the physical GPU; it can
 be combined with `--check` for reference generation/build only. Every run also
 cross-checks a row-based C binary64 oracle against all small Python fixtures.
-Allow several GB of disk space for scale fixtures and diagnostics. See the
+Allow at least 16 GB of disk space for scale fixtures and diagnostics. See the
 [scale brief](learned-image-scale.md); these are correctness runs, not benchmarks.
 See [application reproduction](../examples/learned_image/README.md) and
 [acceptance/results](learned-image.md). No training framework or data download.

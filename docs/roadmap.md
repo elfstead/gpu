@@ -80,11 +80,13 @@ limit, it is an explicit unresolved case, not a passing skip.
 mapping, and full-reference correctness at 720p/1080p. Then complete 4K/odd extents,
 then measure/control. No kernel tuning campaign or public API widening first.
 
-Progress 2026-09-18: [first correctness slice accepted](learned-image-scale.md)
-at `86dd16e`. 720p/1080p, streaming full references and real multi-row dispatch
-pass; a scale-exposed resize precision defect was corrected with unchanged
-numerical gates. 4K/odd extents, general resize ratios and timing/control work
-remain; M1 is active, not complete.
+Progress 2026-09-18: [both correctness slices accepted](learned-image-scale.md),
+first at `86dd16e`, then 4K/odd-ratio coverage at `6d36e93`. All six declared
+scale groups pass full intermediate/final checks and real multi-row dispatch.
+A first-slice resize precision defect was corrected with unchanged gates; no
+further shader/runtime changes were needed for 4K or non-integer ratios.
+Allocation accounting, warmed timing and the matched native control remain;
+M1 is active, not complete.
 
 ## M2 — Define the programming contract and broaden compiler tooling
 

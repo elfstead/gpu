@@ -1,0 +1,87 @@
+Learned-image 4K / odd-ratio correctness — 2026-09-18
+Predeclared second-slice brief: 1aec9e5. Implementation: 6d36e93.
+Documentation edits during acceptance do not affect the tested code.
+
+Linux x86-64; Radeon RX 5700 XT / RADV NAVI10; Mesa 26.2.1.
+Small controls: llvmpipe (LLVM 21.1.8, 256 bits), same Mesa package.
+CPython 3.14.7; Clang 21.1.8; Rust 1.97.1; Slang 2026.14.1;
+SPIRV-Tools 2026.3. Reference C: -O2 -ffp-contract=off -fno-fast-math.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1.
+Explicit ICD selection under /run/opengl-driver/share/vulkan/icd.d:
+radeon_icd.x86_64.json and lvp_icd.x86_64.json.
+
+GPU commands (SLANGC set to pinned compiler):
+python3 examples/learned_image/run.py          # llvmpipe small controls
+python3 examples/learned_image/run.py --scale  # Radeon small + all scale cases
+Equivalent documented entry point: cargo xtask learned-image [--scale].
+After GPU acceptance, cargo xtask learned-image --check also passed generated
+header reproduction and no-GPU reference/build checks.
+
+Declared scale groups, each with seeds 2001/2002/2001:
+1280x720  -> 2560x1440  retained factor-two upscale
+1920x1080 -> 960x540    retained factor-two downscale
+3840x2160 -> 4097x2305  non-integer upscale, odd output
+3840x2160 -> 1919x1079  non-integer downscale, odd output
+1919x1079 -> 2561x1441  odd input and output, non-integer upscale
+1919x1079 -> 1277x719   odd input and output, non-integer downscale
+
+Acceptance checks:
+- 13 frozen reference/provenance tests; quality gates unchanged, PASS.
+- Streaming C binary64 oracle reproduces all six files of every one of the
+  38 Python fixtures byte-for-byte before generating the large cases.
+- Peak allocated oracle row payload is 322,560 bytes at 4K, excluding
+  stack/stdio/allocator overhead. No whole-image Python float arrays.
+- Six runner tests including the declared matrix and chunk-boundary corruption
+  rejection PASS. Comparisons/hashing/equality still inspect all values/bytes.
+- Host boundary tests cover all six shapes, both generated local sizes,
+  hidden/denoised/processed counts and guarded poison counts, complete/partial
+  rows, insufficient Y limits and uint32/size_t/resize-product checks PASS.
+- All six stages build and validate, including reversed roots/32-thread
+  mutation; 20 compiler-interface tests PASS.
+- 37 ordinary Rust tests and formatting PASS; 21 runtime GPU tests ignored.
+
+Accepted GPU results:
+- llvmpipe: all 38 small cases in both modes and interface variants PASS,
+  including cross-variant equality (152 frame executions).
+- Radeon small: both interface variants PASS. Maximum scalar error
+  1.71016513e-7; maximum error/bound 0.00667210166; RGB code delta <= 1.
+- Radeon scale, both variants: all 18 cases in both modes PASS. Maximum scalar error
+  2.07155088e-7; maximum error/bound 0.00768996319; RGB code delta <= 1.
+- Cross-variant equality of all 126 checked scale output files PASS. Small
+  cross-variant equality also passes; no cross-driver bit-equality claim.
+- 224 total Radeon frames: (38 small + 18 scale) * 2 modes * 2 variants.
+  All declared groups pass, with no validation errors or new failed gates.
+- Hidden dispatch reaches 1024x1013 (64 threads) / 1024x2025 (32 threads)
+  at 4K. Odd-input hidden grids are 1024x253 / 1024x506, including tails.
+
+Scalar gate remains 2e-5 + 2e-5*abs(reference); RGB difference at most one code,
+alpha 255. Full intermediate comparisons, guards, unchanged input/weights,
+A/B/A reproduction and normal/diagnostic final-image equality are required.
+No sampled acceptance, tolerance changes or dropped failing cases.
+
+This completes the declared size/correctness matrix of M1. Preserve the tested
+execution model and integer-coordinate correction; no new implementation change
+was needed to cover the larger/odd workloads. This does not complete M1's timing
+and matched-control work or establish generally optimal API design.
+
+Runtime, public API, application C execution, shaders, generated interfaces,
+streaming oracle and frozen model are unchanged from the first accepted slice.
+This change extends fixture selection and tests only. No independent broad
+runtime GPU, GGML/libplacebo/SDK, native Metal or new hardware acceptance run.
+
+Local complete-run logs (not distribution artifacts):
+/tmp/ogpu-scale-4k-radv-20260918.log
+/tmp/ogpu-scale-4k-lvp-20260918.log
+/tmp/ogpu-scale-4k-check-20260918.log
+
+Scale manifest SHA256 (18 cases, including repeated A references):
+b51c51f65071e302c0356dcfb33bd6bbb09663af176effb1fcb00df2c1248734
+Retained scale artifacts: approximately 4.9 GiB reference files and 8.1 GiB GPU
+outputs. No automatic cleanup; generated data is not committed.
+
+Frozen model SHA256, unchanged:
+59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0
+
+These are validation-enabled correctness runs. Cold timings are not benchmark
+results. M1 still needs warmed resident/end-to-end measurements, allocation
+accounting and a matched native Vulkan control; no performance parity claim.

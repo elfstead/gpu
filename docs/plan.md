@@ -25,7 +25,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | Graphics/images | Compute and raster share batches; independent heaps, preservation, uploads/readbacks and indirect draws | Narrow offscreen state and formats; no presentation or general rendering backend |
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
-| Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus full-reference 720p/1080p A/B/A groups on Radeon | Tiny synthetic-trained model; no photographic quality, performance or Metal graphics claim |
+| Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality, performance or Metal graphics claim |
 | Performance | Controlled native comparison; image allocation correction `1f41d7e` closes the large resident bottleneck | Near-4K grouped 563.54 vs native 593.17 fps on this GPU; smaller workloads retain larger gaps, not isolated API overhead |
 | Validation | RX 5700 XT / RADV and llvmpipe; Apple M4 compute/GGML acceptance; 37 Linux ordinary tests and 749 ABI layout checks | Metal has no graphics acceptance; synthetic failures are not real device-loss evidence |
 
@@ -46,10 +46,19 @@ exposed a resize-coordinate precision defect; checked integer pixel selection
 corrected it without relaxing numerical gates. Small regressions pass on both
 Vulkan drivers; large cases pass on Radeon with both interface variants.
 
-Next cover 4K, odd extents and arbitrary resize ratios at scale. Then measure
-memory and warmed resident/end-to-end costs, and add a matched native Vulkan
-control. Preserve the frozen model and numerical gates. No other GPU or Mac is
-needed. M1 is not yet complete and these correctness runs are not benchmarks.
+The second correctness slice is complete at `6d36e93`: all six scale groups,
+including 4K/odd inputs and non-integer up/down resizes, pass without additional
+shader/runtime changes. Both modes and interface variants pass, with full
+intermediate checks and byte-identical cross-variant outputs. See the
+[receipt](results/learned-image-4k-2026-09-18.txt). Declared size/correctness
+coverage is complete, not the entire milestone.
+
+Next measure allocation use and warmed resident/end-to-end costs, then add a
+matched native Vulkan control. Use 10 warmups and 30 measured frames per mode,
+three Radeon runs, with validation separate from timing and identical shaders,
+stage boundaries, transfers and queue policy across controls. Preserve the frozen
+model and numerical gates. No other GPU or Mac is needed. M1 is not yet complete;
+the accepted correctness runs are not benchmarks.
 
 The proposed sequence then covers compiler/programming contracts, sustained
 resource reuse, an experimental release checkpoint, and substantial graphics/ML
