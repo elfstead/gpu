@@ -73,6 +73,17 @@ Allow at least 16 GB of disk space for scale fixtures and diagnostics. See the
 See [application reproduction](../examples/learned_image/README.md) and
 [acceptance/results](learned-image.md). No training framework or data download.
 
+`SLANGC=/path/to/slangc cargo xtask learned-image-benchmark` runs separate validated
+checks, warmed resident/end-to-end measurements and native allocation diagnostics
+on the selected Radeon ICD. Add `--check` for build/parser/bookkeeping tests only,
+or `--validate-only` for the mode correctness checks without timing. The allocation
+diagnostic additionally needs Vulkan development headers and `pkg-config`.
+Start with synchronization validation enabled; the harness disables layers only
+for timing. The [protocol](learned-image-measurement.md) and
+[reproduction instructions](../examples/learned_image/README.md#warmed-measurement)
+define scope, environment, retained samples and receipt export. This is currently
+an OGPU baseline, not a native Vulkan performance comparison.
+
 `SLANGC=/path/to/slangc cargo xtask compiler-workflow` builds and runs a compiler-
 generated C interface for the existing integer transform. It uses pinned Slang
 2026.14.1, Python 3 standard library and SPIRV-Tools; `--check` checks reproduction

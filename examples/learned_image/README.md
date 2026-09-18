@@ -141,6 +141,26 @@ Large references/outputs require substantial disk space; nothing is auto-deleted
 Use `python3 examples/learned_image/benchmark.py` for live progress (xtask captures
 its child output until completion). Serialize runs sharing generated files.
 
+Export a completed report into a new directory for review or a committed receipt:
+
+```sh
+python3 examples/learned_image/export_measurement.py \
+  target/learned-image/measurement-IDENTIFIER/report.json /path/to/new-receipt
+```
+
+The export retains all 720 measured samples in CSV, per-run statistics, revision/
+artifact hashes, validation summaries and all eight native allocation traces.
+It rechecks sample/count/accounting consistency and refuses incomplete reports
+or an existing destination. Full GPU diagnostic outputs remain in the local run
+directory; exporting does not rerun correctness or establish a native comparison.
+
+After `run.py --check`, with synchronization validation and an explicitly selected
+ICD, `python3 examples/learned_image/check_display_edges.py` repeats the odd-edge
+65x47 -> 131x95 A/B/A regression in 20 fresh processes across both interfaces.
+The display shader bounds fragment coordinates before indexing its raw pointer,
+including invocations outside the visible target. Guard words check writes, not
+out-of-bounds reads. See the [failure analysis](../../docs/learned-image-measurement.md#acceptance-interruption--2026-09-19).
+
 ## CPU fixture and training
 
 ```sh
