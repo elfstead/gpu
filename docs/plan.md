@@ -67,12 +67,14 @@ boundaries, synchronization and one-frame queue policy. Preserve the frozen mode
 and numerical gates. No other GPU or Mac is needed. M1 is not yet complete; the
 accepted OGPU baseline does not establish overhead relative to direct Vulkan.
 
-The native control's first implementation slice now covers independent device/
-buffer setup, address copies and explicit timeline retirement. Injected host
-failure tests and validated A/B/A transfer smokes pass on both Vulkan drivers;
-allocation traces have no live allocations after cleanup. Generated compute/
-raster execution, full-output native acceptance and paired timing remain next.
-This foundation is not yet a native learned-image implementation or benchmark.
+The native control now executes the complete generated compute/raster workload.
+At `219254e`, [full-output correctness and memory-policy parity](learned-image-native-control.md#accepted-workload-correctness--2026-09-19)
+pass: 32 validated processes, 192 frames, byte-identical native/OGPU outputs,
+matching allocation size/type sequences and all 304 allocations freed. Coverage
+is the small odd-edge case on both drivers and four large Radeon groups, with
+both generated interfaces in the small case. Next add native timestamp-query
+parity and final-only readback timing, then run fresh paired controls. There is
+still no native performance result; the runtime/API and OGPU baseline are unchanged.
 
 The proposed sequence then covers compiler/programming contracts, sustained
 resource reuse, an experimental release checkpoint, and substantial graphics/ML

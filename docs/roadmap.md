@@ -92,6 +92,11 @@ defect was fixed and full small/scale regressions pass. The
 [matched native Vulkan control](learned-image-native-control.md) is next;
 M1 is active, not complete. The OGPU-only result does not identify API overhead.
 
+Native-control progress 2026-09-19: [workload correctness](learned-image-native-control.md#accepted-workload-correctness--2026-09-19)
+is accepted at `219254e`: generated compute/raster output and allocation-policy
+parity pass on the selected small/large cases. Timestamp-query matching, native
+warmed timing and fresh paired measurements remain; no performance conclusion yet.
+
 ## M2 — Define the programming contract and broaden compiler tooling
 
 **Deliverables**

@@ -416,6 +416,22 @@ generated code/fixtures for the next workload slice. See the
 and [receipt](results/learned-image-native-foundation-2026-09-19.txt). No runtime,
 public API or accepted OGPU baseline change; M1 remains active.
 
+## Learned-image native compute/raster correctness — 2026-09-19
+
+At clean commit `219254e`, the direct Vulkan control executes the same generated
+compute/raster programs as OGPU. All 32 traced validation processes pass: small
+odd-edge A/B/A on both drivers, both modes and interface variants, plus four
+large Radeon groups. All intermediate/final outputs match fresh OGPU outputs
+byte-for-byte and pass the unchanged full-reference gates. Allocation sizes/types
+match both engines; all 304 tracked allocations are freed. The validation memory
+peaks include full intermediate readbacks, unlike ordinary timing allocations.
+
+Keep this as the correctness control. No runtime/API/model/shader change is
+selected. Next match timestamp queries and implement native warmed timing before
+the fresh paired comparison; output parity is not a performance result. M1 remains
+active. See the [command-policy inventory and accepted result](learned-image-native-control.md),
+[receipt](results/learned-image-native-workload-2026-09-19.txt) and linked evidence.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

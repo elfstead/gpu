@@ -1,0 +1,90 @@
+Learned-image native Vulkan workload correctness — 2026-09-19
+Tested clean commit: 219254e5136732b1349480776d98a1a1a9ce7a6a
+Checked receipt exporter: 9db8d92 (does not change the tested GPU code).
+
+Scope: independent Vulkan execution of the existing generated compute/raster
+workload, both resident and end-to-end, with full normal/diagnostic outputs.
+No native timing mode, paired performance result or API overhead claim.
+
+Linux x86-64; Clang 21.1.8; CPython 3.14.7; Rust 1.97.1;
+Slang 2026.14.1; SPIRV-Tools 2026.3; repository-pinned Vulkan headers.
+Radeon RX 5700 XT / RADV NAVI10 and llvmpipe (LLVM 21.1.8, 256 bits), Mesa 26.2.1.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1.
+One explicit ICD selected per run. All workload processes additionally used the
+same diagnostic allocation loader; it forwards without changing placement.
+
+Commands (with the existing compiler/loader/layer environment):
+  SLANGC=/tmp/ogpu-slang.yunI5tdx/bin/slangc
+  VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json
+  python3 examples/learned_image/run_native.py --workload
+Then Radeon ICD:
+  VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+  python3 examples/learned_image/run_native.py --scale
+
+Both regenerate/check original and reversed-root/32-thread generated interfaces,
+cross-check streaming binary64 against all 38 Python fixtures, rebuild fresh OGPU
+controls and compile the standalone native executable with warnings as errors.
+Native executable undefined symbols contain no OGPU runtime dependency.
+Frozen model, shader sources/bytes, public API and runtime are unchanged.
+
+Acceptance PASS:
+- Small 65x47 -> 131x95: native and OGPU, original and mutated interfaces,
+  resident and end-to-end, each with normal/diagnostic A/B/A (8 processes,
+  48 frames) on each driver.
+- Radeon large: 1280x720 -> 2560x1440; 1920x1080 -> 960x540;
+  3840x2160 -> 1919x1079; 1919x1079 -> 2561x1441. Native and OGPU,
+  resident and end-to-end, original interface, normal/diagnostic A/B/A
+  (16 additional processes, 96 frames).
+- Total: 32 processes, 192 frames. All 21 output files per process checked.
+  Full CPU oracle for native/original/end-to-end once per extent/driver;
+  exact byte equality establishes the same gate for every other mode/layout/
+  engine. No sampled outputs, changed tolerances or dropped cases.
+- Every scalar intermediate: finite and abs(error) <= 2e-5 + 2e-5*abs(reference).
+  Radeon maximum error 2.071346953957942e-7, error/bound 0.00768996319464654.
+  llvmpipe small maximum error 1.6457717588735932e-7, ratio 0.004822128714907359.
+- Final RGB delta <= 1 against reference on Radeon, exactly 0 on llvmpipe small;
+  alpha exactly 255. Native vs OGPU pixels/intermediates are byte-identical.
+- Guards, unchanged inputs/weights, A/B distinction, repeated A and normal/
+  diagnostic output equality pass. No validation errors or VUID/sync diagnostics.
+
+Memory policy acceptance PASS:
+- Native per-buffer requested/native size, type and flags agree with independent
+  allocation tracing; requested byte totals match host/device/image metadata.
+- Allocation size/type sequences match native vs OGPU for each extent/mode/layout.
+  End-to-end has 9 allocations/frees; resident has 10 (additional input B).
+- All 304 allocations freed across 32 processes; zero tracked live bytes at exit.
+- Peak traced Vulkan allocation bytes on Radeon, end-to-end / resident:
+  65x47 -> 131x95            768368 / 780720
+  1280x720 -> 2560x1440      225917168 / 229603696
+  1920x1080 -> 960x540       195484912 / 203779440
+  3840x2160 -> 1919x1079     780170032 / 813347760
+  1919x1079 -> 2561x1441     323376032 / 331658576
+  llvmpipe small:           762200 / 774548
+These are full-diagnostic validation allocations, NOT the final-only readback
+allocations in ordinary timing. They do not measure driver-internal command/query
+pool allocations, total process memory or physical residency.
+
+Host checks PASS: native placement/image/root/local/grid/guard tests; injected
+buffer/image/module/pipeline/command/submission/wait failures and ordered cleanup;
+three Python accounting/export tests; Clang static analysis of original/mutated
+native code; 37 ordinary Rust tests, Clippy -D warnings, formatting and 749 ABI
+layout checks. Build also runs fixture/runner and 21 generated-interface tests.
+No broad runtime GPU suite, GGML/libplacebo/SDK or Metal reacceptance claimed.
+
+Committed evidence (exporter rechecked output hashes and traces before writing):
+  docs/results/learned-image-native-workload-radv-2026-09-19.json
+  docs/results/learned-image-native-workload-llvmpipe-2026-09-19.json
+Includes clean revision, source/binary/generated-header hashes, all output hashes,
+CPU error summaries, full allocation traces, memory descriptions and environment.
+Export does not rerun the CPU oracle. Large diagnostic files remain local:
+  target/learned-image/native-control/workload-t7gt7d_g/ (Radeon)
+  target/learned-image/native-control/workload-c11cgigd/ (llvmpipe)
+Logs: /tmp/ogpu-native-workload-{scale,lvp}-20260919.log.
+
+Retain the native workload as the correctness control. Before paired performance,
+add native timestamp query lifecycle/placement matching and a final-only readback
+timing mode, then rerun both controls afresh under the existing timing protocol.
+OGPU validation currently has timestamps; native validation does not. This result
+therefore accepts output and memory-policy parity, not complete timing-policy
+parity. Native lowering happens during recording, OGPU lowering during submit;
+interpret combined record+submit and total frame latency. M1 remains active.

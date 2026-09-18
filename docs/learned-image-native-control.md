@@ -134,5 +134,27 @@ validation path; the native validation slice has no timestamps. This is harmless
 for output comparison but must be resolved before paired timing. Direct native
 recording and OGPU's deferred lowering also have different recording/submission
 clock boundaries, as declared above. There are no performance claims from this
-slice and no native `--measure` command yet. Full traced workload acceptance is
-pending; the OGPU baseline remains unchanged.
+slice and no native `--measure` command yet. The OGPU baseline remains unchanged.
+
+## Accepted workload correctness — 2026-09-19
+
+At clean commit `219254e`, all 32 traced validation processes pass (192 frames):
+the small odd-edge case on both drivers, plus four large Radeon groups. Every
+scalar intermediate and final pixel passes the frozen reference gates; native
+and fresh OGPU outputs are byte-identical across modes and the small-case original/
+mutated interfaces. No shader, model, runtime, public API or tolerance change.
+
+Native allocation descriptions agree with tracing, and native/OGPU allocation
+size/type sequences match. All 304 allocations are freed. The 4K validation peak
+is 780170032 bytes end-to-end and 813347760 resident; these include full diagnostic
+readbacks and must not replace the smaller ordinary-timing baseline allocations.
+
+See the [receipt](results/learned-image-native-workload-2026-09-19.txt),
+[Radeon evidence](results/learned-image-native-workload-radv-2026-09-19.json) and
+[llvmpipe evidence](results/learned-image-native-workload-llvmpipe-2026-09-19.json).
+The exports retain output hashes, full allocation traces and artifact provenance;
+local output hashes and trace consistency were rechecked before export.
+
+Next match native timestamp-query lifecycle/placement, add final-only-readback
+warmed timing, then collect fresh paired runs of both controls. Correctness and
+memory-policy parity are accepted; timing-policy parity and M1 are not complete.

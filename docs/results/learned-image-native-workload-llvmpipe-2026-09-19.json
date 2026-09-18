@@ -1,0 +1,1329 @@
+{
+  "scope": "validated native/OGPU output equality; no paired timing or timing-policy acceptance",
+  "revision": "219254e5136732b1349480776d98a1a1a9ce7a6a",
+  "dirty": false,
+  "source_sha256": {
+    "native.c": "d383f87d126530deacb7d9aededbb196a2a904deed060251e2fec5bbc61348b5",
+    "native_workload.h": "d7361b3c93f2f3a10a8f94c7d28760bebf86f561b36f83b49f771ee4ac85ded2",
+    "test_native.c": "2631c5366a7b797e4ecb6b7dc1c6ba09725d4a34e4d962a7e76cf7d52bafa544",
+    "run_native.py": "61188afae07c7125fba778e02270b412e9a4fd24de85dbd7b5c0cb8d80d00494",
+    "test_native_runner.py": "382828ac1420bfbc0b5e9529e5763cbc751ffa5ab20bbb1775dbc1ffea6f4948",
+    "extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "app.c": "3e4c7031af6a225dd3320132506f605b6d531544e83d8b5b78afa850f2152f10",
+    "trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214"
+  },
+  "model_sha256": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+  "artifacts": {
+    "native-original": "82086a092edff60b14b3077004737c5194b8e3f93a05f2b586ca5ad46937a066",
+    "ogpu-original": "0f81db6925976927d6c58cc6983ff4422278734a1c8eb4e19abb3615be1cdce0",
+    "original/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "original/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "original/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "original/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "original/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "original/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "original/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+    "native-mutated": "73299e1a1e90cf1efcf0220c6a9a7a15526f28c899344efb536f14a80a43af6a",
+    "ogpu-mutated": "628828885afd2ed899fc4746728f29243c708421b59664378da7807dcdee76d7",
+    "mutated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "mutated/denoise.generated.h": "9032c77dd5b8cb3de9c9d55aa9fa05bcb23eed99c7f3170fe0affde7dcdf80cd",
+    "mutated/display.generated.h": "06c52a566c0755161c63b80ce2e256b51dd4415169e7c234cf7c7ffc708406d0",
+    "mutated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "mutated/hidden.generated.h": "34d336061dfd2a157d24c35e38a591ec2853a0a4015a6cf0f89dc13d94c1f0a3",
+    "mutated/poison.generated.h": "dab49f33842da5c74fb0a328298a0411af64108b276fcc06cb8d36d3e8ca6619",
+    "mutated/process.generated.h": "1920ff50d715663a1d973da1cb4824fda3e7c347446df2d422d6ebb522641678",
+    "libogpu.so": "bc06ac4df9ddcffa32c52b39730cebd91113072c3b889ccabf26e3a1a9387c6a",
+    "trace-memory.so": "d5dc077be7543a33604c07f2349ab256048041501e0e3b6570072810833ceeba",
+    "vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6"
+  },
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_ICD_FILENAMES": null,
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "VK_LAYER_PATH": "/nix/store/sbsyg6dvqjs6937jyqxaw0q7n83n6awg-vulkan-validation-layers-1.4.357.0/share/vulkan/explicit_layer.d"
+  },
+  "runs": [
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "native",
+      "variant": "original",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 33.949981,
+        "device_buffers": 322316,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 12348,
+        "readback_bytes": 49780
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 762200,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 484,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 97888,
+            "allocated": 97888,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 199248,
+            "allocated": 199248,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 372224,
+            "allocated": 372224,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "images": [
+          {
+            "logical": 49780,
+            "allocated": 55296,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":762200,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "native",
+      "variant": "original",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 32.880151,
+        "device_buffers": 334664,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 774548,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 484,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 97888,
+            "allocated": 97888,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 199248,
+            "allocated": 199248,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 372224,
+            "allocated": 372224,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "images": [
+          {
+            "logical": 49780,
+            "allocated": 55296,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":774548,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "ogpu",
+      "variant": "original",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 31.741371,
+        "device_buffers": 322316,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 12348,
+        "readback_bytes": 49780
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 762200,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":762200,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "ogpu",
+      "variant": "original",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 32.554383,
+        "device_buffers": 334664,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 774548,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":774548,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "native",
+      "variant": "mutated",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 32.036248,
+        "device_buffers": 322316,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 12348,
+        "readback_bytes": 49780
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 762200,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 484,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 97888,
+            "allocated": 97888,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 199248,
+            "allocated": 199248,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 372224,
+            "allocated": 372224,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "images": [
+          {
+            "logical": 49780,
+            "allocated": 55296,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":762200,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "native",
+      "variant": "mutated",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 32.446095,
+        "device_buffers": 334664,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 774548,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 484,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 97888,
+            "allocated": 97888,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 199248,
+            "allocated": 199248,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 372224,
+            "allocated": 372224,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 0,
+            "flags": 15
+          },
+          {
+            "host": false,
+            "requested": 12348,
+            "allocated": 12348,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "images": [
+          {
+            "logical": 49780,
+            "allocated": 55296,
+            "type": 0,
+            "flags": 15
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":774548,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "ogpu",
+      "variant": "mutated",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 32.572943,
+        "device_buffers": 322316,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 12348,
+        "readback_bytes": 49780
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 762200,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":762200,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    },
+    {
+      "extent": [
+        65,
+        47,
+        131,
+        95
+      ],
+      "engine": "ogpu",
+      "variant": "mutated",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": true,
+        "warmups": 0,
+        "frames": 3,
+        "setup_ms": 31.87331,
+        "device_buffers": 334664,
+        "host_buffers": 384588,
+        "cpu_payload": 397404,
+        "image_logical": 49780,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "errors": {
+        "max_error": 1.6457717588735932e-07,
+        "max_ratio": 0.004822128714907359,
+        "pixel_delta": 0
+      },
+      "memory": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 774548,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 484,
+            "type": 0
+          },
+          {
+            "bytes": 97888,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 199248,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          },
+          {
+            "bytes": 372224,
+            "type": 0
+          },
+          {
+            "bytes": 16,
+            "type": 0
+          },
+          {
+            "bytes": 55296,
+            "type": 0
+          },
+          {
+            "bytes": 12348,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":12348,\"type\":0}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":372224,\"type\":0}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":0}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":774548,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      },
+      "output_sha256": {
+        "normal-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "normal-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "normal-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-1-final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b",
+        "diagnostic-2-final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+        "diagnostic-0-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-0-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-0-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-0-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-0-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4",
+        "diagnostic-1-input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+        "diagnostic-1-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-1-hidden.f32": "56547a7c7c68e1cb82715e0849b985bc37bd25a9593f8476ea7881a77911467a",
+        "diagnostic-1-denoised.f32": "6f4a7c0e99d21056f803e029f92435681e4920b60446ffe2abc853bf449cdb57",
+        "diagnostic-1-processed.f32": "b6c2f8835af8bafdf65ab97ceb7e696ffe311a5e3390003fad353e94fe1c631d",
+        "diagnostic-2-input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+        "diagnostic-2-weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+        "diagnostic-2-hidden.f32": "1e682eb5ec99edba8ca756428d821acc1447b3760a242f08863cd9a8a8e24b31",
+        "diagnostic-2-denoised.f32": "be6cc11b2fb4e3a90880cc7d08a8f7abbf73c615b4db20060ada7bf0829d1553",
+        "diagnostic-2-processed.f32": "ba5bab609aa1a05f67bbf105ff63a8c06af098174fda6834255a50f6d336e7d4"
+      }
+    }
+  ],
+  "complete": true,
+  "input_report_sha256": "ae18cb555a6ec5a9274cda127fa2f7f50d5c00d1388fb627cbeb031ab44e00ce",
+  "export_scope": "Full local output hashes and trace consistency rechecked; CPU oracle not rerun by export"
+}
