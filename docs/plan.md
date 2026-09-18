@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-18. This page owns current status and selected work. The
+Updated 2026-09-19. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -53,12 +53,19 @@ intermediate checks and byte-identical cross-variant outputs. See the
 [receipt](results/learned-image-4k-2026-09-18.txt). Declared size/correctness
 coverage is complete, not the entire milestone.
 
-Next measure allocation use and warmed resident/end-to-end costs, then add a
-matched native Vulkan control. Use 10 warmups and 30 measured frames per mode,
-three Radeon runs, with validation separate from timing and identical shaders,
-stage boundaries, transfers and queue policy across controls. Preserve the frozen
-model and numerical gates. No other GPU or Mac is needed. M1 is not yet complete;
-the accepted correctness runs are not benchmarks.
+The [corrected measurement baseline](learned-image-measurement.md#accepted-corrected-baseline--2026-09-19)
+is accepted at `958b831`: 720 retained timing samples, separate mode validation
+and eight allocation traces with complete cleanup. Resident median frame times
+range from 0.933 to 3.988 ms on the selected workloads; end-to-end medians range
+from 2.960 to 11.941 ms. A reproducible llvmpipe crash exposed an out-of-bounds
+display-pointer read; clamping fragment coordinates fixed it, and small/scale/
+repeated-edge regressions pass without relaxing gates. No runtime/API change.
+
+Next implement the [matched native Vulkan control](learned-image-native-control.md).
+Run fresh paired controls with identical shaders, memory placement, stage/transfer
+boundaries, synchronization and one-frame queue policy. Preserve the frozen model
+and numerical gates. No other GPU or Mac is needed. M1 is not yet complete; the
+accepted OGPU baseline does not establish overhead relative to direct Vulkan.
 
 The proposed sequence then covers compiler/programming contracts, sustained
 resource reuse, an experimental release checkpoint, and substantial graphics/ML

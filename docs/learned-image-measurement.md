@@ -74,6 +74,7 @@ Then implement the benchmark-only native Vulkan control with identical SPIR-V,
 grids, memory placement, stage/transfer/queue policy and timing boundaries. M1
 remains open until that comparison is completed; no runtime/API expansion or
 kernel optimization is selected just to improve these baseline numbers.
+The [native-control brief](learned-image-native-control.md) defines that next step.
 
 ## Acceptance interruption — 2026-09-19
 
@@ -107,3 +108,58 @@ do not loosen tolerances or accept the earlier timings as the corrected baseline
 Local failed logs: `/tmp/ogpu-measure-small-lvp-20260918.log` and
 `/tmp/ogpu-measure-small-lvp-retry-20260919.log`. Core extracted to
 `/tmp/ogpu-app-mutated-1528135.core`; systemd also retained the original core.
+
+## Accepted corrected baseline — 2026-09-19
+
+The coordinate-bounds correction is committed at `9430ad3`. Both ordinary small
+suites pass; all six Radeon scale groups pass with both interfaces, with identical
+outputs. The formerly crashing odd-edge group also passes 20 fresh llvmpipe
+processes (120 frames). No tolerance, model, runtime or public API change.
+
+The corrected measurement run at clean revision `958b831` passes all twelve
+mode/interface validation processes, 24 timing processes and eight allocation
+traces. Each timing process contains 10 warmups and 30 samples; all 720 samples
+are retained. Timed/traced final B images match the validated output exactly.
+See the [receipt](results/learned-image-measurement-2026-09-19.txt),
+[raw samples](results/learned-image-measurement-2026-09-19/samples.csv) and
+[statistics, provenance and traces](results/learned-image-measurement-2026-09-19/report.json).
+
+On the RX 5700 XT / RADV, serialized frame times below are the median of three
+per-process medians, followed by their minimum–maximum range, in milliseconds.
+This is a warm, instrumented latency baseline, not steady-state peak throughput.
+All per-run mean/median/p95/min/max values are in the report; no outliers removed.
+
+| Input -> output | Resident ms (range) | End-to-end ms (range) |
+|---|---:|---:|
+| 1280x720 -> 2560x1440 | 0.933 (0.932–0.933) | 4.454 (4.409–4.503) |
+| 1920x1080 -> 960x540 | 1.125 (1.125–1.125) | 2.960 (2.950–2.993) |
+| 3840x2160 -> 1919x1079 | 3.988 (3.988–3.995) | 11.941 (11.878–11.968) |
+| 1919x1079 -> 2561x1441 | 1.409 (1.408–1.413) | 6.042 (5.887–6.103) |
+
+Separate traced peak Vulkan allocation bytes, expressed as MiB (2^20 bytes):
+
+| Input -> output | Resident MiB | End-to-end MiB |
+|---|---:|---:|
+| 1280x720 -> 2560x1440 | 127.560 | 124.044 |
+| 1920x1080 -> 960x540 | 107.327 | 99.416 |
+| 3840x2160 -> 1919x1079 | 427.667 | 396.026 |
+| 1919x1079 -> 2561x1441 | 180.995 | 173.096 |
+
+Every resident trace has ten successful allocations/frees; every end-to-end trace
+has nine. Resident holds an extra pre-uploaded input. Tracked allocation count
+does not grow across 40 frames, and cleanup leaves zero tracked live bytes.
+This does not count command/query-pool driver-internal allocations or prove total
+process-memory boundedness. Requested CPU payload, HOST/DEVICE buffers and logical
+image bytes remain separate report fields, not additions to native peaks.
+
+Interpretation: keeping data resident matters materially here. The 4K case's
+whole-batch device medians are about 3.796 ms resident and 9.576 ms end-to-end;
+the latter also spends about 1.638 ms staging on the CPU and 0.406 ms reading back.
+These component medians need not sum to the median total. The mode difference
+includes both transfer work and its synchronization, not just raw bus bandwidth.
+
+Across runs, host recording medians are roughly 2–5 microseconds and submission
+medians 75–112 microseconds. OGPU lowers recorded operations during submission,
+so the recording value alone does not describe command construction cost. These
+measurements do not isolate wrapper overhead or justify an API change. Keep the
+current baseline and proceed with the matched native control; M1 remains active.

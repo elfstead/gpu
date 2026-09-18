@@ -43,7 +43,7 @@ def export(report_path, destination):
     # Refuse overwrite; a receipt export must not quietly replace earlier evidence.
     destination.mkdir(parents=False, exist_ok=False)
     with (destination / "samples.csv").open("w", newline="") as output:
-        writer = csv.DictWriter(output, fieldnames=list(samples[0]))
+        writer = csv.DictWriter(output, fieldnames=list(samples[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(samples)
     (destination / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")

@@ -85,8 +85,12 @@ first at `86dd16e`, then 4K/odd-ratio coverage at `6d36e93`. All six declared
 scale groups pass full intermediate/final checks and real multi-row dispatch.
 A first-slice resize precision defect was corrected with unchanged gates; no
 further shader/runtime changes were needed for 4K or non-integer ratios.
-Allocation accounting, warmed timing and the matched native control remain;
-M1 is active, not complete.
+Progress 2026-09-19: the [corrected warmed OGPU baseline](learned-image-measurement.md)
+is accepted at `958b831`, with resident/end-to-end distributions, all 720 samples
+and separate allocation/free traces retained. An odd-edge fragment-pointer read
+defect was fixed and full small/scale regressions pass. The
+[matched native Vulkan control](learned-image-native-control.md) is next;
+M1 is active, not complete. The OGPU-only result does not identify API overhead.
 
 ## M2 — Define the programming contract and broaden compiler tooling
 

@@ -1,0 +1,88 @@
+Learned-image corrected measurement baseline — 2026-09-19
+
+Protocol: 1c4acba. Measurement implementation: 5befd7f.
+Display pointer-bounds correction: 9430ad3. Export/regression tooling: 012f1c2.
+Corrected measurement checkout: 958b83169d9cfc0d7541cf2af72776db001cdf74 (clean).
+Documentation edits after the measurement starts do not affect tested artifacts.
+Public ABI remains 12; runtime and frozen model are unchanged.
+
+Linux x86-64; Radeon RX 5700 XT / RADV NAVI10; Mesa 26.2.1.
+Small software controls: llvmpipe (LLVM 21.1.8, 256 bits), same Mesa package.
+CPython 3.14.7; Clang 21.1.8; Rust 1.97.1; Slang 2026.14.1;
+SPIRV-Tools 2026.3. Reference C: -O2 -ffp-contract=off -fno-fast-math.
+Correctness: VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation;
+VK_LAYER_VALIDATE_SYNC=1. Timing: no instance layers, sync validation unset,
+VK_LOADER_LAYERS_DISABLE=*. Allocation tracing is separate and validated.
+
+Regression evidence after the display correction:
+- llvmpipe ordinary small: 38 cases x 2 modes x 2 interfaces = 152 frames PASS.
+- Radeon ordinary small plus scale: (38 + 18) cases x 2 modes x 2 interfaces
+  = 224 frames PASS. All six declared scale groups; both 4K resize directions.
+- Repeated llvmpipe 65x47 -> 131x95 A/B/A: 20 fresh processes, 120 frames PASS.
+  Both interfaces; complete output equality against a full-reference baseline.
+- Scale maximum scalar error 2.07155088e-7; error/bound 0.00768996319;
+  RGB code delta <= 1, alpha exactly 255. Cross-interface outputs byte-identical.
+- 37 ordinary Rust tests, Clippy -D warnings, formatting, 749 ABI layout values,
+  21 generated-interface tests and five measurement parser/export tests PASS.
+  The benchmark build also runs fixture/runner and C allocation-bookkeeping tests.
+
+The failed pre-correction llvmpipe acceptance and original Radeon measurement
+are preserved in docs/learned-image-measurement.md. They are not substituted for
+the corrected baseline. No tolerance relaxation or guard-padding workaround.
+
+Local regression logs:
+  /tmp/ogpu-measure-lvp-fixed-20260919.log
+  /tmp/ogpu-measure-scale-fixed-20260919.log
+  /tmp/ogpu-display-edges-20260919.log
+Repeated-edge outputs: target/learned-image/display-edges-vubj7p7q/
+Corrected measurement log: /tmp/ogpu-measure-fixed-20260919.log
+Corrected measurement outputs: target/learned-image/measurement-3nx3_p3q/
+
+Corrected measurement acceptance: PASS, report complete=true.
+- 12 separate validated processes x 6 normal/diagnostic frames = 72 frames.
+  Four large groups plus one small case, with both interfaces in the small case.
+  Full scalar/pixel gates or exact equality against fully checked outputs.
+  Maximum scalar error 2.071346953957942e-7; error/bound 0.00768996319464654;
+  RGB delta <= 1; alpha 255. A/B distinction and exact A/B/A reuse pass.
+- 24 ordinary timing processes x (10 warmups + 30 measured) = 960 frames.
+  Three independent processes per extent/mode; 720 samples retained, no filtering.
+  Every final B image matches the validated image exactly.
+- 8 validated allocation-trace processes x 40 frames = 320 frames.
+  Their timings are excluded from distributions; final B equality passes.
+
+Frame latency: median of three per-process medians; [min, max] of those medians.
+Units ms. These are serialized, instrumented warm latencies, not peak throughput.
+Input -> output              resident                     end-to-end
+1280x720 -> 2560x1440         0.932865 [0.932120,0.933080]   4.454206 [4.409226,4.503021]
+1920x1080 -> 960x540          1.124607 [1.124522,1.124773]   2.959513 [2.950068,2.993478]
+3840x2160 -> 1919x1079        3.988411 [3.987576,3.995111]  11.940959 [11.877940,11.967869]
+1919x1079 -> 2561x1441        1.408740 [1.408270,1.412895]   6.041869 [5.886931,6.103193]
+
+Peak successful live Vulkan allocation bytes; resident / end-to-end:
+1280x720 -> 2560x1440         133756288 / 130069760
+1920x1080 -> 960x540          112540032 / 104245504
+3840x2160 -> 1919x1079        448441152 / 415263424
+1919x1079 -> 2561x1441        189787136 / 181504592
+Each resident process allocates/frees ten times; end-to-end nine times.
+Zero tracked live bytes/count after cleanup. Requested application CPU payload,
+HOST/DEVICE buffers and logical image bytes are recorded separately.
+No total-process, driver-private, command/query-pool-internal or residency claim.
+
+Committed export: docs/results/learned-image-measurement-2026-09-19/
+  samples.csv: all 720 raw samples, every component plus whole-batch device time.
+  report.json: per-run mean/median/p95/min/max, requested/native memory,
+    validation summaries, complete allocation traces, source/artifact/model hashes,
+    source revision, loader/ICD environment and original report SHA256.
+Exported with examples/learned_image/export_measurement.py; sample summaries and
+trace accounting independently reconstructed before export. GPU files are local,
+not included in the committed export. No raw input/output data was deleted.
+
+Retain the corrected implementation. Transfer policy materially changes cost in
+this workload, but resident vs end-to-end does not isolate bus bandwidth or API
+overhead. Recording and submission have different work boundaries in OGPU and
+direct Vulkan. Next: fresh paired measurements under the native-control brief.
+M1 remains active; no kernel optimization or public API expansion selected.
+
+No broad runtime GPU-suite, GGML/libplacebo/SDK, native Metal or additional
+hardware acceptance is claimed for this example-only change. The native Vulkan
+control is specified separately and is not implemented by this receipt.

@@ -377,6 +377,29 @@ proceed to warmed measurement, allocation accounting and a matched native Vulkan
 control; this acceptance is not performance evidence. See the
 [receipt](results/learned-image-4k-2026-09-18.txt).
 
+## Learned-image warmed baseline and display-boundary correction — 2026-09-19
+
+The [measurement protocol and results](learned-image-measurement.md) complete the
+OGPU half of M1 performance evidence at `958b831`: twelve mode/interface validation
+processes, 24 timing processes (720 retained measured frames) and eight independent
+allocation traces. Resident and end-to-end modes preserve the frozen arithmetic
+and full scalar/pixel gates. The 4K downscale median is 3.988 ms resident and
+11.941 ms end-to-end; peak traced Vulkan allocations are 427.667 and 396.026 MiB.
+All traced allocations are freed; driver-private memory/residency is not measured.
+
+The initial ordinary llvmpipe regression crashed twice. Core analysis identified
+an out-of-range display fragment pointer read beyond an odd image edge. `9430ad3`
+adds height to the generated root and bounds coordinates before pointer indexing;
+visible pixels and tolerances are unchanged. The original failed acceptance is
+retained, not replaced by a passing retry. Corrected small suites, all six Radeon
+scale groups/both interfaces and 20 fresh odd-edge llvmpipe processes pass.
+
+Retain the corrected baseline; no runtime/public API change is selected. Next is
+the [matched native Vulkan control](learned-image-native-control.md), not kernel
+tuning or an overhead claim from OGPU-only clocks. M1 remains active. See the
+[receipt](results/learned-image-measurement-2026-09-19.txt) and committed raw data
+linked from the measurement result.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
