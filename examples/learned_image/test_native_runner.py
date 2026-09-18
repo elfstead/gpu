@@ -1,12 +1,26 @@
 import copy
 import json
 import sys
+import tempfile
+from pathlib import Path
 import unittest
 sys.dont_write_bytecode = True
 import run_native
+import export_native_workload
 
 
 class NativeAccountingTests(unittest.TestCase):
+    def test_incomplete_export_does_not_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path, destination = Path(directory) / 'report.json', Path(directory) / 'export.json'
+            for report in ({}, {'complete': False}, {'complete': True, 'runs': []},
+                           {'complete': True, 'runs': [dict(extent=[65, 47, 131, 95], engine='native', variant='original', mode='resident')]},
+                           {'complete': True, 'runs': [dict(extent=[1, 1, 1, 1], engine='native', variant='original', mode='resident')]}):
+                path.write_text(json.dumps(report))
+                with self.assertRaises(ValueError):
+                    export_native_workload.export(path, destination)
+                self.assertFalse(destination.exists())
+
     def fixture(self, resident):
         buffers = [dict(host=False, requested=128, allocated=256, type=0, flags=1) for _ in range(5)]
         buffers += [dict(host=True, requested=64, allocated=128, type=5, flags=14) for _ in range(3)]

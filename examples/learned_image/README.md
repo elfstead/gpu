@@ -198,6 +198,18 @@ one scale workload run); outputs are never auto-deleted. Serialize builds/runs
 that share generated files. `--workload --check` or `--scale --check` builds and
 checks without GPU execution.
 
+For a committed correctness receipt, export a complete report to a new filename:
+
+```sh
+python3 examples/learned_image/export_native_workload.py \
+  target/learned-image/native-control/workload-IDENTIFIER/report.json /path/to/new-receipt.json
+```
+
+The exporter rechecks the exact run matrix, all retained output hashes, per-extent
+output equality and allocation traces before writing. It refuses incomplete
+reports or an existing destination. It does not rerun the CPU oracle or export
+the large diagnostic buffers themselves.
+
 ## CPU fixture and training
 
 ```sh
