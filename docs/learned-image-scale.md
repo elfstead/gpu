@@ -98,3 +98,34 @@ Retain this implementation. Next: 4K/odd extents and arbitrary resize ratios
 with unchanged gates, then warmed measurements and the matched native control.
 The large case exposed an application precision defect, not a reason to widen
 the public API. M1 as a whole remains active.
+
+## Second slice: 4K, odd extents and non-integer ratios
+
+Selected 2026-09-18, before implementation/results. Extend `--scale` with the
+following four groups, retaining both first-slice groups:
+
+| Input | Output | Coverage |
+|---|---|---|
+| 3840x2160 | 4097x2305 | 4K inference, non-integer upscale, odd output and tails |
+| 3840x2160 | 1919x1079 | 4K inference, non-integer downscale, odd output |
+| 1919x1079 | 2561x1441 | Odd input, non-integer upscale, odd output |
+| 1919x1079 | 1277x719 | Odd input, non-integer downscale, odd output |
+
+Every group uses seeds 2001/2002/2001, both normal/diagnostic modes and both
+generated-interface variants. The full scale suite becomes 18 cases / 72 frame
+executions; the original 38 small cases remain controls. All prior gates apply:
+full binary64 intermediate references, unchanged scalar/pixel tolerances, guards,
+unchanged inputs/weights, A/B/A and cross-variant equality. Continue cross-checking
+the streaming C oracle against all small Python fixtures. Large CPU/reference
+work may take minutes and several GB of disk; neither sampling nor success-only
+case selection is permitted. Insufficient device limits remain unresolved cases.
+
+Add host-only boundary tests for every selected extent, 64/32-thread launches,
+poison guards, partial Y rows and resize-product limits. Run the complete suite on
+the existing Radeon with synchronization validation; retain small llvmpipe checks.
+Do not change runtime/shaders unless a failing gate identifies a concrete defect.
+
+Done when all six scale groups pass, with a committed result covering failures
+as well as successful checks. This closes M1's declared extent/correctness matrix,
+not M1 itself: warmed timing modes, allocation accounting and a matched native
+Vulkan control remain separate work. No new performance or portability claim.
