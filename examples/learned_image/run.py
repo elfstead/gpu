@@ -16,6 +16,14 @@ import generate_interfaces
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+SCALE_EXTENTS = (
+    (1280, 720, 2560, 1440),
+    (1920, 1080, 960, 540),
+    (3840, 2160, 4097, 2305),
+    (3840, 2160, 1919, 1079),
+    (1919, 1079, 2561, 1441),
+    (1919, 1079, 1277, 719),
+)
 
 
 def require(condition, message):
@@ -111,7 +119,7 @@ def compare_pixels(actual, expected):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="CPU checks and compile/validate only; no GPU")
-    parser.add_argument("--scale", action="store_true", help="also check 720p/1080p A/B/A groups (large files; Radeon acceptance)")
+    parser.add_argument("--scale", action="store_true", help="also check 720p/1080p/4K/odd-ratio A/B/A groups (large files; Radeon acceptance)")
     args = parser.parse_args()
     os.chdir(ROOT)
     require(not os.getenv("CARGO_TARGET_DIR"), "leave CARGO_TARGET_DIR unset for this runner")
@@ -178,7 +186,7 @@ def export_scale_reference(build):
     (directory / "weights.f32").write_bytes(weights)
     cases = []
     files = ("clean.f32", "input.f32", "hidden.f64", "denoised.f64", "processed.f64", "final.rgba")
-    for w, h, ow, oh in ((1280, 720, 2560, 1440), (1920, 1080, 960, 540)):
+    for w, h, ow, oh in SCALE_EXTENTS:
         group = f"{w}x{h}-to-{ow}x{oh}"
         pair = []
         for seed in (2001, 2002):
@@ -192,7 +200,8 @@ def export_scale_reference(build):
         cases.extend((pair[0], pair[1], pair[0]))
     manifest = dict(original, cases=cases)
     (directory / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-    print("Exported six video-scale A/B/A cases; full FP64 oracles, no sampled comparisons", flush=True)
+    print(f"Exported {len(cases)} video-scale A/B/A cases in {len(SCALE_EXTENTS)} groups; "
+          "full FP64 oracles, no sampled comparisons", flush=True)
 
 
 def execute_variant(build, library, executable, variant, suite="small"):

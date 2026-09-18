@@ -2,7 +2,47 @@
 #include <assert.h>
 #include <stdio.h>
 
+static void selected_extents(void) {
+    const uint32_t shapes[][4] = {
+        {1280, 720, 2560, 1440}, {1920, 1080, 960, 540},
+        {3840, 2160, 4097, 2305}, {3840, 2160, 1919, 1079},
+        {1919, 1079, 2561, 1441}, {1919, 1079, 1277, 719},
+    };
+    const uint32_t maximum[] = {65535, 65535, 65535};
+    unsigned partial_rows = 0;
+    for (size_t s = 0; s < sizeof(shapes) / sizeof(*shapes); ++s) {
+        const uint32_t *shape = shapes[s];
+        uint32_t input, output;
+        assert(image_count(shape[0], shape[1], 8, &input));
+        assert(image_count(shape[2], shape[3], 4, &output));
+        assert(resize_axis(shape[0], shape[2]) && resize_axis(shape[1], shape[3]));
+        // Compute stages and each guarded diagnostic-poison allocation.
+        const uint32_t counts[] = {input * 8, input, output,
+            input * 8 + 32, input + 32, output * 4 + 32};
+        for (uint32_t threads = 32; threads <= 64; threads *= 2) {
+            const uint32_t local[] = {threads, 1, 1};
+            for (size_t c = 0; c < sizeof(counts) / sizeof(*counts); ++c) {
+                Launch grid;
+                assert(launch(counts[c], local, maximum, &grid));
+                assert(grid.x == 1024 && grid.y > 1 && grid.stride == 1024 * threads);
+                assert((uint64_t)grid.stride * grid.y >= counts[c]);
+                assert((uint64_t)grid.stride * (grid.y - 1) < counts[c]);
+                assert((uint64_t)grid.stride * grid.y <= UINT32_MAX);
+                if (counts[c] % grid.stride) ++partial_rows;
+                // The last valid index maps exactly; first tail index is rejected.
+                uint32_t last = counts[c] - 1;
+                assert(last / grid.stride < grid.y);
+                assert(last % grid.stride + (last / grid.stride) * grid.stride == last);
+                uint32_t too_short[] = {maximum[0], grid.y - 1, maximum[2]};
+                assert(!launch(counts[c], local, too_short, &grid));
+            }
+        }
+    }
+    assert(partial_rows > 0);
+}
+
 int main(void) {
+    selected_extents();
     assert(extent("1920") == 1920 && extent("2147483646") == 2147483646);
     const char *bad[] = {"", "0", "-1", "+1", " 1", "1x", "2147483647", "9999999999999999999999"};
     for (size_t i = 0; i < sizeof(bad) / sizeof(*bad); ++i) assert(!extent(bad[i]));

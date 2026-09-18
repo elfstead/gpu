@@ -10,6 +10,20 @@ import run
 
 
 class RunnerTests(unittest.TestCase):
+    def test_declared_scale_matrix(self):
+        self.assertEqual(len(run.SCALE_EXTENTS), 6)
+        self.assertEqual(len(set(run.SCALE_EXTENTS)), 6)
+        self.assertEqual(set(run.SCALE_EXTENTS), {
+            (1280, 720, 2560, 1440), (1920, 1080, 960, 540),
+            (3840, 2160, 4097, 2305), (3840, 2160, 1919, 1079),
+            (1919, 1079, 2561, 1441), (1919, 1079, 1277, 719),
+        })
+        for w, h, ow, oh in run.SCALE_EXTENTS[2:]:
+            self.assertTrue((ow > w and oh > h) or (ow < w and oh < h))
+            self.assertNotEqual(max(w, ow) % min(w, ow), 0)
+            self.assertNotEqual(max(h, oh) % min(h, oh), 0)
+            self.assertEqual((ow % 2, oh % 2), (1, 1))
+
     def test_float_success(self):
         error, ratio = run.compare_float(struct.pack("<2f", 0.0, 0.5), struct.pack("<2d", 0.0, 0.5))
         self.assertEqual((error, ratio), (0.0, 0.0))

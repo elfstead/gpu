@@ -33,9 +33,18 @@ variant runs, replacing previous receipts. Save them before testing another
 driver if both receipts are needed. Overall acceptance also requires the final
 cross-variant equality check; a stale/partial receipt is not a successful run.
 
-`--scale` additionally checks two video-sized A/B/A groups: 1280x720 -> 2560x1440
-and 1920x1080 -> 960x540, in both modes and both interface variants. Allow several
-GB of disk space and several minutes for full-output CPU comparisons. Large
+`--scale` additionally checks six video-sized A/B/A groups, in both modes and
+both interface variants (18 cases / 72 frame executions):
+
+| Input | Output(s) |
+|---|---|
+| 1280x720 | 2560x1440 |
+| 1920x1080 | 960x540 |
+| 3840x2160 | 4097x2305 and 1919x1079 |
+| 1919x1079 | 2561x1441 and 1277x719 |
+
+Allow at least 16 GB of disk space for a fresh scale run and several minutes for
+full-output CPU comparisons. Existing artifacts are overwritten, not pruned. Large
 fixtures are in `reference-scale`, GPU outputs in `gpu/scale/{original,mutated}`,
 and receipts in `last-run-scale-{original,mutated}.txt` beneath the same build
 directory. `--check --scale` generates/cross-checks references and builds without
