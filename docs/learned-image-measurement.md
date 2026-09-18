@@ -91,6 +91,10 @@ to read the raw color pointer and carries width but not height: invocations past
 the image edge can form out-of-range reads. This is an application shader defect,
 not evidence that moving batch destruction after completion is invalid or proof
 of a driver bug. Guard words only detect writes; they do not make reads safe.
+The faulting JIT instruction loads from `0x7d71d8bcf210`; the SIMD base pointer
+is `0x7d71d8b9e040`, with float index 50292. The color payload contains only
+`131 * 95 * 4 = 49780` floats, so the read is 2048 bytes beyond its end, well
+beyond the 64-byte trailing guard. This confirms the address error directly.
 
 Vulkan permits additional helper fragment invocations, and physical-storage
 pointer accesses must stay inside a buffer's address range. See the

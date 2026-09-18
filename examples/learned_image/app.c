@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
     ProcessArguments process = {.arg_input_data = addresses[DENOISED], .arg_output_data = addresses[COLOR],
         .arg_width = width, .arg_height = height, .arg_out_width = ow, .arg_out_height = oh,
         .arg_dispatch_width = process_grid.stride};
-    DisplayArguments display = {.arg_pixels = addresses[COLOR], .arg_width = ow};
+    DisplayArguments display = {.arg_pixels = addresses[COLOR], .arg_width = ow, .arg_height = oh};
     int frames = measuring ? WARMUPS + MEASURED : validating ? 3 : argc - 7;
     for (unsigned diagnostic = 0; diagnostic < (measuring ? 1u : 2u); ++diagnostic) {
         for (int frame = 0; frame < frames; ++frame) {

@@ -90,6 +90,16 @@ class InterfaceTests(unittest.TestCase):
     def test_fragment_mode(self):
         self.reject("display", assembly=lambda s: s.replace("OriginUpperLeft", "OriginLowerLeft"))
 
+    def test_display_pointer_coordinates_are_bounded(self):
+        # Guard the source-level fix in both compiler variants. This checks the
+        # emitted clamp and dimension interface, not general shader memory safety.
+        for variant in ("original", "mutated"):
+            reflection, assembly = self.outputs[variant, "display"]
+            fields = generate.inspect(reflection, assembly)[0]
+            self.assertEqual({f[0] for f in fields}, {"arg_pixels", "arg_width", "arg_height"})
+            self.assertRegex(assembly, r"OpExtInst %v2float \S+ FMax ")
+            self.assertRegex(assembly, r"OpExtInst %v2uint \S+ UMin ")
+
     def test_extra_input(self):
         self.reject("display", assembly=lambda s: s + "\n%extra = OpVariable %_ptr_Input_v4float Input\n")
 
