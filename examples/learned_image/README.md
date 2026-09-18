@@ -161,26 +161,42 @@ The display shader bounds fragment coordinates before indexing its raw pointer,
 including invocations outside the visible target. Guard words check writes, not
 out-of-bounds reads. See the [failure analysis](../../docs/learned-image-measurement.md#acceptance-interruption--2026-09-19).
 
-## Native-control foundation
+## Native Vulkan control
 
 ```sh
 python3 examples/learned_image/run_native.py --check
 VK_DRIVER_FILES=/path/to/selected_icd.json python3 examples/learned_image/run_native.py
+SLANGC=/path/to/slangc python3 examples/learned_image/run_native.py --workload
+SLANGC=/path/to/slangc python3 examples/learned_image/run_native.py --scale
 ```
 
-This currently builds a standalone Vulkan setup/address-copy smoke test, **not**
-the native learned-image workload or performance comparison. It needs a C11
+The default runs the standalone setup/address-copy smoke test. `--workload` adds
+the complete learned-image small odd-edge A/B/A case; `--scale` also checks the
+four selected measurement extents on Radeon. **There is no native timing mode or
+performance comparison yet.** It needs a C11
 compiler, Python 3, `nm`, the repository's pinned Vulkan headers and a dynamic
 loader. GPU execution requires the same synchronization-validation environment
-as above and exactly one physical device from the selected ICD. No Slang rebuild
-is needed for this transfer-only slice.
+as above and exactly one physical device from the selected ICD. Workload runs
+regenerate/check both interfaces and fixtures, and build fresh OGPU controls;
+they need the same Slang/SPIRV-Tools/Rust environment as the ordinary application.
+The transfer smoke alone does not need a Slang rebuild.
 
 `--check` runs injected host policy/cleanup tests and verifies that the executable
 has no OGPU runtime symbol dependency. GPU execution additionally performs exact
 A/B/A transfer checks and validates an allocation trace with zero live allocations
 at exit. Artifacts and revision/source hashes remain under
 `target/learned-image/native-control/`. The [native-control brief](../../docs/learned-image-native-control.md)
-tracks the remaining shader, raster, correctness and paired-measurement work.
+tracks the implementation and paired-measurement work still pending.
+
+Workload acceptance checks the full CPU reference once per extent, then exact
+equality of all 21 output files across native/OGPU, resident/end-to-end and the
+small-case original/mutated interfaces. All these processes have validation and
+allocation tracing enabled. Their memory-size/type sequences must agree and all
+allocations must be freed. The report retains output hashes and full traces.
+Allow substantial additional disk space for full diagnostics (about 10 GB for
+one scale workload run); outputs are never auto-deleted. Serialize builds/runs
+that share generated files. `--workload --check` or `--scale --check` builds and
+checks without GPU execution.
 
 ## CPU fixture and training
 

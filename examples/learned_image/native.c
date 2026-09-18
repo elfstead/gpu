@@ -1,6 +1,7 @@
 /* Benchmark-only direct Vulkan control. No OGPU runtime calls or linkage.
- * First slice: matched device/memory policy and address-copy lifecycle smoke test.
- * Shader/raster workload and paired timing are not implemented by this slice. */
+ * Generated compute/raster validation plus address-copy lifecycle smoke test.
+ * Paired timing is not implemented yet. */
+#define _POSIX_C_SOURCE 200809L
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 #include <dlfcn.h>
@@ -23,7 +24,14 @@
     X(vkInvalidateMappedMemoryRanges) X(vkGetBufferDeviceAddress) \
     X(vkCreateCommandPool) X(vkDestroyCommandPool) X(vkAllocateCommandBuffers) \
     X(vkBeginCommandBuffer) X(vkEndCommandBuffer) X(vkCmdPipelineBarrier2) \
-    X(vkCmdCopyMemoryKHR) X(vkQueueSubmit2)
+    X(vkCmdCopyMemoryKHR) X(vkQueueSubmit2) \
+    X(vkCreateShaderModule) X(vkDestroyShaderModule) X(vkCreateComputePipelines) \
+    X(vkCreateGraphicsPipelines) X(vkDestroyPipeline) X(vkCmdBindPipeline) \
+    X(vkCmdPushDataEXT) X(vkCmdDispatch) X(vkGetPhysicalDeviceImageFormatProperties) \
+    X(vkCreateImage) X(vkDestroyImage) X(vkGetImageMemoryRequirements) \
+    X(vkBindImageMemory) X(vkCreateImageView) X(vkDestroyImageView) \
+    X(vkCmdBeginRendering) X(vkCmdEndRendering) X(vkCmdSetViewport) X(vkCmdSetScissor) \
+    X(vkCmdDrawIndirect2KHR) X(vkCmdCopyImageToMemoryKHR)
 
 typedef struct {
     void *library;
@@ -369,9 +377,12 @@ static void native_batch_destroy(Native *n, NativeBatch *b) {
     memset(b, 0, sizeof(*b));
 }
 
+#include "native_workload.h"
+
 int main(int argc, char **argv) {
+    if (argc > 1 && !strcmp(argv[1], "--validate")) return native_workload(argc, argv);
     if (argc != 2 || strcmp(argv[1], "--smoke")) {
-        fprintf(stderr, "Usage: native --smoke (setup/address-copy checks only; no workload benchmark)\n"); return 1;
+        fprintf(stderr, "Usage: native --smoke | --validate resident|end-to-end weights w h ow oh output caseA caseB\n"); return 1;
     }
     Native n = {0};
     NativeBuffer upload = {0}, device = {0}, readback = {0};

@@ -96,7 +96,43 @@ This is setup/transfer evidence only, not model execution or a matched measureme
 Clean-commit acceptance is recorded at `de85a07`; see the
 [foundation receipt](results/learned-image-native-foundation-2026-09-19.txt).
 
-Next add the generated compute/raster programs, image backing and full normal/
-diagnostic workload, then validate all outputs before adding paired timing.
-Root/grid checks, image policy matching, query pools and the command-policy
-inventory remain part of those later slices. The OGPU baseline is unchanged.
+## Workload slice and command-policy inventory
+
+The native control now implements `--validate resident|end-to-end` using the same
+generated headers/SPIR-V as `app.c`. It produces all 21 normal/diagnostic A/B/A
+output files, checks guards and unchanged inputs/weights, and snapshots normal
+resident outputs in separate submissions. The runner checks every scalar/pixel
+against the frozen CPU oracle once per extent, then exact byte equality across
+native/OGPU, modes and small-case interface variants. It does not accept sampled
+comparisons. A fresh OGPU execution is used, not old measurement output files.
+
+All correctness processes use synchronization validation and the allocation
+diagnostic. Native buffer/image descriptions must agree with the independent
+allocation trace; native/OGPU size/type sequences and peaks must match for each
+mode. These validation readbacks include all intermediates and are intentionally
+larger than the eventual timing-mode final-only readback. Traced native allocation
+bytes still do not cover driver-internal allocations or physical residency.
+
+Inventory against the current lowering (`compute.rs`, `graphics.rs`, `batch.rs`):
+
+| Part | Matched native workload policy |
+|---|---|
+| Executables | Same six SPIR-V modules and roots; four compute pipelines including diagnostic poison; descriptor-heap pipeline flag, null layout, empty specialization, `main` entry points |
+| Raster state | Triangle list; no vertex bindings, culling or blending; one RGBA8 attachment, single sample, dynamic viewport/scissor; same fullscreen indirect draw arguments |
+| Image allocation | COLOR_ATTACHMENT + TRANSFER_SRC, optimal tiling, dedicated backing; same eligibility/scoring/last-tie preference for device-only local memory; queried format limits |
+| Buffers | Same sizes, usages, guards, dedicated address allocation and HOST/DEVICE type policy; host mapping/whole-allocation cache maintenance unchanged |
+| Setup | Weights copy and scratch guard poisoning once; resident A/B uploads in separate completed submissions; readback guard initialization once |
+| Batch boundaries | Fresh command pool; HOST_WRITE -> ALL_COMMANDS/MEMORY_READ+WRITE at start; ALL_COMMANDS/MEMORY_WRITE -> HOST_READ at end; timeline submit and terminal wait |
+| Frame reuse | Same compute/fragment/transfer dependency, optional guarded input copy, transfer-write -> compute-read dependency |
+| Compute | Diagnostic poison plus write/write dependency when selected; hidden -> denoise -> process with write/read dependencies, then compute-write -> fragment-read |
+| Draw | Same ALL_COMMANDS read/write image discard UNDEFINED -> GENERAL, CLEAR/STORE rendering, push data and address-based indirect draw |
+| Copies | Same ALL_COMMANDS/MEMORY_WRITE -> TRANSFER/READ+WRITE image-readback dependency, GENERAL image-to-address copy; full guarded diagnostic copies after compute/transfer -> transfer-read dependency |
+| Lifetime | One submission in flight; wait before reusing staging or retiring command pool; drain pending work before shader-reachable resources on errors |
+
+Not yet matched: OGPU's optional timestamp query pools are active in its existing
+validation path; the native validation slice has no timestamps. This is harmless
+for output comparison but must be resolved before paired timing. Direct native
+recording and OGPU's deferred lowering also have different recording/submission
+clock boundaries, as declared above. There are no performance claims from this
+slice and no native `--measure` command yet. Full traced workload acceptance is
+pending; the OGPU baseline remains unchanged.

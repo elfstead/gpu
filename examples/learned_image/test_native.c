@@ -204,8 +204,168 @@ static void test_batch_failures(void) {
     assert(!pools && !n.in_flight && !strcmp(events, "swdddp"));
 }
 
+static int images, views, modules, pipelines;
+static VkResult VKAPI_CALL image_support(VkPhysicalDevice p, VkFormat format, VkImageType type,
+                                         VkImageTiling tiling, VkImageUsageFlags usage, VkImageCreateFlags flags,
+                                         VkImageFormatProperties *out) {
+    (void)p;
+    assert(format == VK_FORMAT_R8G8B8A8_UNORM && type == VK_IMAGE_TYPE_2D && tiling == VK_IMAGE_TILING_OPTIMAL
+        && usage == (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT) && !flags);
+    *out = (VkImageFormatProperties){.maxExtent={4096,4096,1}, .maxMipLevels=1, .maxArrayLayers=1,
+        .sampleCounts=VK_SAMPLE_COUNT_1_BIT, .maxResourceSize=UINT32_MAX};
+    return next();
+}
+static VkResult VKAPI_CALL create_image(VkDevice d, const VkImageCreateInfo *info,
+                                       const VkAllocationCallbacks *a, VkImage *out) {
+    (void)d; (void)a;
+    assert(info->extent.width == 131 && info->extent.height == 95 && info->extent.depth == 1
+        && info->initialLayout == VK_IMAGE_LAYOUT_UNDEFINED && info->mipLevels == 1 && info->arrayLayers == 1
+        && info->samples == VK_SAMPLE_COUNT_1_BIT && !info->flags);
+    VkResult r = next(); if (r == VK_SUCCESS) { ++images; *out = HANDLE(VkImage, 5); } return r;
+}
+static void VKAPI_CALL image_requirements(VkDevice d, VkImage image, VkMemoryRequirements *out) {
+    (void)d; assert(image); *out = (VkMemoryRequirements){.size=65536, .alignment=4096, .memoryTypeBits=1};
+}
+static VkResult VKAPI_CALL image_allocate(VkDevice d, const VkMemoryAllocateInfo *info,
+                                         const VkAllocationCallbacks *a, VkDeviceMemory *out) {
+    (void)d; (void)a;
+    assert(info->allocationSize == 65536 && info->memoryTypeIndex == 0);
+    const VkMemoryDedicatedAllocateInfo *dedicated = info->pNext;
+    assert(dedicated && dedicated->sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO
+        && dedicated->image && !dedicated->buffer);
+    VkResult r = next(); if (r == VK_SUCCESS) { ++allocations; *out = HANDLE(VkDeviceMemory, 6); } return r;
+}
+static VkResult VKAPI_CALL image_bind(VkDevice d, VkImage i, VkDeviceMemory m, VkDeviceSize offset) {
+    (void)d; assert(i && m && !offset); return next();
+}
+static VkResult VKAPI_CALL create_view(VkDevice d, const VkImageViewCreateInfo *info,
+                                      const VkAllocationCallbacks *a, VkImageView *out) {
+    (void)d; (void)a;
+    assert(info->image && info->viewType == VK_IMAGE_VIEW_TYPE_2D && info->format == VK_FORMAT_R8G8B8A8_UNORM
+        && info->subresourceRange.levelCount == 1 && info->subresourceRange.layerCount == 1);
+    VkResult r = next(); if (r == VK_SUCCESS) { ++views; *out = HANDLE(VkImageView, 7); } return r;
+}
+static void VKAPI_CALL destroy_view(VkDevice d, VkImageView v, const VkAllocationCallbacks *a) {
+    (void)d; (void)a; assert(v && views == 1); --views; event('v');
+}
+static void VKAPI_CALL destroy_image(VkDevice d, VkImage i, const VkAllocationCallbacks *a) {
+    (void)d; (void)a; assert(i && images == 1 && !views); --images; event('i');
+}
+static void VKAPI_CALL image_free(VkDevice d, VkDeviceMemory m, const VkAllocationCallbacks *a) {
+    (void)d; (void)a; assert(m && allocations == 1 && !images && !views); --allocations; event('m');
+}
+static VkResult VKAPI_CALL create_module(VkDevice d, const VkShaderModuleCreateInfo *info,
+                                        const VkAllocationCallbacks *a, VkShaderModule *out) {
+    (void)d; (void)a; assert(info->codeSize >= 20 && info->pCode[0] == 0x07230203);
+    VkResult r = next(); if (r == VK_SUCCESS) { ++modules; *out = HANDLE(VkShaderModule, 7 + modules); } return r;
+}
+static void VKAPI_CALL destroy_module(VkDevice d, VkShaderModule m, const VkAllocationCallbacks *a) {
+    (void)d; (void)a; assert(m && modules && !pipelines); --modules; event('m');
+}
+static VkResult VKAPI_CALL create_compute(VkDevice d, VkPipelineCache c, uint32_t count,
+                                         const VkComputePipelineCreateInfo *info,
+                                         const VkAllocationCallbacks *a, VkPipeline *out) {
+    (void)d; (void)a;
+    assert(!c && count == 1 && !info->layout && info->basePipelineIndex == -1
+        && !strcmp(info->stage.pName, "main") && info->stage.module && info->stage.stage == VK_SHADER_STAGE_COMPUTE_BIT);
+    const VkPipelineCreateFlags2CreateInfo *flags = info->pNext;
+    assert(flags && flags->flags == VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT);
+    VkResult r = next();
+    /* Vulkan can produce a pipeline on a non-success return; always own output. */
+    ++pipelines; *out = HANDLE(VkPipeline, 10); return r;
+}
+static VkResult VKAPI_CALL create_raster(VkDevice d, VkPipelineCache c, uint32_t count,
+                                        const VkGraphicsPipelineCreateInfo *info,
+                                        const VkAllocationCallbacks *a, VkPipeline *out) {
+    (void)d; (void)a;
+    assert(!c && count == 1 && !info->layout && !info->renderPass && info->stageCount == 2
+        && info->pStages[0].stage == VK_SHADER_STAGE_VERTEX_BIT && info->pStages[1].stage == VK_SHADER_STAGE_FRAGMENT_BIT
+        && info->pInputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+        && !info->pRasterizationState->cullMode && info->pColorBlendState->pAttachments->colorWriteMask == 15
+        && info->pMultisampleState->rasterizationSamples == VK_SAMPLE_COUNT_1_BIT
+        && info->pDynamicState->dynamicStateCount == 2);
+    const VkPipelineRenderingCreateInfo *rendering = info->pNext;
+    assert(rendering && rendering->colorAttachmentCount == 1 && *rendering->pColorAttachmentFormats == VK_FORMAT_R8G8B8A8_UNORM);
+    const VkPipelineCreateFlags2CreateInfo *flags = rendering->pNext;
+    assert(flags && flags->flags == VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT);
+    VkResult r = next(); ++pipelines; *out = HANDLE(VkPipeline, 10); return r;
+}
+static void VKAPI_CALL destroy_pipeline(VkDevice d, VkPipeline p, const VkAllocationCallbacks *a) {
+    (void)d; (void)a; assert(p && pipelines == 1); --pipelines; event('p');
+}
+static Native workload_fake(void) {
+    Native n = fake(); assert(!images && !views && !modules && !pipelines);
+    n.max_push_data = 256;
+    n.properties.limits = (VkPhysicalDeviceLimits){.maxImageDimension2D=4096,
+        .maxComputeWorkGroupSize={1024,1024,64}, .maxComputeWorkGroupInvocations=1024,
+        .maxComputeWorkGroupCount={65535,65535,65535}};
+    n.vkGetPhysicalDeviceImageFormatProperties = image_support;
+    n.vkCreateImage = create_image; n.vkGetImageMemoryRequirements = image_requirements;
+    n.vkAllocateMemory = image_allocate; n.vkBindImageMemory = image_bind; n.vkCreateImageView = create_view;
+    n.vkDestroyImageView = destroy_view; n.vkDestroyImage = destroy_image; n.vkFreeMemory = image_free;
+    n.vkCreateShaderModule = create_module; n.vkDestroyShaderModule = destroy_module;
+    n.vkCreateComputePipelines = create_compute; n.vkCreateGraphicsPipelines = create_raster;
+    n.vkDestroyPipeline = destroy_pipeline;
+    return n;
+}
+
+static void test_workload_policy(void) {
+    Native n = workload_fake(); uint32_t chosen;
+    VkPhysicalDeviceMemoryProperties m = {.memoryTypeCount=4};
+    m.memoryTypes[0].propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    m.memoryTypes[1].propertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    m.memoryTypes[2].propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    m.memoryTypes[3].propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+    assert(native_image_type(&m, 15, &chosen) && chosen == 2);
+    assert(native_image_type(&m, 3, &chosen) && chosen == 0);
+    assert(native_image_type(&m, 2, &chosen) && chosen == 1);
+    assert(!native_image_type(&m, 8, &chosen));
+    m.memoryTypes[3].propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    assert(native_image_type(&m, 15, &chosen) && chosen == 3);
+    m.memoryTypes[3].propertyFlags |= VK_MEMORY_PROPERTY_PROTECTED_BIT | VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD;
+    assert(!native_image_type(&m, 8, &chosen));
+    assert(native_root_size(&n, 0) && native_root_size(&n, 256) && !native_root_size(&n, 257) && !native_root_size(&n, 260));
+    assert(native_local(&n, hidden_local));
+    uint32_t large[3] = {1024, 2, 1}, zero[3] = {0, 1, 1};
+    assert(!native_local(&n, large) && !native_local(&n, zero));
+    Launch grid;
+    assert(launch(3840u*2160u*8u, hidden_local, n.properties.limits.maxComputeWorkGroupCount, &grid) && grid.y > 1);
+    n.properties.limits.maxComputeWorkGroupCount[1] = 1;
+    assert(!launch(3840u*2160u*8u, hidden_local, n.properties.limits.maxComputeWorkGroupCount, &grid));
+    unsigned char guarded[260]; native_poison(guarded, sizeof(guarded));
+    assert(native_guards(guarded, sizeof(guarded))); guarded[259] = 0;
+    assert(!native_guards(guarded, sizeof(guarded)) && !native_guards(guarded, 127));
+}
+
+static void test_workload_creation_failures(void) {
+    for (int fault = 1; fault <= 5; ++fault) {
+        Native n = workload_fake(); NativeImage image = {0}; fail_step = fault;
+        assert(!native_image_create(&n, &image, 131, 95)); native_image_destroy(&n, &image);
+        assert(!images && !views && !allocations); native_image_destroy(&n, &image);
+    }
+    Native n = workload_fake(); NativeImage image = {0};
+    assert(!native_image_create(&n, &image, 4097, 95));
+    assert(native_image_create(&n, &image, 131, 95)); native_image_destroy(&n, &image);
+    assert(!strcmp(events, "vim"));
+    for (int fault = 1; fault <= 2; ++fault) {
+        n = workload_fake(); NativeProgram p = {0}; fail_step = fault;
+        assert(!native_compute(&n, &p, hidden_code, sizeof(hidden_code), hidden_push_size, hidden_local));
+        native_program_destroy(&n, &p); assert(!modules && !pipelines);
+    }
+    for (int fault = 1; fault <= 3; ++fault) {
+        n = workload_fake(); NativeProgram p = {0}; fail_step = fault;
+        assert(!native_raster(&n, &p)); native_program_destroy(&n, &p); assert(!modules && !pipelines);
+    }
+    n = workload_fake(); NativeProgram p = {0};
+    assert(native_raster(&n, &p)); native_program_destroy(&n, &p); assert(!strcmp(events, "pmm"));
+    n = workload_fake();
+    assert(native_compute(&n, &p, hidden_code, sizeof(hidden_code), hidden_push_size, hidden_local));
+    native_program_destroy(&n, &p); assert(!strcmp(events, "pm"));
+}
+
 int main(void) {
     test_memory_policy(); test_buffer_failures(); test_batch_failures();
-    puts("Native policy, address bounds, partial allocation and submission cleanup tests PASS");
+    test_workload_policy(); test_workload_creation_failures();
+    puts("Native memory/image/root/grid policy and buffer/pipeline/submission cleanup tests PASS");
     return 0;
 }
