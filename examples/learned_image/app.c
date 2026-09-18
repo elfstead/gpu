@@ -12,6 +12,10 @@
 #define REQUIRE(x) do { if (!(x)) { fprintf(stderr, "Check failed line %d: %s\n", __LINE__, #x); goto cleanup; } } while (0)
 #define TRY(x) do { OgpuResult s_ = (x); if (s_ != OGPU_SUCCESS) { fprintf(stderr, "%s: %d %s\n", #x, s_, error.message); goto cleanup; } } while (0)
 enum { INPUT, WEIGHTS, HIDDEN, DENOISED, COLOR, BUFFER_COUNT, GUARD = 64 };
+enum { WARMUPS = 10, MEASURED = 30 };
+typedef struct {
+    double upload, record, submit, wait, query, retire, read, total, device_ns;
+} Sample;
 
 static double now_ms(void) {
     struct timespec time;
@@ -60,14 +64,26 @@ int main(int argc, char **argv) {
     OgpuProbe *probe = NULL;
     OgpuDevice *device = NULL;
     OgpuBuffer *buffers[BUFFER_COUNT] = {0}, *upload = NULL, *readback = NULL, *draw = NULL;
+    OgpuBuffer *input_b = NULL;
     OgpuKernel *kernels[4] = {0};
     OgpuRaster *raster = NULL;
     OgpuImage *target = NULL;
     OgpuBatch *batch = NULL;
     OgpuCompletion *done = NULL;
     unsigned char *host = NULL, *weights = NULL, *pixels = NULL;
+    Sample samples[WARMUPS + MEASURED] = {0};
     char path[4096], name[96];
     double setup_start = now_ms();
+    int measuring = argc > 1 && !strcmp(argv[1], "--measure");
+    int validating = argc > 1 && !strcmp(argv[1], "--validate");
+    int benchmark = measuring || validating, resident = 0;
+    if (benchmark) {
+        REQUIRE(argc >= 3);
+        resident = !strcmp(argv[2], "resident");
+        REQUIRE(resident || !strcmp(argv[2], "end-to-end"));
+        argc -= 2; argv += 2;
+        REQUIRE(argc == 9); // two preloaded inputs; validation visits A/B/A
+    }
     // All files are trusted, generated little-endian fixtures, not a model format.
     REQUIRE(argc >= 8);
     const uint16_t endian = 1;
@@ -89,6 +105,9 @@ int main(int argc, char **argv) {
         REQUIRE(add_size(total, sizes[i], &total));
     }
     size_t upload_size = sizes[INPUT] > sizes[WEIGHTS] ? sizes[INPUT] : sizes[WEIGHTS];
+    size_t host_size = upload_size;
+    if (benchmark) REQUIRE(add_size(host_size, upload_size, &host_size));
+    size_t readback_size = measuring ? final_bytes + 2 * GUARD : total;
     TRY(ogpu_probe_create(OGPU_ABI_VERSION, &probe, &error));
     uint32_t devices = 0;
     TRY(ogpu_probe_device_count(probe, &devices));
@@ -125,13 +144,18 @@ int main(int argc, char **argv) {
     REQUIRE(launch(output_count, process_local, limits.max_dispatch, &process_grid));
     for (unsigned i = HIDDEN; i < BUFFER_COUNT; ++i)
         REQUIRE(launch((uint32_t)(sizes[i] / 4), poison_local, limits.max_dispatch, &poison_grid[i]));
-    host = malloc(upload_size); weights = malloc(sizes[WEIGHTS]); pixels = malloc(total);
+    host = malloc(host_size); weights = malloc(sizes[WEIGHTS]); pixels = malloc(readback_size);
     REQUIRE(host && weights && pixels);
     poison_host(weights, sizes[WEIGHTS]);
     REQUIRE(read_exact(argv[1], weights + GUARD, payloads[WEIGHTS]));
+    if (benchmark) for (unsigned slot = 0; slot < 2; ++slot) {
+        REQUIRE(path_join(path, argv[7 + slot], "input.f32"));
+        poison_host(host + slot * upload_size, sizes[INPUT]);
+        REQUIRE(read_exact(path, host + slot * upload_size + GUARD, payloads[INPUT]));
+    }
     printf("Dispatch grids: hidden=%ux%u denoise=%ux%u process=%ux%u; readback=%zu bytes\n",
         hidden_grid.x, hidden_grid.y, denoise_grid.x, denoise_grid.y,
-        process_grid.x, process_grid.y, total);
+        process_grid.x, process_grid.y, readback_size);
     OgpuTimingInfo timing;
     OgpuResult timing_status = ogpu_device_timing_info(device, &timing, &error);
     REQUIRE(timing_status == OGPU_SUCCESS || timing_status == OGPU_ERROR_UNSUPPORTED);
@@ -149,7 +173,7 @@ int main(int argc, char **argv) {
         addresses[i] += GUARD;
     }
     TRY(ogpu_buffer_create(device, upload_size, OGPU_MEMORY_HOST, &upload, &error));
-    TRY(ogpu_buffer_create(device, total, OGPU_MEMORY_HOST, &readback, &error));
+    TRY(ogpu_buffer_create(device, readback_size, OGPU_MEMORY_HOST, &readback, &error));
     TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &draw, &error));
     const OgpuDrawArguments draw_args = {3, 1, 0, 0};
     TRY(ogpu_buffer_write(draw, 0, &draw_args, sizeof(draw_args), &error));
@@ -169,8 +193,42 @@ int main(int argc, char **argv) {
     TRY(ogpu_completion_wait(done, &error));
     ogpu_completion_destroy(done); done = NULL;
     ogpu_batch_destroy(batch); batch = NULL;
+    uint64_t input_b_address = 0;
+    if (resident) {
+        TRY(ogpu_buffer_create(device, sizes[INPUT], OGPU_MEMORY_DEVICE, &input_b, &error));
+        TRY(ogpu_buffer_device_address(input_b, &input_b_address, &error));
+        input_b_address += GUARD;
+        for (unsigned slot = 0; slot < 2; ++slot) {
+            TRY(ogpu_buffer_write(upload, 0, host + slot * upload_size, sizes[INPUT], &error));
+            TRY(ogpu_batch_create(device, &batch, &error));
+            TRY(ogpu_batch_copy_buffer(batch, upload, 0, slot ? input_b : buffers[INPUT], 0, sizes[INPUT], &error));
+            TRY(ogpu_batch_submit(batch, &done, &error));
+            TRY(ogpu_completion_wait(done, &error));
+            ogpu_completion_destroy(done); done = NULL;
+            ogpu_batch_destroy(batch); batch = NULL;
+        }
+    }
+    if (benchmark) {
+        poison_host(pixels, readback_size);
+        TRY(ogpu_buffer_write(readback, 0, pixels, readback_size, &error));
+    }
+    double setup_ms = now_ms() - setup_start;
     printf("Setup: %.3f ms; weights upload=%zu payload bytes (guards +%u); no per-frame model upload\n",
-        now_ms() - setup_start, payloads[WEIGHTS], 2 * GUARD);
+        setup_ms, payloads[WEIGHTS], 2 * GUARD);
+    if (benchmark) {
+        size_t device_bytes = resident ? sizes[INPUT] : 0, host_bytes, cpu_bytes;
+        for (unsigned i = 0; i < BUFFER_COUNT; ++i) REQUIRE(add_size(device_bytes, sizes[i], &device_bytes));
+        REQUIRE(add_size(upload_size, readback_size, &host_bytes));
+        REQUIRE(add_size(host_bytes, sizeof(OgpuDrawArguments), &host_bytes));
+        REQUIRE(add_size(host_size, sizes[WEIGHTS], &cpu_bytes));
+        REQUIRE(add_size(cpu_bytes, readback_size, &cpu_bytes));
+        printf("MEASUREMENT {\"mode\":\"%s\",\"validation\":%s,\"warmups\":%u,\"frames\":%u,"
+            "\"setup_ms\":%.6f,\"device_buffers\":%zu,\"host_buffers\":%zu,\"cpu_payload\":%zu,"
+            "\"image_logical\":%zu,\"upload_bytes\":%zu,\"readback_bytes\":%zu}\n",
+            resident ? "resident" : "end-to-end", validating ? "true" : "false",
+            measuring ? WARMUPS : 0, measuring ? MEASURED : 3, setup_ms,
+            device_bytes, host_bytes, cpu_bytes, final_bytes, resident ? 0 : sizes[INPUT], resident ? 0 : final_bytes);
+    }
 
     HiddenArguments hidden = {.arg_input_data = addresses[INPUT], .arg_weights = addresses[WEIGHTS],
         .arg_output_data = addresses[HIDDEN], .arg_width = width, .arg_height = height,
@@ -182,26 +240,35 @@ int main(int argc, char **argv) {
         .arg_width = width, .arg_height = height, .arg_out_width = ow, .arg_out_height = oh,
         .arg_dispatch_width = process_grid.stride};
     DisplayArguments display = {.arg_pixels = addresses[COLOR], .arg_width = ow};
-    for (unsigned diagnostic = 0; diagnostic < 2; ++diagnostic) {
-        for (int frame = 7; frame < argc; ++frame) {
-            REQUIRE(path_join(path, argv[frame], "input.f32"));
-            poison_host(host, sizes[INPUT]);
-            REQUIRE(read_exact(path, host + GUARD, payloads[INPUT]));
+    int frames = measuring ? WARMUPS + MEASURED : validating ? 3 : argc - 7;
+    for (unsigned diagnostic = 0; diagnostic < (measuring ? 1u : 2u); ++diagnostic) {
+        for (int frame = 0; frame < frames; ++frame) {
+            unsigned slot = (unsigned)frame % 2;
+            unsigned char *current_input = host + (benchmark ? slot * upload_size : 0);
+            OgpuBuffer *current_buffer = resident && slot ? input_b : buffers[INPUT];
+            hidden.arg_input_data = resident && slot ? input_b_address : addresses[INPUT];
+            denoise.arg_input_data = hidden.arg_input_data;
+            if (!benchmark) {
+                REQUIRE(path_join(path, argv[7 + frame], "input.f32"));
+                poison_host(host, sizes[INPUT]);
+                REQUIRE(read_exact(path, host + GUARD, payloads[INPUT]));
+            }
             // This is before submission, never a mid-pipeline CPU operation.
             double host_write_start = now_ms();
-            TRY(ogpu_buffer_write(upload, 0, host, sizes[INPUT], &error));
+            if (!resident) TRY(ogpu_buffer_write(upload, 0, current_input, sizes[INPUT], &error));
             size_t read_size = diagnostic ? total : final_bytes + 2 * GUARD;
-            poison_host(pixels, read_size);
-            TRY(ogpu_buffer_write(readback, 0, pixels, read_size, &error));
-            double host_write_ms = now_ms() - host_write_start;
-            double execute_start = now_ms();
+            if (!benchmark) {
+                poison_host(pixels, read_size);
+                TRY(ogpu_buffer_write(readback, 0, pixels, read_size, &error));
+            }
+            double execute_start = now_ms(), host_write_ms = execute_start - host_write_start;
             TRY(ogpu_batch_create(device, &batch, &error));
             if (timed) TRY(ogpu_batch_enable_timing(batch, &error));
             // Completion allows CPU reuse; explicit dependencies order GPU reuse.
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE
                 | OGPU_ACCESS_FRAGMENT_READ | OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE,
                 OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_TRANSFER_WRITE, &error));
-            TRY(ogpu_batch_copy_buffer(batch, upload, 0, buffers[INPUT], 0, sizes[INPUT], &error));
+            if (!resident) TRY(ogpu_batch_copy_buffer(batch, upload, 0, buffers[INPUT], 0, sizes[INPUT], &error));
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_TRANSFER_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
             if (diagnostic) {
                 for (unsigned i = HIDDEN; i < BUFFER_COUNT; ++i) {
@@ -220,49 +287,76 @@ int main(int argc, char **argv) {
             // The fragment shader reads the compute-written allocation directly.
             // No intermediate buffer->image representation copy is necessary.
             TRY(ogpu_batch_draw_indirect(batch, raster, target, draw, 0, &display, sizeof(display), OGPU_ATTACHMENT_CLEAR, &error));
-            TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, GUARD, &error));
+            if (!resident || diagnostic) TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, GUARD, &error));
             if (diagnostic) {
                 TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_TRANSFER_WRITE,
                     OGPU_ACCESS_TRANSFER_READ, &error));
                 for (unsigned i = 0; i < BUFFER_COUNT; ++i)
-                    TRY(ogpu_batch_copy_buffer(batch, buffers[i], 0, readback, offsets[i], sizes[i], &error));
+                    TRY(ogpu_batch_copy_buffer(batch, i == INPUT ? current_buffer : buffers[i], 0,
+                        readback, offsets[i], sizes[i], &error));
             }
             // Public owners remain alive through the wait. Pointer values alone
             // do not keep input/weights/activations alive; there is no graph owner.
+            double record_end = now_ms();
             TRY(ogpu_batch_submit(batch, &done, &error));
-            ogpu_batch_destroy(batch); batch = NULL;
+            double submit_end = now_ms();
             TRY(ogpu_completion_wait(done, &error));
-            double execute_ms = now_ms() - execute_start;
-            double query_start = now_ms(), device_ns = 0;
+            double wait_end = now_ms(), execute_ms = wait_end - execute_start;
+            double query_start = wait_end, device_ns = 0;
             if (timed) TRY(ogpu_completion_elapsed_ns(done, &device_ns, &error));
-            double query_ms = now_ms() - query_start;
+            double query_end = now_ms(), query_ms = query_end - query_start;
             ogpu_completion_destroy(done); done = NULL;
+            ogpu_batch_destroy(batch); batch = NULL;
             double read_start = now_ms();
-            TRY(ogpu_buffer_read(readback, 0, pixels, read_size, &error));
-            double read_ms = now_ms() - read_start;
+            if (!resident || diagnostic) TRY(ogpu_buffer_read(readback, 0, pixels, read_size, &error));
+            double frame_end = now_ms(), read_ms = frame_end - read_start;
+            if (measuring) samples[frame] = (Sample){host_write_ms, record_end - execute_start,
+                submit_end - record_end, wait_end - submit_end, query_ms, read_start - query_end,
+                read_ms, frame_end - host_write_start, timed ? device_ns : -1};
+            if (measuring && frame != frames - 1) continue;
+            if (resident && !diagnostic) {
+                // Snapshot is outside resident-frame timing, including its submit/wait.
+                TRY(ogpu_batch_create(device, &batch, &error));
+                TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, GUARD, &error));
+                TRY(ogpu_batch_submit(batch, &done, &error));
+                TRY(ogpu_completion_wait(done, &error));
+                ogpu_completion_destroy(done); done = NULL;
+                ogpu_batch_destroy(batch); batch = NULL;
+                TRY(ogpu_buffer_read(readback, 0, pixels, read_size, &error));
+            }
             REQUIRE(guards(pixels, final_bytes + 2 * GUARD));
-            snprintf(name, sizeof(name), "%s-%d-final.rgba", diagnostic ? "diagnostic" : "normal", frame - 7);
+            snprintf(name, sizeof(name), "%s-%d-final.rgba", diagnostic ? "diagnostic" : "normal", frame);
             REQUIRE(path_join(path, argv[6], name));
             REQUIRE(write_exact(path, pixels + GUARD, final_bytes));
             if (diagnostic) {
                 const char *names[] = {"input", "weights", "hidden", "denoised", "processed"};
                 for (unsigned i = 0; i < BUFFER_COUNT; ++i) {
                     REQUIRE(guards(pixels + offsets[i], sizes[i]));
-                    snprintf(name, sizeof(name), "diagnostic-%d-%s.f32", frame - 7, names[i]);
+                    snprintf(name, sizeof(name), "diagnostic-%d-%s.f32", frame, names[i]);
                     REQUIRE(path_join(path, argv[6], name));
                     REQUIRE(write_exact(path, pixels + offsets[i] + GUARD, payloads[i]));
                 }
-                REQUIRE(memcmp(pixels + offsets[INPUT], host, sizes[INPUT]) == 0);
+                REQUIRE(memcmp(pixels + offsets[INPUT], current_input, sizes[INPUT]) == 0);
                 REQUIRE(memcmp(pixels + offsets[WEIGHTS], weights, sizes[WEIGHTS]) == 0);
             }
             printf("%s frame %d %ux%u -> %ux%u: host_write=%.3f host_execute=%.3f read=%.3f query=%.3f ms; ",
-                diagnostic ? "diagnostic" : "normal", frame - 7, width, height, ow, oh,
+                diagnostic ? "diagnostic" : "normal", frame, width, height, ow, oh,
                 host_write_ms, execute_ms, read_ms, query_ms);
             if (timed) printf("device_batch=%.3f ms", device_ns / 1e6);
             else printf("device_batch=unsupported");
-            printf("; GPU upload=%zu final_copy=%zu diagnostic_copy=%zu bytes; guards PASS\n",
-                sizes[INPUT], final_bytes, diagnostic ? total - final_bytes - 2 * GUARD : 0);
+            printf("; GPU frame_upload=%zu frame_final_copy=%zu diagnostic_copy=%zu snapshot=%zu bytes; guards PASS\n",
+                resident ? 0 : sizes[INPUT], !resident || diagnostic ? final_bytes : 0,
+                diagnostic ? total - final_bytes - 2 * GUARD : 0, resident && !diagnostic ? final_bytes : 0);
         }
+    }
+    if (measuring) for (unsigned frame = WARMUPS; frame < WARMUPS + MEASURED; ++frame) {
+        Sample s = samples[frame];
+        printf("SAMPLE {\"frame\":%u,\"input\":%u,\"upload_ms\":%.6f,\"record_ms\":%.6f,"
+            "\"submit_ms\":%.6f,\"wait_ms\":%.6f,\"query_ms\":%.6f,\"retire_ms\":%.6f,"
+            "\"read_ms\":%.6f,\"total_ms\":%.6f,\"device_ms\":", frame, frame % 2,
+            s.upload, s.record, s.submit, s.wait, s.query, s.retire, s.read, s.total);
+        if (s.device_ns < 0) printf("null"); else printf("%.6f", s.device_ns / 1e6);
+        printf("}\n");
     }
     result = EXIT_SUCCESS;
 cleanup:
@@ -274,6 +368,7 @@ cleanup:
     for (unsigned i = 0; i < 4; ++i) ogpu_kernel_destroy(kernels[i]);
     for (unsigned i = 0; i < BUFFER_COUNT; ++i) ogpu_buffer_destroy(buffers[i]);
     ogpu_buffer_destroy(draw); ogpu_buffer_destroy(readback); ogpu_buffer_destroy(upload);
+    ogpu_buffer_destroy(input_b);
     ogpu_device_destroy(device); ogpu_probe_destroy(probe);
     free(host); free(weights); free(pixels);
     return result;

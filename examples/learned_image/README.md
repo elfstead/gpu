@@ -108,6 +108,39 @@ in git history, not as a maintained alternate path.
 The application does not add a public model/tensor/operator API. It is Linux
 Vulkan acceptance, not a Metal graphics implementation or portability claim.
 
+## Warmed measurement
+
+```sh
+SLANGC=/path/to/slangc cargo xtask learned-image-benchmark --check
+SLANGC=/path/to/slangc cargo xtask learned-image-benchmark
+```
+
+Also requires Vulkan development headers and `pkg-config` for a diagnostic-only
+allocation loader. Start with `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation`
+and `VK_LAYER_VALIDATE_SYNC=1`, an explicitly selected Radeon ICD, and the real
+`OGPU_VULKAN_LIBRARY` (or the normal system loader). The runner performs separate
+validated A/B/A checks, then disables layers for ordinary timing; it never reports
+traced/validation timings as benchmark samples. `--validate-only` omits timing
+and native allocation runs; `--check` needs no GPU.
+
+The [measurement protocol](../../docs/learned-image-measurement.md) defines the
+four selected extents and limitations. Resident mode alternates two pre-uploaded
+DEVICE inputs, with final readback outside timing. End-to-end mode includes CPU
+staging, upload and final readback, but not disk I/O. Both serialize one frame at
+a time: 10 warmups, 30 samples, three fresh processes per extent/mode. This is an
+OGPU baseline, not maximum throughput or a native Vulkan comparison.
+
+Each run preserves a new `target/learned-image/measurement-*` directory containing
+revision/artifact hashes, raw samples, per-run statistics, validation outputs and
+allocation traces in `report.json` and per-process logs. Only `complete: true`
+means the entire measurement/trace sequence passed. A validation-only result has
+`validation_complete: true` instead. Traces report successful Vulkan allocations,
+not driver-private memory, physical residency or total process memory. Setup and
+requested CPU/HOST/DEVICE payload bytes are separate from native peak bytes.
+Large references/outputs require substantial disk space; nothing is auto-deleted.
+Use `python3 examples/learned_image/benchmark.py` for live progress (xtask captures
+its child output until completion). Serialize runs sharing generated files.
+
 ## CPU fixture and training
 
 ```sh

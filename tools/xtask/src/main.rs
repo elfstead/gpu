@@ -529,9 +529,17 @@ fn main() -> Result {
             Ok(())
         },
         Some("gpu-tests") if args.len() == 1 => gpu_tests(&root),
+        Some("learned-image-benchmark")
+            if args.len() == 1 || (args.len() == 2 && (args[1] == "--check" || args[1] == "--validate-only")) =>
+        {
+            let output = run(Command::new("python3").arg(root.join("examples/learned_image/benchmark.py")).args(&args[1..]))?;
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            Ok(())
+        },
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }
