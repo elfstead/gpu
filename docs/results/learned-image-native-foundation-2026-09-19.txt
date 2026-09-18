@@ -1,0 +1,58 @@
+Learned-image native-control foundation — 2026-09-19
+Tested clean commit: de85a07435e9abee95975098b5e619cc0acb8f5e
+native.c SHA256: 0f2cc6fdd7f1976650056959fbb1bc0e7b9355566a394292055b937d4d00664e
+
+Scope: standalone Vulkan setup, dedicated buffers, address copies, barriers,
+timeline submission/wait and terminal cleanup. No OGPU runtime linkage or calls.
+NOT a native learned-image execution or a performance comparison.
+
+Build: Linux x86-64, Clang 21.1.8, CPython 3.14.7, repository-pinned Vulkan headers.
+C11 -O2 -Wall -Wextra -Werror, dynamic loader through -ldl.
+Host tests and symbol independence check: python3 examples/learned_image/run_native.py --check
+Clang static analyzer: no diagnostics (Nix wrapper's unused linker flag suppressed).
+
+Injected host tests PASS:
+- HOST/DEVICE type eligibility, coherent/cached/device-local ranking, UMA,
+  protected/device-coherent exclusions, last-equal-score tie, absent types.
+- Logical range boundaries, wraparound rejection, dedicated address allocation
+  flags, whole-allocation noncoherent cache maintenance and coherent fast path.
+- Buffer creation/allocation/bind/map/address failures; idempotent partial cleanup
+  in unmap -> destroy buffer -> free memory order; flush/invalidate failures.
+- Command pool/allocation/begin/end failures; rejected OOM/device-loss submissions
+  never wait on an unaccepted timeline value; unexpected submit errors drain.
+- Successful and device-lost waits retire; transient wait/drain errors cannot
+  destroy pending resources early. Duplicate submit and timeline overflow/distance
+  are rejected. These are synthetic failure tests, not real device-loss evidence.
+
+GPU command (same environment for each explicitly selected ICD):
+  VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
+  VK_LAYER_VALIDATE_SYNC=1
+  VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+  python3 examples/learned_image/run_native.py
+Repeat with lvp_icd.x86_64.json. No validation errors in either process.
+Runner uses separate trace-memory.so via OGPU_VULKAN_LIBRARY and forwards the
+real loader through OGPU_TRACE_LOADER; allocation/free policy is not overridden.
+
+Radeon RX 5700 XT / RADV NAVI10, Mesa 26.2.1:
+  vendor=4098 device=29471 api=4211042 queue=0
+  upload/readback: requested 260 bytes each, allocated 272 each, type 5, flags 14
+  DEVICE buffer: requested 260 bytes, allocated 272, type 0, flags 1
+  allocations=3 frees=3 peak_bytes=816 peak_count=3 live_bytes=0 live_count=0
+  Local artifacts: target/learned-image/native-control/smoke-wtczerji/
+
+llvmpipe (LLVM 21.1.8, 256 bits), Mesa 26.2.1:
+  vendor=65541 device=0 api=4211042 queue=0
+  all buffers: requested/allocated 260 bytes each, type 0, flags 15
+  allocations=3 frees=3 peak_bytes=780 peak_count=3 live_bytes=0 live_count=0
+  Local artifacts: target/learned-image/native-control/smoke-wqbr5sz0/
+
+Both pass A/B/A input -> DEVICE -> readback, all 260 bytes compared per frame.
+Same buffers reused; new command pool each frame; one submission in flight.
+No successful path uses queue/device idle. All resources are freed after terminal
+completion. Each directory retains stdout, full allocation trace and report.json
+with clean revision, source/header/binary hashes and ICD/loader environment.
+
+No runtime, public API, model, generated shader or accepted OGPU measurement change.
+No broad runtime GPU, consumer, SDK or Metal reacceptance is claimed.
+Next: generated compute/raster programs, images and full diagnostic workload;
+then matched correctness and fresh paired measurements. M1 remains open.

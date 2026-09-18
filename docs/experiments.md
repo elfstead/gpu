@@ -400,6 +400,22 @@ tuning or an overhead claim from OGPU-only clocks. M1 remains active. See the
 [receipt](results/learned-image-measurement-2026-09-19.txt) and committed raw data
 linked from the measurement result.
 
+## Learned-image native-control foundation — 2026-09-19
+
+At clean commit `de85a07`, the benchmark-only native path builds independently of
+the OGPU runtime and passes injected host policy/partial-failure cleanup tests.
+The direct modern Vulkan device/buffer/address-copy/timeline path passes a full
+260-byte A/B/A round trip under synchronization validation on Radeon and llvmpipe.
+Separate allocation traces match requested/native buffer accounting and free all
+three allocations; peak tracked bytes are 816 and 780 respectively.
+
+This closes only the native setup/transfer slice. It does not execute the learned
+model, establish shader/raster parity or compare performance. Keep the same
+generated code/fixtures for the next workload slice. See the
+[native-control status](learned-image-native-control.md#implementation-status--accepted-foundation-slice)
+and [receipt](results/learned-image-native-foundation-2026-09-19.txt). No runtime,
+public API or accepted OGPU baseline change; M1 remains active.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

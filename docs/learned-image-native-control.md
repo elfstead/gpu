@@ -75,7 +75,7 @@ Evidence may expose a better API alternative, a runtime implementation issue, or
 neither. Resource reuse belongs to M3 unless the matched comparison first exposes
 a correctness defect that needs repair. Do not start an unbounded tuning campaign.
 
-## Implementation status — foundation slice
+## Implementation status — accepted foundation slice
 
 `examples/learned_image/native.c` now provides the standalone device, dedicated
 buffer and address-copy/submission path. It uses the pinned Vulkan headers and
@@ -93,6 +93,8 @@ errors and never waits on an unaccepted timeline value. A small native A/B/A
 upload -> DEVICE -> readback test passes exact byte checks with synchronization
 validation on Radeon and llvmpipe, including independent allocation/free tracing.
 This is setup/transfer evidence only, not model execution or a matched measurement.
+Clean-commit acceptance is recorded at `de85a07`; see the
+[foundation receipt](results/learned-image-native-foundation-2026-09-19.txt).
 
 Next add the generated compute/raster programs, image backing and full normal/
 diagnostic workload, then validate all outputs before adding paired timing.
