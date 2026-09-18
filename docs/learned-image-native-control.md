@@ -74,3 +74,27 @@ M1 ends with an explicit retain/revise decision. There is no required speedup.
 Evidence may expose a better API alternative, a runtime implementation issue, or
 neither. Resource reuse belongs to M3 unless the matched comparison first exposes
 a correctness defect that needs repair. Do not start an unbounded tuning campaign.
+
+## Implementation status — foundation slice
+
+`examples/learned_image/native.c` now provides the standalone device, dedicated
+buffer and address-copy/submission path. It uses the pinned Vulkan headers and
+dynamic loader, with no OGPU runtime linkage. Its Vulkan feature selection,
+first graphics/compute queue, memory-type scoring (including tie-breaking),
+buffer usages, dedicated address allocations, whole-allocation cache maintenance,
+host dependencies and timeline completion follow the current OGPU policies.
+The benchmark deliberately requires exactly one device from the selected ICD.
+It reports device/driver identity and each buffer's requested/native size, memory
+type and property flags. No fallback backend is introduced.
+
+The host tests inject allocation/bind/map/address, command preparation, submission
+and wait failures. Cleanup retains pending ownership through transient wait/drain
+errors and never waits on an unaccepted timeline value. A small native A/B/A
+upload -> DEVICE -> readback test passes exact byte checks with synchronization
+validation on Radeon and llvmpipe, including independent allocation/free tracing.
+This is setup/transfer evidence only, not model execution or a matched measurement.
+
+Next add the generated compute/raster programs, image backing and full normal/
+diagnostic workload, then validate all outputs before adding paired timing.
+Root/grid checks, image policy matching, query pools and the command-policy
+inventory remain part of those later slices. The OGPU baseline is unchanged.

@@ -161,6 +161,27 @@ The display shader bounds fragment coordinates before indexing its raw pointer,
 including invocations outside the visible target. Guard words check writes, not
 out-of-bounds reads. See the [failure analysis](../../docs/learned-image-measurement.md#acceptance-interruption--2026-09-19).
 
+## Native-control foundation
+
+```sh
+python3 examples/learned_image/run_native.py --check
+VK_DRIVER_FILES=/path/to/selected_icd.json python3 examples/learned_image/run_native.py
+```
+
+This currently builds a standalone Vulkan setup/address-copy smoke test, **not**
+the native learned-image workload or performance comparison. It needs a C11
+compiler, Python 3, `nm`, the repository's pinned Vulkan headers and a dynamic
+loader. GPU execution requires the same synchronization-validation environment
+as above and exactly one physical device from the selected ICD. No Slang rebuild
+is needed for this transfer-only slice.
+
+`--check` runs injected host policy/cleanup tests and verifies that the executable
+has no OGPU runtime symbol dependency. GPU execution additionally performs exact
+A/B/A transfer checks and validates an allocation trace with zero live allocations
+at exit. Artifacts and revision/source hashes remain under
+`target/learned-image/native-control/`. The [native-control brief](../../docs/learned-image-native-control.md)
+tracks the remaining shader, raster, correctness and paired-measurement work.
+
 ## CPU fixture and training
 
 ```sh

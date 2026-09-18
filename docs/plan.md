@@ -67,6 +67,13 @@ boundaries, synchronization and one-frame queue policy. Preserve the frozen mode
 and numerical gates. No other GPU or Mac is needed. M1 is not yet complete; the
 accepted OGPU baseline does not establish overhead relative to direct Vulkan.
 
+The native control's first implementation slice now covers independent device/
+buffer setup, address copies and explicit timeline retirement. Injected host
+failure tests and validated A/B/A transfer smokes pass on both Vulkan drivers;
+allocation traces have no live allocations after cleanup. Generated compute/
+raster execution, full-output native acceptance and paired timing remain next.
+This foundation is not yet a native learned-image implementation or benchmark.
+
 The proposed sequence then covers compiler/programming contracts, sustained
 resource reuse, an experimental release checkpoint, and substantial graphics/ML
 consumers. Metal parity is a separate native-validation track. The roadmap assigns
