@@ -1,12 +1,25 @@
 import copy
 import json
+from pathlib import Path
 import sys
+import tempfile
 import unittest
 sys.dont_write_bytecode = True
 import benchmark as bench
+import export_measurement
 
 
 class MeasurementTests(unittest.TestCase):
+    def test_export_rejects_incomplete_report_without_writing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            report = Path(directory) / "report.json"
+            destination = Path(directory) / "receipt"
+            for value in ({}, {"schema": 1, "complete": False}, {"schema": 1, "complete": True, "runs": []}):
+                report.write_text(json.dumps(value))
+                with self.assertRaises(ValueError):
+                    export_measurement.export(report, destination)
+                self.assertFalse(destination.exists())
+
     def fixture(self):
         metadata = dict(mode="resident", validation=False, warmups=10, frames=30, setup_ms=1.0)
         samples = [dict(frame=i, input=i % 2, **{f: .1 for f in bench.FIELDS}) for i in range(10, 40)]
