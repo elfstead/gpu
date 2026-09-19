@@ -71,6 +71,13 @@ and streaming-slot comparisons from M3. Separate API-imposed disadvantages from
 backend costs and unresolved hardware-dependent questions; do not assume replay,
 mapping or concurrency is unnecessary because M1 is GPU-heavy.
 
+The first [small-compute result](performance-frontier-small.md) is accepted at
+`c437fb9`: 48,000 timing samples, full per-frame Radeon/software correctness and
+allocation cleanup. Native reset/re-record is substantially faster than OGPU's
+fresh-pool lifecycle here. Separate reusable command storage from replay, and
+review the contract's native-destruction promise before calling pooling a backend-
+only fix. Streaming application controls and the remaining audit concerns stay open.
+
 ## Following milestone: M2 — programming/compiler contract
 
 Start with a bounded acceptance brief and a device-code contract that separates

@@ -108,3 +108,13 @@ Preserve failures and resource limits. The first two experiments are pulled forw
 from M3; they inform M2 rather than freezing its host contract. Remaining M3
 lifecycle/diagnostic work is not completed by timing. Public contract changes need
 their own tests and ABI review.
+
+## First accepted result
+
+The [small-compute control](performance-frontier-small.md) is complete at `c437fb9`.
+It exposes a substantial storage-lifecycle opportunity concealed by M1's matched
+policy. Native reset/re-record recovers most of the gain; replay further reduces
+host encoding but does not win every throughput case. Current retirement wording
+also needs review: releasing submission references need not mean destroying all
+reusable native storage. This is not approval of the existing API or completion of
+the streaming, cross-queue, mapping, descriptor or compiler checks.

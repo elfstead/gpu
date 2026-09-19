@@ -463,6 +463,25 @@ change or runtime/API widening. See the [result and decision](learned-image-nati
 and [receipt](results/learned-image-m1-2026-09-19.txt) for provenance, raw data,
 distribution/memory tables, reproduction and exact acceptance boundaries.
 
+## Performance expressibility: small-compute frontier — 2026-09-19
+
+The [standing gate](performance-expressibility.md) compares stronger native strategies,
+not only native controls constrained to OGPU's policy. At `c437fb9`, all four
+small-compute strategies pass full per-frame correctness at one/three slots and
+1/64 dependent dispatches: 16,000 validated Radeon frames and 1,024 llvmpipe frames.
+48,000 ordinary timing samples and separate allocation traces are retained; all
+tracked allocations are freed. Native reset/re-record wall time is substantially
+lower than the current fresh-pool OGPU implementation (about 1.62–8.15x at equal
+slots/work). Replay reduces host recording further, without uniformly improving
+throughput. This is not a general API-overhead or optimal-native claim.
+
+The [result and contract consequence](performance-frontier-small.md) separates
+submission retirement, reusable empty command storage and reusable executable
+recordings. Current documented native-pool destruction is a design restriction,
+not an unquestioned requirement: a storage alternative must reset native references
+before releasing heaps/objects, preserve completion semantics and bound retention.
+No runtime/API change yet; streaming and other expressibility concerns remain open.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
