@@ -1,12 +1,13 @@
 /* Benchmark-only direct Vulkan control. No OGPU runtime calls or linkage.
  * Generated compute/raster validation plus address-copy lifecycle smoke test.
- * Paired timing is not implemented yet. */
+ * Serialized timing uses the same one-shot pool/query policy as OGPU. */
 #define _POSIX_C_SOURCE 200809L
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 #include <dlfcn.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <math.h>
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +32,9 @@
     X(vkCreateImage) X(vkDestroyImage) X(vkGetImageMemoryRequirements) \
     X(vkBindImageMemory) X(vkCreateImageView) X(vkDestroyImageView) \
     X(vkCmdBeginRendering) X(vkCmdEndRendering) X(vkCmdSetViewport) X(vkCmdSetScissor) \
-    X(vkCmdDrawIndirect2KHR) X(vkCmdCopyImageToMemoryKHR)
+    X(vkCmdDrawIndirect2KHR) X(vkCmdCopyImageToMemoryKHR) \
+    X(vkCreateQueryPool) X(vkDestroyQueryPool) X(vkCmdResetQueryPool) \
+    X(vkCmdWriteTimestamp2) X(vkGetQueryPoolResults)
 
 typedef struct {
     void *library;
@@ -65,8 +68,9 @@ typedef struct {
 typedef struct {
     VkCommandPool pool;
     VkCommandBuffer command;
+    VkQueryPool queries;
     uint64_t value;
-    int pending;
+    int pending, succeeded;
 } NativeBatch;
 
 static int vk_ok(VkResult result, const char *operation) {
@@ -226,6 +230,9 @@ static int native_create(Native *n) {
     printf("Native device: %s; vendor=%u device=%u api=%u driver=%s %s queue=%u float16=%d unified=%d\n",
         n->properties.deviceName, n->properties.vendorID, n->properties.deviceID, n->properties.apiVersion,
         driver.driverName, driver.driverInfo, n->family, float16, has_unified);
+    printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",
+        n->properties.vendorID, n->properties.deviceID, VK_API_VERSION_MAJOR(n->properties.apiVersion),
+        VK_API_VERSION_MINOR(n->properties.apiVersion), VK_API_VERSION_PATCH(n->properties.apiVersion));
     return 1;
 }
 
@@ -298,8 +305,23 @@ static void native_barrier(Native *n, VkCommandBuffer command, VkPipelineStageFl
     n->vkCmdPipelineBarrier2(command, &dependency);
 }
 
-static int native_begin(Native *n, NativeBatch *b) {
-    NEED(!b->pool && !b->pending);
+static int native_timing_supported(Native *n) {
+    return n->timestamp_bits >= 36 && n->timestamp_bits <= 64
+        && isfinite(n->properties.limits.timestampPeriod) && n->properties.limits.timestampPeriod > 0;
+}
+
+static double native_timestamp_delta(uint64_t first, uint64_t last, uint32_t bits, double period) {
+    return (double)((last - first) & (UINT64_MAX >> (64 - bits))) * period;
+}
+
+static int native_begin_timed(Native *n, NativeBatch *b, int timed) {
+    NEED(!b->pool && !b->pending && !b->queries && !b->value);
+    if (timed) {
+        NEED(native_timing_supported(n));
+        VkQueryPoolCreateInfo query = {.sType=VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
+            .queryType=VK_QUERY_TYPE_TIMESTAMP, .queryCount=2};
+        VK_TRY(n->vkCreateQueryPool(n->device, &query, NULL, &b->queries));
+    }
     VkCommandPoolCreateInfo pool = {.sType=VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .queueFamilyIndex=n->family};
     VK_TRY(n->vkCreateCommandPool(n->device, &pool, NULL, &b->pool));
     VkCommandBufferAllocateInfo allocate = {.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -307,10 +329,16 @@ static int native_begin(Native *n, NativeBatch *b) {
     VK_TRY(n->vkAllocateCommandBuffers(n->device, &allocate, &b->command));
     VkCommandBufferBeginInfo begin = {.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     VK_TRY(n->vkBeginCommandBuffer(b->command, &begin));
+    if (timed) {
+        n->vkCmdResetQueryPool(b->command, b->queries, 0, 2);
+        n->vkCmdWriteTimestamp2(b->command, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, b->queries, 0);
+    }
     native_barrier(n, b->command, VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_WRITE_BIT,
         VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT);
     return 1;
 }
+
+static int native_begin(Native *n, NativeBatch *b) { return native_begin_timed(n, b, 0); }
 
 static int native_copy(Native *n, NativeBatch *b, NativeBuffer *src, VkDeviceSize src_offset,
                        NativeBuffer *dst, VkDeviceSize dst_offset, VkDeviceSize size) {
@@ -342,6 +370,7 @@ static int native_submit(Native *n, NativeBatch *b) {
          && n->next_value - n->observed_value < n->max_difference);
     native_barrier(n, b->command, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT);
+    if (b->queries) n->vkCmdWriteTimestamp2(b->command, VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, b->queries, 1);
     VK_TRY(n->vkEndCommandBuffer(b->command));
     b->value = ++n->next_value;
     VkCommandBufferSubmitInfo command = {.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer=b->command};
@@ -361,9 +390,25 @@ static int native_wait(Native *n, NativeBatch *b) {
     VkSemaphoreWaitInfo wait = {.sType=VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .semaphoreCount=1, .pSemaphores=&n->timeline, .pValues=&b->value};
     VkResult result = n->vkWaitSemaphores(n->device, &wait, UINT64_MAX);
-    if (result == VK_SUCCESS || result == VK_ERROR_DEVICE_LOST) { b->pending = 0; n->in_flight = 0; }
+    if (result == VK_SUCCESS || result == VK_ERROR_DEVICE_LOST) {
+        b->pending = 0; n->in_flight = 0;
+        /* Match OGPU: terminal wait retires command resources; the query pool
+         * remains completion-owned until result retrieval or destruction. */
+        if (b->pool) n->vkDestroyCommandPool(n->device, b->pool, NULL);
+        b->pool = VK_NULL_HANDLE; b->command = VK_NULL_HANDLE;
+    }
+    b->succeeded = result == VK_SUCCESS;
     if (result == VK_SUCCESS) n->observed_value = b->value;
     return vk_ok(result, "wait");
+}
+
+static int native_elapsed(Native *n, NativeBatch *b, double *ns) {
+    NEED(b->queries && b->succeeded && !b->pending && native_timing_supported(n));
+    uint64_t ticks[2];
+    VK_TRY(n->vkGetQueryPoolResults(n->device, b->queries, 0, 2, sizeof(ticks), ticks, 8, VK_QUERY_RESULT_64_BIT));
+    *ns = native_timestamp_delta(ticks[0], ticks[1], n->timestamp_bits, n->properties.limits.timestampPeriod);
+    n->vkDestroyQueryPool(n->device, b->queries, NULL); b->queries = VK_NULL_HANDLE;
+    return 1;
 }
 
 static void native_batch_destroy(Native *n, NativeBatch *b) {
@@ -374,15 +419,16 @@ static void native_batch_destroy(Native *n, NativeBatch *b) {
         n->in_flight = 0;
     }
     if (b->pool) n->vkDestroyCommandPool(n->device, b->pool, NULL);
+    if (b->queries) n->vkDestroyQueryPool(n->device, b->queries, NULL);
     memset(b, 0, sizeof(*b));
 }
 
 #include "native_workload.h"
 
 int main(int argc, char **argv) {
-    if (argc > 1 && !strcmp(argv[1], "--validate")) return native_workload(argc, argv);
+    if (argc > 1 && (!strcmp(argv[1], "--validate") || !strcmp(argv[1], "--measure"))) return native_workload(argc, argv);
     if (argc != 2 || strcmp(argv[1], "--smoke")) {
-        fprintf(stderr, "Usage: native --smoke | --validate resident|end-to-end weights w h ow oh output caseA caseB\n"); return 1;
+        fprintf(stderr, "Usage: native --smoke | --validate/--measure resident|end-to-end weights w h ow oh output caseA caseB\n"); return 1;
     }
     Native n = {0};
     NativeBuffer upload = {0}, device = {0}, readback = {0};

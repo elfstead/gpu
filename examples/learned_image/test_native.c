@@ -363,9 +363,78 @@ static void test_workload_creation_failures(void) {
     native_program_destroy(&n, &p); assert(!strcmp(events, "pm"));
 }
 
+static int queries;
+static VkResult VKAPI_CALL create_query(VkDevice d, const VkQueryPoolCreateInfo *info,
+                                       const VkAllocationCallbacks *a, VkQueryPool *out) {
+    (void)d; (void)a; assert(info->queryType == VK_QUERY_TYPE_TIMESTAMP && info->queryCount == 2);
+    VkResult r = next(); if (r == VK_SUCCESS) { ++queries; *out = HANDLE(VkQueryPool, 11); event('q'); } return r;
+}
+static void VKAPI_CALL destroy_query(VkDevice d, VkQueryPool q, const VkAllocationCallbacks *a) {
+    (void)d; (void)a; assert(q && queries == 1 && !pools); --queries; event('k');
+}
+static void VKAPI_CALL reset_query(VkCommandBuffer c, VkQueryPool q, uint32_t first, uint32_t count) {
+    assert(c && q && !first && count == 2); event('r');
+}
+static void VKAPI_CALL timestamp(VkCommandBuffer c, VkPipelineStageFlags2 stage, VkQueryPool q, uint32_t index) {
+    assert(c && q && index < 2);
+    assert(stage == (index ? VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT : VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT));
+    event(index ? 'b' : 't');
+}
+static VkResult VKAPI_CALL results(VkDevice d, VkQueryPool q, uint32_t first, uint32_t count,
+                                   size_t size, void *data, VkDeviceSize stride, VkQueryResultFlags flags) {
+    (void)d; assert(q && !first && count == 2 && size == 16 && stride == 8 && flags == VK_QUERY_RESULT_64_BIT);
+    assert(!pools); event('g');
+    ((uint64_t *)data)[0] = (UINT64_C(1) << 36)-6; ((uint64_t *)data)[1] = 3;
+    return next();
+}
+static Native timed_fake(void) {
+    Native n = fake(); assert(!queries);
+    n.timestamp_bits = 36; n.properties.limits.timestampPeriod = 2.5f;
+    n.vkCreateQueryPool = create_query; n.vkDestroyQueryPool = destroy_query;
+    n.vkCmdResetQueryPool = reset_query; n.vkCmdWriteTimestamp2 = timestamp; n.vkGetQueryPoolResults = results;
+    return n;
+}
+static void test_timing(void) {
+    Native n = timed_fake(); NativeBatch b = {0}; double ns;
+    assert(native_timing_supported(&n));
+    n.timestamp_bits = 0; assert(!native_timing_supported(&n));
+    n.timestamp_bits = 35; assert(!native_timing_supported(&n));
+    n.timestamp_bits = 65; assert(!native_timing_supported(&n));
+    n.timestamp_bits = 64; n.properties.limits.timestampPeriod = NAN; assert(!native_timing_supported(&n));
+    n.properties.limits.timestampPeriod = INFINITY; assert(!native_timing_supported(&n));
+    n.properties.limits.timestampPeriod = 0; assert(!native_timing_supported(&n));
+    assert(!native_begin_timed(&n, &b, 1));
+    assert(native_timestamp_delta(250, 3, 8, 2.5) == 22.5);
+    assert(native_timestamp_delta(UINT64_MAX-1, 2, 64, 1) == 4);
+    for (int fault = 1; fault <= 4; ++fault) {
+        n = timed_fake(); b = (NativeBatch){0}; fail_step = fault;
+        assert(!native_begin_timed(&n, &b, 1)); native_batch_destroy(&n, &b);
+        assert(!queries && !pools && !waited);
+    }
+    for (unsigned mode = 0; mode < 4; ++mode) {
+        n = timed_fake(); b = (NativeBatch){0};
+        assert(native_begin_timed(&n, &b, 1) && native_submit(&n, &b));
+        assert(!native_elapsed(&n, &b, &ns)); /* pending cannot yield timestamps */
+        if (mode == 3) wait_result = VK_ERROR_DEVICE_LOST;
+        assert(native_wait(&n, &b) == (mode != 3));
+        assert(!pools && queries == 1);
+        if (mode == 0) {
+            assert(native_elapsed(&n, &b, &ns) && ns == 22.5 && !queries);
+            assert(!native_elapsed(&n, &b, &ns)); /* consumed results */
+        } else if (mode == 1) {
+            fail_step = step+1;
+            assert(!native_elapsed(&n, &b, &ns) && queries == 1);
+        } else if (mode == 3) assert(!native_elapsed(&n, &b, &ns));
+        /* mode 2 deliberately never retrieves results. */
+        native_batch_destroy(&n, &b); assert(!pools && !queries);
+        assert(!strcmp(events, mode <= 1 ? "qrtbswpgk" : "qrtbswpk"));
+    }
+}
+
 int main(void) {
     test_memory_policy(); test_buffer_failures(); test_batch_failures();
     test_workload_policy(); test_workload_creation_failures();
+    test_timing();
     puts("Native memory/image/root/grid policy and buffer/pipeline/submission cleanup tests PASS");
     return 0;
 }

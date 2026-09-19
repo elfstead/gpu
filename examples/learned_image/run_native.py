@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build/test direct Vulkan transfers or the generated workload; no paired timing yet."""
+"""Build/test direct Vulkan transfers or the generated workload."""
 import argparse
 import json
 import os
@@ -42,7 +42,7 @@ def workload(build, environment, scale):
     print(f"Native workload artifacts: {destination}", flush=True)
     sources = ("native.c", "native_workload.h", "test_native.c", "run_native.py", "test_native_runner.py", "extent.h", "app.c",
                "trace_memory.c", "allocation_tracker.h")
-    report = dict(scope="validated native/OGPU output equality; no paired timing or timing-policy acceptance",
+    report = dict(scope="validated native/OGPU output equality and matched timestamp policy; no performance samples",
                   revision=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
                   dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], text=True)),
                   source_sha256={name: run.digest_file(run.HERE / name) for name in sources},
@@ -66,6 +66,7 @@ def workload(build, environment, scale):
     def save():
         (destination / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
     save()
+    identity_baseline = None
     for extent in ((65, 47, 131, 95), *(bench.EXTENTS if scale else ())):
         small = extent[0] == 65
         reference = build.parent / ("reference" if small else "reference-scale")
@@ -90,6 +91,11 @@ def workload(build, environment, scale):
                     metadata = bench.records(stdout, "MEASUREMENT ")
                     run.require(len(metadata) == 1, "missing/duplicate metadata")
                     bench.check_metadata(metadata[0], extent, mode, True)
+                    identity = identity_evidence(stdout)
+                    if identity_baseline is None:
+                        identity_baseline = identity
+                    else:
+                        run.require(identity == identity_baseline, "device or timestamp clock mismatch")
                     memory = allocation_evidence(stdout, stderr, metadata[0], engine)
                     if mode not in memory_baselines:
                         memory_baselines[mode] = memory["signature"]
@@ -102,13 +108,25 @@ def workload(build, environment, scale):
                         for name in bench.output_files():
                             run.require(run.same_file(output / name, baseline / name), f"native/OGPU/mode/layout mismatch: {output / name}")
                     report["runs"].append(dict(extent=extent, engine=engine, variant=variant, mode=mode,
-                                               metadata=metadata[0], errors=errors, memory=memory,
+                                               metadata=metadata[0], errors=errors, memory=memory, identity=identity,
+                                               device_description=[line for line in stdout.splitlines() if line.startswith(("Native device:", "Learned-image device:"))],
                                                output_sha256={name: run.digest_file(output / name) for name in bench.output_files()}))
                     save()
                     print(f"Validated {label} {engine}/{variant}/{mode}: all intermediates/final, guards, A/B/A PASS", flush=True)
     report["complete"] = True
     save()
     print(f"Native/OGPU workload correctness PASS: {destination}; no performance comparison")
+    return destination, report
+
+
+def identity_evidence(stdout):
+    device, clock = bench.records(stdout, "DEVICE "), bench.records(stdout, "CLOCK ")
+    run.require(len(device) == len(clock) == 1, "missing/duplicate device/clock identity")
+    c = clock[0]
+    run.require(type(c["supported"]) is bool and type(c["bits"]) is int and bench.finite(c["period_ns"]), "invalid clock identity")
+    run.require((c["supported"] and 36 <= c["bits"] <= 64 and c["period_ns"] > 0)
+                or (not c["supported"] and c["bits"] == 0 and c["period_ns"] == 0), "invalid clock support")
+    return dict(device=device[0], clock=c)
 
 
 def main():

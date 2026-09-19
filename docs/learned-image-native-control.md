@@ -129,12 +129,20 @@ Inventory against the current lowering (`compute.rs`, `graphics.rs`, `batch.rs`)
 | Copies | Same ALL_COMMANDS/MEMORY_WRITE -> TRANSFER/READ+WRITE image-readback dependency, GENERAL image-to-address copy; full guarded diagnostic copies after compute/transfer -> transfer-read dependency |
 | Lifetime | One submission in flight; wait before reusing staging or retiring command pool; drain pending work before shader-reachable resources on errors |
 
-Not yet matched: OGPU's optional timestamp query pools are active in its existing
-validation path; the native validation slice has no timestamps. This is harmless
-for output comparison but must be resolved before paired timing. Direct native
-recording and OGPU's deferred lowering also have different recording/submission
-clock boundaries, as declared above. There are no performance claims from this
-slice and no native `--measure` command yet. The OGPU baseline remains unchanged.
+The original correctness slice below did not yet match OGPU's optional timestamp
+queries. The timing implementation now creates two-query pools before command
+pools, resets/writes TOP_OF_PIPE before the initial host barrier, writes BOTTOM_OF_PIPE
+after the final host barrier, and retrieves 64-bit results without a query wait
+after successful timeline completion. Terminal wait retires the command pool;
+query retrieval retires its query pool. Native clock eligibility (36–64 valid bits,
+finite positive period) and wrapping conversion match OGPU. Unsupported clocks
+produce null device samples, never a fabricated zero-duration measurement.
+
+Native `--measure` uses 10 warmups and 30 measured frames, with the same final-only
+readback allocation, host clocks and final B output policy as OGPU. Direct native
+recording and OGPU's deferred lowering have different recording/submission clock
+boundaries, as declared above; compare their sum as well as full frame latency.
+Only setup identity/clock logging was added to `app.c`; runtime/shaders are unchanged.
 
 ## Accepted workload correctness — 2026-09-19
 
@@ -155,6 +163,27 @@ See the [receipt](results/learned-image-native-workload-2026-09-19.txt),
 The exports retain output hashes, full allocation traces and artifact provenance;
 local output hashes and trace consistency were rechecked before export.
 
-Next match native timestamp-query lifecycle/placement, add final-only-readback
-warmed timing, then collect fresh paired runs of both controls. Correctness and
-memory-policy parity are accepted; timing-policy parity and M1 are not complete.
+At this checkpoint correctness and memory-policy parity were accepted; timing
+remained pending. The following implementation collects the fresh paired result.
+
+## Paired measurement implementation
+
+`compare_native.py` builds both controls, regenerates/checks shader interfaces and
+references, then reruns full traced validation for both controls at the selected
+small/large extents. It matches device IDs/API and clock eligibility/period/bits
+across every validation, timing and allocation process. The native log also keeps
+driver identity and queue family; the single-device ICD gate avoids ambiguous
+device selection. Identical allocation types/sizes establish the memory control.
+
+Timing uses 48 fresh processes: four extents, two modes, two controls, three rounds.
+Mode order reverses each round; engine order alternates with round+extent+mode
+index, producing 12 pairs in each first-engine order. Validation and allocation
+tracing are disabled only for timing. All 1440 ordinary samples and final-image
+hashes are retained, followed by 16 independent traced 40-frame runs. Traced timings
+are discarded; successful allocations must match and be freed in both controls.
+
+`export_comparison.py` rechecks local logs, complete matrices, samples/statistics,
+validated final-image hashes and full allocation traces before exporting a new
+directory with samples.csv, report.json and checked validation.json. It refuses
+incomplete matrices or an existing output directory. This implementation is not
+accepted performance evidence until a completed run and decision are recorded.

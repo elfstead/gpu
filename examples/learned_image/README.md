@@ -172,8 +172,8 @@ SLANGC=/path/to/slangc python3 examples/learned_image/run_native.py --scale
 
 The default runs the standalone setup/address-copy smoke test. `--workload` adds
 the complete learned-image small odd-edge A/B/A case; `--scale` also checks the
-four selected measurement extents on Radeon. **There is no native timing mode or
-performance comparison yet.** It needs a C11
+four selected measurement extents on Radeon. These are correctness runs; use the
+separate paired runner below for performance. It needs a C11
 compiler, Python 3, `nm`, the repository's pinned Vulkan headers and a dynamic
 loader. GPU execution requires the same synchronization-validation environment
 as above and exactly one physical device from the selected ICD. Workload runs
@@ -209,6 +209,32 @@ The exporter rechecks the exact run matrix, all retained output hashes, per-exte
 output equality and allocation traces before writing. It refuses incomplete
 reports or an existing destination. It does not rerun the CPU oracle or export
 the large diagnostic buffers themselves.
+
+### Matched native/OGPU measurement
+
+```sh
+SLANGC=/path/to/slangc python3 examples/learned_image/compare_native.py --check
+SLANGC=/path/to/slangc python3 examples/learned_image/compare_native.py
+python3 examples/learned_image/export_comparison.py \
+  target/learned-image/native-control/comparison-IDENTIFIER/report.json /path/to/new-receipt-directory
+```
+
+Start with the same synchronization-validation environment and selected Radeon
+ICD as above. The runner performs fresh full-output validation, then 48 timing
+processes with validation/tracing disabled and rotated control order, then 16
+independent allocation-trace runs. Every timing process uses 10 warmups and 30
+samples and checks its final B image against the full validated result. Native
+timestamps, memory and one-shot submission policy match the OGPU control.
+Resident final snapshot is outside timing; end-to-end includes HOST write/upload/
+readback, not disk I/O. No intermediate CPU work is introduced.
+
+This measures instrumented serialized latency, not peak throughput or isolated
+API overhead. Interpret recording+submission together because OGPU lowers commands
+at submit while the direct control records immediately. Allow roughly 11 GB of
+additional space per complete run; it retains full validation buffers, all 1440
+ordinary samples, per-process statistics and native allocation traces. The exporter
+keeps reviewable statistics, CSV samples and correctness/hash/trace evidence, not
+the large GPU dumps. Existing results are never overwritten or auto-deleted.
 
 ## CPU fixture and training
 

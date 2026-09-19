@@ -118,6 +118,8 @@ int main(int argc, char **argv) {
         OgpuDeviceInfo info;
         TRY(ogpu_probe_device_info(probe, i, &info));
         printf("Learned-image device: %s (backend=%u)\n", info.name, info.backend);
+        printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",
+            info.vendor_id, info.device_id, info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch);
         break;
     }
     REQUIRE(device);
@@ -160,6 +162,8 @@ int main(int argc, char **argv) {
     OgpuResult timing_status = ogpu_device_timing_info(device, &timing, &error);
     REQUIRE(timing_status == OGPU_SUCCESS || timing_status == OGPU_ERROR_UNSUPPORTED);
     int timed = timing_status == OGPU_SUCCESS;
+    printf("CLOCK {\"supported\":%s,\"bits\":%u,\"period_ns\":%.9g}\n",
+        timed ? "true" : "false", timed ? timing.timestamp_valid_bits : 0, timed ? timing.timestamp_period_ns : 0.0);
     OgpuShaderDesc shaders[] = {hidden_shader(), denoise_shader(), process_shader(), poison_shader(),
         fullscreen_shader(), display_shader()};
     const uint32_t roots[] = {hidden_push_size, denoise_push_size, process_push_size, poison_push_size};

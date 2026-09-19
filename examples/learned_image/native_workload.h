@@ -255,9 +255,13 @@ static int native_workload(int argc, char **argv) {
     unsigned char *host = NULL, *weights = NULL, *pixels = NULL;
     char path[4096], name[96];
     int result = EXIT_FAILURE;
+    typedef struct { double upload, record, submit, wait, query, retire, read, total, device_ns; } NativeSample;
+    NativeSample samples[40] = {0};
     double started = native_now();
 #define WORK(condition) do { if (!(condition)) { fprintf(stderr, "Native workload check line %d: %s\n", __LINE__, #condition); goto cleanup; } } while (0)
-    WORK(argc == 11 && !strcmp(argv[1], "--validate"));
+    WORK(argc == 11);
+    int measuring = !strcmp(argv[1], "--measure");
+    WORK(measuring || !strcmp(argv[1], "--validate"));
     int resident = !strcmp(argv[2], "resident");
     WORK(resident || !strcmp(argv[2], "end-to-end"));
     argv += 2;
@@ -271,7 +275,8 @@ static int native_workload(int argc, char **argv) {
     for (unsigned i = 0; i < COUNT; ++i) { sizes[i] = payloads[i]+128; offsets[i] = total; WORK(add_size(total, sizes[i], &total)); }
     size_t upload_size = sizes[INPUT] > sizes[WEIGHTS] ? sizes[INPUT] : sizes[WEIGHTS], host_size;
     WORK(add_size(upload_size, upload_size, &host_size));
-    host = malloc(host_size); weights = malloc(sizes[WEIGHTS]); pixels = malloc(total);
+    size_t readback_size = measuring ? final_bytes+128 : total;
+    host = malloc(host_size); weights = malloc(sizes[WEIGHTS]); pixels = malloc(readback_size);
     WORK(host && weights && pixels);
     native_poison(weights, sizes[WEIGHTS]); WORK(native_file(argv[1], weights+GUARD, payloads[WEIGHTS], 0));
     for (unsigned slot = 0; slot < 2; ++slot) {
@@ -280,6 +285,9 @@ static int native_workload(int argc, char **argv) {
         WORK(native_file(path, host+slot*upload_size+GUARD, payloads[INPUT], 0));
     }
     WORK(native_create(&n));
+    int timed = native_timing_supported(&n);
+    printf("CLOCK {\"supported\":%s,\"bits\":%u,\"period_ns\":%.9g}\n",
+        timed ? "true" : "false", timed ? n.timestamp_bits : 0, timed ? (double)n.properties.limits.timestampPeriod : 0.0);
     Launch hidden_grid, denoise_grid, process_grid, poison_grid[COUNT] = {0};
     WORK(launch(count*8, hidden_local, n.properties.limits.maxComputeWorkGroupCount, &hidden_grid));
     WORK(launch(count, denoise_local, n.properties.limits.maxComputeWorkGroupCount, &denoise_grid));
@@ -295,7 +303,7 @@ static int native_workload(int argc, char **argv) {
         WORK(native_buffer_create(&n, &buffers[i], sizes[i], 0)); addresses[i] = buffers[i].address + GUARD;
     }
     WORK(native_buffer_create(&n, &upload, upload_size, 1));
-    WORK(native_buffer_create(&n, &readback, total, 1));
+    WORK(native_buffer_create(&n, &readback, readback_size, 1));
     WORK(native_buffer_create(&n, &draw, 16, 1));
     const uint32_t draw_args[] = {3, 1, 0, 0};
     WORK(native_write(&n, &draw, 0, draw_args, sizeof(draw_args)));
@@ -316,15 +324,16 @@ static int native_workload(int argc, char **argv) {
             WORK(native_submit(&n, &batch) && native_wait(&n, &batch)); native_batch_destroy(&n, &batch);
         }
     }
-    native_poison(pixels, total); WORK(native_write(&n, &readback, 0, pixels, total));
+    native_poison(pixels, readback_size); WORK(native_write(&n, &readback, 0, pixels, readback_size));
     size_t device_bytes = resident ? sizes[INPUT] : 0, host_bytes, cpu_bytes;
     for (unsigned i = 0; i < COUNT; ++i) WORK(add_size(device_bytes, sizes[i], &device_bytes));
-    WORK(add_size(upload_size, total, &host_bytes) && add_size(host_bytes, 16, &host_bytes));
-    WORK(add_size(host_size, sizes[WEIGHTS], &cpu_bytes) && add_size(cpu_bytes, total, &cpu_bytes));
-    printf("MEASUREMENT {\"mode\":\"%s\",\"validation\":true,\"warmups\":0,\"frames\":3,"
+    WORK(add_size(upload_size, readback_size, &host_bytes) && add_size(host_bytes, 16, &host_bytes));
+    WORK(add_size(host_size, sizes[WEIGHTS], &cpu_bytes) && add_size(cpu_bytes, readback_size, &cpu_bytes));
+    printf("MEASUREMENT {\"mode\":\"%s\",\"validation\":%s,\"warmups\":%u,\"frames\":%u,"
         "\"setup_ms\":%.6f,\"device_buffers\":%zu,\"host_buffers\":%zu,\"cpu_payload\":%zu,"
         "\"image_logical\":%zu,\"upload_bytes\":%zu,\"readback_bytes\":%zu}\n",
-        resident ? "resident" : "end-to-end", native_now()-started, device_bytes, host_bytes, cpu_bytes,
+        resident ? "resident" : "end-to-end", measuring ? "false" : "true", measuring ? 10u : 0u,
+        measuring ? 30u : 3u, native_now()-started, device_bytes, host_bytes, cpu_bytes,
         final_bytes, resident ? 0 : sizes[INPUT], resident ? 0 : final_bytes);
     HiddenArguments hidden = {.arg_input_data=addresses[INPUT], .arg_weights=addresses[WEIGHTS],
         .arg_output_data=addresses[HIDDEN], .arg_width=w, .arg_height=h, .arg_dispatch_width=hidden_grid.stride};
@@ -333,12 +342,15 @@ static int native_workload(int argc, char **argv) {
     ProcessArguments process = {.arg_input_data=addresses[DENOISED], .arg_output_data=addresses[COLOR],
         .arg_width=w, .arg_height=h, .arg_out_width=ow, .arg_out_height=oh, .arg_dispatch_width=process_grid.stride};
     DisplayArguments display = {.arg_pixels=addresses[COLOR], .arg_width=ow, .arg_height=oh};
-    for (unsigned diagnostic = 0; diagnostic < 2; ++diagnostic) for (unsigned frame = 0; frame < 3; ++frame) {
+    unsigned frames = measuring ? 40 : 3;
+    for (unsigned diagnostic = 0; diagnostic < (measuring ? 1u : 2u); ++diagnostic) for (unsigned frame = 0; frame < frames; ++frame) {
         unsigned slot = frame%2;
         NativeBuffer *input = resident && slot ? &input_b : &buffers[INPUT];
         hidden.arg_input_data = denoise.arg_input_data = input->address + GUARD;
+        double start = native_now();
         if (!resident) WORK(native_write(&n, &upload, 0, host+slot*upload_size, sizes[INPUT]));
-        WORK(native_begin(&n, &batch));
+        double upload_end = native_now();
+        WORK(native_begin_timed(&n, &batch, timed));
         native_barrier(&n, batch.command, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
             | VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
             | VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
@@ -374,12 +386,26 @@ static int native_workload(int argc, char **argv) {
             for (unsigned i = 0; i < COUNT; ++i)
                 WORK(native_copy(&n, &batch, i == INPUT ? input : &buffers[i], 0, &readback, offsets[i], sizes[i]));
         }
-        WORK(native_submit(&n, &batch) && native_wait(&n, &batch)); native_batch_destroy(&n, &batch);
+        double record_end = native_now();
+        WORK(native_submit(&n, &batch));
+        double submit_end = native_now();
+        WORK(native_wait(&n, &batch));
+        double wait_end = native_now(), device_ns = -1;
+        if (timed) WORK(native_elapsed(&n, &batch, &device_ns));
+        double query_end = native_now();
+        native_batch_destroy(&n, &batch);
+        double retire_end = native_now();
+        size_t read_size = diagnostic ? total : final_bytes+128;
+        if (!resident || diagnostic) WORK(native_read(&n, &readback, 0, pixels, read_size));
+        double frame_end = native_now();
+        if (measuring) samples[frame] = (NativeSample){upload_end-start, record_end-upload_end, submit_end-record_end,
+            wait_end-submit_end, query_end-wait_end, retire_end-query_end, frame_end-retire_end, frame_end-start, device_ns};
+        if (measuring && frame != frames-1) continue;
         if (resident && !diagnostic) {
             WORK(native_begin(&n, &batch) && native_image_readback(&n, &batch, &image, &readback, GUARD));
             WORK(native_submit(&n, &batch) && native_wait(&n, &batch)); native_batch_destroy(&n, &batch);
+            WORK(native_read(&n, &readback, 0, pixels, read_size));
         }
-        WORK(native_read(&n, &readback, 0, pixels, diagnostic ? total : final_bytes+128));
         WORK(native_guards(pixels, final_bytes+128));
         snprintf(name, sizeof(name), "%s-%u-final.rgba", diagnostic ? "diagnostic" : "normal", frame);
         WORK(native_path(path, argv[6], name) && native_file(path, pixels+GUARD, final_bytes, 1));
@@ -394,6 +420,15 @@ static int native_workload(int argc, char **argv) {
             WORK(!memcmp(pixels+offsets[WEIGHTS], weights, sizes[WEIGHTS]));
         }
         printf("Native %s frame %u: guards/input/weights PASS\n", diagnostic ? "diagnostic" : "normal", frame);
+    }
+    if (measuring) for (unsigned frame = 10; frame < 40; ++frame) {
+        NativeSample s = samples[frame];
+        printf("SAMPLE {\"frame\":%u,\"input\":%u,\"upload_ms\":%.6f,\"record_ms\":%.6f,"
+            "\"submit_ms\":%.6f,\"wait_ms\":%.6f,\"query_ms\":%.6f,\"retire_ms\":%.6f,"
+            "\"read_ms\":%.6f,\"total_ms\":%.6f,\"device_ms\":", frame, frame%2,
+            s.upload, s.record, s.submit, s.wait, s.query, s.retire, s.read, s.total);
+        if (s.device_ns < 0) printf("null"); else printf("%.6f", s.device_ns/1e6);
+        puts("}");
     }
     result = EXIT_SUCCESS;
 cleanup:
