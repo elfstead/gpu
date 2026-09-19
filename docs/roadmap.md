@@ -44,6 +44,12 @@ No calendar estimates are assigned before measuring each implementation's scope.
 Each milestone ends in a committed result and decision, not another open-ended
 list of experiments.
 
+Sequence amendment 2026-09-19: the [performance-expressibility gate](performance-expressibility.md)
+pulls the contract audit, repeated small-dispatch and streaming-slot experiments
+forward from M3 before M2 implementation. M1's matched-policy result remains
+accepted; it does not settle whether a stronger native strategy is expressible.
+This gate applies to M2's compiler work and later graphics/ML contracts as well.
+
 ## M1 — Make the existing application useful-sized
 
 **Deliverables**
@@ -155,11 +161,12 @@ replaced by a runtime, while also avoiding a new frontend merely to rename Slang
    measure allocation count and peak bytes against dedicated allocations. Keep
    pointer ownership explicit. Decide separately whether any runtime allocation
    primitive would be better; do not silently move an allocator into the runtime.
-3. Use M1 timings to choose the submission change. If recording is material,
-   prototype reusable command sequences with explicit argument-update and resource-
-   lifetime rules against one-shot batches. Otherwise retain one-shot recording
-   and close replay with measured reasons. No mandatory replay implementation merely
-   because native APIs support it.
+3. Use the performance-expressibility controls to choose the submission change.
+   Compare reusable native command sequences with the best expressible one-shot
+   strategy, including host-sensitive workloads, explicit argument updates and
+   resource lifetimes. A GPU-heavy matched-policy result cannot close replay.
+   Separate backend pool reuse from public repeated-encoding costs. Adopt a better
+   contract when exposed; no mandatory copy of a native API abstraction.
 4. Add application/executable/batch labels and a reproducible failure report
    containing revision, backend, enabled requirements and failing operation.
    Start with SDK/consumer diagnostics; extend runtime diagnostics only where it
@@ -177,8 +184,8 @@ hidden inside this milestone; their entry criteria are below.
 M1 input to this decision: matched host recording+submission medians overlap
 (native roughly 74–116 microseconds, OGPU 78–107), while resident GPU work and
 end-to-end transfer/synchronization dominate. Begin with sustained slot/staging
-reuse and keep one-shot recording unless that experiment exposes a better
-alternative. Retain M1's host-tail observations for targeted diagnosis; they do
+reuse, but examine stronger native strategies before retaining one-shot recording
+as a fundamental contract. Retain M1's host-tail observations for diagnosis; they do
 not establish a driver/scheduler cause or mandate a replay API.
 
 ## M4 — Implement a meaningful graphics subset

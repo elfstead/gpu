@@ -4,6 +4,13 @@ Updated 2026-09-16. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
+The [performance-expressibility gate](performance-expressibility.md) asks whether
+a native implementation could preserve Vulkan's attainable performance, not just
+whether this backend is close to a native control constrained to the same policy.
+An API-imposed disadvantage challenges the fundamental contract. Matched-policy
+measurements alone cannot approve that contract; unresolved restrictions remain
+explicit in the audit.
+
 Initial feasibility and the first bounded consumer checkpoint are complete:
 [GGML's FP32 MNIST forward graph](consumer-ggml.md) works through the public API.
 The second bounded consumer, [libplacebo image processing](consumer-libplacebo.md),

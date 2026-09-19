@@ -60,7 +60,18 @@ claim follows. Transfer/synchronization costs dominate the mode difference; GPU
 execution dominates resident latency. M3 should test sustained slot/staging reuse
 and investigate tails if material, not assume replay or a runtime allocator.
 
-## Next milestone: M2 — programming/compiler contract
+## Active work: performance-preserving expressibility
+
+The [contract audit and acceptance brief](performance-expressibility.md) adds the
+fundamental gate: could a native implementation preserve Vulkan's attainable
+performance under the same correctness and resource/latency requirements?
+M1 remains complete, but its matched-policy retain decision is provisional, not
+proof that the API excludes no better strategy. Pull forward the small-dispatch
+and streaming-slot comparisons from M3. Separate API-imposed disadvantages from
+backend costs and unresolved hardware-dependent questions; do not assume replay,
+mapping or concurrency is unnecessary because M1 is GPU-heavy.
+
+## Following milestone: M2 — programming/compiler contract
 
 Start with a bounded acceptance brief and a device-code contract that separates
 runtime guarantees, compiler conventions, capability requirements and caller
