@@ -5,6 +5,12 @@ Selected next in M1, 2026-09-19. Implement only after the corrected
 benchmark-only control for this application, not a second runtime or a new public
 backend. No additional GPU or Mac is needed.
 
+Later design gate: the [performance frontier](performance-expressibility.md)
+examines strategies this matched-policy comparison deliberately excluded. Its
+[small-compute result](performance-frontier-small.md) exposes a command-storage
+lifecycle opportunity. The M1 results below remain valid for their stated policy;
+the retain decision is not approval of that policy as the fundamental API.
+
 ## Question and fixed conditions
 
 How much serialized frame latency does the current OGPU execution path add to

@@ -482,6 +482,30 @@ not an unquestioned requirement: a storage alternative must reset native referen
 before releasing heaps/objects, preserve completion semantics and bound retention.
 No runtime/API change yet; streaming and other expressibility concerns remain open.
 
+## Performance expressibility: streaming image frontier — 2026-09-20
+
+At `ed50e00`, the [streaming probe](performance-frontier-stream.md) passes 24,000
+validated Radeon frames across 720p/odd extents, one/two/three slots and four native/
+OGPU strategies; software controls check 768 small odd frames. Final-image numerical
+gates are unchanged, with separate post-window input/weight integrity and intermediate
+guard checks. This does not repeat M1's full scalar-intermediate acceptance.
+
+72,000 ordinary timing samples plus separate allocation controls show two slots
+improving OGPU throughput about 25–27%, with roughly doubled data allocations and
+higher observed frame latency. A third adds no useful throughput here. At equal
+slots/work, OGPU process wall times are 1.46–2.73% higher than native reset/re-record;
+replay reduces host recording further but does not consistently improve throughput.
+All 1,020 tracked allocations across correctness/allocation controls are freed.
+Driver-private storage is not measured. Radeon ran clean; llvmpipe recorded pending
+documentation edits, with identical committed code hashes and binaries.
+
+Retain explicit independent slots, but do not approve the fundamental API from
+these cases. The [next storage review](command-storage-review.md) separates backing
+capacity, executable references and submission retirement, with heap/lifetime/failure
+and timing-receipt gates. No runtime/API change yet. Cross-queue/concurrent host work,
+mapped/range access, dependency precision, descriptor streaming and compiler limits
+remain open. The receipt links full statistics, raw samples and checked traces.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

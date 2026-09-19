@@ -49,6 +49,11 @@ pulls the contract audit, repeated small-dispatch and streaming-slot experiments
 forward from M3 before M2 implementation. M1's matched-policy result remains
 accepted; it does not settle whether a stronger native strategy is expressible.
 This gate applies to M2's compiler work and later graphics/ML contracts as well.
+The [small-compute](performance-frontier-small.md) and
+[streaming](performance-frontier-stream.md) probes are complete (2026-09-20).
+They expose a storage-lifecycle opportunity and demonstrate independent slots;
+the [storage-retirement alternative](command-storage-review.md) is next. The other
+expressibility concerns remain explicit rather than being passed by these workloads.
 
 ## M1 — Make the existing application useful-sized
 

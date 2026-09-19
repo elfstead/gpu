@@ -118,3 +118,11 @@ host encoding but does not win every throughput case. Current retirement wording
 also needs review: releasing submission references need not mean destroying all
 reusable native storage. This is not approval of the existing API or completion of
 the streaming, cross-queue, mapping, descriptor or compiler checks.
+
+The [streaming result](performance-frontier-stream.md) completes the second probe
+at `ed50e00`, accepted 2026-09-20: 72,000 measured frames, full final-output checks,
+post-window input/weight/guard integrity and matched allocation cleanup. Two slots
+improve throughput at a clear memory/latency cost; three add no useful throughput
+here. The [storage-retirement review](command-storage-review.md) is the next local
+design/implementation gate. Neither result settles the other audit concerns or
+establishes an unavoidable quantitative API overhead.

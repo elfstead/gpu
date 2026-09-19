@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-19. This page owns current status and selected work. The
+Updated 2026-09-20. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -26,7 +26,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
-| Performance | Matched native controls for libplacebo and learned-image; M1 learned-image median latencies within about 1.14% of native in eight selected cases | Workload/policy-specific Radeon evidence, not isolated API overhead or uniform tail parity; smaller libplacebo workloads retain larger gaps |
+| Performance | M1 learned-image matched-policy medians within about 1.14% of native; stronger small-compute controls expose a substantial command-storage lifecycle gap | Workload/policy-specific Radeon evidence, not approval of the fundamental API, isolated overhead or uniform tail parity |
 | Validation | RX 5700 XT / RADV and llvmpipe; Apple M4 compute/GGML acceptance; 37 Linux ordinary tests and 749 ABI layout checks | Metal has no graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
@@ -51,7 +51,8 @@ Native/OGPU outputs, allocation sizes/types and clock policy match; all tracked
 allocations are freed. Earlier [scale acceptance](learned-image-scale.md) supplies
 the complete six-group extent coverage. See the [M1 receipt](results/learned-image-m1-2026-09-19.txt).
 
-Retain the runtime/API, generated interfaces and one-shot batches. Across the
+The M1 decision retained the runtime/API, generated interfaces and one-shot batches
+provisionally; the stronger frontier below reopens command-storage lifetime. Across the
 eight extent/mode cases, OGPU's median of per-process medians is 0.04% lower to
 1.14% higher than native. For 4K downscale, resident latency is 3.984 ms OGPU versus
 3.979 ms native; end-to-end is 12.071 versus 12.057 ms. Some OGPU tail samples are
@@ -76,7 +77,18 @@ The first [small-compute result](performance-frontier-small.md) is accepted at
 allocation cleanup. Native reset/re-record is substantially faster than OGPU's
 fresh-pool lifecycle here. Separate reusable command storage from replay, and
 review the contract's native-destruction promise before calling pooling a backend-
-only fix. Streaming application controls and the remaining audit concerns stay open.
+only fix. The [streaming result](performance-frontier-stream.md) is also complete
+at `ed50e00`: 72,000 timing samples, 1,000-frame Radeon correctness at both extents
+and one/two/three slots, smaller llvmpipe controls, and matched allocation cleanup.
+Two slots improve throughput about 25–27% at higher memory/latency; three show no
+useful additional throughput. Native reset/re-record remains faster than OGPU by
+about 1–3% here, versus the much larger host-sensitive gap. Other audit concerns
+remain open; this is not approval of the fundamental API.
+The [command-storage review](command-storage-review.md) separates storage,
+recording and submission lifetimes and defines the next heap/error/retirement gates.
+Next prototype a bounded storage-reuse alternative and resolve its public lifetime
+contract, separately from executable replay. Do not widen unrelated API surface or
+start M2 by treating the existing submission contract as settled.
 
 ## Following milestone: M2 — programming/compiler contract
 

@@ -58,7 +58,7 @@ exporter refuses incomplete matrices and existing destinations, verifies retaine
 logs/statistics/traces and writes JSON plus all 48,000 ordinary CSV samples.
 Outputs are not auto-deleted. This small suite needs tens of MB, not M1's large
 intermediate dumps. New strategies must be labeled rather than silently replacing
-one of these controls. Streaming learned-image is the next distinct experiment.
+one of these controls. Streaming learned-image uses the distinct control below.
 
 ## Streaming learned-image
 
@@ -102,3 +102,8 @@ No cross-queue control, direct host mapping, narrowed-dependency strategy or hea
 mutation is implemented here. Three-slot success establishes expressibility only
 for independently allocated slots on the current queue. It does not approve the
 rest of the fundamental API. Runtime and ABI remain unchanged.
+
+Accepted results: [small compute](../../docs/performance-frontier-small.md) and
+[streaming image](../../docs/performance-frontier-stream.md). The
+[next contract review](../../docs/command-storage-review.md) separates reusable
+storage from executable replay and defines the remaining retirement tests.

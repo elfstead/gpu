@@ -93,6 +93,15 @@ for the environment, disk budget and checked export commands, and the
 [accepted M1 result](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
 for distributions, memory and the retain decision.
 
+Stronger-strategy controls live in [performance_frontier](../examples/performance_frontier/README.md):
+`python3 examples/performance_frontier/run.py` compares small-compute fresh pools,
+reset/re-record and replay against OGPU; `python3 examples/performance_frontier/stream.py`
+compares streaming learned-image slots. Both accept `--check` without a GPU and
+`--software` for small correctness-only controls. Use a selected ICD and the same
+synchronization-validation environment; timing disables validation separately.
+These implement the [expressibility gate](performance-expressibility.md), not an
+extension of M1's deliberately matched-policy performance claim.
+
 `SLANGC=/path/to/slangc cargo xtask compiler-workflow` builds and runs a compiler-
 generated C interface for the existing integer transform. It uses pinned Slang
 2026.14.1, Python 3 standard library and SPIRV-Tools; `--check` checks reproduction
