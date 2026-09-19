@@ -59,3 +59,46 @@ logs/statistics/traces and writes JSON plus all 48,000 ordinary CSV samples.
 Outputs are not auto-deleted. This small suite needs tens of MB, not M1's large
 intermediate dumps. New strategies must be labeled rather than silently replacing
 one of these controls. Streaming learned-image is the next distinct experiment.
+
+## Streaming learned-image
+
+```sh
+python3 examples/performance_frontier/stream.py --check
+python3 examples/performance_frontier/stream.py --preflight # 12 small odd frames
+python3 examples/performance_frontier/stream.py --software  # 64 small odd frames
+python3 examples/performance_frontier/stream.py             # Radeon full matrix
+python3 examples/performance_frontier/export_stream.py \
+  target/performance-frontier/stream-IDENTIFIER/report.json /path/to/new-evidence-directory
+```
+
+Same loader/layer environment. Reuses the checked M1 `reference`/`reference-scale`
+fixtures from `SLANGC=/path/to/slangc cargo xtask learned-image --scale --check`.
+The runner verifies model, weights, A/B inputs and CPU final-image hashes before
+execution. It does not regenerate multi-GB fixtures on each timing run.
+
+Full matrix: 1280x720 -> 2560x1440 and 1919x1079 -> 2561x1441, each at one/two/three
+slots and all four strategies. Every slot owns five DEVICE buffers, HOST upload/
+readback and an RGBA8 target; immutable draw arguments are shared. Input data
+alternates A/B, including for reusable native recordings with stable addresses.
+Each frame includes input HOST write, GPU upload/compute/raster/readback, then CPU
+read after completion. This is end-to-end streaming, not resident M1 timing.
+
+Validation checks every full final image for 1,000 frames per configuration against
+the unchanged CPU gate (RGB delta <=1, alpha exactly 255), plus readback guards.
+After the window, a separate diagnostic submission checks every slot's unchanged
+input/weights and all intermediate prefix/suffix guards. It uses existing readback
+storage and is outside timing; it does not reaccept full intermediate numerics.
+Timing checks every slot's final image after the measured window and runs the same
+buffer-integrity diagnostic. Do not treat this as new shader/compiler acceptance.
+
+There are 24 validated Radeon processes, 72 timing processes (100 warmups + 1,000
+frames, three rounds, rotated strategy order) and 24 independently traced timing-
+mode processes. llvmpipe checks only the 12 small odd configurations. Full results
+retain 72,000 samples. Allocation count is 1 + 8*slots, independent of frame count;
+all allocations must match native/OGPU sizes/types and be freed. Driver-private
+pool storage is excluded. More slots increase both storage and observed latency.
+
+No cross-queue control, direct host mapping, narrowed-dependency strategy or heap
+mutation is implemented here. Three-slot success establishes expressibility only
+for independently allocated slots on the current queue. It does not approve the
+rest of the fundamental API. Runtime and ABI remain unchanged.
