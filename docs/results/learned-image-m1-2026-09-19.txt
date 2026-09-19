@@ -1,0 +1,127 @@
+M1 complete — useful-scale learned-image execution and matched native comparison
+Date: 2026-09-19
+Final tested implementation: a819f6c9e3042c522f525360bcbd42bd7b5257bb (clean).
+Evidence export and documentation followed the run; tested code/artifacts unchanged.
+
+M1 deliverables:
+1. Six declared 720p/1080p/4K/odd input/up/down groups accepted in prior scale
+   receipts, including 3840x2160 -> 4097x2305 and 1919x1079 -> 1277x719.
+2. Checked size arithmetic and real X/Y launch mapping, queried device limits.
+3. Streaming C binary64 oracle matches every file of all 38 Python fixtures;
+   full intermediate/pixel comparisons at scale. No sample-only correctness gate.
+4. Warmed resident/end-to-end modes with CPU/device clocks, requested byte
+   accounting, traced native allocations and per-process distributions.
+5. Independent direct Vulkan control, identical generated SPIR-V/root/grid/stage/
+   placement/transfer/queue and timestamp policy, fresh paired measurements.
+
+Prior evidence: docs/learned-image-scale.md, docs/learned-image-measurement.md,
+docs/results/learned-image-measurement-2026-09-19.txt and
+docs/results/learned-image-native-workload-2026-09-19.txt.
+The corrected resize-coordinate and odd-edge display-pointer defects remain
+recorded. No numerical gate relaxation, model change or legacy workaround.
+
+Final environment:
+  CPU: AMD Ryzen 9 5900X, 12 cores/24 threads; Linux 6.18.47 x86-64.
+  GPU: AMD Radeon RX 5700 XT, RADV NAVI10, Mesa 26.2.1; Vulkan 1.4.354.
+  Vendor/device 4098/29471; first graphics+compute family 0; clock 64 bits/10 ns.
+  Software control: llvmpipe LLVM 21.1.8, 256 bits; Mesa 26.2.1; 64 bits/1 ns.
+  Clang 21.1.8, Rust 1.97.1, CPython 3.14.7, Slang 2026.14.1, SPIRV-Tools 2026.3.
+  Frozen model SHA256: 59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0
+  Native code uses pinned repository Vulkan headers and no OGPU runtime linkage.
+  No clock pinning, CPU affinity, exclusive-machine control or extra GPU required.
+
+Reproduction (normal compiler/loader/layer environment already installed):
+  SLANGC=/tmp/ogpu-slang.yunI5tdx/bin/slangc
+  VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation; VK_LAYER_VALIDATE_SYNC=1
+  VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json
+  python3 examples/learned_image/run_native.py --workload
+Then Radeon ICD:
+  VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+  python3 examples/learned_image/compare_native.py
+
+All gates PASS:
+- Small odd-edge: 8 processes per driver, native/OGPU x original/mutated x
+  resident/end-to-end, six normal/diagnostic A/B/A frames per process.
+- Large Radeon: four preselected extents, native/OGPU x resident/end-to-end,
+  six normal/diagnostic A/B/A frames per process (16 further processes).
+- Final correctness total 32 processes / 192 frames. Full CPU reference once
+  per extent/driver; all 21 output files byte-identical across controls/modes/
+  interface variants. Max scalar error 2.071346953957942e-7, error/bound
+  0.00768996319464654; RGB delta <= 1, alpha exactly 255. Guards, unchanged
+  input/weights, A/B distinction and repeated A pass. Device/clock identity matches.
+- 48 fresh timing processes: four extents x two modes x two engines x three
+  rounds. Each has 10 warmups + 30 samples: 1920 frames / 1440 measured samples.
+  Mode order alternates by round, engine order by round+extent+mode index.
+  Twelve engine pairs start with native and twelve with OGPU. No filtering.
+- Ordinary timing unsets instance layers/sync validation/layer enable and sets
+  VK_LOADER_LAYERS_DISABLE=*. No trace loader. Validation precedes timing.
+- 16 separate validated/traced 40-frame controls = 640 frames; traced timings
+  excluded from distributions. Native/OGPU allocation sizes/types match exactly.
+- Every ordinary/traced final B image matches its fully validated counterpart.
+  Resident final snapshot is a separate untimed submission; end-to-end includes
+  staging/upload/final-copy/readback. No disk/reference work in frame timing.
+- All 152 allocations in timing-mode traces freed; 304 in final correctness
+  traces also freed. Zero tracked live bytes after each process. Nine successful
+  allocations/frees end-to-end, ten resident, unchanged across the 40-frame runs.
+- No validation errors. Fresh generated-interface/build tests, native injected
+  failure/timestamp tests and parser/export/order tests PASS. Query failure,
+  pending/device-lost query rejection, wrapping ticks and pool retirement tested.
+- 37 ordinary Rust tests, Clippy -D warnings, formatting, 749 ABI layouts and
+  native static analysis PASS. No broad runtime GPU, GGML/libplacebo/SDK or
+  native Metal reacceptance claimed for this example/harness-only change.
+
+Total frame latency in ms: median of three process medians [min, max of medians].
+Input -> output          mode          native                         OGPU
+1280x720 -> 2560x1440     resident      0.922516 [0.907726,0.926906]     0.926241 [0.917841,0.928146]
+1280x720 -> 2560x1440     end-to-end    4.567265 [4.556356,4.581946]     4.594325 [4.549826,4.608156]
+1920x1080 -> 960x540      resident      1.113150 [1.099490,1.113449]     1.120024 [1.102819,1.120474]
+1920x1080 -> 960x540      end-to-end    2.985772 [2.973777,2.998036]     2.984641 [2.957711,2.985086]
+3840x2160 -> 1919x1079    resident      3.979347 [3.978107,3.992182]     3.984457 [3.984286,3.994531]
+3840x2160 -> 1919x1079    end-to-end   12.057313 [11.969065,12.058983]  12.070748 [11.941914,12.112793]
+1919x1079 -> 2561x1441    resident      1.391231 [1.387792,1.414252]     1.407031 [1.395466,1.415191]
+1919x1079 -> 2561x1441    end-to-end    6.147740 [6.079571,6.166446]     6.160485 [6.155580,6.236334]
+
+Do not hide tails: round-1 720p resident p95 is OGPU 1.407626 / native 0.972471 ms;
+round-1 odd end-to-end p95 is OGPU 7.170151 / native 6.214789 ms. The first case's
+large frames contain host submit/query spikes; the second's host staging/readback
+intervals grow. Device times remain close. This identifies intervals, not a
+driver/scheduler/cache root cause; no uniform tail-latency parity is claimed.
+
+Peak timing-mode Vulkan allocation bytes, identical in both engines:
+Input -> output             resident        end-to-end
+1280x720 -> 2560x1440        133756288       130069760
+1920x1080 -> 960x540         112540032       104245504
+3840x2160 -> 1919x1079       448441152       415263424
+1919x1079 -> 2561x1441       189787136       181504592
+Requested CPU/HOST/DEVICE/logical-image bytes are separate report fields, not
+additional native bytes. No driver-private/physical-residency/process-memory
+claim. Allocation policy and explicit retirement are bounded over these runs;
+M3's sustained multi-slot/1000-frame acceptance is not completed here.
+
+Decision: RETAIN current runtime/API, explicit placement/dependencies, generated
+interfaces and one-shot batches. Close M1. No mandatory speedup was specified.
+OGPU/native ratios of the above unrounded median values span 0.99962–1.01136;
+this is near-native median latency for this workload/policy/GPU, not isolated
+wrapper overhead, peak native throughput, statistical equivalence or all-GPU parity.
+End-to-end is about 2.7–5.0x resident in OGPU; transfers and synchronization dominate
+that difference, also in native. GPU work dominates resident latency. Combined
+record+submit per-process medians overlap broadly (native about 74–116 us; OGPU
+78–107 us). Do not infer the need for replay, a runtime allocator or kernel fusion.
+M3 should use this baseline for sustained staging/slot reuse and bounded tail
+diagnostics if material. M2's programming/compiler contract and language decision
+are next; neither a new language nor a stable/general GPU API is claimed complete.
+
+Evidence:
+  docs/results/learned-image-m1-2026-09-19/samples.csv (all 1440 raw samples)
+  docs/results/learned-image-m1-2026-09-19/report.json (statistics, setup, memory,
+    identity, all timing-mode traces, revision/source/shader/binary hashes)
+  docs/results/learned-image-m1-2026-09-19/validation.json (Radeon full correctness)
+  docs/results/learned-image-m1-llvmpipe-2026-09-19.json (software correctness)
+Exporter rechecks retained samples/statistics, final image hashes, all validation
+output hashes and native traces; it does not rerun CPU oracle comparisons.
+
+Local artifacts retained, no deletion:
+  target/learned-image/native-control/workload-8cv3c39x/ (llvmpipe)
+  target/learned-image/native-control/workload-4cu6ka32/ (Radeon correctness)
+  target/learned-image/native-control/comparison-t9d56k0d/ (paired timings/traces)
+Logs: /tmp/ogpu-m1-final-lvp-20260919.log and /tmp/ogpu-m1-paired-20260919.log.

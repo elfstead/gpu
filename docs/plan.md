@@ -25,8 +25,8 @@ from one source revision. No release/tag or cross-version stability is implied.
 | Graphics/images | Compute and raster share batches; independent heaps, preservation, uploads/readbacks and indirect draws | Narrow offscreen state and formats; no presentation or general rendering backend |
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
-| Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality, performance or Metal graphics claim |
-| Performance | Controlled native comparison; image allocation correction `1f41d7e` closes the large resident bottleneck | Near-4K grouped 563.54 vs native 593.17 fps on this GPU; smaller workloads retain larger gaps, not isolated API overhead |
+| Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
+| Performance | Matched native controls for libplacebo and learned-image; M1 learned-image median latencies within about 1.14% of native in eight selected cases | Workload/policy-specific Radeon evidence, not isolated API overhead or uniform tail parity; smaller libplacebo workloads retain larger gaps |
 | Validation | RX 5700 XT / RADV and llvmpipe; Apple M4 compute/GGML acceptance; 37 Linux ordinary tests and 749 ABI layout checks | Metal has no graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
@@ -35,52 +35,46 @@ framework, runtime scheduler, new public placement flag or further performance
 target was selected. The failed shaderc optimized-heap diagnostic remains a known
 toolchain limitation; ordinary shader compilation is unchanged.
 
-## Active work: useful-scale execution
+## Completed M1: useful-scale execution
 
-[Roadmap M1](roadmap.md#m1--make-the-existing-application-useful-sized) takes the
-existing learned-image application to video-sized inputs before widening the API.
-The [first correctness slice](learned-image-scale.md) is complete at `86dd16e`:
-checked sizes, real X/Y dispatch, a streaming binary64 oracle matching all Python
-fixtures, and full-reference 720p/1080p A/B/A execution pass. Large execution
-exposed a resize-coordinate precision defect; checked integer pixel selection
-corrected it without relaxing numerical gates. Small regressions pass on both
-Vulkan drivers; large cases pass on Radeon with both interface variants.
+[Roadmap M1](roadmap.md#m1--make-the-existing-application-useful-sized) is complete.
+All six declared 720p/1080p/4K/odd scale groups pass full intermediate/final
+correctness with checked multidimensional dispatch and a streaming binary64
+oracle. The resize-coordinate and display-pointer defects found during scale work
+were corrected without relaxing numerical gates. The frozen model is unchanged.
 
-The second correctness slice is complete at `6d36e93`: all six scale groups,
-including 4K/odd inputs and non-integer up/down resizes, pass without additional
-shader/runtime changes. Both modes and interface variants pass, with full
-intermediate checks and byte-identical cross-variant outputs. See the
-[receipt](results/learned-image-4k-2026-09-18.txt). Declared size/correctness
-coverage is complete, not the entire milestone.
+At clean implementation revision `a819f6c`, the
+[matched native comparison and decision](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
+accept 1,440 measured samples from 48 fresh timing processes, 16 separate
+allocation controls and fresh full-output correctness on Radeon/small llvmpipe.
+Native/OGPU outputs, allocation sizes/types and clock policy match; all tracked
+allocations are freed. Earlier [scale acceptance](learned-image-scale.md) supplies
+the complete six-group extent coverage. See the [M1 receipt](results/learned-image-m1-2026-09-19.txt).
 
-The [corrected measurement baseline](learned-image-measurement.md#accepted-corrected-baseline--2026-09-19)
-is accepted at `958b831`: 720 retained timing samples, separate mode validation
-and eight allocation traces with complete cleanup. Resident median frame times
-range from 0.933 to 3.988 ms on the selected workloads; end-to-end medians range
-from 2.960 to 11.941 ms. A reproducible llvmpipe crash exposed an out-of-bounds
-display-pointer read; clamping fragment coordinates fixed it, and small/scale/
-repeated-edge regressions pass without relaxing gates. No runtime/API change.
+Retain the runtime/API, generated interfaces and one-shot batches. Across the
+eight extent/mode cases, OGPU's median of per-process medians is 0.04% lower to
+1.14% higher than native. For 4K downscale, resident latency is 3.984 ms OGPU versus
+3.979 ms native; end-to-end is 12.071 versus 12.057 ms. Some OGPU tail samples are
+noisier; no uniform tail parity, isolated API overhead or general GPU performance
+claim follows. Transfer/synchronization costs dominate the mode difference; GPU
+execution dominates resident latency. M3 should test sustained slot/staging reuse
+and investigate tails if material, not assume replay or a runtime allocator.
 
-Next implement the [matched native Vulkan control](learned-image-native-control.md).
-Run fresh paired controls with identical shaders, memory placement, stage/transfer
-boundaries, synchronization and one-frame queue policy. Preserve the frozen model
-and numerical gates. No other GPU or Mac is needed. M1 is not yet complete; the
-accepted OGPU baseline does not establish overhead relative to direct Vulkan.
+## Next milestone: M2 — programming/compiler contract
 
-The native control now executes the complete generated compute/raster workload.
-At `219254e`, [full-output correctness and memory-policy parity](learned-image-native-control.md#accepted-workload-correctness--2026-09-19)
-pass: 32 validated processes, 192 frames, byte-identical native/OGPU outputs,
-matching allocation size/type sequences and all 304 allocations freed. Coverage
-is the small odd-edge case on both drivers and four large Radeon groups, with
-both generated interfaces in the small case. Next add native timestamp-query
-parity and final-only readback timing, then run fresh paired controls. There is
-still no native performance result; the runtime/API and OGPU baseline are unchanged.
+Start with a bounded acceptance brief and a device-code contract that separates
+runtime guarantees, compiler conventions, capability requirements and caller
+obligations. Then cover structured/root/pointed-to arguments, generated image/heap
+interfaces and explicit source-build dependencies through the installed tool.
+Finish with a committed language-direction decision grounded in actual compiler
+output and host integration. Existing M1 outputs remain a regression gate.
+M2 has not been implemented or accepted; see its [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
-The proposed sequence then covers compiler/programming contracts, sustained
-resource reuse, an experimental release checkpoint, and substantial graphics/ML
-consumers. Metal parity is a separate native-validation track. The roadmap assigns
-remaining gaps either a milestone or an explicit deferral with entry criteria;
-they are not all prerequisites for the next checkpoint.
+After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),
+and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate
+native-validation track, not a prerequisite for local progress. The roadmap
+assigns remaining gaps either a milestone or an explicit deferral with entry
+criteria; the experimental API is not frozen.
 
 ## Completed work: reproducible two-consumer checkpoint
 

@@ -185,5 +185,105 @@ are discarded; successful allocations must match and be freed in both controls.
 `export_comparison.py` rechecks local logs, complete matrices, samples/statistics,
 validated final-image hashes and full allocation traces before exporting a new
 directory with samples.csv, report.json and checked validation.json. It refuses
-incomplete matrices or an existing output directory. This implementation is not
-accepted performance evidence until a completed run and decision are recorded.
+incomplete matrices or an existing output directory. The completed run and
+decision follow; the earlier slices above remain revision-specific evidence.
+
+## Accepted comparison and M1 decision — 2026-09-19
+
+**M1 is complete. Retain the current runtime/API and generated execution model.**
+At clean revision `a819f6c`, fresh controls pass all correctness, clock, timing and
+allocation gates. No runtime, shader, model or numerical-tolerance change was
+needed for the matched comparison. This result does not freeze the API; later
+evidence may expose a better API alternative.
+
+Environment: RX 5700 XT / RADV NAVI10, Mesa 26.2.1, Vulkan 1.4.354, graphics/compute
+queue 0; Ryzen 9 5900X, Linux 6.18.47 x86-64. Both controls report 64 timestamp bits
+and a 10 ns period. The small llvmpipe check also passes, using its 64-bit/1 ns clock.
+No clock pinning, CPU affinity or exclusive-machine control was applied. These
+are local serialized latencies, not portable performance promises.
+
+Each value below is the median of three fresh per-process medians, with the
+minimum–maximum of those medians in parentheses, in milliseconds. There are 30
+measured frames after 10 warmups in each process. No samples were removed.
+
+| Input -> output | Mode | Native ms (range) | OGPU ms (range) |
+|---|---|---:|---:|
+| 1280x720 -> 2560x1440 | Resident | 0.923 (0.908–0.927) | 0.926 (0.918–0.928) |
+| 1280x720 -> 2560x1440 | End-to-end | 4.567 (4.556–4.582) | 4.594 (4.550–4.608) |
+| 1920x1080 -> 960x540 | Resident | 1.113 (1.099–1.113) | 1.120 (1.103–1.120) |
+| 1920x1080 -> 960x540 | End-to-end | 2.986 (2.974–2.998) | 2.985 (2.958–2.985) |
+| 3840x2160 -> 1919x1079 | Resident | 3.979 (3.978–3.992) | 3.984 (3.984–3.995) |
+| 3840x2160 -> 1919x1079 | End-to-end | 12.057 (11.969–12.059) | 12.071 (11.942–12.113) |
+| 1919x1079 -> 2561x1441 | Resident | 1.391 (1.388–1.414) | 1.407 (1.395–1.415) |
+| 1919x1079 -> 2561x1441 | End-to-end | 6.148 (6.080–6.166) | 6.160 (6.156–6.236) |
+
+The ratios of the table's unrounded median values put OGPU between 0.04% lower
+and 1.14% higher than native across the eight cases. That supports near-native
+median latency for this specific workload/policy/device, not a universal API-cost
+estimate or statistically established speed difference. Per-process ranges overlap.
+The experiment does not compare against maximally tuned/pipelined native Vulkan.
+
+Tails are not uniformly equal. In round 1, 720p resident OGPU p95 is 1.408 ms versus
+native 0.972 ms; the two largest OGPU frames contain a 0.644 ms submit interval and
+a 0.513 ms query interval respectively, with device time about 0.743–0.757 ms.
+Odd-input end-to-end OGPU p95 reaches 7.170 ms versus native 6.215 ms in that round;
+its large frames spend more time in host staging/readback. These are observed host
+intervals, not proof of a particular driver, scheduling or cache cause. Three
+30-sample processes cannot establish a tail-latency guarantee. All outliers and
+per-process mean/median/p95/min/max remain in the exported evidence.
+
+### What the costs say
+
+Transfer policy is the dominant actionable difference here: OGPU end-to-end
+medians are about 2.7–5.0 times resident medians. For 4K, device-batch medians are
+3.797 ms resident and 9.572 ms end-to-end; CPU staging/readback medians are roughly
+1.686/0.481 ms in end-to-end mode. The same costs appear in native. This is a
+transfer-and-synchronization cost, not an isolated bandwidth measurement.
+
+Host recording+submission per-process medians span roughly 74–116 microseconds
+native and 78–107 microseconds OGPU. They contain different divisions of work
+between recording and submit, but neither reveals a large wrapper-specific
+bottleneck. GPU execution dominates resident latency, especially at 4K. Keep
+the one-shot model for now; M3 should test sustained in-flight slot/staging reuse
+and diagnose tails if material, not assume command replay or an allocator framework
+is justified by these numbers. No kernel tuning campaign is selected.
+
+### Memory and acceptance boundaries
+
+All 16 independent 40-frame allocation controls match native/OGPU allocation
+sizes and memory types. Each process creates/frees nine allocations end-to-end or
+ten resident, with zero tracked live bytes after cleanup; no allocation-count
+growth over 40 frames. Peak traced bytes are identical in both engines:
+
+| Input -> output | Resident bytes | End-to-end bytes |
+|---|---:|---:|
+| 1280x720 -> 2560x1440 | 133756288 | 130069760 |
+| 1920x1080 -> 960x540 | 112540032 | 104245504 |
+| 3840x2160 -> 1919x1079 | 448441152 | 415263424 |
+| 1919x1079 -> 2561x1441 | 189787136 | 181504592 |
+
+These ordinary-mode peaks exclude full intermediate diagnostic readback, which
+is present only in the separate correctness run. Requested CPU payload, HOST and
+DEVICE buffers, and logical image bytes are separate report fields. Vulkan
+allocation traces exclude driver-private command/query memory, CPU objects and
+physical residency. Application allocations and explicit retirement are bounded;
+M3's 1,000-frame/multi-slot and broader resource-lifetime checks remain future work.
+
+The final acceptance contains 24 Radeon correctness processes and eight small
+llvmpipe processes (192 frames), 48 ordinary timing processes (1,440 measured
+samples, 1,920 total frames) and 16 traced timing-mode processes (640 frames).
+Every timed/traced final B image matches the fully validated B. Numerical gates,
+A/B/A reuse, unchanged inputs/weights, guards, interface mutation and device/clock
+identity all pass. Earlier accepted six-group scale coverage completes the full
+declared M1 extent matrix; the paired benchmark uses the four preselected groups.
+
+See the [M1 receipt](results/learned-image-m1-2026-09-19.txt),
+[raw samples](results/learned-image-m1-2026-09-19/samples.csv),
+[statistics and timing-mode traces](results/learned-image-m1-2026-09-19/report.json),
+[Radeon correctness evidence](results/learned-image-m1-2026-09-19/validation.json)
+and [llvmpipe correctness evidence](results/learned-image-m1-llvmpipe-2026-09-19.json).
+
+Next is M2: define the device-code/compiler contract, broaden generated structured
+arguments and image interfaces, and make the language-direction decision explicit.
+M1 supplies a useful-scale regression workload for that work, not evidence that
+the language, general graphics/ML support or stable API is already complete.

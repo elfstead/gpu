@@ -81,8 +81,17 @@ diagnostic additionally needs Vulkan development headers and `pkg-config`.
 Start with synchronization validation enabled; the harness disables layers only
 for timing. The [protocol](learned-image-measurement.md) and
 [reproduction instructions](../examples/learned_image/README.md#warmed-measurement)
-define scope, environment, retained samples and receipt export. This is currently
-an OGPU baseline, not a native Vulkan performance comparison.
+define scope, environment, retained samples and receipt export. This command
+measures OGPU alone.
+
+`SLANGC=/path/to/slangc python3 examples/learned_image/compare_native.py` runs the
+matched direct Vulkan comparison: fresh correctness first, 48 ordinary timing
+processes and 16 separate allocation controls. Add `--check` for build/host tests
+without GPU execution. The native control uses pinned repository Vulkan headers
+and does not link OGPU. See [paired reproduction](../examples/learned_image/README.md#matched-nativeogpu-measurement)
+for the environment, disk budget and checked export commands, and the
+[accepted M1 result](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
+for distributions, memory and the retain decision.
 
 `SLANGC=/path/to/slangc cargo xtask compiler-workflow` builds and runs a compiler-
 generated C interface for the existing integer transform. It uses pinned Slang

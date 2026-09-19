@@ -432,6 +432,37 @@ the fresh paired comparison; output parity is not a performance result. M1 remai
 active. See the [command-policy inventory and accepted result](learned-image-native-control.md),
 [receipt](results/learned-image-native-workload-2026-09-19.txt) and linked evidence.
 
+## Learned-image matched measurements: M1 complete — 2026-09-19
+
+At clean implementation `a819f6c`, the direct Vulkan control matches OGPU's
+timestamp/query-retirement and final-only-readback policy. Fresh full-output
+validation passes in 32 processes on Radeon/small llvmpipe (192 frames), with
+byte-identical native/OGPU outputs and unchanged gates. Forty-eight fresh timing
+processes retain all 1,440 post-warmup samples; 16 separate traced controls match
+allocation sizes/types and free all 152 allocations, with no frame-count growth.
+All timed/traced final outputs match fully validated B. Tests cover query failures,
+pending/failed-completion rejection, wrapping clocks, terminal pool retirement,
+balanced control order and export consistency. Host checks include 37 Rust tests,
+Clippy, formatting, 749 ABI layouts and native static analysis.
+
+Across the eight selected extent/mode cases, ratios of median-of-three process
+medians put OGPU 0.04% lower to 1.14% higher than native. The 4K downscale is
+3.984/3.979 ms OGPU/native resident and 12.071/12.057 ms end-to-end. Several OGPU
+tails are noisier, with host submit/query or staging/readback spikes; no particular
+driver/scheduler cause, uniform tail parity or isolated API-overhead claim follows.
+All samples/outliers remain. Memory peaks match, with zero tracked live allocations
+after cleanup; driver-private allocations and physical residency are not measured.
+
+Retain the runtime/API, generated interfaces and one-shot batches. GPU work
+dominates resident latency; transfer/synchronization dominates the mode difference.
+M3 should test sustained slot/staging reuse, not assume replay or a runtime allocator.
+The earlier six-group scale acceptance and this matched comparison complete M1.
+M2's device-code/compiler contract and explicit language-direction decision are
+next, not implemented here. No new hardware, native Metal round trip, model/shader
+change or runtime/API widening. See the [result and decision](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
+and [receipt](results/learned-image-m1-2026-09-19.txt) for provenance, raw data,
+distribution/memory tables, reproduction and exact acceptance boundaries.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

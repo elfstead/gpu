@@ -4,6 +4,11 @@ Selected 2026-09-18, implementing the first slice of [roadmap M1](roadmap.md).
 This brief precedes implementation/results. It is not the complete performance
 milestone, a new model, or a public API extension.
 
+Current status (2026-09-19): the later
+[matched native comparison](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
+closes M1. The slices and next-step statements below preserve the scale-correctness
+checkpoints that preceded measurement.
+
 ## Contract and cases
 
 Keep the frozen 89-parameter model and existing Python oracle authoritative.
@@ -147,8 +152,7 @@ generated workgroup sizes, including guarded counts and incomplete final rows.
 The C reference's allocated row payload peaks at 322,560 bytes, not counting
 stdio/stack/allocator overhead; GPU activations remain full-image allocations.
 
-The declared extent/correctness portion of M1 is complete. Next add warmed
-resident/end-to-end timing modes and allocation accounting, then the matched
-native Vulkan control with the same shaders and execution policy. Cold validation
-timings here are not a benchmark or a parity claim; M1 remains active until its
-measurement/control deliverables are complete.
+This checkpoint completed M1's declared extent/correctness portion; warmed
+resident/end-to-end timing, allocation accounting and a matched native control
+followed. Cold validation timings here are not a benchmark or a parity claim.
+The later measurement/control acceptance linked above completes the milestone.

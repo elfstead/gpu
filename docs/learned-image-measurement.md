@@ -4,6 +4,10 @@ Selected 2026-09-18 after [scale correctness](learned-image-scale.md). This is
 the OGPU measurement half of roadmap M1, not the matched native Vulkan control
 or a performance-parity claim. Define the protocol before collecting results.
 
+Current status (2026-09-19): M1 is complete with the later
+[matched native comparison](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19).
+This page preserves the earlier OGPU-only protocol, failure and accepted baseline.
+
 ## Modes and workload
 
 Use the accepted model, generated shaders, checked X/Y grids and one graphics
@@ -161,5 +165,6 @@ includes both transfer work and its synchronization, not just raw bus bandwidth.
 Across runs, host recording medians are roughly 2–5 microseconds and submission
 medians 75–112 microseconds. OGPU lowers recorded operations during submission,
 so the recording value alone does not describe command construction cost. These
-measurements do not isolate wrapper overhead or justify an API change. Keep the
-current baseline and proceed with the matched native control; M1 remains active.
+measurements do not isolate wrapper overhead or justify an API change. At this
+checkpoint the decision was to retain the baseline and proceed with the matched
+native control. That later comparison now closes M1; see the current-status link above.

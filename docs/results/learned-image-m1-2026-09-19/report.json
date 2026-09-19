@@ -1,0 +1,6516 @@
+{
+  "schema": 1,
+  "scope": "matched native/OGPU one-frame serialized latency; not isolated API overhead or peak throughput",
+  "revision": "a819f6c9e3042c522f525360bcbd42bd7b5257bb",
+  "dirty": false,
+  "model_sha256": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+  "source_sha256": {
+    "native.c": "6a03b11092c7fdc5299a8f34e24779cb8d048f8e4c4c8418e839b31676e4346c",
+    "native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "test_native.c": "0c68f89a385b87b9f72bea5cd920a21124976482c4dae9f7e432a9628f2a842f",
+    "run_native.py": "e3e665f5ca234c89f196cc9d5580fc3e6651b231527dc12afe9eaccecc65b36b",
+    "test_native_runner.py": "d0e2119097ea9c4942b753ca68aae37bca03ec99f72e9e03153cac21b6d6a263",
+    "extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "app.c": "88e9eb6f05c9e0290ff30414e29388379dc7ccdee940f5e268af465d358141c9",
+    "trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "compare_native.py": "d849d6e7a2ea73b51232da3271a6040ee8ea3bf36187ed8048a50198a62d8f3f",
+    "test_compare_native.py": "17205a9c5cb079444ce2003abc1987e31b1a5847c2d3df4b374d726b907a1a01",
+    "benchmark.py": "be2333906872a736686282440bda8360b6888c5d1749fbec23280590c0bf361b",
+    "export_comparison.py": "0a18ac57f2702818784b4f43b14f76ccf6e3756e64c90cc9c45de21eca941a4f"
+  },
+  "artifacts": {
+    "native-original": "e6da66415ab2d9b9f43a602fbfd402c16e3963b86b17166a1f2c4f67cf302f63",
+    "ogpu-original": "8b0046fa70c33b3461b853dd7294c7f4c88d5cb1c53f85dfea4dc6f04db718ee",
+    "original/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "original/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "original/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "original/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "original/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "original/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "original/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+    "native-mutated": "f41df83615c4132764751f0645cb13c0f1075267afa61a9cefa35c0abd48ebbd",
+    "ogpu-mutated": "b321ade85054b1ef7ecacb7827388fb29aa65767cc95af73b65ef9da5d617a30",
+    "mutated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "mutated/denoise.generated.h": "9032c77dd5b8cb3de9c9d55aa9fa05bcb23eed99c7f3170fe0affde7dcdf80cd",
+    "mutated/display.generated.h": "06c52a566c0755161c63b80ce2e256b51dd4415169e7c234cf7c7ffc708406d0",
+    "mutated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "mutated/hidden.generated.h": "34d336061dfd2a157d24c35e38a591ec2853a0a4015a6cf0f89dc13d94c1f0a3",
+    "mutated/poison.generated.h": "dab49f33842da5c74fb0a328298a0411af64108b276fcc06cb8d36d3e8ca6619",
+    "mutated/process.generated.h": "1920ff50d715663a1d973da1cb4824fda3e7c347446df2d422d6ebb522641678",
+    "libogpu.so": "bc06ac4df9ddcffa32c52b39730cebd91113072c3b889ccabf26e3a1a9387c6a",
+    "trace-memory.so": "d5dc077be7543a33604c07f2349ab256048041501e0e3b6570072810833ceeba",
+    "vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6"
+  },
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_ICD_FILENAMES": null,
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "VK_LAYER_PATH": "/nix/store/sbsyg6dvqjs6937jyqxaw0q7n83n6awg-vulkan-validation-layers-1.4.357.0/share/vulkan/explicit_layer.d"
+  },
+  "identity": {
+    "device": {
+      "vendor": 4098,
+      "device": 29471,
+      "api": [
+        1,
+        4,
+        354
+      ]
+    },
+    "clock": {
+      "supported": true,
+      "bits": 64,
+      "period_ns": 10
+    }
+  },
+  "validation_report": "validation.json",
+  "validation_sha256": "ad6e5aa31140c3c8eab30c262a16489ab99b0e06be77f2d2cb7e18c5c218b59c",
+  "runs": [
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 31.665024,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.866666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.06071503333333334,
+          "median": 0.058494000000000004,
+          "p95": 0.070469,
+          "minimum": 0.054139,
+          "maximum": 0.083089
+        },
+        "submit_ms": {
+          "mean": 0.0163568,
+          "median": 0.015955,
+          "p95": 0.01884,
+          "minimum": 0.01418,
+          "maximum": 0.01926
+        },
+        "wait_ms": {
+          "mean": 0.8220213666666667,
+          "median": 0.811507,
+          "p95": 0.853242,
+          "minimum": 0.803432,
+          "maximum": 0.895062
+        },
+        "query_ms": {
+          "mean": 0.013913633333333335,
+          "median": 0.013649999999999999,
+          "p95": 0.01686,
+          "minimum": 0.01214,
+          "maximum": 0.017
+        },
+        "retire_ms": {
+          "mean": 4.633333333333334e-05,
+          "median": 5e-05,
+          "p95": 7e-05,
+          "minimum": 3e-05,
+          "maximum": 8e-05
+        },
+        "read_ms": {
+          "mean": 2.6666666666666667e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 0.9131085,
+          "median": 0.907726,
+          "p95": 0.936901,
+          "minimum": 0.889892,
+          "maximum": 0.979651
+        },
+        "device_ms": {
+          "mean": 0.7445039999999999,
+          "median": 0.74286,
+          "p95": 0.76004,
+          "minimum": 0.7404,
+          "maximum": 0.77128
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 29.95303,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.7666666666666667e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.002427,
+          "median": 0.00179,
+          "p95": 0.00513,
+          "minimum": 0.00146,
+          "maximum": 0.00903
+        },
+        "submit_ms": {
+          "mean": 0.08712306666666667,
+          "median": 0.087259,
+          "p95": 0.111668,
+          "minimum": 0.071369,
+          "maximum": 0.123078
+        },
+        "wait_ms": {
+          "mean": 0.8192897666666668,
+          "median": 0.815397,
+          "p95": 0.840282,
+          "minimum": 0.804102,
+          "maximum": 0.843142
+        },
+        "query_ms": {
+          "mean": 0.019086533333333332,
+          "median": 0.01987,
+          "p95": 0.02566,
+          "minimum": 0.01293,
+          "maximum": 0.02741
+        },
+        "retire_ms": {
+          "mean": 0.00020433333333333333,
+          "median": 0.00019,
+          "p95": 0.00028,
+          "minimum": 0.00015,
+          "maximum": 0.00034
+        },
+        "read_ms": {
+          "mean": 3.466666666666667e-05,
+          "median": 3e-05,
+          "p95": 8e-05,
+          "minimum": 2e-05,
+          "maximum": 8e-05
+        },
+        "total_ms": {
+          "mean": 0.9281930333333333,
+          "median": 0.9281459999999999,
+          "p95": 0.960961,
+          "minimum": 0.893052,
+          "maximum": 0.97981
+        },
+        "device_ms": {
+          "mean": 0.7449013333333333,
+          "median": 0.7433,
+          "p95": 0.75724,
+          "minimum": 0.74072,
+          "maximum": 0.76972
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 27.348935,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.14552836666666666,
+          "median": 0.1440185,
+          "p95": 0.170468,
+          "minimum": 0.129519,
+          "maximum": 0.177319
+        },
+        "record_ms": {
+          "mean": 0.0026213,
+          "median": 0.0024850000000000002,
+          "p95": 0.0033,
+          "minimum": 0.00208,
+          "maximum": 0.00477
+        },
+        "submit_ms": {
+          "mean": 0.1056296,
+          "median": 0.104769,
+          "p95": 0.128508,
+          "minimum": 0.090939,
+          "maximum": 0.144688
+        },
+        "wait_ms": {
+          "mean": 3.5879627,
+          "median": 3.5839355,
+          "p95": 3.627025,
+          "minimum": 3.572376,
+          "maximum": 3.637745
+        },
+        "query_ms": {
+          "mean": 0.022004066666666666,
+          "median": 0.0210195,
+          "p95": 0.02988,
+          "minimum": 0.01458,
+          "maximum": 0.04022
+        },
+        "retire_ms": {
+          "mean": 0.000553,
+          "median": 0.00028,
+          "p95": 0.00254,
+          "minimum": 0.0002,
+          "maximum": 0.00612
+        },
+        "read_ms": {
+          "mean": 0.7316488999999999,
+          "median": 0.726878,
+          "p95": 0.767433,
+          "minimum": 0.649543,
+          "maximum": 0.790103
+        },
+        "total_ms": {
+          "mean": 4.595947933333334,
+          "median": 4.5943249999999995,
+          "p95": 4.650205,
+          "minimum": 4.495876,
+          "maximum": 4.658705
+        },
+        "device_ms": {
+          "mean": 3.499312,
+          "median": 3.4981400000000002,
+          "p95": 3.50496,
+          "minimum": 3.49544,
+          "maximum": 3.50956
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 28.468495,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.1421374333333333,
+          "median": 0.140814,
+          "p95": 0.175208,
+          "minimum": 0.120579,
+          "maximum": 0.175909
+        },
+        "record_ms": {
+          "mean": 0.08569913333333333,
+          "median": 0.084539,
+          "p95": 0.110569,
+          "minimum": 0.072059,
+          "maximum": 0.118269
+        },
+        "submit_ms": {
+          "mean": 0.023100533333333333,
+          "median": 0.0234445,
+          "p95": 0.02845,
+          "minimum": 0.01657,
+          "maximum": 0.03501
+        },
+        "wait_ms": {
+          "mean": 3.5890908,
+          "median": 3.58656,
+          "p95": 3.600055,
+          "minimum": 3.577925,
+          "maximum": 3.647215
+        },
+        "query_ms": {
+          "mean": 0.025431266666666667,
+          "median": 0.025759999999999998,
+          "p95": 0.02765,
+          "minimum": 0.01562,
+          "maximum": 0.02788
+        },
+        "retire_ms": {
+          "mean": 4.4e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 3e-05,
+          "maximum": 5e-05
+        },
+        "read_ms": {
+          "mean": 0.7285427999999999,
+          "median": 0.723988,
+          "p95": 0.792422,
+          "minimum": 0.686553,
+          "maximum": 0.808772
+        },
+        "total_ms": {
+          "mean": 4.594045966666667,
+          "median": 4.581946,
+          "p95": 4.678255,
+          "minimum": 4.524136,
+          "maximum": 4.775394
+        },
+        "device_ms": {
+          "mean": 3.5001773333333333,
+          "median": 3.49986,
+          "p95": 3.50424,
+          "minimum": 3.49596,
+          "maximum": 3.50584
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 29.810692,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.7000000000000005e-05,
+          "median": 3.5000000000000004e-05,
+          "p95": 6e-05,
+          "minimum": 2e-05,
+          "maximum": 7e-05
+        },
+        "record_ms": {
+          "mean": 0.0020926333333333336,
+          "median": 0.0021945000000000003,
+          "p95": 0.00262,
+          "minimum": 0.0016,
+          "maximum": 0.00278
+        },
+        "submit_ms": {
+          "mean": 0.0889768,
+          "median": 0.087739,
+          "p95": 0.110199,
+          "minimum": 0.073629,
+          "maximum": 0.112839
+        },
+        "wait_ms": {
+          "mean": 1.0104695333333333,
+          "median": 1.0062305,
+          "p95": 1.03679,
+          "minimum": 0.99631,
+          "maximum": 1.04717
+        },
+        "query_ms": {
+          "mean": 0.018094866666666667,
+          "median": 0.01846,
+          "p95": 0.02224,
+          "minimum": 0.0131,
+          "maximum": 0.02284
+        },
+        "retire_ms": {
+          "mean": 0.00025866666666666665,
+          "median": 0.000255,
+          "p95": 0.00033,
+          "minimum": 0.0002,
+          "maximum": 0.00033
+        },
+        "read_ms": {
+          "mean": 3.3333333333333335e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 5e-05
+        },
+        "total_ms": {
+          "mean": 1.1199628333333334,
+          "median": 1.120474,
+          "p95": 1.147289,
+          "minimum": 1.09359,
+          "maximum": 1.151839
+        },
+        "device_ms": {
+          "mean": 0.9330106666666667,
+          "median": 0.93296,
+          "p95": 0.93468,
+          "minimum": 0.93072,
+          "maximum": 0.93472
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 29.677663,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.2e-05,
+          "median": 3e-05,
+          "p95": 7e-05,
+          "minimum": 2e-05,
+          "maximum": 8e-05
+        },
+        "record_ms": {
+          "mean": 0.06541506666666666,
+          "median": 0.0654645,
+          "p95": 0.07909,
+          "minimum": 0.054659,
+          "maximum": 0.087659
+        },
+        "submit_ms": {
+          "mean": 0.017504433333333333,
+          "median": 0.017564999999999997,
+          "p95": 0.01957,
+          "minimum": 0.014849,
+          "maximum": 0.02319
+        },
+        "wait_ms": {
+          "mean": 1.0142905666666666,
+          "median": 1.005881,
+          "p95": 1.05241,
+          "minimum": 0.993971,
+          "maximum": 1.05455
+        },
+        "query_ms": {
+          "mean": 0.015788833333333332,
+          "median": 0.0156695,
+          "p95": 0.020949,
+          "minimum": 0.01229,
+          "maximum": 0.02121
+        },
+        "retire_ms": {
+          "mean": 4.633333333333334e-05,
+          "median": 4e-05,
+          "p95": 7e-05,
+          "minimum": 3e-05,
+          "maximum": 9e-05
+        },
+        "read_ms": {
+          "mean": 2.9e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.1131062333333333,
+          "median": 1.113449,
+          "p95": 1.142929,
+          "minimum": 1.08415,
+          "maximum": 1.152719
+        },
+        "device_ms": {
+          "mean": 0.9332226666666668,
+          "median": 0.9331799999999999,
+          "p95": 0.93464,
+          "minimum": 0.93116,
+          "maximum": 0.93892
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 25.122918,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.28215593333333333,
+          "median": 0.28315199999999996,
+          "p95": 0.307267,
+          "minimum": 0.255658,
+          "maximum": 0.321407
+        },
+        "record_ms": {
+          "mean": 0.0841398,
+          "median": 0.08180399999999999,
+          "p95": 0.098319,
+          "minimum": 0.077099,
+          "maximum": 0.100199
+        },
+        "submit_ms": {
+          "mean": 0.0199045,
+          "median": 0.019565,
+          "p95": 0.02229,
+          "minimum": 0.01647,
+          "maximum": 0.027689
+        },
+        "wait_ms": {
+          "mean": 2.4911690333333336,
+          "median": 2.489171,
+          "p95": 2.504026,
+          "minimum": 2.481086,
+          "maximum": 2.508566
+        },
+        "query_ms": {
+          "mean": 0.016526466666666666,
+          "median": 0.015864999999999997,
+          "p95": 0.02173,
+          "minimum": 0.01328,
+          "maximum": 0.023549
+        },
+        "retire_ms": {
+          "mean": 4.600000000000001e-05,
+          "median": 4e-05,
+          "p95": 6e-05,
+          "minimum": 3e-05,
+          "maximum": 0.00011
+        },
+        "read_ms": {
+          "mean": 0.08330449999999999,
+          "median": 0.082564,
+          "p95": 0.093159,
+          "minimum": 0.07256,
+          "maximum": 0.098119
+        },
+        "total_ms": {
+          "mean": 2.977246233333333,
+          "median": 2.9737765,
+          "p95": 3.03657,
+          "minimum": 2.928692,
+          "maximum": 3.057831
+        },
+        "device_ms": {
+          "mean": 2.4134626666666668,
+          "median": 2.4131799999999997,
+          "p95": 2.41464,
+          "minimum": 2.41164,
+          "maximum": 2.41756
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 24.83302,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.2824229666666667,
+          "median": 0.27928200000000003,
+          "p95": 0.366857,
+          "minimum": 0.239267,
+          "maximum": 0.373076
+        },
+        "record_ms": {
+          "mean": 0.0028156,
+          "median": 0.00277,
+          "p95": 0.00359,
+          "minimum": 0.002279,
+          "maximum": 0.003679
+        },
+        "submit_ms": {
+          "mean": 0.11041683333333333,
+          "median": 0.10202900000000001,
+          "p95": 0.200368,
+          "minimum": 0.08808,
+          "maximum": 0.203778
+        },
+        "wait_ms": {
+          "mean": 2.4937179333333335,
+          "median": 2.492836,
+          "p95": 2.506196,
+          "minimum": 2.483016,
+          "maximum": 2.508186
+        },
+        "query_ms": {
+          "mean": 0.018938933333333335,
+          "median": 0.016995,
+          "p95": 0.02883,
+          "minimum": 0.01443,
+          "maximum": 0.05562
+        },
+        "retire_ms": {
+          "mean": 0.00027566666666666663,
+          "median": 0.00027,
+          "p95": 0.00038,
+          "minimum": 0.0002,
+          "maximum": 0.0005
+        },
+        "read_ms": {
+          "mean": 0.08682946666666667,
+          "median": 0.085689,
+          "p95": 0.105639,
+          "minimum": 0.073469,
+          "maximum": 0.110409
+        },
+        "total_ms": {
+          "mean": 2.9954174,
+          "median": 2.984641,
+          "p95": 3.10263,
+          "minimum": 2.924302,
+          "maximum": 3.14677
+        },
+        "device_ms": {
+          "mean": 2.413374666666667,
+          "median": 2.4132,
+          "p95": 2.41584,
+          "minimum": 2.41164,
+          "maximum": 2.41824
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 1198.0781,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.2e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 6e-05
+        },
+        "record_ms": {
+          "mean": 0.08002196666666667,
+          "median": 0.0742245,
+          "p95": 0.099749,
+          "minimum": 0.06604,
+          "maximum": 0.100499
+        },
+        "submit_ms": {
+          "mean": 0.020739133333333333,
+          "median": 0.020109500000000002,
+          "p95": 0.02271,
+          "minimum": 0.01835,
+          "maximum": 0.02892
+        },
+        "wait_ms": {
+          "mean": 3.8674786,
+          "median": 3.8745374999999997,
+          "p95": 3.890873,
+          "minimum": 3.793283,
+          "maximum": 3.893302
+        },
+        "query_ms": {
+          "mean": 0.018083433333333333,
+          "median": 0.01694,
+          "p95": 0.02187,
+          "minimum": 0.01578,
+          "maximum": 0.022
+        },
+        "retire_ms": {
+          "mean": 5.1000000000000006e-05,
+          "median": 5e-05,
+          "p95": 6e-05,
+          "minimum": 3e-05,
+          "maximum": 0.00012
+        },
+        "read_ms": {
+          "mean": 3.066666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 3.9864368,
+          "median": 3.9921819999999997,
+          "p95": 4.004162,
+          "minimum": 3.928342,
+          "maximum": 4.010161
+        },
+        "device_ms": {
+          "mean": 3.7815933333333334,
+          "median": 3.7911,
+          "p95": 3.80056,
+          "minimum": 3.72036,
+          "maximum": 3.806
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 75.883127,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.2e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.002036333333333333,
+          "median": 0.00201,
+          "p95": 0.00234,
+          "minimum": 0.00189,
+          "maximum": 0.00235
+        },
+        "submit_ms": {
+          "mean": 0.08873510000000001,
+          "median": 0.086984,
+          "p95": 0.098189,
+          "minimum": 0.084919,
+          "maximum": 0.103379
+        },
+        "wait_ms": {
+          "mean": 3.8776941666666667,
+          "median": 3.8893370000000003,
+          "p95": 3.900452,
+          "minimum": 3.774843,
+          "maximum": 3.904592
+        },
+        "query_ms": {
+          "mean": 0.016801533333333334,
+          "median": 0.016385,
+          "p95": 0.018289,
+          "minimum": 0.01581,
+          "maximum": 0.02293
+        },
+        "retire_ms": {
+          "mean": 0.00022600000000000002,
+          "median": 0.00022,
+          "p95": 0.00027,
+          "minimum": 0.0002,
+          "maximum": 0.0003
+        },
+        "read_ms": {
+          "mean": 3.2e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 3.9855571333333333,
+          "median": 3.9945310000000003,
+          "p95": 4.005301,
+          "minimum": 3.886512,
+          "maximum": 4.017541
+        },
+        "device_ms": {
+          "mean": 3.787748,
+          "median": 3.79802,
+          "p95": 3.80308,
+          "minimum": 3.6986,
+          "maximum": 3.8066
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 58.944721,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 1.6849708333333335,
+          "median": 1.6948590000000001,
+          "p95": 1.746903,
+          "minimum": 1.594845,
+          "maximum": 1.770023
+        },
+        "record_ms": {
+          "mean": 0.0028379333333333335,
+          "median": 0.00281,
+          "p95": 0.00343,
+          "minimum": 0.00252,
+          "maximum": 0.00347
+        },
+        "submit_ms": {
+          "mean": 0.10664729999999999,
+          "median": 0.10317399999999999,
+          "p95": 0.135658,
+          "minimum": 0.09616,
+          "maximum": 0.169588
+        },
+        "wait_ms": {
+          "mean": 9.765081633333333,
+          "median": 9.773175,
+          "p95": 9.798605,
+          "minimum": 9.654537,
+          "maximum": 9.798905
+        },
+        "query_ms": {
+          "mean": 0.04253613333333333,
+          "median": 0.023559499999999997,
+          "p95": 0.048979,
+          "minimum": 0.01703,
+          "maximum": 0.570605
+        },
+        "retire_ms": {
+          "mean": 0.000313,
+          "median": 0.000305,
+          "p95": 0.00044,
+          "minimum": 0.00022,
+          "maximum": 0.00061
+        },
+        "read_ms": {
+          "mean": 0.49425293333333337,
+          "median": 0.48087,
+          "p95": 0.540545,
+          "minimum": 0.437525,
+          "maximum": 0.761733
+        },
+        "total_ms": {
+          "mean": 12.096639766666666,
+          "median": 12.070748,
+          "p95": 12.314981,
+          "minimum": 11.971405,
+          "maximum": 12.617258
+        },
+        "device_ms": {
+          "mean": 9.574397333333334,
+          "median": 9.574259999999999,
+          "p95": 9.58092,
+          "minimum": 9.56828,
+          "maximum": 9.58208
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 56.653402,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 1.6917942666666665,
+          "median": 1.680294,
+          "p95": 1.784962,
+          "minimum": 1.617714,
+          "maximum": 1.908211
+        },
+        "record_ms": {
+          "mean": 0.08321053333333334,
+          "median": 0.078514,
+          "p95": 0.112369,
+          "minimum": 0.074299,
+          "maximum": 0.117509
+        },
+        "submit_ms": {
+          "mean": 0.020346133333333336,
+          "median": 0.0199,
+          "p95": 0.02369,
+          "minimum": 0.0183,
+          "maximum": 0.02676
+        },
+        "wait_ms": {
+          "mean": 9.773363533333333,
+          "median": 9.773156,
+          "p95": 9.793446,
+          "minimum": 9.738366,
+          "maximum": 9.796475
+        },
+        "query_ms": {
+          "mean": 0.023120466666666666,
+          "median": 0.021624499999999998,
+          "p95": 0.03864,
+          "minimum": 0.01637,
+          "maximum": 0.05135
+        },
+        "retire_ms": {
+          "mean": 5.633333333333334e-05,
+          "median": 5e-05,
+          "p95": 9e-05,
+          "minimum": 4e-05,
+          "maximum": 0.0001
+        },
+        "read_ms": {
+          "mean": 0.48260203333333335,
+          "median": 0.4826705,
+          "p95": 0.520195,
+          "minimum": 0.438996,
+          "maximum": 0.563185
+        },
+        "total_ms": {
+          "mean": 12.0744933,
+          "median": 12.058983,
+          "p95": 12.182082,
+          "minimum": 11.961004,
+          "maximum": 12.303771
+        },
+        "device_ms": {
+          "mean": 9.574968,
+          "median": 9.57394,
+          "p95": 9.58208,
+          "minimum": 9.57052,
+          "maximum": 9.58344
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 38.667436,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.3e-05,
+          "median": 3e-05,
+          "p95": 6e-05,
+          "minimum": 2e-05,
+          "maximum": 6e-05
+        },
+        "record_ms": {
+          "mean": 0.002183,
+          "median": 0.0018800000000000002,
+          "p95": 0.00472,
+          "minimum": 0.00156,
+          "maximum": 0.00472
+        },
+        "submit_ms": {
+          "mean": 0.09653146666666666,
+          "median": 0.09471450000000001,
+          "p95": 0.127209,
+          "minimum": 0.07408,
+          "maximum": 0.131869
+        },
+        "wait_ms": {
+          "mean": 1.3029924333333334,
+          "median": 1.2999874999999999,
+          "p95": 1.336648,
+          "minimum": 1.285988,
+          "maximum": 1.337986
+        },
+        "query_ms": {
+          "mean": 0.018536033333333334,
+          "median": 0.0184295,
+          "p95": 0.025039,
+          "minimum": 0.01313,
+          "maximum": 0.027459
+        },
+        "retire_ms": {
+          "mean": 0.00026233333333333333,
+          "median": 0.00026,
+          "p95": 0.00032,
+          "minimum": 0.00018,
+          "maximum": 0.00036
+        },
+        "read_ms": {
+          "mean": 3.366666666666667e-05,
+          "median": 3e-05,
+          "p95": 5e-05,
+          "minimum": 2e-05,
+          "maximum": 5e-05
+        },
+        "total_ms": {
+          "mean": 1.4205719333333333,
+          "median": 1.415191,
+          "p95": 1.455826,
+          "minimum": 1.392016,
+          "maximum": 1.463226
+        },
+        "device_ms": {
+          "mean": 1.2206253333333335,
+          "median": 1.22028,
+          "p95": 1.2234,
+          "minimum": 1.2186,
+          "maximum": 1.2276
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 37.843174,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.8e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 6e-05
+        },
+        "record_ms": {
+          "mean": 0.0757562,
+          "median": 0.075349,
+          "p95": 0.095149,
+          "minimum": 0.055089,
+          "maximum": 0.101949
+        },
+        "submit_ms": {
+          "mean": 0.020154133333333334,
+          "median": 0.0193645,
+          "p95": 0.024819,
+          "minimum": 0.0159,
+          "maximum": 0.02615
+        },
+        "wait_ms": {
+          "mean": 1.3179169333333334,
+          "median": 1.2971975,
+          "p95": 1.335117,
+          "minimum": 1.281357,
+          "maximum": 1.786983
+        },
+        "query_ms": {
+          "mean": 0.01625223333333333,
+          "median": 0.015975,
+          "p95": 0.02055,
+          "minimum": 0.01297,
+          "maximum": 0.0208
+        },
+        "retire_ms": {
+          "mean": 5.1666666666666664e-05,
+          "median": 5e-05,
+          "p95": 7e-05,
+          "minimum": 3e-05,
+          "maximum": 9e-05
+        },
+        "read_ms": {
+          "mean": 2.9333333333333336e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.4301884999999999,
+          "median": 1.414252,
+          "p95": 1.450786,
+          "minimum": 1.392066,
+          "maximum": 1.901562
+        },
+        "device_ms": {
+          "mean": 1.220728,
+          "median": 1.2202199999999999,
+          "p95": 1.22336,
+          "minimum": 1.2188,
+          "maximum": 1.22668
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 33.288648,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.38892863333333333,
+          "median": 0.38139599999999996,
+          "p95": 0.425086,
+          "minimum": 0.358606,
+          "maximum": 0.427436
+        },
+        "record_ms": {
+          "mean": 0.07937583333333334,
+          "median": 0.077834,
+          "p95": 0.096079,
+          "minimum": 0.07115,
+          "maximum": 0.100219
+        },
+        "submit_ms": {
+          "mean": 0.019311533333333335,
+          "median": 0.0188445,
+          "p95": 0.0249,
+          "minimum": 0.01712,
+          "maximum": 0.02509
+        },
+        "wait_ms": {
+          "mean": 4.853396433333333,
+          "median": 4.8546435,
+          "p95": 4.901393,
+          "minimum": 4.725125,
+          "maximum": 4.903332
+        },
+        "query_ms": {
+          "mean": 0.022941133333333332,
+          "median": 0.020974,
+          "p95": 0.03126,
+          "minimum": 0.01726,
+          "maximum": 0.04511
+        },
+        "retire_ms": {
+          "mean": 4.8e-05,
+          "median": 5e-05,
+          "p95": 6e-05,
+          "minimum": 4e-05,
+          "maximum": 8e-05
+        },
+        "read_ms": {
+          "mean": 0.7812903666666667,
+          "median": 0.773208,
+          "p95": 0.823602,
+          "minimum": 0.742613,
+          "maximum": 0.847711
+        },
+        "total_ms": {
+          "mean": 6.145291933333334,
+          "median": 6.147740000000001,
+          "p95": 6.2386,
+          "minimum": 6.031821,
+          "maximum": 6.292409
+        },
+        "device_ms": {
+          "mean": 4.657878666666666,
+          "median": 4.650399999999999,
+          "p95": 4.69672,
+          "minimum": 4.63456,
+          "maximum": 4.69692
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 34.507677,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.39042696666666665,
+          "median": 0.38282099999999997,
+          "p95": 0.444966,
+          "minimum": 0.356176,
+          "maximum": 0.466785
+        },
+        "record_ms": {
+          "mean": 0.0030163333333333335,
+          "median": 0.002915,
+          "p95": 0.00385,
+          "minimum": 0.00232,
+          "maximum": 0.00467
+        },
+        "submit_ms": {
+          "mean": 0.10961593333333333,
+          "median": 0.09964400000000001,
+          "p95": 0.152358,
+          "minimum": 0.090079,
+          "maximum": 0.156359
+        },
+        "wait_ms": {
+          "mean": 4.841612233333334,
+          "median": 4.845848500000001,
+          "p95": 4.897763,
+          "minimum": 4.737924,
+          "maximum": 4.911153
+        },
+        "query_ms": {
+          "mean": 0.022872066666666666,
+          "median": 0.021185000000000002,
+          "p95": 0.04009,
+          "minimum": 0.01573,
+          "maximum": 0.040639
+        },
+        "retire_ms": {
+          "mean": 0.0004963333333333333,
+          "median": 0.000325,
+          "p95": 0.00061,
+          "minimum": 0.00026,
+          "maximum": 0.00503
+        },
+        "read_ms": {
+          "mean": 0.7966219,
+          "median": 0.7905869999999999,
+          "p95": 0.887401,
+          "minimum": 0.751733,
+          "maximum": 0.899531
+        },
+        "total_ms": {
+          "mean": 6.164661766666667,
+          "median": 6.155580499999999,
+          "p95": 6.332519,
+          "minimum": 6.041711,
+          "maximum": 6.379169
+        },
+        "device_ms": {
+          "mean": 4.657626666666667,
+          "median": 4.65086,
+          "p95": 4.69692,
+          "minimum": 4.6318,
+          "maximum": 4.69876
+        }
+      },
+      "round": 0
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 26.91483,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.1617701666666667,
+          "median": 0.13669900000000001,
+          "p95": 0.278827,
+          "minimum": 0.117259,
+          "maximum": 0.284897
+        },
+        "record_ms": {
+          "mean": 0.002952666666666667,
+          "median": 0.00274,
+          "p95": 0.00498,
+          "minimum": 0.00218,
+          "maximum": 0.00659
+        },
+        "submit_ms": {
+          "mean": 0.12632436666666666,
+          "median": 0.10404350000000001,
+          "p95": 0.167898,
+          "minimum": 0.091349,
+          "maximum": 0.628764
+        },
+        "wait_ms": {
+          "mean": 3.6114084666666666,
+          "median": 3.5868200000000003,
+          "p95": 3.750354,
+          "minimum": 3.574635,
+          "maximum": 3.751504
+        },
+        "query_ms": {
+          "mean": 0.0219611,
+          "median": 0.019674999999999998,
+          "p95": 0.03214,
+          "minimum": 0.01654,
+          "maximum": 0.045759
+        },
+        "retire_ms": {
+          "mean": 0.0002776666666666667,
+          "median": 0.00028,
+          "p95": 0.00037,
+          "minimum": 0.0002,
+          "maximum": 0.00045
+        },
+        "read_ms": {
+          "mean": 0.8233483666666667,
+          "median": 0.7601275,
+          "p95": 1.257218,
+          "minimum": 0.584445,
+          "maximum": 1.320317
+        },
+        "total_ms": {
+          "mean": 4.7480427999999995,
+          "median": 4.608156,
+          "p95": 5.402348,
+          "minimum": 4.423618,
+          "maximum": 5.438567
+        },
+        "device_ms": {
+          "mean": 3.504604,
+          "median": 3.50224,
+          "p95": 3.52068,
+          "minimum": 3.49632,
+          "maximum": 3.52556
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 28.720853,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.13706136666666666,
+          "median": 0.134374,
+          "p95": 0.163149,
+          "minimum": 0.110879,
+          "maximum": 0.173368
+        },
+        "record_ms": {
+          "mean": 0.08947543333333334,
+          "median": 0.089719,
+          "p95": 0.112449,
+          "minimum": 0.071649,
+          "maximum": 0.129479
+        },
+        "submit_ms": {
+          "mean": 0.023242766666666668,
+          "median": 0.023004999999999998,
+          "p95": 0.029639,
+          "minimum": 0.01775,
+          "maximum": 0.02969
+        },
+        "wait_ms": {
+          "mean": 3.5881187666666667,
+          "median": 3.58674,
+          "p95": 3.613395,
+          "minimum": 3.575315,
+          "maximum": 3.615485
+        },
+        "query_ms": {
+          "mean": 0.025118099999999997,
+          "median": 0.0252545,
+          "p95": 0.03752,
+          "minimum": 0.01628,
+          "maximum": 0.04024
+        },
+        "retire_ms": {
+          "mean": 4.366666666666667e-05,
+          "median": 4e-05,
+          "p95": 6e-05,
+          "minimum": 3e-05,
+          "maximum": 6e-05
+        },
+        "read_ms": {
+          "mean": 0.7111327000000001,
+          "median": 0.698473,
+          "p95": 0.780083,
+          "minimum": 0.663104,
+          "maximum": 0.912591
+        },
+        "total_ms": {
+          "mean": 4.5741928000000005,
+          "median": 4.556355999999999,
+          "p95": 4.664855,
+          "minimum": 4.501387,
+          "maximum": 4.798114
+        },
+        "device_ms": {
+          "mean": 3.499476,
+          "median": 3.49872,
+          "p95": 3.50528,
+          "minimum": 3.4952,
+          "maximum": 3.50756
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.658304,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.8e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 3e-05
+        },
+        "record_ms": {
+          "mean": 0.06794013333333333,
+          "median": 0.06272900000000001,
+          "p95": 0.102849,
+          "minimum": 0.055979,
+          "maximum": 0.143308
+        },
+        "submit_ms": {
+          "mean": 0.018201766666666667,
+          "median": 0.01716,
+          "p95": 0.024239,
+          "minimum": 0.01496,
+          "maximum": 0.03015
+        },
+        "wait_ms": {
+          "mean": 0.8244521,
+          "median": 0.816812,
+          "p95": 0.860902,
+          "minimum": 0.804552,
+          "maximum": 0.873982
+        },
+        "query_ms": {
+          "mean": 0.015290433333333332,
+          "median": 0.014949500000000001,
+          "p95": 0.01945,
+          "minimum": 0.01348,
+          "maximum": 0.019949
+        },
+        "retire_ms": {
+          "mean": 3.766666666666667e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 3e-05,
+          "maximum": 5e-05
+        },
+        "read_ms": {
+          "mean": 2.733333333333333e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 0.9259774333333334,
+          "median": 0.922516,
+          "p95": 0.972471,
+          "minimum": 0.890442,
+          "maximum": 1.007
+        },
+        "device_ms": {
+          "mean": 0.7443013333333333,
+          "median": 0.74234,
+          "p95": 0.76216,
+          "minimum": 0.74,
+          "maximum": 0.76756
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.335347,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.1666666666666666e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.0017053333333333332,
+          "median": 0.001635,
+          "p95": 0.00199,
+          "minimum": 0.00148,
+          "maximum": 0.00217
+        },
+        "submit_ms": {
+          "mean": 0.10025313333333334,
+          "median": 0.0810245,
+          "p95": 0.09659,
+          "minimum": 0.07383,
+          "maximum": 0.643793
+        },
+        "wait_ms": {
+          "mean": 0.8287842333333334,
+          "median": 0.818847,
+          "p95": 0.861841,
+          "minimum": 0.810192,
+          "maximum": 0.875382
+        },
+        "query_ms": {
+          "mean": 0.0321423,
+          "median": 0.014785,
+          "p95": 0.02395,
+          "minimum": 0.01327,
+          "maximum": 0.512975
+        },
+        "retire_ms": {
+          "mean": 0.000192,
+          "median": 0.00019,
+          "p95": 0.00022,
+          "minimum": 0.00015,
+          "maximum": 0.00024
+        },
+        "read_ms": {
+          "mean": 3.2e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 0.9631406666666666,
+          "median": 0.926241,
+          "p95": 1.407626,
+          "minimum": 0.903171,
+          "maximum": 1.511505
+        },
+        "device_ms": {
+          "mean": 0.744576,
+          "median": 0.74224,
+          "p95": 0.757,
+          "minimum": 0.739,
+          "maximum": 0.7712
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 25.852131,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.3429487666666667,
+          "median": 0.2697875,
+          "p95": 0.716593,
+          "minimum": 0.228208,
+          "maximum": 0.774892
+        },
+        "record_ms": {
+          "mean": 0.0906135,
+          "median": 0.086729,
+          "p95": 0.122498,
+          "minimum": 0.07043,
+          "maximum": 0.131269
+        },
+        "submit_ms": {
+          "mean": 0.020528066666666667,
+          "median": 0.01977,
+          "p95": 0.026969,
+          "minimum": 0.01588,
+          "maximum": 0.02721
+        },
+        "wait_ms": {
+          "mean": 2.4978141666666667,
+          "median": 2.4952905,
+          "p95": 2.519915,
+          "minimum": 2.485526,
+          "maximum": 2.521225
+        },
+        "query_ms": {
+          "mean": 0.019303833333333336,
+          "median": 0.016805,
+          "p95": 0.02814,
+          "minimum": 0.0137,
+          "maximum": 0.03402
+        },
+        "retire_ms": {
+          "mean": 5.0333333333333335e-05,
+          "median": 5e-05,
+          "p95": 7e-05,
+          "minimum": 4e-05,
+          "maximum": 7e-05
+        },
+        "read_ms": {
+          "mean": 0.09542936666666665,
+          "median": 0.084629,
+          "p95": 0.164298,
+          "minimum": 0.069649,
+          "maximum": 0.178099
+        },
+        "total_ms": {
+          "mean": 3.0666880333333335,
+          "median": 2.9980365,
+          "p95": 3.527646,
+          "minimum": 2.894712,
+          "maximum": 3.633324
+        },
+        "device_ms": {
+          "mean": 2.4143546666666666,
+          "median": 2.41356,
+          "p95": 2.4188,
+          "minimum": 2.41196,
+          "maximum": 2.41964
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 25.815801,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.2761089,
+          "median": 0.2753025,
+          "p95": 0.302377,
+          "minimum": 0.238748,
+          "maximum": 0.335977
+        },
+        "record_ms": {
+          "mean": 0.0028559999999999996,
+          "median": 0.002765,
+          "p95": 0.00334,
+          "minimum": 0.00232,
+          "maximum": 0.00346
+        },
+        "submit_ms": {
+          "mean": 0.1073853,
+          "median": 0.102379,
+          "p95": 0.125919,
+          "minimum": 0.087389,
+          "maximum": 0.139398
+        },
+        "wait_ms": {
+          "mean": 2.4947109000000003,
+          "median": 2.4916460000000002,
+          "p95": 2.514855,
+          "minimum": 2.483216,
+          "maximum": 2.517705
+        },
+        "query_ms": {
+          "mean": 0.018776233333333333,
+          "median": 0.016555,
+          "p95": 0.02874,
+          "minimum": 0.01436,
+          "maximum": 0.03085
+        },
+        "retire_ms": {
+          "mean": 0.0002956666666666666,
+          "median": 0.00027499999999999996,
+          "p95": 0.00038,
+          "minimum": 0.00023,
+          "maximum": 0.00044
+        },
+        "read_ms": {
+          "mean": 0.08791746666666667,
+          "median": 0.085049,
+          "p95": 0.111129,
+          "minimum": 0.075179,
+          "maximum": 0.165568
+        },
+        "total_ms": {
+          "mean": 2.9880504666666665,
+          "median": 2.9850865,
+          "p95": 3.050431,
+          "minimum": 2.909452,
+          "maximum": 3.09507
+        },
+        "device_ms": {
+          "mean": 2.413792,
+          "median": 2.41364,
+          "p95": 2.41576,
+          "minimum": 2.41228,
+          "maximum": 2.41884
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.452806,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.0000000000000004e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.0017816666666666666,
+          "median": 0.00174,
+          "p95": 0.00223,
+          "minimum": 0.00149,
+          "maximum": 0.00268
+        },
+        "submit_ms": {
+          "mean": 0.08050650000000001,
+          "median": 0.076754,
+          "p95": 0.093039,
+          "minimum": 0.070529,
+          "maximum": 0.132038
+        },
+        "wait_ms": {
+          "mean": 1.0105946,
+          "median": 1.0034049999999999,
+          "p95": 1.05062,
+          "minimum": 0.9945,
+          "maximum": 1.05134
+        },
+        "query_ms": {
+          "mean": 0.014577833333333335,
+          "median": 0.013955,
+          "p95": 0.01686,
+          "minimum": 0.01234,
+          "maximum": 0.02207
+        },
+        "retire_ms": {
+          "mean": 0.00021733333333333332,
+          "median": 0.00021,
+          "p95": 0.0003,
+          "minimum": 0.00015,
+          "maximum": 0.0003
+        },
+        "read_ms": {
+          "mean": 2.9e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.1077369333333331,
+          "median": 1.102819,
+          "p95": 1.145379,
+          "minimum": 1.084489,
+          "maximum": 1.150108
+        },
+        "device_ms": {
+          "mean": 0.9361413333333334,
+          "median": 0.93312,
+          "p95": 0.95864,
+          "minimum": 0.93136,
+          "maximum": 0.9878
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.596205,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.9333333333333336e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.06168496666666667,
+          "median": 0.062549,
+          "p95": 0.070049,
+          "minimum": 0.05476,
+          "maximum": 0.070199
+        },
+        "submit_ms": {
+          "mean": 0.016782566666666665,
+          "median": 0.016055,
+          "p95": 0.019229,
+          "minimum": 0.01445,
+          "maximum": 0.02052
+        },
+        "wait_ms": {
+          "mean": 1.0125265666666665,
+          "median": 1.0035055,
+          "p95": 1.04496,
+          "minimum": 0.99613,
+          "maximum": 1.089239
+        },
+        "query_ms": {
+          "mean": 0.015363866666666667,
+          "median": 0.015245,
+          "p95": 0.01981,
+          "minimum": 0.01271,
+          "maximum": 0.032839
+        },
+        "retire_ms": {
+          "mean": 4.266666666666667e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 3e-05,
+          "maximum": 0.0001
+        },
+        "read_ms": {
+          "mean": 2.966666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.1064596333333334,
+          "median": 1.0994895,
+          "p95": 1.147578,
+          "minimum": 1.08349,
+          "maximum": 1.185738
+        },
+        "device_ms": {
+          "mean": 0.9330173333333334,
+          "median": 0.93286,
+          "p95": 0.93472,
+          "minimum": 0.93136,
+          "maximum": 0.93712
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 61.157779,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 1.6906594333333334,
+          "median": 1.686249,
+          "p95": 1.743853,
+          "minimum": 1.635084,
+          "maximum": 1.840543
+        },
+        "record_ms": {
+          "mean": 0.0029323,
+          "median": 0.00289,
+          "p95": 0.00333,
+          "minimum": 0.002619,
+          "maximum": 0.00354
+        },
+        "submit_ms": {
+          "mean": 0.10491933333333334,
+          "median": 0.100029,
+          "p95": 0.133808,
+          "minimum": 0.093099,
+          "maximum": 0.134179
+        },
+        "wait_ms": {
+          "mean": 9.770019566666667,
+          "median": 9.79735,
+          "p95": 9.828865,
+          "minimum": 9.647087,
+          "maximum": 9.837815
+        },
+        "query_ms": {
+          "mean": 0.024566733333333333,
+          "median": 0.024229,
+          "p95": 0.0347,
+          "minimum": 0.014949,
+          "maximum": 0.03859
+        },
+        "retire_ms": {
+          "mean": 0.0002936666666666667,
+          "median": 0.00029,
+          "p95": 0.00034,
+          "minimum": 0.00024,
+          "maximum": 0.00038
+        },
+        "read_ms": {
+          "mean": 0.5208015666666667,
+          "median": 0.5153049999999999,
+          "p95": 0.599494,
+          "minimum": 0.465955,
+          "maximum": 0.599504
+        },
+        "total_ms": {
+          "mean": 12.114192599999999,
+          "median": 12.112792500000001,
+          "p95": 12.259912,
+          "minimum": 11.953855,
+          "maximum": 12.263212
+        },
+        "device_ms": {
+          "mean": 9.572868,
+          "median": 9.57236,
+          "p95": 9.57864,
+          "minimum": 9.56904,
+          "maximum": 9.58292
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 58.385256,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 1.687676,
+          "median": 1.6884385,
+          "p95": 1.803182,
+          "minimum": 1.600555,
+          "maximum": 1.876822
+        },
+        "record_ms": {
+          "mean": 0.08221453333333333,
+          "median": 0.07693449999999999,
+          "p95": 0.111469,
+          "minimum": 0.072519,
+          "maximum": 0.112309
+        },
+        "submit_ms": {
+          "mean": 0.020083833333333335,
+          "median": 0.0190945,
+          "p95": 0.02499,
+          "minimum": 0.01813,
+          "maximum": 0.02547
+        },
+        "wait_ms": {
+          "mean": 9.7152054,
+          "median": 9.6975765,
+          "p95": 9.814085,
+          "minimum": 9.647247,
+          "maximum": 9.814385
+        },
+        "query_ms": {
+          "mean": 0.0192682,
+          "median": 0.01672,
+          "p95": 0.02764,
+          "minimum": 0.01366,
+          "maximum": 0.038919
+        },
+        "retire_ms": {
+          "mean": 4.7333333333333336e-05,
+          "median": 4e-05,
+          "p95": 8e-05,
+          "minimum": 4e-05,
+          "maximum": 8e-05
+        },
+        "read_ms": {
+          "mean": 0.44386233333333336,
+          "median": 0.437131,
+          "p95": 0.482575,
+          "minimum": 0.410976,
+          "maximum": 0.484245
+        },
+        "total_ms": {
+          "mean": 11.968357633333333,
+          "median": 11.969065,
+          "p95": 12.182162,
+          "minimum": 11.815355,
+          "maximum": 12.221851
+        },
+        "device_ms": {
+          "mean": 9.571973333333334,
+          "median": 9.571439999999999,
+          "p95": 9.5772,
+          "minimum": 9.56804,
+          "maximum": 9.57776
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 76.116134,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.233333333333334e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 5e-05
+        },
+        "record_ms": {
+          "mean": 0.0789031,
+          "median": 0.071159,
+          "p95": 0.125198,
+          "minimum": 0.061209,
+          "maximum": 0.160718
+        },
+        "submit_ms": {
+          "mean": 0.0209062,
+          "median": 0.01997,
+          "p95": 0.02598,
+          "minimum": 0.01673,
+          "maximum": 0.0357
+        },
+        "wait_ms": {
+          "mean": 3.8609156333333337,
+          "median": 3.865853,
+          "p95": 3.891293,
+          "minimum": 3.774833,
+          "maximum": 3.896732
+        },
+        "query_ms": {
+          "mean": 0.018327299999999998,
+          "median": 0.016545,
+          "p95": 0.02341,
+          "minimum": 0.01426,
+          "maximum": 0.04654
+        },
+        "retire_ms": {
+          "mean": 5.063333333333334e-05,
+          "median": 5e-05,
+          "p95": 8e-05,
+          "minimum": 3e-05,
+          "maximum": 0.000109
+        },
+        "read_ms": {
+          "mean": 3.3e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 3.9791681999999997,
+          "median": 3.978107,
+          "p95": 4.0348,
+          "minimum": 3.882312,
+          "maximum": 4.073771
+        },
+        "device_ms": {
+          "mean": 3.77988,
+          "median": 3.7896400000000003,
+          "p95": 3.80296,
+          "minimum": 3.69992,
+          "maximum": 3.80516
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 74.286052,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.4e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.0021723000000000003,
+          "median": 0.002145,
+          "p95": 0.00246,
+          "minimum": 0.00192,
+          "maximum": 0.00271
+        },
+        "submit_ms": {
+          "mean": 0.09051976666666667,
+          "median": 0.0904845,
+          "p95": 0.094979,
+          "minimum": 0.08687,
+          "maximum": 0.096979
+        },
+        "wait_ms": {
+          "mean": 3.880332166666667,
+          "median": 3.872503,
+          "p95": 3.903082,
+          "minimum": 3.778714,
+          "maximum": 4.380887
+        },
+        "query_ms": {
+          "mean": 0.018563866666666665,
+          "median": 0.018499500000000002,
+          "p95": 0.02025,
+          "minimum": 0.01676,
+          "maximum": 0.02028
+        },
+        "retire_ms": {
+          "mean": 0.00025666666666666665,
+          "median": 0.00026,
+          "p95": 0.00033,
+          "minimum": 0.0002,
+          "maximum": 0.00034
+        },
+        "read_ms": {
+          "mean": 3.1333333333333334e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 3.9919100999999997,
+          "median": 3.984286,
+          "p95": 4.018761,
+          "minimum": 3.890563,
+          "maximum": 4.495727
+        },
+        "device_ms": {
+          "mean": 3.785318666666667,
+          "median": 3.7973,
+          "p95": 3.8038,
+          "minimum": 3.70544,
+          "maximum": 3.80528
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 32.976671,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.3677168333333333,
+          "median": 0.363696,
+          "p95": 0.401956,
+          "minimum": 0.328977,
+          "maximum": 0.423816
+        },
+        "record_ms": {
+          "mean": 0.0835291,
+          "median": 0.082369,
+          "p95": 0.106379,
+          "minimum": 0.072859,
+          "maximum": 0.108149
+        },
+        "submit_ms": {
+          "mean": 0.019579866666666668,
+          "median": 0.0192345,
+          "p95": 0.02276,
+          "minimum": 0.01729,
+          "maximum": 0.0303
+        },
+        "wait_ms": {
+          "mean": 4.846422899999999,
+          "median": 4.8737525,
+          "p95": 4.933643,
+          "minimum": 4.729195,
+          "maximum": 4.934052
+        },
+        "query_ms": {
+          "mean": 0.020725066666666667,
+          "median": 0.021045,
+          "p95": 0.02307,
+          "minimum": 0.016029,
+          "maximum": 0.023889
+        },
+        "retire_ms": {
+          "mean": 6.3e-05,
+          "median": 7e-05,
+          "p95": 9e-05,
+          "minimum": 3e-05,
+          "maximum": 0.00012
+        },
+        "read_ms": {
+          "mean": 0.8047195333333333,
+          "median": 0.8105469999999999,
+          "p95": 0.852872,
+          "minimum": 0.756163,
+          "maximum": 0.882111
+        },
+        "total_ms": {
+          "mean": 6.1427563,
+          "median": 6.1664455,
+          "p95": 6.214789,
+          "minimum": 6.012751,
+          "maximum": 6.258939
+        },
+        "device_ms": {
+          "mean": 4.665704,
+          "median": 4.65722,
+          "p95": 4.70848,
+          "minimum": 4.64288,
+          "maximum": 4.71676
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 33.310318,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.5089965333333333,
+          "median": 0.45530099999999996,
+          "p95": 0.828642,
+          "minimum": 0.390937,
+          "maximum": 0.848662
+        },
+        "record_ms": {
+          "mean": 0.0030163,
+          "median": 0.002735,
+          "p95": 0.004089,
+          "minimum": 0.00224,
+          "maximum": 0.00757
+        },
+        "submit_ms": {
+          "mean": 0.10594226666666667,
+          "median": 0.097629,
+          "p95": 0.148578,
+          "minimum": 0.090749,
+          "maximum": 0.176978
+        },
+        "wait_ms": {
+          "mean": 4.874861933333333,
+          "median": 4.8954125,
+          "p95": 4.933612,
+          "minimum": 4.729465,
+          "maximum": 4.943512
+        },
+        "query_ms": {
+          "mean": 0.02561513333333333,
+          "median": 0.02614,
+          "p95": 0.033149,
+          "minimum": 0.01664,
+          "maximum": 0.039299
+        },
+        "retire_ms": {
+          "mean": 0.000325,
+          "median": 0.000285,
+          "p95": 0.00059,
+          "minimum": 0.00022,
+          "maximum": 0.00085
+        },
+        "read_ms": {
+          "mean": 0.8268924999999999,
+          "median": 0.7466524999999999,
+          "p95": 1.398076,
+          "minimum": 0.693993,
+          "maximum": 1.478665
+        },
+        "total_ms": {
+          "mean": 6.3456496666666675,
+          "median": 6.2363345,
+          "p95": 7.170151,
+          "minimum": 6.008322,
+          "maximum": 7.331639
+        },
+        "device_ms": {
+          "mean": 4.669472,
+          "median": 4.66212,
+          "p95": 4.7224,
+          "minimum": 4.64304,
+          "maximum": 4.72808
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 39.059262,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.2e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 5e-05
+        },
+        "record_ms": {
+          "mean": 0.001898,
+          "median": 0.00178,
+          "p95": 0.0025,
+          "minimum": 0.00163,
+          "maximum": 0.00285
+        },
+        "submit_ms": {
+          "mean": 0.10292796666666666,
+          "median": 0.07924400000000001,
+          "p95": 0.162038,
+          "minimum": 0.073969,
+          "maximum": 0.657434
+        },
+        "wait_ms": {
+          "mean": 1.2968585,
+          "median": 1.2896174999999999,
+          "p95": 1.335367,
+          "minimum": 1.282947,
+          "maximum": 1.338587
+        },
+        "query_ms": {
+          "mean": 0.01745846666666667,
+          "median": 0.0159845,
+          "p95": 0.02622,
+          "minimum": 0.01442,
+          "maximum": 0.03139
+        },
+        "retire_ms": {
+          "mean": 0.000244,
+          "median": 0.00024,
+          "p95": 0.00032,
+          "minimum": 0.0002,
+          "maximum": 0.00034
+        },
+        "read_ms": {
+          "mean": 3.0333333333333333e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.4194492666666667,
+          "median": 1.3954665,
+          "p95": 1.469895,
+          "minimum": 1.377756,
+          "maximum": 1.968191
+        },
+        "device_ms": {
+          "mean": 1.2202786666666665,
+          "median": 1.2200199999999999,
+          "p95": 1.22444,
+          "minimum": 1.21812,
+          "maximum": 1.22496
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 37.841804,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.7966666666666668e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.06155253333333333,
+          "median": 0.0620345,
+          "p95": 0.06957,
+          "minimum": 0.054129,
+          "maximum": 0.070379
+        },
+        "submit_ms": {
+          "mean": 0.0171458,
+          "median": 0.01666,
+          "p95": 0.01934,
+          "minimum": 0.01482,
+          "maximum": 0.02801
+        },
+        "wait_ms": {
+          "mean": 1.2966990666666667,
+          "median": 1.2902425000000002,
+          "p95": 1.342437,
+          "minimum": 1.282247,
+          "maximum": 1.350957
+        },
+        "query_ms": {
+          "mean": 0.014913866666666666,
+          "median": 0.015120000000000001,
+          "p95": 0.02044,
+          "minimum": 0.01242,
+          "maximum": 0.02213
+        },
+        "retire_ms": {
+          "mean": 4.600000000000001e-05,
+          "median": 4e-05,
+          "p95": 7e-05,
+          "minimum": 4e-05,
+          "maximum": 0.00011
+        },
+        "read_ms": {
+          "mean": 2.966666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.3904149,
+          "median": 1.3877920000000001,
+          "p95": 1.427326,
+          "minimum": 1.367446,
+          "maximum": 1.438237
+        },
+        "device_ms": {
+          "mean": 1.2205853333333332,
+          "median": 1.21986,
+          "p95": 1.2232,
+          "minimum": 1.21884,
+          "maximum": 1.22764
+        }
+      },
+      "round": 1
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.282027,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.966666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 7e-05
+        },
+        "record_ms": {
+          "mean": 0.06521623333333333,
+          "median": 0.063009,
+          "p95": 0.090959,
+          "minimum": 0.055489,
+          "maximum": 0.092259
+        },
+        "submit_ms": {
+          "mean": 0.017231766666666665,
+          "median": 0.0168045,
+          "p95": 0.020859,
+          "minimum": 0.01501,
+          "maximum": 0.021489
+        },
+        "wait_ms": {
+          "mean": 0.8232721333333333,
+          "median": 0.8192325,
+          "p95": 0.848652,
+          "minimum": 0.804113,
+          "maximum": 0.859272
+        },
+        "query_ms": {
+          "mean": 0.01742993333333333,
+          "median": 0.016684499999999998,
+          "p95": 0.02255,
+          "minimum": 0.01314,
+          "maximum": 0.03142
+        },
+        "retire_ms": {
+          "mean": 4.0333333333333336e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 3e-05,
+          "maximum": 8e-05
+        },
+        "read_ms": {
+          "mean": 2.966666666666667e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 0.9232497333333334,
+          "median": 0.926906,
+          "p95": 0.953731,
+          "minimum": 0.891901,
+          "maximum": 0.966911
+        },
+        "device_ms": {
+          "mean": 0.7442933333333334,
+          "median": 0.74314,
+          "p95": 0.75968,
+          "minimum": 0.74116,
+          "maximum": 0.76652
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.712093,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.1333333333333334e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.0019059333333333332,
+          "median": 0.0017395,
+          "p95": 0.0022,
+          "minimum": 0.00154,
+          "maximum": 0.00585
+        },
+        "submit_ms": {
+          "mean": 0.08092623333333333,
+          "median": 0.076519,
+          "p95": 0.091079,
+          "minimum": 0.07177,
+          "maximum": 0.135719
+        },
+        "wait_ms": {
+          "mean": 0.8215947666666668,
+          "median": 0.818902,
+          "p95": 0.847632,
+          "minimum": 0.803222,
+          "maximum": 0.848212
+        },
+        "query_ms": {
+          "mean": 0.0371396,
+          "median": 0.01424,
+          "p95": 0.02163,
+          "minimum": 0.01291,
+          "maximum": 0.681623
+        },
+        "retire_ms": {
+          "mean": 0.00027133333333333333,
+          "median": 0.00022,
+          "p95": 0.00028,
+          "minimum": 0.00017,
+          "maximum": 0.0017
+        },
+        "read_ms": {
+          "mean": 3.6e-05,
+          "median": 3e-05,
+          "p95": 5e-05,
+          "minimum": 2e-05,
+          "maximum": 0.00012
+        },
+        "total_ms": {
+          "mean": 0.9419052,
+          "median": 0.9178409999999999,
+          "p95": 0.979531,
+          "minimum": 0.893351,
+          "maximum": 1.579995
+        },
+        "device_ms": {
+          "mean": 0.7438613333333334,
+          "median": 0.74288,
+          "p95": 0.75444,
+          "minimum": 0.74,
+          "maximum": 0.7668
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 29.559584,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.13998536666666667,
+          "median": 0.13219350000000002,
+          "p95": 0.189399,
+          "minimum": 0.106349,
+          "maximum": 0.189578
+        },
+        "record_ms": {
+          "mean": 0.0027283000000000003,
+          "median": 0.0027150000000000004,
+          "p95": 0.00346,
+          "minimum": 0.00227,
+          "maximum": 0.00348
+        },
+        "submit_ms": {
+          "mean": 0.09964503333333334,
+          "median": 0.096579,
+          "p95": 0.111269,
+          "minimum": 0.085949,
+          "maximum": 0.132259
+        },
+        "wait_ms": {
+          "mean": 3.6083208,
+          "median": 3.5849705,
+          "p95": 3.766874,
+          "minimum": 3.576275,
+          "maximum": 3.782923
+        },
+        "query_ms": {
+          "mean": 0.0190744,
+          "median": 0.018904499999999998,
+          "p95": 0.02021,
+          "minimum": 0.01675,
+          "maximum": 0.02748
+        },
+        "retire_ms": {
+          "mean": 0.0002886666666666666,
+          "median": 0.00027499999999999996,
+          "p95": 0.00038,
+          "minimum": 0.00022,
+          "maximum": 0.00043
+        },
+        "read_ms": {
+          "mean": 0.7119861333333333,
+          "median": 0.6985330000000001,
+          "p95": 0.819642,
+          "minimum": 0.655934,
+          "maximum": 0.823302
+        },
+        "total_ms": {
+          "mean": 4.5820286999999995,
+          "median": 4.549826,
+          "p95": 4.887343,
+          "minimum": 4.489657,
+          "maximum": 4.910703
+        },
+        "device_ms": {
+          "mean": 3.5019413333333334,
+          "median": 3.5012,
+          "p95": 3.50576,
+          "minimum": 3.49688,
+          "maximum": 3.52344
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 28.584434,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.136164,
+          "median": 0.13385350000000001,
+          "p95": 0.158789,
+          "minimum": 0.120519,
+          "maximum": 0.162449
+        },
+        "record_ms": {
+          "mean": 0.07687226666666666,
+          "median": 0.07586899999999999,
+          "p95": 0.09038,
+          "minimum": 0.067399,
+          "maximum": 0.101969
+        },
+        "submit_ms": {
+          "mean": 0.018457166666666667,
+          "median": 0.018135,
+          "p95": 0.022429,
+          "minimum": 0.0162,
+          "maximum": 0.023689
+        },
+        "wait_ms": {
+          "mean": 3.5882845333333337,
+          "median": 3.578936,
+          "p95": 3.688894,
+          "minimum": 3.570115,
+          "maximum": 3.694484
+        },
+        "query_ms": {
+          "mean": 0.016748433333333333,
+          "median": 0.0161445,
+          "p95": 0.02456,
+          "minimum": 0.01391,
+          "maximum": 0.024729
+        },
+        "retire_ms": {
+          "mean": 4.566666666666667e-05,
+          "median": 4e-05,
+          "p95": 6e-05,
+          "minimum": 3e-05,
+          "maximum": 8e-05
+        },
+        "read_ms": {
+          "mean": 0.7533805666666668,
+          "median": 0.7398225,
+          "p95": 0.862572,
+          "minimum": 0.672524,
+          "maximum": 0.894121
+        },
+        "total_ms": {
+          "mean": 4.589952633333334,
+          "median": 4.5672654999999995,
+          "p95": 4.818424,
+          "minimum": 4.494427,
+          "maximum": 4.851483
+        },
+        "device_ms": {
+          "mean": 3.5007186666666668,
+          "median": 3.50044,
+          "p95": 3.50552,
+          "minimum": 3.49656,
+          "maximum": 3.50776
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 30.382287,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.8e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.0022863,
+          "median": 0.0018644999999999998,
+          "p95": 0.00494,
+          "minimum": 0.0016,
+          "maximum": 0.00783
+        },
+        "submit_ms": {
+          "mean": 0.09064246666666667,
+          "median": 0.087524,
+          "p95": 0.117089,
+          "minimum": 0.073489,
+          "maximum": 0.136759
+        },
+        "wait_ms": {
+          "mean": 1.0067105,
+          "median": 1.004375,
+          "p95": 1.02279,
+          "minimum": 0.99718,
+          "maximum": 1.03569
+        },
+        "query_ms": {
+          "mean": 0.020555566666666667,
+          "median": 0.0191495,
+          "p95": 0.02941,
+          "minimum": 0.01403,
+          "maximum": 0.03147
+        },
+        "retire_ms": {
+          "mean": 0.00041766666666666666,
+          "median": 0.00027499999999999996,
+          "p95": 0.00216,
+          "minimum": 0.0002,
+          "maximum": 0.0028
+        },
+        "read_ms": {
+          "mean": 3.3e-05,
+          "median": 3e-05,
+          "p95": 5e-05,
+          "minimum": 2e-05,
+          "maximum": 5e-05
+        },
+        "total_ms": {
+          "mean": 1.1206734999999999,
+          "median": 1.1200245,
+          "p95": 1.148239,
+          "minimum": 1.09297,
+          "maximum": 1.154089
+        },
+        "device_ms": {
+          "mean": 0.9330693333333334,
+          "median": 0.93298,
+          "p95": 0.93452,
+          "minimum": 0.93128,
+          "maximum": 0.93752
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 29.216317,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.7000000000000002e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.0670911,
+          "median": 0.06644,
+          "p95": 0.091659,
+          "minimum": 0.05572,
+          "maximum": 0.09695
+        },
+        "submit_ms": {
+          "mean": 0.018146266666666667,
+          "median": 0.0178045,
+          "p95": 0.022399,
+          "minimum": 0.01509,
+          "maximum": 0.024519
+        },
+        "wait_ms": {
+          "mean": 1.0132143666666666,
+          "median": 1.0075349999999998,
+          "p95": 1.04159,
+          "minimum": 1.00078,
+          "maximum": 1.054699
+        },
+        "query_ms": {
+          "mean": 0.015820166666666666,
+          "median": 0.016005,
+          "p95": 0.01882,
+          "minimum": 0.01279,
+          "maximum": 0.018919
+        },
+        "retire_ms": {
+          "mean": 3.766666666666667e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 2e-05,
+          "maximum": 5e-05
+        },
+        "read_ms": {
+          "mean": 2.866666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.1143652333333334,
+          "median": 1.1131495,
+          "p95": 1.13876,
+          "minimum": 1.08911,
+          "maximum": 1.143779
+        },
+        "device_ms": {
+          "mean": 0.9331906666666666,
+          "median": 0.93292,
+          "p95": 0.93576,
+          "minimum": 0.93144,
+          "maximum": 0.93908
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 25.523893,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.27406173333333333,
+          "median": 0.276743,
+          "p95": 0.299917,
+          "minimum": 0.239818,
+          "maximum": 0.313757
+        },
+        "record_ms": {
+          "mean": 0.0891795,
+          "median": 0.087299,
+          "p95": 0.103029,
+          "minimum": 0.07825,
+          "maximum": 0.107699
+        },
+        "submit_ms": {
+          "mean": 0.020239833333333335,
+          "median": 0.020215,
+          "p95": 0.02458,
+          "minimum": 0.01706,
+          "maximum": 0.02477
+        },
+        "wait_ms": {
+          "mean": 2.5017698,
+          "median": 2.4977460000000002,
+          "p95": 2.530305,
+          "minimum": 2.484917,
+          "maximum": 2.544575
+        },
+        "query_ms": {
+          "mean": 0.022194733333333334,
+          "median": 0.02078,
+          "p95": 0.03224,
+          "minimum": 0.01541,
+          "maximum": 0.03803
+        },
+        "retire_ms": {
+          "mean": 4.3e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 3e-05,
+          "maximum": 9e-05
+        },
+        "read_ms": {
+          "mean": 0.08297983333333334,
+          "median": 0.08151449999999999,
+          "p95": 0.092809,
+          "minimum": 0.071429,
+          "maximum": 0.097229
+        },
+        "total_ms": {
+          "mean": 2.9904684333333336,
+          "median": 2.9857715000000002,
+          "p95": 3.0369,
+          "minimum": 2.943682,
+          "maximum": 3.054451
+        },
+        "device_ms": {
+          "mean": 2.413424,
+          "median": 2.4131,
+          "p95": 2.4176,
+          "minimum": 2.41204,
+          "maximum": 2.41884
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 25.226437,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.3283065,
+          "median": 0.273677,
+          "p95": 0.734003,
+          "minimum": 0.240057,
+          "maximum": 0.769573
+        },
+        "record_ms": {
+          "mean": 0.0028806333333333332,
+          "median": 0.002445,
+          "p95": 0.0054,
+          "minimum": 0.00204,
+          "maximum": 0.00958
+        },
+        "submit_ms": {
+          "mean": 0.1042666,
+          "median": 0.099414,
+          "p95": 0.117749,
+          "minimum": 0.082959,
+          "maximum": 0.192128
+        },
+        "wait_ms": {
+          "mean": 2.4926723999999996,
+          "median": 2.4917610000000003,
+          "p95": 2.501636,
+          "minimum": 2.484786,
+          "maximum": 2.510106
+        },
+        "query_ms": {
+          "mean": 0.016786166666666665,
+          "median": 0.016355,
+          "p95": 0.01826,
+          "minimum": 0.01551,
+          "maximum": 0.02149
+        },
+        "retire_ms": {
+          "mean": 0.0002836333333333333,
+          "median": 0.00026,
+          "p95": 0.00055,
+          "minimum": 0.00021,
+          "maximum": 0.00057
+        },
+        "read_ms": {
+          "mean": 0.0866421,
+          "median": 0.075669,
+          "p95": 0.142618,
+          "minimum": 0.070609,
+          "maximum": 0.163538
+        },
+        "total_ms": {
+          "mean": 3.0318380333333335,
+          "median": 2.957711,
+          "p95": 3.515536,
+          "minimum": 2.922992,
+          "maximum": 3.542136
+        },
+        "device_ms": {
+          "mean": 2.413856,
+          "median": 2.41322,
+          "p95": 2.41896,
+          "minimum": 2.41136,
+          "maximum": 2.42344
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 78.373893,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.233333333333334e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 6e-05
+        },
+        "record_ms": {
+          "mean": 0.07136150000000001,
+          "median": 0.072054,
+          "p95": 0.074179,
+          "minimum": 0.066859,
+          "maximum": 0.076289
+        },
+        "submit_ms": {
+          "mean": 0.019275900000000002,
+          "median": 0.019135,
+          "p95": 0.02083,
+          "minimum": 0.01751,
+          "maximum": 0.02137
+        },
+        "wait_ms": {
+          "mean": 3.8643183333333337,
+          "median": 3.8716725,
+          "p95": 3.888683,
+          "minimum": 3.767904,
+          "maximum": 3.890283
+        },
+        "query_ms": {
+          "mean": 0.018754866666666665,
+          "median": 0.018775,
+          "p95": 0.02044,
+          "minimum": 0.0173,
+          "maximum": 0.02199
+        },
+        "retire_ms": {
+          "mean": 4.9000000000000005e-05,
+          "median": 5e-05,
+          "p95": 6e-05,
+          "minimum": 4e-05,
+          "maximum": 6e-05
+        },
+        "read_ms": {
+          "mean": 3.233333333333334e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 3.973824266666667,
+          "median": 3.9793469999999997,
+          "p95": 3.996632,
+          "minimum": 3.876233,
+          "maximum": 3.999201
+        },
+        "device_ms": {
+          "mean": 3.785576,
+          "median": 3.79508,
+          "p95": 3.80524,
+          "minimum": 3.69444,
+          "maximum": 3.80732
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 74.616838,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.366666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 5e-05
+        },
+        "record_ms": {
+          "mean": 0.002136333333333333,
+          "median": 0.001955,
+          "p95": 0.00284,
+          "minimum": 0.0018,
+          "maximum": 0.00402
+        },
+        "submit_ms": {
+          "mean": 0.09807533333333333,
+          "median": 0.092559,
+          "p95": 0.125909,
+          "minimum": 0.086629,
+          "maximum": 0.155168
+        },
+        "wait_ms": {
+          "mean": 3.8602333,
+          "median": 3.8659525,
+          "p95": 3.881913,
+          "minimum": 3.788943,
+          "maximum": 3.882953
+        },
+        "query_ms": {
+          "mean": 0.022516233333333333,
+          "median": 0.022195,
+          "p95": 0.02752,
+          "minimum": 0.01675,
+          "maximum": 0.03085
+        },
+        "retire_ms": {
+          "mean": 0.000276,
+          "median": 0.00026,
+          "p95": 0.00035,
+          "minimum": 0.00017,
+          "maximum": 0.00066
+        },
+        "read_ms": {
+          "mean": 3.263333333333334e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 3e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 3.9833035,
+          "median": 3.984457,
+          "p95": 4.022251,
+          "minimum": 3.900982,
+          "maximum": 4.054141
+        },
+        "device_ms": {
+          "mean": 3.7778666666666667,
+          "median": 3.7831200000000003,
+          "p95": 3.79548,
+          "minimum": 3.71416,
+          "maximum": 3.79716
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 56.991239,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 1.6760379,
+          "median": 1.670019,
+          "p95": 1.718264,
+          "minimum": 1.628154,
+          "maximum": 1.770633
+        },
+        "record_ms": {
+          "mean": 0.0026723000000000003,
+          "median": 0.00263,
+          "p95": 0.003169,
+          "minimum": 0.00226,
+          "maximum": 0.00352
+        },
+        "submit_ms": {
+          "mean": 0.09700203333333332,
+          "median": 0.095779,
+          "p95": 0.104049,
+          "minimum": 0.092089,
+          "maximum": 0.106169
+        },
+        "wait_ms": {
+          "mean": 9.708433766666667,
+          "median": 9.6923265,
+          "p95": 9.803915,
+          "minimum": 9.633477,
+          "maximum": 9.823695
+        },
+        "query_ms": {
+          "mean": 0.018851566666666666,
+          "median": 0.017910000000000002,
+          "p95": 0.02697,
+          "minimum": 0.01637,
+          "maximum": 0.027459
+        },
+        "retire_ms": {
+          "mean": 0.0002936666666666667,
+          "median": 0.00029,
+          "p95": 0.00035,
+          "minimum": 0.00025,
+          "maximum": 0.0004
+        },
+        "read_ms": {
+          "mean": 0.4540475333333333,
+          "median": 0.45229050000000004,
+          "p95": 0.485145,
+          "minimum": 0.415645,
+          "maximum": 0.499315
+        },
+        "total_ms": {
+          "mean": 11.957338766666668,
+          "median": 11.9419145,
+          "p95": 12.049673,
+          "minimum": 11.867086,
+          "maximum": 12.070253
+        },
+        "device_ms": {
+          "mean": 9.554326666666666,
+          "median": 9.55358,
+          "p95": 9.56084,
+          "minimum": 9.55008,
+          "maximum": 9.56104
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 58.891471,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "statistics": {
+        "upload_ms": {
+          "mean": 1.7724891999999999,
+          "median": 1.713308,
+          "p95": 2.08025,
+          "minimum": 1.629764,
+          "maximum": 2.320368
+        },
+        "record_ms": {
+          "mean": 0.08119926666666667,
+          "median": 0.080814,
+          "p95": 0.088389,
+          "minimum": 0.075409,
+          "maximum": 0.091139
+        },
+        "submit_ms": {
+          "mean": 0.020209766666666667,
+          "median": 0.020083999999999998,
+          "p95": 0.02167,
+          "minimum": 0.01896,
+          "maximum": 0.02186
+        },
+        "wait_ms": {
+          "mean": 9.7605711,
+          "median": 9.763566,
+          "p95": 9.824315,
+          "minimum": 9.648357,
+          "maximum": 9.831455
+        },
+        "query_ms": {
+          "mean": 0.021928700000000002,
+          "median": 0.021670000000000002,
+          "p95": 0.02473,
+          "minimum": 0.018439,
+          "maximum": 0.0252
+        },
+        "retire_ms": {
+          "mean": 6.6e-05,
+          "median": 6e-05,
+          "p95": 8e-05,
+          "minimum": 3e-05,
+          "maximum": 0.00037
+        },
+        "read_ms": {
+          "mean": 0.45624186666666666,
+          "median": 0.444056,
+          "p95": 0.519295,
+          "minimum": 0.412946,
+          "maximum": 0.610524
+        },
+        "total_ms": {
+          "mean": 12.1127059,
+          "median": 12.057313,
+          "p95": 12.43747,
+          "minimum": 11.973335,
+          "maximum": 12.613789
+        },
+        "device_ms": {
+          "mean": 9.553882666666665,
+          "median": 9.5532,
+          "p95": 9.55892,
+          "minimum": 9.54868,
+          "maximum": 9.5604
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 37.502388,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 3.7000000000000005e-05,
+          "median": 3e-05,
+          "p95": 8e-05,
+          "minimum": 2e-05,
+          "maximum": 0.00012
+        },
+        "record_ms": {
+          "mean": 0.001999,
+          "median": 0.00204,
+          "p95": 0.00238,
+          "minimum": 0.00152,
+          "maximum": 0.00239
+        },
+        "submit_ms": {
+          "mean": 0.08893276666666666,
+          "median": 0.08834900000000001,
+          "p95": 0.111349,
+          "minimum": 0.072459,
+          "maximum": 0.113749
+        },
+        "wait_ms": {
+          "mean": 1.2995425,
+          "median": 1.2951570000000001,
+          "p95": 1.329877,
+          "minimum": 1.283748,
+          "maximum": 1.331127
+        },
+        "query_ms": {
+          "mean": 0.036906266666666666,
+          "median": 0.01726,
+          "p95": 0.026949,
+          "minimum": 0.01357,
+          "maximum": 0.594994
+        },
+        "retire_ms": {
+          "mean": 0.00025066666666666667,
+          "median": 0.000245,
+          "p95": 0.0003,
+          "minimum": 0.00019,
+          "maximum": 0.00035
+        },
+        "read_ms": {
+          "mean": 2.866666666666667e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.4276968666666667,
+          "median": 1.4070315,
+          "p95": 1.441336,
+          "minimum": 1.375227,
+          "maximum": 1.980951
+        },
+        "device_ms": {
+          "mean": 1.220672,
+          "median": 1.2202799999999998,
+          "p95": 1.2224,
+          "minimum": 1.21892,
+          "maximum": 1.2272
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "metadata": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 38.127151,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 2.9333333333333336e-05,
+          "median": 3e-05,
+          "p95": 4e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "record_ms": {
+          "mean": 0.06397593333333333,
+          "median": 0.0614145,
+          "p95": 0.077929,
+          "minimum": 0.054469,
+          "maximum": 0.086829
+        },
+        "submit_ms": {
+          "mean": 0.01797786666666667,
+          "median": 0.0177845,
+          "p95": 0.02067,
+          "minimum": 0.01497,
+          "maximum": 0.02704
+        },
+        "wait_ms": {
+          "mean": 1.3012857666666666,
+          "median": 1.2952625,
+          "p95": 1.331488,
+          "minimum": 1.284118,
+          "maximum": 1.333287
+        },
+        "query_ms": {
+          "mean": 0.014963266666666667,
+          "median": 0.014525,
+          "p95": 0.01693,
+          "minimum": 0.01228,
+          "maximum": 0.02117
+        },
+        "retire_ms": {
+          "mean": 3.9e-05,
+          "median": 4e-05,
+          "p95": 5e-05,
+          "minimum": 3e-05,
+          "maximum": 8e-05
+        },
+        "read_ms": {
+          "mean": 2.7666666666666667e-05,
+          "median": 3e-05,
+          "p95": 3e-05,
+          "minimum": 2e-05,
+          "maximum": 4e-05
+        },
+        "total_ms": {
+          "mean": 1.3982988333333333,
+          "median": 1.3912315,
+          "p95": 1.424066,
+          "minimum": 1.380636,
+          "maximum": 1.424236
+        },
+        "device_ms": {
+          "mean": 1.2206173333333334,
+          "median": 1.22038,
+          "p95": 1.22256,
+          "minimum": 1.21832,
+          "maximum": 1.22904
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 33.413797,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.3543643,
+          "median": 0.3580715,
+          "p95": 0.380596,
+          "minimum": 0.307487,
+          "maximum": 0.412976
+        },
+        "record_ms": {
+          "mean": 0.07932283333333333,
+          "median": 0.076779,
+          "p95": 0.101529,
+          "minimum": 0.071279,
+          "maximum": 0.103719
+        },
+        "submit_ms": {
+          "mean": 0.0196822,
+          "median": 0.0192195,
+          "p95": 0.0236,
+          "minimum": 0.01786,
+          "maximum": 0.02371
+        },
+        "wait_ms": {
+          "mean": 4.8148358,
+          "median": 4.7998835,
+          "p95": 4.917042,
+          "minimum": 4.749524,
+          "maximum": 4.928563
+        },
+        "query_ms": {
+          "mean": 0.017399066666666668,
+          "median": 0.017204499999999998,
+          "p95": 0.019639,
+          "minimum": 0.015879,
+          "maximum": 0.02013
+        },
+        "retire_ms": {
+          "mean": 4.6666666666666665e-05,
+          "median": 5e-05,
+          "p95": 6e-05,
+          "minimum": 4e-05,
+          "maximum": 6e-05
+        },
+        "read_ms": {
+          "mean": 0.8035976,
+          "median": 0.793587,
+          "p95": 0.880422,
+          "minimum": 0.761512,
+          "maximum": 0.880722
+        },
+        "total_ms": {
+          "mean": 6.089248466666667,
+          "median": 6.079571,
+          "p95": 6.19806,
+          "minimum": 6.005102,
+          "maximum": 6.22921
+        },
+        "device_ms": {
+          "mean": 4.669286666666666,
+          "median": 4.66296,
+          "p95": 4.70268,
+          "minimum": 4.64524,
+          "maximum": 4.7034
+        }
+      },
+      "round": 2
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "metadata": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 33.841683,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "statistics": {
+        "upload_ms": {
+          "mean": 0.38991190000000003,
+          "median": 0.36949200000000004,
+          "p95": 0.683394,
+          "minimum": 0.312386,
+          "maximum": 0.697733
+        },
+        "record_ms": {
+          "mean": 0.0027215666666666667,
+          "median": 0.00262,
+          "p95": 0.003709,
+          "minimum": 0.00213,
+          "maximum": 0.003789
+        },
+        "submit_ms": {
+          "mean": 0.107408,
+          "median": 0.101274,
+          "p95": 0.138499,
+          "minimum": 0.094639,
+          "maximum": 0.167029
+        },
+        "wait_ms": {
+          "mean": 4.833442333333333,
+          "median": 4.7930385,
+          "p95": 4.925723,
+          "minimum": 4.724054,
+          "maximum": 5.409108
+        },
+        "query_ms": {
+          "mean": 0.018627433333333332,
+          "median": 0.018235,
+          "p95": 0.026039,
+          "minimum": 0.01528,
+          "maximum": 0.02812
+        },
+        "retire_ms": {
+          "mean": 0.00029596666666666663,
+          "median": 0.00027,
+          "p95": 0.00049,
+          "minimum": 0.00021,
+          "maximum": 0.00058
+        },
+        "read_ms": {
+          "mean": 0.8853215,
+          "median": 0.857097,
+          "p95": 1.01252,
+          "minimum": 0.814173,
+          "maximum": 1.278278
+        },
+        "total_ms": {
+          "mean": 6.237728700000001,
+          "median": 6.1604849999999995,
+          "p95": 6.814464,
+          "minimum": 6.045142,
+          "maximum": 7.044862
+        },
+        "device_ms": {
+          "mean": 4.660422666666666,
+          "median": 4.6530000000000005,
+          "p95": 4.69924,
+          "minimum": 4.63676,
+          "maximum": 4.69928
+        }
+      },
+      "round": 2
+    }
+  ],
+  "memory": [
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 38.778855,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 133756288,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 29491328,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 58982528,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 5
+          },
+          {
+            "bytes": 14745728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 15790080,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 29491328,
+            "allocated": 29491328,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 58982528,
+            "allocated": 58982528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 14745728,
+            "allocated": 14745728,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": false,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "images": [
+          {
+            "logical": 14745600,
+            "allocated": 15790080,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":29491328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":58982528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":3686528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14745728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":15790080,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":3686528,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":133756288,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 36.418038,
+        "device_buffers": 99533924,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 133756288,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 29491328,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 58982528,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 5
+          },
+          {
+            "bytes": 14745728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 15790080,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":29491328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":58982528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":3686528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14745728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":15790080,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":3686528,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":133756288,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 34.254369,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 130069760,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 29491328,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 58982528,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 5
+          },
+          {
+            "bytes": 14745728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 15790080,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 29491328,
+            "allocated": 29491328,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 58982528,
+            "allocated": 58982528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 3686528,
+            "allocated": 3686528,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 14745728,
+            "allocated": 14745728,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          }
+        ],
+        "images": [
+          {
+            "logical": 14745600,
+            "allocated": 15790080,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":29491328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":58982528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":3686528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14745728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":15790080,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":130069760,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1280,
+        720,
+        2560,
+        1440
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 35.562427,
+        "device_buffers": 95847396,
+        "host_buffers": 18432272,
+        "cpu_payload": 22119268,
+        "image_logical": 14745600,
+        "upload_bytes": 3686528,
+        "readback_bytes": 14745600
+      },
+      "final_sha256": "56012669ed8f38325ad4107739b90319b4f9b6f2293261f46f2ddb040ace125d",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 130069760,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 29491328,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 0
+          },
+          {
+            "bytes": 58982528,
+            "type": 0
+          },
+          {
+            "bytes": 3686528,
+            "type": 5
+          },
+          {
+            "bytes": 14745728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 15790080,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":29491328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":3686528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":58982528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":3686528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14745728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":15790080,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":130069760,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 36.284239,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 112540032,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66355328,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 5
+          },
+          {
+            "bytes": 2073728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 2637824,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 66355328,
+            "allocated": 66355328,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 2073728,
+            "allocated": 2073728,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "images": [
+          {
+            "logical": 2073600,
+            "allocated": 2637824,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66355328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8294528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":2073728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":2637824,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":8294528,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":112540032,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 35.766644,
+        "device_buffers": 99533924,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 112540032,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66355328,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 5
+          },
+          {
+            "bytes": 2073728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 2637824,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66355328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8294528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":2073728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":2637824,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":8294528,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":112540032,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 31.00929,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 104245504,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66355328,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 5
+          },
+          {
+            "bytes": 2073728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 2637824,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 66355328,
+            "allocated": 66355328,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 8294528,
+            "allocated": 8294528,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 2073728,
+            "allocated": 2073728,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          }
+        ],
+        "images": [
+          {
+            "logical": 2073600,
+            "allocated": 2637824,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66355328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8294528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":2073728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":2637824,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":104245504,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1920,
+        1080,
+        960,
+        540
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 31.471466,
+        "device_buffers": 91239396,
+        "host_buffers": 10368272,
+        "cpu_payload": 18663268,
+        "image_logical": 2073600,
+        "upload_bytes": 8294528,
+        "readback_bytes": 2073600
+      },
+      "final_sha256": "53004429041e92b461fbaa4799d31ea715e2d773c1eb0a9c621fb88c008d36cd",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 104245504,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66355328,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 0
+          },
+          {
+            "bytes": 8294528,
+            "type": 5
+          },
+          {
+            "bytes": 2073728,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 2637824,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66355328,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":8294528,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8294528,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":2073728,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":2637824,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":104245504,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 82.610911,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 448441152,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 265420928,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 33129744,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 5
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 8896512,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 265420928,
+            "allocated": 265420928,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 33129744,
+            "allocated": 33129744,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": false,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "images": [
+          {
+            "logical": 8282404,
+            "allocated": 8896512,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":265420928,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":33129744,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":33177728,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":8896512,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":33177728,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":448441152,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 81.417274,
+        "device_buffers": 398084340,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 448441152,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 265420928,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 33129744,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 5
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 8896512,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":265420928,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":33129744,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":33177728,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":8896512,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":33177728,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":448441152,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 62.333257,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 415263424,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 265420928,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 33129744,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 5
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 8896512,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 265420928,
+            "allocated": 265420928,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 33129744,
+            "allocated": 33129744,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 33177728,
+            "allocated": 33177728,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          }
+        ],
+        "images": [
+          {
+            "logical": 8282404,
+            "allocated": 8896512,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":265420928,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":33129744,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":33177728,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":8896512,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":415263424,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        3840,
+        2160,
+        1919,
+        1079
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 65.068111,
+        "device_buffers": 364906612,
+        "host_buffers": 41460276,
+        "cpu_payload": 74638472,
+        "image_logical": 8282404,
+        "upload_bytes": 33177728,
+        "readback_bytes": 8282404
+      },
+      "final_sha256": "a587a957b87c2fc0335a03d4705edf12ac476aeaf79460606752e28c499068b7",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 415263424,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 265420928,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 0
+          },
+          {
+            "bytes": 33129744,
+            "type": 0
+          },
+          {
+            "bytes": 33177728,
+            "type": 5
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 8896512,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":265420928,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":33177728,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":33129744,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":33177728,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":8896512,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":415263424,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 44.932546,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 189787136,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66259360,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 59046544,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 14761744,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 16588800,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 66259360,
+            "allocated": 66259360,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 59046544,
+            "allocated": 59046544,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 14761732,
+            "allocated": 14761744,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": false,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "images": [
+          {
+            "logical": 14761604,
+            "allocated": 16588800,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66259360,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":59046544,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14761744,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":16588800,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":8282544,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":189787136,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "resident",
+      "requested": {
+        "mode": "resident",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 44.655629,
+        "device_buffers": 150153984,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 0,
+        "readback_bytes": 0
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "allocation": {
+        "summary": {
+          "allocations": 10,
+          "frees": 10,
+          "peak_bytes": 189787136,
+          "peak_count": 10,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66259360,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 59046544,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 14761744,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 16588800,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66259360,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":59046544,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14761744,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":16588800,\"type\":0}",
+          "ALLOCATE {\"id\":37383395344418,\"bytes\":8282544,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "FREE {\"id\":37383395344418}",
+          "MEMORY_SUMMARY {\"allocations\":10,\"frees\":10,\"peak_bytes\":189787136,\"peak_count\":10,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "native",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 37.964813,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 181504592,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66259360,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 59046544,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 14761744,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 16588800,
+            "type": 0
+          }
+        ],
+        "buffers": [
+          {
+            "host": false,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 484,
+            "allocated": 496,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 66259360,
+            "allocated": 66259360,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": false,
+            "requested": 59046544,
+            "allocated": 59046544,
+            "type": 0,
+            "flags": 1
+          },
+          {
+            "host": true,
+            "requested": 8282532,
+            "allocated": 8282544,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 14761732,
+            "allocated": 14761744,
+            "type": 5,
+            "flags": 14
+          },
+          {
+            "host": true,
+            "requested": 16,
+            "allocated": 16,
+            "type": 5,
+            "flags": 14
+          }
+        ],
+        "images": [
+          {
+            "logical": 14761604,
+            "allocated": 16588800,
+            "type": 0,
+            "flags": 1
+          }
+        ],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66259360,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":59046544,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14761744,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":16588800,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":181504592,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    },
+    {
+      "extent": [
+        1919,
+        1079,
+        2561,
+        1441
+      ],
+      "engine": "ogpu",
+      "mode": "end-to-end",
+      "requested": {
+        "mode": "end-to-end",
+        "validation": false,
+        "warmups": 10,
+        "frames": 30,
+        "setup_ms": 39.590017,
+        "device_buffers": 141871452,
+        "host_buffers": 23044280,
+        "cpu_payload": 31327280,
+        "image_logical": 14761604,
+        "upload_bytes": 8282532,
+        "readback_bytes": 14761604
+      },
+      "final_sha256": "cc2dec9e86c0cca5bce2d603414524fb9d437a34dcda31e9ef10e67330095db8",
+      "allocation": {
+        "summary": {
+          "allocations": 9,
+          "frees": 9,
+          "peak_bytes": 181504592,
+          "peak_count": 9,
+          "live_bytes": 0,
+          "live_count": 0
+        },
+        "signature": [
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 496,
+            "type": 0
+          },
+          {
+            "bytes": 66259360,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 0
+          },
+          {
+            "bytes": 59046544,
+            "type": 0
+          },
+          {
+            "bytes": 8282544,
+            "type": 5
+          },
+          {
+            "bytes": 14761744,
+            "type": 5
+          },
+          {
+            "bytes": 16,
+            "type": 5
+          },
+          {
+            "bytes": 16588800,
+            "type": 0
+          }
+        ],
+        "buffers": [],
+        "images": [],
+        "trace": [
+          "ALLOCATE {\"id\":15393162788878,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":17592186044432,\"bytes\":496,\"type\":0}",
+          "ALLOCATE {\"id\":19791209299986,\"bytes\":66259360,\"type\":0}",
+          "ALLOCATE {\"id\":21990232555540,\"bytes\":8282544,\"type\":0}",
+          "ALLOCATE {\"id\":24189255811094,\"bytes\":59046544,\"type\":0}",
+          "ALLOCATE {\"id\":26388279066648,\"bytes\":8282544,\"type\":5}",
+          "ALLOCATE {\"id\":28587302322202,\"bytes\":14761744,\"type\":5}",
+          "ALLOCATE {\"id\":30786325577756,\"bytes\":16,\"type\":5}",
+          "ALLOCATE {\"id\":32985348833310,\"bytes\":16588800,\"type\":0}",
+          "FREE {\"id\":32985348833310}",
+          "FREE {\"id\":15393162788878}",
+          "FREE {\"id\":17592186044432}",
+          "FREE {\"id\":19791209299986}",
+          "FREE {\"id\":21990232555540}",
+          "FREE {\"id\":24189255811094}",
+          "FREE {\"id\":30786325577756}",
+          "FREE {\"id\":28587302322202}",
+          "FREE {\"id\":26388279066648}",
+          "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":181504592,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+        ]
+      }
+    }
+  ],
+  "timing_policy": {
+    "warmups": 10,
+    "samples": 30,
+    "processes_per_control": 3,
+    "frames_in_flight": 1,
+    "validation": false,
+    "allocation_tracing": false,
+    "mode_order": "alternate by round",
+    "engine_order": "alternate by round+extent_index+mode_index",
+    "query_bits": 64
+  },
+  "complete": true,
+  "input_report_sha256": "4834f4b0d70b8aba361761e60141133a04fa96c172e5e7889f7899bcb4012441",
+  "raw_samples": "samples.csv",
+  "exported_validation_sha256": "5212e2200861717bcf49b8debe35e629a889c259db64f59b9d2d87332afdf0da"
+}

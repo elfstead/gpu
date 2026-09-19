@@ -1,6 +1,6 @@
 # Roadmap: from runtime candidate to a usable GPU programming foundation
 
-Proposed 2026-09-18. The [working plan](plan.md) owns completed/active status;
+Proposed 2026-09-18; M1 completed 2026-09-19. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
 This is a concrete plan, not authorization to publish releases, provision machines
 or coordinate native testing. Only the next milestone is ready to start; later
@@ -29,8 +29,8 @@ compatibility are not completed by those results.
 
 | Milestone | Concrete outcome | Dependency / execution location |
 |---|---|---|
-| M1 — Useful-scale execution | Learned-image workload at video-sized extents, bounded memory, matched Vulkan measurements | Next; existing Radeon, smaller correctness controls on llvmpipe |
-| M2 — Compiler/programming contract | Documented device-code contract; generated structured arguments and heap interfaces; explicit language-direction decision | M1 findings; Linux, no Mac prerequisite |
+| M1 — Useful-scale execution | Learned-image workload at video-sized extents, bounded memory, matched Vulkan measurements | Complete; Radeon measurements and smaller llvmpipe correctness controls |
+| M2 — Compiler/programming contract | Documented device-code contract; generated structured arguments and heap interfaces; explicit language-direction decision | Next; use M1 findings on Linux, no Mac prerequisite |
 | M3 — Resource and submission maturity | Sustained multi-frame reuse, measured submission costs, consumer-side allocation assistance, better diagnostics | M1/M2; existing devices |
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | M2/M3; offscreen Linux first |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | M2/M3; existing Radeon, no matrix-hardware prerequisite |
@@ -88,14 +88,24 @@ further shader/runtime changes were needed for 4K or non-integer ratios.
 Progress 2026-09-19: the [corrected warmed OGPU baseline](learned-image-measurement.md)
 is accepted at `958b831`, with resident/end-to-end distributions, all 720 samples
 and separate allocation/free traces retained. An odd-edge fragment-pointer read
-defect was fixed and full small/scale regressions pass. The
-[matched native Vulkan control](learned-image-native-control.md) is next;
-M1 is active, not complete. The OGPU-only result does not identify API overhead.
+defect was fixed and full small/scale regressions pass. At that checkpoint the
+matched native control remained pending; OGPU-only clocks do not identify API overhead.
 
 Native-control progress 2026-09-19: [workload correctness](learned-image-native-control.md#accepted-workload-correctness--2026-09-19)
 is accepted at `219254e`: generated compute/raster output and allocation-policy
-parity pass on the selected small/large cases. Timestamp-query matching, native
-warmed timing and fresh paired measurements remain; no performance conclusion yet.
+parity pass on the selected small/large cases. That checkpoint did not yet include
+native warmed timing.
+
+**M1 complete — 2026-09-19:** at `a819f6c`, the
+[fresh matched comparison](learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
+passes: 1,440 retained measured samples, 16 separate allocation controls, and
+fresh full-output validation on Radeon/small llvmpipe. Native/OGPU allocations
+match and are freed; median latencies are close across the eight selected cases
+(OGPU 0.04% lower to 1.14% higher), with explicitly retained tail differences.
+This is workload/policy/device-specific latency evidence, not isolated API cost.
+Retain the runtime/API and one-shot execution model. Transfer/synchronization
+dominates the mode difference; resident latency is mostly GPU work. Earlier
+six-group correctness plus this comparison satisfies M1; M2 is next.
 
 ## M2 — Define the programming contract and broaden compiler tooling
 
@@ -163,6 +173,13 @@ alongside helpers. No cancellation or automatic dependency inference is implied.
 
 Multi-queue scheduling, concurrent host recording and external memory are not
 hidden inside this milestone; their entry criteria are below.
+
+M1 input to this decision: matched host recording+submission medians overlap
+(native roughly 74–116 microseconds, OGPU 78–107), while resident GPU work and
+end-to-end transfer/synchronization dominate. Begin with sustained slot/staging
+reuse and keep one-shot recording unless that experiment exposes a better
+alternative. Retain M1's host-tail observations for targeted diagnosis; they do
+not establish a driver/scheduler cause or mandate a replay API.
 
 ## M4 — Implement a meaningful graphics subset
 

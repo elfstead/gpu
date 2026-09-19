@@ -236,6 +236,9 @@ ordinary samples, per-process statistics and native allocation traces. The expor
 keeps reviewable statistics, CSV samples and correctness/hash/trace evidence, not
 the large GPU dumps. Existing results are never overwritten or auto-deleted.
 
+The [accepted comparison and M1 decision](../../docs/learned-image-native-control.md#accepted-comparison-and-m1-decision--2026-09-19)
+include all raw samples, allocation evidence and the limits of the performance claim.
+
 ## CPU fixture and training
 
 ```sh
