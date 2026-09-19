@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import unittest
 import tempfile
+import sys
+sys.dont_write_bytecode = True
 
 spec = importlib.util.spec_from_file_location("frontier", Path(__file__).with_name("run.py"))
 frontier = importlib.util.module_from_spec(spec)
