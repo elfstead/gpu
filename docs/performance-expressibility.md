@@ -126,3 +126,10 @@ improve throughput at a clear memory/latency cost; three add no useful throughpu
 here. The [storage-retirement review](command-storage-review.md) is the next local
 design/implementation gate. Neither result settles the other audit concerns or
 establishes an unavoidable quantitative API overhead.
+
+At ABI 13, the [storage experiment](command-storage-results.md) reduces the four
+small-compute OGPU/native-reset wall ratios to 0.994–1.050, with new safety and
+correctness checks. P2 now separates a demonstrated storage-policy improvement
+from unresolved caller-owned storage and executable replay alternatives. The
+device cache's admission/count bounds are not equal total-memory-budget evidence;
+do not pass the fundamental gate from these warmed timings.

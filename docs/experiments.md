@@ -506,6 +506,29 @@ and timing-receipt gates. No runtime/API change yet. Cross-queue/concurrent host
 mapped/range access, dependency precision, descriptor streaming and compiler limits
 remain open. The receipt links full statistics, raw samples and checked traces.
 
+## Command-storage lifetime alternative — 2026-09-20
+
+At `01697a0`, ABI 13 explicitly relaxes unconditional native-pool destruction:
+reset native references before releasing application objects, while allowing a
+bounded empty-storage cache. Batches remain one-shot; no executable replay or new
+public object is introduced. The cache holds at most three pools and admits at
+most 256 steps/64 KiB roots; it is not a driver-private-byte budget.
+
+The [accepted result](command-storage-results.md) adds 48,000 measured samples.
+OGPU/native-reset wall ratios become 1.050, 1.041, 1.022 and 0.994 in the original
+four small-compute cases. This closes most of the earlier storage-policy gap,
+without establishing universal parity or unavoidable API overhead. All 22 runtime
+GPU tests pass on Radeon/llvmpipe; added checks cover cache admission/cleanup,
+warm-cache errors, reset-before-reference-release, heap replacement, surviving
+timing and pending/error gates. The independent relocated ABI-13 SDK C consumer,
+C heap-image and small mixed-workload checks also pass. No native Metal or full
+consumer/video-scale performance reacceptance is claimed.
+
+Retain the cache as an implementation experiment. Next compare explicit caller
+storage ownership/release and separately executable replay. The cache's hidden
+admission thresholds and missing caller budget/control are not the fundamental
+interface selected; the remaining performance-expressibility audit stays open.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

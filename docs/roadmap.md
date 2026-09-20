@@ -52,7 +52,9 @@ This gate applies to M2's compiler work and later graphics/ML contracts as well.
 The [small-compute](performance-frontier-small.md) and
 [streaming](performance-frontier-stream.md) probes are complete (2026-09-20).
 They expose a storage-lifecycle opportunity and demonstrate independent slots;
-the [storage-retirement alternative](command-storage-review.md) is next. The other
+the [storage-retirement alternative](command-storage-review.md) subsequently passed
+its first [bounded-cache experiment](command-storage-results.md). Explicit caller
+storage ownership and replay are the next P2 checks. The other
 expressibility concerns remain explicit rather than being passed by these workloads.
 
 ## M1 — Make the existing application useful-sized

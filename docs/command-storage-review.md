@@ -79,7 +79,8 @@ multi-queue scheduling, concurrent recording or automatic lifetime inference.
 
 ## ABI-13 implementation experiment — 2026-09-20
 
-The first alternative is implemented, pending the repeated performance comparison.
+The first alternative is implemented. The [repeated comparison](command-storage-results.md)
+accepts local safety and warmed small-workload performance, not the final surface.
 The Vulkan device owns at most three empty pools with one command buffer each.
 Only recordings of at most 256 steps and 64 KiB aggregate inline roots may borrow
 or return that storage. Oversized recordings use fresh pools and cannot inflate
@@ -110,4 +111,6 @@ memory or simulate genuine hardware loss.
 The caller-control tradeoff is unresolved: this policy gives no explicit trim or
 capacity budget, treats large workloads differently and retains storage until the
 device's last owner dies. Compare those costs with caller-owned/resettable storage
-before calling the final API selected. Performance evidence is the next gate.
+before calling the final API selected. The repeated comparison closes most of the
+original small-workload gap; explicit storage control and replay remain the next
+design checks, rather than tuning cache constants as a substitute.

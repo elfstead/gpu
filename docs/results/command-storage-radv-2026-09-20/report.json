@@ -1,0 +1,6204 @@
+{
+  "schema": 1,
+  "scope": "small dependent compute; strategy comparison, not isolated API overhead",
+  "revision": "01697a06640cd46ef0ff02a2f92297d348a014ec",
+  "dirty": false,
+  "sources": {
+    "examples/performance_frontier/small.c": "9f7130fd931251937e69a5ce1cfc8a3d536d00192112be7655efd531ce61863c",
+    "examples/performance_frontier/run.py": "19683cf9e320f34559e43b339900520120f790f4137f9ee2f60c9a7ad797242d",
+    "examples/performance_frontier/test_small.c": "30f3dda7710e03a8ca9059111bb14e44e5ccf7270354a012c5acae3082d7e77e",
+    "examples/performance_frontier/test_runner.py": "640ddf168e46c38d11c4c5fe21a87e1175126bdefd5a677201fb70afc791d8b8",
+    "examples/performance_frontier/export.py": "4a54a4ee11568d69a6b26b8de50a8237a5140cf20ab0e706ad517384893a40d4",
+    "examples/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+    "examples/compiler/transform.slang": "9f75d33cd837a7251bac41970ec7f93107a0c8be46815f77af15bd127aceed8a",
+    "examples/learned_image/native.c": "6a03b11092c7fdc5299a8f34e24779cb8d048f8e4c4c8418e839b31676e4346c",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "include/ogpu.h": "3657eda98ab4f506c908fbdbe70b20369b8b8c6954390ce08dfb4ae988c6fd38",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7"
+  },
+  "artifacts": {
+    "native": "a1d7ba9553e87424ade7dfb0ef48e7672cd8db0749b59df5fdb22417fbd3af36",
+    "ogpu": "89305d148e29677e3e0aaaf183457fb5662c607be3a7b561b0624dfd9dbf5ffe",
+    "trace-memory.so": "ed10efab30f2d8e43d06889136c94ee95d940ee46c2787189abd63e905f83343"
+  },
+  "library_sha256": "db33eb5693579af6438a7a9dba64077f97a584e83e2631e88671e618f85ba429",
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_ICD_FILENAMES": null,
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "VK_LAYER_PATH": "/nix/store/sbsyg6dvqjs6937jyqxaw0q7n83n6awg-vulkan-validation-layers-1.4.357.0/share/vulkan/explicit_layer.d"
+  },
+  "software": false,
+  "validation": [
+    {
+      "label": "validation-1-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.783197999,
+        "wall_ms": 253.828800082,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "2c873e7a2c2dec55e6ae4dfc8df6eef1de7af5253686c8196e2e6eee244fff1a",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.893195987,
+        "wall_ms": 95.53184104,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "227926a94ee34101ecd6ae8ea7827ee102d731a03ae727893bb6aaa681d9e97c",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.004866004,
+        "wall_ms": 74.221879005,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "62ffa828c85ce479e0a292ac666999a74ebcde303b438b5c58de8040d35176b4",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.620360017,
+        "wall_ms": 97.10097301,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "2009bb7e9d1d2532d5e8e99d014796fdcf489f3ca06128979350aab04dee6918",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.61730206,
+        "wall_ms": 661.14448297,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "e33402ff91936b5f2129422f1375ab9835243ed3b43fd3ecd46d619b0bc085bc",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.227844,
+        "wall_ms": 534.284762979,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "9487ba50ba91d1ac43e158a9724e1f183deecf43094c0fc19e8e952249f333ee",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.148144007,
+        "wall_ms": 191.515537977,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "309e43878ab2b2c91a1486721a0f212a784a44ef993738978c3bdf586e6f7afd",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.532822013,
+        "wall_ms": 539.985958934,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "0104c2955b6175cacc358c5d360e5acba2f5cb4db982031db8e7c0ce2553837e",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.061604977,
+        "wall_ms": 191.150631905,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "0df69c529a6698d48193ae6239b25ea0b045ede1e8a65069f8ccd4114431184e",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.112215042,
+        "wall_ms": 59.530994058,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "d71553307735ea1478d17e1d0ae858292fd3d8bb7330e57e3c37e460dacc11a7",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.409262061,
+        "wall_ms": 36.316104054,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "cbf37a360b9b5da42e99784bf5d09813fcb838959763d3967670e5315356785d",
+      "stderr_sha256": "bded0845034daaa1536aae488a49617ab97b9157f52d892b5ba52cb4f221ff9e",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":12094627905547,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":8796093022216}",
+        "FREE {\"id\":12094627905547}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.121305943,
+        "wall_ms": 63.987215042,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "151a5ea5bbc2bd029dfdc47df3860cc27919020c8cf59a391fcb1c4204cb6ecb",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.315504074,
+        "wall_ms": 400.746097922,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "9200444d9ce5bcd5cfe5f12d2e71d345bafe5b55199b1f6daa9e580db8142945",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.479792953,
+        "wall_ms": 298.290183067,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "816da7190b4302c1f63ee8ad0786bb66c6cdd949394296a25d1952c46ddc3698",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.345563054,
+        "wall_ms": 129.366292953,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "04b9d9f210f2144d70ab75878b16a177ae274745e3386452a1f40c065ce0de33",
+      "stderr_sha256": "bded0845034daaa1536aae488a49617ab97b9157f52d892b5ba52cb4f221ff9e",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":12094627905547,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":8796093022216}",
+        "FREE {\"id\":12094627905547}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.755779028,
+        "wall_ms": 315.89012599,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "384fc6afebc7e18840870fb7f65fe0a60a2952a5ab4d2cedddbab50bfd7fd158",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    }
+  ],
+  "timing": [
+    {
+      "label": "timing-0-1-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.321269989,
+        "wall_ms": 218.202239037,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "c8af53e586e1cd503722bc3b3797cb2d782862d98eecbdc4a6a82c6303d04272",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.042244242422,
+          "median": 0.0399494765,
+          "p95": 0.051589012,
+          "minimum": 0.033140063,
+          "maximum": 0.379914999
+        },
+        "submit_ms": {
+          "mean": 0.015557610139,
+          "median": 0.01504004,
+          "p95": 0.019279957,
+          "minimum": 0.01244998,
+          "maximum": 0.094859004
+        },
+        "wait_ms": {
+          "mean": 0.160313231348,
+          "median": 0.15378898400000002,
+          "p95": 0.218466997,
+          "minimum": 0.078568935,
+          "maximum": 0.522023916
+        },
+        "latency_ms": {
+          "mean": 0.218158596042,
+          "median": 0.2427520155,
+          "p95": 0.270587087,
+          "minimum": 0.148458004,
+          "maximum": 0.576472998
+        },
+        "record_submit_ms": {
+          "mean": 0.057801852561,
+          "median": 0.055819988,
+          "p95": 0.072839022,
+          "minimum": 0.046079039999999995,
+          "maximum": 0.393975019
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.144122005,
+        "wall_ms": 52.98979795,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "2caed383cbea597e803274ddbb83aa534b4ac5870fa8daf6dd0a640d8582f55d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000952511641,
+          "median": 0.000859976,
+          "p95": 0.001119971,
+          "minimum": 0.000779986,
+          "maximum": 0.018380046
+        },
+        "submit_ms": {
+          "mean": 0.011268533447,
+          "median": 0.0107700225,
+          "p95": 0.013249993,
+          "minimum": 0.010349989,
+          "maximum": 0.030339956
+        },
+        "wait_ms": {
+          "mean": 0.040710644244,
+          "median": 0.040199995,
+          "p95": 0.042400002,
+          "minimum": 0.024888992,
+          "maximum": 0.130448103
+        },
+        "latency_ms": {
+          "mean": 0.052960606809,
+          "median": 0.051894426,
+          "p95": 0.055900097,
+          "minimum": 0.050500035,
+          "maximum": 0.142127991
+        },
+        "record_submit_ms": {
+          "mean": 0.012221045088,
+          "median": 0.011638999,
+          "p95": 0.014400004999999999,
+          "minimum": 0.011209965,
+          "maximum": 0.047109962000000005
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.626927972,
+        "wall_ms": 50.773111939,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "25f0d79051d576a9086d0187c4ef66c2c8e3c6eb8a6dd66a2e04a8b87f60f4d6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.9237983e-05,
+          "median": 3.0041e-05,
+          "p95": 3.0041e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 0.000129938
+        },
+        "submit_ms": {
+          "mean": 0.010614101625,
+          "median": 0.010199904,
+          "p95": 0.012050033,
+          "minimum": 0.009938955,
+          "maximum": 0.040770054
+        },
+        "wait_ms": {
+          "mean": 0.040069458714,
+          "median": 0.039759994,
+          "p95": 0.04182899,
+          "minimum": 0.034998894,
+          "maximum": 0.073938966
+        },
+        "latency_ms": {
+          "mean": 0.050742529405,
+          "median": 0.050029993,
+          "p95": 0.05369997,
+          "minimum": 0.04893899,
+          "maximum": 0.084218979
+        },
+        "record_submit_ms": {
+          "mean": 0.010643339608,
+          "median": 0.010228992,
+          "p95": 0.012069941,
+          "minimum": 0.009968995999999999,
+          "maximum": 0.040799976
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.407209992,
+        "wall_ms": 55.614217997,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "353a9ca74fbbe1c8f547628bf6e144abde25a743d0ca66ad2567229cfe1ed31d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000175493492,
+          "median": 0.000169992,
+          "p95": 0.000200033,
+          "minimum": 0.000129938,
+          "maximum": 0.003840089
+        },
+        "submit_ms": {
+          "mean": 0.013243498435,
+          "median": 0.012930036,
+          "p95": 0.014160037,
+          "minimum": 0.01256001,
+          "maximum": 0.079728961
+        },
+        "wait_ms": {
+          "mean": 0.042135356064,
+          "median": 0.042029977,
+          "p95": 0.042958975,
+          "minimum": 0.003019929,
+          "maximum": 0.088639021
+        },
+        "latency_ms": {
+          "mean": 0.055584716916,
+          "median": 0.055199981,
+          "p95": 0.057228923,
+          "minimum": 0.054039001,
+          "maximum": 0.103628993
+        },
+        "record_submit_ms": {
+          "mean": 0.013418991927000001,
+          "median": 0.013109922,
+          "p95": 0.014400005,
+          "minimum": 0.012719989,
+          "maximum": 0.079879045
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.647287011,
+        "wall_ms": 168.120419979,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "9fb667f637f3d0c203c36a25516e4ff400a4f41d9162b2d8a613efdfb47a1b5d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.009480024693,
+          "median": 0.008980036,
+          "p95": 0.011010051,
+          "minimum": 0.007840037,
+          "maximum": 0.025860071
+        },
+        "submit_ms": {
+          "mean": 0.011857153419,
+          "median": 0.01128006,
+          "p95": 0.013679981,
+          "minimum": 0.010619998,
+          "maximum": 0.029509068
+        },
+        "wait_ms": {
+          "mean": 0.146715050695,
+          "median": 0.14645797049999998,
+          "p95": 0.14863801,
+          "minimum": 0.141938925,
+          "maximum": 0.203287959
+        },
+        "latency_ms": {
+          "mean": 0.16808761871,
+          "median": 0.16698348549999997,
+          "p95": 0.172508001,
+          "minimum": 0.16348803,
+          "maximum": 0.223596931
+        },
+        "record_submit_ms": {
+          "mean": 0.021337178112,
+          "median": 0.020249485999999997,
+          "p95": 0.024670005000000002,
+          "minimum": 0.018650055,
+          "maximum": 0.050630092
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.447149992,
+        "wall_ms": 163.114886999,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "3386e61c1fc8b6d41c9967f51d06fcf266b0b562c996d57867d118cdeff98f7c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 3.2646595e-05,
+          "median": 3.0041e-05,
+          "p95": 4.0054e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 9.0003e-05
+        },
+        "submit_ms": {
+          "mean": 0.013564038511,
+          "median": 0.013589978,
+          "p95": 0.014709949,
+          "minimum": 0.01146996,
+          "maximum": 0.054120064
+        },
+        "wait_ms": {
+          "mean": 0.149449801085,
+          "median": 0.148937941,
+          "p95": 0.152459025,
+          "minimum": 0.126237988,
+          "maximum": 0.186848044
+        },
+        "latency_ms": {
+          "mean": 0.163079047439,
+          "median": 0.162498474,
+          "p95": 0.167057991,
+          "minimum": 0.158678055,
+          "maximum": 0.200808048
+        },
+        "record_submit_ms": {
+          "mean": 0.013596685106,
+          "median": 0.013620019,
+          "p95": 0.014739991,
+          "minimum": 0.011499882,
+          "maximum": 0.054149986000000004
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.818423986,
+        "wall_ms": 175.921472073,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "c1454f32ba75522b644504904b428c7cc91854391900b9b6589714330f853644",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.004984611957,
+          "median": 0.004680037,
+          "p95": 0.00680995,
+          "minimum": 0.004480004,
+          "maximum": 0.031810045
+        },
+        "submit_ms": {
+          "mean": 0.021397647986,
+          "median": 0.019979954,
+          "p95": 0.030030012,
+          "minimum": 0.018949032,
+          "maximum": 0.045959949
+        },
+        "wait_ms": {
+          "mean": 0.149468173852,
+          "median": 0.14878803499999999,
+          "p95": 0.153437972,
+          "minimum": 0.141829014,
+          "maximum": 0.182687998
+        },
+        "latency_ms": {
+          "mean": 0.175885754709,
+          "median": 0.173508048,
+          "p95": 0.188917994,
+          "minimum": 0.17021811,
+          "maximum": 0.238388062
+        },
+        "record_submit_ms": {
+          "mean": 0.026382259943,
+          "median": 0.024654508,
+          "p95": 0.036008953999999996,
+          "minimum": 0.023589015,
+          "maximum": 0.073740005
+        }
+      }
+    },
+    {
+      "label": "timing-0-1-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.470628023,
+        "wall_ms": 270.333495975,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "d129b1cce8e96be68b4b456c04210bb889a1f79113f02a2ece9ddf5329679442",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.051711123946,
+          "median": 0.046239495000000005,
+          "p95": 0.066288948,
+          "minimum": 0.04204905,
+          "maximum": 0.328645945
+        },
+        "submit_ms": {
+          "mean": 0.01449466655,
+          "median": 0.013520002,
+          "p95": 0.018339992,
+          "minimum": 0.012809992,
+          "maximum": 0.03482008
+        },
+        "wait_ms": {
+          "mean": 0.204044777773,
+          "median": 0.19427293550000002,
+          "p95": 0.232928038,
+          "minimum": 0.178617954,
+          "maximum": 0.502133965
+        },
+        "latency_ms": {
+          "mean": 0.270282586583,
+          "median": 0.2810170055,
+          "p95": 0.294807076,
+          "minimum": 0.235257983,
+          "maximum": 0.565993071
+        },
+        "record_submit_ms": {
+          "mean": 0.066205790496,
+          "median": 0.0603790285,
+          "p95": 0.081869006,
+          "minimum": 0.055219054,
+          "maximum": 0.34865594
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.131451011,
+        "wall_ms": 13.15306294,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "08a458aa4e29449bacb3658cd29de566de3bec88f7ee8345acbe8b4764c1eeb5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.887195e-05,
+          "median": 3.0041e-05,
+          "p95": 4.0054e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 7.9989e-05
+        },
+        "submit_ms": {
+          "mean": 0.010962703706,
+          "median": 0.010924518000000001,
+          "p95": 0.012409925,
+          "minimum": 0.00849998,
+          "maximum": 0.041849971
+        },
+        "wait_ms": {
+          "mean": 0.002102361073,
+          "median": 0.001760006,
+          "p95": 0.006700039,
+          "minimum": 0.001399994,
+          "maximum": 0.018079996
+        },
+        "latency_ms": {
+          "mean": 0.039358750111,
+          "median": 0.03860896849999999,
+          "p95": 0.046090007,
+          "minimum": 0.030160069,
+          "maximum": 0.096279025
+        },
+        "record_submit_ms": {
+          "mean": 0.010991575655999999,
+          "median": 0.010950089,
+          "p95": 0.012439966,
+          "minimum": 0.008530021,
+          "maximum": 0.041880012
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.032393932,
+        "wall_ms": 12.963814974,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "4bb4f7f375f55e795a436f91a087d1fcce74b2d4a4ca2ee4955b555f51dbfa06",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000107309338,
+          "median": 0.000100017,
+          "p95": 0.000130057,
+          "minimum": 8.9884e-05,
+          "maximum": 0.000259995
+        },
+        "submit_ms": {
+          "mean": 0.010611601593,
+          "median": 0.010320067,
+          "p95": 0.01185894,
+          "minimum": 0.009639025,
+          "maximum": 0.017139912
+        },
+        "wait_ms": {
+          "mean": 0.002191961759,
+          "median": 0.001760006,
+          "p95": 0.006439924,
+          "minimum": 0.001689911,
+          "maximum": 0.015290022
+        },
+        "latency_ms": {
+          "mean": 0.038792969706,
+          "median": 0.037100017,
+          "p95": 0.047580004,
+          "minimum": 0.035089016,
+          "maximum": 0.053869963
+        },
+        "record_submit_ms": {
+          "mean": 0.010718910931000001,
+          "median": 0.010429978500000001,
+          "p95": 0.011980056,
+          "minimum": 0.009739042000000002,
+          "maximum": 0.017339945
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.735005021,
+        "wall_ms": 188.924847007,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "1063e925ba463fd4d16d4b1abf97336ac42e8ce494a3df53636f5f404857754a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.038144336809,
+          "median": 0.035444498000000005,
+          "p95": 0.046819091,
+          "minimum": 0.032499909,
+          "maximum": 0.355236053
+        },
+        "submit_ms": {
+          "mean": 0.013759837747,
+          "median": 0.0130999685,
+          "p95": 0.017289996,
+          "minimum": 0.011809945,
+          "maximum": 0.02797997
+        },
+        "wait_ms": {
+          "mean": 0.136940403231,
+          "median": 0.139209032,
+          "p95": 0.146898031,
+          "minimum": 0.026018977,
+          "maximum": 0.439014912
+        },
+        "latency_ms": {
+          "mean": 0.566025273801,
+          "median": 0.5656085015,
+          "p95": 0.579373002,
+          "minimum": 0.270766973,
+          "maximum": 0.868641019
+        },
+        "record_submit_ms": {
+          "mean": 0.051904174556,
+          "median": 0.0485249755,
+          "p95": 0.063500046,
+          "minimum": 0.045099020000000004,
+          "maximum": 0.371946096
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.008813024,
+        "wall_ms": 15.921591997,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "6e34e2451af075b3bd4066f22bd43d831fdbc53cdee9336d68fe9ce7358494df",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.001141852282,
+          "median": 0.000769973,
+          "p95": 0.003639936,
+          "minimum": 0.000609994,
+          "maximum": 0.013409972
+        },
+        "submit_ms": {
+          "mean": 0.012445839294,
+          "median": 0.0118245485,
+          "p95": 0.016180038,
+          "minimum": 0.00909996,
+          "maximum": 0.042958975
+        },
+        "wait_ms": {
+          "mean": 0.002254463692,
+          "median": 0.00180006,
+          "p95": 0.005239964,
+          "minimum": 0.001409054,
+          "maximum": 0.032389998
+        },
+        "latency_ms": {
+          "mean": 0.047662788276,
+          "median": 0.047349512499999996,
+          "p95": 0.055509925,
+          "minimum": 0.038230062,
+          "maximum": 0.136398077
+        },
+        "record_submit_ms": {
+          "mean": 0.013587691576,
+          "median": 0.0126794575,
+          "p95": 0.017090082,
+          "minimum": 0.009890079999999999,
+          "maximum": 0.056368947
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.827425003,
+        "wall_ms": 120.392323017,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "d95328b5ebf27b819e0c879e1417c42f90099ae98c4a0b01f8562709a5a0d5b9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.003780930835,
+          "median": 0.003620028,
+          "p95": 0.004500031,
+          "minimum": 0.003498912,
+          "maximum": 0.025668979
+        },
+        "submit_ms": {
+          "mean": 0.020896526939,
+          "median": 0.0199390055,
+          "p95": 0.025460005,
+          "minimum": 0.019069076,
+          "maximum": 0.064629912
+        },
+        "wait_ms": {
+          "mean": 0.095652962315,
+          "median": 0.096389055,
+          "p95": 0.099429011,
+          "minimum": 0.053679943,
+          "maximum": 0.147367954
+        },
+        "latency_ms": {
+          "mean": 0.360711613276,
+          "median": 0.360785961,
+          "p95": 0.36350596,
+          "minimum": 0.166577935,
+          "maximum": 0.429285049
+        },
+        "record_submit_ms": {
+          "mean": 0.024677457774,
+          "median": 0.0235490205,
+          "p95": 0.02978897,
+          "minimum": 0.022698999,
+          "maximum": 0.068300008
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.389456987,
+        "wall_ms": 222.510242105,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "1d9c3c0878f0d394fa3879201da37fd31e1e2d2454763b82b87a4725cdc49bfa",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.055597887751,
+          "median": 0.0567194225,
+          "p95": 0.066879988,
+          "minimum": 0.039730072,
+          "maximum": 0.367526054
+        },
+        "submit_ms": {
+          "mean": 0.013419380911,
+          "median": 0.01312995,
+          "p95": 0.016710043,
+          "minimum": 0.011229992,
+          "maximum": 0.040149927
+        },
+        "wait_ms": {
+          "mean": 0.153405121327,
+          "median": 0.1523430345,
+          "p95": 0.168877959,
+          "minimum": 0.026980042,
+          "maximum": 0.438704967
+        },
+        "latency_ms": {
+          "mean": 0.666593299981,
+          "median": 0.665682912,
+          "p95": 0.686132908,
+          "minimum": 0.275056958,
+          "maximum": 0.936699033
+        },
+        "record_submit_ms": {
+          "mean": 0.069017268662,
+          "median": 0.069099486,
+          "p95": 0.084089041,
+          "minimum": 0.051859974999999996,
+          "maximum": 0.383506059
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.056602001,
+        "wall_ms": 121.20599401,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "1ed1f8ae3517469c84ad3c6bf7244d09f264a1ebc73899ea745d7656a4656258",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.009386612657,
+          "median": 0.008960009,
+          "p95": 0.012109995,
+          "minimum": 0.008209944,
+          "maximum": 0.038159966
+        },
+        "submit_ms": {
+          "mean": 0.011620529769,
+          "median": 0.011229992,
+          "p95": 0.013530016,
+          "minimum": 0.010409951,
+          "maximum": 0.027980089
+        },
+        "wait_ms": {
+          "mean": 0.100134196405,
+          "median": 0.101124048,
+          "p95": 0.103278995,
+          "minimum": 0.061599016,
+          "maximum": 0.12095809
+        },
+        "latency_ms": {
+          "mean": 0.363166529769,
+          "median": 0.363326013,
+          "p95": 0.365656018,
+          "minimum": 0.161157966,
+          "maximum": 0.384395957
+        },
+        "record_submit_ms": {
+          "mean": 0.021007142426,
+          "median": 0.020184576500000002,
+          "p95": 0.025110005999999997,
+          "minimum": 0.01899004,
+          "maximum": 0.066140055
+        }
+      }
+    },
+    {
+      "label": "timing-0-3-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.705664992,
+        "wall_ms": 129.051626921,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "72e4fd9fa4f334c4b736ba90c7c3e2cbb01167e35d4782feb853ca01b487297e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 0,
+      "statistics": {
+        "record_ms": {
+          "mean": 3.1838007e-05,
+          "median": 3.0041e-05,
+          "p95": 4.0054e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 0.000100017
+        },
+        "submit_ms": {
+          "mean": 0.012312344215,
+          "median": 0.011984527,
+          "p95": 0.015460014,
+          "minimum": 0.010030031,
+          "maximum": 0.059309006
+        },
+        "wait_ms": {
+          "mean": 0.116640114657,
+          "median": 0.117058992,
+          "p95": 0.120198011,
+          "minimum": 0.046350002,
+          "maximum": 0.146808028
+        },
+        "latency_ms": {
+          "mean": 0.386699725401,
+          "median": 0.38685601950000004,
+          "p95": 0.389925957,
+          "minimum": 0.161898971,
+          "maximum": 0.416905046
+        },
+        "record_submit_ms": {
+          "mean": 0.012344182222,
+          "median": 0.012009561,
+          "p95": 0.015500067999999999,
+          "minimum": 0.010059953,
+          "maximum": 0.059359074
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.716865897,
+        "wall_ms": 52.21924603,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "52326ae0e2dc50e58e4087a62a224c96b7c3d283858034e5aae721594750b9ee",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.001002454655,
+          "median": 0.000890017,
+          "p95": 0.001250029,
+          "minimum": 0.000749946,
+          "maximum": 0.012850046
+        },
+        "submit_ms": {
+          "mean": 0.011209754234,
+          "median": 0.010810018,
+          "p95": 0.01354003,
+          "minimum": 0.009529948,
+          "maximum": 0.047659039
+        },
+        "wait_ms": {
+          "mean": 0.039941891336,
+          "median": 0.039720058,
+          "p95": 0.041199088,
+          "minimum": 0.033838987,
+          "maximum": 0.055849075
+        },
+        "latency_ms": {
+          "mean": 0.052185920108,
+          "median": 0.051464498,
+          "p95": 0.055869102,
+          "minimum": 0.050458908,
+          "maximum": 0.08830905
+        },
+        "record_submit_ms": {
+          "mean": 0.012212208889,
+          "median": 0.011710047999999999,
+          "p95": 0.014770031,
+          "minimum": 0.010290026,
+          "maximum": 0.048649072
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.641127944,
+        "wall_ms": 50.332937002,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "d4f5b240c60450d02568fb2385804e37a9fbebc5fca7ea15a5f21325da00e377",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.8327585999999998e-05,
+          "median": 3.0041e-05,
+          "p95": 3.0041e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 6.9976e-05
+        },
+        "submit_ms": {
+          "mean": 0.010357512346,
+          "median": 0.010110021,
+          "p95": 0.011659026,
+          "minimum": 0.009189963,
+          "maximum": 0.028959036
+        },
+        "wait_ms": {
+          "mean": 0.039889249928,
+          "median": 0.039610028,
+          "p95": 0.040920019,
+          "minimum": 0.035560012,
+          "maximum": 0.096689105
+        },
+        "latency_ms": {
+          "mean": 0.050303788791,
+          "median": 0.049829006,
+          "p95": 0.052778959,
+          "minimum": 0.04904902,
+          "maximum": 0.106779099
+        },
+        "record_submit_ms": {
+          "mean": 0.010385839932,
+          "median": 0.0101399425,
+          "p95": 0.011688948,
+          "minimum": 0.009209990000000001,
+          "maximum": 0.028989077000000002
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.390450954,
+        "wall_ms": 54.394621968,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "344a7b11442b1ecbb77ab94f009f47c4ec68ea54a1af8e25987933334c5eb924",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.00016080652,
+          "median": 0.000130057,
+          "p95": 0.000180006,
+          "minimum": 0.000109911,
+          "maximum": 0.016860008
+        },
+        "submit_ms": {
+          "mean": 0.012672178382,
+          "median": 0.0121394995,
+          "p95": 0.014889956,
+          "minimum": 0.011299968,
+          "maximum": 0.048119068
+        },
+        "wait_ms": {
+          "mean": 0.041502245553,
+          "median": 0.0413800475,
+          "p95": 0.044178963,
+          "minimum": 0.038628936,
+          "maximum": 0.088279009
+        },
+        "latency_ms": {
+          "mean": 0.0543650496,
+          "median": 0.0541495085,
+          "p95": 0.058529973,
+          "minimum": 0.050969958,
+          "maximum": 0.112829089
+        },
+        "record_submit_ms": {
+          "mean": 0.012832984902,
+          "median": 0.0122694965,
+          "p95": 0.01504004,
+          "minimum": 0.011439920000000001,
+          "maximum": 0.064979076
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.952813029,
+        "wall_ms": 220.984349012,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "8e80098e748a429f9a405a09c6b8fc2700f0c25ef2e20ccf87aa82a21ffbec6f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.041221964597,
+          "median": 0.037328959,
+          "p95": 0.052229047,
+          "minimum": 0.033239961,
+          "maximum": 0.623542905
+        },
+        "submit_ms": {
+          "mean": 0.0154407885,
+          "median": 0.014774501499999999,
+          "p95": 0.020020008,
+          "minimum": 0.01275003,
+          "maximum": 0.057309031
+        },
+        "wait_ms": {
+          "mean": 0.16424115098,
+          "median": 0.18542796350000001,
+          "p95": 0.221088052,
+          "minimum": 0.071249008,
+          "maximum": 0.771401048
+        },
+        "latency_ms": {
+          "mean": 0.220940010909,
+          "median": 0.2588719725,
+          "p95": 0.272127032,
+          "minimum": 0.141438007,
+          "maximum": 0.836799979
+        },
+        "record_submit_ms": {
+          "mean": 0.056662753097,
+          "median": 0.052209973,
+          "p95": 0.071638942,
+          "minimum": 0.046558976,
+          "maximum": 0.638241887
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.603107929,
+        "wall_ms": 160.636103988,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "7d1b5869a3489141d0862e5e9e8ab239c483a6015ec19720fa1e73730feb3f7d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 3.2649094e-05,
+          "median": 3.0041e-05,
+          "p95": 4.0054e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 0.000139952
+        },
+        "submit_ms": {
+          "mean": 0.012769682638,
+          "median": 0.0122845175,
+          "p95": 0.017150044,
+          "minimum": 0.010209918,
+          "maximum": 0.054150105
+        },
+        "wait_ms": {
+          "mean": 0.147747578151,
+          "median": 0.14720803500000001,
+          "p95": 0.150488973,
+          "minimum": 0.144219041,
+          "maximum": 0.185348034
+        },
+        "latency_ms": {
+          "mean": 0.160586385248,
+          "median": 0.159548044,
+          "p95": 0.166267991,
+          "minimum": 0.154708028,
+          "maximum": 0.208967924
+        },
+        "record_submit_ms": {
+          "mean": 0.012802331732,
+          "median": 0.012319505500000001,
+          "p95": 0.017199993,
+          "minimum": 0.010239959,
+          "maximum": 0.054190039999999995
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.252380013,
+        "wall_ms": 176.755702972,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "9f754e57a2315ac17d48e65b804b7816d05e972ceb17aa9efdfcbbc40f1ad396",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.004895025471,
+          "median": 0.004610062,
+          "p95": 0.006260037,
+          "minimum": 0.004410028,
+          "maximum": 0.022179008
+        },
+        "submit_ms": {
+          "mean": 0.021148807877,
+          "median": 0.0197699665,
+          "p95": 0.027320027,
+          "minimum": 0.019080043,
+          "maximum": 0.056860089
+        },
+        "wait_ms": {
+          "mean": 0.15064931751,
+          "median": 0.150317967,
+          "p95": 0.153529048,
+          "minimum": 0.133548975,
+          "maximum": 0.172868013
+        },
+        "latency_ms": {
+          "mean": 0.176724430794,
+          "median": 0.1748129725,
+          "p95": 0.185988069,
+          "minimum": 0.170897961,
+          "maximum": 0.217927933
+        },
+        "record_submit_ms": {
+          "mean": 0.026043833348,
+          "median": 0.024370075,
+          "p95": 0.033620000000000004,
+          "minimum": 0.023609996,
+          "maximum": 0.06174004
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.858354926,
+        "wall_ms": 274.032905936,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "9668d586f2dc9d57fe53d04f51ee187307ca6d22aac11e9e79813c1a5eeb3529",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.054004365321,
+          "median": 0.051554918,
+          "p95": 0.068409085,
+          "minimum": 0.042109013,
+          "maximum": 0.369345069
+        },
+        "submit_ms": {
+          "mean": 0.014937729836,
+          "median": 0.0137600305,
+          "p95": 0.019260049,
+          "minimum": 0.012689948,
+          "maximum": 0.040208936
+        },
+        "wait_ms": {
+          "mean": 0.205000710474,
+          "median": 0.1970229745,
+          "p95": 0.233136892,
+          "minimum": 0.180348039,
+          "maximum": 0.578343034
+        },
+        "latency_ms": {
+          "mean": 0.273976846108,
+          "median": 0.284226954,
+          "p95": 0.297935963,
+          "minimum": 0.237066984,
+          "maximum": 0.639791965
+        },
+        "record_submit_ms": {
+          "mean": 0.068942095157,
+          "median": 0.065444529,
+          "p95": 0.087939024,
+          "minimum": 0.055130004999999996,
+          "maximum": 0.38321507000000005
+        }
+      }
+    },
+    {
+      "label": "timing-1-1-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.783885956,
+        "wall_ms": 168.999150991,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "ee7e70fa14334e66f53d27febb85f48a6e0bcf9ffb027fbe64b5229fdec6d84a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.009161864034,
+          "median": 0.008939981,
+          "p95": 0.009460092,
+          "minimum": 0.007889986,
+          "maximum": 0.03174901
+        },
+        "submit_ms": {
+          "mean": 0.011936811209,
+          "median": 0.0112845305,
+          "p95": 0.013749957,
+          "minimum": 0.010540009,
+          "maximum": 0.03839004
+        },
+        "wait_ms": {
+          "mean": 0.147839266651,
+          "median": 0.147623062,
+          "p95": 0.150257945,
+          "minimum": 0.143928051,
+          "maximum": 0.168038011
+        },
+        "latency_ms": {
+          "mean": 0.168967703113,
+          "median": 0.1681029795,
+          "p95": 0.173128009,
+          "minimum": 0.164068937,
+          "maximum": 0.222477078
+        },
+        "record_submit_ms": {
+          "mean": 0.021098675243,
+          "median": 0.020299077,
+          "p95": 0.023689985,
+          "minimum": 0.018669962999999998,
+          "maximum": 0.07013905000000001
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.5615381,
+        "wall_ms": 12.899986029,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "64bf63ed760297d2a9b949720cc1673d91d06e85bf96bc4d2c007dbd64195b7d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000116807504,
+          "median": 0.00011003,
+          "p95": 0.000130057,
+          "minimum": 9.9897e-05,
+          "maximum": 0.000319958
+        },
+        "submit_ms": {
+          "mean": 0.010386855494,
+          "median": 0.010120034,
+          "p95": 0.011380076,
+          "minimum": 0.009599924,
+          "maximum": 0.033579946
+        },
+        "wait_ms": {
+          "mean": 0.002345054359,
+          "median": 0.001749992,
+          "p95": 0.007210016,
+          "minimum": 0.001689911,
+          "maximum": 0.030869961
+        },
+        "latency_ms": {
+          "mean": 0.038606507425,
+          "median": 0.0366449355,
+          "p95": 0.047180057,
+          "minimum": 0.033980012,
+          "maximum": 0.066059113
+        },
+        "record_submit_ms": {
+          "mean": 0.010503662998,
+          "median": 0.010230065,
+          "p95": 0.011490107000000001,
+          "minimum": 0.009719967999999999,
+          "maximum": 0.033689975999999996
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.29074204,
+        "wall_ms": 114.988854051,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "7173bbc14b9e773614d9daccf853c7854a12a17e74b5670c6fc7818579e08002",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.039378523939,
+          "median": 0.036488950500000006,
+          "p95": 0.051640034,
+          "minimum": 0.030079961,
+          "maximum": 0.606742978
+        },
+        "submit_ms": {
+          "mean": 0.014475727315,
+          "median": 0.013929963,
+          "p95": 0.018060088,
+          "minimum": 0.011210084,
+          "maximum": 0.119048953
+        },
+        "wait_ms": {
+          "mean": 0.06105023098,
+          "median": 0.063329041,
+          "p95": 0.083498955,
+          "minimum": 0.024309993,
+          "maximum": 0.366436005
+        },
+        "latency_ms": {
+          "mean": 0.344529177667,
+          "median": 0.3371959925,
+          "p95": 0.403385043,
+          "minimum": 0.211318016,
+          "maximum": 0.880130053
+        },
+        "record_submit_ms": {
+          "mean": 0.053854251254,
+          "median": 0.050139486999999996,
+          "p95": 0.06935000399999999,
+          "minimum": 0.041349053000000004,
+          "maximum": 0.622292995
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.657178044,
+        "wall_ms": 12.577589035,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "6febfcfdc81d22c563a049300d04601b8a6de0e7910e39b5cbc4bc041c7921b0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000665428739,
+          "median": 0.000630021,
+          "p95": 0.000779986,
+          "minimum": 0.00059998,
+          "maximum": 0.00812006
+        },
+        "submit_ms": {
+          "mean": 0.009677659402,
+          "median": 0.009449959,
+          "p95": 0.010710001,
+          "minimum": 0.008990049,
+          "maximum": 0.023658991
+        },
+        "wait_ms": {
+          "mean": 0.002182742847,
+          "median": 0.00146997,
+          "p95": 0.007068992,
+          "minimum": 0.001419902,
+          "maximum": 0.016559958
+        },
+        "latency_ms": {
+          "mean": 0.037643682474,
+          "median": 0.03521955,
+          "p95": 0.046650052,
+          "minimum": 0.032799006,
+          "maximum": 0.065219045
+        },
+        "record_submit_ms": {
+          "mean": 0.010343088141,
+          "median": 0.010089992999999998,
+          "p95": 0.011419892,
+          "minimum": 0.009609937,
+          "maximum": 0.031499982
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.754185081,
+        "wall_ms": 12.793387055,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "652e93310e82e884920fc9465baee952ea63292e97a57f4574ba432061c5538c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.8148366e-05,
+          "median": 2.9922e-05,
+          "p95": 3.9935e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 5.9962e-05
+        },
+        "submit_ms": {
+          "mean": 0.010247803332,
+          "median": 0.009920001,
+          "p95": 0.01236999,
+          "minimum": 0.008419991,
+          "maximum": 0.030830026
+        },
+        "wait_ms": {
+          "mean": 0.002458093405,
+          "median": 0.001630068,
+          "p95": 0.00751996,
+          "minimum": 0.001399994,
+          "maximum": 0.018589973
+        },
+        "latency_ms": {
+          "mean": 0.03828067124,
+          "median": 0.037859499500000005,
+          "p95": 0.047708988,
+          "minimum": 0.029899955,
+          "maximum": 0.067978978
+        },
+        "record_submit_ms": {
+          "mean": 0.010275951698,
+          "median": 0.009950042,
+          "p95": 0.012410044,
+          "minimum": 0.008440018,
+          "maximum": 0.030860067
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 12.93680501,
+        "wall_ms": 222.985526919,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "7fe76f3253cc473e1f811382fd773dd6f3295cb4f513b68eab0e1ee2debded76",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.049274285079,
+          "median": 0.044295013,
+          "p95": 0.065120101,
+          "minimum": 0.041079998,
+          "maximum": 0.615532994
+        },
+        "submit_ms": {
+          "mean": 0.014153831584,
+          "median": 0.013555049999999999,
+          "p95": 0.018530011,
+          "minimum": 0.01226902,
+          "maximum": 0.04370892
+        },
+        "wait_ms": {
+          "mean": 0.159482206588,
+          "median": 0.163833022,
+          "p95": 0.172028065,
+          "minimum": 0.027420044,
+          "maximum": 0.521445036
+        },
+        "latency_ms": {
+          "mean": 0.668079619181,
+          "median": 0.6683275104999999,
+          "p95": 0.685761929,
+          "minimum": 0.300475955,
+          "maximum": 1.108078003
+        },
+        "record_submit_ms": {
+          "mean": 0.063428116663,
+          "median": 0.0584789515,
+          "p95": 0.08244896,
+          "minimum": 0.053349018,
+          "maximum": 0.6314030880000001
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.305819988,
+        "wall_ms": 118.959829926,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "83518c596a0a69c0ef265f9bc37aee69ea8942ffe00e39a8ac592341693d7ae6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.009590265852,
+          "median": 0.008900046,
+          "p95": 0.012940049,
+          "minimum": 0.008258939,
+          "maximum": 0.03474009
+        },
+        "submit_ms": {
+          "mean": 0.012089100097,
+          "median": 0.011289954,
+          "p95": 0.015120029,
+          "minimum": 0.010460019,
+          "maximum": 0.057409048
+        },
+        "wait_ms": {
+          "mean": 0.097218927864,
+          "median": 0.0982440115,
+          "p95": 0.100659013,
+          "minimum": 0.045070052,
+          "maximum": 0.11936903
+        },
+        "latency_ms": {
+          "mean": 0.356433137538,
+          "median": 0.356715918,
+          "p95": 0.358886003,
+          "minimum": 0.15792799,
+          "maximum": 0.367465973
+        },
+        "record_submit_ms": {
+          "mean": 0.021679365949,
+          "median": 0.020179987,
+          "p95": 0.027400017,
+          "minimum": 0.019178987,
+          "maximum": 0.072368979
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.126258969,
+        "wall_ms": 128.855708957,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "348acdaae70b18dae6959c479956aa75123d3b80b6a82fd2abcf9480975596de",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.9910061e-05,
+          "median": 3.0041e-05,
+          "p95": 4.0054e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 0.000129938
+        },
+        "submit_ms": {
+          "mean": 0.011643766275,
+          "median": 0.010779977,
+          "p95": 0.015519977,
+          "minimum": 0.010310054,
+          "maximum": 0.034600019
+        },
+        "wait_ms": {
+          "mean": 0.117119134544,
+          "median": 0.117723048,
+          "p95": 0.119729042,
+          "minimum": 0.09078896,
+          "maximum": 0.14192903
+        },
+        "latency_ms": {
+          "mean": 0.386134871481,
+          "median": 0.386506081,
+          "p95": 0.38944602,
+          "minimum": 0.16108799,
+          "maximum": 0.408006072
+        },
+        "record_submit_ms": {
+          "mean": 0.011673676336,
+          "median": 0.0108100175,
+          "p95": 0.015549899,
+          "minimum": 0.010339976,
+          "maximum": 0.0346601
+        }
+      }
+    },
+    {
+      "label": "timing-1-3-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.080093026,
+        "wall_ms": 119.306956053,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "85be4353da3498d19d7bd7b55ecdb43caf2111f8f0cd3b3cc7dedba3afb15bec",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 1,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.003799497925,
+          "median": 0.003639936,
+          "p95": 0.004520059,
+          "minimum": 0.003520012,
+          "maximum": 0.023669004
+        },
+        "submit_ms": {
+          "mean": 0.02101535653,
+          "median": 0.0198599695,
+          "p95": 0.025430083,
+          "minimum": 0.018700004,
+          "maximum": 0.065428972
+        },
+        "wait_ms": {
+          "mean": 0.09443023849,
+          "median": 0.09484899,
+          "p95": 0.099098921,
+          "minimum": 0.044810057,
+          "maximum": 0.127867937
+        },
+        "latency_ms": {
+          "mean": 0.357439699649,
+          "median": 0.3576110005,
+          "p95": 0.36026597,
+          "minimum": 0.170248032,
+          "maximum": 0.38797605
+        },
+        "record_submit_ms": {
+          "mean": 0.024814854455,
+          "median": 0.023505032000000002,
+          "p95": 0.029960036000000002,
+          "minimum": 0.02233994,
+          "maximum": 0.078189016
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.790603995,
+        "wall_ms": 52.949027896,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "ac0911527be3b9dcea178c522dacf92599e4a609d71ae7ee1993a0ab759bcf05",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 3.1719051e-05,
+          "median": 3.0041e-05,
+          "p95": 5.0068e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 9.9897e-05
+        },
+        "submit_ms": {
+          "mean": 0.011627364652,
+          "median": 0.010470033,
+          "p95": 0.016800046,
+          "minimum": 0.010060072,
+          "maximum": 0.032089949
+        },
+        "wait_ms": {
+          "mean": 0.041224452502,
+          "median": 0.040089011,
+          "p95": 0.04340899,
+          "minimum": 0.03681004,
+          "maximum": 0.173498034
+        },
+        "latency_ms": {
+          "mean": 0.052916666285,
+          "median": 0.0507894755,
+          "p95": 0.060058951,
+          "minimum": 0.049299002,
+          "maximum": 0.189598083
+        },
+        "record_submit_ms": {
+          "mean": 0.011659083702999999,
+          "median": 0.010500074,
+          "p95": 0.016839981,
+          "minimum": 0.01007998,
+          "maximum": 0.032159925
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.666166067,
+        "wall_ms": 57.306388974,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "21325a1f5d4268024569192dad9d56019672d8c0642d302aa08a1d2a188b32c5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.00019702762,
+          "median": 0.000169992,
+          "p95": 0.000429988,
+          "minimum": 0.000120044,
+          "maximum": 0.00079
+        },
+        "submit_ms": {
+          "mean": 0.013045754658,
+          "median": 0.011850059,
+          "p95": 0.021210074,
+          "minimum": 0.010769963,
+          "maximum": 0.051109076
+        },
+        "wait_ms": {
+          "mean": 0.044001636852,
+          "median": 0.04035902,
+          "p95": 0.044669986,
+          "minimum": 0.032960057,
+          "maximum": 0.881531
+        },
+        "latency_ms": {
+          "mean": 0.05727530812,
+          "median": 0.052520037,
+          "p95": 0.066429019,
+          "minimum": 0.048199058,
+          "maximum": 0.895259976
+        },
+        "record_submit_ms": {
+          "mean": 0.013242782278,
+          "median": 0.012019991,
+          "p95": 0.021600008,
+          "minimum": 0.010929942,
+          "maximum": 0.051759005000000004
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.256859899,
+        "wall_ms": 219.077961087,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "f4d97387178bf970503a89b4f47859253e1711066c47ae51135863a0e4ffe84a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.04290923226,
+          "median": 0.040030003,
+          "p95": 0.058458924,
+          "minimum": 0.032229066,
+          "maximum": 0.470985055
+        },
+        "submit_ms": {
+          "mean": 0.015782002104,
+          "median": 0.014919519499999999,
+          "p95": 0.020599961,
+          "minimum": 0.011929989,
+          "maximum": 0.044690013
+        },
+        "wait_ms": {
+          "mean": 0.160306056389,
+          "median": 0.170333028,
+          "p95": 0.220378041,
+          "minimum": 0.076308966,
+          "maximum": 0.446484923
+        },
+        "latency_ms": {
+          "mean": 0.21903574063,
+          "median": 0.2541969415,
+          "p95": 0.274097085,
+          "minimum": 0.147637963,
+          "maximum": 0.587092996
+        },
+        "record_submit_ms": {
+          "mean": 0.058691234364,
+          "median": 0.0555495025,
+          "p95": 0.07849895900000001,
+          "minimum": 0.044969082,
+          "maximum": 0.488914013
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.535097003,
+        "wall_ms": 55.797255993,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "46ab1731c20a8983640ab2c1cd4a78f282bf60771a0ae22f1894367f10a95af3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.0009451185550000001,
+          "median": 0.000880003,
+          "p95": 0.001100063,
+          "minimum": 0.000770092,
+          "maximum": 0.006300092
+        },
+        "submit_ms": {
+          "mean": 0.012543591038,
+          "median": 0.012179971,
+          "p95": 0.014638901,
+          "minimum": 0.011070013,
+          "maximum": 0.042539001
+        },
+        "wait_ms": {
+          "mean": 0.042250097164,
+          "median": 0.042008996,
+          "p95": 0.04351902,
+          "minimum": 0.033190012,
+          "maximum": 0.089009047
+        },
+        "latency_ms": {
+          "mean": 0.055767937525,
+          "median": 0.055149018499999994,
+          "p95": 0.058808923,
+          "minimum": 0.053568959,
+          "maximum": 0.101889014
+        },
+        "record_submit_ms": {
+          "mean": 0.013488709593,
+          "median": 0.013060093,
+          "p95": 0.01583004,
+          "minimum": 0.011899948,
+          "maximum": 0.043578983
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.31716001,
+        "wall_ms": 174.70775795,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "17a8fd5a1de8f9c9f87fcf5fa58b36fce3a9af1953e19e124fc507f8640068da",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.004869103521,
+          "median": 0.004639983,
+          "p95": 0.005920053,
+          "minimum": 0.004469991,
+          "maximum": 0.02184999
+        },
+        "submit_ms": {
+          "mean": 0.020993479732,
+          "median": 0.019760013,
+          "p95": 0.025748968,
+          "minimum": 0.019159913,
+          "maximum": 0.112318039
+        },
+        "wait_ms": {
+          "mean": 0.148783230052,
+          "median": 0.148533523,
+          "p95": 0.151458025,
+          "minimum": 0.062469959,
+          "maximum": 0.18939805
+        },
+        "latency_ms": {
+          "mean": 0.17467724489,
+          "median": 0.173138022,
+          "p95": 0.182028055,
+          "minimum": 0.163237929,
+          "maximum": 0.215957999
+        },
+        "record_submit_ms": {
+          "mean": 0.025862583253,
+          "median": 0.024399996,
+          "p95": 0.031900048,
+          "minimum": 0.023760080000000003,
+          "maximum": 0.11705803899999999
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.735786915,
+        "wall_ms": 288.033251047,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "e3dba2f70516594e2758ae515884e414c1ca2e3851925fa88b4f263d42afcb72",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.058724887876,
+          "median": 0.054290056,
+          "p95": 0.090569019,
+          "minimum": 0.040579915,
+          "maximum": 0.659552932
+        },
+        "submit_ms": {
+          "mean": 0.016055048102,
+          "median": 0.0153350235,
+          "p95": 0.021720052,
+          "minimum": 0.011489987,
+          "maximum": 0.043519974
+        },
+        "wait_ms": {
+          "mean": 0.213154344212,
+          "median": 0.1981280445,
+          "p95": 0.245836973,
+          "minimum": 0.169488907,
+          "maximum": 1.248216987
+        },
+        "latency_ms": {
+          "mean": 0.287977839944,
+          "median": 0.2758620385,
+          "p95": 0.332755923,
+          "minimum": 0.23386693,
+          "maximum": 1.304525971
+        },
+        "record_submit_ms": {
+          "mean": 0.074779935978,
+          "median": 0.0694839955,
+          "p95": 0.111338973,
+          "minimum": 0.053519964,
+          "maximum": 0.676742912
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.736333966,
+        "wall_ms": 173.291722894,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "01f1a28fbfcfad20b0d0c0b6f5443b8d23e5d63a463da4427cbced862978609e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.011114294411,
+          "median": 0.009138942,
+          "p95": 0.021219969,
+          "minimum": 0.008039951,
+          "maximum": 0.047580004
+        },
+        "submit_ms": {
+          "mean": 0.013469211447,
+          "median": 0.011929989,
+          "p95": 0.020699978,
+          "minimum": 0.010659933,
+          "maximum": 0.040629029
+        },
+        "wait_ms": {
+          "mean": 0.148637082827,
+          "median": 0.146028042,
+          "p95": 0.152628064,
+          "minimum": 0.134317994,
+          "maximum": 0.469074965
+        },
+        "latency_ms": {
+          "mean": 0.173256530051,
+          "median": 0.1676984425,
+          "p95": 0.192747951,
+          "minimum": 0.155358076,
+          "maximum": 0.490224004
+        },
+        "record_submit_ms": {
+          "mean": 0.024583505858,
+          "median": 0.0210899715,
+          "p95": 0.042358994,
+          "minimum": 0.018999934,
+          "maximum": 0.068459988
+        }
+      }
+    },
+    {
+      "label": "timing-2-1-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.540707946,
+        "wall_ms": 163.500981927,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "4ce22ee59294a0f7b01d47c5b570a4d578e1d64d88bd7d8f2c07944f99bf4fde",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 3.2522481e-05,
+          "median": 3.0041e-05,
+          "p95": 4.9949e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 0.000140071
+        },
+        "submit_ms": {
+          "mean": 0.013098461625,
+          "median": 0.012629986,
+          "p95": 0.019529939,
+          "minimum": 0.010118961,
+          "maximum": 0.056608915
+        },
+        "wait_ms": {
+          "mean": 0.150300496813,
+          "median": 0.1493285295,
+          "p95": 0.154177904,
+          "minimum": 0.144068003,
+          "maximum": 0.354665995
+        },
+        "latency_ms": {
+          "mean": 0.16346386241,
+          "median": 0.162212968,
+          "p95": 0.171278,
+          "minimum": 0.155627966,
+          "maximum": 0.367745996
+        },
+        "record_submit_ms": {
+          "mean": 0.013130984106,
+          "median": 0.012660026999999999,
+          "p95": 0.01955998,
+          "minimum": 0.010138988,
+          "maximum": 0.056648969
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.886514068,
+        "wall_ms": 107.35126996,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "864f09354be18fa818e26dd20322099323c024b2cbd588e1b100d952a16ceac9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.039556344982,
+          "median": 0.039098978,
+          "p95": 0.05182004,
+          "minimum": 0.028809905,
+          "maximum": 0.38794601
+        },
+        "submit_ms": {
+          "mean": 0.013868279569,
+          "median": 0.0131294725,
+          "p95": 0.016798973,
+          "minimum": 0.010959983,
+          "maximum": 0.443075061
+        },
+        "wait_ms": {
+          "mean": 0.053859509716,
+          "median": 0.049444437,
+          "p95": 0.081769943,
+          "minimum": 0.02323997,
+          "maximum": 0.597452998
+        },
+        "latency_ms": {
+          "mean": 0.321575441234,
+          "median": 0.3015114665,
+          "p95": 0.406204939,
+          "minimum": 0.197788,
+          "maximum": 0.894829988
+        },
+        "record_submit_ms": {
+          "mean": 0.053424624551,
+          "median": 0.051833987,
+          "p95": 0.06762897999999999,
+          "minimum": 0.039769888,
+          "maximum": 0.477514029
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.657528043,
+        "wall_ms": 12.680757999,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "6a55637341e5e5d5280120175d97f9423d31c7927f47f78c94016a4dad1969b5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000693761205,
+          "median": 0.000630021,
+          "p95": 0.00079,
+          "minimum": 0.000589967,
+          "maximum": 0.005590081
+        },
+        "submit_ms": {
+          "mean": 0.009670687217,
+          "median": 0.009420037,
+          "p95": 0.01098001,
+          "minimum": 0.008870006,
+          "maximum": 0.017060041
+        },
+        "wait_ms": {
+          "mean": 0.00226398494,
+          "median": 0.001459956,
+          "p95": 0.007910013,
+          "minimum": 0.001410007,
+          "maximum": 0.027260065
+        },
+        "latency_ms": {
+          "mean": 0.037954013714,
+          "median": 0.035369992,
+          "p95": 0.048238993,
+          "minimum": 0.031159043,
+          "maximum": 0.071869016
+        },
+        "record_submit_ms": {
+          "mean": 0.010364448422,
+          "median": 0.010050057999999999,
+          "p95": 0.01165998,
+          "minimum": 0.009479999999999999,
+          "maximum": 0.019530057
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.86314404,
+        "wall_ms": 11.966807008,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "fc7d66eb526efde4756b9e084cf89ba3b4bee3d1db9f03cb7f523cd5a60a0314",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.5176524e-05,
+          "median": 2.9922e-05,
+          "p95": 3.0041e-05,
+          "minimum": 1.8954e-05,
+          "maximum": 3.9935e-05
+        },
+        "submit_ms": {
+          "mean": 0.009201910601,
+          "median": 0.008999944,
+          "p95": 0.010240078,
+          "minimum": 0.008590102,
+          "maximum": 0.019529939
+        },
+        "wait_ms": {
+          "mean": 0.002687789329,
+          "median": 0.0015450120000000001,
+          "p95": 0.008579969,
+          "minimum": 0.001410007,
+          "maximum": 0.020749927
+        },
+        "latency_ms": {
+          "mean": 0.035815241696,
+          "median": 0.0328240395,
+          "p95": 0.048169971,
+          "minimum": 0.030380011,
+          "maximum": 0.062090039
+        },
+        "record_submit_ms": {
+          "mean": 0.009227087125,
+          "median": 0.009029984000000001,
+          "p95": 0.01027,
+          "minimum": 0.008610010000000001,
+          "maximum": 0.019549966
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.172922015,
+        "wall_ms": 16.311977983,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "cabcc2c381a19d4e5edc86809a51e6943ddbffb1e6d9ad288c14a8c026cb7227",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.000115887488,
+          "median": 0.00011003,
+          "p95": 0.000140071,
+          "minimum": 7.9989e-05,
+          "maximum": 0.000639915
+        },
+        "submit_ms": {
+          "mean": 0.011578381767,
+          "median": 0.010974525999999998,
+          "p95": 0.01364994,
+          "minimum": 0.00940001,
+          "maximum": 0.037769914
+        },
+        "wait_ms": {
+          "mean": 0.004559718264,
+          "median": 0.00188005,
+          "p95": 0.006520033,
+          "minimum": 0.001639962,
+          "maximum": 2.266274929
+        },
+        "latency_ms": {
+          "mean": 0.048840482462,
+          "median": 0.0401595235,
+          "p95": 0.050899982,
+          "minimum": 0.033580065,
+          "maximum": 2.314743996
+        },
+        "record_submit_ms": {
+          "mean": 0.011694269255,
+          "median": 0.011080027000000001,
+          "p95": 0.013798952,
+          "minimum": 0.009500027000000001,
+          "maximum": 0.037889958
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.865024924,
+        "wall_ms": 120.602391958,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "f3834956f9d08ede883cd401d84c16bbca61b74d7378e18872c1576e5c2a2b70",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.009103463878,
+          "median": 0.008868933,
+          "p95": 0.01067996,
+          "minimum": 0.007969975,
+          "maximum": 0.038679957
+        },
+        "submit_ms": {
+          "mean": 0.011512017483,
+          "median": 0.011129498500000001,
+          "p95": 0.013530016,
+          "minimum": 0.010559082,
+          "maximum": 0.044340014
+        },
+        "wait_ms": {
+          "mean": 0.099927309979,
+          "median": 0.100278974,
+          "p95": 0.102169037,
+          "minimum": 0.068768978,
+          "maximum": 0.121078014
+        },
+        "latency_ms": {
+          "mean": 0.361355480543,
+          "median": 0.361415982,
+          "p95": 0.363816023,
+          "minimum": 0.161848068,
+          "maximum": 0.379814982
+        },
+        "record_submit_ms": {
+          "mean": 0.020615481361,
+          "median": 0.0199899675,
+          "p95": 0.024769902,
+          "minimum": 0.018949985000000003,
+          "maximum": 0.053189992
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.445888996,
+        "wall_ms": 121.624400973,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "559df087e632d659fe20beddcdb7fc6d7dc9219e4a3370330b8437abbab177bc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 2.943287e-05,
+          "median": 3.0041e-05,
+          "p95": 3.9935e-05,
+          "minimum": 1.9908e-05,
+          "maximum": 0.000109911
+        },
+        "submit_ms": {
+          "mean": 0.012079627879,
+          "median": 0.011929989,
+          "p95": 0.014839053,
+          "minimum": 0.009849906,
+          "maximum": 0.062148929
+        },
+        "wait_ms": {
+          "mean": 0.109452457912,
+          "median": 0.1084390285,
+          "p95": 0.117798924,
+          "minimum": 0.071439981,
+          "maximum": 0.221356988
+        },
+        "latency_ms": {
+          "mean": 0.36443603825,
+          "median": 0.361075997,
+          "p95": 0.386634946,
+          "minimum": 0.163317919,
+          "maximum": 0.503785014
+        },
+        "record_submit_ms": {
+          "mean": 0.012109060749,
+          "median": 0.011959911,
+          "p95": 0.014868975,
+          "minimum": 0.009879947,
+          "maximum": 0.062188982999999996
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.251900911,
+        "wall_ms": 119.868829966,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "a2633698be55e14d1d41f226b3947bf79ed2705832c4309d70d5ea6a7a0217df",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.004025521384,
+          "median": 0.003669977,
+          "p95": 0.005490065,
+          "minimum": 0.00353992,
+          "maximum": 0.010318995
+        },
+        "submit_ms": {
+          "mean": 0.020947464817,
+          "median": 0.019999981,
+          "p95": 0.024760008,
+          "minimum": 0.019019008,
+          "maximum": 0.062788963
+        },
+        "wait_ms": {
+          "mean": 0.094829167844,
+          "median": 0.09533906,
+          "p95": 0.097708941,
+          "minimum": 0.041059971,
+          "maximum": 0.189558029
+        },
+        "latency_ms": {
+          "mean": 0.359127092606,
+          "median": 0.35797596,
+          "p95": 0.363005996,
+          "minimum": 0.17007792,
+          "maximum": 0.478703976
+        },
+        "record_submit_ms": {
+          "mean": 0.024972986201,
+          "median": 0.0236645345,
+          "p95": 0.029240012,
+          "minimum": 0.022559047,
+          "maximum": 0.06891894300000001
+        }
+      }
+    },
+    {
+      "label": "timing-2-3-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.820284963,
+        "wall_ms": 225.011345029,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "2f77e1613d2340bac8d6bd36861ad1a614257c476bd79f45c4e0e1e2f619884f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "round": 2,
+      "statistics": {
+        "record_ms": {
+          "mean": 0.053775601256,
+          "median": 0.050104022,
+          "p95": 0.066658974,
+          "minimum": 0.041858912,
+          "maximum": 0.395676017
+        },
+        "submit_ms": {
+          "mean": 0.013718234667,
+          "median": 0.013495028,
+          "p95": 0.015259981,
+          "minimum": 0.011590004,
+          "maximum": 0.025239944
+        },
+        "wait_ms": {
+          "mean": 0.157436650628,
+          "median": 0.160248041,
+          "p95": 0.169667959,
+          "minimum": 0.02639997,
+          "maximum": 0.733182073
+        },
+        "latency_ms": {
+          "mean": 0.674137377868,
+          "median": 0.673177004,
+          "p95": 0.701251984,
+          "minimum": 0.266997099,
+          "maximum": 1.225816011
+        },
+        "record_submit_ms": {
+          "mean": 0.067493835923,
+          "median": 0.063829005,
+          "p95": 0.08083891900000001,
+          "minimum": 0.054868937,
+          "maximum": 0.415144921
+        }
+      }
+    }
+  ],
+  "memory": [
+    {
+      "label": "memory-1-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.53867197,
+        "wall_ms": 197.676460981,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "3a74c29e39cfe719ac9b7b6ef27408d36bbedd84c28110807ca1fe3e496f52b2",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.194874048,
+        "wall_ms": 96.687340021,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "efd540ad9b72a0d9f55f20d3021aa2ec9bbc5d9c1a7aafd67d7ef9f420311876",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.647322059,
+        "wall_ms": 77.45234406,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "fd434a774b5572cf4abbde23c0e5ca6ae431d6ee2339bfa712dde9a559823a5a",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.602001071,
+        "wall_ms": 103.267526031,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "cbab0b9ef80f1a88a96b1e8a25840553f2c81d7b2a2bfbf637e8101d91d7edd2",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.037365913,
+        "wall_ms": 654.394508958,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "68ebe473511742d07133ae7db9a67cd26dda6c4b61ed7d5b0d4046643a67cd49",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.45373106,
+        "wall_ms": 542.036295056,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "0f5d95bec818c13020b44b824c880a70faaa9e0256aee38fe3e9cb4510147142",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.101893902,
+        "wall_ms": 186.987281084,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "b9cce56ce5c36691ac6764c9d1d5f75373f5b3e484be2d95a00cb105b52a6c94",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-1-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.831467986,
+        "wall_ms": 536.943222046,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "14010055ffca766ece557a867db5e1bd117f1d7a312c41d1b7c3011c70dcb3de",
+      "stderr_sha256": "089097d71e0d459082dd139c1a3ce0720ea1f4d0e799cbf21776cba29d8a9dc4",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 400,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":400,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.739220023,
+        "wall_ms": 146.755010962,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "df448ac026364599ca5c9576b42ab1a0c935fcb62f5ff555d565779bfaddc11b",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.823899984,
+        "wall_ms": 59.152269959,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "86cfcd766bb5aab7c14825b4e3caa54b4cdd7c876adff6ac226e57fc1ad8867c",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.595751047,
+        "wall_ms": 34.886190057,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "3f9373d01c42fdfee56fef23a7c7954c5e1c890460fce1151e112e21882479c6",
+      "stderr_sha256": "bded0845034daaa1536aae488a49617ab97b9157f52d892b5ba52cb4f221ff9e",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":12094627905547,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":8796093022216}",
+        "FREE {\"id\":12094627905547}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.458911061,
+        "wall_ms": 59.841462016,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "1de991b49306ccbf12a3b9281cbed5bb5063e036b1f3f2c4fa605ebbb9479d29",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.554121017,
+        "wall_ms": 410.178159118,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "8940faa5b7def7e22c1635a93b74fa8deee25f2eaca76f881ddc72504e9067f4",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.917266965,
+        "wall_ms": 303.137274027,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "133cd4b81e5069231ae28122a68fa0a544861e3bd0e6df377519f2db691a7a15",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.082376003,
+        "wall_ms": 122.296264052,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        },
+        {
+          "family": 1,
+          "count": 4,
+          "flags": 14
+        },
+        {
+          "family": 2,
+          "count": 1,
+          "flags": 32
+        },
+        {
+          "family": 3,
+          "count": 1,
+          "flags": 64
+        },
+        {
+          "family": 4,
+          "count": 1,
+          "flags": 8
+        }
+      ],
+      "device_description": [
+        "Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0"
+      ],
+      "stdout_sha256": "b16d4a8595c236c82b01bd6b7abc938f503b7517858f719af2b2d0e40cfeab78",
+      "stderr_sha256": "bded0845034daaa1536aae488a49617ab97b9157f52d892b5ba52cb4f221ff9e",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":12094627905547,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":8796093022216}",
+        "FREE {\"id\":12094627905547}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "memory-3-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.128287077,
+        "wall_ms": 306.547916055,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "d8eda403795043f643ce2da5adae28327e1e98d49b362cf5f1cf613d6c0af850",
+      "stderr_sha256": "da429d0b837b9684024651bac8ae4295398c2b4f39b4e1683877871076013f1c",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1200,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":400,\"type\":5}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":400,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1200,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    }
+  ],
+  "complete": true,
+  "identity": {
+    "vendor": 4098,
+    "device": 29471,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "input_report_sha256": "a13974a11bc021c1df976b70126079e025b2b3f9731d98a3d835cf9777823df7",
+  "raw_samples": "samples.csv",
+  "raw_samples_sha256": "ea2998edcb856c6d4df4dfe75c09c5c282c754eebea8c3d2988264a3da8de090",
+  "export_scope": "retained log hashes, matrix, sample statistics and allocation traces rechecked; GPU oracle not rerun"
+}

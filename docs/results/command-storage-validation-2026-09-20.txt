@@ -1,0 +1,36 @@
+Command-storage acceptance, 2026-09-20
+Implementation: 01697a06640cd46ef0ff02a2f92297d348a014ec; ABI 13.
+Radeon / llvmpipe; Vulkan synchronization validation enabled for GPU checks.
+Small-compute performance, both software reports and installed SDK record clean source.
+Final runtime tests/preflight used exactly committed code; evidence files were being exported.
+
+PASS cargo test --workspace: 38 ordinary tests; 22 GPU tests ignored in this command.
+PASS cargo clippy --workspace --all-targets -- -D warnings
+PASS cargo xtask bindings --check
+PASS cargo xtask abi: 749 C/Rust layout values
+PASS cargo xtask mock: C loader/smoke, empty enumeration, error cleanup, missing loader
+PASS cargo xtask gpu-tests on Radeon: 22 GPU tests, no validation errors
+PASS cargo xtask gpu-tests on llvmpipe: 22 GPU tests, no validation errors
+PASS python3 examples/performance_frontier/run.py --check: C builds/host failure tests, 6 runner tests
+PASS python3 examples/performance_frontier/run.py: 48,000 timing samples, correctness/traces
+PASS python3 examples/performance_frontier/run.py --software: 1,024 validation frames
+PASS python3 examples/performance_frontier/stream.py --software: 768 validation frames, 4 runner tests
+PASS python3 examples/performance_frontier/stream.py --preflight: 144 Radeon validation frames
+PASS python3 tools/install.py --prefix /tmp/ogpu-sdk-storage-01697a0
+PASS python3 tools/test-install.py --prefix /tmp/ogpu-sdk-storage-01697a0
+  relocated sdk / independent app: /tmp/ogpu-external-dke4dv6m
+  ABI 13; matching pkg-config revision; missing loader visibly rejected;
+  4,099 integers, three passes, guards, partial upload, parent destruction.
+PASS cargo xtask heap-image: six extents, three submissions, heap mutation/sampler cases.
+
+No native Metal, full GGML/libplacebo or video-scale mixed workload rerun.
+No real hardware device-loss claim; tests inject loss after real work drains.
+Retained driver-private bytes are not measured; cache bounds are count/admission policy.
+
+Local detailed logs (SHA-256):
+6a4f95c5f50547336989d0052250ea0df40a2fcf288132fb7ec9ed43e3520c37  /tmp/ogpu-storage-host-tests-final.log
+4dddb8271d55bdc1f34d7d80be2dd08f9f6078fb4a311103e5f083d68aed9339  /tmp/ogpu-storage-radv-tests-accepted.log
+fedc4953d0420f8b9c6e5cacd591fda5a51f1fc65d1d886d57f01e7da654f602  /tmp/ogpu-storage-lvp-tests-accepted.log
+a9c84b64111853f56ca907d3ea233402c32be764ed7e8e83953c7e5cda3457b5  /tmp/ogpu-storage-external-sdk.log
+e5163fbdc07afef57ce8c1556e90fdf0d0f2c36e5df560888b52c6b1ea6ff7d7  /tmp/ogpu-storage-heap-image.log
+60ebea971bff9daa40853c67706d2e33c5841d3894a1de93de6f637ccfc77260  /tmp/ogpu-storage-stream-radv-preflight.log

@@ -1,0 +1,824 @@
+{
+  "schema": 1,
+  "scope": "small dependent compute; strategy comparison, not isolated API overhead",
+  "revision": "01697a06640cd46ef0ff02a2f92297d348a014ec",
+  "dirty": false,
+  "sources": {
+    "examples/performance_frontier/small.c": "9f7130fd931251937e69a5ce1cfc8a3d536d00192112be7655efd531ce61863c",
+    "examples/performance_frontier/run.py": "19683cf9e320f34559e43b339900520120f790f4137f9ee2f60c9a7ad797242d",
+    "examples/performance_frontier/test_small.c": "30f3dda7710e03a8ca9059111bb14e44e5ccf7270354a012c5acae3082d7e77e",
+    "examples/performance_frontier/test_runner.py": "640ddf168e46c38d11c4c5fe21a87e1175126bdefd5a677201fb70afc791d8b8",
+    "examples/performance_frontier/export.py": "4a54a4ee11568d69a6b26b8de50a8237a5140cf20ab0e706ad517384893a40d4",
+    "examples/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+    "examples/compiler/transform.slang": "9f75d33cd837a7251bac41970ec7f93107a0c8be46815f77af15bd127aceed8a",
+    "examples/learned_image/native.c": "6a03b11092c7fdc5299a8f34e24779cb8d048f8e4c4c8418e839b31676e4346c",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "include/ogpu.h": "3657eda98ab4f506c908fbdbe70b20369b8b8c6954390ce08dfb4ae988c6fd38",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7"
+  },
+  "artifacts": {
+    "native": "a1d7ba9553e87424ade7dfb0ef48e7672cd8db0749b59df5fdb22417fbd3af36",
+    "ogpu": "89305d148e29677e3e0aaaf183457fb5662c607be3a7b561b0624dfd9dbf5ffe",
+    "trace-memory.so": "ed10efab30f2d8e43d06889136c94ee95d940ee46c2787189abd63e905f83343"
+  },
+  "library_sha256": "db33eb5693579af6438a7a9dba64077f97a584e83e2631e88671e618f85ba429",
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_ICD_FILENAMES": null,
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "VK_LAYER_PATH": "/nix/store/sbsyg6dvqjs6937jyqxaw0q7n83n6awg-vulkan-validation-layers-1.4.357.0/share/vulkan/explicit_layer.d"
+  },
+  "software": true,
+  "validation": [
+    {
+      "label": "validation-1-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.69196105,
+        "wall_ms": 7.595504999,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "2e23eec9b73816dae2967bcb57ae9514b0dd59d42790232a0efccd6f4322ae3f",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.829989076,
+        "wall_ms": 6.602077007,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "ae73ae111bee0887c6b2b24c3d8237be7796eb578b2b20e2173051a6875c9b42",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.652642012,
+        "wall_ms": 5.34077096,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "cb2e741d2a9329639681c9b1263713c2acdf3a555f7246e58b9a8349fb9456d1",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.614122033,
+        "wall_ms": 6.99091208,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "35e142254cef605dbabef29fefb8e848c61af0c78b3722ebf21644489aa9730f",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.174963951,
+        "wall_ms": 106.824299932,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "2d61fa716ab7dc16a6756ab7b6b1d9529a55f62194fe3056b0e4ef59a329e990",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.367214084,
+        "wall_ms": 113.441446066,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "5549f3fb14713306e761923a74f57cece131dc8000428faaa1a0d6f1e292ce17",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.006223917,
+        "wall_ms": 97.487273932,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "213e0ea429e9510ee87d7ff9b82a3a97aba72741e39c2559d8ca5aaabdb2486a",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-1-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.111983061,
+        "wall_ms": 109.160854936,
+        "requested_bytes": 388
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "b86c12eb777bdd55d4ab590a9e52bb0f3dfb6389332e39184f941707b4646bdc",
+      "stderr_sha256": "56733cc7525cf7441bb4a20e25a876047e0e9f13d4f7ca44921fc6cdc06cd386",
+      "memory": {
+        "allocations": 1,
+        "frees": 1,
+        "peak_bytes": 388,
+        "peak_count": 1,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "MEMORY_SUMMARY {\"allocations\":1,\"frees\":1,\"peak_bytes\":388,\"peak_count\":1,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 29.416543007,
+        "wall_ms": 4.77748704,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "8c9796c9ec46ccbcf6d594b415e70e855867c175f4ea7754d3573bc8c4cb029f",
+      "stderr_sha256": "493b2d2ad951febc056a07b0be7d79e7fade6cc62bacdfcfc8f2ffd15e131ac8",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.18760705,
+        "wall_ms": 4.278941989,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "5bd38e123d510cbf6eb77d6f566f74430bbf90f62cf94c201c441910eb6acd25",
+      "stderr_sha256": "493b2d2ad951febc056a07b0be7d79e7fade6cc62bacdfcfc8f2ffd15e131ac8",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.759530067,
+        "wall_ms": 3.349222064,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "c1ec025a18c1e18a76ab159c87f1f77a01d0868cce6c81f4d9a1ad1607f114a8",
+      "stderr_sha256": "2c02832ad03b630bdf117ad7a1c78b6d1fdff974078affd65326e27622098db3",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":12094627905547,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":8796093022216}",
+        "FREE {\"id\":12094627905547}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-1-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 1,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.709980011,
+        "wall_ms": 4.519790053,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "48f86b9ff12e845e102d4f45979da539307eaa6969351b9a00acac345a58ee94",
+      "stderr_sha256": "493b2d2ad951febc056a07b0be7d79e7fade6cc62bacdfcfc8f2ffd15e131ac8",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-fresh",
+      "result": {
+        "policy": "fresh",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.654222012,
+        "wall_ms": 92.997463942,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "a79ea5da7d8b600004e385bafabcd2c50a26fc34850f25a97998b8b7bcb789d0",
+      "stderr_sha256": "493b2d2ad951febc056a07b0be7d79e7fade6cc62bacdfcfc8f2ffd15e131ac8",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-reset",
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.950807095,
+        "wall_ms": 92.825116038,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "29dd8ea39afaf5957f19d341eac53153dc9862d3411cf3c343bdca049590b4b2",
+      "stderr_sha256": "493b2d2ad951febc056a07b0be7d79e7fade6cc62bacdfcfc8f2ffd15e131ac8",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-replay",
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 29.059705973,
+        "wall_ms": 90.641581059,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [
+        {
+          "family": 0,
+          "count": 1,
+          "flags": 15
+        }
+      ],
+      "device_description": [
+        "Native device: llvmpipe (LLVM 21.1.8, 256 bits); vendor=65541 device=0 api=4211042 driver=llvmpipe Mesa 26.2.1 (LLVM 21.1.8) queue=0 float16=1 unified=1"
+      ],
+      "stdout_sha256": "8efd5326f483abba0e5421153b806b8af349888f26de7d009f30381f32127a44",
+      "stderr_sha256": "2c02832ad03b630bdf117ad7a1c78b6d1fdff974078affd65326e27622098db3",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":12094627905547,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":8796093022216}",
+        "FREE {\"id\":12094627905547}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    },
+    {
+      "label": "validation-3-64-ogpu",
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "dispatches": 64,
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.748991966,
+        "wall_ms": 97.263175964,
+        "requested_bytes": 1164
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "queues": [],
+      "device_description": [],
+      "stdout_sha256": "5672ccca070d997e2deb8cc6843c76783604de4dbfa6b311b96bd5cb30a8636d",
+      "stderr_sha256": "493b2d2ad951febc056a07b0be7d79e7fade6cc62bacdfcfc8f2ffd15e131ac8",
+      "memory": {
+        "allocations": 3,
+        "frees": 3,
+        "peak_bytes": 1164,
+        "peak_count": 3,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":388,\"type\":0}",
+        "ALLOCATE {\"id\":9895604649993,\"bytes\":388,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "FREE {\"id\":9895604649993}",
+        "MEMORY_SUMMARY {\"allocations\":3,\"frees\":3,\"peak_bytes\":1164,\"peak_count\":3,\"live_bytes\":0,\"live_count\":0}"
+      ]
+    }
+  ],
+  "timing": [],
+  "memory": [],
+  "complete": true,
+  "identity": {
+    "vendor": 65541,
+    "device": 0,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "input_report_sha256": "c553d0ed02813994d0d0a6769e88946fef73f29ab51ecef53b49f4c023e2ba55",
+  "export_scope": "retained log hashes, matrix, sample statistics and allocation traces rechecked; GPU oracle not rerun"
+}

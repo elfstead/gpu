@@ -28,7 +28,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
-| Performance | M1 learned-image matched-policy medians within about 1.14% of native; stronger small-compute controls expose a substantial command-storage lifecycle gap | Workload/policy-specific Radeon evidence, not approval of the fundamental API, isolated overhead or uniform tail parity |
+| Performance | M1 matched-policy learned-image medians within about 1.14% of native; ABI-13 storage reuse brings small-compute wall ratios to 0.994–1.050 of native reset | Workload/policy-specific Radeon evidence, not approval of the fundamental API, isolated overhead or equal total memory budgets |
 | Validation | RX 5700 XT / RADV and llvmpipe; historical Apple M4 compute/GGML acceptance; 38 Linux ordinary tests and 749 ABI layout checks | Metal has no ABI-13 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
@@ -88,11 +88,19 @@ about 1–3% here, versus the much larger host-sensitive gap. Other audit concer
 remain open; this is not approval of the fundamental API.
 The [command-storage review](command-storage-review.md) separates storage,
 recording and submission lifetimes and defines the next heap/error/retirement gates.
-The first bounded device-owned storage-reuse prototype is implemented at ABI 13
-and passes 22 runtime GPU tests on both Linux drivers. Repeat the small-compute
-comparison before accepting its performance; caller control/byte budgeting remains
-unresolved, separately from executable replay. Do not widen unrelated API surface or
-start M2 by treating the existing submission contract as settled.
+The [bounded storage-reuse result](command-storage-results.md) is accepted at
+`01697a0` (ABI 13): 22 runtime GPU tests on each Linux driver, 48,000 new timing
+samples and an independent relocated SDK consumer. The four small-compute OGPU/
+native-reset wall ratios are 1.050, 1.041, 1.022 and 0.994; most of the previous gap
+was storage policy, not demonstrated unavoidable API overhead. Retain the cache
+as an experiment, not a fundamental storage interface. It has size/admission
+limits, no caller release control and no exact native-byte budget.
+
+Next compare caller-owned recording storage/resettable ownership with the cache
+under heterogeneous and long-lived use, including explicit release. Separately
+define/test executable replay's copied arguments, resource ownership and mutable
+pointed-to data. Do not widen unrelated API surface or start M2 by treating the
+existing submission contract as settled. No other audit item is passed by this result.
 
 ## Following milestone: M2 — programming/compiler contract
 

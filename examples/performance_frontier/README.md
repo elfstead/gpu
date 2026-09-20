@@ -108,5 +108,6 @@ rest of the fundamental API. Runtime and ABI remain unchanged.
 
 Accepted results: [small compute](../../docs/performance-frontier-small.md) and
 [streaming image](../../docs/performance-frontier-stream.md). The
-[next contract review](../../docs/command-storage-review.md) separates reusable
-storage from executable replay and defines the remaining retirement tests.
+[contract review](../../docs/command-storage-review.md) separates reusable
+storage from executable replay. The [ABI-13 runtime comparison](../../docs/command-storage-results.md)
+repeats the small probe after bounded storage reuse; native controls are unchanged.
