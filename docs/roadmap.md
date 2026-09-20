@@ -53,8 +53,9 @@ The [small-compute](performance-frontier-small.md) and
 [streaming](performance-frontier-stream.md) probes are complete (2026-09-20).
 They expose a storage-lifecycle opportunity and demonstrate independent slots;
 the [storage-retirement alternative](command-storage-review.md) subsequently passed
-its first [bounded-cache experiment](command-storage-results.md). Explicit caller
-storage ownership and replay are the next P2 checks. The other
+its first [bounded-cache experiment](command-storage-results.md), then the
+[explicit caller-owned storage comparison](recording-storage-results.md). Executable
+replay and the remaining host-recording cost are the next P2 checks. The other
 expressibility concerns remain explicit rather than being passed by these workloads.
 
 ## M1 — Make the existing application useful-sized

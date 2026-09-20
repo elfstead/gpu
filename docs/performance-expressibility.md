@@ -133,3 +133,10 @@ correctness checks. P2 now separates a demonstrated storage-policy improvement
 from unresolved caller-owned storage and executable replay alternatives. The
 device cache's admission/count bounds are not equal total-memory-budget evidence;
 do not pass the fundamental gate from these warmed timings.
+
+ABI 14's [explicit-owner result](recording-storage-results.md) addresses caller
+reuse/release and the cache admission cliff (0.991–1.037 of native reset wall time
+in six new cases). Keep explicit ownership as a candidate, not a final byte-budget
+or arena/handle design. P2 now selects reusable executable recordings and examines
+the prototype's remaining CPU buffering separately. The native replay advantage
+in host work is still relevant even where GPU-heavy throughput is similar.

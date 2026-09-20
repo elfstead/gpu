@@ -5,10 +5,15 @@ is whether caller-owned reuse and release provide a better fundamental shape tha
 hidden cache admission thresholds, without entangling recordings or completion
 receipts. This is a candidate implementation and comparison, not a stable surface.
 
+The [accepted result](recording-storage-results.md) at `7fa0763` closes the cache
+admission cliff in the selected workloads and validates caller-driven release.
+Explicit ownership is retained as a preferred candidate; replay and the best
+owner/recording ergonomics remain separate questions.
+
 ## Selected shape and alternatives
 
-`OgpuRecordingStorage` is a device-owned-by-reference, caller-controlled owner of
-empty native recording capacity. It serves **one** recording/submission at a time.
+`OgpuRecordingStorage` is a caller-controlled owner of empty native recording
+capacity that retains its device. It serves **one** recording/submission at a time.
 It is neither executable commands nor a Vulkan pool exposed through the ABI.
 
 ```c

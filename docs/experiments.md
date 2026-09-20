@@ -529,6 +529,31 @@ storage ownership/release and separately executable replay. The cache's hidden
 admission thresholds and missing caller budget/control are not the fundamental
 interface selected; the remaining performance-expressibility audit stays open.
 
+## Explicit recording-storage ownership — 2026-09-20
+
+At `7fa0763` (ABI 14), [caller-owned storage](recording-storage.md) provides one
+reservation per owner, reusable empty capacity and explicit idle trim, without
+reviving consumed batches or retaining application objects in old receipts.
+Vulkan implements it; Metal's optional entry points explicitly return UNSUPPORTED.
+
+The [accepted result](recording-storage-results.md) adds 90,000 timing samples,
+30,000 Radeon and 1,920 llvmpipe correctness frames, plus separate allocation
+controls. Explicit/native-reset wall ratios are 0.991–1.037 across one/five slots
+and 64/129/512 dispatches. At 129 dispatches, which crosses cache admission,
+throughput improves about 31–47% over the implicit cache path. All 270 tracked
+application allocations are freed; native command-storage bytes remain unmeasured.
+All 23 runtime GPU tests pass on both drivers, including oversized heterogeneous
+reuse, trim with old handles/timing alive, heap replacement, pending/error gates
+and injected warm-owner failures. An independent relocated ABI-14 SDK consumer
+passes both default and explicit-owner paths.
+
+Retain explicit ownership as a preferred controllable candidate, the cache as a
+convenience/control, and neither as a settled final API. Next specify/test reusable
+executable recordings and distinguish the runtime's CPU step/root buffering from
+unavoidable API work. Native replay still saves substantial host work; similar
+multi-slot throughput does not settle that question. No native Metal validation,
+exact byte budget or general Vulkan parity is claimed.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

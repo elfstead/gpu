@@ -98,16 +98,24 @@ was storage policy, not demonstrated unavoidable API overhead. Retain the cache
 as an experiment, not a fundamental storage interface. It has size/admission
 limits, no caller release control and no exact native-byte budget.
 
-Next compare caller-owned recording storage/resettable ownership with the cache
-under heterogeneous and long-lived use, including explicit release. Separately
-define/test executable replay's copied arguments, resource ownership and mutable
-pointed-to data. Do not widen unrelated API surface or start M2 by treating the
-existing submission contract as settled. No other audit item is passed by this result.
+That result selected caller-owned storage versus the cache under heterogeneous,
+long-lived use and explicit release. It did not settle executable replay or pass
+other audit items; the follow-up below supplies the storage evidence.
 
-The [explicit owner experiment](recording-storage.md) implements that next P2
-comparison at ABI 14, retaining the existing cache as a comparison/convenience
-path. Its state tests and enlarged frontier are the current acceptance gate;
-executable replay is not implemented by this change.
+The [explicit owner result](recording-storage-results.md) is now accepted at
+`7fa0763` (ABI 14): 23 GPU tests on both drivers, 90,000 new samples, 30,000 Radeon/
+1,920 software correctness frames and a relocated SDK consumer. Explicit storage
+removes the cache's admission cutoff and adds caller-driven trim; wall ratios are
+0.991–1.037 of native reset in the six selected cases. Retain it as the preferred
+controllable candidate and the device cache as a convenience/comparison path.
+
+Next specify and test reusable executable recordings: copied roots versus mutable
+pointed-to data, retained objects/heaps between executions, storage ownership and
+per-submission errors/timing. Native replay remains the stronger control. Separately
+investigate the current CPU step/root buffering versus direct recording into owned
+storage; the measured host gap is not established as unavoidable API overhead.
+No fixed native-byte budget, unique best owner ergonomics or other audit item is
+settled by the explicit-storage result. Do not widen unrelated surface yet.
 
 ## Following milestone: M2 — programming/compiler contract
 

@@ -62,7 +62,7 @@ can take time. The completion owns the submitted command resources and retained
 kernels, independently of the original batch, kernel, device, and probe handles.
 GPU execution failures can surface during waiting rather than submission.
 
-## Dependencies and host access
+## Explicit recording storage
 
 ABI 14 optionally separates storage ownership: `ogpu_recording_storage_create`
 and `ogpu_batch_create_in` reserve one reusable owner per recording/submission.
@@ -71,6 +71,8 @@ Terminal retirement releases the reservation without reviving the old batch.
 waits and active recordings/submissions keep it alive. Explicit owners bypass
 the device cache and its size thresholds. This Vulkan-only experiment returns
 UNSUPPORTED on Metal. See [state rules and comparison](recording-storage.md).
+
+## Dependencies and host access
 
 Each batch establishes host-write → GPU-read/write visibility at its start
 and GPU-write → host-read visibility at its end, including graphics and transfers.

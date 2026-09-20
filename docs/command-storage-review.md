@@ -114,3 +114,9 @@ device's last owner dies. Compare those costs with caller-owned/resettable stora
 before calling the final API selected. The repeated comparison closes most of the
 original small-workload gap; explicit storage control and replay remain the next
 design checks, rather than tuning cache constants as a substitute.
+
+ABI 14 follow-up: [explicit recording storage](recording-storage.md) and its
+[accepted comparison](recording-storage-results.md) add caller-selected reuse and
+release without the cache admission cutoff. Keep explicit ownership as a preferred
+candidate and the cache as a convenience/control. Executable replay is next; these
+results do not choose a stable final storage surface or establish a native-byte budget.

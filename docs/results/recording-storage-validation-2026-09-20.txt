@@ -1,0 +1,42 @@
+Explicit recording-storage acceptance, 2026-09-20
+Implementation: 7fa076345e7108aebb93d1d67e713de41f72ef3b; ABI 14.
+Both frontier reports and installed SDK record clean source at this revision.
+Accepted runtime GPU tests also rerun before evidence/documentation edits.
+
+PASS cargo test --workspace: 38 ordinary tests; 23 GPU tests ignored by this command.
+PASS cargo clippy --workspace --all-targets -- -D warnings
+PASS cargo xtask bindings --check
+PASS cargo xtask abi: 749 C/Rust layout values; no public struct layout changes.
+PASS cargo xtask mock: C loader/smoke, empty enumeration, cleanup, missing loader.
+PASS cargo xtask gpu-tests: 23 tests on Radeon, synchronization validation enabled.
+PASS cargo xtask gpu-tests: 23 tests on llvmpipe, synchronization validation enabled.
+PASS python3 examples/performance_frontier/run.py --storage --check
+  C warning-as-error builds, independent native linkage, oracle/failure checks;
+  seven Python matrix/parser/export tests.
+PASS python3 examples/performance_frontier/stream.py --check
+  build/host tests only; four streaming parser tests. No new streaming GPU claim.
+PASS python3 examples/performance_frontier/run.py --storage
+  30,000 validated frames; 90,000 measured frames + 9,000 warmups;
+  30 independent allocation runs, 33,000 frames; retained native controls.
+PASS python3 examples/performance_frontier/run.py --storage --software
+  1,920 llvmpipe validation frames, no performance claim.
+PASS python3 tools/test_installer.py: six destination/platform safety tests.
+PASS python3 tools/install.py --prefix /tmp/ogpu-sdk-owned-7fa0763
+PASS python3 tools/test-install.py --prefix /tmp/ogpu-sdk-owned-7fa0763 --recording-storage
+  relocated independent application: /tmp/ogpu-external-7gx4qmrr
+  ABI 14, matching revision, installed artifact hashes, relocated library;
+  missing-loader error; both default and explicit-owner execution;
+  4,099 integers, three passes, guards, partial upload and early parent destruction;
+  owner reservation rejection, null submit-output rejection, discard/reuse, trim.
+
+No native Metal compile/execution, GGML/libplacebo or video-scale performance rerun.
+No exact native-command-memory byte measurement or hardware device-loss claim.
+No accepted run changed numerical tolerances or suppressed validation errors.
+
+Local detailed logs (SHA-256):
+e37f288ef33db16a174af9bfb3b0fb2a8450518cf9813d062e80ebbe25605ab8  /tmp/ogpu-owned-host.log
+5241fc16c60d3f8d62c9b49c5dc8d0ec616ab40ae545d767979a0abb427c8f53  /tmp/ogpu-owned-radv-accepted.log
+d54f631ebfd5747708a4af9c15396d862776d6f5a977c4d8d2f276f90f436602  /tmp/ogpu-owned-lvp-accepted.log
+dd44d74e35bf67528caa01c9febc20b2e276590f29f30b13203b3b437efc3d04  /tmp/ogpu-owned-external.log
+78ebfa5de36f0cc7fd0b2368ac6dc7f3a87389529c6b9d67b060636a3b20315a  /tmp/ogpu-owned-install.log
+38e5fc30975f66f966c9dfacec36572343e60f744ae23c3acfedc18f829363f4  /tmp/ogpu-owned-mock.log

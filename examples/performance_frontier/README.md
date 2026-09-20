@@ -75,6 +75,8 @@ is unchanged. See [the ABI-14 protocol](../../docs/recording-storage.md).
 The extended matrix has 90,000 measured samples, 30 full correctness runs and 30
 separate allocation controls. It deliberately crosses the cache's admission cutoff;
 it does not establish driver-private-byte equality or implement executable replay.
+The [accepted ABI-14 result](../../docs/recording-storage-results.md) includes all
+90,000 samples, lifetime checks and the independent installed-SDK path.
 
 ## Streaming learned-image
 
