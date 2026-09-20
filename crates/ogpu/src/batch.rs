@@ -389,6 +389,7 @@ impl Batch {
                 device: self.device.clone(),
                 steps,
                 pool: ptr::null_mut(),
+                command: ptr::null_mut(),
                 _retained: retained,
             }),
             timeline_value: 0,
@@ -454,12 +455,73 @@ fn submission_is_unaccepted(status: vk::VkResult) -> bool {
 }
 
 // Own partial preparation immediately. Drop only after draining or before acceptance.
-// The pool must die BEFORE steps release heaps and their driver-reserved storage.
+// Reset or destroy native references BEFORE steps release heaps/reserved storage.
 struct SubmissionResources {
     device: Rc<Device>,
     steps: Vec<Step>,
     pool: vk::VkCommandPool,
+    command: vk::VkCommandBuffer,
     _retained: Vec<Rc<Buffer>>,
+}
+
+// Experimental policy, not a native-byte budget: the driver owns pool allocation.
+// Large recordings never acquire cached storage, so they cannot inflate its high-water mark.
+pub(super) const MAX_CACHED_STORAGE: usize = 3;
+const MAX_CACHED_STEPS: usize = 256;
+const MAX_CACHED_ROOT_BYTES: usize = 64 * 1024;
+
+fn cacheable_shape(steps: usize, mut roots: impl Iterator<Item = usize>) -> bool {
+    steps <= MAX_CACHED_STEPS
+        && roots
+            .try_fold(0usize, usize::checked_add)
+            .is_some_and(|bytes| bytes <= MAX_CACHED_ROOT_BYTES)
+}
+
+pub(super) struct CommandStorage {
+    pool: vk::VkCommandPool,
+    command: vk::VkCommandBuffer,
+}
+
+impl CommandStorage {
+    pub(super) unsafe fn destroy(self, device: &Device) {
+        unsafe { (device.f.vkDestroyCommandPool.unwrap())(device.handle, self.pool, ptr::null()) };
+    }
+}
+
+impl SubmissionResources {
+    fn cache_eligible(&self) -> bool {
+        cacheable_shape(
+            self.steps.len(),
+            self.steps.iter().map(|step| match step {
+                Step::Dispatch { root, .. } | Step::Draw { root, .. } => root.len(),
+                _ => 0,
+            }),
+        )
+    }
+
+    // Only called after successful terminal observation, never partial preparation.
+    // Non-loss reset failures fall back to destruction without changing completed work's outcome.
+    fn recycle(&mut self) -> vk::VkResult {
+        let d = &self.device;
+        if d.lost.get()
+            || !self.cache_eligible()
+            || d.command_storage.borrow().len() == MAX_CACHED_STORAGE
+        {
+            return vk::VkResult_VK_SUCCESS;
+        }
+        let status = unsafe { (d.f.vkResetCommandPool.unwrap())(d.handle, self.pool, 0) };
+        if status == vk::VkResult_VK_SUCCESS {
+            d.command_storage.borrow_mut().push(CommandStorage {
+                pool: std::mem::replace(&mut self.pool, ptr::null_mut()),
+                command: std::mem::replace(&mut self.command, ptr::null_mut()),
+            });
+        }
+        if status == vk::VkResult_VK_ERROR_DEVICE_LOST {
+            status
+        } else {
+            vk::VkResult_VK_SUCCESS
+        }
+    }
 }
 
 impl Drop for SubmissionResources {
@@ -473,7 +535,7 @@ impl Drop for SubmissionResources {
                 );
             }
         }
-        // Owning fields are dropped after this body, never before pool destruction.
+        // Owning fields drop after destruction (or after a successful reset in recycle).
     }
 }
 
@@ -500,7 +562,7 @@ impl Completion {
             match status {
                 vk::VkResult_VK_TIMEOUT => return Ok(false),
                 vk::VkResult_VK_SUCCESS | vk::VkResult_VK_ERROR_DEVICE_LOST => {
-                    self.submission.finish(status);
+                    self.finish(status);
                 }
                 _ => return d.result("vkWaitSemaphores (poll)", status).map(|()| false),
             }
@@ -552,32 +614,44 @@ impl Completion {
                     ),
                 )?;
             }
-            let pool = vk::VkCommandPoolCreateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                queueFamilyIndex: d.family,
-                ..Default::default()
-            };
-            d.result(
-                "vkCreateCommandPool",
-                (d.f.vkCreateCommandPool.unwrap())(
-                    d.handle,
-                    &pool,
-                    ptr::null(),
-                    &mut resources.pool,
-                ),
-            )?;
-            let allocate = vk::VkCommandBufferAllocateInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                commandPool: resources.pool,
-                level: vk::VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                commandBufferCount: 1,
-                ..Default::default()
-            };
-            let mut command = ptr::null_mut();
-            d.result(
-                "vkAllocateCommandBuffers",
-                (d.f.vkAllocateCommandBuffers.unwrap())(d.handle, &allocate, &mut command),
-            )?;
+            if resources.cache_eligible() {
+                if let Some(storage) = d.command_storage.borrow_mut().pop() {
+                    resources.pool = storage.pool;
+                    resources.command = storage.command;
+                }
+            }
+            if resources.pool.is_null() {
+                let pool = vk::VkCommandPoolCreateInfo {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                    queueFamilyIndex: d.family,
+                    ..Default::default()
+                };
+                d.result(
+                    "vkCreateCommandPool",
+                    (d.f.vkCreateCommandPool.unwrap())(
+                        d.handle,
+                        &pool,
+                        ptr::null(),
+                        &mut resources.pool,
+                    ),
+                )?;
+                let allocate = vk::VkCommandBufferAllocateInfo {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                    commandPool: resources.pool,
+                    level: vk::VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                    commandBufferCount: 1,
+                    ..Default::default()
+                };
+                d.result(
+                    "vkAllocateCommandBuffers",
+                    (d.f.vkAllocateCommandBuffers.unwrap())(
+                        d.handle,
+                        &allocate,
+                        &mut resources.command,
+                    ),
+                )?;
+            }
+            let command = resources.command;
             let begin = vk::VkCommandBufferBeginInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                 ..Default::default()
@@ -712,13 +786,29 @@ impl Completion {
                 // resources. Wait errors retain them until draining establishes safety.
                 drain(|| unsafe { self.timeline_wait(u64::MAX) })
             };
-            self.submission.finish(status);
+            self.finish(status);
         }
         self.retire();
         self.device.result(
             "vkWaitSemaphores",
             self.submission.outcome.unwrap_or(vk::VkResult_VK_SUCCESS),
         )
+    }
+
+    fn finish(&mut self, mut status: vk::VkResult) {
+        if status == vk::VkResult_VK_SUCCESS {
+            status = self
+                .submission
+                .resources
+                .as_mut()
+                .expect("pending resources")
+                .recycle();
+        }
+        // Mark loss before dropping references. Never cache failed or lost submissions.
+        if status == vk::VkResult_VK_ERROR_DEVICE_LOST {
+            self.device.lost.set(true);
+        }
+        self.submission.finish(status);
     }
 
     fn retire(&mut self) {
@@ -843,6 +933,10 @@ pub(super) unsafe fn push_data(d: &Device, command: vk::VkCommandBuffer, root: &
 #[cfg(test)]
 #[path = "batch_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "storage_tests.rs"]
+mod storage_tests;
 
 #[cfg(test)]
 #[path = "timing_tests.rs"]

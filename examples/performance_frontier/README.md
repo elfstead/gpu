@@ -19,7 +19,8 @@ Needs the normal Rust/C/Python/Vulkan environment; no new shader compiler or dat
 download. Uses the committed, previously validated compiler-generated integer
 transform. Source/header/binary hashes identify the actual artifact. The native
 executable reuses benchmark-only loader/setup helpers and never links OGPU; the
-runner checks its undefined symbols. The runtime ABI/shader are unchanged.
+runner checks its undefined symbols. Shaders and native controls are frozen;
+runtime changes must be identified by revision and ABI in each result review.
 
 Four strategies: OGPU one-shot, native fresh pool, native pool reset/re-record,
 native pre-recorded replay. One/three independent HOST buffers each hold 65 uint32
@@ -45,8 +46,10 @@ clocks perturb very small operations; all strategies use the same clock sites.
 No per-frame GPU timestamps, queue idle or log/file writes enter successful timing.
 
 Replay setup encoding is included in setup cost, outside warmed throughput. Reset
-and replay retain command pools until process cleanup; fresh and OGPU retire pools
-per submission. All shader-reachable allocations remain owned until every slot
+and replay retain command pools until process cleanup; fresh destroys pools per
+submission. OGPU's tested implementation is identified by the report's revision:
+ABI 12 destroyed each pool; ABI 13 caches bounded reset storage. This is a new
+runtime policy, not a change to the frozen native controls. All shader-reachable allocations remain owned until every slot
 drains, including on failure. Injected tests cover premature reuse, failed reset,
 failed submit without waiting on a rejected signal, transient wait drain, device
 loss and pool retirement. Allocation traces measure application Vulkan memory,

@@ -5,6 +5,10 @@ and callers. This is an experimental compute backend, not a portability claim.
 The Metal 4 migration and subsequent synchronization, feedback and lifetime
 corrections are validated natively on Apple M4 with macOS 26 and Xcode 26.5.
 
+The common boundary is now ABI 13: retirement may retain bounded empty command
+storage. Metal's existing destruction policy satisfies that relaxed rule; no
+native Metal reuse or ABI-13 Mac revalidation is claimed. Rebuild matching callers.
+
 ## Boundary and current implementation
 
 Common Rust code owns range/copy/root/dispatch checks, one-shot recording rules,

@@ -2,7 +2,12 @@
 //! buffers, descriptor-free compute pipelines, and one-shot asynchronous submission.
 use crate::{vulkan::Instance, Error, INVALID_ARGUMENT, LOADER_ERROR, OUT_OF_RANGE, UNSUPPORTED};
 use ogpu_vulkan_sys as vk;
-use std::{cell::Cell, ptr, rc::Rc, sync::Arc};
+use std::{
+    cell::{Cell, RefCell},
+    ptr,
+    rc::Rc,
+    sync::Arc,
+};
 
 #[path = "specialization.rs"]
 mod specialization;
@@ -85,6 +90,7 @@ functions! {
     vkCreateShaderModule: PFN_vkCreateShaderModule, vkDestroyShaderModule: PFN_vkDestroyShaderModule,
     vkCreateComputePipelines: PFN_vkCreateComputePipelines, vkDestroyPipeline: PFN_vkDestroyPipeline,
     vkCreateCommandPool: PFN_vkCreateCommandPool, vkDestroyCommandPool: PFN_vkDestroyCommandPool,
+    vkResetCommandPool: PFN_vkResetCommandPool,
     vkAllocateCommandBuffers: PFN_vkAllocateCommandBuffers,
     vkBeginCommandBuffer: PFN_vkBeginCommandBuffer, vkEndCommandBuffer: PFN_vkEndCommandBuffer,
     vkCmdBindPipeline: PFN_vkCmdBindPipeline,
@@ -168,6 +174,8 @@ pub(crate) struct Device {
     observed_timeline: Cell<u64>,
     max_timeline_difference: u64,
     lost: Cell<bool>,
+    // Empty native storage only: no Rc back to this device and no executable references.
+    command_storage: RefCell<Vec<batch::CommandStorage>>,
     f: Functions,
     _instance: Arc<Instance>,
 }
@@ -177,6 +185,9 @@ impl Drop for Device {
         // SAFETY: all children retain this device; completions drain before releasing it.
         // The instance/library still live.
         unsafe {
+            for storage in std::mem::take(self.command_storage.get_mut()) {
+                storage.destroy(self);
+            }
             if !self.timeline.is_null() {
                 (self.f.vkDestroySemaphore.unwrap())(self.handle, self.timeline, ptr::null());
             }
@@ -407,6 +418,7 @@ impl Device {
                 observed_timeline: Cell::new(0),
                 max_timeline_difference: timeline_limits.maxTimelineSemaphoreValueDifference,
                 lost: Cell::new(false),
+                command_storage: RefCell::new(Vec::new()),
                 f,
                 _instance: instance,
             }))

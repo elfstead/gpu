@@ -6,6 +6,11 @@ and pre-implementation evidence; the final section records the implementation.
 This follows the [capability cleanup](execution-capabilities.md) and revisits the
 completion lifetime, not the [allocation/range-retirement decision](retirement.md).
 
+ABI 13 follow-up: the [storage experiment](command-storage-review.md) replaces the
+unconditional native-pool destruction below with reset-or-destruction before object
+release. This historical ABI-9 review remains the basis for per-receipt retirement;
+it is not the current empty-storage retention policy.
+
 ## Recommendation
 
 Keep one public `OgpuCompletion`, but separate its execution result/diagnostics from

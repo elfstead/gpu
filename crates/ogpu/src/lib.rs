@@ -31,7 +31,7 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 12;
+pub const ABI_VERSION: u32 = 13;
 pub const BACKEND_VULKAN: u32 = 1;
 pub const BACKEND_METAL: u32 = 2;
 pub const SUCCESS: OgpuResult = 0;
@@ -297,7 +297,7 @@ mod tests {
                 vulkan_result: 42,
                 message: [1; 256],
             };
-            for version in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ABI_VERSION + 1] {
+            for version in (1..ABI_VERSION).chain([ABI_VERSION + 1]) {
                 assert_eq!(
                     ogpu_probe_create(version, &mut handle, &mut error),
                     ABI_MISMATCH

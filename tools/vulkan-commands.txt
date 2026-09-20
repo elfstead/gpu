@@ -33,6 +33,7 @@ vkDestroyShaderModule
 vkCreateComputePipelines
 vkDestroyPipeline
 vkCreateCommandPool
+vkResetCommandPool
 vkDestroyCommandPool
 vkAllocateCommandBuffers
 vkBeginCommandBuffer

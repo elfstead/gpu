@@ -77,8 +77,9 @@ Preserving image contents across batches remains an unresolved API limitation.
 Heap descriptor bytes are written and flushed only during construction. After a bind,
 the host does not touch either heap, including whole-allocation cache operations.
 Heap alignments, descriptor strides, size limits and implementation reservations come
-from device properties. Exact reserved ranges stay alive until command-pool destruction,
-not merely GPU completion, following the
+from device properties. Exact reserved ranges stay alive until binding command buffers
+are reset or freed (originally pool destruction, now also reset at ABI 13), not merely
+GPU completion, following the
 [resource heap binding contract](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBindResourceHeapEXT.html).
 Sampler bindings use their separate heap and reservation. No public sampler or shader
 image-view Vulkan objects are allocated; the attachment view is still needed for rendering.

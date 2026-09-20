@@ -1,8 +1,8 @@
 # Command storage and retirement: next design check
 
 Selected by the [small-compute frontier](performance-frontier-small.md), not by
-assuming that Vulkan object names belong in the public API. This review does not
-change the current header or runtime. The standing
+assuming that Vulkan object names belong in the public API. The ABI-13 experiment
+below implements the first alternative; it does not select the final surface. The standing
 [expressibility gate](performance-expressibility.md) remains open.
 
 ## Separate the three lifetimes
@@ -18,14 +18,14 @@ their referenced resources remain owned/valid as long as reuse is possible.
 Do not let an empty-storage cache accidentally become an executable cache that
 retains application resources after terminal observation.
 
-The existing public text says to free native command resources at retirement.
-The candidate alternative is to **reset/invalidate recorded native references
+The ABI-12 public text said to free native command resources at retirement.
+The implemented alternative is to **reset/invalidate recorded native references
 before releasing user resources**, while allowing explicitly bounded storage to
 survive. Vulkan descriptor heaps allow driver-reserved-range access after binding
 command buffers are freed or reset; pool destruction is not the only safe route.
 See the [normative lifetime rule](https://docs.vulkan.org/spec/latest/chapters/descriptorheaps.html).
-This is a proposed contract revision, not a claim that the current contract already
-permits every form of pooling.
+This is an explicit contract revision, not a claim that ABI 12 already permitted
+every form of pooling.
 
 ## Alternatives to compare
 
@@ -76,3 +76,38 @@ Metal may keep destroying its native storage under a relaxed common contract.
 Native Metal allocator reuse requires its own validation; no Mac round trip is
 needed to examine the Linux contract alternative. This review does not select
 multi-queue scheduling, concurrent recording or automatic lifetime inference.
+
+## ABI-13 implementation experiment — 2026-09-20
+
+The first alternative is implemented, pending the repeated performance comparison.
+The Vulkan device owns at most three empty pools with one command buffer each.
+Only recordings of at most 256 steps and 64 KiB aggregate inline roots may borrow
+or return that storage. Oversized recordings use fresh pools and cannot inflate
+the retained cache. Full/failed/lost recordings are destroyed; a successful
+terminal observation resets before releasing any owning step or retained buffer.
+Reset allocation failures fall back to destruction, while reset-reported loss is
+sticky. The cache has no ownership cycle and dies with the final device owner.
+This implements the [Vulkan reset operation](https://docs.vulkan.org/refpages/latest/refpages/source/vkResetCommandPool.html)
+without the release-resources flag; actual driver-private byte retention is not
+measured or bounded by an exact byte count.
+
+No public function or layout changes. ABI 13 makes the semantic relaxation
+explicit: callers using the older version are rejected. Batches remain consumed;
+this is neither executable replay nor a public caller-owned storage object.
+Metal retains its existing destruction policy; no native Mac validation is claimed.
+
+Both Radeon and llvmpipe pass all 22 runtime GPU tests with synchronization
+validation. Added coverage includes heterogeneous 0/1/256/257-step recordings,
+100 storage-reuse iterations, surplus retirement, unread timing from an old
+receipt, final-device cleanup, warm-cache preparation/submit failure, reset OOM
+fallback and simulated reset loss after a real wait. Admission root-byte/overflow
+boundaries are host tests. Existing deterministic gates now also check unavailable
+pending/unobserved storage and unchanged cache state after a transient poll error.
+Real image/sampler heaps are edited/released and replaced across cached storage
+while consumed handles/receipts survive. Tests do not quantify driver-private
+memory or simulate genuine hardware loss.
+
+The caller-control tradeoff is unresolved: this policy gives no explicit trim or
+capacity budget, treats large workloads differently and retains storage until the
+device's last owner dies. Compare those costs with caller-owned/resettable storage
+before calling the final API selected. Performance evidence is the next gate.

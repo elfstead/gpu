@@ -132,7 +132,7 @@ impl Heap {
             return Ok(());
         }
         // No recorded references exist: the public boundary obtains &mut through
-        // Rc::get_mut. All native pools bound to our reservation have been destroyed.
+        // Rc::get_mut. All native recordings bound to our reservation were reset or destroyed.
         // Generate descriptors separately so a driver error cannot corrupt live slots.
         unsafe {
             ptr::copy_nonoverlapping(

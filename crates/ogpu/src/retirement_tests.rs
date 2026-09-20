@@ -211,7 +211,9 @@ fn gpu_retirement() {
             }
             assert!(weak.upgrade().is_some());
             POLL_STATUS.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
+            let cached = device.command_storage.borrow().len();
             assert!(gate.completions[1].poll().is_err());
+            assert_eq!(device.command_storage.borrow().len(), cached);
             assert!(
                 gate.completions[1].submission.pending
                     && gate.completions[1].submission.outcome.is_none()

@@ -12,7 +12,7 @@ metallib, with optional in-process SPIR-V translation (disable with
 The Vulkan runtime does not use ash or Vulkanalia. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 12; rebuild callers with this checkout's
+execution interface. The current ABI is 13; rebuild callers with this checkout's
 header, library and shaders after updating from an earlier checkpoint.
 
 The [capability contract](execution-capabilities.md) separates probe support from
@@ -21,10 +21,12 @@ checks images/heaps through ordinary C device creation; `gpu_optional_unified_la
 also checks missing dynamic rendering and actual compute-only queue commands where
 available. These are included in `cargo xtask gpu-tests`.
 
-`gpu_completion_receipts` checks native destruction order, exactly-once retirement,
+`gpu_completion_receipts` checks native reset-before-release order, exactly-once retirement,
 surviving receipts and lazy timing. Gated heap/retirement tests cover other users
 that must still block edits; `cargo xtask heap-image` exercises this through C.
 See the [ABI-9 ownership change](completion-resource-review.md#implementation-abi-9).
+`gpu_command_storage` checks ABI-13 storage admission/count bounds, warm-cache
+preparation/submit/reset failures, final-device cleanup and surviving timing queries.
 
 For the first real consumer, see [GGML preparation and acceptance commands](../integrations/ggml/README.md).
 Its test-data downloads and CMake build are separate from ordinary Cargo builds.

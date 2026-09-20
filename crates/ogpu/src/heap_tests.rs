@@ -394,6 +394,10 @@ fn gpu_heaps() {
                 && batch.bind_samplers(samplers.clone()).is_err()
         );
         assert!(!gate.completion.as_mut().unwrap().poll().unwrap());
+        assert!(
+            d.command_storage.borrow().is_empty(),
+            "Pending/unobserved storage is unavailable"
+        );
         assert!(Rc::get_mut(&mut images).is_none() && Rc::get_mut(&mut samplers).is_none());
         gate.open();
         gate.completion.as_mut().unwrap().wait().unwrap();
@@ -409,6 +413,44 @@ fn gpu_heaps() {
         // Both receipts survive the successful heap edits.
         assert!(earlier.poll().unwrap());
         assert!(gate.completion.as_mut().unwrap().poll().unwrap());
+        assert_eq!(d.command_storage.borrow().len(), 2);
+        // Reuse the reset storage with different real heaps, then release those heaps
+        // while their consumed batch/receipt survive. Validation covers reserved ranges.
+        for _ in 0..4 {
+            let mut replacement_images = Rc::new(ImageHeap::new(d.clone(), 1).unwrap());
+            Rc::get_mut(&mut replacement_images)
+                .unwrap()
+                .write(0, vec![(target.clone(), SAMPLED)])
+                .unwrap();
+            let mut replacement_samplers = Rc::new(SamplerHeap::new(d.clone(), 1).unwrap());
+            Rc::get_mut(&mut replacement_samplers)
+                .unwrap()
+                .write(0, &[desc])
+                .unwrap();
+            let mut replacement = Batch::new(d.clone()).unwrap();
+            replacement.bind_images(replacement_images.clone()).unwrap();
+            replacement
+                .bind_samplers(replacement_samplers.clone())
+                .unwrap();
+            let mut done = unsafe { replacement.submit().unwrap() };
+            assert_eq!(d.command_storage.borrow().len(), 1);
+            done.wait().unwrap();
+            assert_eq!(d.command_storage.borrow().len(), 2);
+            Rc::get_mut(&mut replacement_images)
+                .unwrap()
+                .clear(0, 1)
+                .unwrap();
+            Rc::get_mut(&mut replacement_samplers)
+                .unwrap()
+                .write(0, &[desc])
+                .unwrap();
+            let weak_images = Rc::downgrade(&replacement_images);
+            let weak_samplers = Rc::downgrade(&replacement_samplers);
+            drop(replacement_images);
+            drop(replacement_samplers);
+            assert!(weak_images.upgrade().is_none() && weak_samplers.upgrade().is_none());
+            assert!(done.poll().unwrap());
+        }
         gate.completion = None;
         // Force the noncoherent maintenance path on this coherent-capable device;
         // the injected error occurs after copying live bytes and is terminal per heap.

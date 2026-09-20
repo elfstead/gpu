@@ -109,11 +109,25 @@ pending work, or SUCCESS and `1` once completion is established. Transient error
 leave the work pending and return an error with `0`; retry or drain later. Device
 loss is an error and permits cleanup. A prior recorded wait error stays an error.
 Successful polling with `1` permits timing retrieval and the same visibility as a
-successful wait. At ABI 9, wait or a terminal poll retires the native command pool
-before releasing recorded objects/explicit buffer retention. Drained wait errors and
+successful wait. At ABI 13, wait or a terminal poll invalidates native recorded
+references (reset or destruction) before releasing objects/explicit buffer retention.
+Empty command storage may survive under a bounded backend policy; this supersedes
+ABI 9's unconditional pool-destruction rule, not its caller-driven object retirement.
+Drained wait errors and
 device loss also permit retirement, but remain errors. Pending/transient-error polls
 retain everything. Cleanup may be significant host work; polling is not promised
 constant-time. No query-result retrieval occurs in either operation.
+
+The experimental Vulkan policy keeps at most three empty pools, each with one
+command buffer. Only recordings with at most 256 steps and 64 KiB total copied
+root data can acquire/return cached storage; larger recordings use fresh storage
+that is destroyed at retirement. Surplus, failed and lost work is not cached.
+Non-loss reset errors fall back to destruction without changing a
+successful execution result; reset-reported device loss remains a sticky error.
+All cached storage is destroyed with the final device owner. These are admission/
+object-count bounds, **not** an exact driver-private-byte budget or a promise to
+reuse storage. Metal may still destroy its storage at retirement. See the
+[storage experiment](command-storage-review.md) for alternatives and limitations.
 
 The receipt preserves status and optional lazy timing. Keeping it alive no longer
 keeps shader-address allocations backed: retain an owning buffer handle when data

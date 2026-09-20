@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(12)
+#define OGPU_ABI_VERSION UINT32_C(13)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -316,8 +316,11 @@ OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, 
 /* Waits for this submission, not queue idle. No timeout. Repeated waits preserve
  * the wait outcome. Non-loss wait errors are reported only AFTER draining; device
  * loss also permits cleanup. Persistent wait failures can block indefinitely.
- * Before returning after completion/draining/loss, retires this submission: frees
- * command resources, then releases recorded objects and explicitly retained buffers.
+ * Before returning after completion/draining/loss, retires this submission: invalidates
+ * native recorded references, then releases recorded objects and retained buffers.
+ * Empty command-storage capacity may survive until final device destruction under
+ * a bounded backend policy; retirement does not promise returning all storage to
+ * the driver. No executable recording survives and batches remain one-shot.
  * The completion handle keeps its outcome and optional timing, not those objects.
  * Keep an owning buffer handle if its address/data is needed after retirement.
  * Other recordings/unobserved submissions retain their own uses; no queue-wide sweep.

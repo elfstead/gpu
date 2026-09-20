@@ -2743,6 +2743,7 @@ pub const VkAccessFlagBits_VK_ACCESS_FLAG_BITS_MAX_ENUM: VkAccessFlagBits = 2147
 pub type VkAccessFlagBits = ::std::os::raw::c_uint;
 pub type VkDependencyFlags = VkFlags;
 pub type VkCommandPoolCreateFlags = VkFlags;
+pub type VkCommandPoolResetFlags = VkFlags;
 pub type VkQueryControlFlags = VkFlags;
 pub type VkCommandBufferUsageFlags = VkFlags;
 pub type VkShaderModuleCreateFlags = VkFlags;
@@ -6358,6 +6359,13 @@ pub type PFN_vkDestroyCommandPool = ::std::option::Option<
         commandPool: VkCommandPool,
         pAllocator: *const VkAllocationCallbacks,
     ),
+>;
+pub type PFN_vkResetCommandPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        commandPool: VkCommandPool,
+        flags: VkCommandPoolResetFlags,
+    ) -> VkResult,
 >;
 pub type PFN_vkAllocateCommandBuffers = ::std::option::Option<
     unsafe extern "C" fn(

@@ -37,8 +37,9 @@ work on compute-created devices; rasterization is no longer a prerequisite for
 compute image access. See [the capability follow-up](execution-capabilities.md).
 
 Bindings retain the entire heap through recording and submission retirement,
-including earlier bindings superseded later in the batch. At ABI 9, wait/terminal
-poll destroys that submission's native command pool before releasing these references.
+including earlier bindings superseded later in the batch. At ABI 13, wait/terminal
+poll resets or destroys the native recording before releasing these references.
+Only empty command storage may be cached; it retains no heap or reserved-range use.
 Editing remains rejected while any other recording or unretired submission retains
 the heap. Discard recordings and observe all retaining submissions; the completed
 receipts themselves may survive edits. A submitted batch transfers its references to

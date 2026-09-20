@@ -6,6 +6,8 @@ thread_local! {
     static BUFFER_DESTROY: Cell<vk::PFN_vkDestroyBuffer> = const { Cell::new(None) };
     static PIPELINE_DESTROY: Cell<vk::PFN_vkDestroyPipeline> = const { Cell::new(None) };
     static QUERY_DESTROY: Cell<vk::PFN_vkDestroyQueryPool> = const { Cell::new(None) };
+    static POOL_RESET: Cell<vk::PFN_vkResetCommandPool> = const { Cell::new(None) };
+    static RESET_COUNT: Cell<u32> = const { Cell::new(0) };
 }
 
 macro_rules! counted_destroy {
@@ -13,7 +15,11 @@ macro_rules! counted_destroy {
         unsafe extern "C" fn $name(d: vk::VkDevice, h: $ty, a: *const vk::VkAllocationCallbacks) {
             let mut counts = DESTROY_COUNTS.get();
             if $index != 0 {
-                assert_eq!(counts[0], 1, "Native pool must be destroyed first");
+                assert_eq!(
+                    counts[0] + RESET_COUNT.get(),
+                    1,
+                    "Native references must be invalidated first"
+                );
             }
             assert_eq!(counts[$index], 0, "Destruction must happen exactly once");
             unsafe {
@@ -28,6 +34,22 @@ counted_destroy!(destroy_pool, POOL_DESTROY, vk::VkCommandPool, 0);
 counted_destroy!(destroy_buffer, BUFFER_DESTROY, vk::VkBuffer, 1);
 counted_destroy!(destroy_pipeline, PIPELINE_DESTROY, vk::VkPipeline, 2);
 counted_destroy!(destroy_queries, QUERY_DESTROY, vk::VkQueryPool, 3);
+
+unsafe extern "C" fn reset_pool(
+    d: vk::VkDevice,
+    p: vk::VkCommandPool,
+    flags: vk::VkCommandPoolResetFlags,
+) -> vk::VkResult {
+    assert_eq!(
+        DESTROY_COUNTS.get(),
+        [0; 4],
+        "Reset before releasing resources"
+    );
+    let status = unsafe { (POOL_RESET.get().unwrap())(d, p, flags) };
+    assert_eq!(status, vk::VkResult_VK_SUCCESS);
+    RESET_COUNT.set(RESET_COUNT.get() + 1);
+    status
+}
 
 #[test]
 #[ignore = "requires Vulkan; receipt lifetime, exact destruction order and lazy timing"]
@@ -54,11 +76,14 @@ fn gpu_completion_receipts() {
                 BUFFER_DESTROY.set(f.vkDestroyBuffer);
                 PIPELINE_DESTROY.set(f.vkDestroyPipeline);
                 QUERY_DESTROY.set(f.vkDestroyQueryPool);
+                POOL_RESET.set(f.vkResetCommandPool);
                 f.vkDestroyCommandPool = Some(destroy_pool);
                 f.vkDestroyBuffer = Some(destroy_buffer);
                 f.vkDestroyPipeline = Some(destroy_pipeline);
                 f.vkDestroyQueryPool = Some(destroy_queries);
+                f.vkResetCommandPool = Some(reset_pool);
                 DESTROY_COUNTS.set([0; 4]);
+                RESET_COUNT.set(0);
                 let buffer = Rc::new(Buffer::new(device.clone(), 4).unwrap());
                 buffer.write(0, &1u32.to_ne_bytes()).unwrap();
                 let weak_buffer = Rc::downgrade(&buffer);
@@ -75,7 +100,7 @@ fn gpu_completion_receipts() {
                 batch.retain_buffer(buffer).unwrap();
                 batch.dispatch(kernel, [1, 1, 1], &root).unwrap();
                 let mut done = unsafe { batch.submit().unwrap() };
-                drop(batch);
+                // Keep the consumed handle alive through retirement as well as the receipt.
                 assert!(weak_buffer.upgrade().is_some() && weak_kernel.upgrade().is_some());
                 assert_eq!(DESTROY_COUNTS.get(), [0; 4]);
                 if mode != 2 {
@@ -91,7 +116,8 @@ fn gpu_completion_receipts() {
                     }
                     assert!(done.submission.resources.is_none());
                     assert!(weak_buffer.upgrade().is_none() && weak_kernel.upgrade().is_none());
-                    assert_eq!(DESTROY_COUNTS.get(), [1, 1, 1, 0]);
+                    assert_eq!(DESTROY_COUNTS.get(), [0, 1, 1, 0]);
+                    assert_eq!(RESET_COUNT.get(), 1);
                     assert!(done.poll().unwrap());
                     done.wait().unwrap();
                     if timed {
@@ -102,6 +128,13 @@ fn gpu_completion_receipts() {
                 }
                 drop(done); // Also tests draining destruction without prior observation.
                 assert!(weak_buffer.upgrade().is_none() && weak_kernel.upgrade().is_none());
+                assert_eq!(DESTROY_COUNTS.get(), [0, 1, 1, u32::from(timed)]);
+                assert_eq!(RESET_COUNT.get(), 1);
+                assert!(
+                    matches!(unsafe { batch.submit() }, Err(e) if e.status == INVALID_ARGUMENT)
+                );
+                drop(batch);
+                drop(device);
                 assert_eq!(DESTROY_COUNTS.get(), [1, 1, 1, u32::from(timed)]);
                 tested += 1;
             }
