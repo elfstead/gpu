@@ -33,6 +33,7 @@ typedef struct {
     OgpuBatch *batch;
     OgpuCompletion *completion;
     OgpuRecordingStorage *storage;
+    OgpuCommandList *list;
 #endif
     TransformArguments root;
     unsigned submitted, sample_index;
@@ -127,6 +128,7 @@ static int record_slot(Context *c, Slot *s) {
         VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT);
     VK_TRY(n->vkEndCommandBuffer(b->command));
 #else
+    if (s->list) return 1;
     if (s->storage) { API(ogpu_batch_create_in(s->storage, &s->batch, &c->error)); }
     else { API(ogpu_batch_create(c->device, &s->batch, &c->error)); }
     for (unsigned i = 0; i < c->dispatches; ++i) {
@@ -156,7 +158,8 @@ static int submit_slot(Context *c, Slot *s) {
     }
     s->batch.value = value;
 #else
-    API(ogpu_batch_submit(s->batch, &s->completion, &c->error));
+    if (s->list) { API(ogpu_command_list_submit(s->list, &s->completion, &c->error)); }
+    else { API(ogpu_batch_submit(s->batch, &s->completion, &c->error)); }
     ogpu_batch_destroy(s->batch); s->batch = NULL;
 #endif
     s->pending = 1; ++s->submitted; return 1;
@@ -191,6 +194,7 @@ static void destroy(Context *c) {
         native_buffer_destroy(&c->native, &c->slots[i].buffer);
 #else
         ogpu_batch_destroy(c->slots[i].batch);
+        ogpu_command_list_destroy(c->slots[i].list);
         ogpu_recording_storage_destroy(c->slots[i].storage);
         ogpu_buffer_destroy(c->slots[i].buffer);
 #endif
@@ -233,7 +237,7 @@ static int create(Context *c) {
 #else
         API(ogpu_buffer_create(c->device, sizeof(data), OGPU_MEMORY_HOST, &s->buffer, &c->error));
         API(ogpu_buffer_device_address(s->buffer, &address, &c->error));
-        if (!strcmp(c->policy, "owned")) {
+        if (!strcmp(c->policy, "owned") || !strcmp(c->policy, "compiled")) {
             API(ogpu_recording_storage_create(c->device, &s->storage, &c->error));
         }
 #endif
@@ -243,6 +247,12 @@ static int create(Context *c) {
         s->root = (TransformArguments){.arg_data=address + GUARD_WORDS * 4, .arg_count=ELEMENTS};
 #ifdef FRONTIER_NATIVE
         if (!strcmp(c->policy, "replay")) CHECK(record_slot(c, s));
+#else
+        if (!strcmp(c->policy, "compiled")) {
+            CHECK(record_slot(c, s));
+            API(ogpu_batch_compile(s->batch, &s->list, &c->error));
+            ogpu_batch_destroy(s->batch); s->batch = NULL;
+        }
 #endif
     }
     return 1;
@@ -293,7 +303,7 @@ int main(int argc, char **argv) {
 #ifdef FRONTIER_NATIVE
     if (strcmp(c.policy, "fresh") && strcmp(c.policy, "reset") && strcmp(c.policy, "replay")) return 1;
 #else
-    if (strcmp(c.policy, "ogpu") && strcmp(c.policy, "owned")) return 1;
+    if (strcmp(c.policy, "ogpu") && strcmp(c.policy, "owned") && strcmp(c.policy, "compiled")) return 1;
 #endif
     Frame *frames = calloc(count > 100 ? count : 100, sizeof(*frames));
     if (!frames) return 1;

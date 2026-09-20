@@ -16,7 +16,7 @@ pub use specialization::SpecializationConstant;
 
 #[path = "batch.rs"]
 mod batch;
-pub(crate) use batch::{Batch, Completion, RecordingStorage};
+pub(crate) use batch::{Batch, CommandList, Completion, RecordingStorage};
 #[path = "graphics.rs"]
 mod graphics;
 pub use graphics::ImageDesc;

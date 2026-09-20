@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(14)
+#define OGPU_ABI_VERSION UINT32_C(15)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -263,6 +263,7 @@ OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, uint32_t gr
 typedef struct OgpuBatch OgpuBatch;
 typedef struct OgpuCompletion OgpuCompletion;
 typedef struct OgpuRecordingStorage OgpuRecordingStorage;
+typedef struct OgpuCommandList OgpuCommandList;
 #define OGPU_ACCESS_COMPUTE_READ UINT32_C(1)
 #define OGPU_ACCESS_COMPUTE_WRITE UINT32_C(2)
 #define OGPU_ACCESS_VERTEX_READ UINT32_C(4)
@@ -276,16 +277,17 @@ OgpuResult ogpu_batch_create(OgpuDevice *device, OgpuBatch **out_batch, OgpuErro
 /* Optional explicit recording-storage ownership (currently Vulkan only; Metal returns
  * UNSUPPORTED). Native capacity is allocated lazily, retained without the implicit
  * device cache's admission limits, and reused for one-shot recordings. No executable
- * commands survive retirement; this is NOT replay or a byte-budget guarantee.
+ * commands survive one-shot retirement; this owner is NOT itself an executable
+ * or a byte-budget guarantee. Compiling a list reserves it until final list release.
  * All calls follow the device's external serialization rules. */
 OgpuResult ogpu_recording_storage_create(OgpuDevice *device,
     OgpuRecordingStorage **out_storage, OgpuError *out_error);
 /* Releases all idle native command capacity now. Rejects INVALID_ARGUMENT while a
- * recording or unretired submission uses this owner; never waits or observes work.
+ * recording, reusable list or unretired submission uses this owner; never waits or observes work.
  * Empty/repeated trim succeeds, including after loss. Does not trim other owners
  * or the implicit device cache. */
 OgpuResult ogpu_recording_storage_trim(OgpuRecordingStorage *storage, OgpuError *out_error);
-/* Releases the public owner; NULL is a no-op, never waits. A live recording/submission
+/* Releases the public owner; NULL is a no-op, never waits. A live recording/list/submission
  * retains ownership until discard/retirement, then frees storage if no owner remains.
  * Consumed batches and retired receipts do not retain this owner. */
 void ogpu_recording_storage_destroy(OgpuRecordingStorage *storage);
@@ -293,7 +295,8 @@ void ogpu_recording_storage_destroy(OgpuRecordingStorage *storage);
  * submission observation. A second creation or trim during that interval rejects
  * INVALID_ARGUMENT, even if work finished but is unobserved. Outputs are NULL on
  * failure. An attempted submission consumes the batch and releases its reservation
- * on preparation/submit failure cleanup, as well as on normal retirement.
+ * on preparation/submit failure cleanup, as well as on normal retirement. Compiling
+ * transfers the reservation to the list until destruction and retirement of all uses.
  * Native reset failure may discard capacity; ownership is not a reuse guarantee.
  * Use independent owners for multiple simultaneous recordings/submissions. */
 OgpuResult ogpu_batch_create_in(OgpuRecordingStorage *storage,
@@ -305,6 +308,7 @@ void ogpu_batch_destroy(OgpuBatch *batch);
  * the batch's device. Other argument/grid/shader rules match dispatch_wait.
  * Allocation addresses are NOT retained: keep all reachable allocations alive from
  * recording through completion, or until the unsubmitted recording is discarded.
+ * Compiled lists need valid addresses for every execution; see batch_compile.
  * Invalid recording arguments leave the recording unchanged. */
 OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t groups_x,
     uint32_t groups_y, uint32_t groups_z, const void *arguments,
@@ -339,15 +343,44 @@ OgpuResult ogpu_batch_copy_buffer(OgpuBatch *batch, const OgpuBuffer *source,
  * Failed submission does not establish completion of other outstanding work. */
 OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, OgpuError *out_error);
 
+/* Compile an immutable reusable list without submitting it (currently Vulkan only).
+ * Timed batches return UNSUPPORTED without consumption. Otherwise an encoding attempt
+ * consumes the batch, including on failure; invalid required pointers do not consume.
+ * Commands, roots, addresses and launch sizes are fixed. Pointed-to data is NOT copied:
+ * change it only with the existing whole-buffer host-access and GPU dependency rules.
+ * Recorded objects/explicitly retained buffers remain owned BETWEEN executions until
+ * the list is destroyed and all its submissions are retired. Raw pointers still confer
+ * no ownership: keep every reachable allocation valid for every possible execution.
+ * Bound heaps cannot be edited while the list survives, even with no pending work.
+ * An explicit storage owner stays reserved for the entire list lifetime; its empty
+ * capacity becomes reusable only after list destruction and retirement of all uses.
+ * out_list is required, NULL on failure. No graph scheduling or command patching. */
+OgpuResult ogpu_batch_compile(OgpuBatch *batch, OgpuCommandList **out_list, OgpuError *out_error);
+/* Execute immutable commands again, returning an independent, untimed receipt.
+ * Multiple in-flight executions are allowed on the existing queue; the caller must
+ * provide race-free GPU dependencies across all uses. CPU calls remain serialized.
+ * Retirement releases this execution's ownership, not the list's persistent objects.
+ * Known unaccepted OOM leaves the list retryable; indeterminate submit errors drain
+ * then poison it. Loss makes its device unusable. Old receipts never pin a retired use.
+ * These receipts reject elapsed_ns; timing is NOT silently inherited from a batch. */
+OgpuResult ogpu_command_list_submit(OgpuCommandList *list,
+    OgpuCompletion **out_completion, OgpuError *out_error);
+/* Releases the public list; NULL is a no-op, never waits. Accepted submissions keep
+ * commands/resources alive until each is retired, even if this handle is destroyed.
+ * Do not free raw-address allocations while any execution can still use them. */
+void ogpu_command_list_destroy(OgpuCommandList *list);
+
 /* Waits for this submission, not queue idle. No timeout. Repeated waits preserve
  * the wait outcome. Non-loss wait errors are reported only AFTER draining; device
  * loss also permits cleanup. Persistent wait failures can block indefinitely.
  * Before returning after completion/draining/loss, retires this submission: invalidates
- * native recorded references, then releases recorded objects and retained buffers.
+ * native recorded references, then releases recorded objects and retained buffers
+ * for one-shot submissions. For replay, releases only this execution's list reference;
+ * the list retains its native commands and objects until all list owners are gone.
  * Implicit command-storage capacity may survive until final device destruction under
  * a bounded backend policy; explicit storage survives until owner trim/destruction.
  * Retirement does not promise returning all storage to
- * the driver. No executable recording survives and batches remain one-shot.
+ * the driver. Batches remain one-shot; compiled lists are separately reusable.
  * The completion handle keeps its outcome and optional timing, not those objects.
  * Keep an owning buffer handle if its address/data is needed after retirement.
  * Other recordings/unobserved submissions retain their own uses; no queue-wide sweep.
@@ -367,7 +400,8 @@ OgpuResult ogpu_completion_poll(OgpuCompletion *completion, uint32_t *out_comple
     OgpuError *out_error);
 /* Optional whole-allocation ownership assistance for addresses in shader roots.
  * Retains buffer (same device) until batch discard, failed submission cleanup, or
- * submission retirement (wait, terminal poll, or draining destruction). Duplicates
+ * submission retirement (wait, terminal poll, or draining destruction). A compiled
+ * list keeps this ownership between executions until final list release. Duplicates
  * are harmless. The public buffer handle may be destroyed before GPU completion;
  * its address remains backed only until retirement unless another owner retains it.
  * Keeping a completed receipt does NOT keep that allocation alive.
@@ -460,8 +494,8 @@ void ogpu_image_destroy(OgpuImage *target);
  * access requires a written slot with matching kind/format and an initialized image.
  * No recursive resource tracing, implicit data dependencies, or index validation.
  * Mutation requires exclusive ownership: rejected while ANY recording/unretired
- * submission retains the heap, including earlier bindings superseded by another bind.
- * Discard recordings or observe completion of ALL retaining submissions first.
+ * submission or reusable list retains the heap, including earlier bindings superseded by another bind.
+ * Discard recordings, destroy reusable lists and observe ALL retaining submissions first.
  * Retired receipts may remain alive during edits; a later submission's completion
  * does not retire earlier unobserved receipts. Device loss still prohibits edits.
  * Validate/generate before commit: argument/descriptor-generation errors preserve

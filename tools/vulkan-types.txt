@@ -40,3 +40,4 @@ VkPipelineCreateFlags2CreateInfo
 VkPipelineRenderingCreateInfo
 VkImageMemoryBarrier2
 VkAddressCommandFlagBitsKHR
+VkCommandBufferUsageFlagBits

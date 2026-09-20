@@ -64,6 +64,11 @@ GPU execution failures can surface during waiting rather than submission.
 
 ## Explicit recording storage
 
+ABI 15 adds [immutable reusable command lists](command-lists.md). Compilation
+consumes the batch and transfers its recorded ownership to the list, including
+between executions; each receipt retires only its own use. This is optional Vulkan
+functionality, not a change to the ordinary one-shot path described above.
+
 ABI 14 optionally separates storage ownership: `ogpu_recording_storage_create`
 and `ogpu_batch_create_in` reserve one reusable owner per recording/submission.
 Terminal retirement releases the reservation without reviving the old batch.

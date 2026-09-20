@@ -26,6 +26,7 @@ class StreamEvidence(unittest.TestCase):
     def test_complete(self):
         self.assertEqual(len(self.parse(self.output())[2]), 1)
         self.assertEqual(stream.summarize(self.parse(self.output())[2])["upload_ms"]["median"], .1)
+        stream.parse(self.output().replace('"replay"', '"compiled"'), "compiled", 2, (65,47,131,95), 1, False)
 
     def test_invalid(self):
         for before, after in [('"max_rgb_delta": 1', '"max_rgb_delta": 2'), ('"slots": 2', '"slots": 3'),
@@ -44,6 +45,8 @@ class StreamEvidence(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='stream-export-test-') as directory:
             root = Path(directory); source = root / 'report.json'
             for report in (dict(schema=1, complete=False), dict(schema=1, complete=True, preflight=True),
+                           dict(schema=1, complete=True, preflight=False, software=False, compiled_only=True),
+                           dict(schema=1, complete=True, preflight=False, software=True, compiled_only=True, validation=[]),
                            dict(schema=1, complete=True, preflight=False, software=False, validation=[])):
                 source.write_text(json.dumps(report))
                 with self.assertRaises(RuntimeError):

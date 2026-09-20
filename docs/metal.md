@@ -13,6 +13,10 @@ ABI 14 now adds optional explicit recording storage. Metal exports UNSUPPORTED
 stubs for that experiment; its default batch path is unchanged. Neither ABI-14
 native execution nor native allocator reuse has been validated on a Mac.
 
+ABI 15 adds optional reusable command lists. Metal exports UNSUPPORTED stubs for
+compile/execute; default execution is unchanged. No ABI-15 native validation or
+Metal replay implementation is claimed. See the [experiment](command-lists.md).
+
 ## Boundary and current implementation
 
 Common Rust code owns range/copy/root/dispatch checks, one-shot recording rules,

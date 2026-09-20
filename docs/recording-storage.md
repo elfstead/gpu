@@ -10,6 +10,11 @@ admission cliff in the selected workloads and validates caller-driven release.
 Explicit ownership is retained as a preferred candidate; replay and the best
 owner/recording ergonomics remain separate questions.
 
+ABI 15's [command-list experiment](command-lists.md) adds a second terminal batch
+operation: compilation transfers the storage reservation to an immutable executable.
+It remains reserved until list destruction and retirement of all executions, not
+merely completion of one execution. The one-shot rules below remain unchanged.
+
 ## Selected shape and alternatives
 
 `OgpuRecordingStorage` is a caller-controlled owner of empty native recording

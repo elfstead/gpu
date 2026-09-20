@@ -394,32 +394,126 @@ impl Batch {
     /// allocations live and do not perform host accesses until all GPU uses complete.
     /// Calls on this device and its children must be externally serialized.
     pub(crate) unsafe fn submit(&mut self) -> Result<Completion, Error> {
+        let mut completion = self.take_for_preparation()?;
+        let command = unsafe { completion.prepare(false)? };
+        unsafe { completion.enqueue(command) }
+    }
+
+    // Reject unsupported timing before consuming the recording. Encoding failures
+    // after that point consume it exactly like a one-shot submission attempt.
+    pub(crate) unsafe fn compile(&mut self) -> Result<CommandList, Error> {
+        contract::recording(&mut self.steps)?;
+        if self.timed {
+            return Err(Error::new(
+                UNSUPPORTED,
+                "Reusable command lists do not yet support per-execution timing",
+            ));
+        }
+        let mut preparation = self.take_for_preparation()?;
+        unsafe {
+            preparation.prepare(true)?;
+        }
+        let Some(ExecutionResources::Once(resources)) = preparation.submission.resources.take()
+        else {
+            unreachable!("compilation owns a recording")
+        };
+        Ok(CommandList {
+            resources,
+            poisoned: Cell::new(false),
+        })
+    }
+
+    fn take_for_preparation(&mut self) -> Result<Completion, Error> {
         let steps = contract::take_recording(&mut self.steps)?;
         let retained = std::mem::take(&mut self.retained);
         // Transfer the lease even if ready/preparation fails: consumed batch handles
         // must never pin storage. The local lease releases itself on an early error.
         let storage = self.storage.take();
         self.device.ready()?;
-        let mut completion = Completion {
+        Ok(Completion {
             device: self.device.clone(),
-            submission: contract::Submission::preparing(SubmissionResources {
-                device: self.device.clone(),
-                steps,
-                pool: ptr::null_mut(),
-                command: ptr::null_mut(),
-                _retained: retained,
-                storage,
-            }),
+            submission: contract::Submission::preparing(ExecutionResources::Once(
+                SubmissionResources {
+                    device: self.device.clone(),
+                    steps,
+                    pool: ptr::null_mut(),
+                    command: ptr::null_mut(),
+                    _retained: retained,
+                    storage,
+                },
+            )),
             timeline_value: 0,
             timed: self.timed,
             queries: ptr::null_mut(),
             elapsed: None,
+        })
+    }
+}
+
+/// Immutable native executable plus recorded resource ownership. No receipt/query
+/// is stored here; several receipts may retain this list independently.
+pub(crate) struct CommandList {
+    resources: SubmissionResources,
+    poisoned: Cell<bool>,
+}
+
+impl CommandList {
+    pub(crate) unsafe fn submit(self: &Rc<Self>) -> Result<Completion, Error> {
+        let d = &self.resources.device;
+        d.ready()?;
+        if self.poisoned.get() {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Command list unusable after an indeterminate submission error",
+            ));
+        }
+        let completion = Completion {
+            device: d.clone(),
+            submission: contract::Submission::preparing(ExecutionResources::Replay(self.clone())),
+            timeline_value: 0,
+            timed: false,
+            queries: ptr::null_mut(),
+            elapsed: None,
         };
-        // SAFETY: the caller guarantees shader semantics/lifetimes. Preparation retains
-        // every kernel, and the completion owns partial construction immediately.
+        unsafe { completion.enqueue(self.resources.command) }
+    }
+}
+
+impl Drop for CommandList {
+    fn drop(&mut self) {
+        // Last public/submission owner: no accepted work remains. Invalidate native
+        // references before returning empty storage or releasing any recorded object.
+        if !self.poisoned.get() {
+            let status = self.resources.recycle();
+            if status == vk::VkResult_VK_ERROR_DEVICE_LOST {
+                self.resources.device.lost.set(true);
+            }
+        }
+        // SubmissionResources destroys the pool on reset failure or non-cache admission.
+    }
+}
+
+enum ExecutionResources {
+    Once(SubmissionResources),
+    Replay(Rc<CommandList>),
+}
+
+impl ExecutionResources {
+    fn recycle(&mut self) -> vk::VkResult {
+        match self {
+            Self::Once(resources) => resources.recycle(),
+            // A receipt releases only its use; the list may still be executable/pending.
+            Self::Replay(_) => vk::VkResult_VK_SUCCESS,
+        }
+    }
+}
+
+impl Completion {
+    unsafe fn enqueue(mut self, command: vk::VkCommandBuffer) -> Result<Self, Error> {
+        // All references are owned before calling the driver. A rejected attempt
+        // never waits its timeline value; unknown results drain before cleanup.
         unsafe {
-            let command = completion.prepare()?;
-            let d = &completion.device;
+            let d = &self.device;
             let command_info = vk::VkCommandBufferSubmitInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                 commandBuffer: command,
@@ -441,16 +535,19 @@ impl Batch {
                 pSignalSemaphoreInfos: &signal,
                 ..Default::default()
             };
-            completion.timeline_value = timeline_value;
+            self.timeline_value = timeline_value;
             let status = (d.f.vkQueueSubmit2.unwrap())(d.queue, 1, &submit, ptr::null_mut());
             if status == vk::VkResult_VK_SUCCESS {
                 // No fallible operation between accepted submission and recording ownership.
-                completion.submission.accept();
+                self.submission.accept();
             } else {
                 // Vulkan guarantees unchanged submission state for OOM, and cleanup on
                 // device loss. An unexpected error has no such guarantee: drain the queue,
                 // not the timeline value (which might never have been signaled).
                 if !submission_is_unaccepted(status) {
+                    if let Some(ExecutionResources::Replay(list)) = &self.submission.resources {
+                        list.poisoned.set(true);
+                    }
                     let drained = drain(|| (d.f.vkQueueWaitIdle.unwrap())(d.queue));
                     if drained == vk::VkResult_VK_ERROR_DEVICE_LOST {
                         d.result("vkQueueWaitIdle after submit error", drained)?;
@@ -459,7 +556,7 @@ impl Batch {
                 d.result("vkQueueSubmit2", status)?;
             }
         }
-        Ok(completion)
+        Ok(self)
     }
 }
 
@@ -617,7 +714,7 @@ impl Drop for SubmissionResources {
 
 pub(crate) struct Completion {
     device: Rc<Device>,
-    submission: contract::Submission<SubmissionResources, vk::VkResult>,
+    submission: contract::Submission<ExecutionResources, vk::VkResult>,
     timeline_value: u64,
     timed: bool,
     queries: vk::VkQueryPool,
@@ -663,13 +760,16 @@ impl Completion {
         unsafe { (self.device.f.vkWaitSemaphores.unwrap())(self.device.handle, &wait, timeout) }
     }
 
-    unsafe fn prepare(&mut self) -> Result<vk::VkCommandBuffer, Error> {
+    unsafe fn prepare(&mut self, reusable: bool) -> Result<vk::VkCommandBuffer, Error> {
         let d = &self.device;
-        let resources = self
+        let ExecutionResources::Once(resources) = self
             .submission
             .resources
             .as_mut()
-            .expect("preparation owns resources");
+            .expect("preparation owns resources")
+        else {
+            unreachable!("cannot reencode replay")
+        };
         // SAFETY: Vulkan pointers refer to initialized local structures. This object
         // owns each successful allocation before another fallible call can occur.
         unsafe {
@@ -735,6 +835,11 @@ impl Completion {
             let command = resources.command;
             let begin = vk::VkCommandBufferBeginInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                flags: if reusable {
+                    vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
+                } else {
+                    0
+                },
                 ..Default::default()
             };
             d.result(
@@ -890,6 +995,11 @@ impl Completion {
             self.device.lost.set(true);
         }
         self.submission.finish(status);
+        // Retiring the last replay use can drop its list and reset native storage.
+        // Propagate reset loss just as for a one-shot submission's recycle path.
+        if status == vk::VkResult_VK_SUCCESS && self.device.lost.get() {
+            self.submission.outcome = Some(vk::VkResult_VK_ERROR_DEVICE_LOST);
+        }
     }
 
     fn retire(&mut self) {

@@ -16,7 +16,9 @@ int main(void) {
     OgpuBatch *batch = NULL;
     OgpuCompletion *done = NULL;
     OgpuRecordingStorage *storage = NULL;
-    const int explicit_storage = getenv("OGPU_EXAMPLE_RECORDING_STORAGE") != NULL;
+    OgpuCommandList *list = NULL;
+    const int replay = getenv("OGPU_EXAMPLE_REPLAY") != NULL;
+    const int explicit_storage = replay || getenv("OGPU_EXAMPLE_RECORDING_STORAGE") != NULL;
     OgpuError error = {0};
     const uint32_t count = 4099, guard = 0xa55adeadu;
     const uint64_t bytes = (uint64_t)(count + 2) * sizeof(uint32_t);
@@ -82,26 +84,39 @@ int main(void) {
             expected[2] = 123;
             TRY(ogpu_buffer_write(buffer, 2 * sizeof(uint32_t), &expected[2], sizeof(uint32_t), &error));
         }
-        if (explicit_storage) {
-            TRY(ogpu_batch_create_in(storage, &batch, &error));
-            OgpuBatch *rejected = NULL;
-            REQUIRE(ogpu_batch_create_in(storage, &rejected, &error) == OGPU_ERROR_INVALID_ARGUMENT);
-            REQUIRE(rejected == NULL);
-            REQUIRE(ogpu_batch_submit(batch, NULL, &error) == OGPU_ERROR_INVALID_ARGUMENT);
-            REQUIRE(ogpu_recording_storage_trim(storage, &error) == OGPU_ERROR_INVALID_ARGUMENT);
-        } else { TRY(ogpu_batch_create(device, &batch, &error)); }
-        TRY(ogpu_batch_retain_buffer(batch, buffer, &error));
-        TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
-            OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &error));
-        TRY(ogpu_batch_dispatch(batch, kernel, groups, 1, 1, &args, sizeof(args), &error));
+        if (!replay || pass == 0) {
+            if (explicit_storage) {
+                TRY(ogpu_batch_create_in(storage, &batch, &error));
+                OgpuBatch *rejected = NULL;
+                REQUIRE(ogpu_batch_create_in(storage, &rejected, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                REQUIRE(rejected == NULL);
+                REQUIRE(ogpu_batch_submit(batch, NULL, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                REQUIRE(ogpu_recording_storage_trim(storage, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+            } else { TRY(ogpu_batch_create(device, &batch, &error)); }
+            TRY(ogpu_batch_retain_buffer(batch, buffer, &error));
+            TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
+                OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &error));
+            TRY(ogpu_batch_dispatch(batch, kernel, groups, 1, 1, &args, sizeof(args), &error));
+            if (replay) {
+                REQUIRE(ogpu_batch_compile(batch, NULL, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                TRY(ogpu_batch_compile(batch, &list, &error));
+                ogpu_batch_destroy(batch); batch = NULL;
+                args = (TransformArguments){0}; // The list owns its original root copy.
+            }
+        }
         if (pass == 2) {
             ogpu_device_destroy(device); device = NULL;
             // Batch/submission owns the storage lease after public-parent release.
             ogpu_recording_storage_destroy(storage); storage = NULL;
         }
-        TRY(ogpu_batch_submit(batch, &done, &error));
+        if (replay) {
+            TRY(ogpu_command_list_submit(list, &done, &error));
+            if (pass == 2) { ogpu_command_list_destroy(list); list = NULL; }
+        } else { TRY(ogpu_batch_submit(batch, &done, &error)); }
         TRY(ogpu_completion_wait(done, &error));
-        if (storage && pass == 1) {
+        if (storage && replay) {
+            REQUIRE(ogpu_recording_storage_trim(storage, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+        } else if (storage && pass == 1) {
             // Old consumed batch and receipt survive explicit capacity release.
             TRY(ogpu_recording_storage_trim(storage, &error));
             TRY(ogpu_recording_storage_trim(storage, &error));
@@ -115,10 +130,12 @@ int main(void) {
     printf("Compiler consumer PASS: %u integers, three passes, guards, partial upload, parent destruction; root=%zu local=%u\n",
         count, sizeof(args), transform_local[0]);
     result = EXIT_SUCCESS;
-    if (explicit_storage) puts("Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS");
+    if (replay) puts("Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS");
+    else if (explicit_storage) puts("Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS");
 cleanup:
     ogpu_completion_destroy(done);
     ogpu_batch_destroy(batch);
+    ogpu_command_list_destroy(list);
     ogpu_recording_storage_destroy(storage);
     ogpu_kernel_destroy(kernel);
     ogpu_buffer_destroy(buffer);

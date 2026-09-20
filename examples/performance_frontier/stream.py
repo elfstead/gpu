@@ -64,7 +64,10 @@ def main():
     p.add_argument("--check", action="store_true")
     p.add_argument("--software", action="store_true", help="small odd case, 64 validated frames only")
     p.add_argument("--preflight", action="store_true", help="small odd case, 12 validated frames only")
+    p.add_argument("--compiled", action="store_true", help="compiled-list correctness only; requires --software or --preflight")
     args = p.parse_args()
+    f.require(not args.compiled or args.software or args.preflight, "compiled check requires a small correctness mode")
+    policies = ("compiled",) if args.compiled else f.POLICIES
     env = os.environ.copy(); env["LD_LIBRARY_PATH"] = str(f.ROOT / "target/release") + ":" + env.get("LD_LIBRARY_PATH", "")
     f.build(env)
     cc = shlex.split(env.get("CC", "cc"))
@@ -94,7 +97,7 @@ def main():
     report = dict(schema=1, scope="streaming final-output/slot correctness and serialized single-queue strategy frontier; no intermediate reacceptance",
         revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=f.ROOT, text=True).strip(),
         dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=f.ROOT, text=True)),
-        software=args.software, preflight=args.preflight,
+        software=args.software, preflight=args.preflight, compiled_only=args.compiled,
         sources={str(path.relative_to(f.ROOT)): f.digest(path) for path in sources},
         artifacts={name:f.digest(f.BUILD / name) for name in ("stream-native", "stream-ogpu", "trace-memory.so")},
         library_sha256=f.digest(f.ROOT / "target/release/libogpu.so"),
@@ -108,7 +111,7 @@ def main():
     def invoke(policy, slots, extent, paths, validate, environment, label):
         nonlocal identity
         out = dest / label; out.mkdir()
-        binary = f.BUILD / ("stream-ogpu" if policy == "ogpu" else "stream-native")
+        binary = f.BUILD / ("stream-ogpu" if policy in ("ogpu", "compiled") else "stream-native")
         r = subprocess.run([str(binary), policy, str(slots), *map(str, extent), str(count),
             "validate" if validate else "measure", *map(str, paths)], env=environment, capture_output=True, text=True)
         (out / "stdout.txt").write_text(r.stdout); (out / "stderr.txt").write_text(r.stderr)
@@ -128,7 +131,7 @@ def main():
     for extent, paths, _ in selected:
         label = "x".join(map(str, extent))
         for slots in (1, 2, 3):
-            for policy in f.POLICIES:
+            for policy in policies:
                 row = invoke(policy, slots, extent, paths, True, traced, f"validation-{label}-{slots}-{policy}")
                 report["validation"].append(row); save(); print(f"Validated {label} slots={slots} {policy}", flush=True)
     if not small:

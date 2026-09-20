@@ -460,6 +460,32 @@ fn gpu_heaps() {
             assert!(done.poll().unwrap());
         }
         storage.trim().unwrap();
+        let mut persistent = Batch::new_in(storage.clone()).unwrap();
+        persistent.bind_images(images.clone()).unwrap();
+        persistent.bind_samplers(samplers.clone()).unwrap();
+        let list = Rc::new(unsafe { persistent.compile().unwrap() });
+        let mut replay_receipts = Vec::new();
+        for _ in 0..3 {
+            replay_receipts.push(unsafe { list.submit().unwrap() });
+        }
+        for done in &mut replay_receipts {
+            done.wait().unwrap();
+        }
+        assert!(
+            Rc::get_mut(&mut images).is_none() && Rc::get_mut(&mut samplers).is_none(),
+            "Reusable lists retain heaps between executions"
+        );
+        assert!(storage.trim().is_err());
+        drop(list);
+        storage.trim().unwrap();
+        Rc::get_mut(&mut images).unwrap().clear(0, 2).unwrap();
+        Rc::get_mut(&mut samplers)
+            .unwrap()
+            .write(0, &[desc])
+            .unwrap();
+        for done in &mut replay_receipts {
+            assert!(done.poll().unwrap());
+        }
         gate.completion = None;
         // Force the noncoherent maintenance path on this coherent-capable device;
         // the injected error occurs after copying live bytes and is terminal per heap.

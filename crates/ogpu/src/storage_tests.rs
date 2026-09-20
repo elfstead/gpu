@@ -22,6 +22,8 @@ thread_local! {
     static SUBMIT: Cell<vk::PFN_vkQueueSubmit2> = const { Cell::new(None) };
     static COUNTS: Cell<[usize; 3]> = const { Cell::new([0; 3]) };
     static FAILURE: Cell<u32> = const { Cell::new(0) };
+    static ENCODED: Cell<usize> = const { Cell::new(0) };
+    static SUBMITTED: Cell<usize> = const { Cell::new(0) };
 }
 
 fn count(index: usize) {
@@ -66,6 +68,7 @@ unsafe extern "C" fn begin(
     c: vk::VkCommandBuffer,
     i: *const vk::VkCommandBufferBeginInfo,
 ) -> vk::VkResult {
+    ENCODED.set(ENCODED.get() + 1);
     if FAILURE.get() == 3 {
         vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY
     } else {
@@ -85,8 +88,11 @@ unsafe extern "C" fn submit(
     s: *const vk::VkSubmitInfo2,
     f: vk::VkFence,
 ) -> vk::VkResult {
+    SUBMITTED.set(SUBMITTED.get() + 1);
     if FAILURE.get() == 5 {
         vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY
+    } else if FAILURE.get() == 6 {
+        vk::VkResult_VK_ERROR_UNKNOWN
     } else {
         unsafe { (SUBMIT.get().unwrap())(q, n, s, f) }
     }
@@ -106,6 +112,8 @@ fn configure(f: &mut Functions) {
     f.vkQueueSubmit2 = Some(submit);
     COUNTS.set([0; 3]);
     FAILURE.set(0);
+    ENCODED.set(0);
+    SUBMITTED.set(0);
 }
 
 fn barrier_batch(device: &Rc<Device>, steps: usize) -> Batch {
@@ -323,6 +331,153 @@ fn gpu_owned_recording_storage() {
         assert!(unsafe { batch.submit() }.is_err());
         assert!(!owner.busy.get());
         owner.trim().unwrap();
+        tested += 1;
+    }
+    assert!(tested > 0);
+}
+
+#[test]
+#[ignore = "requires Vulkan; encode-once replay, ownership and retry/poison/failure paths"]
+fn gpu_command_lists() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
+        .chunks_exact(4)
+        .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+        .collect();
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::create_configured(instance.clone(), physical, false, configure) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        let storage = Rc::new(RecordingStorage::new(d.clone()).unwrap());
+        let mut batch = Batch::new_in(storage.clone()).unwrap();
+        let buffer = Rc::new(Buffer::new(d.clone(), 12).unwrap());
+        let weak_buffer = Rc::downgrade(&buffer);
+        let kernel = Rc::new(unsafe { Kernel::new(d.clone(), &words, 16, &[]).unwrap() });
+        let weak_kernel = Rc::downgrade(&kernel);
+        let mut root = [0u8; 16];
+        root[..8].copy_from_slice(&(buffer.address().unwrap() + 4).to_ne_bytes());
+        root[8..12].copy_from_slice(&1u32.to_ne_bytes());
+        batch
+            .barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
+            .unwrap();
+        batch.dispatch(kernel, [1; 3], &root).unwrap();
+        batch.retain_buffer(buffer.clone()).unwrap();
+        root.fill(0); // Recorded roots must not refer to this caller storage.
+        let list = Rc::new(unsafe { batch.compile().unwrap() });
+        assert_eq!((ENCODED.get(), SUBMITTED.get()), (1, 0));
+        assert!(storage.trim().is_err() && Batch::new_in(storage.clone()).is_err());
+        assert!(unsafe { batch.compile() }.is_err() && unsafe { batch.submit() }.is_err());
+        let mut receipts = Vec::new();
+        for value in [1u32, 37, u32::MAX, 55].into_iter().cycle().take(40) {
+            buffer
+                .write(
+                    0,
+                    &[0x55aa55aau32, value, 0x12345678]
+                        .into_iter()
+                        .flat_map(u32::to_ne_bytes)
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap();
+            let mut done = unsafe { list.submit().unwrap() };
+            done.wait().unwrap();
+            assert_eq!(done.elapsed_ns().unwrap_err().status, INVALID_ARGUMENT);
+            let mut actual = [0u32; 3];
+            unsafe {
+                buffer.read(0, actual.as_mut_ptr().cast(), 12).unwrap();
+            }
+            assert_eq!(
+                actual,
+                [
+                    0x55aa55aa,
+                    value.wrapping_mul(3).wrapping_add(7),
+                    0x12345678
+                ]
+            );
+            receipts.push(done);
+        }
+        assert_eq!((ENCODED.get(), SUBMITTED.get()), (1, 40));
+        assert_eq!(COUNTS.get(), [1, 0, 0], "No reset between executions");
+        drop(buffer);
+        assert!(weak_buffer.upgrade().is_some() && weak_kernel.upgrade().is_some());
+        FAILURE.set(5); // A known unaccepted failure leaves the list executable.
+        assert!(
+            matches!(unsafe { list.submit() }, Err(e) if e.vk == vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY)
+        );
+        FAILURE.set(0);
+        unsafe { list.submit().unwrap() }.wait().unwrap();
+        assert_eq!(ENCODED.get(), 1);
+        FAILURE.set(6); // Unknown result drains and permanently rejects new uses.
+        assert!(
+            matches!(unsafe { list.submit() }, Err(e) if e.vk == vk::VkResult_VK_ERROR_UNKNOWN)
+        );
+        FAILURE.set(0);
+        let before = SUBMITTED.get();
+        assert!(matches!(unsafe { list.submit() }, Err(e) if e.status == INVALID_ARGUMENT));
+        assert_eq!(SUBMITTED.get(), before);
+        drop(list);
+        assert!(weak_buffer.upgrade().is_none() && weak_kernel.upgrade().is_none());
+        storage.trim().unwrap();
+        for done in &mut receipts {
+            assert!(done.poll().unwrap());
+        }
+        assert_eq!(
+            COUNTS.get()[1],
+            1,
+            "Poisoned recording destroyed, never cached"
+        );
+
+        if d.timing_info().is_ok() {
+            let mut timed = Batch::new_in(storage.clone()).unwrap();
+            timed.enable_timing().unwrap();
+            assert!(matches!(unsafe { timed.compile() }, Err(e) if e.status == UNSUPPORTED));
+            assert!(
+                timed.steps.is_some(),
+                "Unsupported timing does not consume recording"
+            );
+            let mut done = unsafe { timed.submit().unwrap() };
+            done.wait().unwrap();
+            assert!(done.elapsed_ns().unwrap().is_finite());
+        }
+        for failure in [3, 4] {
+            let mut failed = Batch::new_in(storage.clone()).unwrap();
+            FAILURE.set(failure);
+            assert!(unsafe { failed.compile() }.is_err());
+            FAILURE.set(0);
+            assert!(failed.steps.is_none() && !storage.busy.get());
+            storage.trim().unwrap();
+        }
+        // Untouched recording can be discarded without any execution.
+        let mut unused = Batch::new_in(storage.clone()).unwrap();
+        let list = unsafe { unused.compile().unwrap() };
+        drop(list);
+        storage.trim().unwrap();
+        // Final-use retirement destroys the list; reset loss must reach this receipt.
+        let mut final_batch = Batch::new_in(storage.clone()).unwrap();
+        let final_list = Rc::new(unsafe { final_batch.compile().unwrap() });
+        let mut final_done = unsafe { final_list.submit().unwrap() };
+        let mut loss_batch = Batch::new(d.clone()).unwrap();
+        drop(final_list);
+        FAILURE.set(2); // Injection only occurs after the real timeline wait.
+        assert_eq!(
+            final_done.wait().unwrap_err().vk,
+            vk::VkResult_VK_ERROR_DEVICE_LOST
+        );
+        FAILURE.set(0);
+        assert!(d.lost.get() && !storage.busy.get());
+        assert_eq!(
+            final_done.poll().unwrap_err().vk,
+            vk::VkResult_VK_ERROR_DEVICE_LOST
+        );
+        assert!(unsafe { loss_batch.compile() }.is_err());
+        assert!(
+            loss_batch.steps.is_none(),
+            "Lost-device compile attempt consumes recording"
+        );
+        storage.trim().unwrap();
+        assert_eq!(COUNTS.get()[0], COUNTS.get()[1]);
         tested += 1;
     }
     assert!(tested > 0);

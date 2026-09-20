@@ -1,10 +1,10 @@
-//! C ownership boundary for synchronous dispatch and one-shot asynchronous batches.
+//! C ownership boundary for dispatch, one-shot batches and immutable command lists.
 #[cfg(test)]
 use crate::SUCCESS;
 use crate::{
     compute::{
-        Batch, Buffer, Completion, Device, Image, ImageHeap, Kernel, Raster, RecordingStorage,
-        SamplerHeap,
+        Batch, Buffer, CommandList, Completion, Device, Image, ImageHeap, Kernel, Raster,
+        RecordingStorage, SamplerHeap,
     },
     Error, OgpuDeviceLimits, OgpuError, OgpuProbe, OgpuResult, OgpuShaderDesc,
     OgpuSpecializationConstant, OgpuTimingInfo, INVALID_ARGUMENT, OUT_OF_RANGE,
@@ -16,6 +16,57 @@ pub struct OgpuDevice {
 }
 pub struct OgpuRecordingStorage {
     inner: Rc<RecordingStorage>,
+}
+pub struct OgpuCommandList {
+    inner: Rc<CommandList>,
+}
+
+/// # Safety
+/// Live batch, independent writable output/error; valid recorded pointers; serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_compile(
+    batch: *mut OgpuBatch,
+    out: *mut *mut OgpuCommandList,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(batch)?;
+            Ok(OgpuCommandList {
+                inner: Rc::new((*batch).inner.compile()?),
+            })
+        })
+    }
+}
+
+/// # Safety
+/// Live list and outputs; all recorded pointers valid and dependencies race-free.
+/// Host calls on this device/children must be externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_command_list_submit(
+    list: *mut OgpuCommandList,
+    out: *mut *mut OgpuCompletion,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(list)?;
+            Ok(OgpuCompletion {
+                inner: (*list).inner.submit()?,
+            })
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned public handle or NULL, externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_command_list_destroy(list: *mut OgpuCommandList) {
+    if !list.is_null() {
+        unsafe {
+            drop(Box::from_raw(list));
+        }
+    }
 }
 
 /// # Safety
@@ -223,7 +274,7 @@ pub unsafe extern "C" fn ogpu_batch_bind_image_heap(
 }
 
 fn exclusive<T>(heap: &mut Rc<T>) -> Result<&mut T, Error> {
-    Rc::get_mut(heap).ok_or_else(|| Error::new(INVALID_ARGUMENT, "Heap is retained by a recording or unretired submission; discard recordings or observe completion before editing"))
+    Rc::get_mut(heap).ok_or_else(|| Error::new(INVALID_ARGUMENT, "Heap is retained by a recording, reusable list or unretired submission; release all uses before editing"))
 }
 
 /// # Safety
@@ -1138,6 +1189,21 @@ mod tests {
     }
     #[test]
     fn invalid_batch_arguments_need_no_driver() {
+        unsafe {
+            let mut list = ptr::dangling_mut::<OgpuCommandList>();
+            assert_eq!(
+                ogpu_batch_compile(ptr::null_mut(), &mut list, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(list.is_null());
+            let mut done = ptr::dangling_mut::<OgpuCompletion>();
+            assert_eq!(
+                ogpu_command_list_submit(ptr::null_mut(), &mut done, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(done.is_null());
+            ogpu_command_list_destroy(ptr::null_mut());
+        }
         unsafe {
             let mut storage = ptr::dangling_mut::<OgpuRecordingStorage>();
             assert_eq!(

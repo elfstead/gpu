@@ -40,6 +40,8 @@ def order(round_index, policies=POLICIES):
 def matrix(schema):
     if schema == 1:
         return (1, 3), (1, 64), POLICIES
+    if schema == 3:
+        return (1, 5), (1, 64, 512), ("reset", "replay", "owned", "compiled")
     require(schema == 2, "unknown matrix schema")
     return (1, 5), (64, 129, 512), (*POLICIES, "owned")
 
@@ -100,9 +102,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--software", action="store_true", help="64-frame validated controls only; no timing")
-    parser.add_argument("--storage", action="store_true", help="explicit owner versus cache, including oversized recordings and five slots")
+    strategy = parser.add_mutually_exclusive_group()
+    strategy.add_argument("--storage", action="store_true", help="explicit owner versus cache, including oversized recordings and five slots")
+    strategy.add_argument("--replay", action="store_true", help="immutable command lists versus native replay and both re-recording controls")
     args = parser.parse_args()
-    schema = 2 if args.storage else 1
+    schema = 3 if args.replay else 2 if args.storage else 1
     slot_counts, dispatch_counts, policies = matrix(schema)
     environment = os.environ.copy()
     environment["LD_LIBRARY_PATH"] = str(ROOT / "target/release") + ":" + environment.get("LD_LIBRARY_PATH", "")
@@ -121,7 +125,7 @@ def main():
                     "examples/compiler/transform.generated.h", "examples/compiler/transform.slang",
                     "examples/learned_image/native.c", "examples/learned_image/native_workload.h", "examples/learned_image/extent.h",
                     "include/ogpu.h", "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h")
-    report = dict(schema=schema, scope="small dependent compute; explicit storage comparison" if args.storage else "small dependent compute; strategy comparison, not isolated API overhead",
+    report = dict(schema=schema, scope="small dependent compute; immutable executable replay" if args.replay else "small dependent compute; explicit storage comparison" if args.storage else "small dependent compute; strategy comparison, not isolated API overhead",
                   revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                   dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)),
                   sources={name: digest(ROOT / name) for name in source_names},
@@ -131,7 +135,7 @@ def main():
                   software=args.software, validation=[], timing=[], memory=[], complete=False)
     for path in sorted((ROOT / "examples/learned_image/generated").glob("*.h")):
         report["sources"][str(path.relative_to(ROOT))] = digest(path)
-    if args.storage:
+    if schema >= 2:
         for path in sorted((ROOT / "crates/ogpu/src").glob("*.rs")):
             report["sources"][str(path.relative_to(ROOT))] = digest(path)
     def save():
@@ -141,7 +145,7 @@ def main():
     def invoke(policy, slots, dispatches, count, validate, env, label):
         nonlocal identity
         output = destination / label; output.mkdir()
-        binary = "ogpu" if policy in ("ogpu", "owned") else "native"
+        binary = "ogpu" if policy in ("ogpu", "owned", "compiled") else "native"
         completed = subprocess.run([str(BUILD / binary), policy, str(slots), str(dispatches), str(count),
                                     "validate" if validate else "measure"], env=env, capture_output=True, text=True)
         (output / "stdout.txt").write_text(completed.stdout); (output / "stderr.txt").write_text(completed.stderr)

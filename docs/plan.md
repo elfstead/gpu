@@ -14,11 +14,12 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 14**, adding
-optional explicit recording-storage ownership on Vulkan; ABI 13 relaxed retirement
+Metal compute backend. The language-neutral C boundary is now **ABI 15**, adding
+optional immutable command lists on Vulkan after ABI 14's explicit recording-storage
+ownership; ABI 13 relaxed retirement
 to allow bounded empty command storage. The bounded macOS arm64
 compute/GGML path was verified at ABI 12; Metal remains destruction-based and is
-not natively revalidated for this revision (new owner calls return UNSUPPORTED).
+not natively revalidated for this revision (new owner/list calls return UNSUPPORTED).
 The validated Metal branch is merged
 into `master`. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
@@ -109,9 +110,10 @@ removes the cache's admission cutoff and adds caller-driven trim; wall ratios ar
 0.991–1.037 of native reset in the six selected cases. Retain it as the preferred
 controllable candidate and the device cache as a convenience/comparison path.
 
-Next specify and test reusable executable recordings: copied roots versus mutable
+The [reusable executable experiment](command-lists.md) now implements copied roots versus mutable
 pointed-to data, retained objects/heaps between executions, storage ownership and
-per-submission errors/timing. Native replay remains the stronger control. Separately
+per-submission errors. Replay is untimed; timing needs a separate ownership design.
+Acceptance measurements are next; native replay remains the stronger control. Separately
 investigate the current CPU step/root buffering versus direct recording into owned
 storage; the measured host gap is not established as unavoidable API overhead.
 No fixed native-byte budget, unique best owner ergonomics or other audit item is

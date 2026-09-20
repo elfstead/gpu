@@ -278,3 +278,128 @@ fn gpu_retirement() {
     }
     assert!(tested > 0, "No execution-capable Vulkan device found");
 }
+
+#[test]
+#[ignore = "requires Vulkan; same-list simultaneous submissions, gated ownership and terminal loss"]
+fn gpu_replay_retirement() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
+        .chunks_exact(4)
+        .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+        .collect();
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::create_configured(instance.clone(), physical, false, |f| {
+            SUBMIT.set(f.vkQueueSubmit2);
+            f.vkQueueSubmit2 = Some(gated_submit);
+            WAIT.set(f.vkWaitSemaphores);
+            f.vkWaitSemaphores = Some(poll_error);
+        }) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        let ty = vk::VkSemaphoreTypeCreateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            semaphoreType: vk::VkSemaphoreType_VK_SEMAPHORE_TYPE_TIMELINE,
+            ..Default::default()
+        };
+        let info = vk::VkSemaphoreCreateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            pNext: (&ty as *const vk::VkSemaphoreTypeCreateInfo).cast(),
+            ..Default::default()
+        };
+        let mut semaphore = ptr::null_mut();
+        assert_eq!(
+            unsafe {
+                (d.f.vkCreateSemaphore.unwrap())(d.handle, &info, ptr::null(), &mut semaphore)
+            },
+            vk::VkResult_VK_SUCCESS
+        );
+        let mut gate = Gate {
+            device: d.clone(),
+            semaphore,
+            signal: unsafe {
+                std::mem::transmute::<vk::PFN_vkVoidFunction, vk::PFN_vkSignalSemaphore>(
+                    instance.proc(c"vkSignalSemaphore"),
+                )
+            },
+            opened: false,
+            completions: Vec::new(),
+            caller_owner: None,
+        };
+        GATE.set(semaphore);
+        CALLS.set(1);
+        POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
+        let owner = Rc::new(RecordingStorage::new(d.clone()).unwrap());
+        let buffer = Rc::new(Buffer::new(d.clone(), 4).unwrap());
+        buffer.write(0, &1u32.to_ne_bytes()).unwrap();
+        let kernel = Rc::new(unsafe { Kernel::new(d.clone(), &words, 16, &[]).unwrap() });
+        let weak_kernel = Rc::downgrade(&kernel);
+        let weak_owner = Rc::downgrade(&owner);
+        let mut batch = Batch::new_in(owner.clone()).unwrap();
+        let mut root = [0; 16];
+        root[..8].copy_from_slice(&buffer.address().unwrap().to_ne_bytes());
+        root[8..12].copy_from_slice(&1u32.to_ne_bytes());
+        batch
+            .barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
+            .unwrap();
+        batch.dispatch(kernel, [1; 3], &root).unwrap();
+        batch.retain_buffer(buffer.clone()).unwrap();
+        let list = Rc::new(unsafe { batch.compile().unwrap() });
+        let weak_list = Rc::downgrade(&list);
+        for _ in 0..3 {
+            gate.completions.push(unsafe { list.submit().unwrap() });
+        }
+        assert!(!gate.completions[2].poll().unwrap());
+        POLL_STATUS.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
+        assert!(gate.completions[1].poll().is_err());
+        assert!(owner.trim().is_err() && Batch::new_in(owner.clone()).is_err());
+        POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
+        drop(list);
+        drop(owner); // No destructor may wait behind the closed gate.
+        assert!(weak_list.upgrade().is_some() && weak_owner.upgrade().is_some());
+        gate.open();
+        gate.completions[2].wait().unwrap();
+        assert!(
+            weak_list.upgrade().is_some(),
+            "Earlier unobserved uses still retain list"
+        );
+        gate.completions[0].wait().unwrap();
+        assert!(weak_kernel.upgrade().is_some());
+        gate.completions[1].wait().unwrap();
+        assert!(
+            weak_list.upgrade().is_none()
+                && weak_kernel.upgrade().is_none()
+                && weak_owner.upgrade().is_none()
+        );
+        let mut value = 0u32;
+        unsafe {
+            buffer.read(0, (&mut value as *mut u32).cast(), 4).unwrap();
+        }
+        assert_eq!(value, 118);
+        for done in &mut gate.completions {
+            done.wait().unwrap();
+            assert!(done.poll().unwrap());
+        }
+        assert!(unsafe { batch.submit() }.is_err());
+        // Loss is reported only after real execution drains; active references retire.
+        let lost_list = Rc::new(unsafe { Batch::new(d.clone()).unwrap().compile().unwrap() });
+        let mut lost = unsafe { lost_list.submit().unwrap() };
+        assert_eq!(
+            unsafe { (d.f.vkQueueWaitIdle.unwrap())(d.queue) },
+            vk::VkResult_VK_SUCCESS
+        );
+        POLL_STATUS.set(vk::VkResult_VK_ERROR_DEVICE_LOST);
+        assert_eq!(
+            lost.poll().unwrap_err().vk,
+            vk::VkResult_VK_ERROR_DEVICE_LOST
+        );
+        assert!(lost.submission.resources.is_none());
+        assert!(unsafe { lost_list.submit() }.is_err());
+        assert!(lost.wait().is_err());
+        POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
+        tested += 1;
+    }
+    assert!(tested > 0);
+}

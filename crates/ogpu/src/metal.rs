@@ -1032,8 +1032,44 @@ unsafe fn unsupported_create<T>(out: *mut *mut T, error: *mut OgpuError) -> Ogpu
     }
 }
 
-// Optional ABI-14 experiment. No unvalidated native allocator reuse is implied.
+// Optional ABI-14/15 experiments. No native allocator or executable reuse is implied.
 pub enum OgpuRecordingStorage {}
+pub enum OgpuCommandList {}
+
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_compile(
+    batch: *mut OgpuBatch,
+    out: *mut *mut OgpuCommandList,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(batch)?;
+            Err(fail(
+                UNSUPPORTED,
+                "Reusable command lists are not implemented on Metal",
+            ))
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_command_list_submit(
+    list: *mut OgpuCommandList,
+    out: *mut *mut OgpuCompletion,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(list)?;
+            Err(fail(
+                UNSUPPORTED,
+                "Reusable command lists are not implemented on Metal",
+            ))
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_command_list_destroy(_list: *mut OgpuCommandList) {}
 fn unsupported_storage() -> Error {
     fail(
         UNSUPPORTED,

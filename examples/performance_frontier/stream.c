@@ -120,6 +120,8 @@ static int stream_record(Stream *s, unsigned index) {
     CHECK(!slot->pending);
 #ifdef FRONTIER_NATIVE
     if (!strcmp(c->policy, "replay") && slot->batch.command) return 1;
+#else
+    if (slot->list) return 1;
 #endif
     CHECK(stream_begin(c, slot));
     HiddenArguments hidden = {.arg_input_data=im->address[SI], .arg_weights=im->address[SW],
@@ -288,6 +290,12 @@ static int stream_create(Stream *s, char **argv) {
         /* Discard setup recording even for replay; record the actual frame once. */
         native_batch_destroy(n, &slot->batch);
         if (!strcmp(c->policy, "replay")) CHECK(stream_record(s, i));
+#else
+        if (!strcmp(c->policy, "compiled")) {
+            CHECK(stream_record(s, i));
+            API(ogpu_batch_compile(slot->batch, &slot->list, &c->error));
+            ogpu_batch_destroy(slot->batch); slot->batch = NULL;
+        }
 #endif
     }
     return 1;
@@ -340,6 +348,7 @@ static void stream_destroy(Stream *s) {
         native_batch_destroy(&c->native, &c->slots[i].batch);
 #else
         ogpu_batch_destroy(c->slots[i].batch); c->slots[i].batch = NULL;
+        ogpu_command_list_destroy(c->slots[i].list); c->slots[i].list = NULL;
 #endif
     }
     for (unsigned i = 0; i < c->count; ++i) {
@@ -375,7 +384,7 @@ int main(int argc, char **argv) {
 #ifdef FRONTIER_NATIVE
     if (strcmp(c->policy, "fresh") && strcmp(c->policy, "reset") && strcmp(c->policy, "replay")) return 1;
 #else
-    if (strcmp(c->policy, "ogpu")) return 1;
+    if (strcmp(c->policy, "ogpu") && strcmp(c->policy, "compiled")) return 1;
 #endif
     StreamFrame *samples = calloc(frames > 100 ? frames : 100, sizeof(*samples)); if (!samples) return 1;
     int okay = 0; double setup = clock_ms(), wall = 0;

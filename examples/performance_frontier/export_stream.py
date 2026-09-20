@@ -16,7 +16,9 @@ def export(source, destination):
     report = json.loads(source.read_text())
     f.require(report.get("schema") == 1 and report.get("complete") is True and not report.get("preflight"), "incomplete/preflight report")
     extents = ((65,47,131,95),) if report["software"] else ((1280,720,2560,1440),(1919,1079,2561,1441))
-    expected = {(e, s, p) for e in extents for s in (1,2,3) for p in f.POLICIES}
+    f.require(not report.get("compiled_only") or report["software"], "compiled matrix is correctness only")
+    policies = ("compiled",) if report.get("compiled_only") else f.POLICIES
+    expected = {(e, s, p) for e in extents for s in (1,2,3) for p in policies}
     all_samples = []; signatures = {}
     for section in ("validation", "timing", "memory"):
         rows = report[section]

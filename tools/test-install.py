@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--prefix", required=True, type=Path)
     parser.add_argument("--no-gpu", action="store_true")
     parser.add_argument("--recording-storage", action="store_true", help="also execute the optional explicit recording-storage path")
+    parser.add_argument("--replay", action="store_true", help="also execute the optional reusable command-list path")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
     installed = args.prefix.resolve()
@@ -82,6 +83,10 @@ def main():
             explicit = environment.copy()
             explicit["OGPU_EXAMPLE_RECORDING_STORAGE"] = "1"
             run(["./transform"], cwd=application, env=explicit)
+        if args.replay:
+            replay = environment.copy()
+            replay["OGPU_EXAMPLE_REPLAY"] = "1"
+            run(["./transform"], cwd=application, env=replay)
     if args.shader_check:
         environment["SLANGC"] = os.getenv("SLANGC", "slangc")
         shader = [str(prefix / "bin/ogpu-shader"), "--source", "transform.slang", "--output",
