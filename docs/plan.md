@@ -14,10 +14,12 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 13**, relaxing
-retirement to allow bounded empty command storage. The bounded macOS arm64
+Metal compute backend. The language-neutral C boundary is now **ABI 14**, adding
+optional explicit recording-storage ownership on Vulkan; ABI 13 relaxed retirement
+to allow bounded empty command storage. The bounded macOS arm64
 compute/GGML path was verified at ABI 12; Metal remains destruction-based and is
-not natively revalidated for this revision. The validated Metal branch is merged
+not natively revalidated for this revision (new owner calls return UNSUPPORTED).
+The validated Metal branch is merged
 into `master`. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
 
@@ -29,7 +31,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
 | Performance | M1 matched-policy learned-image medians within about 1.14% of native; ABI-13 storage reuse brings small-compute wall ratios to 0.994–1.050 of native reset | Workload/policy-specific Radeon evidence, not approval of the fundamental API, isolated overhead or equal total memory budgets |
-| Validation | RX 5700 XT / RADV and llvmpipe; historical Apple M4 compute/GGML acceptance; 38 Linux ordinary tests and 749 ABI layout checks | Metal has no ABI-13 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
+| Validation | RX 5700 XT / RADV and llvmpipe; historical Apple M4 compute/GGML acceptance; 38 Linux ordinary tests and 749 ABI layout checks | Metal has no ABI-14 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -101,6 +103,11 @@ under heterogeneous and long-lived use, including explicit release. Separately
 define/test executable replay's copied arguments, resource ownership and mutable
 pointed-to data. Do not widen unrelated API surface or start M2 by treating the
 existing submission contract as settled. No other audit item is passed by this result.
+
+The [explicit owner experiment](recording-storage.md) implements that next P2
+comparison at ABI 14, retaining the existing cache as a comparison/convenience
+path. Its state tests and enlarged frontier are the current acceptance gate;
+executable replay is not implemented by this change.
 
 ## Following milestone: M2 — programming/compiler contract
 

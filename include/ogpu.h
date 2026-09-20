@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(13)
+#define OGPU_ABI_VERSION UINT32_C(14)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -251,7 +251,7 @@ void ogpu_kernel_destroy(OgpuKernel *kernel);
  * drained/lost before return so resources can be destroyed. Non-loss wait errors
  * are retried until draining is established; persistent failures may block forever.
  * After device loss, only destruction, draining existing completions and the cached
- * device_limits/device_capabilities queries are supported.
+ * device_limits/device_capabilities queries and idle recording-storage trim are supported.
  * This ordered convenience call uses a batch and completion internally. */
 OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, uint32_t groups_y,
     uint32_t groups_z, const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
@@ -262,6 +262,7 @@ OgpuResult ogpu_dispatch_wait(OgpuKernel *kernel, uint32_t groups_x, uint32_t gr
  * require a graphics-capable execution queue. */
 typedef struct OgpuBatch OgpuBatch;
 typedef struct OgpuCompletion OgpuCompletion;
+typedef struct OgpuRecordingStorage OgpuRecordingStorage;
 #define OGPU_ACCESS_COMPUTE_READ UINT32_C(1)
 #define OGPU_ACCESS_COMPUTE_WRITE UINT32_C(2)
 #define OGPU_ACCESS_VERTEX_READ UINT32_C(4)
@@ -272,6 +273,31 @@ typedef struct OgpuCompletion OgpuCompletion;
 #define OGPU_ACCESS_FRAGMENT_READ UINT32_C(128)
 
 OgpuResult ogpu_batch_create(OgpuDevice *device, OgpuBatch **out_batch, OgpuError *out_error);
+/* Optional explicit recording-storage ownership (currently Vulkan only; Metal returns
+ * UNSUPPORTED). Native capacity is allocated lazily, retained without the implicit
+ * device cache's admission limits, and reused for one-shot recordings. No executable
+ * commands survive retirement; this is NOT replay or a byte-budget guarantee.
+ * All calls follow the device's external serialization rules. */
+OgpuResult ogpu_recording_storage_create(OgpuDevice *device,
+    OgpuRecordingStorage **out_storage, OgpuError *out_error);
+/* Releases all idle native command capacity now. Rejects INVALID_ARGUMENT while a
+ * recording or unretired submission uses this owner; never waits or observes work.
+ * Empty/repeated trim succeeds, including after loss. Does not trim other owners
+ * or the implicit device cache. */
+OgpuResult ogpu_recording_storage_trim(OgpuRecordingStorage *storage, OgpuError *out_error);
+/* Releases the public owner; NULL is a no-op, never waits. A live recording/submission
+ * retains ownership until discard/retirement, then frees storage if no owner remains.
+ * Consumed batches and retired receipts do not retain this owner. */
+void ogpu_recording_storage_destroy(OgpuRecordingStorage *storage);
+/* Reserves this owner's storage from successful creation through discard or terminal
+ * submission observation. A second creation or trim during that interval rejects
+ * INVALID_ARGUMENT, even if work finished but is unobserved. Outputs are NULL on
+ * failure. An attempted submission consumes the batch and releases its reservation
+ * on preparation/submit failure cleanup, as well as on normal retirement.
+ * Native reset failure may discard capacity; ownership is not a reuse guarantee.
+ * Use independent owners for multiple simultaneous recordings/submissions. */
+OgpuResult ogpu_batch_create_in(OgpuRecordingStorage *storage,
+    OgpuBatch **out_batch, OgpuError *out_error);
 /* Discards an unsubmitted recording; never waits. NULL is a no-op. */
 void ogpu_batch_destroy(OgpuBatch *batch);
 
@@ -318,8 +344,9 @@ OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, 
  * loss also permits cleanup. Persistent wait failures can block indefinitely.
  * Before returning after completion/draining/loss, retires this submission: invalidates
  * native recorded references, then releases recorded objects and retained buffers.
- * Empty command-storage capacity may survive until final device destruction under
- * a bounded backend policy; retirement does not promise returning all storage to
+ * Implicit command-storage capacity may survive until final device destruction under
+ * a bounded backend policy; explicit storage survives until owner trim/destruction.
+ * Retirement does not promise returning all storage to
  * the driver. No executable recording survives and batches remain one-shot.
  * The completion handle keeps its outcome and optional timing, not those objects.
  * Keep an owning buffer handle if its address/data is needed after retirement.

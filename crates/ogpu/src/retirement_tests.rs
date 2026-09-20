@@ -173,6 +173,9 @@ fn gpu_retirement() {
             );
             drop(discarded);
             assert!(temporary_weak.upgrade().is_none());
+            let owners: Vec<_> = (0..2)
+                .map(|_| Rc::new(RecordingStorage::new(device.clone()).unwrap()))
+                .collect();
             for slot in [0, 1, 0] {
                 if gate.completions.len() == 2 {
                     // The second submission cannot complete before we open the gate.
@@ -183,7 +186,7 @@ fn gpu_retirement() {
                     // Retire range 0 while range 1 remains unavailable. No host copies
                     // touch this shared allocation until all submissions finish.
                 }
-                let mut batch = Batch::new(device.clone()).unwrap();
+                let mut batch = Batch::new_in(owners[slot as usize].clone()).unwrap();
                 if device.timing_info().is_ok() {
                     batch.enable_timing().unwrap();
                 }
@@ -213,6 +216,7 @@ fn gpu_retirement() {
             POLL_STATUS.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
             let cached = device.command_storage.borrow().len();
             assert!(gate.completions[1].poll().is_err());
+            assert!(owners[1].trim().is_err() && Batch::new_in(owners[1].clone()).is_err());
             assert_eq!(device.command_storage.borrow().len(), cached);
             assert!(
                 gate.completions[1].submission.pending
@@ -226,11 +230,14 @@ fn gpu_retirement() {
             gate.open();
             gate.completions[2].wait().unwrap();
             assert!(gate.completions[2].submission.resources.is_none());
+            owners[0].trim().unwrap();
+            assert!(owners[1].trim().is_err());
             assert!(
                 gate.completions[1].submission.resources.is_some(),
                 "No queue-wide collection"
             );
             assert!(gate.completions[1].poll().unwrap());
+            owners[1].trim().unwrap();
             if gate.completions[1].timed {
                 assert!(gate.completions[1].elapsed_ns().unwrap().is_finite());
             }

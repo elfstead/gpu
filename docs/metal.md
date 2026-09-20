@@ -9,6 +9,10 @@ The common boundary is now ABI 13: retirement may retain bounded empty command
 storage. Metal's existing destruction policy satisfies that relaxed rule; no
 native Metal reuse or ABI-13 Mac revalidation is claimed. Rebuild matching callers.
 
+ABI 14 now adds optional explicit recording storage. Metal exports UNSUPPORTED
+stubs for that experiment; its default batch path is unchanged. Neither ABI-14
+native execution nor native allocator reuse has been validated on a Mac.
+
 ## Boundary and current implementation
 
 Common Rust code owns range/copy/root/dispatch checks, one-shot recording rules,

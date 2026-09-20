@@ -14,8 +14,9 @@ spec.loader.exec_module(frontier)
 
 def export(source, destination):
     report = json.loads(source.read_text())
-    frontier.require(report.get("complete") is True and report.get("schema") == 1, "incomplete report")
-    expected = {(slots, dispatches, policy) for slots in (1, 3) for dispatches in (1, 64) for policy in frontier.POLICIES}
+    frontier.require(report.get("complete") is True, "incomplete report")
+    slots, dispatches, policies = frontier.matrix(report.get("schema"))
+    expected = {(s, d, p) for s in slots for d in dispatches for p in policies}
     samples = []
     signatures = {}
     for section in ("validation", "timing", "memory"):

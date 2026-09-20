@@ -191,14 +191,20 @@ fn gpu_command_storage() {
             "Final owner releases all storage"
         );
 
-        for failure in 1..=5 {
+        for (failure, explicit) in (1..=5).flat_map(|failure| [(failure, false), (failure, true)]) {
             let device =
                 Device::create_configured(instance.clone(), physical, false, configure).unwrap();
-            unsafe { barrier_batch(&device, 1).submit().unwrap() }
-                .wait()
-                .unwrap();
+            let owner = Rc::new(RecordingStorage::new(device.clone()).unwrap());
+            let new_batch = || {
+                if explicit {
+                    Batch::new_in(owner.clone()).unwrap()
+                } else {
+                    barrier_batch(&device, 1)
+                }
+            };
+            unsafe { new_batch().submit().unwrap() }.wait().unwrap();
             assert_eq!(COUNTS.get(), [1, 0, 1]);
-            let mut batch = barrier_batch(&device, 1);
+            let mut batch = new_batch();
             let buffer = Rc::new(Buffer::new(device.clone(), 4).unwrap());
             let weak = Rc::downgrade(&buffer);
             batch.retain_buffer(buffer).unwrap();
@@ -222,6 +228,8 @@ fn gpu_command_storage() {
                 );
             }
             assert!(weak.upgrade().is_none());
+            assert!(!owner.busy.get());
+            assert!(owner.idle.borrow().is_none());
             assert!(device.command_storage.borrow().is_empty());
             assert_eq!(
                 COUNTS.get()[0],
@@ -231,16 +239,91 @@ fn gpu_command_storage() {
             assert_eq!(COUNTS.get()[1], 1, "Failed storage destroyed, never cached");
             FAILURE.set(0);
             if failure != 2 {
-                unsafe { barrier_batch(&device, 1).submit().unwrap() }
-                    .wait()
-                    .unwrap();
+                unsafe { new_batch().submit().unwrap() }.wait().unwrap();
                 assert_eq!(COUNTS.get()[0], 2, "Recovery creates fresh storage");
             }
             drop(batch);
+            owner.trim().unwrap(); // Cleanup remains legal after loss.
+            drop(owner);
             drop(device);
             assert_eq!(COUNTS.get()[0], COUNTS.get()[1]);
         }
         tested += 1;
     }
     assert!(tested > 0, "No execution-capable device");
+}
+
+#[test]
+#[ignore = "requires Vulkan; explicit storage leases, oversized reuse, trim and owner destruction"]
+fn gpu_owned_recording_storage() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::create_configured(instance.clone(), physical, false, configure) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        let owner = Rc::new(RecordingStorage::new(d.clone()).unwrap());
+        owner.trim().unwrap();
+        let abandoned = Batch::new_in(owner.clone()).unwrap();
+        assert!(Batch::new_in(owner.clone()).is_err() && owner.trim().is_err());
+        drop(abandoned);
+        assert!(!owner.busy.get());
+        let mut saved = Vec::new();
+        let mut saved_batches = Vec::new();
+        for steps in [1, 256, 257, 4096, 1].into_iter().cycle().take(50) {
+            let mut batch = Batch::new_in(owner.clone()).unwrap();
+            for _ in 0..steps {
+                batch.barrier(COMPUTE_WRITE, COMPUTE_READ).unwrap();
+            }
+            if d.timing_info().is_ok() {
+                batch.enable_timing().unwrap();
+            }
+            let mut receipt = unsafe { batch.submit().unwrap() };
+            assert!(owner.trim().is_err() && Batch::new_in(owner.clone()).is_err());
+            receipt.wait().unwrap();
+            assert!(!owner.busy.get() && owner.idle.borrow().is_some());
+            assert!(
+                d.command_storage.borrow().is_empty(),
+                "Explicit storage bypasses device cache"
+            );
+            assert_eq!(COUNTS.get()[0], 1, "Large/small recordings reuse one pool");
+            assert_eq!(COUNTS.get()[1], 0);
+            saved.push(receipt);
+            saved_batches.push(batch);
+        }
+        owner.trim().unwrap();
+        owner.trim().unwrap();
+        assert_eq!(COUNTS.get(), [1, 1, 50]);
+        for receipt in &mut saved {
+            if receipt.timed {
+                assert!(receipt.elapsed_ns().unwrap().is_finite());
+            }
+            assert!(receipt.poll().unwrap());
+        }
+        // Storage is lazily reacquired after trim; destroying the public owner while
+        // a batch is recorded or accepted never waits and cannot destroy active storage.
+        let mut batch = Batch::new_in(owner.clone()).unwrap();
+        let weak_owner = Rc::downgrade(&owner);
+        drop(owner);
+        let mut receipt = unsafe { batch.submit().unwrap() };
+        assert!(weak_owner.upgrade().is_some());
+        assert_eq!(COUNTS.get()[0], 2);
+        receipt.wait().unwrap();
+        assert!(
+            weak_owner.upgrade().is_none(),
+            "Consumed batch/receipt cannot pin owner"
+        );
+        assert_eq!(COUNTS.get()[1], 2);
+        // Failed submission on an already-lost device consumes/relinquishes lease too.
+        let owner = Rc::new(RecordingStorage::new(d.clone()).unwrap());
+        let mut batch = Batch::new_in(owner.clone()).unwrap();
+        d.lost.set(true); // No real work remains.
+        assert!(unsafe { batch.submit() }.is_err());
+        assert!(!owner.busy.get());
+        owner.trim().unwrap();
+        tested += 1;
+    }
+    assert!(tested > 0);
 }

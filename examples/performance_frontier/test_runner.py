@@ -50,12 +50,21 @@ class EvidenceTests(unittest.TestCase):
         self.assertNotIn('VK_INSTANCE_LAYERS', result)
         self.assertEqual(result['VK_LOADER_LAYERS_DISABLE'], '*')
 
+    def test_storage_matrix_is_separate_and_fixed(self):
+        slots, dispatches, policies = frontier.matrix(2)
+        self.assertEqual((slots, dispatches), ((1, 5), (64, 129, 512)))
+        self.assertEqual(policies, (*frontier.POLICIES, "owned"))
+        self.assertEqual({frontier.order(i, policies)[0] for i in range(5)}, set(policies))
+        with self.assertRaises(RuntimeError): frontier.matrix(3)
+        output = self.output().replace('"ogpu"', '"owned"').replace('"slots": 3', '"slots": 5').replace('"requested_bytes": 1164', '"requested_bytes": 1940').replace('"dispatches": 64', '"dispatches": 512')
+        frontier.parse(output, "owned", 5, 512, 1, False)
+
     def test_incomplete_export_rejected(self):
         export_spec = importlib.util.spec_from_file_location("frontier_export", Path(__file__).with_name("export.py"))
         exporter = importlib.util.module_from_spec(export_spec); export_spec.loader.exec_module(exporter)
         with tempfile.TemporaryDirectory(prefix='frontier-export-test-') as directory:
             root = Path(directory); source = root / 'report.json'
-            for report in (dict(schema=1, complete=False), dict(schema=1, complete=True, software=False, validation=[])):
+            for report in (dict(schema=1, complete=False), dict(schema=1, complete=True, software=False, validation=[]), dict(schema=2, complete=True, software=False, validation=[])):
                 source.write_text(json.dumps(report))
                 with self.assertRaises(RuntimeError):
                     exporter.export(source, root / 'out')

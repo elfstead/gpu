@@ -2,7 +2,10 @@
 #[cfg(test)]
 use crate::SUCCESS;
 use crate::{
-    compute::{Batch, Buffer, Completion, Device, Image, ImageHeap, Kernel, Raster, SamplerHeap},
+    compute::{
+        Batch, Buffer, Completion, Device, Image, ImageHeap, Kernel, Raster, RecordingStorage,
+        SamplerHeap,
+    },
     Error, OgpuDeviceLimits, OgpuError, OgpuProbe, OgpuResult, OgpuShaderDesc,
     OgpuSpecializationConstant, OgpuTimingInfo, INVALID_ARGUMENT, OUT_OF_RANGE,
 };
@@ -10,6 +13,71 @@ use std::{ffi::c_void, ptr, rc::Rc};
 
 pub struct OgpuDevice {
     inner: Rc<Device>,
+}
+pub struct OgpuRecordingStorage {
+    inner: Rc<RecordingStorage>,
+}
+
+/// # Safety
+/// Live device, independent writable outputs; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_recording_storage_create(
+    device: *mut OgpuDevice,
+    out: *mut *mut OgpuRecordingStorage,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(device)?;
+            Ok(OgpuRecordingStorage {
+                inner: Rc::new(RecordingStorage::new((*device).inner.clone())?),
+            })
+        })
+    }
+}
+
+/// # Safety
+/// Live storage, independent writable error; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_recording_storage_trim(
+    storage: *mut OgpuRecordingStorage,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(storage)?;
+            (*storage).inner.trim()
+        })
+    }
+}
+
+/// # Safety
+/// Live uniquely owned handle or NULL; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_recording_storage_destroy(storage: *mut OgpuRecordingStorage) {
+    if !storage.is_null() {
+        unsafe {
+            drop(Box::from_raw(storage));
+        }
+    }
+}
+
+/// # Safety
+/// Live storage and independent writable outputs; externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_create_in(
+    storage: *mut OgpuRecordingStorage,
+    out: *mut *mut OgpuBatch,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(storage)?;
+            Ok(OgpuBatch {
+                inner: Batch::new_in((*storage).inner.clone())?,
+            })
+        })
+    }
 }
 pub struct OgpuBuffer {
     inner: Rc<Buffer>,
@@ -1070,6 +1138,29 @@ mod tests {
     }
     #[test]
     fn invalid_batch_arguments_need_no_driver() {
+        unsafe {
+            let mut storage = ptr::dangling_mut::<OgpuRecordingStorage>();
+            assert_eq!(
+                ogpu_recording_storage_create(ptr::null_mut(), &mut storage, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(storage.is_null());
+            assert_eq!(
+                ogpu_recording_storage_create(ptr::null_mut(), ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_recording_storage_trim(ptr::null_mut(), ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            let mut batch = ptr::dangling_mut::<OgpuBatch>();
+            assert_eq!(
+                ogpu_batch_create_in(ptr::null_mut(), &mut batch, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert!(batch.is_null());
+            ogpu_recording_storage_destroy(ptr::null_mut());
+        }
         assert_eq!(
             unsafe {
                 ogpu_batch_copy_buffer(

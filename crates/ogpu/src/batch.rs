@@ -124,6 +124,7 @@ pub(crate) struct Batch {
     steps: Option<Vec<Step>>,
     timed: bool,
     retained: Vec<Rc<Buffer>>,
+    storage: Option<StorageLease>,
 }
 
 impl Batch {
@@ -207,7 +208,20 @@ impl Batch {
             steps: Some(Vec::new()),
             timed: false,
             retained: Vec::new(),
+            storage: None,
         })
+    }
+
+    pub(crate) fn new_in(storage: Rc<RecordingStorage>) -> Result<Self, Error> {
+        let mut batch = Self::new(storage.device.clone())?;
+        if storage.busy.replace(true) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Recording storage is in use; discard or observe its submission",
+            ));
+        }
+        batch.storage = Some(StorageLease(storage));
+        Ok(batch)
     }
 
     fn recording(&mut self) -> Result<&mut Vec<Step>, Error> {
@@ -382,6 +396,9 @@ impl Batch {
     pub(crate) unsafe fn submit(&mut self) -> Result<Completion, Error> {
         let steps = contract::take_recording(&mut self.steps)?;
         let retained = std::mem::take(&mut self.retained);
+        // Transfer the lease even if ready/preparation fails: consumed batch handles
+        // must never pin storage. The local lease releases itself on an early error.
+        let storage = self.storage.take();
         self.device.ready()?;
         let mut completion = Completion {
             device: self.device.clone(),
@@ -391,6 +408,7 @@ impl Batch {
                 pool: ptr::null_mut(),
                 command: ptr::null_mut(),
                 _retained: retained,
+                storage,
             }),
             timeline_value: 0,
             timed: self.timed,
@@ -462,6 +480,57 @@ struct SubmissionResources {
     pool: vk::VkCommandPool,
     command: vk::VkCommandBuffer,
     _retained: Vec<Rc<Buffer>>,
+    // Last field: release the busy lease only after native references and objects.
+    storage: Option<StorageLease>,
+}
+
+/// Explicit high-water storage owner, independent of recordings and receipts.
+/// One lease at a time; native allocation is lazy and never enters the device cache.
+pub(crate) struct RecordingStorage {
+    device: Rc<Device>,
+    busy: Cell<bool>,
+    idle: RefCell<Option<CommandStorage>>,
+}
+
+impl RecordingStorage {
+    pub(crate) fn new(device: Rc<Device>) -> Result<Self, Error> {
+        device.ready()?;
+        Ok(Self {
+            device,
+            busy: Cell::new(false),
+            idle: RefCell::new(None),
+        })
+    }
+
+    pub(crate) fn trim(&self) -> Result<(), Error> {
+        if self.busy.get() {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Cannot trim recording storage while in use",
+            ));
+        }
+        // Destruction-only cleanup is also legal after loss.
+        if let Some(storage) = self.idle.borrow_mut().take() {
+            unsafe { storage.destroy(&self.device) };
+        }
+        Ok(())
+    }
+}
+
+impl Drop for RecordingStorage {
+    fn drop(&mut self) {
+        debug_assert!(!self.busy.get());
+        if let Some(storage) = self.idle.get_mut().take() {
+            unsafe { storage.destroy(&self.device) };
+        }
+    }
+}
+
+struct StorageLease(Rc<RecordingStorage>);
+impl Drop for StorageLease {
+    fn drop(&mut self) {
+        self.0.busy.set(false);
+    }
 }
 
 // Experimental policy, not a native-byte budget: the driver owns pool allocation.
@@ -504,17 +573,24 @@ impl SubmissionResources {
     fn recycle(&mut self) -> vk::VkResult {
         let d = &self.device;
         if d.lost.get()
-            || !self.cache_eligible()
-            || d.command_storage.borrow().len() == MAX_CACHED_STORAGE
+            || (self.storage.is_none()
+                && (!self.cache_eligible()
+                    || d.command_storage.borrow().len() == MAX_CACHED_STORAGE))
         {
             return vk::VkResult_VK_SUCCESS;
         }
         let status = unsafe { (d.f.vkResetCommandPool.unwrap())(d.handle, self.pool, 0) };
         if status == vk::VkResult_VK_SUCCESS {
-            d.command_storage.borrow_mut().push(CommandStorage {
+            let empty = CommandStorage {
                 pool: std::mem::replace(&mut self.pool, ptr::null_mut()),
                 command: std::mem::replace(&mut self.command, ptr::null_mut()),
-            });
+            };
+            if let Some(lease) = &self.storage {
+                debug_assert!(lease.0.idle.borrow().is_none());
+                *lease.0.idle.borrow_mut() = Some(empty);
+            } else {
+                d.command_storage.borrow_mut().push(empty);
+            }
         }
         if status == vk::VkResult_VK_ERROR_DEVICE_LOST {
             status
@@ -614,7 +690,12 @@ impl Completion {
                     ),
                 )?;
             }
-            if resources.cache_eligible() {
+            if let Some(lease) = &resources.storage {
+                if let Some(storage) = lease.0.idle.borrow_mut().take() {
+                    resources.pool = storage.pool;
+                    resources.command = storage.command;
+                }
+            } else if resources.cache_eligible() {
                 if let Some(storage) = d.command_storage.borrow_mut().pop() {
                     resources.pool = storage.pool;
                     resources.command = storage.command;

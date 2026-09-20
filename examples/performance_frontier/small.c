@@ -16,7 +16,7 @@
 #include "../compiler/transform.generated.h"
 #include <errno.h>
 
-enum { ELEMENTS = 65, GUARD_WORDS = 16, WORDS = ELEMENTS + 2 * GUARD_WORDS, MAX_SLOTS = 3 };
+enum { ELEMENTS = 65, GUARD_WORDS = 16, WORDS = ELEMENTS + 2 * GUARD_WORDS, MAX_SLOTS = 5 };
 static const uint32_t sentinel = UINT32_C(0xcafef00d);
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "Frontier check line %d: %s\n", __LINE__, #x); return 0; } } while (0)
 #ifndef FRONTIER_NATIVE
@@ -32,6 +32,7 @@ typedef struct {
     OgpuBuffer *buffer;
     OgpuBatch *batch;
     OgpuCompletion *completion;
+    OgpuRecordingStorage *storage;
 #endif
     TransformArguments root;
     unsigned submitted, sample_index;
@@ -126,7 +127,8 @@ static int record_slot(Context *c, Slot *s) {
         VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT);
     VK_TRY(n->vkEndCommandBuffer(b->command));
 #else
-    API(ogpu_batch_create(c->device, &s->batch, &c->error));
+    if (s->storage) { API(ogpu_batch_create_in(s->storage, &s->batch, &c->error)); }
+    else { API(ogpu_batch_create(c->device, &s->batch, &c->error)); }
     for (unsigned i = 0; i < c->dispatches; ++i) {
         API(ogpu_batch_barrier(s->batch, OGPU_ACCESS_COMPUTE_WRITE,
             OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &c->error));
@@ -189,6 +191,7 @@ static void destroy(Context *c) {
         native_buffer_destroy(&c->native, &c->slots[i].buffer);
 #else
         ogpu_batch_destroy(c->slots[i].batch);
+        ogpu_recording_storage_destroy(c->slots[i].storage);
         ogpu_buffer_destroy(c->slots[i].buffer);
 #endif
     }
@@ -230,6 +233,9 @@ static int create(Context *c) {
 #else
         API(ogpu_buffer_create(c->device, sizeof(data), OGPU_MEMORY_HOST, &s->buffer, &c->error));
         API(ogpu_buffer_device_address(s->buffer, &address, &c->error));
+        if (!strcmp(c->policy, "owned")) {
+            API(ogpu_recording_storage_create(c->device, &s->storage, &c->error));
+        }
 #endif
         for (unsigned i = 0; i < WORDS; ++i) data[i] = i < GUARD_WORDS || i >= GUARD_WORDS + ELEMENTS
             ? sentinel : initial(j, i - GUARD_WORDS);
@@ -281,12 +287,13 @@ int main(int argc, char **argv) {
     if (argc != 6) { fprintf(stderr, "Usage: small policy slots dispatches frames validate|measure\n"); return 1; }
     Context c = {0}; c.policy = argv[1]; c.count = number(argv[2]); c.dispatches = number(argv[3]);
     unsigned count = number(argv[4]); int validate = !strcmp(argv[5], "validate");
-    if ((c.count != 1 && c.count != 3) || (c.dispatches != 1 && c.dispatches != 64) || !count
+    if ((c.count != 1 && c.count != 3 && c.count != 5)
+        || (c.dispatches != 1 && c.dispatches != 64 && c.dispatches != 129 && c.dispatches != 512) || !count
         || (!validate && strcmp(argv[5], "measure"))) return 1;
 #ifdef FRONTIER_NATIVE
     if (strcmp(c.policy, "fresh") && strcmp(c.policy, "reset") && strcmp(c.policy, "replay")) return 1;
 #else
-    if (strcmp(c.policy, "ogpu")) return 1;
+    if (strcmp(c.policy, "ogpu") && strcmp(c.policy, "owned")) return 1;
 #endif
     Frame *frames = calloc(count > 100 ? count : 100, sizeof(*frames));
     if (!frames) return 1;

@@ -63,6 +63,19 @@ Outputs are not auto-deleted. This small suite needs tens of MB, not M1's large
 intermediate dumps. New strategies must be labeled rather than silently replacing
 one of these controls. Streaming learned-image uses the distinct control below.
 
+## Explicit recording-storage comparison
+
+`python3 examples/performance_frontier/run.py --storage` selects a separate fixed
+matrix (report schema 2): one/five slots, 64/129/512 dispatches, native fresh/reset/
+replay, OGPU device cache and explicit `owned` storage. Add `--software` for 64-frame
+correctness-only controls or `--check` for host builds/tests. The existing exporter
+accepts both schemas and rejects incomplete matrices. The original schema-1 matrix
+is unchanged. See [the ABI-14 protocol](../../docs/recording-storage.md).
+
+The extended matrix has 90,000 measured samples, 30 full correctness runs and 30
+separate allocation controls. It deliberately crosses the cache's admission cutoff;
+it does not establish driver-private-byte equality or implement executable replay.
+
 ## Streaming learned-image
 
 ```sh

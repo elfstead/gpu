@@ -33,8 +33,15 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def order(round_index):
-    return POLICIES[round_index % 4:] + POLICIES[:round_index % 4]
+def order(round_index, policies=POLICIES):
+    return policies[round_index % len(policies):] + policies[:round_index % len(policies)]
+
+
+def matrix(schema):
+    if schema == 1:
+        return (1, 3), (1, 64), POLICIES
+    require(schema == 2, "unknown matrix schema")
+    return (1, 5), (64, 129, 512), (*POLICIES, "owned")
 
 
 def parse(stdout, policy, slots, dispatches, count, validate):
@@ -93,7 +100,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--software", action="store_true", help="64-frame validated controls only; no timing")
+    parser.add_argument("--storage", action="store_true", help="explicit owner versus cache, including oversized recordings and five slots")
     args = parser.parse_args()
+    schema = 2 if args.storage else 1
+    slot_counts, dispatch_counts, policies = matrix(schema)
     environment = os.environ.copy()
     environment["LD_LIBRARY_PATH"] = str(ROOT / "target/release") + ":" + environment.get("LD_LIBRARY_PATH", "")
     build(environment)
@@ -111,7 +121,7 @@ def main():
                     "examples/compiler/transform.generated.h", "examples/compiler/transform.slang",
                     "examples/learned_image/native.c", "examples/learned_image/native_workload.h", "examples/learned_image/extent.h",
                     "include/ogpu.h", "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h")
-    report = dict(schema=1, scope="small dependent compute; strategy comparison, not isolated API overhead",
+    report = dict(schema=schema, scope="small dependent compute; explicit storage comparison" if args.storage else "small dependent compute; strategy comparison, not isolated API overhead",
                   revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                   dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)),
                   sources={name: digest(ROOT / name) for name in source_names},
@@ -121,6 +131,9 @@ def main():
                   software=args.software, validation=[], timing=[], memory=[], complete=False)
     for path in sorted((ROOT / "examples/learned_image/generated").glob("*.h")):
         report["sources"][str(path.relative_to(ROOT))] = digest(path)
+    if args.storage:
+        for path in sorted((ROOT / "crates/ogpu/src").glob("*.rs")):
+            report["sources"][str(path.relative_to(ROOT))] = digest(path)
     def save():
         (destination / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
     save()
@@ -128,7 +141,7 @@ def main():
     def invoke(policy, slots, dispatches, count, validate, env, label):
         nonlocal identity
         output = destination / label; output.mkdir()
-        binary = "ogpu" if policy == "ogpu" else "native"
+        binary = "ogpu" if policy in ("ogpu", "owned") else "native"
         completed = subprocess.run([str(BUILD / binary), policy, str(slots), str(dispatches), str(count),
                                     "validate" if validate else "measure"], env=env, capture_output=True, text=True)
         (output / "stdout.txt").write_text(completed.stdout); (output / "stderr.txt").write_text(completed.stderr)
@@ -145,9 +158,9 @@ def main():
     traced["OGPU_TRACE_LOADER"] = environment.get("OGPU_VULKAN_LIBRARY", "libvulkan.so.1")
     traced["OGPU_VULKAN_LIBRARY"] = str(BUILD / "trace-memory.so")
     signatures = {}
-    for slots in (1, 3):
-        for dispatches in (1, 64):
-            for policy in POLICIES:
+    for slots in slot_counts:
+        for dispatches in dispatch_counts:
+            for policy in policies:
                 row, stderr = invoke(policy, slots, dispatches, 64 if args.software else 1000, True, traced,
                                      f"validation-{slots}-{dispatches}-{policy}")
                 memory = bench.parse_memory(stderr)
@@ -161,18 +174,18 @@ def main():
     if not args.software:
         timing = compare_native.timing_environment(environment)
         for round_index in range(3):
-            for slot_index, slots in enumerate((1, 3)):
-                for dispatch_index, dispatches in enumerate((1, 64)):
-                    for policy in order(round_index + slot_index * 2 + dispatch_index):
+            for slot_index, slots in enumerate(slot_counts):
+                for dispatch_index, dispatches in enumerate(dispatch_counts):
+                    for policy in order(round_index + slot_index * len(dispatch_counts) + dispatch_index, policies):
                         row, _ = invoke(policy, slots, dispatches, 1000, False, timing,
                                         f"timing-{round_index}-{slots}-{dispatches}-{policy}")
                         row["round"] = round_index; row["statistics"] = summary(row["frames"])
                         report["timing"].append(row); save()
                         print(f"Timed r{round_index} {slots}/{dispatches} {policy}: {row['result']['wall_ms']:.3f} ms / 1000 frames", flush=True)
         # Separate timing-mode traces: same warmup/final-only validation, no traced timing claim.
-        for slots in (1, 3):
-            for dispatches in (1, 64):
-                for policy in POLICIES:
+        for slots in slot_counts:
+            for dispatches in dispatch_counts:
+                for policy in policies:
                     row, stderr = invoke(policy, slots, dispatches, 1000, False, traced,
                                          f"memory-{slots}-{dispatches}-{policy}")
                     row.pop("frames")

@@ -1032,6 +1032,55 @@ unsafe fn unsupported_create<T>(out: *mut *mut T, error: *mut OgpuError) -> Ogpu
     }
 }
 
+// Optional ABI-14 experiment. No unvalidated native allocator reuse is implied.
+pub enum OgpuRecordingStorage {}
+fn unsupported_storage() -> Error {
+    fail(
+        UNSUPPORTED,
+        "Explicit recording storage is not implemented on Metal",
+    )
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_recording_storage_create(
+    device: *mut OgpuDevice,
+    out: *mut *mut OgpuRecordingStorage,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(device)?;
+            Err(unsupported_storage())
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_recording_storage_trim(
+    storage: *mut OgpuRecordingStorage,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(storage)?;
+            Err(unsupported_storage())
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_recording_storage_destroy(_storage: *mut OgpuRecordingStorage) {}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_create_in(
+    storage: *mut OgpuRecordingStorage,
+    out: *mut *mut OgpuBatch,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        create(out, error, || {
+            required(storage)?;
+            Err(unsupported_storage())
+        })
+    }
+}
+
 macro_rules! unsupported_call {
     ($name:ident($($arg:ident: $ty:ty),* $(,)?)) => {
         #[no_mangle]

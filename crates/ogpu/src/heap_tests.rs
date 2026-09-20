@@ -416,7 +416,8 @@ fn gpu_heaps() {
         assert_eq!(d.command_storage.borrow().len(), 2);
         // Reuse the reset storage with different real heaps, then release those heaps
         // while their consumed batch/receipt survive. Validation covers reserved ranges.
-        for _ in 0..4 {
+        let storage = Rc::new(RecordingStorage::new(d.clone()).unwrap());
+        for explicit in [false, false, true, true] {
             let mut replacement_images = Rc::new(ImageHeap::new(d.clone(), 1).unwrap());
             Rc::get_mut(&mut replacement_images)
                 .unwrap()
@@ -427,13 +428,20 @@ fn gpu_heaps() {
                 .unwrap()
                 .write(0, &[desc])
                 .unwrap();
-            let mut replacement = Batch::new(d.clone()).unwrap();
+            let mut replacement = if explicit {
+                Batch::new_in(storage.clone()).unwrap()
+            } else {
+                Batch::new(d.clone()).unwrap()
+            };
             replacement.bind_images(replacement_images.clone()).unwrap();
             replacement
                 .bind_samplers(replacement_samplers.clone())
                 .unwrap();
             let mut done = unsafe { replacement.submit().unwrap() };
-            assert_eq!(d.command_storage.borrow().len(), 1);
+            assert_eq!(
+                d.command_storage.borrow().len(),
+                if explicit { 2 } else { 1 }
+            );
             done.wait().unwrap();
             assert_eq!(d.command_storage.borrow().len(), 2);
             Rc::get_mut(&mut replacement_images)
@@ -451,6 +459,7 @@ fn gpu_heaps() {
             assert!(weak_images.upgrade().is_none() && weak_samplers.upgrade().is_none());
             assert!(done.poll().unwrap());
         }
+        storage.trim().unwrap();
         gate.completion = None;
         // Force the noncoherent maintenance path on this coherent-capable device;
         // the injected error occurs after copying live bytes and is terminal per heap.
