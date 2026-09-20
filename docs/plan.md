@@ -16,8 +16,7 @@ allowed when evidence exposes a better API alternative; compatibility is not a v
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
 Metal compute backend. The language-neutral C boundary is now **ABI 15**, adding
 optional immutable command lists on Vulkan after ABI 14's explicit recording-storage
-ownership; ABI 13 relaxed retirement
-to allow bounded empty command storage. The bounded macOS arm64
+ownership; ABI 13 relaxed retirement to allow bounded empty command storage. The bounded macOS arm64
 compute/GGML path was verified at ABI 12; Metal remains destruction-based and is
 not natively revalidated for this revision (new owner/list calls return UNSUPPORTED).
 The validated Metal branch is merged
@@ -31,8 +30,8 @@ from one source revision. No release/tag or cross-version stability is implied.
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
-| Performance | M1 matched-policy learned-image medians within about 1.14% of native; ABI-13 storage reuse brings small-compute wall ratios to 0.994–1.050 of native reset | Workload/policy-specific Radeon evidence, not approval of the fundamental API, isolated overhead or equal total memory budgets |
-| Validation | RX 5700 XT / RADV and llvmpipe; historical Apple M4 compute/GGML acceptance; 38 Linux ordinary tests and 749 ABI layout checks | Metal has no ABI-14 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
+| Performance | ABI-15 fixed-command replay cuts repeated host work about 88% at 512 dispatches; compiled/native-replay wall ratios 0.967–1.044 | Replay does not win every throughput case; not approval of the fundamental API or equal total memory budgets |
+| Validation | 25 GPU tests on each Linux driver, 38 ordinary tests, 749 ABI checks, independent installed consumer; historical Apple M4 compute/GGML acceptance | Metal has no ABI-15 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -110,14 +109,23 @@ removes the cache's admission cutoff and adds caller-driven trim; wall ratios ar
 0.991–1.037 of native reset in the six selected cases. Retain it as the preferred
 controllable candidate and the device cache as a convenience/comparison path.
 
-The [reusable executable experiment](command-lists.md) now implements copied roots versus mutable
-pointed-to data, retained objects/heaps between executions, storage ownership and
-per-submission errors. Replay is untimed; timing needs a separate ownership design.
-Acceptance measurements are next; native replay remains the stronger control. Separately
-investigate the current CPU step/root buffering versus direct recording into owned
-storage; the measured host gap is not established as unavoidable API overhead.
-No fixed native-byte budget, unique best owner ergonomics or other audit item is
-settled by the explicit-storage result. Do not widen unrelated surface yet.
+The [reusable executable result](command-list-results.md) is accepted at `ae69055`
+(ABI 15): 72,000 timing samples, 24,000 Radeon/1,536 software correctness frames,
+mixed compute/render replay and an independent SDK consumer on both drivers.
+At 512 dispatches, host record/submit falls from 112–122 µs to 13–14 µs, near
+native replay's 13 µs. Compiled/native-replay wall ratios are 0.967–1.044; replay
+loses to re-recording in the five-slot/64-dispatch case. Retain both strategies.
+Fixed-command replay is now expressible, with copied roots, mutable pointed-to
+data, persistent ownership and independent receipts. This closes that bounded
+P2 experiment, not the complete performance gate or final owner ergonomics.
+
+Next execute the [P3 direct-access/range brief](mapped-streaming-review.md): native
+controls separate CPU copying from whole-buffer exclusion under explicit storage/
+latency budgets, before selecting a new public mapping/range contract. Replay
+timing and changing roots/dimensions remain separate open P2 questions. Direct
+encoding/vector optimization is optional backend work, not the next API milestone.
+No fixed native-byte budget or other audit item is settled. Do not widen unrelated
+surface or treat this result as stabilization.
 
 ## Following milestone: M2 — programming/compiler contract
 

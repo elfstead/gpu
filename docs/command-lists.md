@@ -5,6 +5,10 @@ capacity cliff, but did not expose native executable reuse. This experiment asks
 whether an immutable executable is a better API alternative for repeated work.
 It is not a stable interface or a claim that every workload should use replay.
 
+The [accepted local result](command-list-results.md) retains the candidate after
+native-replay comparison, concurrent-use/lifetime checks and mixed/installed-C
+execution. Timing and mutable-command variants remain separate questions.
+
 ## Contract
 
 ```c

@@ -554,6 +554,32 @@ unavoidable API work. Native replay still saves substantial host work; similar
 multi-slot throughput does not settle that question. No native Metal validation,
 exact byte budget or general Vulkan parity is claimed.
 
+## Immutable executable replay — 2026-09-20
+
+At `ae69055` (ABI 15), the [command-list experiment](command-lists.md) exposes
+compile-once/submit-many with persistent recorded ownership, independent receipts,
+simultaneous in-flight uses and explicit retry/poison/loss rules. Timed compilation
+and Metal compilation are unsupported; no implicit fallback or native Mac claim.
+
+The [accepted result](command-list-results.md) retains 72,000 timing samples,
+24,000 Radeon/1,536 llvmpipe correctness frames and 192 compiled mixed-image frames
+per driver. Twenty-five runtime GPU tests on each driver and relocated SDK C
+consumers cover ownership between uses, gated concurrent execution, mutable data,
+early destruction, heap exclusion and failure cleanup. Host tests, bindings,
+749 ABI values and loader mocks pass.
+
+At 512 dispatches, OGPU repeated host work falls about 88%, from 112–122 µs to
+13–14 µs versus native replay's 13 µs. Compiled/native-replay wall ratios span
+0.967–1.044. Replay loses throughput to re-recording in the five-slot/64-dispatch
+case on both sides; retain both strategies. All tracked application allocations
+are freed, but native command-memory/CPU-vector budgets are not equated.
+
+Fixed-command replay is now expressible, not a universal native-parity proof.
+Next probe P3's copy-only host access and whole-buffer exclusion with separate
+native controls under [declared storage/latency constraints](mapped-streaming-review.md).
+Do not keep this bounded P2 result open for unrelated tuning; mutable command
+variants and per-execution timing remain explicitly unresolved.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

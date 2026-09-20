@@ -120,3 +120,8 @@ ABI 14 follow-up: [explicit recording storage](recording-storage.md) and its
 release without the cache admission cutoff. Keep explicit ownership as a preferred
 candidate and the cache as a convenience/control. Executable replay is next; these
 results do not choose a stable final storage surface or establish a native-byte budget.
+
+ABI 15 follow-up: [immutable command lists](command-lists.md) and the
+[accepted replay result](command-list-results.md) add fixed-command encode-once
+execution with persistent ownership. This closes that specific replay restriction,
+not timing/command mutation, final ergonomics or the wider performance audit.

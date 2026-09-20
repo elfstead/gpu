@@ -1,0 +1,52 @@
+Reusable command lists — local validation, 2026-09-20
+Implementation: ae69055231ed498ee6685345ea686daf9597f60c; ABI 15.
+
+All four exported GPU reports identify clean implementation source and runtime
+SHA-256 2cfb727d95e494391eb8aeb4a58708a42e8bb847cecad54e4f48ea3d827a3493.
+Radeon: RX 5700 XT / RADV, Mesa 26.2.1, Vulkan 1.4.354.
+Software: llvmpipe LLVM 21.1.8, Vulkan 1.4.354.
+Host: Ryzen 9 5900X; Linux 6.18.47. No pinned clocks/affinity or exclusive host.
+Tool environment: /tmp/ogpu-libplacebo-env.sh (Rust 1.97.1, clang 21).
+ICDs: /run/opengl-driver/share/vulkan/icd.d/{radeon,lvp}_icd.x86_64.json.
+Vulkan loader/layer paths are retained in each report.
+
+PASS: cargo test --workspace: 38 ordinary tests (25 GPU tests ignored).
+PASS: cargo clippy --workspace --all-targets -- -D warnings.
+PASS: cargo fmt --all -- --check; git diff --check.
+PASS: cargo xtask bindings --check; cargo xtask abi (749 values); cargo xtask mock.
+PASS: cargo xtask gpu-tests, 25 tests on EACH driver, synchronization validation.
+PASS: frontier host tests (8 runner, 4 streaming), native failure/oracle checks.
+PASS: run.py --replay, Radeon: 24 correctness / 72 timing / 24 allocation processes.
+PASS: run.py --replay --software, llvmpipe: 24 correctness processes.
+PASS: stream.py --software --compiled, BOTH drivers: 3 x 64 correctness frames.
+PASS: installed C consumer, default/explicit-owner/replay on BOTH drivers.
+
+SDK: /tmp/ogpu-sdk-replay-ae69055, clean source, ABI 15, matching revision.
+Built release for explicit x86_64-unknown-linux-gnu; binary differs from the
+implicit-host-target benchmark build, not from a different source revision.
+SDK library SHA-256: eadccff7b4665d8ad2df78c25ad821d8416bff88ce37a5b60401ccb8c656efdf
+SDK manifest SHA-256: 5361055b0f12eaca858a1887f2f598574183e8d70bae99f426f1e343e0c2e08c
+Relocated apps: /tmp/ogpu-external-wn564ajp (Radeon), /tmp/ogpu-external-7qfi0xpo (llvmpipe).
+Checks include installed hashes/revision/ABI, pkg-config/space-containing paths,
+actual relocated runtime linkage, absent-loader rejection, exact transform/guards,
+partial upload, copied root and early device/storage/list destruction.
+
+Retained local logs and SHA-256:
+/tmp/ogpu-replay-host.log bc0f849960afffe2fd6e8697884e2426ef3a703cd91d575815e45fab70e41751
+/tmp/ogpu-replay-radv-final.log 68855421db55d4cb66dc6b3c5105f08a9ea3afbedb23dac41cb68a59e3c0848e
+/tmp/ogpu-replay-lvp-final.log bf70ced89ef36cffe5011958188fc078f0ab1680d17f00c47d7d975278bf04c2
+/tmp/ogpu-replay-mock.log 38e5fc30975f66f966c9dfacec36572343e60f744ae23c3acfedc18f829363f4
+/tmp/ogpu-replay-clippy.log 90a1d3d46e0e053582c065b1668e42747bea6d83368c8e6963c0459d227dc67e
+/tmp/ogpu-replay-install.log 76331892a5d201977827af77513b36eb4bc759c5b7e25a7cb9e94163759e9d2d
+/tmp/ogpu-replay-sdk-radv.log 1e5c3c7a2a2c949a6b56bf4c6b3d10c7cb4382a3aafc320020813d9b9e2ea649
+/tmp/ogpu-replay-sdk-lvp.log 24a71e7fc32590e2162170557149bfec3e14a06e65fcd777105f56fdbf3f95cc
+
+Raw run folders under target/performance-frontier/:
+small-44jy6ra_ (Radeon), small-c7lnxhlf (llvmpipe),
+stream-2mzib6b7 (Radeon mixed), stream-2b_sr8wt (llvmpipe mixed).
+Compact reports and raw timing CSV committed alongside this receipt; exporters
+rechecked matrix completeness, log/source/fixture hashes, statistics and traces.
+
+No real device loss, Metal execution/cross-check, GGML/libplacebo rerun, video-scale
+mixed replay timing, equal total command-memory budget or universal parity claim.
+Synthetic failure tests only report loss after real work is safe to release.

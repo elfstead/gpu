@@ -140,3 +140,14 @@ in six new cases). Keep explicit ownership as a candidate, not a final byte-budg
 or arena/handle design. P2 now selects reusable executable recordings and examines
 the prototype's remaining CPU buffering separately. The native replay advantage
 in host work is still relevant even where GPU-heavy throughput is similar.
+
+ABI 15's [command-list result](command-list-results.md) demonstrates encode-once
+execution for fixed roots/addresses/launches with mutable pointed-to data. At 512
+dispatches, OGPU host record/submit falls about 88%, to 13–14 µs versus native
+replay's 13 µs. Native replay remains the baseline: compiled wall ratios span
+0.967–1.044 and replay loses to re-recording in one case. Keep both strategies.
+This resolves the fixed-command restriction in P2, not timed replay, changing
+commands, final handle ergonomics, equal native memory budgets or any other P item.
+The [next bounded probe](mapped-streaming-review.md) isolates P3's CPU copying
+and whole-buffer exclusion before selecting a mapping/range surface. Backend
+step-vector tuning is separate from that contract decision.
