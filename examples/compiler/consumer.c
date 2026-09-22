@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define REQUIRE(c) do { if (!(c)) { fprintf(stderr, "Check failed at %d: %s\n", __LINE__, #c); goto cleanup; } } while (0)
 #define TRY(op) do { OgpuResult s = (op); if (s != OGPU_SUCCESS) { \
@@ -12,12 +13,15 @@ int main(void) {
     OgpuProbe *probe = NULL;
     OgpuDevice *device = NULL;
     OgpuBuffer *buffer = NULL;
+    OgpuBuffer *denied = NULL;
     OgpuKernel *kernel = NULL;
     OgpuBatch *batch = NULL;
     OgpuCompletion *done = NULL;
     OgpuRecordingStorage *storage = NULL;
     OgpuCommandList *list = NULL;
-    const int replay = getenv("OGPU_EXAMPLE_REPLAY") != NULL;
+    const int views = getenv("OGPU_EXAMPLE_HOST_VIEW") != NULL;
+    const int replay = views || getenv("OGPU_EXAMPLE_REPLAY") != NULL;
+    OgpuHostView view = {0};
     const int explicit_storage = replay || getenv("OGPU_EXAMPLE_RECORDING_STORAGE") != NULL;
     OgpuError error = {0};
     const uint32_t count = 4099, guard = 0xa55adeadu;
@@ -74,7 +78,28 @@ int main(void) {
     REQUIRE(expected && actual);
     expected[0] = expected[count + 1] = guard;
     for (uint32_t i = 0; i < count; ++i) expected[i + 1] = i;
-    TRY(ogpu_buffer_write(buffer, 0, expected, bytes, &error));
+    if (views) {
+        memset(&view, 0xff, sizeof(view));
+        REQUIRE(ogpu_buffer_host_view(NULL, &view, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+        REQUIRE(!view.data && !view.size_bytes && !view.alignment && !view.access_granularity && !view.coherent);
+        TRY(ogpu_buffer_create(device, 16, OGPU_MEMORY_DEVICE, &denied, &error));
+        REQUIRE(ogpu_buffer_host_view(denied, &view, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+        REQUIRE(!view.data && !view.size_bytes);
+        REQUIRE(ogpu_buffer_host_flush(denied, 0, 0, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+        ogpu_buffer_destroy(denied); denied = NULL;
+        REQUIRE(ogpu_buffer_host_view(buffer, NULL, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+        TRY(ogpu_buffer_host_view(buffer, &view, &error));
+        REQUIRE(view.data && view.size_bytes == bytes && view.alignment && view.access_granularity);
+        REQUIRE(view.coherent <= 1);
+        REQUIRE((uintptr_t)view.data % view.alignment == 0);
+        REQUIRE(ogpu_buffer_host_flush(buffer, bytes, 1, &error) == OGPU_ERROR_OUT_OF_RANGE);
+        REQUIRE(ogpu_buffer_host_invalidate(buffer, UINT64_MAX, 2, &error) == OGPU_ERROR_OUT_OF_RANGE);
+        TRY(ogpu_buffer_host_flush(buffer, bytes, 0, &error));
+        uint32_t *words = view.data;
+        words[0] = words[count + 1] = guard;
+        for (uint32_t i = 0; i < count; ++i) words[i + 1] = i;
+        TRY(ogpu_buffer_host_flush(buffer, 0, bytes, &error));
+    } else { TRY(ogpu_buffer_write(buffer, 0, expected, bytes, &error)); }
     TransformArguments args = {0};
     TRY(ogpu_buffer_device_address(buffer, &args.arg_data, &error));
     args.arg_data += sizeof(uint32_t);
@@ -82,7 +107,11 @@ int main(void) {
     for (unsigned pass = 0; pass < 3; ++pass) {
         if (pass == 2) {
             expected[2] = 123;
-            TRY(ogpu_buffer_write(buffer, 2 * sizeof(uint32_t), &expected[2], sizeof(uint32_t), &error));
+            if (views) {
+                TRY(ogpu_buffer_host_invalidate(buffer, 2 * sizeof(uint32_t), sizeof(uint32_t), &error));
+                ((uint32_t *)view.data)[2] = expected[2];
+                TRY(ogpu_buffer_host_flush(buffer, 2 * sizeof(uint32_t), sizeof(uint32_t), &error));
+            } else { TRY(ogpu_buffer_write(buffer, 2 * sizeof(uint32_t), &expected[2], sizeof(uint32_t), &error)); }
         }
         if (!replay || pass == 0) {
             if (explicit_storage) {
@@ -124,12 +153,15 @@ int main(void) {
         ogpu_completion_destroy(done); done = NULL;
         ogpu_batch_destroy(batch); batch = NULL;
         for (uint32_t i = 0; i < count; ++i) expected[i + 1] = expected[i + 1] * 3u + 7u;
-        TRY(ogpu_buffer_read(buffer, 0, actual, bytes, &error));
-        for (uint32_t i = 0; i < count + 2; ++i) REQUIRE(actual[i] == expected[i]);
+        if (views) { TRY(ogpu_buffer_host_invalidate(buffer, 0, bytes, &error)); }
+        else { TRY(ogpu_buffer_read(buffer, 0, actual, bytes, &error)); }
+        const uint32_t *output = views ? view.data : actual;
+        for (uint32_t i = 0; i < count + 2; ++i) REQUIRE(output[i] == expected[i]);
     }
     printf("Compiler consumer PASS: %u integers, three passes, guards, partial upload, parent destruction; root=%zu local=%u\n",
         count, sizeof(args), transform_local[0]);
     result = EXIT_SUCCESS;
+    if (views) puts("Borrowed host view: direct produce/consume, partial update, placement/range/output rejection PASS");
     if (replay) puts("Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS");
     else if (explicit_storage) puts("Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS");
 cleanup:
@@ -139,6 +171,7 @@ cleanup:
     ogpu_recording_storage_destroy(storage);
     ogpu_kernel_destroy(kernel);
     ogpu_buffer_destroy(buffer);
+    ogpu_buffer_destroy(denied);
     ogpu_device_destroy(device);
     ogpu_probe_destroy(probe);
     free(expected); free(actual);

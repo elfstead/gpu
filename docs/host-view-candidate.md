@@ -1,8 +1,8 @@
 # Candidate: borrowed host views and explicit range visibility
 
 Selected 2026-09-22 by the [native host-access result](host-access-results.md).
-**Design for the next implementation, not an available or stable API.** Runtime
-ABI remains 15 until a tested public change is committed.
+Implemented as an **ABI-16 experiment, not a stable API**. Acceptance comparison
+is pending. Vulkan exposes views; Metal returns UNSUPPORTED for the optional calls.
 
 ## Smallest proposed shape
 
@@ -10,7 +10,13 @@ Keep `OgpuBuffer` as the owner. For HOST placement, expose a borrowed view with 
 stable CPU pointer, logical byte length and independent-access granularity. Add
 explicit range publication and invalidation operations; working names are
 `ogpu_buffer_host_view`, `ogpu_buffer_host_flush` and `ogpu_buffer_host_invalidate`.
-Exact declarations/layout and pointer-alignment guarantee belong in the ABI review.
+`OgpuHostView` contains `data`, `size_bytes`, `alignment`, `access_granularity` and `coherent`.
+Alignment is the backend-guaranteed base-pointer alignment in bytes; granularity
+is 1 for coherent storage or the noncoherent cache atom. See the checked C header.
+The explicit 0/1 coherence flag permits omission of cache calls on coherent storage;
+granularity alone cannot distinguish a hypothetical noncoherent one-byte atom.
+Submission/completion and race-free host accesses remain necessary. Requiring
+redundant no-op calls would itself exclude a native optimization.
 Do not expose Vulkan memory handles or memory-type indices.
 
 The view borrows rather than creating another owner or a dynamically exclusive
@@ -64,13 +70,16 @@ no-ops, but retain the synchronization obligations.
 
 Required invalid pointers/ranges must not publish or invalidate anything. Clear
 new view outputs on failure; a failed query must not expose a usable pointer.
-Specify zero-length operations, endpoint ranges, placement rejection and sticky
-device loss consistently with existing buffer calls.
+Zero-length ranges are validated no-ops, including offset equal to logical size.
+DEVICE placement rejects even empty operations; loss is sticky, including empty
+operations and view queries. Invalid/range failures occur before native cache calls.
 
 A failed flush does not roll back application stores; it does not establish the
 promised visibility. A failed invalidate grants no read permission. Do not infer
-safe completion from either. Define retry versus terminal/poisoned outcomes before
-implementation; unknown backend errors must not become successful visibility.
+safe completion from either. Non-loss failures may be retried over the complete
+affected range, with no dependent access until successful. An unknown error is
+still a failure, never visibility evidence; retry requires a successful subsequent
+operation. Native cache operations do not destroy/rebind allocation ownership.
 Already returned C pointers cannot be revoked mechanically: loss/error obligations
 are caller contracts, not a promise of memory-safe sandboxing.
 
@@ -103,3 +112,40 @@ unified HOST/DEVICE placement or implicit hazard tracker is unnecessary here.
 
 Stop with that evidence and a contract decision. Do not expand into host-parallel
 recording, DEVICE mapping or general allocation management to complete this step.
+
+## Implemented protocol
+
+Copy helpers remain whole-buffer operations to preserve their existing cross-backend
+contract. They share atom-range arithmetic but do not become safe to mix with pending
+disjoint GPU uses. Publish direct writes and complete all GPU uses before calling
+copies; caller copy data must not alias backing memory. No implicit flush on destruction.
+
+Schema 2 of `host_access.py --views` preserves the native/copied policies and adds
+`ogpu-mapped` and `ogpu-shared`: 20 cases, 60 timing processes, 60,000 measured frames
+after 6,000 warmups, and 20 separate timing-mode allocation controls. Correctness
+uses 1,000 frames/case on Radeon or 64 in software mode. Old schema 1 remains
+available. Match shared and separate requested/allocated bytes and memory types;
+public shared creation rejects this fixed-budget protocol if its guarded stride
+does not divide the reported granularity, rather than silently reallocating.
+This runner restriction is not an API restriction; callers can query and size
+atom-aligned storage for other workloads.
+Both mapped controls skip cache calls when their backing is explicitly coherent.
+The installed example deliberately also checks generic cache calls on coherent
+storage, so testing that path does not make it mandatory in optimized applications.
+
+The four standalone native gate cases remain controls. `gpu_host_view_ranges`
+adds the corresponding real gated schedule inside the runtime, including live
+view queries while pending, narrow CPU rewrite and final object release. The C
+frontier and installed consumer exercise the exported view/visibility boundary.
+`gpu_host_views` covers actual backing with mocked noncoherent operations, retry,
+post-store flush failure, coherent bypass, placement/range rejection and loss.
+
+```sh
+python3 examples/performance_frontier/host_access.py --views
+python3 examples/performance_frontier/host_access.py --views --software
+python3 tools/test-install.py --prefix /new/sdk --recording-storage --replay --host-view
+```
+
+Successful view creation is the optional-feature check. No new native Metal support,
+noncoherent GPU acceptance, automatic range enforcement or stable compatibility is
+claimed. Rebuild matching headers/library/artifacts for ABI 16.

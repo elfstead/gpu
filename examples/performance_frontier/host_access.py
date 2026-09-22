@@ -19,9 +19,14 @@ POLICIES = ("native-copy", "mapped", "ogpu", "shared")
 FIELDS = ("produce_ms", "upload_ms", "submit_ms", "wait_ms", "read_ms", "consume_ms", "latency_ms")
 
 
-def matrix():
+def policies(schema=1):
+    f.require(schema in (1,2), "unknown host matrix schema")
+    return POLICIES if schema == 1 else (*POLICIES, "ogpu-mapped", "ogpu-shared")
+
+
+def matrix(schema=1):
     return tuple((slots, kib, p) for slots in (1, 2) for kib in (64, 4096)
-                 for p in POLICIES if slots == 2 or p != "shared")
+                 for p in policies(schema) if slots == 2 or p not in ("shared", "ogpu-shared"))
 
 
 def parse(stdout, slots, kib, policy, count, validate):
@@ -30,11 +35,21 @@ def parse(stdout, slots, kib, policy, count, validate):
     r = records[0]; payload = kib * 1024; span = payload + 128
     expected = dict(policy=policy, slots=slots, kib=kib, frames=count,
                     warmups=0 if validate else 100, validation=validate,
-                    staging_bytes=0 if policy in ("mapped", "shared") else slots * span)
+                    staging_bytes=0 if policy in ("mapped", "shared", "ogpu-mapped", "ogpu-shared") else slots * span)
     f.require(all(r.get(k) == v for k, v in expected.items()), "host policy mismatch")
     f.require(isinstance(r["stride"], int) and r["stride"] >= span
-              and (policy == "shared" or r["stride"] == span)
+              and (policy in ("shared", "ogpu-shared") or r["stride"] == span)
               and r["requested_bytes"] == slots * r["stride"], "invalid storage budget")
+    views = f.bench.records(stdout, "HOST_VIEW ")
+    if policy in ("ogpu-mapped", "ogpu-shared"):
+        shared = policy == "ogpu-shared"
+        f.require(len(views) == (1 if shared else slots), "missing view metadata")
+        for view in views:
+            f.require(view["size"] == (slots*r["stride"] if shared else span)
+                      and view["alignment"] > 0 and view["granularity"] > 0
+                      and view["coherent"] in (0,1), "invalid host view metadata")
+            f.require(not shared or r["stride"] % view["granularity"] == 0, "shared cache atoms")
+    else: f.require(not views, "unexpected host view metadata")
     n = payload // 4
     sums = [n * ((seed * 3 + 7) & 0xffffffff) + 51 * n * (n - 1) // 2 for seed in (1, 0x80001234)]
     f.require(count % (2 * slots) == 0 and r["checksum"] == count // 2 * sum(sums), "consumer checksum mismatch")
@@ -78,7 +93,7 @@ def build(env):
 
 def memory_check(row, stderr):
     memory = f.bench.parse_memory(stderr); result = row["result"]
-    count = 1 if result["policy"] == "shared" else result["slots"]
+    count = 1 if result["policy"] in ("shared", "ogpu-shared") else result["slots"]
     f.require(memory["allocations"] == memory["frees"] == memory["peak_count"] == count, "host allocation leak/growth")
     f.require(memory["peak_bytes"] >= result["requested_bytes"], "allocation smaller than buffers")
     row["memory"] = memory
@@ -88,9 +103,9 @@ def memory_check(row, stderr):
 
 def export(source, destination):
     report = json.loads(source.read_text())
-    f.require(report.get("schema") == 1 and report.get("complete") is True, "incomplete/unknown host report")
+    f.require(report.get("schema") in (1,2) and report.get("complete") is True, "incomplete/unknown host report")
     samples = []; signatures = {}; types = {}
-    expected = set(matrix()); count = 64 if report["software"] else 1000
+    expected = set(matrix(report["schema"])); count = 64 if report["software"] else 1000
     for section in ("validation", "timing", "memory"):
         rows = report[section]
         wanted = set() if report["software"] and section != "validation" else (
@@ -133,7 +148,7 @@ def export(source, destination):
 
 
 def check_signatures(signatures, types, result, signature):
-    key = (result["slots"], result["kib"], result["policy"] == "shared")
+    key = (result["slots"], result["kib"], result["policy"] in ("shared", "ogpu-shared"))
     f.require(signature == signatures.setdefault(key, signature), "copy/mapped allocation mismatch")
     # Shared allocation changes count/rounding, but must not change memory type.
     key = (result["slots"], result["kib"])
@@ -153,6 +168,8 @@ def checked_logs(source, row):
 def metadata_check(row, stdout):
     f.require(row["native_buffers"] == f.bench.records(stdout, "NATIVE_BUFFER ")
               and row["host_memory"] == f.bench.records(stdout, "HOST_MEMORY "), "native metadata mismatch")
+    if "host_views" in row:
+        f.require(row["host_views"] == f.bench.records(stdout,"HOST_VIEW "), "public view metadata mismatch")
 
 
 def gate_evidence(stdout, stderr, policy, kib, identity):
@@ -174,8 +191,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--software", action="store_true", help="64-frame correctness only, no speed claim")
+    parser.add_argument("--views", action="store_true", help="schema 2: include public borrowed-view separate/shared policies")
     parser.add_argument("--export", nargs=2, type=Path, metavar=("REPORT", "DESTINATION"))
     args = parser.parse_args()
+    schema = 2 if args.views else 1
     if args.export: export(*args.export); return
     env = os.environ.copy(); env["LD_LIBRARY_PATH"] = str(f.ROOT / "target/release") + ":" + env.get("LD_LIBRARY_PATH", "")
     build(env)
@@ -188,7 +207,7 @@ def main():
     sources += [f.ROOT / name for name in ("examples/learned_image/native.c", "examples/learned_image/native_workload.h", "examples/learned_image/extent.h", "examples/learned_image/trace_memory.c", "examples/learned_image/allocation_tracker.h", "examples/learned_image/benchmark.py", "examples/learned_image/compare_native.py", "examples/learned_image/run.py", "examples/compiler/transform.generated.h", "include/ogpu.h", "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h")]
     sources += sorted((f.ROOT / "crates/ogpu/src").glob("*.rs"))
     sources += sorted((f.ROOT / "examples/learned_image/generated").glob("*.h"))
-    report = dict(schema=1, scope="P3 copied/mapped application producer/consumer and separate/shared native ranges",
+    report = dict(schema=schema, scope="P3 copied/mapped application producer/consumer and separate/shared ranges",
                   revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=f.ROOT, text=True).strip(),
                   dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=f.ROOT, text=True)),
                   software=args.software, sources={str(p.relative_to(f.ROOT)):f.digest(p) for p in sources},
@@ -203,7 +222,7 @@ def main():
     count = 64 if args.software else 1000
     def invoke(slots, kib, policy, mode, environment, label):
         out = dest / label; out.mkdir()
-        binary = f.BUILD / ("host-ogpu" if policy == "ogpu" else "host-native")
+        binary = f.BUILD / ("host-ogpu" if policy.startswith("ogpu") else "host-native")
         completed = subprocess.run([str(binary), policy, str(slots), str(kib), str(count), mode],
                                    env=environment, capture_output=True, text=True, timeout=120)
         (out/"stdout.txt").write_text(completed.stdout); (out/"stderr.txt").write_text(completed.stderr)
@@ -213,6 +232,7 @@ def main():
         f.require(devices[0] == report.setdefault("identity", devices[0]), "device mismatch")
         row["native_buffers"] = f.bench.records(completed.stdout, "NATIVE_BUFFER ")
         row["host_memory"] = f.bench.records(completed.stdout, "HOST_MEMORY ")
+        row["host_views"] = f.bench.records(completed.stdout, "HOST_VIEW ")
         if mode == "gate":
             gate_evidence(completed.stdout, completed.stderr, policy, kib, report["identity"])
             row.update(kib=kib, policy=policy, trace=[line for line in completed.stderr.splitlines() if line.startswith(("ALLOCATE ", "FREE ", "MEMORY_SUMMARY "))])
@@ -226,7 +246,7 @@ def main():
         for policy in ("mapped", "shared"):
             report["gates"].append(invoke(2,kib,policy,"gate",traced,f"gate-{kib}-{policy}")); save()
             print(f"Gated {kib} KiB {policy}: range independence PASS", flush=True)
-    for slots, kib, policy in matrix():
+    for slots, kib, policy in matrix(schema):
         report["validation"].append(invoke(slots,kib,policy,"validate",traced,f"validation-{slots}-{kib}-{policy}")); save()
         print(f"Validated {slots}/{kib}/{policy}", flush=True)
     if not args.software:
@@ -234,13 +254,13 @@ def main():
         for round_index in range(3):
             for slots in (1,2):
                 for ki, kib in enumerate((64,4096)):
-                    policies = tuple(p for p in POLICIES if slots == 2 or p != "shared")
-                    for policy in f.order(round_index + slots - 1 + ki, policies):
+                    selected = tuple(p for p in policies(schema) if slots == 2 or p not in ("shared", "ogpu-shared"))
+                    for policy in f.order(round_index + slots - 1 + ki, selected):
                         row = invoke(slots,kib,policy,"measure",timing,f"timing-{round_index}-{slots}-{kib}-{policy}")
                         row["round"] = round_index; row["statistics"] = summarize(row["frames"])
                         report["timing"].append(row); save()
                         print(f"Timed r{round_index} {slots}/{kib}/{policy}: {row['result']['wall_ms']:.3f} ms", flush=True)
-        for slots,kib,policy in matrix():
+        for slots,kib,policy in matrix(schema):
             row = invoke(slots,kib,policy,"measure",traced,f"memory-{slots}-{kib}-{policy}"); row.pop("frames")
             report["memory"].append(row); save()
     report["complete"] = True; save(); print(f"Host-access PASS: {dest}")

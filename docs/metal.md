@@ -17,6 +17,10 @@ ABI 15 adds optional reusable command lists. Metal exports UNSUPPORTED stubs for
 compile/execute; default execution is unchanged. No ABI-15 native validation or
 Metal replay implementation is claimed. See the [experiment](command-lists.md).
 
+ABI 16 adds optional borrowed HOST views and range cache visibility. Metal exports
+UNSUPPORTED stubs; its copy-based buffer path is unchanged. No native ABI-16 or
+Metal cache-visibility validation is claimed. See [the experiment](host-view-candidate.md).
+
 ## Boundary and current implementation
 
 Common Rust code owns range/copy/root/dispatch checks, one-shot recording rules,

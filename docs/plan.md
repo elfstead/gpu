@@ -14,11 +14,12 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 15**, adding
-optional immutable command lists on Vulkan after ABI 14's explicit recording-storage
+Metal compute backend. The language-neutral C boundary is now **ABI 16**, adding
+optional borrowed HOST views and range visibility on Vulkan after ABI 15's
+immutable command lists and ABI 14's explicit recording-storage
 ownership; ABI 13 relaxed retirement to allow bounded empty command storage. The bounded macOS arm64
 compute/GGML path was verified at ABI 12; Metal remains destruction-based and is
-not natively revalidated for this revision (new owner/list calls return UNSUPPORTED).
+not natively revalidated for this revision (new owner/list/view calls return UNSUPPORTED).
 The validated Metal branch is merged
 into `master`. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
@@ -127,12 +128,13 @@ reuse of one range while another in the same allocation remains pending. Sharing
 saves an allocation object, not allocated bytes here. All 14 cases/four gates pass
 on Radeon and llvmpipe; 42,000 native/public comparison samples are retained.
 
-**Next implement the [borrowed host-view candidate](host-view-candidate.md)**:
+The [borrowed host-view candidate](host-view-candidate.md) is implemented for comparison:
 HOST pointer/length/granularity and explicit range flush/invalidate, with caller-
 owned lifetime/dependencies, no hidden waits or per-frame mapping lease. Add public
 mapped/separate and shared-range controls, loss/cache-failure/ownership tests and
 an installed C consumer. Copy helpers remain convenience, not the only fundamental
-host-access path. P3 remains open until public implementation acceptance.
+host-access path. P3 remains open until public implementation acceptance; matched
+native/public measurements and installed-consumer validation are next.
 
 Replay timing and changing roots/dimensions remain separate open P2 questions.
 Direct encoding/vector optimization is optional backend work. No exact command-

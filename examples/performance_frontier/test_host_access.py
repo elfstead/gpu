@@ -14,9 +14,12 @@ class HostEvidence(unittest.TestCase):
         n = 64 * 1024 // 4
         sums = [sum((i * 17 + seed) * 3 % (2**32) + 7 for i in range(n)) for seed in (1, 0x80001234)]
         result = dict(policy=policy, slots=2, kib=64, frames=4, warmups=100, validation=False,
-                      staging_bytes=0 if policy in ("mapped", "shared") else 2 * (65536+128),
+                      staging_bytes=0 if policy in ("mapped", "shared", "ogpu-mapped", "ogpu-shared") else 2 * (65536+128),
                       stride=65536+128, requested_bytes=2*(65536+128), checksum=2*sum(sums), setup_ms=1., wall_ms=4.)
-        return '\n'.join(['DEVICE {"vendor":1,"device":2,"api":[1,4,0]}', 'HOST_RESULT '+json.dumps(result),
+        views = []
+        if policy in ("ogpu-mapped", "ogpu-shared"):
+            views = ['HOST_VIEW '+json.dumps(dict(size=(131328 if policy=="ogpu-shared" else 65664), alignment=64, granularity=1, coherent=1))] * (1 if policy=="ogpu-shared" else 2)
+        return '\n'.join(['DEVICE {"vendor":1,"device":2,"api":[1,4,0]}', 'HOST_RESULT '+json.dumps(result), *views,
             *('HOST_FRAME '+json.dumps(dict(index=i, **{k:.1 if k != "latency_ms" else .7 for k in h.FIELDS})) for i in range(4)),
             'HOST_ACCESS full outputs/guards/checksums PASS; all slots drained'])
 
@@ -27,7 +30,9 @@ class HostEvidence(unittest.TestCase):
         self.assertEqual(len(h.matrix()), 14)
         self.assertEqual(len(set(h.matrix())), 14)
         self.assertNotIn((1,64,"shared"), h.matrix())
-        for p in h.POLICIES:
+        self.assertEqual(len(h.matrix(2)),20)
+        with self.assertRaises(RuntimeError): h.matrix(3)
+        for p in h.policies(2):
             _,_,rows = self.parse(self.output(p),p)
             self.assertAlmostEqual(h.summarize(rows)["cpu_access_ms"]["median"], .4)
 
@@ -53,7 +58,8 @@ class HostEvidence(unittest.TestCase):
     def test_incomplete_export(self):
         with tempfile.TemporaryDirectory(prefix="host-export-test-") as folder:
             root = Path(folder)
-            for report in (dict(schema=1,complete=False), dict(schema=2,complete=True),
+            for report in (dict(schema=1,complete=False), dict(schema=3,complete=True),
+                           dict(schema=2,complete=True,software=True,validation=[]),
                            dict(schema=1,complete=True,software=True,validation=[])):
                 source = root/'report.json'; source.write_text(json.dumps(report))
                 with self.assertRaises(RuntimeError): h.export(source,root/'out')

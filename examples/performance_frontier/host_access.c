@@ -14,6 +14,9 @@ typedef struct {
     uint32_t *staging[2];
     uint64_t sums[2], checksum;
     int mapped, shared;
+#ifndef FRONTIER_NATIVE
+    OgpuHostView views[2];
+#endif
 #ifdef FRONTIER_NATIVE
     VkSemaphore gate;
     PFN_vkSignalSemaphore signal;
@@ -74,6 +77,8 @@ static int sync_range(HostAccess *h, unsigned i, int flush) {
 static uint32_t *host_pointer(HostAccess *h, unsigned i) {
 #ifdef FRONTIER_NATIVE
     if (h->mapped) return (uint32_t *)((char *)backing(h, i)->mapped + byte_offset(h, i));
+#else
+    if (h->mapped) return (uint32_t *)((char *)h->views[h->shared ? 0 : i].data + (h->shared ? i * h->stride : 0));
 #endif
     return h->staging[i];
 }
@@ -81,9 +86,13 @@ static int upload(HostAccess *h, unsigned i) {
     Context *c = &h->base;
     CHECK(!c->slots[i].pending);
 #ifdef FRONTIER_NATIVE
+    if (h->mapped && backing(h, i)->coherent) return 1;
     if (!h->mapped) memcpy(backing(h, i)->mapped, h->staging[i], h->bytes);
     return sync_range(h, i, 1);
 #else
+    if (h->mapped && h->views[h->shared ? 0 : i].coherent) return 1;
+    if (h->mapped) { API(ogpu_buffer_host_flush(c->slots[h->shared ? 0 : i].buffer,
+        h->shared ? i * h->stride : 0, h->bytes, &c->error)); return 1; }
     API(ogpu_buffer_write(c->slots[i].buffer, 0, h->staging[i], h->bytes, &c->error)); return 1;
 #endif
 }
@@ -91,9 +100,13 @@ static int download(HostAccess *h, unsigned i) {
     Context *c = &h->base;
     CHECK(!c->slots[i].pending);
 #ifdef FRONTIER_NATIVE
+    if (h->mapped && backing(h, i)->coherent) return 1;
     CHECK(sync_range(h, i, 0));
     if (!h->mapped) memcpy(h->staging[i], backing(h, i)->mapped, h->bytes);
 #else
+    if (h->mapped && h->views[h->shared ? 0 : i].coherent) return 1;
+    if (h->mapped) { API(ogpu_buffer_host_invalidate(c->slots[h->shared ? 0 : i].buffer,
+        h->shared ? i * h->stride : 0, h->bytes, &c->error)); return 1; }
     API(ogpu_buffer_read(c->slots[i].buffer, 0, h->staging[i], h->bytes, &c->error));
 #endif
     return 1;
@@ -116,7 +129,7 @@ static int encode(HostAccess *h, unsigned i) {
     API(ogpu_batch_barrier(s->batch, OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &c->error));
     API(ogpu_batch_dispatch(s->batch, c->kernel, groups, 1, 1, &s->root, sizeof(s->root), &c->error));
-    API(ogpu_batch_retain_buffer(s->batch, s->buffer, &c->error));
+    API(ogpu_batch_retain_buffer(s->batch, c->slots[h->shared ? 0 : i].buffer, &c->error));
     API(ogpu_batch_compile(s->batch, &s->list, &c->error));
     ogpu_batch_destroy(s->batch); s->batch = NULL;
 #endif
@@ -159,8 +172,20 @@ static int host_create(HostAccess *h) {
         if (!h->shared || !i) CHECK(native_buffer_create(n, &s->buffer, h->shared ? c->count * h->stride : h->bytes, 1));
         address = backing(h, i)->address + byte_offset(h, i);
 #else
-        API(ogpu_buffer_create(c->device, h->bytes, OGPU_MEMORY_HOST, &s->buffer, &c->error));
-        API(ogpu_buffer_device_address(s->buffer, &address, &c->error));
+        if (!h->shared || !i) {
+            API(ogpu_buffer_create(c->device, h->shared ? c->count * h->stride : h->bytes, OGPU_MEMORY_HOST, &s->buffer, &c->error));
+            if (h->mapped) {
+                API(ogpu_buffer_host_view(s->buffer, &h->views[i], &c->error));
+                CHECK(h->views[i].data && h->views[i].alignment && h->views[i].access_granularity);
+                CHECK(h->views[i].coherent <= 1 && (uintptr_t)h->views[i].data % h->views[i].alignment == 0);
+                /* Fixed-budget protocol: reject rather than silently changing allocation count/size. */
+                CHECK(!h->shared || h->stride % h->views[i].access_granularity == 0);
+                printf("HOST_VIEW {\"size\":%" PRIu64 ",\"alignment\":%" PRIu64 ",\"granularity\":%" PRIu64 ",\"coherent\":%" PRIu64 "}\n",
+                    h->views[i].size_bytes, h->views[i].alignment, h->views[i].access_granularity, h->views[i].coherent);
+            }
+        }
+        API(ogpu_buffer_device_address(c->slots[h->shared ? 0 : i].buffer, &address, &c->error));
+        if (h->shared) address += i * h->stride;
 #endif
         if (!h->mapped) { h->staging[i] = malloc(h->bytes); CHECK(h->staging[i]); }
         s->root = (TransformArguments){.arg_data=address + GUARD_WORDS * 4, .arg_count=h->elements};
@@ -297,7 +322,9 @@ int main(int argc, char **argv) {
     h.mapped = strcmp(policy, "native-copy") != 0; h.shared = !strcmp(policy, "shared"); c->policy = "replay";
     if ((h.shared && c->count != 2) || (gate && (!h.mapped || c->count != 2))) return 1;
 #else
-    if (strcmp(policy, "ogpu") || gate) return 1;
+    if ((strcmp(policy, "ogpu") && strcmp(policy, "ogpu-mapped") && strcmp(policy, "ogpu-shared")) || gate) return 1;
+    h.mapped = strcmp(policy, "ogpu") != 0; h.shared = !strcmp(policy, "ogpu-shared");
+    if (h.shared && c->count != 2) return 1;
     c->policy = "compiled";
 #endif
     HostFrame *samples = calloc(frames > 100 ? frames : 100, sizeof(*samples)); if (!samples) return 1;

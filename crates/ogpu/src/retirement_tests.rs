@@ -55,6 +55,125 @@ struct Gate {
     caller_owner: Option<Rc<Buffer>>,
 }
 
+#[test]
+#[ignore = "requires Vulkan; direct mapped range access while another range is gated pending"]
+fn gpu_host_view_ranges() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let mut tested = 0;
+    let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
+        .chunks_exact(4)
+        .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+        .collect();
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::create_configured(instance.clone(), physical, false, |f| {
+            SUBMIT.set(f.vkQueueSubmit2);
+            f.vkQueueSubmit2 = Some(gated_submit);
+            WAIT.set(f.vkWaitSemaphores);
+            f.vkWaitSemaphores = Some(poll_error);
+        }) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        let ty = vk::VkSemaphoreTypeCreateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+            semaphoreType: vk::VkSemaphoreType_VK_SEMAPHORE_TYPE_TIMELINE,
+            ..Default::default()
+        };
+        let info = vk::VkSemaphoreCreateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            pNext: (&ty as *const vk::VkSemaphoreTypeCreateInfo).cast(),
+            ..Default::default()
+        };
+        let mut semaphore = ptr::null_mut();
+        assert_eq!(
+            unsafe {
+                (d.f.vkCreateSemaphore.unwrap())(d.handle, &info, ptr::null(), &mut semaphore)
+            },
+            vk::VkResult_VK_SUCCESS
+        );
+        let mut gate = Gate {
+            device: d.clone(),
+            semaphore,
+            signal: unsafe {
+                std::mem::transmute::<vk::PFN_vkVoidFunction, vk::PFN_vkSignalSemaphore>(
+                    instance.proc(c"vkSignalSemaphore"),
+                )
+            },
+            opened: false,
+            completions: Vec::new(),
+            caller_owner: None,
+        };
+        GATE.set(semaphore);
+        CALLS.set(0);
+        POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
+        let stride = d.limits.nonCoherentAtomSize.max(256) as usize;
+        let b = Rc::new(Buffer::new(d.clone(), stride * 2).unwrap());
+        let weak = Rc::downgrade(&b);
+        let view = b.host_view().unwrap();
+        let p = view.data.cast::<u32>();
+        let kernel = Rc::new(unsafe { Kernel::new(d.clone(), &words, 16, &[]).unwrap() });
+        let mut lists = Vec::new();
+        for i in 0..2 {
+            let offset = i * stride;
+            unsafe {
+                let p = p.add(offset / 4);
+                p.write(0xcafe);
+                p.add(1).write(1);
+                p.add(2).write(0xbeef);
+            }
+            b.host_cache(offset as u64, 12, true).unwrap();
+            let mut root = [0; 16];
+            root[..8].copy_from_slice(&(b.address().unwrap() + offset as u64 + 4).to_ne_bytes());
+            root[8..12].copy_from_slice(&1u32.to_ne_bytes());
+            let mut batch = Batch::new(d.clone()).unwrap();
+            batch.retain_buffer(b.clone()).unwrap();
+            batch
+                .barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
+                .unwrap();
+            batch.dispatch(kernel.clone(), [1; 3], &root).unwrap();
+            let list = Rc::new(unsafe { batch.compile().unwrap() });
+            gate.completions.push(unsafe { list.submit().unwrap() });
+            lists.push(list);
+        }
+        gate.completions[0].wait().unwrap();
+        assert!(!gate.completions[1].poll().unwrap());
+        assert_eq!(b.host_view().unwrap().data, view.data); // Query is not an access/wait.
+        b.host_cache(0, 12, false).unwrap();
+        unsafe {
+            assert_eq!(
+                [p.read(), p.add(1).read(), p.add(2).read()],
+                [0xcafe, 10, 0xbeef]
+            );
+            p.add(1).write(37);
+        }
+        b.host_cache(4, 4, true).unwrap();
+        assert!(!gate.completions[1].poll().unwrap());
+        gate.open();
+        gate.completions[1].wait().unwrap();
+        gate.completions.push(unsafe { lists[0].submit().unwrap() });
+        gate.completions[2].wait().unwrap();
+        b.host_cache(0, (stride * 2) as u64, false).unwrap();
+        unsafe {
+            assert_eq!(
+                [p.read(), p.add(1).read(), p.add(2).read()],
+                [0xcafe, 118, 0xbeef]
+            );
+            let q = p.add(stride / 4);
+            assert_eq!(
+                [q.read(), q.add(1).read(), q.add(2).read()],
+                [0xcafe, 10, 0xbeef]
+            );
+        }
+        drop(b);
+        assert!(weak.upgrade().is_some()); // View invalid now; never dereference it again.
+        drop(lists);
+        assert!(weak.upgrade().is_none()); // Retired receipts/view do not own allocation.
+        tested += 1;
+    }
+    assert!(tested > 0);
+}
+
 impl Gate {
     fn open(&mut self) {
         if !self.opened {

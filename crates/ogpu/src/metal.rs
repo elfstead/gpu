@@ -10,8 +10,9 @@ mod native_tests;
 #[cfg(feature = "spirv-to-msl")]
 mod spirv;
 use crate::{
-    Error, OgpuCapabilities, OgpuDeviceInfo, OgpuDeviceLimits, OgpuError, OgpuProbe, OgpuResult,
-    OgpuShaderDesc, OgpuTimingInfo, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE, UNSUPPORTED,
+    Error, OgpuCapabilities, OgpuDeviceInfo, OgpuDeviceLimits, OgpuError, OgpuHostView, OgpuProbe,
+    OgpuResult, OgpuShaderDesc, OgpuTimingInfo, INTERNAL_ERROR, INVALID_ARGUMENT, OUT_OF_RANGE,
+    UNSUPPORTED,
 };
 use ::metal::{
     Buffer as MetalBuffer, ComputePipelineState, Device as MetalDevice, FunctionConstantValues,
@@ -1035,6 +1036,52 @@ unsafe fn unsupported_create<T>(out: *mut *mut T, error: *mut OgpuError) -> Ogpu
 // Optional ABI-14/15 experiments. No native allocator or executable reuse is implied.
 pub enum OgpuRecordingStorage {}
 pub enum OgpuCommandList {}
+
+// Optional ABI-16 experiment; no unvalidated Metal cache/visibility claim.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_buffer_host_view(
+    buffer: *const OgpuBuffer,
+    out: *mut OgpuHostView,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out)?;
+            out.write(OgpuHostView::default());
+            required(buffer)?;
+            Err(fail(
+                UNSUPPORTED,
+                "Borrowed host views are not implemented on Metal",
+            ))
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_buffer_host_flush(
+    buffer: *const OgpuBuffer,
+    _offset: u64,
+    _size: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(buffer)?;
+            Err(fail(
+                UNSUPPORTED,
+                "Host range visibility is not implemented on Metal",
+            ))
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_buffer_host_invalidate(
+    buffer: *const OgpuBuffer,
+    offset: u64,
+    size: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe { ogpu_buffer_host_flush(buffer, offset, size, error) }
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_compile(

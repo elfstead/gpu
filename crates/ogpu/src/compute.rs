@@ -534,12 +534,37 @@ pub(crate) enum Placement {
     Device,
 }
 
+// Entire dedicated allocation is mapped; atom expansion must not wrap or exceed it.
+fn host_atom_range(
+    allocation: u64,
+    offset: u64,
+    size: u64,
+    atom: u64,
+) -> Result<(u64, u64), Error> {
+    if atom == 0 || size == 0 || offset >= allocation || size > allocation - offset {
+        return Err(Error::new(OUT_OF_RANGE, "Invalid host cache range"));
+    }
+    let start = offset - offset % atom;
+    let end = offset + size;
+    let rounded = if end % atom == 0 {
+        end
+    } else {
+        end + (atom - end % atom).min(allocation - end)
+    };
+    Ok((start, rounded - start))
+}
+
+#[cfg(test)]
+#[path = "host_view_tests.rs"]
+mod host_view_tests;
+
 pub(crate) struct Buffer {
     device: Rc<Device>,
     buffer: vk::VkBuffer,
     memory: vk::VkDeviceMemory,
     mapped: *mut u8,
     size: usize,
+    allocated: u64,
     address: u64,
     coherent: bool,
 }
@@ -645,6 +670,7 @@ impl Buffer {
             memory: ptr::null_mut(),
             mapped: ptr::null_mut(),
             size,
+            allocated: 0,
             address: 0,
             coherent: false,
         };
@@ -680,6 +706,7 @@ impl Buffer {
                     Error::new(UNSUPPORTED, "No compatible memory type for placement")
                 })?;
             result.coherent = coherent;
+            result.allocated = requirements.size;
             // Declare the one-buffer allocation as dedicated as well as owning it that
             // way, satisfying implementations that require dedicated buffer allocations.
             let dedicated = vk::VkMemoryDedicatedAllocateInfo {
@@ -746,18 +773,48 @@ impl Buffer {
         crate::contract::range(self.size, offset as u64, length as u64).map(|_| ())
     }
 
+    pub(crate) fn host_view(&self) -> Result<crate::OgpuHostView, Error> {
+        self.device.ready()?;
+        self.host_access()?;
+        Ok(crate::OgpuHostView {
+            data: self.mapped.cast(),
+            size_bytes: self.size as u64,
+            alignment: self.device.limits.minMemoryMapAlignment as u64,
+            access_granularity: if self.coherent {
+                1
+            } else {
+                self.device.limits.nonCoherentAtomSize
+            },
+            coherent: u64::from(self.coherent),
+        })
+    }
+
+    pub(crate) fn host_cache(&self, offset: u64, size: u64, flush: bool) -> Result<(), Error> {
+        self.device.ready()?;
+        crate::contract::range(self.size, offset, size)?;
+        self.host_access()?;
+        if size == 0 {
+            return Ok(());
+        }
+        self.cache_range(offset, size, flush)
+    }
+
     fn cache(&self, flush: bool) -> Result<(), Error> {
+        self.cache_range(0, self.size as u64, flush)
+    }
+
+    fn cache_range(&self, offset: u64, size: u64, flush: bool) -> Result<(), Error> {
         if self.coherent {
             return Ok(());
         }
         let d = &self.device;
-        // Map and maintain the entire dedicated allocation: offset zero / WHOLE_SIZE also
-        // satisfy nonCoherentAtomSize requirements when the logical buffer is unaligned.
+        let (offset, size) =
+            host_atom_range(self.allocated, offset, size, d.limits.nonCoherentAtomSize)?;
         let range = vk::VkMappedMemoryRange {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
             memory: self.memory,
-            offset: 0,
-            size: vk::VK_WHOLE_SIZE as vk::VkDeviceSize,
+            offset,
+            size,
             ..Default::default()
         };
         unsafe {

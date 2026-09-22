@@ -6,7 +6,7 @@ use crate::{
         Batch, Buffer, CommandList, Completion, Device, Image, ImageHeap, Kernel, Raster,
         RecordingStorage, SamplerHeap,
     },
-    Error, OgpuDeviceLimits, OgpuError, OgpuProbe, OgpuResult, OgpuShaderDesc,
+    Error, OgpuDeviceLimits, OgpuError, OgpuHostView, OgpuProbe, OgpuResult, OgpuShaderDesc,
     OgpuSpecializationConstant, OgpuTimingInfo, INVALID_ARGUMENT, OUT_OF_RANGE,
 };
 use std::{ffi::c_void, ptr, rc::Rc};
@@ -573,6 +573,62 @@ pub unsafe extern "C" fn ogpu_buffer_write(
                 std::slice::from_raw_parts(data.cast(), size)
             };
             buffer.write(offset, bytes)
+        })
+    }
+}
+
+/// # Safety
+/// Live buffer, independent writable outputs; serialized host calls. The view is
+/// borrowed: the caller owns its buffer and synchronizes all pointer accesses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_buffer_host_view(
+    buffer: *const OgpuBuffer,
+    out: *mut OgpuHostView,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(out)?;
+            out.write(OgpuHostView::default());
+            required(buffer)?;
+            out.write((*buffer).inner.host_view()?);
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live buffer, independent writable error; no conflicting GPU/CPU accesses to
+/// the containing atoms. Flush only after host writes, before GPU uses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_buffer_host_flush(
+    buffer: *const OgpuBuffer,
+    offset: u64,
+    size: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(buffer)?;
+            (*buffer).inner.host_cache(offset, size, true)
+        })
+    }
+}
+
+/// # Safety
+/// As flush; GPU writes must be complete and host writes in affected atoms already
+/// published. Invalidation grants visibility, not GPU completion.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_buffer_host_invalidate(
+    buffer: *const OgpuBuffer,
+    offset: u64,
+    size: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(buffer)?;
+            (*buffer).inner.host_cache(offset, size, false)
         })
     }
 }

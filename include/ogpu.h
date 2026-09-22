@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(15)
+#define OGPU_ABI_VERSION UINT32_C(16)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -173,7 +173,8 @@ OgpuResult ogpu_device_create_graphics(const OgpuProbe *probe, uint32_t index,
  * releases its ownership; commands explicitly retaining a buffer delay deallocation.
  * Otherwise establish completion before destruction; addresses alone do not retain allocations.
  * Zero-length transfers allow NULL data and offset == size_bytes. Read destinations
- * are unchanged on error. No persistent host mapping is exposed. */
+ * are unchanged on error. The optional host-view API below permits direct access
+ * with range-scoped synchronization; these copy helpers retain whole-buffer rules. */
 #define OGPU_MEMORY_HOST UINT32_C(0)
 #define OGPU_MEMORY_DEVICE UINT32_C(1)
 OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, uint32_t placement,
@@ -181,6 +182,45 @@ OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, uint32_t 
 void ogpu_buffer_destroy(OgpuBuffer *buffer);
 OgpuResult ogpu_buffer_write(OgpuBuffer *buffer, uint64_t offset, const void *data, uint64_t size_bytes, OgpuError *out_error);
 OgpuResult ogpu_buffer_read(const OgpuBuffer *buffer, uint64_t offset, void *data, uint64_t size_bytes, OgpuError *out_error);
+
+/* Optional borrowed HOST view (currently Vulkan only; Metal returns UNSUPPORTED).
+ * No allocation, ownership transfer, GPU wait, cache operation or access permission.
+ * data is stable and at least alignment-byte aligned; size_bytes is the logical size.
+ * access_granularity is 1 for coherent storage, otherwise the cache atom size.
+ * coherent is 0 or 1. When 1, explicit flush/invalidate calls may be omitted:
+ * host writes are published by submission, GPU writes visible after completion.
+ * Granularity alone is NOT a coherence flag; noncoherent atoms may also be 1 byte.
+ * Retain the public buffer handle until the last CPU access. A view is not an owner
+ * and is invalid after handle destruction or device loss, even if commands retain
+ * backing memory. DEVICE placement rejects INVALID_ARGUMENT. Output is zero on error.
+ * Pointer accesses require completion of conflicting GPU accesses to the affected
+ * granularity-aligned range (clamped to logical size), not unrelated buffer ranges.
+ * Independently reused ranges must not share an atom. No automatic hazard tracking.
+ * This does not relax host-call serialization or GPU dependency obligations. */
+typedef struct OgpuHostView {
+    void *data;
+    uint64_t size_bytes;
+    uint64_t alignment;
+    uint64_t access_granularity;
+    uint64_t coherent;
+} OgpuHostView;
+OgpuResult ogpu_buffer_host_view(const OgpuBuffer *buffer, OgpuHostView *out_view, OgpuError *out_error);
+/* Explicit visibility operations on HOST buffers; never wait or submit GPU work.
+ * Checked logical ranges expand to containing atoms, including private allocation
+ * padding if necessary. Zero size is a validated no-op, including offset==size.
+ * Flush publishes prior CPU writes for subsequent GPU submission. Invalidate after
+ * GPU completion before CPU reads, or before partial-atom writes that must preserve
+ * neighboring GPU-written bytes. Do NOT invalidate unpublished host writes sharing
+ * an atom. Flush never invalidates; destruction never implicitly publishes writes.
+ * Coherent storage performs validated no-ops but has the same synchronization rules.
+ * Failure grants no visibility; stores are not rolled back. Non-loss failures may
+ * be retried over the entire affected range; until successful do not perform uses
+ * that rely on that visibility. Loss is sticky and invalidates all device views.
+ * Existing buffer copies may invalidate the entire allocation: publish any direct
+ * writes and complete all GPU uses before mixing copies with direct access.
+ * Copy-helper caller data must not overlap the buffer's backing memory. */
+OgpuResult ogpu_buffer_host_flush(const OgpuBuffer *buffer, uint64_t offset, uint64_t size_bytes, OgpuError *out_error);
+OgpuResult ogpu_buffer_host_invalidate(const OgpuBuffer *buffer, uint64_t offset, uint64_t size_bytes, OgpuError *out_error);
 
 /* Returns a NON-OWNING GPU address, valid only on this buffer's device until its
  * underlying allocation is freed or the device is lost. Never dereference it on
@@ -347,7 +387,8 @@ OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, 
  * Timed batches return UNSUPPORTED without consumption. Otherwise an encoding attempt
  * consumes the batch, including on failure; invalid required pointers do not consume.
  * Commands, roots, addresses and launch sizes are fixed. Pointed-to data is NOT copied:
- * change it only with the existing whole-buffer host-access and GPU dependency rules.
+ * change it only with the applicable host-access and GPU dependency rules (copy
+ * helpers are whole-buffer; borrowed views permit independent aligned ranges).
  * Recorded objects/explicitly retained buffers remain owned BETWEEN executions until
  * the list is destroyed and all its submissions are retired. Raw pointers still confer
  * no ownership: keep every reachable allocation valid for every possible execution.

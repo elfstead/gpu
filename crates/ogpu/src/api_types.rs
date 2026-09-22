@@ -53,3 +53,13 @@ pub struct OgpuDrawArguments {
     pub first_vertex: u32,
     pub first_instance: u32,
 }
+/// Borrowed mapped storage; no ownership or synchronization is conferred.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OgpuHostView {
+    pub data: *mut std::ffi::c_void,
+    pub size_bytes: u64,
+    pub alignment: u64,
+    pub access_granularity: u64,
+    pub coherent: u64,
+}
