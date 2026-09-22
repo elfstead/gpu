@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-20. This page owns current status and selected work. The
+Updated 2026-09-22. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -119,13 +119,25 @@ Fixed-command replay is now expressible, with copied roots, mutable pointed-to
 data, persistent ownership and independent receipts. This closes that bounded
 P2 experiment, not the complete performance gate or final owner ergonomics.
 
-Next execute the [P3 direct-access/range brief](mapped-streaming-review.md): native
-controls separate CPU copying from whole-buffer exclusion under explicit storage/
-latency budgets, before selecting a new public mapping/range contract. Replay
-timing and changing roots/dimensions remain separate open P2 questions. Direct
-encoding/vector optimization is optional backend work, not the next API milestone.
-No fixed native-byte budget or other audit item is settled. Do not widen unrelated
-surface or treat this result as stabilization.
+The [P3 native controls](host-access-results.md) are accepted at `ef723f0`, with no
+runtime/API change. At one slot/4 MiB, mapped native takes 12.4% less wall time
+than copied native; CPU access work falls about 40%. At two slots, throughput is
+nearly unchanged but CPU work still falls about 36%. Real gates demonstrate CPU
+reuse of one range while another in the same allocation remains pending. Sharing
+saves an allocation object, not allocated bytes here. All 14 cases/four gates pass
+on Radeon and llvmpipe; 42,000 native/public comparison samples are retained.
+
+**Next implement the [borrowed host-view candidate](host-view-candidate.md)**:
+HOST pointer/length/granularity and explicit range flush/invalidate, with caller-
+owned lifetime/dependencies, no hidden waits or per-frame mapping lease. Add public
+mapped/separate and shared-range controls, loss/cache-failure/ownership tests and
+an installed C consumer. Copy helpers remain convenience, not the only fundamental
+host-access path. P3 remains open until public implementation acceptance.
+
+Replay timing and changing roots/dimensions remain separate open P2 questions.
+Direct encoding/vector optimization is optional backend work. No exact command-
+memory budget, noncoherent hardware acceptance or other audit item is settled.
+Do not widen unrelated surface or treat this result as stabilization.
 
 ## Following milestone: M2 — programming/compiler contract
 

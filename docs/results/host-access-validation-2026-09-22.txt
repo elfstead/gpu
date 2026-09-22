@@ -1,0 +1,45 @@
+P3 native host-access controls — 2026-09-22
+Clean control revision: ef723f0fcecc1ae314bfd395590b11de6090ed6b.
+Runtime ABI 15 unchanged; runtime SHA-256:
+2cfb727d95e494391eb8aeb4a58708a42e8bb847cecad54e4f48ea3d827a3493
+Both reports record matching runtime/native/public/tracer artifact hashes.
+
+PASS: host_access.py --check (native/public builds, host selftests, injected
+noncoherent range/error/coherent-bypass/gate-submit-rejection cleanup tests,
+5 evidence-parser tests, existing 8 frontier runner tests/native controls).
+PASS: cargo test --workspace: 38 ordinary tests, 25 GPU tests ignored.
+PASS: cargo fmt --all -- --check; git diff --check.
+PASS: host_access.py on Radeon; complete 14-case matrix and 4 gated controls.
+PASS: host_access.py --software on llvmpipe; same matrix, 64 correctness frames/case.
+PASS: both exports rechecked matrix/log/source hashes, native metadata, complete
+sample intervals/statistics/checksums, gate payload sizes and allocation signatures.
+
+Radeon: RX 5700 XT / RADV Mesa 26.2.1, Vulkan 1.4.354.
+Memory type 5, flags 14 (HOST_VISIBLE|HOST_COHERENT|HOST_CACHED); atom 64 bytes.
+Software: llvmpipe LLVM 21.1.8, Vulkan 1.4.354.
+Memory type 0, flags 15 (also DEVICE_LOCAL); atom 64 bytes.
+Host: Ryzen 9 5900X, Linux 6.18.47, no pinned clock/affinity/exclusive control.
+Tool environment: /tmp/ogpu-libplacebo-env.sh (Rust 1.97.1, clang 21).
+ICDs: /run/opengl-driver/share/vulkan/icd.d/{radeon,lvp}_icd.x86_64.json.
+Loader/layer paths retained in each report. Correctness uses sync validation;
+primary timing disables validation/tracing. Controls explicitly select one ICD.
+
+Radeon: 14,000 correctness frames + 42,000 timing frames + 4,200 warmups +
+15,400 separate traced timing-mode frames. Four gates add 12 exact GPU executions.
+llvmpipe: 896 correctness frames, plus 12 gated executions, no timing claim.
+All 72 traced application allocations across both reports freed; no growth.
+No total command-storage/RSS budget or noncoherent hardware acceptance.
+
+Raw folders: target/performance-frontier/host-lczyxobx (Radeon), host-27gb7lrq (llvmpipe).
+Dirty preflight host-4xsd_zcx is diagnostic only, not accepted timing evidence.
+Exports: docs/results/host-access-{radv,lvp}-2026-09-22/.
+Radeon export includes all 42,000 timing samples and their hash.
+
+Local log SHA-256:
+/tmp/ogpu-host-access-build-final.log b665879c08e9220805d9821da7556273a8ac1ee389be1b85b6008be0a8e20b3a
+/tmp/ogpu-host-access-radv.log 4b6356cb21e0267b69e12ba76d439731ad8c587d70b1af31578c5b7a67d6a2d4
+/tmp/ogpu-host-access-lvp.log ac9345627680d135de85c9c40d41b20de6a4ea18df447d9835b97ce291d6cdd3
+/tmp/ogpu-host-access-host-tests.log 941d84a3550ecf6133b0d48b48de35c6d198320c081741e0c33c5283cbe3d67f
+
+No runtime/public API change, new SDK/GPU-suite acceptance, Metal work, DEVICE/BAR
+mapping or public range-view implementation. Next candidate is specified separately.

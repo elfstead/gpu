@@ -580,6 +580,34 @@ native controls under [declared storage/latency constraints](mapped-streaming-re
 Do not keep this bounded P2 result open for unrelated tuning; mutable command
 variants and per-execution timing remain explicitly unresolved.
 
+## Native host access and independent ranges — 2026-09-22
+
+At clean `ef723f0`, the [P3 controls](mapped-streaming-review.md) compare actual
+application production/consumption through native copied, native mapped and public
+copied HOST buffers; native two-slot shared storage isolates range ownership.
+No runtime or ABI change. Native controls never link OGPU.
+
+The [accepted result](host-access-results.md) retains 42,000 Radeon timing samples,
+14,000 exact correctness frames, 896 llvmpipe correctness frames, separate traces
+and four real gates per driver. All 72 traced application allocations are freed.
+Host arithmetic/error/gate cleanup and five evidence-parser tests pass, alongside
+the existing frontier tests and 38 ordinary Rust tests.
+
+At one slot/4 MiB, mapped native wall time falls 12.4% against copied native and
+CPU access work falls about 40%. Two-slot throughput is similar, with about 36%
+less CPU work. Direct consumption is slower than reading freshly copied staging;
+that cost remains in the result. Equal GPU memory types/bytes are checked. Shared
+storage reduces allocation count, not allocated bytes, and shows no established
+throughput advantage. Gates prove range-0 CPU read/rewrite while range 1 remains
+pending; current whole-buffer exclusion forbids that one-allocation schedule.
+
+Select a [borrowed host view and explicit range visibility](host-view-candidate.md)
+as the next public candidate. Copy-only access is insufficient as the fundamental
+host interface for the demonstrated producer/consumer boundary. This does not
+accept an unimplemented API, general allocation/mapping, noncoherent hardware or
+other performance-audit items. Public implementation and matched native acceptance
+are next; runtime remains ABI 15.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

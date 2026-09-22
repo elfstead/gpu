@@ -151,3 +151,15 @@ commands, final handle ergonomics, equal native memory budgets or any other P it
 The [next bounded probe](mapped-streaming-review.md) isolates P3's CPU copying
 and whole-buffer exclusion before selecting a mapping/range surface. Backend
 step-vector tuning is separate from that contract decision.
+
+The [P3 native result](host-access-results.md), accepted at `ef723f0`, identifies
+a contract restriction with a concrete native advantage: direct application
+production/consumption in mapped HOST storage avoids copies the public API cannot
+express. At one slot/4 MiB, mapped native takes 12.4% less wall time; at two slots
+throughput is similar but CPU work is lower. Native range gates establish reuse
+within one allocation while an unrelated range is pending. Sharing saves one
+allocation object, not allocated bytes or demonstrated throughput on this device.
+Select the [borrowed view and explicit range-visibility candidate](host-view-candidate.md).
+P3 is **not passed**: the public implementation, equal-strategy comparisons and
+ownership/cache/error acceptance are next. Dedicated noncoherent hardware, other
+placements and the remaining audit questions are still unvalidated.

@@ -1,7 +1,9 @@
 # Next probe: direct host access and independent buffer ranges
 
 Selected after [fixed-command replay](command-list-results.md), 2026-09-20.
-This is a bounded P3 acceptance brief, **not an implemented API or accepted result**.
+This is the bounded P3 acceptance brief. The [native controls are now accepted](host-access-results.md),
+selecting a [borrowed host-view candidate](host-view-candidate.md); that public API
+has not been implemented or accepted.
 The benchmark controls are implemented under `examples/performance_frontier/host_access.*`;
 the public runtime remains ABI 15, unchanged.
 
