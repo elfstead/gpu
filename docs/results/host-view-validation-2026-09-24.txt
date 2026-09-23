@@ -1,0 +1,60 @@
+Borrowed HOST views — local acceptance, 2026-09-24
+Implementation: 9a2bad5c17281a7d0ec29c5798c10d7fa23d3e80; ABI 16.
+
+Both exported reports identify clean implementation source and runtime
+SHA-256 cd214e6fae67c583a75e459197d394b637fc7455e6453e867663e2c145ec8db1.
+Benchmark artifacts also match across drivers; hashes are retained in reports.
+Radeon: RX 5700 XT / RADV, Mesa 26.2.1, Vulkan 1.4.354.
+Software: llvmpipe LLVM 21.1.8, Vulkan 1.4.354.
+Host: Ryzen 9 5900X; Linux 6.18.47. No pinned clocks/affinity or exclusive host.
+Tool environment: /tmp/ogpu-libplacebo-env.sh (Rust 1.97.1, clang 21).
+ICDs: /run/opengl-driver/share/vulkan/icd.d/{radeon,lvp}_icd.x86_64.json.
+Vulkan loader/layer paths are retained in each report.
+
+PASS: cargo test --workspace: 39 ordinary tests (27 GPU tests ignored).
+PASS: cargo clippy --workspace --all-targets -- -D warnings.
+PASS: cargo fmt --all -- --check; git diff --check.
+PASS: cargo xtask bindings --check; cargo xtask abi (755 values); cargo xtask mock.
+PASS: cargo xtask gpu-tests, 27 tests on EACH driver, synchronization validation.
+PASS: frontier C host checks, 5 host-access and 8 existing Python runner tests.
+PASS: host_access.py --views, Radeon: 20 correctness / 60 timing / 20 allocation processes.
+PASS: host_access.py --views --software, llvmpipe: 20 correctness processes.
+PASS: four native independent-range gates per driver; runtime range gate in GPU suite.
+PASS: installed C consumer, default/explicit-owner/replay/host-view on BOTH drivers.
+
+SDK: /tmp/ogpu-sdk-view-9a2bad5, clean source, ABI 16, matching revision.
+Built release for explicit x86_64-unknown-linux-gnu; binary differs from the
+implicit-host-target benchmark build, not from a different source revision.
+SDK library SHA-256: 376612b7ea39def1c131ddaea8f5930821ed4242279e56bc173842b9edef1ea0
+SDK manifest SHA-256: d0d7257ea4e6c8763936f530e97c5d1421607ba86c6e94225ba7eb04451ca9c6
+Relocated apps: /tmp/ogpu-external-nnxtmvid (Radeon), /tmp/ogpu-external-zhrkb2i2 (llvmpipe).
+Checks include installed hashes/revision/ABI, pkg-config/space-containing paths,
+actual relocated runtime linkage, absent-loader rejection, exact transform/guards,
+partial updates, view output/range/placement rejection, copied roots and ownership.
+
+Retained local logs and SHA-256:
+/tmp/ogpu-view-host-final.log 553401e846a2a3ca481bd782d0fc7d3fad4e818d11fa33b0ae70375d8a9b2dc4
+/tmp/ogpu-view-clippy.log fd7f8c03a572428c2713ad96a30fee67a9af36dd07713466b1a501cfba3d470d
+/tmp/ogpu-view-abi.log a181d1d795e4253e18e0450193bf3c5a809f8e80749381e6f943bee05e968254
+/tmp/ogpu-view-radv-final.log 80a0d1d9f2b124b062faf61605ea02561fa3cbf8f35366d9242809c87532b124
+/tmp/ogpu-view-lvp-final.log ba09a849ce384a893f67a54bee09c8b2e1cf1bf2dd457811f854a841b4adc85b
+/tmp/ogpu-view-mock-final.log 38e5fc30975f66f966c9dfacec36572343e60f744ae23c3acfedc18f829363f4
+/tmp/ogpu-view-install.log 0d4173fe4e76b12b54b286eda0030996b6f153b8179be2cc3a08417a243ba91e
+/tmp/ogpu-view-sdk-radv.log c3023071a3c4eead3cb8ffd217789c34680c105b608fe7d5334b8777d16f58d7
+/tmp/ogpu-view-sdk-lvp.log 99d7eb9d31c9f204c5bd08a3d3564acf290d12b9a24d4ef664a858e6ddf9c0dd
+/tmp/ogpu-view-radv-accepted.log 68116a1742d3169fe506298fdc0e0a86a1f3cd4c760dfc151c446c92c11b5409
+/tmp/ogpu-view-lvp-accepted.log ccd9b260f60a4ecbdd976b86a79c33a301efe82094c6c15485b7b82d0331668d
+
+Raw folders under target/performance-frontier/:
+host-fjf_0w66 (Radeon), host-13ld1h55 (llvmpipe).
+Radeon measurements/runtime tests were completed September 22; remaining software
+matrix, installed consumers, binding/mock rechecks and exports completed September 24.
+The first software-run attempt stopped before GPU execution because temporary
+Cargo archive cache entries were missing. cargo fetch --locked restored them;
+the accepted rerun was offline, with unchanged sources/artifact hashes.
+Earlier diagnostic ABI-16 runs without the explicit coherence field are excluded.
+
+No actual noncoherent GPU, real device loss, Metal execution/cross-check,
+GGML/libplacebo or video-scale rerun, equal total command-memory budget or universal
+parity claim. Cache failure/loss tests are injected over real backing; native
+independent-range gates and the runtime range gate execute actual synchronized work.

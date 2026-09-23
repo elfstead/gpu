@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-22. This page owns current status and selected work. The
+Updated 2026-09-24. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -31,8 +31,8 @@ from one source revision. No release/tag or cross-version stability is implied.
 | GGML | MNIST direct/scheduled inference, FP32 and FP16 weights with FP32 arithmetic, both memory placements | Bounded operators/layouts; no FP16 arithmetic or accelerated matrix profile |
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
-| Performance | ABI-15 fixed-command replay cuts repeated host work about 88% at 512 dispatches; compiled/native-replay wall ratios 0.967–1.044 | Replay does not win every throughput case; not approval of the fundamental API or equal total memory budgets |
-| Validation | 25 GPU tests on each Linux driver, 38 ordinary tests, 749 ABI checks, independent installed consumer; historical Apple M4 compute/GGML acceptance | Metal has no ABI-15 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
+| Performance | ABI-15 replay cuts repeated host work about 88% at 512 dispatches; ABI-16 host views remove forced copies and express independent ranges, with 13% less wall time at one slot/4 MiB | Bounded matched-strategy evidence, not approval of the fundamental API or equal total command-memory budgets |
+| Validation | 27 GPU tests on each Linux driver, 39 ordinary tests, 755 ABI checks, independent installed consumer including HOST views; historical Apple M4 compute/GGML acceptance | Metal has no ABI-16 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -128,18 +128,29 @@ reuse of one range while another in the same allocation remains pending. Sharing
 saves an allocation object, not allocated bytes here. All 14 cases/four gates pass
 on Radeon and llvmpipe; 42,000 native/public comparison samples are retained.
 
-The [borrowed host-view candidate](host-view-candidate.md) is implemented for comparison:
-HOST pointer/length/granularity and explicit range flush/invalidate, with caller-
-owned lifetime/dependencies, no hidden waits or per-frame mapping lease. Add public
-mapped/separate and shared-range controls, loss/cache-failure/ownership tests and
-an installed C consumer. Copy helpers remain convenience, not the only fundamental
-host-access path. P3 remains open until public implementation acceptance; matched
-native/public measurements and installed-consumer validation are next.
+The [borrowed host-view result](host-view-results.md) is accepted at `9a2bad5`
+(ABI 16): HOST pointer/length/alignment/granularity/coherence and explicit range
+visibility, with caller-owned lifetime/dependencies and no per-frame mapping lease.
+The 20-case matrix adds 60,000 measured samples, 20,000 Radeon/1,280 software
+correctness frames, runtime range/cache/error gates and a relocated C consumer on
+both drivers. Public/native mapped wall ratios are 0.990–1.016 in the four separate-
+buffer cases. One slot/4 MiB takes 13% less wall time than public copying; at two
+slots throughput is similar but CPU access work falls 38%. Shared ranges express
+the one-allocation schedule without changing allocated bytes. Retain views as the
+preferred direct-access candidate and copies as convenience. This closes bounded
+P3 copy/range acceptance, not noncoherent hardware or the entire performance gate.
+
+**Next: [P4 dependency scope](dependency-scope-review.md).** Review the current
+global barrier contract against strong legal native producer/consumer schedules,
+including the best command reordering expressible today. Distinguish execution
+ordering from visibility before selecting split endpoints or resource/range scope.
+Only then implement a discriminating native control if the review identifies one;
+do not add public dependency handles merely because narrower barriers sound useful.
 
 Replay timing and changing roots/dimensions remain separate open P2 questions.
 Direct encoding/vector optimization is optional backend work. No exact command-
 memory budget, noncoherent hardware acceptance or other audit item is settled.
-Do not widen unrelated surface or treat this result as stabilization.
+Do not widen unrelated surface or treat these results as stabilization.
 
 ## Following milestone: M2 — programming/compiler contract
 

@@ -33,6 +33,7 @@ frontier. Keep its results; qualify the retain decision as provisional.
 ## Initial contract audit
 
 Source of obligations: `include/ogpu.h`; implementation evidence is separate.
+This table records the initial pre-ABI-13 restrictions; accepted changes follow below.
 These restrictions are real; their workload-specific performance consequences
 are not automatically proven. Alternative APIs below are candidates, not decisions.
 
@@ -163,3 +164,16 @@ Select the [borrowed view and explicit range-visibility candidate](host-view-can
 P3 is **not passed**: the public implementation, equal-strategy comparisons and
 ownership/cache/error acceptance are next. Dedicated noncoherent hardware, other
 placements and the remaining audit questions are still unvalidated.
+
+ABI 16's [public HOST-view result](host-view-results.md), accepted at `9a2bad5`,
+closes that bounded P3 experiment: direct production/consumption and independent
+atom-isolated ranges are now expressible, with explicit coherence information so
+applications can omit redundant cache calls. Public mapping takes 13% less wall
+time than copying at one slot/4 MiB; public/native mapped wall ratios span
+0.990–1.016 for four separate-buffer cases. Two-slot throughput is similar but
+CPU access work falls 38%. Shared storage, real range gates, cache/loss injection
+and the installed consumer cover ownership and visibility obligations.
+Keep actual noncoherent hardware, other placements and total command-memory budgets
+unresolved; this is not universal approval. The next bounded review is
+[P4 dependency scope](dependency-scope-review.md), with best legal reordering and
+execution-versus-visibility analysis before any public-surface change.

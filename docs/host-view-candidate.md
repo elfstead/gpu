@@ -1,8 +1,9 @@
 # Candidate: borrowed host views and explicit range visibility
 
 Selected 2026-09-22 by the [native host-access result](host-access-results.md).
-Implemented as an **ABI-16 experiment, not a stable API**. Acceptance comparison
-is pending. Vulkan exposes views; Metal returns UNSUPPORTED for the optional calls.
+Implemented as an **ABI-16 experiment, not a stable API**. The
+[bounded comparison is accepted](host-view-results.md) at `9a2bad5` on 2026-09-24.
+Vulkan exposes views; Metal returns UNSUPPORTED for the optional calls.
 
 ## Smallest proposed shape
 
@@ -126,7 +127,7 @@ after 6,000 warmups, and 20 separate timing-mode allocation controls. Correctnes
 uses 1,000 frames/case on Radeon or 64 in software mode. Old schema 1 remains
 available. Match shared and separate requested/allocated bytes and memory types;
 public shared creation rejects this fixed-budget protocol if its guarded stride
-does not divide the reported granularity, rather than silently reallocating.
+is not a multiple of the reported granularity, rather than silently reallocating.
 This runner restriction is not an API restriction; callers can query and size
 atom-aligned storage for other workloads.
 Both mapped controls skip cache calls when their backing is explicitly coherent.

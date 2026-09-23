@@ -54,9 +54,14 @@ The [small-compute](performance-frontier-small.md) and
 They expose a storage-lifecycle opportunity and demonstrate independent slots;
 the [storage-retirement alternative](command-storage-review.md) subsequently passed
 its first [bounded-cache experiment](command-storage-results.md), then the
-[explicit caller-owned storage comparison](recording-storage-results.md). Executable
-replay and the remaining host-recording cost are the next P2 checks. The other
-expressibility concerns remain explicit rather than being passed by these workloads.
+[explicit caller-owned storage comparison](recording-storage-results.md).
+[Fixed-command replay](command-list-results.md) and
+[direct HOST access/independent ranges](host-view-results.md) subsequently passed
+bounded acceptance at ABI 15/16. Next is the
+[dependency-scope review](dependency-scope-review.md), before public API expansion.
+Changing commands/timed replay, total command-memory budgets, noncoherent hardware
+and the other expressibility concerns remain explicit rather than being passed by
+these workloads. Backend encoding optimization is distinct from a contract decision.
 
 ## M1 — Make the existing application useful-sized
 

@@ -7,6 +7,10 @@ is unchanged at ABI 15. This accepts the controls and selects the next candidate
 it does not claim that OGPU already supports mapped or independently synchronized
 host ranges.
 
+Follow-up: [ABI-16 public-view acceptance](host-view-results.md) now demonstrates
+these strategies through the public API. The ABI-15 results below remain historical
+controls, not the current support boundary.
+
 The important evidence is native-copy versus native-mapped: identical commands,
 buffer allocation/type, shader, slot count, producer and consumer. The native
 producer can write into mapped storage and the consumer can read from it, while

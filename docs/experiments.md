@@ -608,6 +608,33 @@ accept an unimplemented API, general allocation/mapping, noncoherent hardware or
 other performance-audit items. Public implementation and matched native acceptance
 are next; runtime remains ABI 15.
 
+## Borrowed HOST views and range visibility — 2026-09-24
+
+At clean `9a2bad5` (ABI 16), the [borrowed-view candidate](host-view-candidate.md)
+adds direct HOST pointer access, alignment/granularity/coherence metadata and explicit
+range flush/invalidate. Views borrow from the public buffer; no hidden wait, lease,
+per-frame allocation or automatic hazard tracking. Copies retain whole-buffer rules.
+Metal explicitly returns UNSUPPORTED for the optional calls.
+
+The [accepted result](host-view-results.md) retains 60,000 timing samples,
+20,000 Radeon/1,280 llvmpipe correctness frames, four native range gates per driver
+and separate allocation controls; all 96 traced application allocations are freed.
+All 27 runtime GPU tests pass on each driver, including runtime range independence
+and injected cache/loss behavior. Thirty-nine ordinary tests, 755 ABI values,
+bindings/mocks and the relocated direct-view SDK consumer on both drivers pass.
+
+One slot/4 MiB takes 13% less wall time with public mapping than copying, within
+0.03% of native mapped's median. Two-slot throughput stays similar while CPU access
+work falls 38%. Public/native mapped wall ratios span 0.990–1.016 across four
+separate-buffer cases. Shared storage reduces allocation count, not bytes or
+demonstrated throughput. Exact results, intervals/tails and limits are retained.
+
+Retain this candidate and close bounded P3 copy/range acceptance; do not claim
+actual noncoherent hardware, new Metal support, total command-memory equivalence
+or universal Vulkan parity. Next review [P4 dependency scope](dependency-scope-review.md)
+against legal native schedules and the best existing-API command ordering before
+selecting a new dependency surface. M2 remains the following compiler milestone.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
