@@ -107,18 +107,22 @@ retention; applications still own scratch-range reuse decisions.
 | Part | Implemented contract | Deliberate restriction |
 |---|---|---|
 | Host boundary | Opaque ownership handles, fixed-width values, explicit errors and lifetime rules | Experimental ABI; some diagnostics/capability fields are Vulkan-specific |
-| Linear memory | Owning buffers and separate non-owning GPU addresses | Dedicated HOST/DEVICE placement, checked host access and retained GPU copies; [memory checkpoint](memory-transfers.md) |
+| Linear memory | Owning buffers, non-owning GPU addresses, checked CPU copies and optional borrowed HOST views with explicit range visibility | Dedicated HOST/DEVICE placement; view access needs caller-managed range/atom synchronization; [HOST-view acceptance](host-view-results.md) |
 | Executables | Prepared compute kernels and raster programs, caller-defined root bytes, explicit artifact formats | Vulkan SPIR-V and optional Metal translation use `main` and scalar specialization; native Metal inputs are pre-specialized, compute-only; trusted code throughout |
 | Arguments | Inline bytes copied while recording; may contain pointers to larger GPU structures | Layout/padding agreed by caller and shader; no pointer tracing or automatic bounds enforcement |
-| Submission | One-shot batches, explicit access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, no replay/timed waits |
+| Submission | One-shot batches, optional explicit recording storage and immutable replay, access barriers, completion wait/poll, optional buffer retention | One queue, externally serialized host calls, fixed replay commands/roots, no timeout waits; storage/replay currently Vulkan-only |
 | Timing | Optional whole-batch device timestamps, retrieved after confirmed completion | Approximate interval, counter-wrap limit, no per-region or calibrated clocks |
 | Graphics | GPU-produced indirect draws, specialized images, native heap-indexed load/store/sampling, preserved contents, upload/readback | 1D/2D RGBA8/R32F/RGBA16F images with explicit usages; fixed-state RGBA8/RGBA16F rendering, independent heaps with exclusive edits, nearest/linear clamp/repeat sampling |
 | Discovery | Physical support, cached enabled capabilities/limits, exact image-description checks | Reporting is not feature negotiation, shader reflection or a complete matrix/type capability description |
 
 The [completion-resource follow-up](completion-resource-review.md#implementation-abi-9)
 implements this separation. Pending/transient-error polls retain resources; terminal
-observation frees native commands before dropping owning references. No collector or
-automatic range allocator is added. Polling can now incur host destruction cost.
+observation releases per-execution ownership. One-shot retirement invalidates native
+commands before dropping recorded objects; bounded empty command capacity may survive
+under implicit or caller-owned storage policy. Immutable lists retain commands and
+objects between uses until the last list owner is gone. No collector or automatic
+range allocator is added. Polling can incur host destruction cost. See
+[storage](recording-storage-results.md) and [replay](command-list-results.md) acceptance.
 
 The [cooperative reduction](reduction.md) now exercises shared workgroup memory,
 shader barriers, and multi-level dispatch using this existing API. It adds workload

@@ -826,8 +826,9 @@ pub unsafe extern "C" fn ogpu_batch_barrier(
 
 /// # Safety
 /// See include/ogpu.h: valid shader addresses and explicit race-free dependencies;
-/// allocations remain live without host access until GPU uses complete. Valid outputs
-/// and external serialization are required. Submission does not wait for completion.
+/// allocations remain live. Host copies require whole-buffer completion; borrowed
+/// views require completion of conflicting range/atom uses and cache visibility.
+/// Valid outputs and external serialization are required. Submission does not wait.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_submit(
     batch: *mut OgpuBatch,
@@ -1081,7 +1082,8 @@ pub unsafe extern "C" fn ogpu_batch_draw_indirect(
 
 /// # Safety
 /// See include/ogpu.h: live same-device objects, independent writable error output,
-/// external serialization, and no host access to pending GPU resources.
+/// external serialization, and the buffer's copy-helper or borrowed-view host-access
+/// rules (whole-buffer completion or conflict-free range/atom visibility respectively).
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_copy_image_to_buffer(
     batch: *mut OgpuBatch,
@@ -1107,7 +1109,8 @@ pub unsafe extern "C" fn ogpu_batch_copy_image_to_buffer(
 }
 
 /// # Safety
-/// Same-device live objects; valid outputs; no host access while a copy is pending.
+/// Same-device live objects; valid outputs; obey the buffer's copy-helper or
+/// borrowed-view host-access rules while a GPU copy is pending.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_copy_buffer_to_image(
     batch: *mut OgpuBatch,

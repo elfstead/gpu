@@ -168,7 +168,7 @@ OgpuResult ogpu_device_create_graphics(const OgpuProbe *probe, uint32_t index,
  * not a promise of separate physical heaps. The runtime selects the memory type.
  * size_bytes must be nonzero and <= INTPTR_MAX. Contents start unspecified.
  * buffer_write/read are checked CPU copies, not implicit GPU commands.
- * Wait for ALL submitted uses of this entire buffer before CPU reading/writing
+ * Wait for ALL submitted uses of this entire buffer before using these CPU copies
  * (cache maintenance may touch the whole allocation). Destroying the public handle
  * releases its ownership; commands explicitly retaining a buffer delay deallocation.
  * Otherwise establish completion before destruction; addresses alone do not retain allocations.
@@ -367,7 +367,8 @@ OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
  * this is not memmove. Zero size is a validated no-op (end offsets legal), retaining
  * nothing. Invalid arguments leave recording unchanged. No implicit GPU dependency:
  * order producers/consumers with TRANSFER_READ/WRITE and the existing barriers.
- * CPU access to HOST buffers still requires completion of ALL their submitted uses. */
+ * CPU copy helpers require completion of ALL submitted uses of each accessed buffer.
+ * Borrowed HOST views instead follow their explicit range/atom visibility rules. */
 OgpuResult ogpu_batch_copy_buffer(OgpuBatch *batch, const OgpuBuffer *source,
     uint64_t source_offset, const OgpuBuffer *destination, uint64_t destination_offset,
     uint64_t size_bytes, OgpuError *out_error);

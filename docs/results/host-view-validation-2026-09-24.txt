@@ -53,6 +53,10 @@ The first software-run attempt stopped before GPU execution because temporary
 Cargo archive cache entries were missing. cargo fetch --locked restored them;
 the accepted rerun was offline, with unchanged sources/artifact hashes.
 Earlier diagnostic ABI-16 runs without the explicit coherence field are excluded.
+Post-acceptance reconciliation only corrects older whole-buffer safety comments
+and the design overview to describe the tested ABI-16 range contract. It changes
+no executable code or C declarations. Report source hashes intentionally identify
+9a2bad5, not the subsequent comment-only revision; reproduce exports at that source.
 
 No actual noncoherent GPU, real device loss, Metal execution/cross-check,
 GGML/libplacebo or video-scale rerun, equal total command-memory budget or universal

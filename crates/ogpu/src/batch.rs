@@ -391,7 +391,8 @@ impl Batch {
     /// # Safety
     /// All addresses recorded in this batch must reference live, aligned, in-bounds
     /// memory on its device; dependencies must make shader accesses race-free. Keep
-    /// allocations live and do not perform host accesses until all GPU uses complete.
+    /// allocations live. Host copies require all buffer uses complete; borrowed-view
+    /// accesses require completion of conflicting range/atom uses and cache visibility.
     /// Calls on this device and its children must be externally serialized.
     pub(crate) unsafe fn submit(&mut self) -> Result<Completion, Error> {
         let mut completion = self.take_for_preparation()?;

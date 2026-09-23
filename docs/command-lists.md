@@ -42,8 +42,10 @@ even between executions. Consumed batches and retired receipts do not pin it.
 Heap mutation is rejected while any list or unretired execution retains that heap.
 This includes earlier bindings superseded within the recording.
 
-Pointed-to bytes are not copied or made immutable. They may change under existing
-whole-buffer CPU-access and explicit GPU-dependency rules. Raw addresses confer no
+Pointed-to bytes are not copied or made immutable. They may change under explicit
+host-visibility and GPU-dependency rules. CPU copy helpers require whole-buffer
+completion; ABI 16's [borrowed HOST views](host-view-candidate.md) permit independent
+range/atom access after conflicting uses complete. Raw addresses confer no
 ownership: keep every reachable allocation valid for every possible execution, or
 declare whole-buffer retention before compilation. Replay does not add range
 tracking, automatic barriers, graph scheduling, patching or parallel host calls.
