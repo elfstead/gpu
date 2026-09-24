@@ -1086,15 +1086,54 @@ pub unsafe extern "C" fn ogpu_buffer_host_invalidate(
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_compile(
     batch: *mut OgpuBatch,
+    flags: u32,
     out: *mut *mut OgpuCommandList,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         create(out, error, || {
             required(batch)?;
+            contract::compile_flags(flags)?;
             Err(fail(
                 UNSUPPORTED,
                 "Reusable command lists are not implemented on Metal",
+            ))
+        })
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dependency_begin(
+    batch: *mut OgpuBatch,
+    _source: u32,
+    _destination: u32,
+    point: *mut u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(point)?;
+            *point = 0;
+            required(batch)?;
+            Err(fail(
+                UNSUPPORTED,
+                "Split dependencies are not implemented on Metal",
+            ))
+        })
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dependency_end(
+    batch: *mut OgpuBatch,
+    _point: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            Err(fail(
+                UNSUPPORTED,
+                "Split dependencies are not implemented on Metal",
             ))
         })
     }

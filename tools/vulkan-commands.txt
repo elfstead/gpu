@@ -14,6 +14,11 @@ vkGetDeviceQueue
 vkCreateSemaphore
 vkDestroySemaphore
 vkWaitSemaphores
+vkCreateEvent
+vkDestroyEvent
+vkCmdSetEvent2
+vkCmdWaitEvents2
+vkCmdResetEvent2
 vkGetSemaphoreCounterValue
 # Test gate only; never loaded by the execution backend.
 vkSignalSemaphore

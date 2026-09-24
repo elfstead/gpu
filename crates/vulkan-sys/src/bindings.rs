@@ -108,6 +108,12 @@ pub struct VkFramebuffer_T {
 pub type VkFramebuffer = *mut VkFramebuffer_T;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkEvent_T {
+    _unused: [u8; 0],
+}
+pub type VkEvent = *mut VkEvent_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkShaderModule_T {
     _unused: [u8; 0],
 }
@@ -2751,6 +2757,7 @@ pub const VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_
 pub const VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_FLAG_BITS_MAX_ENUM: VkCommandBufferUsageFlagBits = 2147483647;
 pub type VkCommandBufferUsageFlagBits = ::std::os::raw::c_uint;
 pub type VkCommandBufferUsageFlags = VkFlags;
+pub type VkEventCreateFlags = VkFlags;
 pub type VkShaderModuleCreateFlags = VkFlags;
 pub type VkPipelineCreateFlags = VkFlags;
 pub type VkPipelineShaderStageCreateFlags = VkFlags;
@@ -4857,6 +4864,38 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkEventCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkEventCreateFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkEventCreateInfo"][::std::mem::size_of::<VkEventCreateInfo>() - 24usize];
+    [
+        "Alignment of VkEventCreateInfo",
+    ][::std::mem::align_of::<VkEventCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkEventCreateInfo::sType",
+    ][::std::mem::offset_of!(VkEventCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkEventCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkEventCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkEventCreateInfo::flags",
+    ][::std::mem::offset_of!(VkEventCreateInfo, flags) - 16usize];
+};
+impl Default for VkEventCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkShaderModuleCreateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -6394,6 +6433,21 @@ pub type PFN_vkCmdResetQueryPool = ::std::option::Option<
         queryPool: VkQueryPool,
         firstQuery: u32,
         queryCount: u32,
+    ),
+>;
+pub type PFN_vkCreateEvent = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkEventCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pEvent: *mut VkEvent,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyEvent = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        event: VkEvent,
+        pAllocator: *const VkAllocationCallbacks,
     ),
 >;
 pub type PFN_vkCreateShaderModule = ::std::option::Option<
@@ -8275,6 +8329,28 @@ pub type PFN_vkQueueSubmit2 = ::std::option::Option<
         pSubmits: *const VkSubmitInfo2,
         fence: VkFence,
     ) -> VkResult,
+>;
+pub type PFN_vkCmdSetEvent2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        event: VkEvent,
+        pDependencyInfo: *const VkDependencyInfo,
+    ),
+>;
+pub type PFN_vkCmdResetEvent2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        event: VkEvent,
+        stageMask: VkPipelineStageFlags2,
+    ),
+>;
+pub type PFN_vkCmdWaitEvents2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        eventCount: u32,
+        pEvents: *const VkEvent,
+        pDependencyInfos: *const VkDependencyInfo,
+    ),
 >;
 pub type PFN_vkCmdBeginRendering = ::std::option::Option<
     unsafe extern "C" fn(

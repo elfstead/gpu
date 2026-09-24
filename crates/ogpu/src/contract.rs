@@ -70,6 +70,13 @@ pub(crate) fn access(mask: u32, graphics: bool) -> Result<(), Error> {
     Ok(())
 }
 
+pub(crate) fn compile_flags(flags: u32) -> Result<bool, Error> {
+    if flags & !1 != 0 {
+        return Err(Error::new(INVALID_ARGUMENT, "Invalid command-list flags"));
+    }
+    Ok(flags & 1 != 0)
+}
+
 pub(crate) fn recording<T>(value: &mut Option<T>) -> Result<&mut T, Error> {
     value.as_mut().ok_or_else(submitted)
 }

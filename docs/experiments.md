@@ -635,7 +635,7 @@ or universal Vulkan parity. Next review [P4 dependency scope](dependency-scope-r
 against legal native schedules and the best existing-API command ordering before
 selecting a new dependency surface. M2 remains the following compiler milestone.
 
-## Parked follow-ups, not a work queue
+## P4 dependency scope — native controls (2026-09-24)
 
 Latest P4 checkpoint (2026-09-24): [native dependency controls](dependency-scope-results.md)
 at `79ce5c3` retain 78,000 timing samples, 6,656 Radeon/832 software correctness
@@ -644,6 +644,8 @@ split-dependency freedom, but this GPU shows no split speedup. First-run host-re
 validation failure is preserved; acceptance uses GPU-ordered reset, no suppression.
 Select [recording-local endpoints and explicit replay mode](split-dependencies.md).
 Runtime/API unchanged at ABI 16; public implementation acceptance remains next.
+
+## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
 variants, and image-representation cost comparisons remain possible follow-ups.

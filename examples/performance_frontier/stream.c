@@ -293,7 +293,7 @@ static int stream_create(Stream *s, char **argv) {
 #else
         if (!strcmp(c->policy, "compiled")) {
             CHECK(stream_record(s, i));
-            API(ogpu_batch_compile(slot->batch, &slot->list, &c->error));
+            API(ogpu_batch_compile(slot->batch, 0, &slot->list, &c->error));
             ogpu_batch_destroy(slot->batch); slot->batch = NULL;
         }
 #endif

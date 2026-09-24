@@ -14,12 +14,13 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 16**, adding
-optional borrowed HOST views and range visibility on Vulkan after ABI 15's
+Metal compute backend. The language-neutral C boundary is now **ABI 17**, adding
+recording-local split dependencies and explicit serial/simultaneous replay after
+ABI 16's optional borrowed HOST views and range visibility on Vulkan and ABI 15's
 immutable command lists and ABI 14's explicit recording-storage
 ownership; ABI 13 relaxed retirement to allow bounded empty command storage. The bounded macOS arm64
 compute/GGML path was verified at ABI 12; Metal remains destruction-based and is
-not natively revalidated for this revision (new owner/list/view calls return UNSUPPORTED).
+not natively revalidated for this revision (new owner/list/view/split calls return UNSUPPORTED).
 The validated Metal branch is merged
 into `master`. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
@@ -32,7 +33,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
 | Performance | ABI-15 replay cuts repeated host work about 88% at 512 dispatches; ABI-16 host views remove forced copies and express independent ranges, with 13% less wall time at one slot/4 MiB | Bounded matched-strategy evidence, not approval of the fundamental API or equal total command-memory budgets |
-| Validation | 27 GPU tests on each Linux driver, 39 ordinary tests, 755 ABI checks, independent installed consumer including HOST views; historical Apple M4 compute/GGML acceptance | Metal has no ABI-16 revalidation or graphics acceptance; synthetic failures are not real device-loss evidence |
+| Validation | 28 GPU tests on each Linux driver, 40 ordinary tests, 760 ABI checks; independent installed HOST-view consumer at ABI 16 and historical Apple M4 compute/GGML acceptance | ABI-17 installed/public comparison acceptance pending; no new Metal validation; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -147,9 +148,11 @@ with 78,000 new measured samples. Split is 2.4% slower at small Y and shows no c
 large-Y win; no achieved overlap or quantitative API penalty is claimed. The first
 host-reset run was rejected and replaced by validated GPU-ordered reset.
 
-**Next: implement [recording-local split endpoints and explicit replay mode](split-dependencies.md).**
-Preserve ordinary barriers, test serial reservation/event lifetime and matched public
-controls, and reject unsupported simultaneous split replay explicitly. This is a
+**Active: accept [recording-local split endpoints and explicit replay mode](split-dependencies.md).**
+ABI 17 implements both endpoints, serial reservation/event lifetime and an explicit
+rejection of unsupported simultaneous split replay. Host/lint/bindings/ABI/mock and
+both driver suites pass; next run the matched public/native matrix and relocated SDK.
+Preserve ordinary barriers. This is a
 bounded scheduling alternative, not a graph scheduler or general P4 completion.
 
 Replay timing and changing roots/dimensions remain separate open P2 questions.

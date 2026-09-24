@@ -31,7 +31,7 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 16;
+pub const ABI_VERSION: u32 = 17;
 pub const BACKEND_VULKAN: u32 = 1;
 pub const BACKEND_METAL: u32 = 2;
 pub const SUCCESS: OgpuResult = 0;

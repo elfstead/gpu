@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P4 global/range/split dependency controls; no new public runtime surface."""
+"""P4 global/range/split dependency controls and ABI-17 public split endpoints."""
 import argparse
 import csv
 import importlib.util
@@ -17,7 +17,8 @@ sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("frontier", Path(__file__).with_name("run.py"))
 f = importlib.util.module_from_spec(spec); spec.loader.exec_module(f)
 ORDERS = ("a-bc", "ab-c", "ba-c", "a-cb")
-POLICIES = tuple((s, o) for s in ("global", "buffer", "ogpu") for o in ORDERS) + (("split", "a-bc"),)
+NATIVE_REVIEW_POLICIES = tuple((s, o) for s in ("global", "buffer", "ogpu") for o in ORDERS) + (("split", "a-bc"),)
+POLICIES = NATIVE_REVIEW_POLICIES + (("ogpu-split", "a-bc"),)
 MATRIX = tuple((k, s, o) for k in (64, 4096) for s, o in POLICIES)
 FIELDS = ("submit_ms", "wait_ms", "latency_ms")
 
@@ -47,7 +48,7 @@ def parse(stdout, key, count, validate):
     r = rows[0]
     wanted = dict(kib=kib, strategy=strategy, order=order, frames=count,
                   warmups=0 if validate else 100, validation=validate,
-                  event_count=int(strategy == "split"))
+                  event_count=int(strategy in ("split", "ogpu-split")))
     f.require(all(r.get(k) == v for k, v in wanted.items()), "wrong dependency policy")
     f.require(all(f.bench.finite(r[k]) and r[k] > 0 for k in ("wall_ms", "setup_ms")), "invalid clocks")
     f.require("P4 exact X/Y outputs and guards PASS; all executions drained" in stdout, "missing oracle/drain")
@@ -80,7 +81,7 @@ def check_memory(row, stdout, stderr, signatures):
     f.require(memory["peak_bytes"] == sum(a[0] for a in signature), "memory total mismatch")
     f.require(signature == signatures.setdefault(kib, signature), "allocation policy mismatch")
     native = f.bench.records(stdout, "NATIVE_BUFFER ")
-    if row["result"]["strategy"] != "ogpu":
+    if not row["result"]["strategy"].startswith("ogpu"):
         f.require(len(native) == 2 and all(b["host"] is True and b["requested"] == size for b, size in zip(native, sizes)), "native placement/size mismatch")
         f.require(signature == [(b["allocated"], b["type"]) for b in native], "native backing mismatch")
     row["memory"] = memory
@@ -117,12 +118,13 @@ def source_hashes():
 
 
 def export(source, destination):
-    r = json.loads(source.read_text()); f.require(r["schema"] == 1 and r["complete"], "incomplete report")
+    r = json.loads(source.read_text()); f.require(r["schema"] in (1, 2) and r["complete"], "incomplete report")
+    matrix = MATRIX if r["schema"] == 2 else tuple((k, s, o) for k in (64, 4096) for s, o in NATIVE_REVIEW_POLICIES)
     f.require(r["graph"] == graph_check(), "graph mismatch")
     signatures = {}; samples = []
     for section in ("validation", "timing", "memory"):
         expected = set() if r["software"] and section != "validation" else (
-            {(*key, i) for key in MATRIX for i in range(3)} if section == "timing" else set(MATRIX))
+            {(*key, i) for key in matrix for i in range(3)} if section == "timing" else set(matrix))
         keys = []
         for row in r[section]:
             key = tuple(row["result"][k] for k in ("kib", "strategy", "order"))
@@ -168,7 +170,7 @@ def main():
               and not env.get("VK_LOADER_LAYERS_DISABLE"), "enable sync validation")
     f.require((env.get("VK_DRIVER_FILES") or env.get("VK_ICD_FILENAMES")) and not env.get("OGPU_TRACE_LOADER"), "select one ICD without tracing")
     dest = Path(tempfile.mkdtemp(prefix="dependencies-", dir=f.BUILD)); print(f"Dependency artifacts: {dest}", flush=True)
-    r = dict(schema=1, scope="P4 A->C with independent B; one queue/slot, two HOST allocations",
+    r = dict(schema=2, scope="P4 A->C with independent B; ABI-17 serial public/native replay; one queue/slot, two HOST allocations",
              revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=f.ROOT, text=True).strip(),
              dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=f.ROOT, text=True)),
              software=args.software, graph=graph_check(), sources=source_hashes(),
@@ -182,7 +184,7 @@ def main():
     traced["OGPU_VULKAN_LIBRARY"] = str(f.BUILD/"trace-memory.so")
     def invoke(key, count, mode, environment, label):
         kib, strategy, order = key; folder = dest/label; folder.mkdir()
-        binary = f.BUILD/("dependencies-ogpu" if strategy == "ogpu" else "dependencies-native")
+        binary = f.BUILD/("dependencies-ogpu" if strategy.startswith("ogpu") else "dependencies-native")
         call = subprocess.run([str(binary), strategy, order, str(kib), str(count), mode], env=environment,
                               capture_output=True, text=True, timeout=120)
         (folder/"stdout.txt").write_text(call.stdout); (folder/"stderr.txt").write_text(call.stderr)

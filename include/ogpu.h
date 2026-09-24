@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(16)
+#define OGPU_ABI_VERSION UINT32_C(17)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -360,6 +360,21 @@ OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t gr
 OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
     uint32_t destination_access, OgpuError *out_error);
 
+/* Optional split dependency (currently Vulkan only). Begin captures the first
+ * scope at its recording position; end establishes the second at a later position.
+ * Masks have barrier's meanings. Intervening commands are excluded from these
+ * scopes, even when their stages match. No resource inference or GPU/host wait.
+ * out_point is required, zero on failure; success returns an opaque nonzero token.
+ * End exactly once in the same batch. Zero/foreign/stale/ended tokens reject.
+ * Nested/crossed intervals are legal. Invalid calls leave recording unchanged.
+ * Unmatched points reject submit/compile WITHOUT consuming the batch; correct or
+ * discard it. Tokens confer no ownership and cannot cross recordings/submissions.
+ * One-shot and serial-list execution are supported; simultaneous split compilation
+ * is currently UNSUPPORTED, not implicitly serialized. Metal returns UNSUPPORTED. */
+OgpuResult ogpu_batch_dependency_begin(OgpuBatch *batch, uint32_t source_access,
+    uint32_t destination_access, uint64_t *out_point, OgpuError *out_error);
+OgpuResult ogpu_batch_dependency_end(OgpuBatch *batch, uint64_t point, OgpuError *out_error);
+
 /* Records a byte-granular GPU copy between in-bounds ranges on this batch's device.
  * Both buffers are retained until discard, failed submission cleanup or submission
  * retirement (see completion_wait). Either placement is legal. Same-buffer ranges
@@ -385,7 +400,8 @@ OgpuResult ogpu_batch_copy_buffer(OgpuBatch *batch, const OgpuBuffer *source,
 OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, OgpuError *out_error);
 
 /* Compile an immutable reusable list without submitting it (currently Vulkan only).
- * Timed batches return UNSUPPORTED without consumption. Otherwise an encoding attempt
+ * Timed batches return UNSUPPORTED without consumption; unmatched dependency points
+ * return INVALID_ARGUMENT without consumption. Otherwise an encoding attempt
  * consumes the batch, including on failure; invalid required pointers do not consume.
  * Commands, roots, addresses and launch sizes are fixed. Pointed-to data is NOT copied:
  * change it only with the applicable host-access and GPU dependency rules (copy
@@ -397,11 +413,18 @@ OgpuResult ogpu_batch_submit(OgpuBatch *batch, OgpuCompletion **out_completion, 
  * An explicit storage owner stays reserved for the entire list lifetime; its empty
  * capacity becomes reusable only after list destruction and retirement of all uses.
  * out_list is required, NULL on failure. No graph scheduling or command patching. */
-OgpuResult ogpu_batch_compile(OgpuBatch *batch, OgpuCommandList **out_list, OgpuError *out_error);
+/* flags=0 selects serial use: retire the preceding execution before resubmitting.
+ * SIMULTANEOUS permits multiple unretired executions (caller orders all hazards).
+ * Unknown flags and unsupported mode/timing combinations reject without consuming
+ * the batch. Split dependencies currently support serial compilation only. */
+#define OGPU_COMMAND_LIST_SIMULTANEOUS UINT32_C(1)
+OgpuResult ogpu_batch_compile(OgpuBatch *batch, uint32_t flags,
+    OgpuCommandList **out_list, OgpuError *out_error);
 /* Execute immutable commands again, returning an independent, untimed receipt.
- * Multiple in-flight executions are allowed on the existing queue; the caller must
+ * SIMULTANEOUS lists allow multiple in-flight executions on this queue; the caller must
  * provide race-free GPU dependencies across all uses. CPU calls remain serialized.
- * Retirement releases this execution's ownership, not the list's persistent objects.
+ * Serial use rejects while its preceding receipt is unretired, without waiting.
+ * Retirement releases this execution's ownership/reservation, not persistent objects.
  * Known unaccepted OOM leaves the list retryable; indeterminate submit errors drain
  * then poison it. Loss makes its device unusable. Old receipts never pin a retired use.
  * These receipts reject elapsed_ns; timing is NOT silently inherited from a batch. */

@@ -34,6 +34,12 @@ class DependencyTests(unittest.TestCase):
         r, _, frames=d.parse(self.text(),(64,"split","a-bc"),1,False)
         self.assertEqual(r,self.fixture()); self.assertEqual(d.summarize(frames)["wait_ms"]["median"],.2)
 
+    def test_public_split_and_matrix(self):
+        r = self.fixture(); r["strategy"] = "ogpu-split"
+        self.assertEqual(d.parse(self.text(r), (64,"ogpu-split","a-bc"), 1, False)[0], r)
+        self.assertEqual(len(set(d.MATRIX)), 28)
+        self.assertEqual(sum(s == "ogpu-split" for _,s,_ in d.MATRIX), 2)
+
     def test_policy_rejection(self):
         for key,value in [("event_count",0),("order","ab-c"),("kib",4096),("frames",2),("warmups",0),("validation",True)]:
             r=copy.deepcopy(self.fixture()); r[key]=value
@@ -51,7 +57,7 @@ class DependencyTests(unittest.TestCase):
     def test_incomplete_export(self):
         with tempfile.TemporaryDirectory(prefix="dependency-export-test-") as folder:
             root=Path(folder)
-            for report in [dict(schema=1,complete=False),dict(schema=2,complete=True),
+            for report in [dict(schema=1,complete=False),dict(schema=3,complete=True),
                            dict(schema=1,complete=True,graph=d.graph_check(),software=True,validation=[])]:
                 source=root/"report.json"; source.write_text(json.dumps(report))
                 with self.assertRaises(RuntimeError): d.export(source,root/"out")

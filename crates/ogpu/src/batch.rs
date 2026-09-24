@@ -1,6 +1,14 @@
 //! One-shot recordings, retirable submission resources and durable completion receipts.
 use super::*;
 use crate::contract;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+// Opaque recording-local tokens never alias points in another batch/device.
+static NEXT_DEPENDENCY: AtomicU64 = AtomicU64::new(1);
+
+#[cfg(test)]
+#[path = "dependency_tests.rs"]
+mod dependency_tests;
 
 pub(crate) const COMPUTE_READ: u32 = 1;
 pub(crate) const COMPUTE_WRITE: u32 = 2;
@@ -83,6 +91,8 @@ fn access(mask: u32) -> Result<Access, Error> {
 }
 
 enum Step {
+    DependencyBegin(usize),
+    DependencyEnd(usize),
     CopyBuffer {
         source: Rc<Buffer>,
         source_offset: usize,
@@ -125,6 +135,14 @@ pub(crate) struct Batch {
     timed: bool,
     retained: Vec<Rc<Buffer>>,
     storage: Option<StorageLease>,
+    dependencies: Vec<DependencyScope>,
+}
+
+struct DependencyScope {
+    token: u64,
+    source: Access,
+    destination: Access,
+    ended: bool,
 }
 
 impl Batch {
@@ -209,6 +227,7 @@ impl Batch {
             timed: false,
             retained: Vec::new(),
             storage: None,
+            dependencies: Vec::new(),
         })
     }
 
@@ -284,6 +303,43 @@ impl Batch {
             source,
             destination,
         });
+        Ok(())
+    }
+
+    pub(crate) fn dependency_begin(&mut self, source: u32, destination: u32) -> Result<u64, Error> {
+        self.recording()?;
+        contract::access(source, self.device.graphics)?;
+        contract::access(destination, self.device.graphics)?;
+        let source = access(source)?;
+        let destination = access(destination)?;
+        let token = NEXT_DEPENDENCY
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| n.checked_add(1))
+            .map_err(|_| Error::new(OUT_OF_RANGE, "Dependency token space exhausted"))?;
+        let index = self.dependencies.len();
+        self.dependencies.push(DependencyScope {
+            token,
+            source,
+            destination,
+            ended: false,
+        });
+        self.recording()?.push(Step::DependencyBegin(index));
+        Ok(token)
+    }
+
+    pub(crate) fn dependency_end(&mut self, token: u64) -> Result<(), Error> {
+        self.recording()?;
+        let index = self
+            .dependencies
+            .binary_search_by_key(&token, |d| d.token)
+            .map_err(|_| Error::new(INVALID_ARGUMENT, "Unknown dependency point for this batch"))?;
+        if self.dependencies[index].ended {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Dependency point already ended",
+            ));
+        }
+        self.recording()?.push(Step::DependencyEnd(index));
+        self.dependencies[index].ended = true;
         Ok(())
     }
 
@@ -396,13 +452,19 @@ impl Batch {
     /// Calls on this device and its children must be externally serialized.
     pub(crate) unsafe fn submit(&mut self) -> Result<Completion, Error> {
         let mut completion = self.take_for_preparation()?;
-        let command = unsafe { completion.prepare(false)? };
+        let command = unsafe { completion.prepare(None)? };
         unsafe { completion.enqueue(command) }
     }
 
     // Reject unsupported timing before consuming the recording. Encoding failures
     // after that point consume it exactly like a one-shot submission attempt.
+    #[cfg(test)]
     pub(crate) unsafe fn compile(&mut self) -> Result<CommandList, Error> {
+        unsafe { self.compile_with_flags(1) }
+    }
+
+    pub(crate) unsafe fn compile_with_flags(&mut self, flags: u32) -> Result<CommandList, Error> {
+        let simultaneous = contract::compile_flags(flags)?;
         contract::recording(&mut self.steps)?;
         if self.timed {
             return Err(Error::new(
@@ -410,9 +472,15 @@ impl Batch {
                 "Reusable command lists do not yet support per-execution timing",
             ));
         }
+        if simultaneous && !self.dependencies.is_empty() {
+            return Err(Error::new(
+                UNSUPPORTED,
+                "Split dependencies do not yet support simultaneous replay",
+            ));
+        }
         let mut preparation = self.take_for_preparation()?;
         unsafe {
-            preparation.prepare(true)?;
+            preparation.prepare(Some(simultaneous))?;
         }
         let Some(ExecutionResources::Once(resources)) = preparation.submission.resources.take()
         else {
@@ -421,10 +489,19 @@ impl Batch {
         Ok(CommandList {
             resources,
             poisoned: Cell::new(false),
+            simultaneous,
+            busy: Cell::new(false),
         })
     }
 
     fn take_for_preparation(&mut self) -> Result<Completion, Error> {
+        contract::recording(&mut self.steps)?;
+        if self.dependencies.iter().any(|d| !d.ended) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Recording has unmatched dependency points",
+            ));
+        }
         let steps = contract::take_recording(&mut self.steps)?;
         let retained = std::mem::take(&mut self.retained);
         // Transfer the lease even if ready/preparation fails: consumed batch handles
@@ -441,6 +518,8 @@ impl Batch {
                     command: ptr::null_mut(),
                     _retained: retained,
                     storage,
+                    dependencies: std::mem::take(&mut self.dependencies),
+                    events: Vec::new(),
                 },
             )),
             timeline_value: 0,
@@ -456,6 +535,8 @@ impl Batch {
 pub(crate) struct CommandList {
     resources: SubmissionResources,
     poisoned: Cell<bool>,
+    simultaneous: bool,
+    busy: Cell<bool>,
 }
 
 impl CommandList {
@@ -468,9 +549,17 @@ impl CommandList {
                 "Command list unusable after an indeterminate submission error",
             ));
         }
+        if !self.simultaneous && self.busy.replace(true) {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Serial command list has an unretired execution",
+            ));
+        }
         let completion = Completion {
             device: d.clone(),
-            submission: contract::Submission::preparing(ExecutionResources::Replay(self.clone())),
+            submission: contract::Submission::preparing(ExecutionResources::Replay(ListExecution(
+                self.clone(),
+            ))),
             timeline_value: 0,
             timed: false,
             queries: ptr::null_mut(),
@@ -494,9 +583,19 @@ impl Drop for CommandList {
     }
 }
 
+struct ListExecution(Rc<CommandList>);
+
+impl Drop for ListExecution {
+    fn drop(&mut self) {
+        if !self.0.simultaneous {
+            self.0.busy.set(false);
+        }
+    }
+}
+
 enum ExecutionResources {
     Once(SubmissionResources),
-    Replay(Rc<CommandList>),
+    Replay(ListExecution),
 }
 
 impl ExecutionResources {
@@ -547,7 +646,7 @@ impl Completion {
                 // not the timeline value (which might never have been signaled).
                 if !submission_is_unaccepted(status) {
                     if let Some(ExecutionResources::Replay(list)) = &self.submission.resources {
-                        list.poisoned.set(true);
+                        list.0.poisoned.set(true);
                     }
                     let drained = drain(|| (d.f.vkQueueWaitIdle.unwrap())(d.queue));
                     if drained == vk::VkResult_VK_ERROR_DEVICE_LOST {
@@ -578,6 +677,8 @@ struct SubmissionResources {
     pool: vk::VkCommandPool,
     command: vk::VkCommandBuffer,
     _retained: Vec<Rc<Buffer>>,
+    dependencies: Vec<DependencyScope>,
+    events: Vec<vk::VkEvent>,
     // Last field: release the busy lease only after native references and objects.
     storage: Option<StorageLease>,
 }
@@ -709,6 +810,13 @@ impl Drop for SubmissionResources {
                 );
             }
         }
+        // A cached pool has already been reset; otherwise it was destroyed above.
+        // No native command references these events when they are released.
+        for event in self.events.drain(..) {
+            unsafe {
+                (self.device.f.vkDestroyEvent.unwrap())(self.device.handle, event, ptr::null())
+            };
+        }
         // Owning fields drop after destruction (or after a successful reset in recycle).
     }
 }
@@ -761,7 +869,7 @@ impl Completion {
         unsafe { (self.device.f.vkWaitSemaphores.unwrap())(self.device.handle, &wait, timeout) }
     }
 
-    unsafe fn prepare(&mut self, reusable: bool) -> Result<vk::VkCommandBuffer, Error> {
+    unsafe fn prepare(&mut self, reusable: Option<bool>) -> Result<vk::VkCommandBuffer, Error> {
         let d = &self.device;
         let ExecutionResources::Once(resources) = self
             .submission
@@ -774,6 +882,18 @@ impl Completion {
         // SAFETY: Vulkan pointers refer to initialized local structures. This object
         // owns each successful allocation before another fallible call can occur.
         unsafe {
+            for _ in &resources.dependencies {
+                let info = vk::VkEventCreateInfo {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+                    ..Default::default()
+                };
+                let mut event = ptr::null_mut();
+                d.result(
+                    "vkCreateEvent",
+                    (d.f.vkCreateEvent.unwrap())(d.handle, &info, ptr::null(), &mut event),
+                )?;
+                resources.events.push(event);
+            }
             if self.timed {
                 let info = vk::VkQueryPoolCreateInfo {
                     sType: vk::VkStructureType_VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
@@ -836,7 +956,7 @@ impl Completion {
             let command = resources.command;
             let begin = vk::VkCommandBufferBeginInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                flags: if reusable {
+                flags: if reusable == Some(true) {
                     vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT
                 } else {
                     0
@@ -864,8 +984,48 @@ impl Completion {
                 vk::VK_ACCESS_2_HOST_WRITE_BIT,
                 vk::VK_ACCESS_2_MEMORY_READ_BIT | vk::VK_ACCESS_2_MEMORY_WRITE_BIT,
             );
+            if reusable.is_some() && !resources.events.is_empty() {
+                for event in &resources.events {
+                    (d.f.vkCmdResetEvent2.unwrap())(
+                        command,
+                        *event,
+                        vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    );
+                }
+                barrier(
+                    d,
+                    command,
+                    vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                    0,
+                    0,
+                );
+            }
             for step in &resources.steps {
                 match step {
+                    Step::DependencyBegin(index) | Step::DependencyEnd(index) => {
+                        let scope = &resources.dependencies[*index];
+                        let memory = vk::VkMemoryBarrier2 {
+                            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+                            srcStageMask: scope.source.stages,
+                            srcAccessMask: scope.source.flags,
+                            dstStageMask: scope.destination.stages,
+                            dstAccessMask: scope.destination.flags,
+                            ..Default::default()
+                        };
+                        let info = vk::VkDependencyInfo {
+                            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                            memoryBarrierCount: 1,
+                            pMemoryBarriers: &memory,
+                            ..Default::default()
+                        };
+                        let event = resources.events[*index];
+                        if matches!(step, Step::DependencyBegin(_)) {
+                            (d.f.vkCmdSetEvent2.unwrap())(command, event, &info);
+                        } else {
+                            (d.f.vkCmdWaitEvents2.unwrap())(command, 1, &event, &info);
+                        }
+                    }
                     Step::CopyBuffer {
                         source,
                         source_offset,

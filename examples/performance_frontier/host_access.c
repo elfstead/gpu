@@ -130,7 +130,7 @@ static int encode(HostAccess *h, unsigned i) {
         OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &c->error));
     API(ogpu_batch_dispatch(s->batch, c->kernel, groups, 1, 1, &s->root, sizeof(s->root), &c->error));
     API(ogpu_batch_retain_buffer(s->batch, c->slots[h->shared ? 0 : i].buffer, &c->error));
-    API(ogpu_batch_compile(s->batch, &s->list, &c->error));
+    API(ogpu_batch_compile(s->batch, 0, &s->list, &c->error));
     ogpu_batch_destroy(s->batch); s->batch = NULL;
 #endif
     return 1;

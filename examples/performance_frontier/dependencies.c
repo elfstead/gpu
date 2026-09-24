@@ -1,4 +1,4 @@
-/* P4: independent B between producer A and consumer C. No runtime API changes.
+/* P4: independent B between producer A and consumer C, native and public API.
  * Shared setup/oracle with prior controls; native execution never links OGPU. */
 #define FRONTIER_NO_MAIN
 #include "small.c"
@@ -121,6 +121,16 @@ static int encode_dependencies(DependencyControl *d) {
         CHECK(dispatch_node(d,1)); d->wait_event(s->batch.command,1,&d->event,&info);
         CHECK(dispatch_node(d,2));
     } else
+#else
+    if (!strcmp(d->strategy,"ogpu-split")) {
+        uint64_t point=0;
+        CHECK(dispatch_node(d,0));
+        API(ogpu_batch_dependency_begin(s->batch,OGPU_ACCESS_COMPUTE_WRITE,
+            OGPU_ACCESS_COMPUTE_READ|OGPU_ACCESS_COMPUTE_WRITE,&point,&c->error));
+        CHECK(dispatch_node(d,1));
+        API(ogpu_batch_dependency_end(s->batch,point,&c->error));
+        CHECK(dispatch_node(d,2));
+    } else
 #endif
     {
         for (unsigned i=0;i<3;++i) {
@@ -134,7 +144,7 @@ static int encode_dependencies(DependencyControl *d) {
     VK_TRY(n->vkEndCommandBuffer(s->batch.command));
 #else
     for (unsigned b=0;b<2;++b) API(ogpu_batch_retain_buffer(s->batch,c->slots[b].buffer,&c->error));
-    API(ogpu_batch_compile(s->batch,&s->list,&c->error));
+    API(ogpu_batch_compile(s->batch,0,&s->list,&c->error));
     ogpu_batch_destroy(s->batch); s->batch=NULL;
 #endif
     return 1;
@@ -208,7 +218,7 @@ static int dependency_window(DependencyControl *d,unsigned count,int validate,Fr
 int main(int argc,char **argv) {
     (void)window;
     if (argc==2 && !strcmp(argv[1],"--selftest")) return !selftest();
-    if (argc!=6) { fprintf(stderr,"Usage: dependencies global|buffer|split|ogpu order kib frames validate|measure\n"); return 1; }
+    if (argc!=6) { fprintf(stderr,"Usage: dependencies global|buffer|split|ogpu|ogpu-split order kib frames validate|measure\n"); return 1; }
     DependencyControl d={0}; d.strategy=argv[1];
     for (d.order=0;d.order<4 && strcmp(argv[2],orders[d.order]);++d.order) {}
     unsigned kib=number(argv[3]),count=number(argv[4]); int validate=!strcmp(argv[5],"validate");
@@ -217,7 +227,8 @@ int main(int argc,char **argv) {
     if (strcmp(d.strategy,"global") && strcmp(d.strategy,"buffer") && strcmp(d.strategy,"split")) return 1;
     if (!strcmp(d.strategy,"split") && d.order) return 1;
 #else
-    if (strcmp(d.strategy,"ogpu")) return 1;
+    if (strcmp(d.strategy,"ogpu") && strcmp(d.strategy,"ogpu-split")) return 1;
+    if (!strcmp(d.strategy,"ogpu-split") && d.order) return 1;
 #endif
     d.elements[0]=64*1024/4; d.elements[1]=kib*1024/4;
     Frame *frames=calloc(count>100?count:100,sizeof(*frames)); if (!frames) return 1;
@@ -227,7 +238,8 @@ int main(int argc,char **argv) {
     if (!validate && !dependency_window(&d,100,0,frames,&wall)) goto cleanup;
     if (!dependency_window(&d,count,validate,frames,&wall)) goto cleanup;
     printf("DEPENDENCY_RESULT {\"strategy\":\"%s\",\"order\":\"%s\",\"kib\":%u,\"frames\":%u,\"warmups\":%u,\"validation\":%s,\"setup_ms\":%.9f,\"wall_ms\":%.9f,\"event_count\":%u}\n",
-        d.strategy,orders[d.order],kib,count,validate?0:100,validate?"true":"false",setup,wall,!strcmp(d.strategy,"split"));
+        d.strategy,orders[d.order],kib,count,validate?0:100,validate?"true":"false",setup,wall,
+        !strcmp(d.strategy,"split") || !strcmp(d.strategy,"ogpu-split"));
     if (!validate) for (unsigned i=0;i<count;++i)
         printf("FRAME {\"index\":%u,\"submit_ms\":%.9f,\"wait_ms\":%.9f,\"latency_ms\":%.9f}\n",i,frames[i].submit,frames[i].wait,frames[i].latency);
     puts("P4 exact X/Y outputs and guards PASS; all executions drained"); okay=1;

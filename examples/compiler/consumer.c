@@ -20,7 +20,8 @@ int main(void) {
     OgpuRecordingStorage *storage = NULL;
     OgpuCommandList *list = NULL;
     const int views = getenv("OGPU_EXAMPLE_HOST_VIEW") != NULL;
-    const int replay = views || getenv("OGPU_EXAMPLE_REPLAY") != NULL;
+    const int split = getenv("OGPU_EXAMPLE_SPLIT") != NULL;
+    const int replay = split || views || getenv("OGPU_EXAMPLE_REPLAY") != NULL;
     OgpuHostView view = {0};
     const int explicit_storage = replay || getenv("OGPU_EXAMPLE_RECORDING_STORAGE") != NULL;
     OgpuError error = {0};
@@ -126,9 +127,27 @@ int main(void) {
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
                 OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &error));
             TRY(ogpu_batch_dispatch(batch, kernel, groups, 1, 1, &args, sizeof(args), &error));
+            if (split) {
+                uint64_t point = UINT64_MAX;
+                REQUIRE(ogpu_batch_dependency_begin(NULL, OGPU_ACCESS_COMPUTE_WRITE,
+                    OGPU_ACCESS_COMPUTE_READ, &point, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                REQUIRE(point == 0);
+                REQUIRE(ogpu_batch_dependency_end(batch, 0, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                TRY(ogpu_batch_dependency_begin(batch, OGPU_ACCESS_COMPUTE_WRITE,
+                    OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &point, &error));
+                REQUIRE(point != 0);
+                REQUIRE(ogpu_batch_compile(batch, 0, &list, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                REQUIRE(list == NULL); // Unmatched endpoint leaves recording correctable.
+                TRY(ogpu_batch_dependency_end(batch, point, &error));
+                REQUIRE(ogpu_batch_dependency_end(batch, point, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                TRY(ogpu_batch_dispatch(batch, kernel, groups, 1, 1, &args, sizeof(args), &error));
+                REQUIRE(ogpu_batch_compile(batch, OGPU_COMMAND_LIST_SIMULTANEOUS, &list, &error)
+                    == OGPU_ERROR_UNSUPPORTED);
+                REQUIRE(list == NULL); // Serial compilation remains available.
+            }
             if (replay) {
-                REQUIRE(ogpu_batch_compile(batch, NULL, &error) == OGPU_ERROR_INVALID_ARGUMENT);
-                TRY(ogpu_batch_compile(batch, &list, &error));
+                REQUIRE(ogpu_batch_compile(batch, 0, NULL, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+                TRY(ogpu_batch_compile(batch, 0, &list, &error));
                 ogpu_batch_destroy(batch); batch = NULL;
                 args = (TransformArguments){0}; // The list owns its original root copy.
             }
@@ -140,6 +159,9 @@ int main(void) {
         }
         if (replay) {
             TRY(ogpu_command_list_submit(list, &done, &error));
+            OgpuCompletion *rejected = NULL;
+            REQUIRE(ogpu_command_list_submit(list, &rejected, &error) == OGPU_ERROR_INVALID_ARGUMENT);
+            REQUIRE(rejected == NULL); // The first receipt has not been retired.
             if (pass == 2) { ogpu_command_list_destroy(list); list = NULL; }
         } else { TRY(ogpu_batch_submit(batch, &done, &error)); }
         TRY(ogpu_completion_wait(done, &error));
@@ -152,7 +174,8 @@ int main(void) {
         }
         ogpu_completion_destroy(done); done = NULL;
         ogpu_batch_destroy(batch); batch = NULL;
-        for (uint32_t i = 0; i < count; ++i) expected[i + 1] = expected[i + 1] * 3u + 7u;
+        for (unsigned operation = 0; operation < (split ? 2u : 1u); ++operation)
+            for (uint32_t i = 0; i < count; ++i) expected[i + 1] = expected[i + 1] * 3u + 7u;
         if (views) { TRY(ogpu_buffer_host_invalidate(buffer, 0, bytes, &error)); }
         else { TRY(ogpu_buffer_read(buffer, 0, actual, bytes, &error)); }
         const uint32_t *output = views ? view.data : actual;
@@ -162,6 +185,7 @@ int main(void) {
         count, sizeof(args), transform_local[0]);
     result = EXIT_SUCCESS;
     if (views) puts("Borrowed host view: direct produce/consume, partial update, placement/range/output rejection PASS");
+    if (split) puts("Split dependency: paired transforms, token/output/unmatched rejection, serial replay PASS");
     if (replay) puts("Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS");
     else if (explicit_storage) puts("Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS");
 cleanup:

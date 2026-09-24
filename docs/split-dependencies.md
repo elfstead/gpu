@@ -1,7 +1,8 @@
 # Candidate: recording-local split dependencies and explicit replay mode
 
 Selected 2026-09-24 by the [P4 native controls](dependency-scope-results.md).
-Not yet implemented or accepted through the public API. This preserves missing
+Implemented at experimental ABI 17; public/native comparison acceptance is pending.
+This preserves missing
 scheduling freedom, not a promised local speedup. Ordinary barriers stay available.
 
 ## Shape
@@ -30,7 +31,7 @@ global barriers retain their existing cross-submission contract.
 
 ## Replay and ownership
 
-Make compilation's execution policy explicit: add a flags argument to
+Compilation's execution policy is explicit through a flags argument to
 `ogpu_batch_compile`. Flags zero select **serial use**; an explicit
 `OGPU_COMMAND_LIST_SIMULTANEOUS` flag permits several unretired executions.
 Unknown flags reject without consuming the batch. Serial resubmission while a
@@ -62,7 +63,7 @@ calls return UNSUPPORTED, with cleared outputs; no native Mac claim.
 
 ## Acceptance before retaining the candidate
 
-Increment the experimental ABI for the changed compile signature. Update every
+ABI 17 changes the compile signature. Update every
 consumer and installed SDK example together. Add token-state, nested/crossed scope,
 invalid-mask/output, incomplete-recording, event-creation failure, serial pending/
 retry/loss/retirement and command-before-event cleanup tests. Run the GPU suite on

@@ -250,7 +250,7 @@ static int create(Context *c) {
 #else
         if (!strcmp(c->policy, "compiled")) {
             CHECK(record_slot(c, s));
-            API(ogpu_batch_compile(s->batch, &s->list, &c->error));
+            API(ogpu_batch_compile(s->batch, 0, &s->list, &c->error));
             ogpu_batch_destroy(s->batch); s->batch = NULL;
         }
 #endif

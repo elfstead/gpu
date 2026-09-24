@@ -401,6 +401,11 @@ fn gpu_retirement() {
 #[test]
 #[ignore = "requires Vulkan; same-list simultaneous submissions, gated ownership and terminal loss"]
 fn gpu_replay_retirement() {
+    replay_retirement(true);
+    replay_retirement(false);
+}
+
+fn replay_retirement(simultaneous: bool) {
     let instance = Arc::new(Instance::new().unwrap());
     let words: Vec<_> = include_bytes!("../../../examples/shaders/roundtrip.spv")
         .chunks_exact(4)
@@ -463,30 +468,47 @@ fn gpu_replay_retirement() {
         batch
             .barrier(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
             .unwrap();
-        batch.dispatch(kernel, [1; 3], &root).unwrap();
+        batch.dispatch(kernel.clone(), [1; 3], &root).unwrap();
+        if !simultaneous {
+            let point = batch
+                .dependency_begin(COMPUTE_WRITE, COMPUTE_READ | COMPUTE_WRITE)
+                .unwrap();
+            batch.dependency_end(point).unwrap();
+            batch.dispatch(kernel.clone(), [1; 3], &root).unwrap();
+        }
+        drop(kernel);
         batch.retain_buffer(buffer.clone()).unwrap();
-        let list = Rc::new(unsafe { batch.compile().unwrap() });
+        let list = Rc::new(unsafe { batch.compile_with_flags(u32::from(simultaneous)).unwrap() });
         let weak_list = Rc::downgrade(&list);
-        for _ in 0..3 {
+        let uses = if simultaneous { 3 } else { 1 };
+        for _ in 0..uses {
             gate.completions.push(unsafe { list.submit().unwrap() });
         }
-        assert!(!gate.completions[2].poll().unwrap());
+        if !simultaneous {
+            assert!(unsafe { list.submit() }.is_err());
+        }
+        assert!(!gate.completions[uses - 1].poll().unwrap());
         POLL_STATUS.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
-        assert!(gate.completions[1].poll().is_err());
+        assert!(gate.completions[uses - 1].poll().is_err());
+        if !simultaneous {
+            assert!(list.busy.get() && unsafe { list.submit() }.is_err());
+        }
         assert!(owner.trim().is_err() && Batch::new_in(owner.clone()).is_err());
         POLL_STATUS.set(vk::VkResult_VK_SUCCESS);
         drop(list);
         drop(owner); // No destructor may wait behind the closed gate.
         assert!(weak_list.upgrade().is_some() && weak_owner.upgrade().is_some());
         gate.open();
-        gate.completions[2].wait().unwrap();
-        assert!(
-            weak_list.upgrade().is_some(),
-            "Earlier unobserved uses still retain list"
-        );
-        gate.completions[0].wait().unwrap();
-        assert!(weak_kernel.upgrade().is_some());
-        gate.completions[1].wait().unwrap();
+        gate.completions[uses - 1].wait().unwrap();
+        if simultaneous {
+            assert!(
+                weak_list.upgrade().is_some(),
+                "Earlier unobserved uses still retain list"
+            );
+            gate.completions[0].wait().unwrap();
+            assert!(weak_kernel.upgrade().is_some());
+            gate.completions[1].wait().unwrap();
+        }
         assert!(
             weak_list.upgrade().is_none()
                 && weak_kernel.upgrade().is_none()
@@ -496,7 +518,7 @@ fn gpu_replay_retirement() {
         unsafe {
             buffer.read(0, (&mut value as *mut u32).cast(), 4).unwrap();
         }
-        assert_eq!(value, 118);
+        assert_eq!(value, if simultaneous { 118 } else { 37 });
         for done in &mut gate.completions {
             done.wait().unwrap();
             assert!(done.poll().unwrap());

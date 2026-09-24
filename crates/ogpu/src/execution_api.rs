@@ -26,6 +26,7 @@ pub struct OgpuCommandList {
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_compile(
     batch: *mut OgpuBatch,
+    flags: u32,
     out: *mut *mut OgpuCommandList,
     error: *mut OgpuError,
 ) -> OgpuResult {
@@ -33,7 +34,7 @@ pub unsafe extern "C" fn ogpu_batch_compile(
         create(out, error, || {
             required(batch)?;
             Ok(OgpuCommandList {
-                inner: Rc::new((*batch).inner.compile()?),
+                inner: Rc::new((*batch).inner.compile_with_flags(flags)?),
             })
         })
     }
@@ -825,6 +826,43 @@ pub unsafe extern "C" fn ogpu_batch_barrier(
 }
 
 /// # Safety
+/// Live batch, independent writable point/error outputs, externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dependency_begin(
+    batch: *mut OgpuBatch,
+    source: u32,
+    destination: u32,
+    point: *mut u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(point)?;
+            *point = 0;
+            required(batch)?;
+            *point = (*batch).inner.dependency_begin(source, destination)?;
+            Ok(())
+        })
+    }
+}
+
+/// # Safety
+/// Live batch, independent writable error output, externally serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dependency_end(
+    batch: *mut OgpuBatch,
+    point: u64,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            (*batch).inner.dependency_end(point)
+        })
+    }
+}
+
+/// # Safety
 /// See include/ogpu.h: valid shader addresses and explicit race-free dependencies;
 /// allocations remain live. Host copies require whole-buffer completion; borrowed
 /// views require completion of conflicting range/atom uses and cache visibility.
@@ -1249,9 +1287,29 @@ mod tests {
     #[test]
     fn invalid_batch_arguments_need_no_driver() {
         unsafe {
+            let mut point = u64::MAX;
+            assert_eq!(
+                ogpu_batch_dependency_begin(ptr::null_mut(), 1, 2, &mut point, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(point, 0);
+            assert_eq!(
+                ogpu_batch_dependency_begin(
+                    ptr::null_mut(),
+                    1,
+                    2,
+                    ptr::null_mut(),
+                    ptr::null_mut()
+                ),
+                INVALID_ARGUMENT
+            );
+            assert_eq!(
+                ogpu_batch_dependency_end(ptr::null_mut(), 0, ptr::null_mut()),
+                INVALID_ARGUMENT
+            );
             let mut list = ptr::dangling_mut::<OgpuCommandList>();
             assert_eq!(
-                ogpu_batch_compile(ptr::null_mut(), &mut list, ptr::null_mut()),
+                ogpu_batch_compile(ptr::null_mut(), 0, &mut list, ptr::null_mut()),
                 INVALID_ARGUMENT
             );
             assert!(list.is_null());

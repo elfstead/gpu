@@ -1,4 +1,4 @@
-# Reusable command lists — ABI-15 experiment
+# Reusable command lists — current ABI-17 contract
 
 The [explicit-storage result](recording-storage-results.md) removed a recording
 capacity cliff, but did not expose native executable reuse. This experiment asks
@@ -14,7 +14,7 @@ execution. Timing and mutable-command variants remain separate questions.
 ```c
 ogpu_batch_create_in(storage, &batch, &error); /* ordinary creation also works */
 /* Record commands, copied roots, dependencies and explicit buffer retention. */
-ogpu_batch_compile(batch, &list, &error);       /* encode, do not submit */
+ogpu_batch_compile(batch, 0, &list, &error);    /* serial replay; encode, do not submit */
 ogpu_batch_destroy(batch);
 ogpu_command_list_submit(list, &done, &error);  /* repeat as needed */
 ogpu_completion_wait(done, &error);
@@ -23,16 +23,17 @@ ogpu_command_list_destroy(list);
 ```
 
 Check every result in callers; the installed C consumer has a checked path under
-`OGPU_EXAMPLE_REPLAY=1`. ABI 15 adds one opaque type and three functions, without
-changing public struct layouts. Match header/library revisions. Vulkan implements
+`OGPU_EXAMPLE_REPLAY=1`. ABI 15 added one opaque type and three functions; ABI 17
+adds an explicit compile flags argument and [split dependencies](split-dependencies.md).
+Match header/library revisions. Vulkan implements
 this optional experiment; Metal exports UNSUPPORTED stubs, with no native acceptance
 claim and no new fallback. The default one-shot path remains available.
 
 | State / operation | Ownership and effect |
 |---|---|
-| Compile | Consumes the batch, including preparation failure; invalid required pointers do not consume. No GPU work submitted. |
+| Compile | Consumes on preparation, including failure; invalid pointers/flags, unmatched endpoints and unsupported mode/timing do not consume. No GPU work submitted. |
 | Idle executable | Retains fixed commands, copied roots, addresses, launch sizes, recorded objects and explicitly retained buffers. |
-| Execute | Returns an independent receipt; several executions of the same list may be pending. |
+| Execute | Returns an independent receipt; serial mode rejects until the preceding use retires, explicit simultaneous mode permits multiple pending uses. |
 | Observe one execution | Releases that execution's list reference, not the public list's persistent ownership. |
 | Destroy public list | Never waits; unretired executions keep it alive. |
 | Release last owner | Reset/destroy native commands before releasing recorded objects; return eligible empty capacity. |
@@ -50,8 +51,9 @@ ownership: keep every reachable allocation valid for every possible execution, o
 declare whole-buffer retention before compilation. Replay does not add range
 tracking, automatic barriers, graph scheduling, patching or parallel host calls.
 
-The Vulkan mapping uses `SIMULTANEOUS_USE`: the same native command buffer may be
-submitted while pending, but the caller still supplies race-free dependencies.
+Flags zero select serial mode without a mandatory native usage flag. Explicit
+`OGPU_COMMAND_LIST_SIMULTANEOUS` maps to `SIMULTANEOUS_USE`: the same native command
+buffer may be submitted while pending, but the caller still supplies race-free dependencies.
 The native flag expressly permits this usage. [Vulkan command-buffer usage flags](https://docs.vulkan.org/refpages/latest/refpages/source/VkCommandBufferUsageFlagBits.html)
 Descriptor heap reserved ranges must remain valid until binding command buffers
 are reset/freed, hence ownership between executions rather than only while pending.
@@ -81,7 +83,7 @@ per-execution GPU timing, multi-queue execution or host-parallel recording. Thos
 need discriminating experiments before accepting the fundamental surface. Do not
 claim universal Vulkan parity from an amortized fixed-command case.
 
-## Predeclared acceptance protocol
+## Historical ABI-15 acceptance protocol
 
 Runtime counters must show one encoding across repeated execution, no reset between
 uses, and reset/destruction before resource release. Exact integer/guard tests vary
@@ -99,12 +101,14 @@ times 1,000 following 100 drained warmups. Rotation is not perfectly position-
 balanced with three rounds/four strategies. Preserve all samples and tails.
 Software controls validate 64 frames per configuration, without timing claims.
 
-Both replay paths encode during setup. Native replay uses its existing serial-use
-command buffer; OGPU permits simultaneous uses, a stronger capability not exercised
+Both replay paths encoded during setup. Native replay used its existing serial-use
+command buffer; ABI-15 OGPU permitted simultaneous uses, a stronger capability not exercised
 by this per-slot schedule. Requested buffers, shader, exact oracle, dependencies,
 slot ownership and clock boundaries remain matched. Trace explicit device-memory
 allocations separately; this does not measure native command storage or CPU vectors.
 Setup includes device/program creation, so it does not isolate compile amortization.
+ABI 17's current harness instead explicitly selects serial replay for this schedule;
+historical results remain pinned to their original source revisions.
 
 Also run the frozen mixed learned-image workload through compiled lists: one/two/
 three slots, alternating inputs, 64 frames each, full final pixels/readback guards,
