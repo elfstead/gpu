@@ -70,9 +70,11 @@ regression run; “latest” is not part of this milestone's acceptance conditio
   in-tree build. A public runtime change requires a separate rationale and ABI/test
   migration; generated helper types are not a stable public ABI.
 
-## Initial status
+## Current status
 
 The [device-code contract](device-code-contract.md) describes the current boundary
-and targeted extensions. Structured arguments, generated heap/stage interfaces,
+and targeted extensions. [Slice 1 is accepted](compiler-scalar-results.md) at
+`291eb1f`: both driver/layout fixtures, independent installed-tool mutations and
+unchanged learned-image regressions pass. Structured arguments, generated heap/stage interfaces,
 transitive build dependencies and the language-direction decision remain unaccepted.
-Slice 1 is active. This brief is a bounded work queue, not completed M2 evidence.
+Slice 2 is next. This brief is a bounded work queue, not completed M2 evidence.

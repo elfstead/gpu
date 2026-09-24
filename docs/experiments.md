@@ -656,6 +656,16 @@ now expressible. Runtime serial gates/failures and independent installed consume
 pass. Retain the candidate; simultaneous split and broader P4/P1/P5/P6 concerns
 remain open. M2 programming/compiler contract is next.
 
+## M2 scalar-root acceptance (2026-09-24)
+
+The [M2 brief](compiler-contract-plan.md) and [device-code contract](device-code-contract.md)
+are committed at `ca941f6`. [Slice 1](compiler-scalar-results.md) accepts generated
+FP32 root fields at `c7592de`, with the installed-command correction at `291eb1f`.
+Both layouts/drivers and installed-tool stale/mutation paths pass; all 38 small
+learned-image cases in normal/diagnostic and original/mutated modes still pass.
+Runtime/API and existing generated shaders are unchanged. No new numerical policy,
+language decision or general P7 approval. Aggregate/pointee layout is next.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

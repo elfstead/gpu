@@ -169,9 +169,12 @@ obligations. Then cover structured/root/pointed-to arguments, generated image/he
 interfaces and explicit source-build dependencies through the installed tool.
 Finish with a committed language-direction decision grounded in actual compiler
 output and host integration. Existing M1 outputs remain a regression gate.
-Slice 1 is active: FP32 root fields with exact guarded output and generated layout/
-local-size mutations. Aggregate/pointee layouts, heap/stage interfaces, build
-dependencies and the language decision follow. M2 is not accepted; see its
+[Slice 1 is accepted](compiler-scalar-results.md) at `291eb1f`: FP32 root fields,
+exact guarded output, layout/local-size mutations and independent installed-tool
+regeneration on both drivers; learned-image regressions remain unchanged.
+**Next: slice 2, recursive aggregate and pointed-to argument layouts**, including
+verified pointee metadata rather than name-based guesses. Heap/stage interfaces,
+build dependencies and the language decision follow. M2 is not accepted; see its
 [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
 After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),
