@@ -172,13 +172,13 @@ output and host integration. Existing M1 outputs remain a regression gate.
 [Slice 1 is accepted](compiler-scalar-results.md) at `291eb1f`: FP32 root fields,
 exact guarded output, layout/local-size mutations and independent installed-tool
 regeneration on both drivers; learned-image regressions remain unchanged.
-**Active: slice 2, recursive aggregate and pointed-to argument layouts.** The
-implementation cross-checks a separate reflection-only pointee query against the
-original artifact. Original/reordered/wider-vector fixtures and 20 rejection/layout
-tests pass on both drivers; installed SDK acceptance is next. The first fixture
-used illegal divergent push-array indexing; it was corrected, and a conservative
-uniformity check now rejects it before execution. Heap/stage interfaces,
-build dependencies and the language decision follow. M2 is not accepted; see its
+[Slice 2 is accepted](compiler-aggregate-results.md) at `c63b014`: recursive aggregate
+and pointed-to layouts, original/reordered/wider-vector fixtures, 20 rejection/layout
+tests and independent installed-tool mutations pass on both drivers. The initial
+illegal divergent push-array fixture is preserved as a rejection test; it does not
+establish a driver bug or demand a runtime fallback.
+**Next: slice 3, generated image/sampler heaps and a checked graphics stage pair.**
+Build dependencies and the language decision follow. M2 is not accepted; see its
 [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
 After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),

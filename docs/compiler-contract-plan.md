@@ -75,9 +75,10 @@ regression run; “latest” is not part of this milestone's acceptance conditio
 The [device-code contract](device-code-contract.md) describes the current boundary
 and targeted extensions. [Slice 1 is accepted](compiler-scalar-results.md) at
 `291eb1f`: both driver/layout fixtures, independent installed-tool mutations and
-unchanged learned-image regressions pass. Structured arguments, generated heap/stage interfaces,
+unchanged learned-image regressions pass. [Slice 2 is accepted](compiler-aggregate-results.md)
+at `c63b014`: aggregate/pointee layouts, original/reordered/wider-vector and installed
+mutation paths pass on both drivers. Generated heap/stage interfaces,
 transitive build dependencies and the language-direction decision remain unaccepted.
-Slice 2 is implemented with both-driver original/reordered/vector3/vector4 checks;
-installed SDK acceptance remains next. A failed divergent push-array fixture led
-to an explicit uniform-index check, not a runtime/driver fallback. This brief is
+Slice 3 is next. A failed divergent push-array fixture led to an explicit
+uniform-index check, not a runtime/driver fallback. This brief is
 a bounded work queue, not completed M2 evidence.

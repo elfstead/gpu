@@ -666,6 +666,18 @@ learned-image cases in normal/diagnostic and original/mutated modes still pass.
 Runtime/API and existing generated shaders are unchanged. No new numerical policy,
 language decision or general P7 approval. Aggregate/pointee layout is next.
 
+## M2 aggregate-layout acceptance (2026-09-24)
+
+At clean `c63b014`, [slice 2](compiler-aggregate-results.md) accepts recursive
+aggregate layouts and separately reflected/verified named pointees. Four layout
+variants, direct-Vulkan controls, 20 rejection/layout tests and independent SDK
+regeneration pass on both drivers; learned-image regressions remain unchanged.
+The initial divergent push-array fixture was invalid under Vulkan's uniform-index
+rule; its Radeon mismatch is not a driver/runtime defect. Preserve it as a negative
+compiler test. Native packing remains validated without enabling scalar block layout.
+No runtime ABI change or hidden packing/copies. Generated heaps/stage IO are next;
+M2/P7 and the language-direction decision remain open.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
