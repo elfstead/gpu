@@ -82,3 +82,24 @@ transitive build dependencies and the language-direction decision remain unaccep
 Slice 3 is next. A failed divergent push-array fixture led to an explicit
 uniform-index check, not a runtime/driver fallback. This brief is
 a bounded work queue, not completed M2 evidence.
+
+### Slice 3 execution order
+
+First migrate `examples/heap_image.c`'s existing compute and sampling shaders to
+generated roots, artifacts, local sizes and capability predicates. Select native
+heaps explicitly at compilation; reject descriptor-set output. Check native heap
+builtins, descriptor kinds, image dimensionality/format and descriptor-sized
+array strides. Slang's JSON does not describe the dynamic heap accesses, so their
+resource summary comes from checked SPIR-V, not invented reflection metadata.
+Keep heap indices ordinary non-owning integers; neither generation nor dispatch
+may repack roots, inspect heap contents or infer ownership from shader code.
+
+Run all six extents and four sampling/heap permutations with the existing pixel,
+guard, retirement and early-destruction checks. Reorder both roots and change the
+compute local size using the same C source. Include malformed native resource
+tests and independent installed-tool regeneration. The existing non-heap raster
+stages can remain precompiled during this first checkpoint.
+
+Then add the bounded vertex/fragment varying pair and its positive/negative link
+checks. A passing heap checkpoint alone does **not** accept slice 3: stage IO
+matching and the shared M1 regression gates still remain.
