@@ -186,3 +186,11 @@ matrix shows no split speedup on this device; performance cost remains unresolve
 not disproven. Select [recording-local endpoints and explicit replay mode](split-dependencies.md)
 for public implementation and lifetime acceptance. Simultaneous split execution,
 cross-recording endpoints and resource-scoped cache opportunities remain separate.
+
+ABI 17's [public result](split-dependency-results.md), accepted at `2397baf`,
+closes bounded recording-local P4 split acceptance. Public/native split replay
+ratios are 0.9996/1.0005 across 84,000 samples; both driver matrices, serial gated
+retirement and installed consumers pass. The API expresses the independent graph;
+no achieved overlap or local speedup is inferred. Ordinary barriers remain useful.
+Concurrent split replay, cross-recording scopes, resource-scoped caches and other
+audit questions remain open. Proceed to P7 through M2, not general stabilization.

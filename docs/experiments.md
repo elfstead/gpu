@@ -645,6 +645,17 @@ validation failure is preserved; acceptance uses GPU-ordered reset, no suppressi
 Select [recording-local endpoints and explicit replay mode](split-dependencies.md).
 Runtime/API unchanged at ABI 16; public implementation acceptance remains next.
 
+## P4 public split acceptance — ABI 17 (2026-09-24)
+
+At clean `2397baf`, the [public result](split-dependency-results.md) accepts
+recording-local split endpoints and explicit serial/simultaneous compile modes.
+All 28 cases pass on Radeon/llvmpipe, with 84,000 measured samples, matched backing
+allocations and no leaks. Public/native split wall ratios are 0.9996/1.0005; neither
+path demonstrates a clear win over ordinary barriers. The structural freedom is
+now expressible. Runtime serial gates/failures and independent installed consumers
+pass. Retain the candidate; simultaneous split and broader P4/P1/P5/P6 concerns
+remain open. M2 programming/compiler contract is next.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

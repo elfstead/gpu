@@ -1,7 +1,8 @@
 # Candidate: recording-local split dependencies and explicit replay mode
 
 Selected 2026-09-24 by the [P4 native controls](dependency-scope-results.md).
-Implemented at experimental ABI 17; public/native comparison acceptance is pending.
+Implemented and [accepted through the public API](split-dependency-results.md) at
+experimental ABI 17 (`2397baf`).
 This preserves missing
 scheduling freedom, not a promised local speedup. Ordinary barriers stay available.
 

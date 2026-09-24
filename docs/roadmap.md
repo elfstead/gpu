@@ -57,8 +57,10 @@ its first [bounded-cache experiment](command-storage-results.md), then the
 [explicit caller-owned storage comparison](recording-storage-results.md).
 [Fixed-command replay](command-list-results.md) and
 [direct HOST access/independent ranges](host-view-results.md) subsequently passed
-bounded acceptance at ABI 15/16. Next is the
-[dependency-scope review](dependency-scope-review.md), before public API expansion.
+bounded acceptance at ABI 15/16. The subsequent
+[dependency-scope review](dependency-scope-review.md) exposed missing scheduling
+freedom; [public split endpoints and explicit replay mode](split-dependency-results.md)
+pass bounded acceptance at ABI 17. Proceed to M2's compiler/programming contract.
 Changing commands/timed replay, total command-memory budgets, noncoherent hardware
 and the other expressibility concerns remain explicit rather than being passed by
 these workloads. Backend encoding optimization is distinct from a contract decision.

@@ -1,0 +1,5802 @@
+{
+  "schema": 2,
+  "scope": "P4 A->C with independent B; ABI-17 serial public/native replay; one queue/slot, two HOST allocations",
+  "revision": "2397baf22c74d77a763b90be7da934b39e613ee0",
+  "dirty": false,
+  "software": false,
+  "graph": {
+    "a-bc": [
+      "ab",
+      "ac"
+    ],
+    "ab-c": [
+      "ac",
+      "bc"
+    ],
+    "ba-c": [
+      "ac",
+      "bc"
+    ],
+    "a-cb": [
+      "ab",
+      "ac"
+    ]
+  },
+  "sources": {
+    "examples/performance_frontier/dependencies.c": "b99ccfb284ba19fe7fb4806fe17843dca17412a78678693ed8b603d455c95b3a",
+    "examples/performance_frontier/dependencies.py": "3ec86174c8d1bc11765a2d6882e4a3b23420f855ad80825d73a0a648587f2e0c",
+    "examples/performance_frontier/test_dependencies.c": "9c2c7bb61765949ee1d8266ef9ce03b24e2d6924c24c2c934de67507e3ebb274",
+    "examples/performance_frontier/test_dependencies.py": "2045c6c2f9a592fcf413f3a34b866d0d5c7a1ed8ef10d271224ec96f3b7c20fd",
+    "examples/performance_frontier/small.c": "50f82ec622bc3bfd76d17f9cdb4cc936a6013053c26740ff2e1d5c780d36788e",
+    "examples/performance_frontier/run.py": "92459a2d9064eff8c2875f6fd0ff4af2c3cb3d36ce94a9882e36dd2574c8a103",
+    "include/ogpu.h": "d12c1ff0aa0a6b745c43bd0af336d8a01c3244f62b4c9ee200a9b3f1d9f8c509",
+    "Cargo.lock": "3691869bc28522dbfbc81294b442b5172e72e61cafab2ac009e2d938949c3345",
+    "examples/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+    "examples/learned_image/native.c": "6a03b11092c7fdc5299a8f34e24779cb8d048f8e4c4c8418e839b31676e4346c",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "examples/learned_image/trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "examples/learned_image/benchmark.py": "be2333906872a736686282440bda8360b6888c5d1749fbec23280590c0bf361b",
+    "examples/learned_image/compare_native.py": "d849d6e7a2ea73b51232da3271a6040ee8ea3bf36187ed8048a50198a62d8f3f",
+    "examples/learned_image/run.py": "6a9346366b5c7eb8e8327c9bae61a0d17084243ee98994b88a721767a59b5a78",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6",
+    "crates/ogpu/src/api_types.rs": "92d1d67414eaad72bea44dec6ae14dfd4affd92a0bc19617dd59d3ec0c6bc36e",
+    "crates/ogpu/src/batch.rs": "a2803ec9ae837f2ae20e53318bac0f56a9b3c817f98cb8f860cc16b1cc280525",
+    "crates/ogpu/src/batch_tests.rs": "f87b686dce07bc4d5080fb4ac5407f633f6a5f5aa4b89f6864bae079d3582048",
+    "crates/ogpu/src/boundary.rs": "5b2914392a9cf0a2d7b1cd5c4700cc88f782a166865e6539ef70d16a050bad27",
+    "crates/ogpu/src/compute.rs": "74893a0c0be480a1af8962458593112cd1121fe74f70b9bad7b827e7ff724db0",
+    "crates/ogpu/src/contract.rs": "3fb8ce0abb4f7f9897d01b98d80e171ec46b3594a6b678bd3dfffba85070b9ff",
+    "crates/ogpu/src/dependency_tests.rs": "2ed4f4ff59498d564f64927596e5f4abdfbd7e9a11f99179d2b4ebbbe15eb446",
+    "crates/ogpu/src/dispatch_tests.rs": "f9ed35c939989fd75d95335dfc0677b11f552c11f477e82a77164496faa1f8df",
+    "crates/ogpu/src/executable_tests.rs": "ee71005376e4306e44df64585aa2a0336c6b33befe0bce93df5c17d6dc75bbe5",
+    "crates/ogpu/src/execution_api.rs": "15c3c49815f90c77fea1a6799a9c789719c40c0630900282de22178a2a877de3",
+    "crates/ogpu/src/graphics.rs": "dd5d0bb3f28af680cda5e6ae24310cb1d984602252206889497b230106a29f16",
+    "crates/ogpu/src/graphics_tests.rs": "28a7480ec8bbf4d204149962056750fbf095be152b98d974315318f91baf8ff8",
+    "crates/ogpu/src/heap_tests.rs": "89816cb540409fb398b46045ec450324f269350c1399858aa2189cbd6f2f2cdd",
+    "crates/ogpu/src/heaps.rs": "7b0b73e8551f7ea358af5759b4fa6255cf46f9f8d4f04d0179e3b98e1eabe803",
+    "crates/ogpu/src/host_view_tests.rs": "1adbe99829cffd9bb0b42136bd5b591ad0d69ba2f6641b55349a131b813860f3",
+    "crates/ogpu/src/image_tests.rs": "560b4f290d2eec69615d17ca82aeae06033b7a0bb98d5f2d926dc1d1a521cefa",
+    "crates/ogpu/src/lib.rs": "9868841a56d2292c1a78f1c359ed382ddc6f761134e0f5fb1f4007fdee96201e",
+    "crates/ogpu/src/memory_tests.rs": "a306c4bf10e015359273969e973332bb634ad9651d542dfe2a9ff40edbc966ca",
+    "crates/ogpu/src/metal.rs": "5864548f7c45e6f409fc37e25359448885badceaa7a3ce39d002564144bc98fe",
+    "crates/ogpu/src/reduction_tests.rs": "3af3fcf7877b3fd99ae6fa54468990ee1324d57f2a00843e377e59cb29614d3e",
+    "crates/ogpu/src/retirement_tests.rs": "8cdfb41b95442eb76f00e5b27f4d3d3da3e67e6646ca424db0f6c11c6e9c2cac",
+    "crates/ogpu/src/shader.rs": "e4d1774513e91926620cbf83e336a52dc8dbd6d56fb8b4b6b814611389b88356",
+    "crates/ogpu/src/specialization.rs": "47432ed5892fd8e5bc2863894780d34772fb83b46a2e2125a5e912e84dea8dff",
+    "crates/ogpu/src/storage_tests.rs": "f083ac166cac734cb7fc5ef5b698dcf5e31a6ae3b2554a40ca050ba516dc12a4",
+    "crates/ogpu/src/timing_tests.rs": "0c705a52fb89d2bcff94a98bb59cd75947af88ad44ffc328a6d894f1d1de7dcf",
+    "crates/ogpu/src/vulkan.rs": "a2a9a469e37f30335933de9da47382dce6612103000dbd5d2bad91defa41032d",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7"
+  },
+  "artifacts": {
+    "dependencies-native": "b9fa561eec5c6e1bec34822b3fa7d0f3ca8d4cff9700377db379ccaad2189cab",
+    "dependencies-ogpu": "8123a1e9065333eba0c129c1b1d0f97ea20851cdfeeb78a58ca58cc681fc7b2d",
+    "trace-memory.so": "ed10efab30f2d8e43d06889136c94ee95d940ee46c2787189abd63e905f83343"
+  },
+  "library_sha256": "97fdc2b5fde2cd1d2c288cb2f42e8302e282bb8d3c435cfcef2eda775853aaa1",
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_ICD_FILENAMES": null,
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "VK_LAYER_PATH": "/nix/store/sbsyg6dvqjs6937jyqxaw0q7n83n6awg-vulkan-validation-layers-1.4.357.0/share/vulkan/explicit_layer.d"
+  },
+  "validation": [
+    {
+      "label": "validation-64-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.872186005,
+        "wall_ms": 114.557411015,
+        "event_count": 0
+      },
+      "stdout_sha256": "ebebbba8194917d2544db9373069264da8bde42d9ea77f799d1f7b33d58f318c",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 21.471199006,
+        "wall_ms": 110.074667007,
+        "event_count": 0
+      },
+      "stdout_sha256": "e5bccef43dd49bdd8999599f815341f6ae611978120abf0b29cf3b02ba6a9666",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 21.438878983,
+        "wall_ms": 105.75871101,
+        "event_count": 0
+      },
+      "stdout_sha256": "c663e4a83332da4afc49098652379db31ea33508c15a6c9953fd62038f851773",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.14914301,
+        "wall_ms": 108.097557008,
+        "event_count": 0
+      },
+      "stdout_sha256": "645d570f40d584c657692ed7df41e3aaf9b660fcbc7d7e83da4f4f1862b15fad",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.171552002,
+        "wall_ms": 103.85521099,
+        "event_count": 0
+      },
+      "stdout_sha256": "6830e3c3243819ce544b636b2cba635b8896a9512dbeb13802612b66f5335e65",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.971634001,
+        "wall_ms": 102.432576001,
+        "event_count": 0
+      },
+      "stdout_sha256": "1d87be8a486567ac913ee921a157efbe38b34464859bae24f4e48e2b1c9a3663",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.641828001,
+        "wall_ms": 99.865621984,
+        "event_count": 0
+      },
+      "stdout_sha256": "0b941e63c0d17b54597af4e8696e9cb7c3da968516ec8bf0f0123e32f1a32664",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 17.825997025,
+        "wall_ms": 100.730132997,
+        "event_count": 0
+      },
+      "stdout_sha256": "bd0a1250da547bbedfe16174d6e18b153c018579685ff10540ac903bdfd3741d",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.600728005,
+        "wall_ms": 104.850700021,
+        "event_count": 0
+      },
+      "stdout_sha256": "11beb6c329913862e3455297c3b5fa57c2cffdb161a0115a63aa54e7a51a3b41",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.46893999,
+        "wall_ms": 101.640624017,
+        "event_count": 0
+      },
+      "stdout_sha256": "14993666c190bf76509bf0db8990c8df6c441cf984af7dc5ed50542acda39f53",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.89922601,
+        "wall_ms": 102.776071995,
+        "event_count": 0
+      },
+      "stdout_sha256": "819daef04e9cb47acf67654587076895fdd2becba87f0fd8c325f5a86a1aadc5",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 20.012484014,
+        "wall_ms": 103.867000997,
+        "event_count": 0
+      },
+      "stdout_sha256": "662f21a2fd94e7a37c23c7fd5d0392ae848fa8501eb555108b1c084906a0b23e",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 19.230131984,
+        "wall_ms": 103.023408979,
+        "event_count": 1
+      },
+      "stdout_sha256": "1e9ff4644a2bc8e9b003ffa6ba4221a9d1600d780ecfa6ed540cb79618965c72",
+      "stderr_sha256": "0049155977208f32d140879e1d04a23a7b48692ef34be4d416b772135b9bf099",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":6597069766662,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":6597069766662}",
+        "FREE {\"id\":8796093022216}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-64-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 18.878076017,
+        "wall_ms": 104.02738899,
+        "event_count": 1
+      },
+      "stdout_sha256": "bf2deeb02d0a9583513dc26e133a8d0c0a2c050142ed0f2d8fb71afb9f59134c",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 21.81387499,
+        "wall_ms": 2344.544081002,
+        "event_count": 0
+      },
+      "stdout_sha256": "bbffd3bfea4ba561dd31f28f97ecf24bd8aeead9efe8a494f6e781014fea9c78",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 22.285950005,
+        "wall_ms": 2321.392439991,
+        "event_count": 0
+      },
+      "stdout_sha256": "d520b986e695eee1e22ab502ee91a92c0ca45a8f8f021d89523baab6a4d4811c",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 22.534078002,
+        "wall_ms": 2328.823552996,
+        "event_count": 0
+      },
+      "stdout_sha256": "b667a30c31476092faba07fa94deb8f38cf22068a9f0423de23b3641a9f25c9c",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 21.807125002,
+        "wall_ms": 2348.673418015,
+        "event_count": 0
+      },
+      "stdout_sha256": "e5b8f20b16de85f5fccd26d328c9c57a30ccf2dacef58e2f009e60c4991e290e",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 22.369969994,
+        "wall_ms": 2344.446570009,
+        "event_count": 0
+      },
+      "stdout_sha256": "4a94761aecedf96f04e35a5984f89a96d66591fe1b5bf9c598795b533eba9ec5",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 22.225072026,
+        "wall_ms": 2321.877492994,
+        "event_count": 0
+      },
+      "stdout_sha256": "5335c3d24cec564b7f0b1ca477810e56580556e4555245fefb2f5fa10b088ce1",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 21.356050014,
+        "wall_ms": 2347.218991995,
+        "event_count": 0
+      },
+      "stdout_sha256": "f8e194faae9fb31986f9f3a9b4137f68aa3803b78d696f8424db025ecdaa153a",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 24.122090995,
+        "wall_ms": 2343.833396018,
+        "event_count": 0
+      },
+      "stdout_sha256": "505639ec76f768203473606c580a9a3c2b0d8c79bd47d064695c4f4ff73794c6",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 23.337839991,
+        "wall_ms": 2468.47163102,
+        "event_count": 0
+      },
+      "stdout_sha256": "98f582106cced8fb1e2d36d57e04427fc1991437891036a3c43a97c1e701cade",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 22.369890004,
+        "wall_ms": 2464.600860983,
+        "event_count": 0
+      },
+      "stdout_sha256": "4cd8e0e4d96b7e115bffe9e14207ef063526d3f084b9dc3f6651ce63861fbe50",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 21.31893,
+        "wall_ms": 2479.42483902,
+        "event_count": 0
+      },
+      "stdout_sha256": "fd63582b1b6604c8b06efee3302051b3bc8d441decc514daf1d20ad303e376ad",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 23.088932991,
+        "wall_ms": 2475.736414999,
+        "event_count": 0
+      },
+      "stdout_sha256": "bce3ca8d6245f608e7fa09e4b100736a96bc24b4e30264f38de6a6eb851a0589",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 22.258661002,
+        "wall_ms": 2329.733529001,
+        "event_count": 1
+      },
+      "stdout_sha256": "29e630a9dfe634a4dc79fe43d3071c6e355c341b1bbe4bd2fb6c44b534b55b0d",
+      "stderr_sha256": "d2c3bda8fa1641e471af01f04a974c27e8eaa909ed11cd774ebb5e3838ec004b",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":6597069766662,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":6597069766662}",
+        "FREE {\"id\":8796093022216}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 256,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 23.371748984,
+        "wall_ms": 2458.86400798,
+        "event_count": 1
+      },
+      "stdout_sha256": "cbe0af3ffb5c44c95ff9e64adfbd030568b992f48d27f74167a9b4c5a7484577",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    }
+  ],
+  "timing": [
+    {
+      "label": "timing-0-64-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.951716006,
+        "wall_ms": 95.03559202,
+        "event_count": 0
+      },
+      "stdout_sha256": "b9c051e82d74aa81d98f4e9c8ffed38b7c182dcc2414d04e5a62331ffb8f29c4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010555531044,
+          "median": 0.010239989,
+          "p95": 0.012639999,
+          "minimum": 0.009960026,
+          "maximum": 0.024779022
+        },
+        "wait_ms": {
+          "mean": 0.084451962321,
+          "median": 0.084019005,
+          "p95": 0.088219017,
+          "minimum": 0.080500007,
+          "maximum": 0.110819012
+        },
+        "latency_ms": {
+          "mean": 0.095007493376,
+          "median": 0.094348997,
+          "p95": 0.099678993,
+          "minimum": 0.091989011,
+          "maximum": 0.121057987
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.258122981,
+        "wall_ms": 98.953021973,
+        "event_count": 0
+      },
+      "stdout_sha256": "2d711b3d9663480e3ee335335156799276d1e019b2531914278779388825b899",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.012135075773,
+          "median": 0.011680007,
+          "p95": 0.014269978,
+          "minimum": 0.010809988,
+          "maximum": 0.052188993
+        },
+        "wait_ms": {
+          "mean": 0.086789228013,
+          "median": 0.0860344915,
+          "p95": 0.09097901,
+          "minimum": 0.07792902,
+          "maximum": 0.107358992
+        },
+        "latency_ms": {
+          "mean": 0.098924303803,
+          "median": 0.0977890045,
+          "p95": 0.103319019,
+          "minimum": 0.095178992,
+          "maximum": 0.13170898
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.965935975,
+        "wall_ms": 95.513615996,
+        "event_count": 0
+      },
+      "stdout_sha256": "4808cbda1897cfa2b49aacfd92661718cdecbaaf8b6c8c4cfe290273ebd9d639",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010624358302,
+          "median": 0.010329992,
+          "p95": 0.012008995,
+          "minimum": 0.010030001,
+          "maximum": 0.025718987
+        },
+        "wait_ms": {
+          "mean": 0.084861199294,
+          "median": 0.084369004,
+          "p95": 0.088649005,
+          "minimum": 0.081780016,
+          "maximum": 0.118428022
+        },
+        "latency_ms": {
+          "mean": 0.095485557574,
+          "median": 0.0948395135,
+          "p95": 0.099688977,
+          "minimum": 0.092249006,
+          "maximum": 0.12904802
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.727017999,
+        "wall_ms": 95.473587006,
+        "event_count": 0
+      },
+      "stdout_sha256": "b44957fb914c77a5bd959529ed9735a3420b99f340c81c6c56b539caea27259b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010539719677,
+          "median": 0.010279983,
+          "p95": 0.012419999,
+          "minimum": 0.009849995,
+          "maximum": 0.028059989
+        },
+        "wait_ms": {
+          "mean": 0.084905137592,
+          "median": 0.08446949749999999,
+          "p95": 0.088829011,
+          "minimum": 0.07969901,
+          "maximum": 0.108429015
+        },
+        "latency_ms": {
+          "mean": 0.095444857258,
+          "median": 0.09486900300000001,
+          "p95": 0.099629015,
+          "minimum": 0.092298985,
+          "maximum": 0.118419021
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.363261998,
+        "wall_ms": 96.024960995,
+        "event_count": 0
+      },
+      "stdout_sha256": "351bb74aa8fe59ec814c7cf6636bb7863a9aa7feedbe927c45be51d7577368bb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010831835687,
+          "median": 0.010340005,
+          "p95": 0.01245001,
+          "minimum": 0.009790003,
+          "maximum": 0.046939999
+        },
+        "wait_ms": {
+          "mean": 0.085164204837,
+          "median": 0.084309012,
+          "p95": 0.090759009,
+          "minimum": 0.081609994,
+          "maximum": 0.121457994
+        },
+        "latency_ms": {
+          "mean": 0.095996040526,
+          "median": 0.094773993,
+          "p95": 0.102868021,
+          "minimum": 0.092218995,
+          "maximum": 0.158619016
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.163673997,
+        "wall_ms": 95.446096987,
+        "event_count": 0
+      },
+      "stdout_sha256": "aa081293bec212ff3b8c781b05fe17e025290dd8b9388b05000f19b4ac178005",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010542488128999999,
+          "median": 0.010279983,
+          "p95": 0.011409014,
+          "minimum": 0.010030001,
+          "maximum": 0.030189008
+        },
+        "wait_ms": {
+          "mean": 0.08487482872,
+          "median": 0.0844895095,
+          "p95": 0.08849898,
+          "minimum": 0.080939025,
+          "maximum": 0.11579901
+        },
+        "latency_ms": {
+          "mean": 0.095417316849,
+          "median": 0.094898999,
+          "p95": 0.099349022,
+          "minimum": 0.092039019,
+          "maximum": 0.125869006
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.187314987,
+        "wall_ms": 95.823422998,
+        "event_count": 0
+      },
+      "stdout_sha256": "22d8805b860c135572a5b3c0c82e70778c8bd2997f563cb891da9ec45d1c81f7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010722202714,
+          "median": 0.010349005,
+          "p95": 0.011959016,
+          "minimum": 0.009669989,
+          "maximum": 0.042138994
+        },
+        "wait_ms": {
+          "mean": 0.085072080781,
+          "median": 0.084518999,
+          "p95": 0.089309007,
+          "minimum": 0.080899,
+          "maximum": 0.107389003
+        },
+        "latency_ms": {
+          "mean": 0.09579428351,
+          "median": 0.0951140075,
+          "p95": 0.10056898,
+          "minimum": 0.09225899,
+          "maximum": 0.134377986
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.351532996,
+        "wall_ms": 95.482616991,
+        "event_count": 0
+      },
+      "stdout_sha256": "277d467860a83c6f10dc4cf7b67748d36c2f1f623da8aaff90261bcd3833bfb3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010779157752,
+          "median": 0.0103145095,
+          "p95": 0.012759984,
+          "minimum": 0.010020018,
+          "maximum": 0.031479985
+        },
+        "wait_ms": {
+          "mean": 0.084673589778,
+          "median": 0.084204003,
+          "p95": 0.088968992,
+          "minimum": 0.071099013,
+          "maximum": 0.108618975
+        },
+        "latency_ms": {
+          "mean": 0.095452747514,
+          "median": 0.094669014,
+          "p95": 0.100148976,
+          "minimum": 0.091998994,
+          "maximum": 0.123898983
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.726159006,
+        "wall_ms": 95.611454993,
+        "event_count": 0
+      },
+      "stdout_sha256": "8c016022277cc78c73aca6bfc1efd55fb1458f4dd21403dd206e765572933ca4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01063534953,
+          "median": 0.010409981,
+          "p95": 0.011249989,
+          "minimum": 0.01019001,
+          "maximum": 0.043718994
+        },
+        "wait_ms": {
+          "mean": 0.084946708016,
+          "median": 0.0844245105,
+          "p95": 0.088858992,
+          "minimum": 0.066789985,
+          "maximum": 0.110439003
+        },
+        "latency_ms": {
+          "mean": 0.095582057531,
+          "median": 0.094969004,
+          "p95": 0.099698991,
+          "minimum": 0.092308998,
+          "maximum": 0.123607993
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.723329008,
+        "wall_ms": 95.714044988,
+        "event_count": 0
+      },
+      "stdout_sha256": "f3c1790b318dee1336879ece698ee62ae48d09eb4f5b8c77439d6eccb303ebc0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010724769192,
+          "median": 0.010409981,
+          "p95": 0.011559993,
+          "minimum": 0.010149986,
+          "maximum": 0.055689991
+        },
+        "wait_ms": {
+          "mean": 0.084960176533,
+          "median": 0.084418982,
+          "p95": 0.088458985,
+          "minimum": 0.073179007,
+          "maximum": 0.114479005
+        },
+        "latency_ms": {
+          "mean": 0.095684945732,
+          "median": 0.094938993,
+          "p95": 0.099548995,
+          "minimum": 0.092799008,
+          "maximum": 0.128868997
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.533190995,
+        "wall_ms": 95.699163973,
+        "event_count": 0
+      },
+      "stdout_sha256": "a644448fd13ce7ad3f32d09884c9b8d9ff1176b1837dc585a60b93aaa324345a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011043754981,
+          "median": 0.01056999,
+          "p95": 0.012910008,
+          "minimum": 0.010170013,
+          "maximum": 0.031149
+        },
+        "wait_ms": {
+          "mean": 0.084625568793,
+          "median": 0.084078997,
+          "p95": 0.089239001,
+          "minimum": 0.080468982,
+          "maximum": 0.106109023
+        },
+        "latency_ms": {
+          "mean": 0.095669323741,
+          "median": 0.094808996,
+          "p95": 0.100979,
+          "minimum": 0.092019022,
+          "maximum": 0.116579026
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.814307988,
+        "wall_ms": 94.885912985,
+        "event_count": 0
+      },
+      "stdout_sha256": "91096042179e3962a71c9755367ccad22c41bea8c2669eb729ad0f8e35756078",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010606721993,
+          "median": 0.010370016,
+          "p95": 0.011058986,
+          "minimum": 0.010118991,
+          "maximum": 0.044238985
+        },
+        "wait_ms": {
+          "mean": 0.084250480877,
+          "median": 0.08383901399999999,
+          "p95": 0.087908983,
+          "minimum": 0.06686902,
+          "maximum": 0.111939013
+        },
+        "latency_ms": {
+          "mean": 0.094857202826,
+          "median": 0.09433899800000001,
+          "p95": 0.099139005,
+          "minimum": 0.092308998,
+          "maximum": 0.122328997
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.314722985,
+        "wall_ms": 97.177909017,
+        "event_count": 1
+      },
+      "stdout_sha256": "7198541b20b04c49b536f12bfb821c28a4b2967000ce58086c833f0ce5337d11",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010906721605,
+          "median": 0.01067999,
+          "p95": 0.011440009,
+          "minimum": 0.010210007,
+          "maximum": 0.043538988
+        },
+        "wait_ms": {
+          "mean": 0.086242147953,
+          "median": 0.08593900500000001,
+          "p95": 0.089729011,
+          "minimum": 0.069150001,
+          "maximum": 0.111539006
+        },
+        "latency_ms": {
+          "mean": 0.097148869537,
+          "median": 0.09670899799999999,
+          "p95": 0.100978017,
+          "minimum": 0.093998998,
+          "maximum": 0.122238994
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-64-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.56844002,
+        "wall_ms": 98.149489999,
+        "event_count": 1
+      },
+      "stdout_sha256": "7737bb405bd2c744797019998f537f0dd529284e701a05685f9fc54881ef4d5d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011624901317,
+          "median": 0.011110008,
+          "p95": 0.013030022,
+          "minimum": 0.010639995,
+          "maximum": 0.032460004
+        },
+        "wait_ms": {
+          "mean": 0.086495149547,
+          "median": 0.086109996,
+          "p95": 0.090618998,
+          "minimum": 0.080168992,
+          "maximum": 0.105699003
+        },
+        "latency_ms": {
+          "mean": 0.098120050894,
+          "median": 0.097649008,
+          "p95": 0.102268994,
+          "minimum": 0.093818992,
+          "maximum": 0.124498993
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.873285979,
+        "wall_ms": 1011.954228997,
+        "event_count": 0
+      },
+      "stdout_sha256": "7056c45e805717e8ab5d842e2a150d61bd0a616d20fad27b32b37c9bcf59368c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013219976811,
+          "median": 0.0127045215,
+          "p95": 0.015710026,
+          "minimum": 0.009909987,
+          "maximum": 0.029900014
+        },
+        "wait_ms": {
+          "mean": 0.998691811821,
+          "median": 0.9983244984999999,
+          "p95": 1.002699018,
+          "minimum": 0.989439994,
+          "maximum": 1.055548996
+        },
+        "latency_ms": {
+          "mean": 1.011911788629,
+          "median": 1.011209503,
+          "p95": 1.017080009,
+          "minimum": 1.005030006,
+          "maximum": 1.068569005
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.144124001,
+        "wall_ms": 1011.923808992,
+        "event_count": 0
+      },
+      "stdout_sha256": "5ae3a31047649e535ba9d766878bc7578344453aa056b74adce4b49c2c1a0ea7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013102891908,
+          "median": 0.01256001,
+          "p95": 0.015939981,
+          "minimum": 0.01067999,
+          "maximum": 0.033298999
+        },
+        "wait_ms": {
+          "mean": 0.998780568078,
+          "median": 0.998510003,
+          "p95": 1.00237,
+          "minimum": 0.988979995,
+          "maximum": 1.069759011
+        },
+        "latency_ms": {
+          "mean": 1.011883459973,
+          "median": 1.011314988,
+          "p95": 1.016729981,
+          "minimum": 1.004729986,
+          "maximum": 1.089839011
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.752588004,
+        "wall_ms": 1011.874718994,
+        "event_count": 0
+      },
+      "stdout_sha256": "9896c5696f70d9e3aefa32d9b3b7bf5fd4921dbda21d3f1f124b1166c4016e42",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013092755038,
+          "median": 0.012709975,
+          "p95": 0.015350014,
+          "minimum": 0.011739999,
+          "maximum": 0.029208988
+        },
+        "wait_ms": {
+          "mean": 0.998744704039,
+          "median": 0.9985495209999999,
+          "p95": 1.002539009,
+          "minimum": 0.990050018,
+          "maximum": 1.07032901
+        },
+        "latency_ms": {
+          "mean": 1.011837459089,
+          "median": 1.0114644915,
+          "p95": 1.016618997,
+          "minimum": 1.002829999,
+          "maximum": 1.083249003
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.599918991,
+        "wall_ms": 1015.180754989,
+        "event_count": 0
+      },
+      "stdout_sha256": "a1fb0345f6690bf110a327c22592d594a1c40b99ef86596aa8f73d72ecfdefa8",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014551336873,
+          "median": 0.014028996,
+          "p95": 0.01692,
+          "minimum": 0.01136899,
+          "maximum": 0.050839007
+        },
+        "wait_ms": {
+          "mean": 1.000589608612,
+          "median": 1.0002299995000001,
+          "p95": 1.00444001,
+          "minimum": 0.994049996,
+          "maximum": 1.073588997
+        },
+        "latency_ms": {
+          "mean": 1.015140945504,
+          "median": 1.014719993,
+          "p95": 1.020139992,
+          "minimum": 1.00670898,
+          "maximum": 1.088637978
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.890706003,
+        "wall_ms": 1017.089134991,
+        "event_count": 0
+      },
+      "stdout_sha256": "bf0b09cd7f6df5c2e4aea7a5ae3a748aa5322eb5aa623f1493cc1408309c3ceb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013734599679,
+          "median": 0.012890011,
+          "p95": 0.0185,
+          "minimum": 0.010268986,
+          "maximum": 0.034099996
+        },
+        "wait_ms": {
+          "mean": 1.003315776334,
+          "median": 0.999724999,
+          "p95": 1.026049018,
+          "minimum": 0.990779996,
+          "maximum": 1.223417014
+        },
+        "latency_ms": {
+          "mean": 1.017050375992,
+          "median": 1.012930006,
+          "p95": 1.040410012,
+          "minimum": 1.004649997,
+          "maximum": 1.23675701
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.330920994,
+        "wall_ms": 1020.296501994,
+        "event_count": 0
+      },
+      "stdout_sha256": "3c5b889b271db615c1266ade951113d2604f7859aab7afdaf537c3b53a2e5c2c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013829329821,
+          "median": 0.012810022,
+          "p95": 0.018429011,
+          "minimum": 0.009139985,
+          "maximum": 0.033769995
+        },
+        "wait_ms": {
+          "mean": 1.006429474393,
+          "median": 0.9997195004999999,
+          "p95": 1.036639988,
+          "minimum": 0.99346,
+          "maximum": 1.182588011
+        },
+        "latency_ms": {
+          "mean": 1.020258804197,
+          "median": 1.0128500015,
+          "p95": 1.052758992,
+          "minimum": 1.005690008,
+          "maximum": 1.195437998
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.921575993,
+        "wall_ms": 1019.930485994,
+        "event_count": 0
+      },
+      "stdout_sha256": "df235f564632faf2c478334b04ba323f6960679137bbd28ffd9de3c7acc22960",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013830584426,
+          "median": 0.012900025,
+          "p95": 0.018140018,
+          "minimum": 0.011179,
+          "maximum": 0.034289002
+        },
+        "wait_ms": {
+          "mean": 1.006062732759,
+          "median": 0.9994439930000001,
+          "p95": 1.036749989,
+          "minimum": 0.992388994,
+          "maximum": 1.224356979
+        },
+        "latency_ms": {
+          "mean": 1.019893317181,
+          "median": 1.0127095135,
+          "p95": 1.050939023,
+          "minimum": 1.006529987,
+          "maximum": 1.239976972
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.318082005,
+        "wall_ms": 1013.12906599,
+        "event_count": 0
+      },
+      "stdout_sha256": "b41e21fae27e9d5dcbaa9b056c31f46232ab8e612c494919aa5323004773a486",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013416116228,
+          "median": 0.012780011,
+          "p95": 0.016238987,
+          "minimum": 0.010199994,
+          "maximum": 0.03193
+        },
+        "wait_ms": {
+          "mean": 0.999673579657,
+          "median": 0.9987400025,
+          "p95": 1.008219004,
+          "minimum": 0.989378989,
+          "maximum": 1.064529002
+        },
+        "latency_ms": {
+          "mean": 1.01308969591,
+          "median": 1.0117145035,
+          "p95": 1.022960007,
+          "minimum": 1.003619999,
+          "maximum": 1.077109009
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.102355003,
+        "wall_ms": 1013.803079009,
+        "event_count": 0
+      },
+      "stdout_sha256": "635d1a2437f673b8220636dbfdb08277696843e8b6791014bf9fb0c8913aebed",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014026072041,
+          "median": 0.013000011,
+          "p95": 0.019758999,
+          "minimum": 0.010830015,
+          "maximum": 0.044069022
+        },
+        "wait_ms": {
+          "mean": 0.999734867159,
+          "median": 0.998889998,
+          "p95": 1.008220017,
+          "minimum": 0.989270002,
+          "maximum": 1.036278993
+        },
+        "latency_ms": {
+          "mean": 1.013760939222,
+          "median": 1.012170002,
+          "p95": 1.025429994,
+          "minimum": 1.004889011,
+          "maximum": 1.063118994
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.325130999,
+        "wall_ms": 1014.149094999,
+        "event_count": 0
+      },
+      "stdout_sha256": "0fc12568baef88bdaeda26e4c4fef14f4df94852a796b586faf0a3563c3260bf",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013682336835,
+          "median": 0.012840003,
+          "p95": 0.018619001,
+          "minimum": 0.010959983,
+          "maximum": 0.033199012
+        },
+        "wait_ms": {
+          "mean": 1.000427237715,
+          "median": 0.9992295055,
+          "p95": 1.009119004,
+          "minimum": 0.991339982,
+          "maximum": 1.074248999
+        },
+        "latency_ms": {
+          "mean": 1.014109574565,
+          "median": 1.0124145150000001,
+          "p95": 1.02414,
+          "minimum": 1.006099999,
+          "maximum": 1.091098994
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.681257993,
+        "wall_ms": 1016.741057992,
+        "event_count": 0
+      },
+      "stdout_sha256": "d6b6f9454e39a7990084f3033487067509a673013cbab0393bb4a1a6bbe4db89",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01431332788,
+          "median": 0.013924509,
+          "p95": 0.018489987,
+          "minimum": 0.011070013,
+          "maximum": 0.030840009
+        },
+        "wait_ms": {
+          "mean": 1.002383439605,
+          "median": 1.000080004,
+          "p95": 1.021728992,
+          "minimum": 0.99139902,
+          "maximum": 1.191026986
+        },
+        "latency_ms": {
+          "mean": 1.016696767503,
+          "median": 1.014204994,
+          "p95": 1.036469012,
+          "minimum": 1.005959988,
+          "maximum": 1.21171698
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.003894985,
+        "wall_ms": 1013.818778992,
+        "event_count": 0
+      },
+      "stdout_sha256": "b9b762ec9336ed4197c123715d0ce3c8d21affc809c6f33c2911e3d18ae25a14",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013393570931,
+          "median": 0.012820005,
+          "p95": 0.016000003,
+          "minimum": 0.01038,
+          "maximum": 0.037268996
+        },
+        "wait_ms": {
+          "mean": 1.000384848373,
+          "median": 0.9986650050000001,
+          "p95": 1.021319002,
+          "minimum": 0.992099017,
+          "maximum": 1.06337899
+        },
+        "latency_ms": {
+          "mean": 1.01377841929,
+          "median": 1.011809498,
+          "p95": 1.035149008,
+          "minimum": 1.005488992,
+          "maximum": 1.076588988
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.37174201,
+        "wall_ms": 1015.151225001,
+        "event_count": 1
+      },
+      "stdout_sha256": "67d98648298680043c271be20de0f4e2047465a5175c558b25d5450e89fec43e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014407517789,
+          "median": 0.014310002,
+          "p95": 0.016769975,
+          "minimum": 0.012119979,
+          "maximum": 0.030458987
+        },
+        "wait_ms": {
+          "mean": 1.000702348294,
+          "median": 1.000364989,
+          "p95": 1.005199999,
+          "minimum": 0.993259013,
+          "maximum": 1.055969
+        },
+        "latency_ms": {
+          "mean": 1.01510986608,
+          "median": 1.0145545005,
+          "p95": 1.020679981,
+          "minimum": 1.00722,
+          "maximum": 1.070398986
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-0-4096-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.243111998,
+        "wall_ms": 1016.017524987,
+        "event_count": 1
+      },
+      "stdout_sha256": "d0a3d6e5bf50ee6793bf322ffdc032cb9e544b90b1921e057df24767db8aa587",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01437363048,
+          "median": 0.013439998000000002,
+          "p95": 0.02105999,
+          "minimum": 0.011480004,
+          "maximum": 0.038739026
+        },
+        "wait_ms": {
+          "mean": 1.001604554236,
+          "median": 0.999859497,
+          "p95": 1.012890011,
+          "minimum": 0.992728978,
+          "maximum": 1.061529011
+        },
+        "latency_ms": {
+          "mean": 1.015978184703,
+          "median": 1.0135850015,
+          "p95": 1.030269027,
+          "minimum": 1.005989015,
+          "maximum": 1.080857992
+        }
+      },
+      "round": 0
+    },
+    {
+      "label": "timing-1-64-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.576388985,
+        "wall_ms": 95.713914007,
+        "event_count": 0
+      },
+      "stdout_sha256": "8e52d3c22d8825f56ed9f33269cb4ec686931d740a17b404b89b55df3dcc2da2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010801495232,
+          "median": 0.010399997,
+          "p95": 0.012959003,
+          "minimum": 0.010020018,
+          "maximum": 0.026610017
+        },
+        "wait_ms": {
+          "mean": 0.084883079933,
+          "median": 0.084188998,
+          "p95": 0.088129014,
+          "minimum": 0.081669003,
+          "maximum": 0.401276022
+        },
+        "latency_ms": {
+          "mean": 0.095684575138,
+          "median": 0.094659001,
+          "p95": 0.099549025,
+          "minimum": 0.092019022,
+          "maximum": 0.411486
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.230783015,
+        "wall_ms": 95.443307012,
+        "event_count": 0
+      },
+      "stdout_sha256": "78ed9a963e70cc57f10ca09a1a7f21f04d01a2c32d03f562d585b0ecea5d72a9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010567877009,
+          "median": 0.010299489,
+          "p95": 0.011629999,
+          "minimum": 0.009950012,
+          "maximum": 0.027758986
+        },
+        "wait_ms": {
+          "mean": 0.08484648141,
+          "median": 0.084399015,
+          "p95": 0.088259012,
+          "minimum": 0.080600023,
+          "maximum": 0.123558998
+        },
+        "latency_ms": {
+          "mean": 0.09541435841,
+          "median": 0.09493900799999999,
+          "p95": 0.099289,
+          "minimum": 0.092269003,
+          "maximum": 0.133778989
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.215664029,
+        "wall_ms": 96.123679996,
+        "event_count": 0
+      },
+      "stdout_sha256": "7a21d87266bd4e71f5e810fbbaf60f3595aa5b73feacb34cc63f740e9d6ff37b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011011928955,
+          "median": 0.0103995055,
+          "p95": 0.013960004,
+          "minimum": 0.009770006,
+          "maximum": 0.027259976
+        },
+        "wait_ms": {
+          "mean": 0.085082082121,
+          "median": 0.084044486,
+          "p95": 0.089628994,
+          "minimum": 0.081559002,
+          "maximum": 0.125788987
+        },
+        "latency_ms": {
+          "mean": 0.09609401108,
+          "median": 0.094549,
+          "p95": 0.103709012,
+          "minimum": 0.091868997,
+          "maximum": 0.141828001
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.522010982,
+        "wall_ms": 96.003481001,
+        "event_count": 0
+      },
+      "stdout_sha256": "bc92e637f620f704e980eaa67894682266bcc77c1ab418cc27aed65338ca9a95",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010627464817,
+          "median": 0.010289997,
+          "p95": 0.012378991,
+          "minimum": 0.009959012,
+          "maximum": 0.03095001
+        },
+        "wait_ms": {
+          "mean": 0.085347466298,
+          "median": 0.0843944995,
+          "p95": 0.089118987,
+          "minimum": 0.081308991,
+          "maximum": 0.129128993
+        },
+        "latency_ms": {
+          "mean": 0.095974931093,
+          "median": 0.0948740095,
+          "p95": 0.100729018,
+          "minimum": 0.092509001,
+          "maximum": 0.139989018
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.898667008,
+        "wall_ms": 95.988361001,
+        "event_count": 0
+      },
+      "stdout_sha256": "c817060f1bced06b4ffe672e5bee512a7feb02cb3ebb616800f2dec31b80c921",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010551436496,
+          "median": 0.010330021,
+          "p95": 0.011370003,
+          "minimum": 0.010059983,
+          "maximum": 0.028530002
+        },
+        "wait_ms": {
+          "mean": 0.085408645206,
+          "median": 0.084599003,
+          "p95": 0.089318991,
+          "minimum": 0.080838978,
+          "maximum": 0.129057974
+        },
+        "latency_ms": {
+          "mean": 0.095960081692,
+          "median": 0.095048994,
+          "p95": 0.100709021,
+          "minimum": 0.092678994,
+          "maximum": 0.139657974
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 15.132443994,
+        "wall_ms": 97.576654971,
+        "event_count": 0
+      },
+      "stdout_sha256": "b39b88e50bec1b333d914754b9696fd8834b715f60fdc75eba5b1658050940cc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011600386951,
+          "median": 0.011399999000000001,
+          "p95": 0.012589991,
+          "minimum": 0.01019001,
+          "maximum": 0.045969009
+        },
+        "wait_ms": {
+          "mean": 0.085945367617,
+          "median": 0.085069001,
+          "p95": 0.089920014,
+          "minimum": 0.066549987,
+          "maximum": 0.128238976
+        },
+        "latency_ms": {
+          "mean": 0.097545754556,
+          "median": 0.096608996,
+          "p95": 0.102539003,
+          "minimum": 0.093470007,
+          "maximum": 0.141229004
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.602469981,
+        "wall_ms": 94.951312006,
+        "event_count": 0
+      },
+      "stdout_sha256": "629b9d7f6e492eec969097fc6352be0b383dbfd9b892af20e432d9ad322e3883",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010525250225,
+          "median": 0.010230005,
+          "p95": 0.012039989,
+          "minimum": 0.009640008,
+          "maximum": 0.032079995
+        },
+        "wait_ms": {
+          "mean": 0.084397121551,
+          "median": 0.08398449399999999,
+          "p95": 0.088508993,
+          "minimum": 0.081209004,
+          "maximum": 0.115989
+        },
+        "latency_ms": {
+          "mean": 0.094922371777,
+          "median": 0.094269007,
+          "p95": 0.099628985,
+          "minimum": 0.092038989,
+          "maximum": 0.129648983
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.479820997,
+        "wall_ms": 94.987031996,
+        "event_count": 0
+      },
+      "stdout_sha256": "a40e4ea3f7ab868a9cbc49c2654c5b819bc34dc779ed86000e43e396170d4071",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010587088329,
+          "median": 0.010329992,
+          "p95": 0.010989994,
+          "minimum": 0.009850025,
+          "maximum": 0.045558989
+        },
+        "wait_ms": {
+          "mean": 0.084370774598,
+          "median": 0.083904013,
+          "p95": 0.08751899,
+          "minimum": 0.050980002,
+          "maximum": 0.120618999
+        },
+        "latency_ms": {
+          "mean": 0.094957862914,
+          "median": 0.094368994,
+          "p95": 0.098589003,
+          "minimum": 0.092198998,
+          "maximum": 0.130789012
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.720518976,
+        "wall_ms": 95.320707977,
+        "event_count": 0
+      },
+      "stdout_sha256": "0f2c877c418ecfad479adead674073c6ac99cf9176ff8966b05ece325397f8b5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010711740778,
+          "median": 0.010430008,
+          "p95": 0.011100024,
+          "minimum": 0.010139972,
+          "maximum": 0.043879002
+        },
+        "wait_ms": {
+          "mean": 0.084579708788,
+          "median": 0.084178984,
+          "p95": 0.088399976,
+          "minimum": 0.054140002,
+          "maximum": 0.113768995
+        },
+        "latency_ms": {
+          "mean": 0.095291449555,
+          "median": 0.09469901,
+          "p95": 0.099449009,
+          "minimum": 0.092428982,
+          "maximum": 0.124158978
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.396611989,
+        "wall_ms": 99.299497008,
+        "event_count": 0
+      },
+      "stdout_sha256": "def9004f360872ff9a558b03058509aaf898a9b69a0e608f858fe1a7a6cf12b0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.012334454914,
+          "median": 0.011900008,
+          "p95": 0.014129996,
+          "minimum": 0.011438996,
+          "maximum": 0.040879995
+        },
+        "wait_ms": {
+          "mean": 0.086935672465,
+          "median": 0.086319,
+          "p95": 0.091370016,
+          "minimum": 0.061758995,
+          "maximum": 0.134997994
+        },
+        "latency_ms": {
+          "mean": 0.099270127392,
+          "median": 0.09831900900000001,
+          "p95": 0.104178995,
+          "minimum": 0.095798999,
+          "maximum": 0.146968007
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.72409898,
+        "wall_ms": 98.251818001,
+        "event_count": 0
+      },
+      "stdout_sha256": "cec24d32c8b05091e6ad9d9862acc5ef9cd62ad1830e907fd3f384950470a77b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01194051252,
+          "median": 0.011839986,
+          "p95": 0.014569998,
+          "minimum": 0.010100007,
+          "maximum": 0.041558981
+        },
+        "wait_ms": {
+          "mean": 0.08628150551,
+          "median": 0.08577950300000001,
+          "p95": 0.091268986,
+          "minimum": 0.082098991,
+          "maximum": 0.122438997
+        },
+        "latency_ms": {
+          "mean": 0.09822201801,
+          "median": 0.097769022,
+          "p95": 0.104339004,
+          "minimum": 0.09236902,
+          "maximum": 0.13418901
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.52342099,
+        "wall_ms": 98.173988998,
+        "event_count": 1
+      },
+      "stdout_sha256": "4937d19268e48a1914d0a15df562d9d78f466d316fdcb1eae103870b92d2b99e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011058361038,
+          "median": 0.010739982,
+          "p95": 0.012499988,
+          "minimum": 0.010499984,
+          "maximum": 0.028149992
+        },
+        "wait_ms": {
+          "mean": 0.087086346849,
+          "median": 0.086050004,
+          "p95": 0.091839015,
+          "minimum": 0.08277899,
+          "maximum": 0.134638011
+        },
+        "latency_ms": {
+          "mean": 0.098144707877,
+          "median": 0.096858993,
+          "p95": 0.104188979,
+          "minimum": 0.093798995,
+          "maximum": 0.156098008
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.943866014,
+        "wall_ms": 98.137788981,
+        "event_count": 1
+      },
+      "stdout_sha256": "ee07a456fc7dbbd67e8ad92f0efa91b34ef10f2adbf973c35b94b6c43ffc1a3c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011190865005,
+          "median": 0.010900021,
+          "p95": 0.012579978,
+          "minimum": 0.010408998,
+          "maximum": 0.028630018
+        },
+        "wait_ms": {
+          "mean": 0.086917924963,
+          "median": 0.086079001,
+          "p95": 0.091349006,
+          "minimum": 0.082769006,
+          "maximum": 0.120888978
+        },
+        "latency_ms": {
+          "mean": 0.098108789971,
+          "median": 0.097119004,
+          "p95": 0.10274902,
+          "minimum": 0.093908995,
+          "maximum": 0.132378995
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-64-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.717079014,
+        "wall_ms": 98.773802996,
+        "event_count": 0
+      },
+      "stdout_sha256": "98a4b5792b3528276947d1347745318f9052aea0267c0ef918012b70c9af7fcb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.012038336827,
+          "median": 0.011730015,
+          "p95": 0.013868988,
+          "minimum": 0.010259986,
+          "maximum": 0.051789999
+        },
+        "wait_ms": {
+          "mean": 0.086707116238,
+          "median": 0.086138994,
+          "p95": 0.090709001,
+          "minimum": 0.048689008,
+          "maximum": 0.146779001
+        },
+        "latency_ms": {
+          "mean": 0.098745453067,
+          "median": 0.097938985,
+          "p95": 0.103587985,
+          "minimum": 0.094208986,
+          "maximum": 0.160479009
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.069763988,
+        "wall_ms": 1011.803838015,
+        "event_count": 0
+      },
+      "stdout_sha256": "30a42e8c9dbb7d5d051f599dcc42be40e09b8a60ea00c6e3c1df9183024fef06",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013184924361,
+          "median": 0.012639999,
+          "p95": 0.01571998,
+          "minimum": 0.011099011,
+          "maximum": 0.047070026
+        },
+        "wait_ms": {
+          "mean": 0.998573785307,
+          "median": 0.9982645065,
+          "p95": 1.002699018,
+          "minimum": 0.990969986,
+          "maximum": 1.067829013
+        },
+        "latency_ms": {
+          "mean": 1.011758709662,
+          "median": 1.011049509,
+          "p95": 1.016869009,
+          "minimum": 1.004140019,
+          "maximum": 1.105159014
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.682429016,
+        "wall_ms": 1016.392511994,
+        "event_count": 0
+      },
+      "stdout_sha256": "61e2eca310ab465f9a12f16efb89f8b4584226648196631fc2a81ce9c2e7cd99",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014708891567,
+          "median": 0.01403001,
+          "p95": 0.018269986,
+          "minimum": 0.012400001,
+          "maximum": 0.038450003
+        },
+        "wait_ms": {
+          "mean": 1.001645390169,
+          "median": 1.001215011,
+          "p95": 1.006260008,
+          "minimum": 0.994639993,
+          "maximum": 1.063369006
+        },
+        "latency_ms": {
+          "mean": 1.016354281754,
+          "median": 1.0156295005,
+          "p95": 1.022558987,
+          "minimum": 1.009460002,
+          "maximum": 1.079609007
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.238593012,
+        "wall_ms": 1013.737268001,
+        "event_count": 0
+      },
+      "stdout_sha256": "48b039cfc74631a40849ffcfb18dd18145aacd1a8af77ee5bff4b543d7c83034",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013326182189,
+          "median": 0.012739986,
+          "p95": 0.016030014,
+          "minimum": 0.010109991,
+          "maximum": 0.032969028
+        },
+        "wait_ms": {
+          "mean": 1.000372027164,
+          "median": 0.998879999,
+          "p95": 1.009119987,
+          "minimum": 0.991109997,
+          "maximum": 1.096408993
+        },
+        "latency_ms": {
+          "mean": 1.013698209365,
+          "median": 1.011943996,
+          "p95": 1.02392,
+          "minimum": 1.005370021,
+          "maximum": 1.112439007
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.040174991,
+        "wall_ms": 1014.352602005,
+        "event_count": 0
+      },
+      "stdout_sha256": "85904313966cbc27cf60211d741b5a3df2a13d27efa088e7d186103e954efd1b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01379642642,
+          "median": 0.012905002,
+          "p95": 0.018058985,
+          "minimum": 0.01117,
+          "maximum": 0.043090016
+        },
+        "wait_ms": {
+          "mean": 1.000516445255,
+          "median": 0.999908984,
+          "p95": 1.005739003,
+          "minimum": 0.992249995,
+          "maximum": 1.061479002
+        },
+        "latency_ms": {
+          "mean": 1.01431287166,
+          "median": 1.013229996,
+          "p95": 1.022908986,
+          "minimum": 1.006170005,
+          "maximum": 1.076159
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.152173012,
+        "wall_ms": 1013.809127003,
+        "event_count": 0
+      },
+      "stdout_sha256": "b58e59387c931542c46ce6339c67a480d43179e55e8644f8ec932972730245a0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01386293935,
+          "median": 0.012710005,
+          "p95": 0.020530015,
+          "minimum": 0.010889977,
+          "maximum": 0.04272002
+        },
+        "wait_ms": {
+          "mean": 0.99990753027,
+          "median": 0.9989595115000001,
+          "p95": 1.006280005,
+          "minimum": 0.99059999,
+          "maximum": 1.070668995
+        },
+        "latency_ms": {
+          "mean": 1.013770469653,
+          "median": 1.012194514,
+          "p95": 1.025348991,
+          "minimum": 1.004470021,
+          "maximum": 1.085267991
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.079804003,
+        "wall_ms": 1014.330373019,
+        "event_count": 0
+      },
+      "stdout_sha256": "74e30ffe4b4fba59aa7c753ac501046ab6714ef1e42207adac8455c0b155dccc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013561914148,
+          "median": 0.012689978,
+          "p95": 0.01801002,
+          "minimum": 0.010109991,
+          "maximum": 0.036039978
+        },
+        "wait_ms": {
+          "mean": 1.000729639645,
+          "median": 0.9995600135,
+          "p95": 1.009379983,
+          "minimum": 0.992110014,
+          "maximum": 1.073388994
+        },
+        "latency_ms": {
+          "mean": 1.014291553791,
+          "median": 1.0125295075,
+          "p95": 1.024939001,
+          "minimum": 1.005280018,
+          "maximum": 1.085978985
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.14914301,
+        "wall_ms": 1013.482221007,
+        "event_count": 0
+      },
+      "stdout_sha256": "fbb39abb59cf7893fa4e8354ef65c66b7bcbcb27b881049ad7914e057d8a5f30",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013587051272,
+          "median": 0.012699991,
+          "p95": 0.01790899,
+          "minimum": 0.00999999,
+          "maximum": 0.035279989
+        },
+        "wait_ms": {
+          "mean": 0.999857079708,
+          "median": 0.998900011,
+          "p95": 1.008029997,
+          "minimum": 0.992698997,
+          "maximum": 1.088907987
+        },
+        "latency_ms": {
+          "mean": 1.013444130979,
+          "median": 1.0119444875,
+          "p95": 1.023288995,
+          "minimum": 1.004979998,
+          "maximum": 1.101247996
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.215622991,
+        "wall_ms": 1012.095214993,
+        "event_count": 0
+      },
+      "stdout_sha256": "fe12f82719ca1545fe0c0d0e6e764bfd48c4ccba01886c2e73a33c1463a37e6e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013194076198,
+          "median": 0.012730002,
+          "p95": 0.015670002,
+          "minimum": 0.011608988,
+          "maximum": 0.031579018
+        },
+        "wait_ms": {
+          "mean": 0.998861220318,
+          "median": 0.998668998,
+          "p95": 1.002270013,
+          "minimum": 0.988079011,
+          "maximum": 1.088099003
+        },
+        "latency_ms": {
+          "mean": 1.012055296548,
+          "median": 1.0116445125,
+          "p95": 1.016770005,
+          "minimum": 1.004669994,
+          "maximum": 1.102169007
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.306991011,
+        "wall_ms": 1016.681906998,
+        "event_count": 0
+      },
+      "stdout_sha256": "3899650478bceff5bb9e346ec61e6d627b4b70e7375f7600f415d3514daa4867",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.015210766752,
+          "median": 0.014270008,
+          "p95": 0.020020008,
+          "minimum": 0.011270016,
+          "maximum": 0.059740007
+        },
+        "wait_ms": {
+          "mean": 1.001430760168,
+          "median": 1.0009694995,
+          "p95": 1.005480021,
+          "minimum": 0.97439,
+          "maximum": 1.066729009
+        },
+        "latency_ms": {
+          "mean": 1.016641526904,
+          "median": 1.0157850085,
+          "p95": 1.022989988,
+          "minimum": 1.006579995,
+          "maximum": 1.083148003
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.650198996,
+        "wall_ms": 1014.38112098,
+        "event_count": 0
+      },
+      "stdout_sha256": "351ef3b7229ab0fbaa7aaa2f4d60e3fb0db0c88090d1a04a86fd90870ece825f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013811686632,
+          "median": 0.012970001,
+          "p95": 0.020199001,
+          "minimum": 0.009980023,
+          "maximum": 0.027610004
+        },
+        "wait_ms": {
+          "mean": 1.000527494567,
+          "median": 0.9994744955,
+          "p95": 1.007150024,
+          "minimum": 0.992620021,
+          "maximum": 1.250956982
+        },
+        "latency_ms": {
+          "mean": 1.014339181216,
+          "median": 1.012723997,
+          "p95": 1.023528993,
+          "minimum": 1.005379021,
+          "maximum": 1.270236999
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.964485973,
+        "wall_ms": 1016.130932987,
+        "event_count": 0
+      },
+      "stdout_sha256": "4d696384803d4c0e41f72aa3048e70172a157cd29e29a98bff5f56446f9dd4b9",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014276151056,
+          "median": 0.013120010500000001,
+          "p95": 0.01997,
+          "minimum": 0.010209978,
+          "maximum": 0.053939015
+        },
+        "wait_ms": {
+          "mean": 1.00181056124,
+          "median": 1.0010044869999999,
+          "p95": 1.009750009,
+          "minimum": 0.979870021,
+          "maximum": 1.050529003
+        },
+        "latency_ms": {
+          "mean": 1.016086712289,
+          "median": 1.0145739914999998,
+          "p95": 1.025099009,
+          "minimum": 1.008170009,
+          "maximum": 1.065169007
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.554928988,
+        "wall_ms": 1018.610638022,
+        "event_count": 1
+      },
+      "stdout_sha256": "e24cbaa5a6c1ebbff2e15b604b2703a9b8e4714f1779628d4d5dc812fd71d285",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.015189077131,
+          "median": 0.014459997,
+          "p95": 0.019039005,
+          "minimum": 0.013900012,
+          "maximum": 0.033389986
+        },
+        "wait_ms": {
+          "mean": 1.003384943955,
+          "median": 1.0028695015,
+          "p95": 1.007869005,
+          "minimum": 0.996260017,
+          "maximum": 1.071279019
+        },
+        "latency_ms": {
+          "mean": 1.018574021097,
+          "median": 1.017638996,
+          "p95": 1.02501899,
+          "minimum": 1.011519998,
+          "maximum": 1.094319016
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.11995402,
+        "wall_ms": 1015.634728998,
+        "event_count": 1
+      },
+      "stdout_sha256": "15af585a9a85edf11943fb23c3b7bb6aa5c693721575db49e070db576ab263c0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014085512099,
+          "median": 0.013529986,
+          "p95": 0.016799986,
+          "minimum": 0.011020005,
+          "maximum": 0.041159004
+        },
+        "wait_ms": {
+          "mean": 1.001510117496,
+          "median": 1.0013149975000002,
+          "p95": 1.004620016,
+          "minimum": 0.995609999,
+          "maximum": 1.077098995
+        },
+        "latency_ms": {
+          "mean": 1.015595629612,
+          "median": 1.015184984,
+          "p95": 1.020199001,
+          "minimum": 1.009240001,
+          "maximum": 1.091298997
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-1-4096-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.247741997,
+        "wall_ms": 1013.935435981,
+        "event_count": 0
+      },
+      "stdout_sha256": "1192533d8d08b775c4eb6a03c53552fb3b991459921b68b7d9536ac3c6acf9ec",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013842712931,
+          "median": 0.013564497,
+          "p95": 0.017829001,
+          "minimum": 0.011330009,
+          "maximum": 0.052659005
+        },
+        "wait_ms": {
+          "mean": 1.00005362394,
+          "median": 0.999644503,
+          "p95": 1.004119992,
+          "minimum": 0.992789984,
+          "maximum": 1.077169001
+        },
+        "latency_ms": {
+          "mean": 1.013896336874,
+          "median": 1.0132999864999999,
+          "p95": 1.019749999,
+          "minimum": 1.004639983,
+          "maximum": 1.100208998
+        }
+      },
+      "round": 1
+    },
+    {
+      "label": "timing-2-64-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.779718012,
+        "wall_ms": 95.132649988,
+        "event_count": 0
+      },
+      "stdout_sha256": "7b542378790e574cf82a2b87fd1171d1efacaf7e5d09963e31b436cbfe88a680",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010404460039,
+          "median": 0.010230005,
+          "p95": 0.010780007,
+          "minimum": 0.009909987,
+          "maximum": 0.02738902
+        },
+        "wait_ms": {
+          "mean": 0.084698599825,
+          "median": 0.084048986,
+          "p95": 0.089238971,
+          "minimum": 0.081689,
+          "maximum": 0.119089007
+        },
+        "latency_ms": {
+          "mean": 0.095103059848,
+          "median": 0.09435901,
+          "p95": 0.100058973,
+          "minimum": 0.092218995,
+          "maximum": 0.130299002
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.720549017,
+        "wall_ms": 95.422536999,
+        "event_count": 0
+      },
+      "stdout_sha256": "15d1e9b200e4da85f1ec45b74c7cb7f0abacb58b3b6160230f69bb7c5767f0ab",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010603340071,
+          "median": 0.010299981,
+          "p95": 0.012500018,
+          "minimum": 0.009990007,
+          "maximum": 0.043619007
+        },
+        "wait_ms": {
+          "mean": 0.084789767952,
+          "median": 0.0843345075,
+          "p95": 0.088328987,
+          "minimum": 0.080058992,
+          "maximum": 0.107998997
+        },
+        "latency_ms": {
+          "mean": 0.095393108008,
+          "median": 0.094778985,
+          "p95": 0.099499017,
+          "minimum": 0.092379004,
+          "maximum": 0.132968009
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.525981009,
+        "wall_ms": 95.213690013,
+        "event_count": 0
+      },
+      "stdout_sha256": "33eae4a33370057a55aaed0756bbd4e68e2d583f2d6dd5afb8a84ad874e759fe",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01048896714,
+          "median": 0.010289997,
+          "p95": 0.011199981,
+          "minimum": 0.00977999,
+          "maximum": 0.027750015
+        },
+        "wait_ms": {
+          "mean": 0.084696143087,
+          "median": 0.084183991,
+          "p95": 0.088818997,
+          "minimum": 0.080399007,
+          "maximum": 0.119268
+        },
+        "latency_ms": {
+          "mean": 0.095185110149,
+          "median": 0.09458901,
+          "p95": 0.099348992,
+          "minimum": 0.092188984,
+          "maximum": 0.130198002
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.59404999,
+        "wall_ms": 95.199028999,
+        "event_count": 0
+      },
+      "stdout_sha256": "7bf7fcf1ac7648e36e274b4efa5a92de310570cf452bac41d9b9303f3885c9bd",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010461467626,
+          "median": 0.010250002,
+          "p95": 0.011240005,
+          "minimum": 0.009690017,
+          "maximum": 0.02847901
+        },
+        "wait_ms": {
+          "mean": 0.084708851166,
+          "median": 0.084184006,
+          "p95": 0.088578999,
+          "minimum": 0.082138985,
+          "maximum": 0.127229005
+        },
+        "latency_ms": {
+          "mean": 0.095170318801,
+          "median": 0.0945390015,
+          "p95": 0.099819005,
+          "minimum": 0.09225902,
+          "maximum": 0.138078004
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.130205005,
+        "wall_ms": 98.070129007,
+        "event_count": 0
+      },
+      "stdout_sha256": "a357a81d9ec493551f2be1cde5c362458a7ad7fbe9f37882fc713700b750a8cc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011368355051,
+          "median": 0.011339992,
+          "p95": 0.012970001,
+          "minimum": 0.01008001,
+          "maximum": 0.053490013
+        },
+        "wait_ms": {
+          "mean": 0.086673054063,
+          "median": 0.086198986,
+          "p95": 0.090848982,
+          "minimum": 0.064498991,
+          "maximum": 0.12824899
+        },
+        "latency_ms": {
+          "mean": 0.09804140911,
+          "median": 0.097404003,
+          "p95": 0.102268994,
+          "minimum": 0.09405902,
+          "maximum": 0.138578981
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.723688006,
+        "wall_ms": 95.368447989,
+        "event_count": 0
+      },
+      "stdout_sha256": "2596959a76064d2ee7f263f4b6c9afbf6f6c3ad575f8739ba9affeb528282463",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011043995641,
+          "median": 0.010520011,
+          "p95": 0.012879997,
+          "minimum": 0.01000002,
+          "maximum": 0.053660005
+        },
+        "wait_ms": {
+          "mean": 0.084294982937,
+          "median": 0.083838999,
+          "p95": 0.088748991,
+          "minimum": 0.066498995,
+          "maximum": 0.103639007
+        },
+        "latency_ms": {
+          "mean": 0.095338978584,
+          "median": 0.094419003,
+          "p95": 0.100548983,
+          "minimum": 0.091848999,
+          "maximum": 0.122098982
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.053754985,
+        "wall_ms": 98.77204302,
+        "event_count": 0
+      },
+      "stdout_sha256": "373a3a393754f40ef7ea723c99314ec676c018c1b2d8842e1b9e3f40316a8b5e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011961711203999999,
+          "median": 0.011750013,
+          "p95": 0.012710005,
+          "minimum": 0.01135999,
+          "maximum": 0.030919015
+        },
+        "wait_ms": {
+          "mean": 0.086781402134,
+          "median": 0.086248994,
+          "p95": 0.090838999,
+          "minimum": 0.072299004,
+          "maximum": 0.129108995
+        },
+        "latency_ms": {
+          "mean": 0.098743113375,
+          "median": 0.09811399900000001,
+          "p95": 0.102997988,
+          "minimum": 0.095658988,
+          "maximum": 0.140938997
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.24041301,
+        "wall_ms": 97.480096012,
+        "event_count": 0
+      },
+      "stdout_sha256": "fee92fcb761de0685ca0199cdabdcf68061774223d1a81b4728b95643c6679e2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011896379455,
+          "median": 0.011720002,
+          "p95": 0.012679011,
+          "minimum": 0.011070013,
+          "maximum": 0.045790017
+        },
+        "wait_ms": {
+          "mean": 0.085550596988,
+          "median": 0.08513899150000001,
+          "p95": 0.088828981,
+          "minimum": 0.054719001,
+          "maximum": 0.119278997
+        },
+        "latency_ms": {
+          "mean": 0.097446976428,
+          "median": 0.096938998,
+          "p95": 0.100509018,
+          "minimum": 0.094399005,
+          "maximum": 0.130618989
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.901856989,
+        "wall_ms": 97.218798012,
+        "event_count": 0
+      },
+      "stdout_sha256": "3d8ce2e9292dd5cc07309095658cf290f3adabb03cc778b6cecbd1b10ba0c7bc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011760052397,
+          "median": 0.011449486,
+          "p95": 0.013909996,
+          "minimum": 0.010180026,
+          "maximum": 0.046999991
+        },
+        "wait_ms": {
+          "mean": 0.085426886089,
+          "median": 0.08465901,
+          "p95": 0.089598984,
+          "minimum": 0.069719017,
+          "maximum": 0.220817983
+        },
+        "latency_ms": {
+          "mean": 0.097186938459,
+          "median": 0.095944002,
+          "p95": 0.102189004,
+          "minimum": 0.092219979,
+          "maximum": 0.23110801
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.057995021,
+        "wall_ms": 98.715483993,
+        "event_count": 0
+      },
+      "stdout_sha256": "b702bb805ce8346def86cf6dc65e39348975c41f5dee349a7b6503e228b17ed0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011966544203,
+          "median": 0.011799991,
+          "p95": 0.012540013,
+          "minimum": 0.011409998,
+          "maximum": 0.028539985
+        },
+        "wait_ms": {
+          "mean": 0.086720348984,
+          "median": 0.086149007,
+          "p95": 0.091318995,
+          "minimum": 0.082819015,
+          "maximum": 0.12459901
+        },
+        "latency_ms": {
+          "mean": 0.098686893203,
+          "median": 0.09802900249999999,
+          "p95": 0.103459001,
+          "minimum": 0.095449001,
+          "maximum": 0.136659026
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.659649014,
+        "wall_ms": 98.213258028,
+        "event_count": 1
+      },
+      "stdout_sha256": "22f4e8c404ebd6d404a7860e1d40650adcb2247d9e10ec3ab5523f9540f85e55",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011350618598,
+          "median": 0.0107994825,
+          "p95": 0.01335001,
+          "minimum": 0.010499001,
+          "maximum": 0.051578999
+        },
+        "wait_ms": {
+          "mean": 0.086833840883,
+          "median": 0.086179003,
+          "p95": 0.092528999,
+          "minimum": 0.048849016,
+          "maximum": 0.131877989
+        },
+        "latency_ms": {
+          "mean": 0.098184459491,
+          "median": 0.09709899150000001,
+          "p95": 0.104999006,
+          "minimum": 0.093989015,
+          "maximum": 0.144537985
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.968055993,
+        "wall_ms": 98.102009028,
+        "event_count": 1
+      },
+      "stdout_sha256": "fe23e21dcbe160fa6c0175e11746e9a86128d069b439a854c929c466bd94ba16",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011311486396,
+          "median": 0.010899991,
+          "p95": 0.012460023,
+          "minimum": 0.010409981,
+          "maximum": 0.04370901
+        },
+        "wait_ms": {
+          "mean": 0.08676173271,
+          "median": 0.08618949349999999,
+          "p95": 0.090609014,
+          "minimum": 0.057960004,
+          "maximum": 0.120467991
+        },
+        "latency_ms": {
+          "mean": 0.098073219123,
+          "median": 0.09721899,
+          "p95": 0.102928996,
+          "minimum": 0.093968987,
+          "maximum": 0.132148027
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 14.281652004,
+        "wall_ms": 98.821541995,
+        "event_count": 0
+      },
+      "stdout_sha256": "f830bd4d5dcd2785f05991820edf8d4b0a1af62a005642d8f9af6c0d199f154a",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.011796511639,
+          "median": 0.011530012,
+          "p95": 0.013000011,
+          "minimum": 0.010328978,
+          "maximum": 0.054469019
+        },
+        "wait_ms": {
+          "mean": 0.086993730158,
+          "median": 0.086228997,
+          "p95": 0.09089902,
+          "minimum": 0.06239,
+          "maximum": 0.397385001
+        },
+        "latency_ms": {
+          "mean": 0.098790241796,
+          "median": 0.097838998,
+          "p95": 0.102878988,
+          "minimum": 0.095268995,
+          "maximum": 0.408645004
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-64-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 13.961925983,
+        "wall_ms": 95.897741973,
+        "event_count": 0
+      },
+      "stdout_sha256": "b9def4d3204c43df22c731ea8a016ddcf713df6fe0df69717672c8a088c19c51",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.010924071281,
+          "median": 0.010469511,
+          "p95": 0.01207,
+          "minimum": 0.009979993,
+          "maximum": 0.038078994
+        },
+        "wait_ms": {
+          "mean": 0.08494533172,
+          "median": 0.08435899,
+          "p95": 0.088859975,
+          "minimum": 0.079228997,
+          "maximum": 0.116049021
+        },
+        "latency_ms": {
+          "mean": 0.09586940301,
+          "median": 0.09534399199999999,
+          "p95": 0.099739015,
+          "minimum": 0.092449009,
+          "maximum": 0.13271901
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.81249699,
+        "wall_ms": 1012.172564,
+        "event_count": 0
+      },
+      "stdout_sha256": "583e3e5e031459addd0e3c8cfeb6b1ea21a5ae3788edc5ed4d7b8f09b1795c32",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.012844334103,
+          "median": 0.012470007,
+          "p95": 0.014069974,
+          "minimum": 0.010559976,
+          "maximum": 0.031860024
+        },
+        "wait_ms": {
+          "mean": 0.999291239711,
+          "median": 0.9992344975,
+          "p95": 1.002590001,
+          "minimum": 0.992439002,
+          "maximum": 1.056759
+        },
+        "latency_ms": {
+          "mean": 1.012135573807,
+          "median": 1.0118599979999998,
+          "p95": 1.016680002,
+          "minimum": 1.005189002,
+          "maximum": 1.070609003
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.005793989,
+        "wall_ms": 1011.065533996,
+        "event_count": 0
+      },
+      "stdout_sha256": "5211b38a197bc139a29696345a3e1d1264dfb643ef8760973b608067e0ae320d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01311337281,
+          "median": 0.01250951,
+          "p95": 0.016369015,
+          "minimum": 0.010140002,
+          "maximum": 0.031489015
+        },
+        "wait_ms": {
+          "mean": 0.997914771273,
+          "median": 0.9975994975,
+          "p95": 1.001618981,
+          "minimum": 0.988940001,
+          "maximum": 1.068599015
+        },
+        "latency_ms": {
+          "mean": 1.011028144083,
+          "median": 1.0104440000000001,
+          "p95": 1.016079992,
+          "minimum": 1.005400002,
+          "maximum": 1.08285901
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.729847014,
+        "wall_ms": 1012.143163979,
+        "event_count": 0
+      },
+      "stdout_sha256": "4c8cc9877a9fed1c61ab71745877c5325421c553c361e935363377ad7399b6c7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013109215813,
+          "median": 0.012599989999999998,
+          "p95": 0.015069991,
+          "minimum": 0.011610001,
+          "maximum": 0.029449999
+        },
+        "wait_ms": {
+          "mean": 0.998995388408,
+          "median": 0.998789996,
+          "p95": 1.002660006,
+          "minimum": 0.99139002,
+          "maximum": 1.057858974
+        },
+        "latency_ms": {
+          "mean": 1.012104604218,
+          "median": 1.011624515,
+          "p95": 1.017649978,
+          "minimum": 1.005388975,
+          "maximum": 1.078218997
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.959515989,
+        "wall_ms": 1011.638278991,
+        "event_count": 0
+      },
+      "stdout_sha256": "a614e011cb4e57d960670ccd9c4e975809d3622d904faa48bc2bcefc517c4099",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013119149472,
+          "median": 0.012610018,
+          "p95": 0.015569001,
+          "minimum": 0.010370016,
+          "maximum": 0.033210009
+        },
+        "wait_ms": {
+          "mean": 0.998483290464,
+          "median": 0.998020008,
+          "p95": 1.003320009,
+          "minimum": 0.991290003,
+          "maximum": 1.067359
+        },
+        "latency_ms": {
+          "mean": 1.011602439936,
+          "median": 1.01087001,
+          "p95": 1.017580003,
+          "minimum": 1.003899008,
+          "maximum": 1.081189007
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.181822985,
+        "wall_ms": 1012.575078994,
+        "event_count": 0
+      },
+      "stdout_sha256": "59e56d206713be24964d96c9a5377f2231c32ff3716cdb6d25d53b6a2763a2ae",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013249740312,
+          "median": 0.012639999,
+          "p95": 0.016799003,
+          "minimum": 0.009629995,
+          "maximum": 0.03776899
+        },
+        "wait_ms": {
+          "mean": 0.999286189353,
+          "median": 0.9989995064999999,
+          "p95": 1.00327,
+          "minimum": 0.992329001,
+          "maximum": 1.065908998
+        },
+        "latency_ms": {
+          "mean": 1.012535929655,
+          "median": 1.011970013,
+          "p95": 1.018140018,
+          "minimum": 1.005488992,
+          "maximum": 1.080109
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.668147981,
+        "wall_ms": 1015.093712986,
+        "event_count": 0
+      },
+      "stdout_sha256": "c8560267281b7b9de58aad96b4b80eb7cd6fabb50ca0d4ed035abfd0774241b2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01466052487,
+          "median": 0.0139794945,
+          "p95": 0.017928988,
+          "minimum": 0.012329996,
+          "maximum": 0.039109021
+        },
+        "wait_ms": {
+          "mean": 1.000396537709,
+          "median": 0.999969006,
+          "p95": 1.004969984,
+          "minimum": 0.993200004,
+          "maximum": 1.082798988
+        },
+        "latency_ms": {
+          "mean": 1.015057062604,
+          "median": 1.01428999,
+          "p95": 1.020410001,
+          "minimum": 1.006679982,
+          "maximum": 1.106278986
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.637077987,
+        "wall_ms": 1012.941594005,
+        "event_count": 0
+      },
+      "stdout_sha256": "246a8c111c86637cc581e38fb96078e09f3c5455bbf92061da43de540e2ab546",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.01352909338,
+          "median": 0.01293999,
+          "p95": 0.01749,
+          "minimum": 0.011550009,
+          "maximum": 0.027020007
+        },
+        "wait_ms": {
+          "mean": 0.999376161026,
+          "median": 0.999044508,
+          "p95": 1.003119975,
+          "minimum": 0.989870012,
+          "maximum": 1.053609014
+        },
+        "latency_ms": {
+          "mean": 1.012905254364,
+          "median": 1.012249976,
+          "p95": 1.018629998,
+          "minimum": 1.006469011,
+          "maximum": 1.073938012
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.921076,
+        "wall_ms": 1012.132043004,
+        "event_count": 0
+      },
+      "stdout_sha256": "7762743d89ccc76a1cb62789272da7c1f168d13090eb1fe328869ca4934d2481",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013732223019,
+          "median": 0.012919992,
+          "p95": 0.017419994,
+          "minimum": 0.011329979,
+          "maximum": 0.05558899
+        },
+        "wait_ms": {
+          "mean": 0.998360089859,
+          "median": 0.9979950040000001,
+          "p95": 1.002840012,
+          "minimum": 0.989329994,
+          "maximum": 1.072818995
+        },
+        "latency_ms": {
+          "mean": 1.012092312904,
+          "median": 1.011220008,
+          "p95": 1.018099993,
+          "minimum": 1.004588991,
+          "maximum": 1.096058011
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.700307995,
+        "wall_ms": 1015.510747999,
+        "event_count": 0
+      },
+      "stdout_sha256": "5776424eb57296d5a9175856297f786464e2684f6f27f8399fbac359b39f70e2",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014652553555,
+          "median": 0.014200002,
+          "p95": 0.018519998,
+          "minimum": 0.011729985,
+          "maximum": 0.064488977
+        },
+        "wait_ms": {
+          "mean": 1.000816456041,
+          "median": 1.000479996,
+          "p95": 1.005080014,
+          "minimum": 0.99071002,
+          "maximum": 1.172127992
+        },
+        "latency_ms": {
+          "mean": 1.015469009613,
+          "median": 1.015063986,
+          "p95": 1.021348983,
+          "minimum": 1.006209999,
+          "maximum": 1.187887996
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.030134976,
+        "wall_ms": 1012.051284015,
+        "event_count": 0
+      },
+      "stdout_sha256": "06bde84eda8b31f1728c35326c814e99aea07be8d6237580fd7ea21c4ff63a61",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013762241729,
+          "median": 0.012979984,
+          "p95": 0.018059999,
+          "minimum": 0.010879993,
+          "maximum": 0.05479902
+        },
+        "wait_ms": {
+          "mean": 0.998251291823,
+          "median": 0.9978299884999999,
+          "p95": 1.003130019,
+          "minimum": 0.987430006,
+          "maximum": 1.128987998
+        },
+        "latency_ms": {
+          "mean": 1.012013533557,
+          "median": 1.011174008,
+          "p95": 1.018460006,
+          "minimum": 1.004128993,
+          "maximum": 1.149118006
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.654368013,
+        "wall_ms": 1012.026744008,
+        "event_count": 1
+      },
+      "stdout_sha256": "db4761e52aba28d4a2bfe6c507c279124e7abc2d983286994e4ddb65dc2f69de",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013654744935000001,
+          "median": 0.013179988,
+          "p95": 0.016259998,
+          "minimum": 0.011399984,
+          "maximum": 0.028719008
+        },
+        "wait_ms": {
+          "mean": 0.998333729173,
+          "median": 0.9982694985,
+          "p95": 1.001610011,
+          "minimum": 0.988290012,
+          "maximum": 1.051739007
+        },
+        "latency_ms": {
+          "mean": 1.01198847411,
+          "median": 1.011689991,
+          "p95": 1.016589999,
+          "minimum": 1.004570007,
+          "maximum": 1.067969024
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 16.398761004,
+        "wall_ms": 1012.478969008,
+        "event_count": 1
+      },
+      "stdout_sha256": "454e52df249e8ac71230f3bffee8edd95ead9f9beff5179c15eca694bca10965",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014192523182,
+          "median": 0.013419986,
+          "p95": 0.019068986,
+          "minimum": 0.010669976,
+          "maximum": 0.03343001
+        },
+        "wait_ms": {
+          "mean": 0.99824785557,
+          "median": 0.998100013,
+          "p95": 1.001970023,
+          "minimum": 0.991658986,
+          "maximum": 1.057879001
+        },
+        "latency_ms": {
+          "mean": 1.012440378762,
+          "median": 1.011749983,
+          "p95": 1.019189984,
+          "minimum": 1.006099999,
+          "maximum": 1.071129024
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 17.107653975,
+        "wall_ms": 1028.511413991,
+        "event_count": 0
+      },
+      "stdout_sha256": "549f3693d4f9dd70285fcecf5f6e17a235acf516573c80c121ca41a31c11a4e0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.014863892938,
+          "median": 0.0141045005,
+          "p95": 0.019030005,
+          "minimum": 0.012279004,
+          "maximum": 0.051609993
+        },
+        "wait_ms": {
+          "mean": 1.013610343039,
+          "median": 1.0009644925,
+          "p95": 1.008269995,
+          "minimum": 0.994589001,
+          "maximum": 3.356504977
+        },
+        "latency_ms": {
+          "mean": 1.028474235993,
+          "median": 1.0154494939999998,
+          "p95": 1.025080025,
+          "minimum": 1.008590013,
+          "maximum": 3.371214986
+        }
+      },
+      "round": 2
+    },
+    {
+      "label": "timing-2-4096-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.149013013,
+        "wall_ms": 1029.247626007,
+        "event_count": 0
+      },
+      "stdout_sha256": "19407b88e32d988c20f82869ddca438f7736f7995d4da2d03169870ef837f7d7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "statistics": {
+        "submit_ms": {
+          "mean": 0.013648691252,
+          "median": 0.012764513500000001,
+          "p95": 0.019140005,
+          "minimum": 0.011020005,
+          "maximum": 0.034489989
+        },
+        "wait_ms": {
+          "mean": 1.015560524787,
+          "median": 0.998164013,
+          "p95": 1.005289018,
+          "minimum": 0.988418996,
+          "maximum": 3.347584993
+        },
+        "latency_ms": {
+          "mean": 1.029209216023,
+          "median": 1.0112444905000002,
+          "p95": 1.023718983,
+          "minimum": 1.005488992,
+          "maximum": 3.359724998
+        }
+      },
+      "round": 2
+    }
+  ],
+  "memory": [
+    {
+      "label": "memory-64-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.776666015,
+        "wall_ms": 122.115301013,
+        "event_count": 0
+      },
+      "stdout_sha256": "271111286f900db4e57225606092adb3cc59767d0f3302715924fb60431ec232",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.761326998,
+        "wall_ms": 122.132791013,
+        "event_count": 0
+      },
+      "stdout_sha256": "59d56e27d258b2097dc26d5f9e55d13537af7cc7987f62ea1e18d238afc024f1",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.393970013,
+        "wall_ms": 125.701175004,
+        "event_count": 0
+      },
+      "stdout_sha256": "461e18b3c059af0fbd0200d3987fd2a8ef4999ea7e196efe87c9096765100a76",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.200921983,
+        "wall_ms": 124.822173983,
+        "event_count": 0
+      },
+      "stdout_sha256": "d60f6ccdbc9e046ac64fcbf99d9f99bc3d67c8f12febcdd08918eb6c88f7a86e",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.982033998,
+        "wall_ms": 125.021542013,
+        "event_count": 0
+      },
+      "stdout_sha256": "7134354c11b9e65c56973b516014086e66754ce61457336e023c6af28913abd1",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.00612399,
+        "wall_ms": 126.747893989,
+        "event_count": 0
+      },
+      "stdout_sha256": "8b65008d4834be7c1e15cfb6047cfb011a82c1c105a74ae92c34873da209e17a",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.912005991,
+        "wall_ms": 120.890165001,
+        "event_count": 0
+      },
+      "stdout_sha256": "b276b53ca841f39e515af1e596e411343d824fb3fdb1d25e632abdf23b3d4a99",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.017264009,
+        "wall_ms": 128.186248988,
+        "event_count": 0
+      },
+      "stdout_sha256": "57ce6df44fe69ac65d190e0534f19389f9ba07cc90945a646164775e65531339",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.059902996,
+        "wall_ms": 123.008143008,
+        "event_count": 0
+      },
+      "stdout_sha256": "57c5c07732dfcc2e45b729349f7e66d45f9997eb23b0a281f4d25cc47a67ddbd",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-64-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 18.659687996,
+        "wall_ms": 124.671725005,
+        "event_count": 0
+      },
+      "stdout_sha256": "2ce8eac2de01c2010af064fa9b77af358c112ace8adaae70c10d32b0ce54c1df",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-64-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 19.069472998,
+        "wall_ms": 123.911633998,
+        "event_count": 0
+      },
+      "stdout_sha256": "ea3aff18f0b206a3b36151aa6a46948d1e978867c8fa398535b9a053a581714a",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-64-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.915425003,
+        "wall_ms": 126.092061013,
+        "event_count": 0
+      },
+      "stdout_sha256": "37179f50b6d837a096a8e0061c44a34f5a1047d54a8bbc4e09e2310865dde769",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-64-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.444799989,
+        "wall_ms": 129.267338008,
+        "event_count": 1
+      },
+      "stdout_sha256": "e1700d355deef153db7a568e3503ab60051e9809db7de2fafd6c2711d9339743",
+      "stderr_sha256": "0049155977208f32d140879e1d04a23a7b48692ef34be4d416b772135b9bf099",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":6597069766662,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":6597069766662}",
+        "FREE {\"id\":8796093022216}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-64-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 20.401050001,
+        "wall_ms": 133.796161979,
+        "event_count": 1
+      },
+      "stdout_sha256": "c5e95dd473c305773ee56cdd0579b5a70796a59a2fdbc336ae699704c765a326",
+      "stderr_sha256": "cd13d103fd79d1337dc936196f4b957021081497426dd67ff47692ec44c2d4fd",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-4096-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 22.85355401,
+        "wall_ms": 1064.384903997,
+        "event_count": 0
+      },
+      "stdout_sha256": "188c57e6b37703844cc7c8a34625eb8ac5b29a32ff6bb265fb3a831fc97c72aa",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.578056991,
+        "wall_ms": 1040.633877993,
+        "event_count": 0
+      },
+      "stdout_sha256": "b0b287c500988916f188a94af3129653b805da082c3764dc593ea1362a618639",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.546918005,
+        "wall_ms": 1049.665335,
+        "event_count": 0
+      },
+      "stdout_sha256": "be0088ca43ee8f71cd5cf305e99e778a8f228414e42740f3cd62eb0ad1733316",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.234131008,
+        "wall_ms": 1057.583754003,
+        "event_count": 0
+      },
+      "stdout_sha256": "e407744a69d2246a4b262dfb6786d6a7a25d8fa4459722db504873ea35d2b33f",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 22.679536998,
+        "wall_ms": 1058.909720004,
+        "event_count": 0
+      },
+      "stdout_sha256": "ce733acf6bafaf1484aed86f5c079d6bbe2e6be6c71a9cdef3d683b3e2476755",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.037194014,
+        "wall_ms": 1055.284606993,
+        "event_count": 0
+      },
+      "stdout_sha256": "3b9c4d8cab8e619e1f13d15c14a2193e2b106fb17ba9fc22bf39a90741c7cdd0",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.258890986,
+        "wall_ms": 1059.620512009,
+        "event_count": 0
+      },
+      "stdout_sha256": "e162f6f0c82c701f82f0ebc275d23303649624607c172ad4a136444ffb729c2e",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 22.581386983,
+        "wall_ms": 1052.87381199,
+        "event_count": 0
+      },
+      "stdout_sha256": "ca0f0c99369a41ab9242b1a044239071cc63be91178f9f90af5ab6e6c4ef8148",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 22.870054007,
+        "wall_ms": 1055.601384014,
+        "event_count": 0
+      },
+      "stdout_sha256": "0375854974087af011c45ddf66314509fe0b14cd524fc080418f9149e8e9aadc",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-4096-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 22.121041983,
+        "wall_ms": 1065.578139991,
+        "event_count": 0
+      },
+      "stdout_sha256": "98417377ebce211568ac1d09c6c5ff0d149d514afc73c93930744b74a04aec43",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-4096-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 22.938262999,
+        "wall_ms": 1059.801809996,
+        "event_count": 0
+      },
+      "stdout_sha256": "f40ea4cc1edf865245bb3f2cdfdeccdc3eccc0b7c1d1cd96349baa0a18ba7149",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-4096-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.797265023,
+        "wall_ms": 1052.232378006,
+        "event_count": 0
+      },
+      "stdout_sha256": "5512d9d65a056f1b1fdf1b0d843743ef99e0f844e68704e0e2622afc4cb8ab83",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "memory-4096-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 21.531488001,
+        "wall_ms": 1054.199817985,
+        "event_count": 1
+      },
+      "stdout_sha256": "025ffcb08010160c04dbdf95689ebbb37a20c4eb3ead1315d6607bf9278a332f",
+      "stderr_sha256": "d2c3bda8fa1641e471af01f04a974c27e8eaa909ed11cd774ebb5e3838ec004b",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":6597069766662,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":6597069766662}",
+        "FREE {\"id\":8796093022216}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 5,
+          "flags": 14
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 5,
+          "flags": 14
+        }
+      ]
+    },
+    {
+      "label": "memory-4096-ogpu-split-a-bc",
+      "result": {
+        "strategy": "ogpu-split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 1000,
+        "warmups": 100,
+        "validation": false,
+        "setup_ms": 23.047781974,
+        "wall_ms": 1058.144926995,
+        "event_count": 1
+      },
+      "stdout_sha256": "3f95ac4a0a0a923bf75f8fd9d5409f14b66a4391905016b2403c40798c3e37cd",
+      "stderr_sha256": "2cf83efb2bf8b94ca9423e7f100e36548cce4c2f470f47d0ebdcadc7f2aab49f",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":5}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":5}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    }
+  ],
+  "complete": true,
+  "identity": {
+    "vendor": 4098,
+    "device": 29471,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "raw_samples": "samples.csv",
+  "raw_samples_sha256": "7ac92d700762c5272623edaed846608eb152a77e5257a6d13008cd77c683fb62",
+  "input_report_sha256": "ca65b31ca319d8830fad68113b9124cd68ae7d870cd1508e2629ba0afe8daa27",
+  "export_scope": "graph, complete matrices, logs, samples/statistics, sources, device and allocation signatures rechecked"
+}
