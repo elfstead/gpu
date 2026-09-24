@@ -160,15 +160,19 @@ Direct encoding/vector optimization is optional backend work. No exact command-
 memory budget, noncoherent hardware acceptance or other audit item is settled.
 Do not widen unrelated surface or treat these results as stabilization.
 
-## Next milestone: M2 — programming/compiler contract
+## Active milestone: M2 — programming/compiler contract
 
-Start with a bounded acceptance brief and a device-code contract that separates
+The [bounded acceptance brief](compiler-contract-plan.md) and
+[device-code contract](device-code-contract.md) separate
 runtime guarantees, compiler conventions, capability requirements and caller
 obligations. Then cover structured/root/pointed-to arguments, generated image/heap
 interfaces and explicit source-build dependencies through the installed tool.
 Finish with a committed language-direction decision grounded in actual compiler
 output and host integration. Existing M1 outputs remain a regression gate.
-M2 has not been implemented or accepted; see its [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
+Slice 1 is active: FP32 root fields with exact guarded output and generated layout/
+local-size mutations. Aggregate/pointee layouts, heap/stage interfaces, build
+dependencies and the language decision follow. M2 is not accepted; see its
+[deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
 After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),
 and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate
