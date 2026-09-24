@@ -12,7 +12,7 @@ typedef struct {
     VkEvent event;
     PFN_vkCreateEvent create_event;
     PFN_vkDestroyEvent destroy_event;
-    PFN_vkResetEvent reset_event;
+    PFN_vkCmdResetEvent2 reset_event;
     PFN_vkGetEventStatus event_status;
     PFN_vkCmdSetEvent2 set_event;
     PFN_vkCmdWaitEvents2 wait_event;
@@ -99,6 +99,13 @@ static int encode_dependencies(DependencyControl *d) {
     Context *c=&d->base; Slot *s=&c->slots[0];
 #ifdef FRONTIER_NATIVE
     Native *n=&c->native; CHECK(native_begin(n,&s->batch));
+    if (d->event) {
+        /* Serial replay only. Order prior event waits before reset, and reset
+         * before subsequent set. This prefix is outside the A/B/C graph. */
+        d->reset_event(s->batch.command,d->event,VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+        native_barrier(n,s->batch.command,VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,0,
+            VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,0);
+    }
 #else
     API(ogpu_recording_storage_create(c->device,&s->storage,&c->error));
     API(ogpu_batch_create_in(s->storage,&s->batch,&c->error));
@@ -144,7 +151,7 @@ static int dependency_create(DependencyControl *d) {
         PFN_vkGetDeviceProcAddr get=(PFN_vkGetDeviceProcAddr)ig(n->instance,"vkGetDeviceProcAddr");
 #define EVENT_LOAD(field,name) d->field=(PFN_##name)get(n->device,#name); CHECK(d->field)
         EVENT_LOAD(create_event,vkCreateEvent); EVENT_LOAD(destroy_event,vkDestroyEvent);
-        EVENT_LOAD(reset_event,vkResetEvent); EVENT_LOAD(event_status,vkGetEventStatus);
+        EVENT_LOAD(reset_event,vkCmdResetEvent2); EVENT_LOAD(event_status,vkGetEventStatus);
         EVENT_LOAD(set_event,vkCmdSetEvent2); EVENT_LOAD(wait_event,vkCmdWaitEvents2);
 #undef EVENT_LOAD
         VkEventCreateInfo info={.sType=VK_STRUCTURE_TYPE_EVENT_CREATE_INFO};
@@ -184,12 +191,6 @@ static int dependency_window(DependencyControl *d,unsigned count,int validate,Fr
     for (unsigned i=0;i<count;++i) {
         Frame *f=&frames[i]; f->start=clock_ms();
         CHECK(!s->pending);
-#ifdef FRONTIER_NATIVE
-        if (d->event) {
-            VK_TRY(d->reset_event(c->native.device,d->event));
-            if (validate) CHECK(d->event_status(c->native.device,d->event)==VK_EVENT_RESET);
-        }
-#endif
         CHECK(submit_slot(c,s)); double submitted=clock_ms();
         CHECK(wait_slot(c,s)); double end=clock_ms();
         f->submit=submitted-f->start; f->wait=end-submitted; f->latency=end-f->start;

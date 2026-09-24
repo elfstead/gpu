@@ -146,3 +146,27 @@ and freeing; no timing layers/tracing or device timestamps in the primary matrix
 Stop after this matrix, report every order and process range, and do not tune the
 workload until a desired speedup appears. Lack of local speedup leaves quantitative
 cost unresolved; it does not erase the demonstrated scheduling restriction.
+
+### Reset-protocol correction before acceptance
+
+The first full run at `3eaa639` is **rejected**, not accepted performance evidence.
+Its separate 1,100-execution allocation control reported `VUID-vkResetEvent-event-03822`
+despite successful timeline waits and correct final outputs. Logs remain under
+`target/performance-frontier/dependencies-myc82_4w/memory-64-split-a-bc`.
+Current VVL source wakes semaphore waiters while retiring a submission, before
+removing that submission from its pending-event search. This is consistent with
+a tracking race, but is not a verified diagnosis of this installed layer build.
+[Queue retirement/search implementation](https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/main/layers/state_tracker/queue_state.cpp)
+
+The acceptance mapping now uses **recorded GPU reset**, not host reset: before A,
+reset with ALL_COMMANDS, then an ALL_COMMANDS→ALL_COMMANDS execution-only barrier
+to order reset before set. This also orders earlier event waits before reuse.
+Both operations are outside A/B/C, and the control already observes completion
+between executions. The extra GPU commands and their cost remain in the split
+policy; no queue-idle call, layer suppression or retry-until-clean acceptance.
+The host-reset statements above describe the rejected first protocol.
+[Reset scopes](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdResetEvent2.html),
+[set/reset ordering requirement](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdWaitEvents2.html)
+Repeat the declared entire matrix at a new clean revision; do not pool old samples.
+The experiment remains serial and does not establish safe event sharing between
+simultaneous executions of a command list.
