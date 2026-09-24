@@ -147,10 +147,26 @@ fixed arrays, uint32/FP32 vectors and named struct pointers through
 recursive metadata against the original SPIR-V. A separate `-no-codegen` query
 provides pointee layouts; it does not add dummy members to device arguments.
 
-Supported capability mappings remain Shader, PhysicalStorageBufferAddresses and
-Float16; Shader maps to the corresponding enabled compute/graphics profile.
+The M2 heap checkpoint adds the existing compute/sample consumer through
+`python3 examples/compiler/heap_workflow.py [--check]`. Compile these shaders with
+`--native-heaps`; otherwise Slang emits descriptor-set bindings, which reject.
+Generated roots, embedded artifacts, local size and compatibility checks replace
+the consumer's manual equivalents. The two non-heap raster stages remain supplied
+SPIR-V files. This checkpoint does not yet add varying/stage-link checks.
+
+Supported capability mappings include Shader, PhysicalStorageBufferAddresses,
+Float16, DescriptorHeapEXT and UntypedPointersKHR. Shader maps to the corresponding
+enabled compute/graphics profile; heap capabilities are native Vulkan artifact
+requirements, not portable tests of Metal image support.
 Unknown capabilities/extensions are rejected. Float16 permission is not a claim
-about precision semantics. Shared storage, descriptor bindings, specialization,
+about precision semantics. The bounded heap subset checks separate resource/sampler
+builtins, direct untyped descriptor loads, native descriptor-sized array strides,
+non-arrayed/non-multisampled float-sampled 2D images and RGBA8 storage images. A
+sampled float type alone does not establish the actual view format. Resource kinds
+come from SPIR-V because Slang JSON omits dynamic heap accesses; root fields remain
+cross-checked against reflection. Generated resource-use constants summarize types,
+not per-index safety, bounds, ownership or access synchronization.
+Shared storage, descriptor-set bindings, specialization,
 matrices, recursive/opaque types and other scalar/pointer widths remain unsupported.
 Only simple unqualified struct pointee names are supported. Nonconstant root indices
 need the adapter's conservative uniformity proof; legal but unproven native programs

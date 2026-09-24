@@ -54,6 +54,7 @@ share/ogpu/licenses/
 share/ogpu/examples/transform/
 share/ogpu/examples/affine/              # generated FP32-root example
 share/ogpu/examples/structured/          # generated nested root and pointer blocks
+share/ogpu/examples/heap-image/          # generated image/sampler heap roots
 share/ogpu/QUICKSTART.md
 ```
 
@@ -142,6 +143,22 @@ arguments. Vulkan root arrays require uniform indices; the adapter rejects cases
 its bounded proof cannot establish. Dynamic per-invocation indexing of pointed-to
 arrays is separate. Recursive types, matrices and opaque layouts remain unsupported.
 See the [device-code contract](device-code-contract.md) for details.
+
+The installed `examples/heap-image` directory needs a compatible graphics device,
+not a display server. Copy the directory, run `python3 build.py --output heap-image`,
+then `./heap-image fullscreen.vert.spv image-pattern.frag.spv`. These two supplied
+non-heap raster artifacts are still file inputs. The compute and sample artifacts
+are embedded in generated headers. Regenerate those with the installed shader tool:
+
+```sh
+"$OGPU_PREFIX/bin/ogpu-shader" --native-heaps --stage compute --source heap-process.slang --name heap_process --output heap_process.generated.h --build-dir shader-build/process
+"$OGPU_PREFIX/bin/ogpu-shader" --native-heaps --stage fragment --source heap-sample.slang --name heap_sample --output heap_sample.generated.h --build-dir shader-build/sample
+```
+
+Add `--check` to verify existing headers. The optional repository-side installed
+test is `python3 tools/test-install.py --prefix "$OGPU_PREFIX" --heap-image --shader-check`.
+Heap contents and index validity remain application-owned; generated declarations
+do not add ownership tracking or bounds checks to shader accesses.
 
 For your own application, preserve the important contracts: addresses do not own
 allocations, referenced memory must remain live and in bounds, GPU dependencies

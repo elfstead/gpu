@@ -89,6 +89,7 @@ def install(prefix):
             copy(license_file, f"share/ogpu/licenses/{dependency['name']}-{dependency['version']}/{license_file.name}")
     copy(ROOT / "examples/compiler/generate.py", "share/ogpu/tools/generate.py")
     copy(ROOT / "examples/compiler/layouts.py", "share/ogpu/tools/layouts.py")
+    copy(ROOT / "examples/compiler/heaps.py", "share/ogpu/tools/heaps.py")
     copy(ROOT / "tools/sdk/ogpu-shader", "bin/ogpu-shader")
     (staging / "bin/ogpu-shader").chmod(0o755)
     for source, destination in (("examples/compiler/consumer.c", "main.c"),
@@ -106,6 +107,15 @@ def install(prefix):
                                 ("examples/compiler/structured.generated.h", "structured.generated.h"),
                                 ("tools/sdk/build-example.py", "build.py")):
         copy(ROOT / source, f"share/ogpu/examples/structured/{destination}")
+    for source, destination in (("examples/heap_image.c", "main.c"),
+                                ("examples/shaders/heap-process.slang", "heap-process.slang"),
+                                ("examples/shaders/heap-sample.slang", "heap-sample.slang"),
+                                ("examples/compiler/heap_process.generated.h", "heap_process.generated.h"),
+                                ("examples/compiler/heap_sample.generated.h", "heap_sample.generated.h"),
+                                ("examples/shaders/fullscreen.vert.spv", "fullscreen.vert.spv"),
+                                ("examples/shaders/image-pattern.frag.spv", "image-pattern.frag.spv"),
+                                ("tools/sdk/build-example.py", "build.py")):
+        copy(ROOT / source, f"share/ogpu/examples/heap-image/{destination}")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)

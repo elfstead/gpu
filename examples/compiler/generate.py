@@ -15,6 +15,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 import layouts
+import heaps
 
 
 def require(condition, message):
@@ -80,15 +81,20 @@ def inspect(reflection, assembly, name="transform"):
     caps = re.findall(r"^\s*OpCapability (\w+)\s*$", assembly, re.M)
     requirements = {"Shader": "compute_queue" if stage == "compute" else "graphics_queue",
                     "PhysicalStorageBufferAddresses": "buffer_device_address",
+                    "DescriptorHeapEXT": "descriptor_heap",
+                    "UntypedPointersKHR": "shader_untyped_pointers",
                     "Float16": "shader_float16"}
     require(set(caps) <= requirements.keys() and "Shader" in caps,
             "unmapped or missing capability")
     extensions = re.findall(r'^\s*OpExtension "([^"]+)"\s*$', assembly, re.M)
-    require(set(extensions) <= {"SPV_KHR_physical_storage_buffer"}, "unmapped extension")
+    require(set(extensions) <= {"SPV_KHR_physical_storage_buffer", "SPV_EXT_descriptor_heap",
+                                "SPV_KHR_untyped_pointers"}, "unmapped extension")
+    native_heaps = "DescriptorHeapEXT" in caps
+    require(native_heaps == ("UntypedPointersKHR" in caps) == ("SPV_EXT_descriptor_heap" in extensions)
+            == ("SPV_KHR_untyped_pointers" in extensions), "heap capability/extension mismatch")
     require("OpSpecConstant" not in assembly and "OpExecutionModeId" not in assembly,
             "specialization unsupported")
-    require(not re.search(r"\b(DescriptorSet|Binding|ResourceHeapEXT|SamplerHeapEXT)\b", assembly),
-            "resource bindings unsupported")
+    require(not re.search(r"\b(DescriptorSet|Binding)\b", assembly), "descriptor-set bindings unsupported")
     physical = "PhysicalStorageBufferAddresses" in caps
     require(re.findall(r"OpMemoryModel (\w+) (\w+)", assembly) ==
             [("PhysicalStorageBuffer64" if physical else "Logical", "GLSL450")], "unsupported memory model")
@@ -108,8 +114,10 @@ def inspect(reflection, assembly, name="transform"):
         if match:
             definitions[match[1]] = match[2].split()
     check_push_indices(definitions)
-    variables = [(key, value) for key, value in definitions.items() if value[0] == "OpVariable"]
-    require(all(v[2] in ("Input", "Output", "PushConstant", "Function") for _, v in variables),
+    heap_ids, resources = heaps.inspect(definitions, assembly, native_heaps)
+    variables = [(key, value) for key, value in definitions.items()
+                 if value[0] in ("OpVariable", "OpUntypedVariableKHR")]
+    require(all(key in heap_ids or v[2] in ("Input", "Output", "PushConstant", "Function") for key, v in variables),
             "shared/global resources unsupported")
     interfaces = native_entries[0][3].split()
     require(len(interfaces) == len(set(interfaces)) and set(interfaces) ==
@@ -138,11 +146,12 @@ def inspect(reflection, assembly, name="transform"):
     require(sorted(actual_interface) == sorted(expected_interface), "native entry interface mismatch")
     # No hidden/member builtins or extra locations outside the checked variables.
     decorated_io = re.findall(r"OpDecorate (%\S+) (?:BuiltIn|Location) \w+", assembly)
-    require(set(decorated_io) == interface_ids and len(decorated_io) == len(interface_ids), "extra interface decoration")
+    require(set(decorated_io) == interface_ids | heap_ids.keys()
+            and len(decorated_io) == len(interface_ids) + len(heap_ids), "extra interface decoration")
     require(not re.search(r"OpMemberDecorate %\S+ \d+ (BuiltIn|Location)\b", assembly), "member interfaces unsupported")
     pushes = [v for _, v in variables if v[2] == "PushConstant"]
     if stage == "vertex":
-        require(not pushes and not physical, "vertex must be rootless and address-free")
+        require(not pushes and not physical and not native_heaps, "vertex must be rootless, address-free and heap-free")
         return [], 0, 1, [], sorted(requirements[c] for c in set(caps))
     require(len(pushes) == 1, "exactly one SPIR-V root required")
     parameter = parameters[0]
@@ -161,6 +170,7 @@ def inspect(reflection, assembly, name="transform"):
     result, checked_size, checked_alignment = layouts.inspect_root(
         root, struct_id, definitions, assembly, reflection.get("ogpuPointeeLayouts", {}), physical, name)
     require((size, alignment) == (checked_size, checked_alignment), "root size/alignment mismatch")
+    result.resources = resources
     return result, size, alignment, local, sorted(requirements[c] for c in set(caps))
 
 
@@ -183,6 +193,11 @@ def header(reflection, assembly, binary, source, name="transform"):
                   '_Static_assert(sizeof(float) == 4 && _Alignof(float) == 4, "FP32 storage/alignment");',
                   '_Static_assert(FLT_RADIX == 2 && FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128, "FP32 representation");']
     lines += getattr(fields, "declarations", [])
+    if getattr(fields, "resources", []):
+        lines += ["/* Checked native descriptor kinds; indices, contents, extents and lifetimes remain caller-owned.",
+                  " * Sampled float images do not imply a particular view format. */"]
+        for resource in fields.resources:
+            lines.append(f"enum {{ {name}_uses_{resource} = 1 }};")
     if fields:
         lines += layouts.struct_lines(type_name, fields, size, alignment, root=True)
     if local:
@@ -206,7 +221,7 @@ def header(reflection, assembly, binary, source, name="transform"):
     return "\n".join(lines)
 
 
-def compile_source(source, output_dir, compiler, stage="compute"):
+def compile_source(source, output_dir, compiler, stage="compute", native_heaps=False):
     require(stage in ("compute", "vertex", "fragment"), "unsupported compilation stage")
     version = subprocess.run([compiler, "-version"], check=True, text=True, capture_output=True)
     require((version.stdout + version.stderr).strip() == VERSION, f"requires Slang {VERSION}")
@@ -214,6 +229,8 @@ def compile_source(source, output_dir, compiler, stage="compute"):
     binary, reflection = output_dir / "transform.spv", output_dir / "reflection.json"
     options = ["-target", "spirv", "-profile", "spirv_1_5", "-emit-spirv-directly",
                "-fvk-use-entrypoint-name", "-fvk-use-c-layout", "-entry", "main", "-stage", stage]
+    if native_heaps:
+        options += ["-capability", "spvDescriptorHeapEXT"]
     run(compiler, str(source), *options, "-reflection-json", str(reflection), "-o", str(binary))
     run("spirv-val", "--target-env", "vulkan1.4", str(binary))
     reflected = json.loads(reflection.read_text())
@@ -310,8 +327,9 @@ def main():
     parser.add_argument("--build-dir", type=Path, default=ROOT / "target/compiler-workflow")
     parser.add_argument("--name", default="transform")
     parser.add_argument("--stage", choices=("compute", "vertex", "fragment"), default="compute")
+    parser.add_argument("--native-heaps", action="store_true", help="select the native descriptor-heap compiler profile")
     args = parser.parse_args()
-    reflected, assembly, binary = compile_source(args.source, args.build_dir, os.getenv("SLANGC", "slangc"), args.stage)
+    reflected, assembly, binary = compile_source(args.source, args.build_dir, os.getenv("SLANGC", "slangc"), args.stage, args.native_heaps)
     generated = header(reflected, assembly, binary, args.source.read_bytes(), args.name)
     if args.check:
         require(args.output.read_text() == generated, "stale generated interface; regenerate")

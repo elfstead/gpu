@@ -355,6 +355,25 @@ fn heap_shaders(root: &Path, check: bool) -> Result {
         } else {
             fs::copy(&binary, checked_in)?;
         }
+        let mut generate = Command::new(env::var_os("PYTHON").unwrap_or_else(|| "python3".into()));
+        generate
+            .arg("-B")
+            .arg(root.join("examples/compiler/generate.py"))
+            .args(["--native-heaps", "--stage", stage, "--name"])
+            .arg(name.replace('-', "_"))
+            .arg("--source")
+            .arg(root.join(format!("examples/shaders/{name}.slang")))
+            .arg("--output")
+            .arg(root.join(format!(
+                "examples/compiler/{}.generated.h",
+                name.replace('-', "_")
+            )))
+            .arg("--build-dir")
+            .arg(root.join(format!("target/heap-shaders/{name}")));
+        if check {
+            generate.arg("--check");
+        }
+        run(&mut generate)?;
     }
     println!("Native heap shaders: pinned compilation, validation and capability checks passed.");
     Ok(())
@@ -427,6 +446,8 @@ fn c_execution_profile_args(
         .arg(if release { "-O2" } else { "-O0" })
         .arg("-I")
         .arg(root.join("include"))
+        .arg("-I")
+        .arg(root.join("examples/compiler"))
         .arg(root.join(format!("examples/{name}.c")))
         .arg("-L")
         .arg(&target)
@@ -505,7 +526,7 @@ fn main() -> Result {
         Some("retirement") if args.len() == 1 => c_execution(&root, "retirement", &["produce", "consume"]),
         Some("graphics") if args.len() == 1 => graphics(&root),
         Some("image-loop") if args.len() == 1 => image_loop(&root),
-        Some("heap-image") if args.len() == 1 => c_execution(&root, "heap_image", &["fullscreen.vert", "image-pattern.frag", "heap-process.comp", "heap-sample.frag"]),
+        Some("heap-image") if args.len() == 1 => c_execution(&root, "heap_image", &["fullscreen.vert", "image-pattern.frag"]),
         Some("reduction") if args.len() == 1 => reduction(&root),
         Some("matmul") if args.len() == 1 =>
             c_execution_profile(&root, "matmul", &["matmul-naive.comp", "matmul-tiled.comp"], true),

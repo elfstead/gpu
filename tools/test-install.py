@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--split", action="store_true", help="also execute split dependencies with serial replay")
     parser.add_argument("--affine", action="store_true", help="also build/execute the generated FP32-root example")
     parser.add_argument("--structured", action="store_true", help="also build/execute nested arguments and pointer blocks")
+    parser.add_argument("--heap-image", action="store_true", help="also build/execute generated image/sampler heap roots")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
     installed = args.prefix.resolve()
@@ -161,6 +162,31 @@ def main():
             run(shader, cwd=structured, env=environment)
             run([sys.executable, "build.py", "--output", "structured"], cwd=structured, env=environment)
             if not args.no_gpu: run(["./structured"], cwd=structured, env=environment)
+    if args.heap_image:
+        heap = temporary / "independent heap app"
+        shutil.copytree(prefix / "share/ogpu/examples/heap-image", heap)
+        execute = ["./heap-image", "fullscreen.vert.spv", "image-pattern.frag.spv"]
+        run([sys.executable, "build.py", "--output", "heap-image"], cwd=heap, env=environment)
+        if not args.no_gpu: run(execute, cwd=heap, env=environment)
+        if args.shader_check:
+            for name, stage in (("heap-process", "compute"), ("heap-sample", "fragment")):
+                shader = [str(prefix / "bin/ogpu-shader"), "--source", name+".slang", "--output",
+                          name.replace("-", "_")+".generated.h", "--build-dir", "shader-build/"+name,
+                          "--name", name.replace("-", "_"), "--stage", stage, "--native-heaps"]
+                run([*shader, "--check"], cwd=heap, env=environment)
+                source = heap / (name+".slang")
+                original = source.read_text()
+                changed, count = re.subn(r"struct Root \{([^{}]+)\};",
+                    lambda m: "struct Root { "+" ".join(field.strip()+";" for field in
+                        reversed(m[1].split(";")[:-1]))+" };", original)
+                changed = changed.replace("numthreads(64, 1, 1)", "numthreads(32, 1, 1)")
+                require(count == 1 and changed != original, "heap mutation unchanged")
+                source.write_text(changed)
+                stale = subprocess.run([*shader, "--check"], cwd=heap, env=environment, text=True, capture_output=True)
+                require(stale.returncode != 0 and "stale generated interface" in stale.stderr, "stale heap header accepted")
+                run(shader, cwd=heap, env=environment)
+            run([sys.executable, "build.py", "--output", "heap-image"], cwd=heap, env=environment)
+            if not args.no_gpu: run(execute, cwd=heap, env=environment)
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")
 
 

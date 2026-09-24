@@ -1,14 +1,12 @@
 #include "ogpu.h"
+#include <heap_process.generated.h>
+#include <heap_sample.generated.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define REQUIRE(x) do { if (!(x)) { fprintf(stderr, "Check failed line %d: %s\n", __LINE__, #x); goto cleanup; } } while (0)
 #define TRY(x) do { if ((x) != OGPU_SUCCESS) { fprintf(stderr, "%s: %s\n", #x, error.message); goto cleanup; } } while (0)
-typedef struct Root { uint32_t image, second, width, height; } Root;
-_Static_assert(sizeof(Root) == 16 && offsetof(Root, width) == 8, "heap root ABI");
-typedef struct SampleRoot { uint32_t image, sampler, width, height; float offset_x; } SampleRoot;
-_Static_assert(sizeof(SampleRoot) == 20 && offsetof(SampleRoot, offset_x) == 16, "sample root ABI");
 
 static int shader(const char *path, uint32_t **words, uint64_t *count) {
     int result = EXIT_FAILURE;
@@ -84,9 +82,11 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         TRY(ogpu_batch_bind_image_heap(batch, heaps[variant], &error));
         REQUIRE(ogpu_image_heap_clear(heaps[1 - variant], 0, 1, &error) == OGPU_ERROR_INVALID_ARGUMENT);
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COLOR_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
-        Root process = {variant ? 2 : 1, variant ? 0 : 2, width, height};
-        SampleRoot sampling = {variant ? 1 : 0, variant, width, height, pass < 2 ? 0.0f : variant ? 0.5f : 1.0f};
-        TRY(ogpu_batch_dispatch(batch, compute, (width * height + 63) / 64, 1, 1,
+        Heap_processArguments process = {.arg_source = variant ? 2 : 1,
+            .arg_destination = variant ? 0 : 2, .arg_width = width, .arg_height = height};
+        Heap_sampleArguments sampling = {.arg_image = variant ? 1 : 0, .arg_samplerIndex = variant,
+            .arg_width = width, .arg_height = height, .arg_offsetX = pass < 2 ? 0.0f : variant ? 0.5f : 1.0f};
+        TRY(ogpu_batch_dispatch(batch, compute, (width * height + heap_process_local[0] - 1) / heap_process_local[0], 1, 1,
             &process, sizeof(process), &error));
         TRY(ogpu_batch_submit(batch, &completions[1], &error));
         ogpu_batch_destroy(batch); batch = NULL;
@@ -172,10 +172,10 @@ int main(int argc, char **argv) {
     OgpuDevice *device = NULL;
     OgpuKernel *compute = NULL;
     OgpuRaster *pattern = NULL, *sample = NULL;
-    uint32_t *words[4] = {0};
-    uint64_t counts[4] = {0};
-    REQUIRE(argc == 5);
-    for (unsigned i = 0; i < 4; ++i) REQUIRE(shader(argv[i + 1], &words[i], &counts[i]) == EXIT_SUCCESS);
+    uint32_t *words[2] = {0};
+    uint64_t counts[2] = {0};
+    REQUIRE(argc == 3);
+    for (unsigned i = 0; i < 2; ++i) REQUIRE(shader(argv[i + 1], &words[i], &counts[i]) == EXIT_SUCCESS);
     TRY(ogpu_probe_create(OGPU_ABI_VERSION, &probe, &error));
     uint32_t count = 0, tested = 0;
     TRY(ogpu_probe_device_count(probe, &count));
@@ -189,11 +189,24 @@ int main(int argc, char **argv) {
         OgpuDeviceInfo info;
         TRY(ogpu_probe_device_info(probe, i, &info));
         printf("Executing heap-image on %s\n", info.name);
-        TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[2], (counts[2]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &compute, &error));
+        OgpuCapabilities caps;
+        OgpuDeviceLimits limits;
+        TRY(ogpu_device_capabilities(device, &caps, &error));
+        TRY(ogpu_device_limits(device, &limits, &error));
+        REQUIRE(heap_process_compatible(&caps, &limits) && heap_sample_compatible(&caps, &limits));
+        REQUIRE(heap_process_local[1] == 1 && heap_process_local[2] == 1);
+        REQUIRE((97 * 65 + heap_process_local[0] - 1) / heap_process_local[0] <= limits.max_dispatch[0]);
+        OgpuCapabilities missing = caps;
+        missing.descriptor_heap = 0;
+        REQUIRE(!heap_process_compatible(&missing, &limits) && !heap_sample_compatible(&missing, &limits));
+        missing = caps; missing.shader_untyped_pointers = 0;
+        REQUIRE(!heap_process_compatible(&missing, &limits) && !heap_sample_compatible(&missing, &limits));
+        OgpuShaderDesc process_shader = heap_process_shader(), sample_shader = heap_sample_shader();
+        TRY(ogpu_kernel_create(device, &process_shader, heap_process_push_size, &compute, &error));
         TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[0], (counts[0]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
             &(OgpuShaderDesc){words[1], (counts[1]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, 0, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &pattern, &error));
         TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[0], (counts[0]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
-            &(OgpuShaderDesc){words[3], (counts[3]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(SampleRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &sample, &error));
+            &sample_shader, heap_sample_push_size, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &sample, &error));
         const uint32_t sizes[][2] = {{1, 1}, {2, 3}, {63, 65}, {64, 64}, {65, 63}, {97, 65}};
         for (unsigned j = 0; j < sizeof(sizes) / sizeof(sizes[0]); ++j)
             REQUIRE(run_case(device, compute, pattern, sample, sizes[j][0], sizes[j][1]) == EXIT_SUCCESS);
@@ -211,6 +224,6 @@ cleanup:
     ogpu_kernel_destroy(compute);
     ogpu_device_destroy(device);
     ogpu_probe_destroy(probe);
-    for (unsigned i = 0; i < 4; ++i) free(words[i]);
+    for (unsigned i = 0; i < 2; ++i) free(words[i]);
     return result;
 }
