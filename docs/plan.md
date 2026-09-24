@@ -140,12 +140,17 @@ the one-allocation schedule without changing allocated bytes. Retain views as th
 preferred direct-access candidate and copies as convenience. This closes bounded
 P3 copy/range acceptance, not noncoherent hardware or the entire performance gate.
 
-**Next: [P4 dependency scope](dependency-scope-review.md).** Review the current
-global barrier contract against strong legal native producer/consumer schedules,
-including the best command reordering expressible today. Distinguish execution
-ordering from visibility before selecting split endpoints or resource/range scope.
-Only then implement a discriminating native control if the review identifies one;
-do not add public dependency handles merely because narrower barriers sound useful.
+The [P4 controls](dependency-scope-results.md) are accepted at `79ce5c3`: every
+global-barrier ordering adds an unnecessary edge in A→C with independent B;
+native split events express the missing freedom. All 26 cases pass on both drivers,
+with 78,000 new measured samples. Split is 2.4% slower at small Y and shows no clear
+large-Y win; no achieved overlap or quantitative API penalty is claimed. The first
+host-reset run was rejected and replaced by validated GPU-ordered reset.
+
+**Next: implement [recording-local split endpoints and explicit replay mode](split-dependencies.md).**
+Preserve ordinary barriers, test serial reservation/event lifetime and matched public
+controls, and reject unsupported simultaneous split replay explicitly. This is a
+bounded scheduling alternative, not a graph scheduler or general P4 completion.
 
 Replay timing and changing roots/dimensions remain separate open P2 questions.
 Direct encoding/vector optimization is optional backend work. No exact command-

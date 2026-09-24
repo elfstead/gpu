@@ -637,6 +637,14 @@ selecting a new dependency surface. M2 remains the following compiler milestone.
 
 ## Parked follow-ups, not a work queue
 
+Latest P4 checkpoint (2026-09-24): [native dependency controls](dependency-scope-results.md)
+at `79ce5c3` retain 78,000 timing samples, 6,656 Radeon/832 software correctness
+executions and 156 freed traced allocations. Exhaustive ordering shows missing
+split-dependency freedom, but this GPU shows no split speedup. First-run host-reset
+validation failure is preserved; acceptance uses GPU-ordered reset, no suppression.
+Select [recording-local endpoints and explicit replay mode](split-dependencies.md).
+Runtime/API unchanged at ABI 16; public implementation acceptance remains next.
+
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric
 variants, and image-representation cost comparisons remain possible follow-ups.
 They are not scheduled and do not block the first integration merely because they

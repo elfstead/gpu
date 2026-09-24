@@ -1,0 +1,1207 @@
+{
+  "schema": 1,
+  "scope": "P4 A->C with independent B; one queue/slot, two HOST allocations",
+  "revision": "79ce5c33fdf173064080c3c0db0f37d8540af6b1",
+  "dirty": false,
+  "software": true,
+  "graph": {
+    "a-bc": [
+      "ab",
+      "ac"
+    ],
+    "ab-c": [
+      "ac",
+      "bc"
+    ],
+    "ba-c": [
+      "ac",
+      "bc"
+    ],
+    "a-cb": [
+      "ab",
+      "ac"
+    ]
+  },
+  "sources": {
+    "examples/performance_frontier/dependencies.c": "b9223c3e70567646ed7e02eebf04ea00de3aae370a415d84ed7b870266e8bbc4",
+    "examples/performance_frontier/dependencies.py": "7e66ce631214c756c7125d51f103f40254f97ec2c49692b9f40f76110a776b60",
+    "examples/performance_frontier/test_dependencies.c": "9c2c7bb61765949ee1d8266ef9ce03b24e2d6924c24c2c934de67507e3ebb274",
+    "examples/performance_frontier/test_dependencies.py": "15eed96619148e492a9d6dec0e9527905acec7684592bd858637dd1b768fc6f0",
+    "examples/performance_frontier/small.c": "78792ef29c88a024e2ec8fb093997fb9a948cc75fc7bfea0df4a227d17f851eb",
+    "examples/performance_frontier/run.py": "92459a2d9064eff8c2875f6fd0ff4af2c3cb3d36ce94a9882e36dd2574c8a103",
+    "include/ogpu.h": "06ee63db3931e82b0928c5be61b0036389d148db6ef42418707bc921648c7f7a",
+    "Cargo.lock": "3691869bc28522dbfbc81294b442b5172e72e61cafab2ac009e2d938949c3345",
+    "examples/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+    "examples/learned_image/native.c": "6a03b11092c7fdc5299a8f34e24779cb8d048f8e4c4c8418e839b31676e4346c",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "examples/learned_image/trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "examples/learned_image/benchmark.py": "be2333906872a736686282440bda8360b6888c5d1749fbec23280590c0bf361b",
+    "examples/learned_image/compare_native.py": "d849d6e7a2ea73b51232da3271a6040ee8ea3bf36187ed8048a50198a62d8f3f",
+    "examples/learned_image/run.py": "6a9346366b5c7eb8e8327c9bae61a0d17084243ee98994b88a721767a59b5a78",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6",
+    "crates/ogpu/src/api_types.rs": "92d1d67414eaad72bea44dec6ae14dfd4affd92a0bc19617dd59d3ec0c6bc36e",
+    "crates/ogpu/src/batch.rs": "c60cac214f9ee404e2370328376b41e8e5cd048d29d333f2b1237ee347143c71",
+    "crates/ogpu/src/batch_tests.rs": "f87b686dce07bc4d5080fb4ac5407f633f6a5f5aa4b89f6864bae079d3582048",
+    "crates/ogpu/src/boundary.rs": "5b2914392a9cf0a2d7b1cd5c4700cc88f782a166865e6539ef70d16a050bad27",
+    "crates/ogpu/src/compute.rs": "abc71824bb5424169c3ea97573005d53201c7331e49a0a2533e2481aaca77ee9",
+    "crates/ogpu/src/contract.rs": "18d61a2cacacba89adc7c32c573ad1c1abc7ee7fb0b6554aa799727f0d67ece5",
+    "crates/ogpu/src/dispatch_tests.rs": "f9ed35c939989fd75d95335dfc0677b11f552c11f477e82a77164496faa1f8df",
+    "crates/ogpu/src/executable_tests.rs": "ee71005376e4306e44df64585aa2a0336c6b33befe0bce93df5c17d6dc75bbe5",
+    "crates/ogpu/src/execution_api.rs": "5114e533dd544fe3ef6f6874b4390673258dffb5b52537c98afc52543c4607ce",
+    "crates/ogpu/src/graphics.rs": "dd5d0bb3f28af680cda5e6ae24310cb1d984602252206889497b230106a29f16",
+    "crates/ogpu/src/graphics_tests.rs": "28a7480ec8bbf4d204149962056750fbf095be152b98d974315318f91baf8ff8",
+    "crates/ogpu/src/heap_tests.rs": "89816cb540409fb398b46045ec450324f269350c1399858aa2189cbd6f2f2cdd",
+    "crates/ogpu/src/heaps.rs": "7b0b73e8551f7ea358af5759b4fa6255cf46f9f8d4f04d0179e3b98e1eabe803",
+    "crates/ogpu/src/host_view_tests.rs": "1adbe99829cffd9bb0b42136bd5b591ad0d69ba2f6641b55349a131b813860f3",
+    "crates/ogpu/src/image_tests.rs": "560b4f290d2eec69615d17ca82aeae06033b7a0bb98d5f2d926dc1d1a521cefa",
+    "crates/ogpu/src/lib.rs": "002cfc5ba6a57459b25c380e9be12e5d913587a2446d4055e6e2f21115c91470",
+    "crates/ogpu/src/memory_tests.rs": "a306c4bf10e015359273969e973332bb634ad9651d542dfe2a9ff40edbc966ca",
+    "crates/ogpu/src/metal.rs": "58a31b622de48da5b8e41614ff3b54383394aadec9b4dd77403f1023d3629cc9",
+    "crates/ogpu/src/reduction_tests.rs": "3af3fcf7877b3fd99ae6fa54468990ee1324d57f2a00843e377e59cb29614d3e",
+    "crates/ogpu/src/retirement_tests.rs": "5d4f19a7514cf913cd22b08be802922225780452dd002226c18085eac488a646",
+    "crates/ogpu/src/shader.rs": "e4d1774513e91926620cbf83e336a52dc8dbd6d56fb8b4b6b814611389b88356",
+    "crates/ogpu/src/specialization.rs": "47432ed5892fd8e5bc2863894780d34772fb83b46a2e2125a5e912e84dea8dff",
+    "crates/ogpu/src/storage_tests.rs": "f083ac166cac734cb7fc5ef5b698dcf5e31a6ae3b2554a40ca050ba516dc12a4",
+    "crates/ogpu/src/timing_tests.rs": "0c705a52fb89d2bcff94a98bb59cd75947af88ad44ffc328a6d894f1d1de7dcf",
+    "crates/ogpu/src/vulkan.rs": "a2a9a469e37f30335933de9da47382dce6612103000dbd5d2bad91defa41032d",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7"
+  },
+  "artifacts": {
+    "dependencies-native": "60323cf7cc87e8e45643b24cd111904536effbf7274b25624eb56568ff453eb6",
+    "dependencies-ogpu": "80931309617a9b08ebf42a27e164af5eb7c3f2b1416ace26015b3e38c667ccbe",
+    "trace-memory.so": "ed10efab30f2d8e43d06889136c94ee95d940ee46c2787189abd63e905f83343"
+  },
+  "library_sha256": "cb3c5f6a48e2e19bb776b5d797a877506d4c44647e71b99d29e22538297d8fc3",
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_ICD_FILENAMES": null,
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "VK_LAYER_PATH": "/nix/store/sbsyg6dvqjs6937jyqxaw0q7n83n6awg-vulkan-validation-layers-1.4.357.0/share/vulkan/explicit_layer.d"
+  },
+  "validation": [
+    {
+      "label": "validation-64-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.139201999,
+        "wall_ms": 13.636541009,
+        "event_count": 0
+      },
+      "stdout_sha256": "38b1ee56fdd8869eac0760a3714745a224a56c94ea81019e5efea5f787736154",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.287909985,
+        "wall_ms": 12.537522018,
+        "event_count": 0
+      },
+      "stdout_sha256": "e2626d125fffa215769f0513cc73d422fdf043c668046aac3efbb9bb153a2b3e",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.26157099,
+        "wall_ms": 12.007238984,
+        "event_count": 0
+      },
+      "stdout_sha256": "4f04f39356ad1c361b4298d6f3f8a5073fbd0210eb258dae2d2c6724e2455d0c",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.385489017,
+        "wall_ms": 13.017438024,
+        "event_count": 0
+      },
+      "stdout_sha256": "6c95064e5f631a34eb7903badc216649caad3274b088c1f63553ff124da39478",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.319140017,
+        "wall_ms": 12.994448006,
+        "event_count": 0
+      },
+      "stdout_sha256": "f9d23e70897cfd94e63523455f73ebb5e388e6074b5637acf614ca8a94c221b7",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 26.576748997,
+        "wall_ms": 12.742509991,
+        "event_count": 0
+      },
+      "stdout_sha256": "7b84e14460e70df76a2b7b89e5185b2af8d9dd374a1d909530e1535b37e4a98e",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 28.249671012,
+        "wall_ms": 12.210526019,
+        "event_count": 0
+      },
+      "stdout_sha256": "7e788fbda0f08b6eec3ed09e7bc78f9481e4cf314911a45126851fa80c81cac1",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.544988006,
+        "wall_ms": 13.326653004,
+        "event_count": 0
+      },
+      "stdout_sha256": "0cdbe3a012e244f0a1bacbf214a070baa656bbffdc70e2cb353e40442f07a3b3",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-64-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.32051,
+        "wall_ms": 13.427353024,
+        "event_count": 0
+      },
+      "stdout_sha256": "6b2bfae79a67f3f79d57af2b28906f642ee21bd3242923952ca983bddfd1c22c",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 29.302608997,
+        "wall_ms": 13.24862501,
+        "event_count": 0
+      },
+      "stdout_sha256": "9979ac130096fec0dbc58a863034bb5112235c782d1e60f65e8f442bb4aeafae",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 27.618428022,
+        "wall_ms": 13.484911978,
+        "event_count": 0
+      },
+      "stdout_sha256": "0c1702981fab8b05ee71c108dd91f0af5dd99de279d78d349850826517205ad8",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 29.418326974,
+        "wall_ms": 14.075226009,
+        "event_count": 0
+      },
+      "stdout_sha256": "ac686fb9d35be0bba20969ff0f609ecb7a2fe6d3b52f86a12537acc399108d38",
+      "stderr_sha256": "acf777b68aaa4200a698892b8ae2c6060bfe86071603770fdcac75ea620b6403",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-64-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 64,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 26.896724999,
+        "wall_ms": 12.172847003,
+        "event_count": 1
+      },
+      "stdout_sha256": "39c40cfb961a682765c3ed38429fa875345bdbac5a00883be2a6e1dbb1be6c8b",
+      "stderr_sha256": "7b1d670865add5d82fb80b9e6fb196fbb4de57ef6f6eadc91d398d9b2fc96b64",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 131328,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":6597069766662,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":65664,\"type\":0}",
+        "FREE {\"id\":6597069766662}",
+        "FREE {\"id\":8796093022216}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":131328,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-a-bc",
+      "result": {
+        "strategy": "global",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.286617011,
+        "wall_ms": 173.751154989,
+        "event_count": 0
+      },
+      "stdout_sha256": "87d8de9b9a5135f4fd0d901613c467d3e62600efd47fbab759d8b1d103a297cd",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-ab-c",
+      "result": {
+        "strategy": "global",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 33.039778024,
+        "wall_ms": 183.443190008,
+        "event_count": 0
+      },
+      "stdout_sha256": "222a44dde3dcc35ea961c33b53a9cfc9cbdc8d965d58813355a7ea83683b5235",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-ba-c",
+      "result": {
+        "strategy": "global",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.177626997,
+        "wall_ms": 183.132432997,
+        "event_count": 0
+      },
+      "stdout_sha256": "d8332dfe1db7e8145a0e8a9c33889f688894acaaabe4bca0791933fa7674d22f",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-global-a-cb",
+      "result": {
+        "strategy": "global",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.241046995,
+        "wall_ms": 176.021129996,
+        "event_count": 0
+      },
+      "stdout_sha256": "dac23801359ce1d5b14249b6216c3a4d28955b3a066bc5a61d90e07e3c7cb5e3",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-a-bc",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.698271006,
+        "wall_ms": 176.998109996,
+        "event_count": 0
+      },
+      "stdout_sha256": "6e278c7ec1a9e7b746b83da2b5b4ca12d70311b2520f34dd34a5cd206d9d6a5b",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-ab-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.391314983,
+        "wall_ms": 177.338027,
+        "event_count": 0
+      },
+      "stdout_sha256": "8f816a3c483fef769dee7cc51c53dfea11bb2a7b4aa15376876ad67ab79de22c",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-ba-c",
+      "result": {
+        "strategy": "buffer",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.273656011,
+        "wall_ms": 175.427287996,
+        "event_count": 0
+      },
+      "stdout_sha256": "bb22feefff5952d5d448da9a23604f312cb5fe27e5ba74ef7e60546a80475c38",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-buffer-a-cb",
+      "result": {
+        "strategy": "buffer",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.375087023,
+        "wall_ms": 177.130328,
+        "event_count": 0
+      },
+      "stdout_sha256": "a6f391223fae54f649f1708ad96f39cd8d1c484c93bca279f5d74570c799c5b4",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    },
+    {
+      "label": "validation-4096-ogpu-a-bc",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.222947001,
+        "wall_ms": 205.161020994,
+        "event_count": 0
+      },
+      "stdout_sha256": "5a235a783b89a8cd9d92b86d0e5d79c15a3df91add7c006c1a945058d6745818",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-ogpu-ab-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ab-c",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 33.526763022,
+        "wall_ms": 214.889764011,
+        "event_count": 0
+      },
+      "stdout_sha256": "f83e2d23122c3998670723d4a4e7fb3e4aa45d08f73d88189650f6457b2ce553",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-ogpu-ba-c",
+      "result": {
+        "strategy": "ogpu",
+        "order": "ba-c",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.803939998,
+        "wall_ms": 208.87044099,
+        "event_count": 0
+      },
+      "stdout_sha256": "ebb2a84ce9b41640e6e0737c6923435c45faa682782dd5bb011f7f37b89f0bff",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-ogpu-a-cb",
+      "result": {
+        "strategy": "ogpu",
+        "order": "a-cb",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.598653018,
+        "wall_ms": 202.577469975,
+        "event_count": 0
+      },
+      "stdout_sha256": "d55e87295097d0f4d092265dc7f66c1e5d9fff4664c97269cb8ec3ea83afe194",
+      "stderr_sha256": "73d7e72418f436a5f89adc9a71f47b030a9025beee63178cdf2daf37b9e62043",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":5497558138885,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":7696581394439,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":5497558138885}",
+        "FREE {\"id\":7696581394439}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": []
+    },
+    {
+      "label": "validation-4096-split-a-bc",
+      "result": {
+        "strategy": "split",
+        "order": "a-bc",
+        "kib": 4096,
+        "frames": 32,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.60474202,
+        "wall_ms": 180.946906984,
+        "event_count": 1
+      },
+      "stdout_sha256": "3f4b3a64abb11d4e27fbaa7d7cd3ee871b7432f27d313bda52c1816758d1a292",
+      "stderr_sha256": "63ab874db36025f4baa59bc76f37a49fc4297e75935cac734baedc2636364673",
+      "memory": {
+        "allocations": 2,
+        "frees": 2,
+        "peak_bytes": 4260096,
+        "peak_count": 2,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "trace": [
+        "ALLOCATE {\"id\":6597069766662,\"bytes\":65664,\"type\":0}",
+        "ALLOCATE {\"id\":8796093022216,\"bytes\":4194432,\"type\":0}",
+        "FREE {\"id\":6597069766662}",
+        "FREE {\"id\":8796093022216}",
+        "MEMORY_SUMMARY {\"allocations\":2,\"frees\":2,\"peak_bytes\":4260096,\"peak_count\":2,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "native_buffers": [
+        {
+          "host": true,
+          "requested": 65664,
+          "allocated": 65664,
+          "type": 0,
+          "flags": 15
+        },
+        {
+          "host": true,
+          "requested": 4194432,
+          "allocated": 4194432,
+          "type": 0,
+          "flags": 15
+        }
+      ]
+    }
+  ],
+  "timing": [],
+  "memory": [],
+  "complete": true,
+  "identity": {
+    "vendor": 65541,
+    "device": 0,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "input_report_sha256": "421c9eee88b6e0822184d88be496361245ae6271f8d95373e6b0846941dae8e3",
+  "export_scope": "graph, complete matrices, logs, samples/statistics, sources, device and allocation signatures rechecked"
+}

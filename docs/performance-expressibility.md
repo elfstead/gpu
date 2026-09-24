@@ -177,3 +177,12 @@ Keep actual noncoherent hardware, other placements and total command-memory budg
 unresolved; this is not universal approval. The next bounded review is
 [P4 dependency scope](dependency-scope-review.md), with best legal reordering and
 execution-versus-visibility analysis before any public-surface change.
+
+The [P4 native result](dependency-scope-results.md), accepted at `79ce5c3`, finds
+a structural restriction after exhaustive three-command reordering: every global
+barrier adds an edge to independent B, while split endpoints preserve only A→C.
+Native X-range barriers do not fix execution scope. The declared 78,000-sample
+matrix shows no split speedup on this device; performance cost remains unresolved,
+not disproven. Select [recording-local endpoints and explicit replay mode](split-dependencies.md)
+for public implementation and lifetime acceptance. Simultaneous split execution,
+cross-recording endpoints and resource-scoped cache opportunities remain separate.
