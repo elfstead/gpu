@@ -47,7 +47,7 @@ hand-built reduction/matrix executables already use workgroup memory.
 
 Generated layouts currently target the tested little-endian host/device workflow.
 They are not a wire format. Widths are explicit: 32-bit unsigned fields and 64-bit
-GPU addresses; FP32 scalar roots are M2's first extension. FP32 pointees already
+GPU addresses; FP32 scalar roots are implemented by M2's first extension. FP32 pointees already
 work. Native C `bool`, `long`, enums, pointers and compiler vector extensions are
 not substitute layout declarations. Half storage and half arithmetic are separate
 capabilities; neither implies arbitrary half fields in generated roots.

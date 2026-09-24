@@ -102,7 +102,9 @@ GLSL/Slang versions of this application or start tuning its tiny network.
 ## Supported subset and boundaries
 
 All artifacts have one entry named `main`. Roots, where supported, are flat C-layout
-structs of uint32 fields and device pointers to uint32/FP32 scalars. Pointers become
+structs of uint32 fields and device pointers to uint32/FP32 scalars. M2's subsequent
+scalar-root slice also permits FP32 fields; the learned-image sources are unchanged.
+Pointers become
 uint64 GPU addresses, not owners. The adapter cross-checks pointed-to SPIR-V scalar
 type and four-byte stride as well as field offsets, padding and reflected size.
 

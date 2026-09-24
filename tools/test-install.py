@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--replay", action="store_true", help="also execute the optional reusable command-list path")
     parser.add_argument("--host-view", action="store_true", help="also execute optional direct HOST access with replay")
     parser.add_argument("--split", action="store_true", help="also execute split dependencies with serial replay")
+    parser.add_argument("--affine", action="store_true", help="also build/execute the generated FP32-root example")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
     installed = args.prefix.resolve()
@@ -116,6 +117,27 @@ def main():
         run([sys.executable, "build.py"], cwd=application, env=environment)
         if not args.no_gpu:
             run(["./transform"], cwd=application, env=environment)
+    if args.affine:
+        affine = temporary / "independent affine app"
+        shutil.copytree(prefix / "share/ogpu/examples/affine", affine)
+        run([sys.executable, "build.py", "--output", "affine"], cwd=affine, env=environment)
+        if not args.no_gpu: run(["./affine"], cwd=affine, env=environment)
+        if args.shader_check:
+            shader = [str(prefix / "bin/ogpu-shader"), "--source", "affine.slang", "--output",
+                      "affine.generated.h", "--build-dir", "shader-build", "--name", "affine"]
+            run([*shader, "--check"], cwd=affine, env=environment)
+            source = affine / "affine.slang"
+            original = source.read_text()
+            changed = original.replace("    float* data;\n    uint count;\n    float scale;\n    float bias;",
+                                       "    float bias;\n    float scale;\n    uint count;\n    float* data;")
+            changed = changed.replace("numthreads(64, 1, 1)", "numthreads(32, 1, 1)")
+            require(changed != original, "affine mutation unchanged")
+            source.write_text(changed)
+            stale = subprocess.run([*shader, "--check"], cwd=affine, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale generated interface" in stale.stderr, "stale affine header accepted")
+            run(shader, cwd=affine, env=environment)
+            run([sys.executable, "build.py", "--output", "affine"], cwd=affine, env=environment)
+            if not args.no_gpu: run(["./affine"], cwd=affine, env=environment)
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")
 
 

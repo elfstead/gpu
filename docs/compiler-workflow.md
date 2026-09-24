@@ -138,6 +138,10 @@ fields/device uint32 pointers and dispatch ID input. The subsequent
 FP32 pointers, independently named artifacts, a rootless fullscreen vertex entry
 and a display fragment entry. It does not introduce another parser or runtime
 dependency. That page owns the current exact stage/interface subset.
+M2's [scalar-root slice](compiler-contract-plan.md) additionally supports FP32
+scalar fields through `python3 examples/compiler/affine.py [--check]`. It emits
+host representation assertions and validates original/reordered layouts with
+exact binary32 scale/bias results; aggregate roots remain the next slice.
 
 Supported capability mappings remain Shader, PhysicalStorageBufferAddresses and
 Float16; Shader maps to the corresponding enabled compute/graphics profile.

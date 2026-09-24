@@ -52,6 +52,7 @@ bin/ogpu-shader                         # optional offline shader tool
 share/ogpu/manifest.json                # revision, ABI, dirty flag, file hashes
 share/ogpu/licenses/
 share/ogpu/examples/transform/
+share/ogpu/examples/affine/              # generated FP32-root example
 share/ogpu/QUICKSTART.md
 ```
 
@@ -114,13 +115,20 @@ python3 build.py
 ```
 
 Add `--check` to require byte-identical reproduction without overwriting the header.
-The generator supports one `main` entry, flat uint32 fields and uint32/FP32 device
+The generator supports one `main` entry, flat uint32/FP32 fields and uint32/FP32 device
 pointers, fixed compute workgroups and a narrow fullscreen vertex/display fragment
 interface. It rejects unsupported layouts/resources/capabilities. This is an
 optional pinned compiler adapter, not the runtime's full shader contract or a new
 language requirement. You may compile compatible SPIR-V with another tool and
 supply `OgpuShaderDesc` yourself; you then own its host/shader layout and requirements.
 Generated headers target C11; C++ wrapper/header generation is not promised.
+
+The installed `examples/affine` directory uses FP32 scale/bias root values and a
+device pointer. Copy it like the transform example, then run
+`python3 build.py --output affine` and `./affine`. To regenerate, use
+`--source affine.slang --output affine.generated.h --name affine` with the same
+installed shader tool. This verifies exact transport/layout, not general floating-
+point accuracy. Nested structures, arrays and vector roots remain unsupported.
 
 For your own application, preserve the important contracts: addresses do not own
 allocations, referenced memory must remain live and in bounds, GPU dependencies

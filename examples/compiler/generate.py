@@ -189,9 +189,13 @@ def inspect(reflection, assembly):
                     "scalar pointer stride mismatch")
             c_type, width = "uint64_t", 8
         else:
-            require(typ["kind"] == "scalar" and typ["scalarType"] == "uint32" and
-                    native == ["OpTypeInt", "32", "0"], "scalar type mismatch/unsupported")
-            c_type, width = "uint32_t", 4
+            scalar_types = {"uint32": ("uint32_t", ["OpTypeInt", "32", "0"]),
+                            "float32": ("float", ["OpTypeFloat", "32"])}
+            require(typ["kind"] == "scalar" and typ.get("scalarType") in scalar_types,
+                    "scalar type mismatch/unsupported")
+            c_type, expected = scalar_types[typ["scalarType"]]
+            require(native == expected, "scalar type mismatch/unsupported")
+            width = 4
         require(uniform_size(typ) == (width, width), "field size/alignment mismatch")
         binding = field["binding"]
         offset = binding["offset"]
@@ -221,6 +225,10 @@ def header(reflection, assembly, binary, source, name="transform"):
              f"#ifndef {guard}", f"#define {guard}", '#include "ogpu.h"',
              f"/* Stage tags are generator-local: compute=0, vertex=1, fragment=2. */",
              f"enum {{ {name}_stage = {['compute', 'vertex', 'fragment'].index(stage)}, {name}_push_size = {size} }};"]
+    if any(typ == "float" for _, typ, _, _ in fields):
+        lines += ['#include <float.h>',
+                  '_Static_assert(sizeof(float) == 4 && _Alignof(float) == 4, "FP32 storage/alignment");',
+                  '_Static_assert(FLT_RADIX == 2 && FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128, "FP32 representation");']
     if fields:
         lines.append(f"typedef struct {type_name} {{")
     cursor = 0

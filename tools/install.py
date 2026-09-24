@@ -95,6 +95,11 @@ def install(prefix):
                                 ("examples/compiler/transform.generated.h", "transform.generated.h"),
                                 ("tools/sdk/build-example.py", "build.py")):
         copy(ROOT / source, f"share/ogpu/examples/transform/{destination}")
+    for source, destination in (("examples/compiler/affine.c", "main.c"),
+                                ("examples/compiler/affine.slang", "affine.slang"),
+                                ("examples/compiler/affine.generated.h", "affine.generated.h"),
+                                ("tools/sdk/build-example.py", "build.py")):
+        copy(ROOT / source, f"share/ogpu/examples/affine/{destination}")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
