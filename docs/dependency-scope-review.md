@@ -64,3 +64,85 @@ This does not reopen accepted host mapping, add queues, create a graph scheduler
 stabilize the API or complete P1/P5/P6/P7. M2 remains the following programming/
 compiler milestone; unmeasurable hardware questions stay explicit, not blockers
 requiring hardware acquisition or a Mac round trip.
+
+## Semantic review and selected control — 2026-09-24
+
+At `683edea`, `ogpu_batch_barrier` promises a global earlier-to-later queue
+dependency, including earlier submissions. Vulkan lowers each public access class
+to a stage/access pair and ORs combined masks, then emits one `VkMemoryBarrier2`.
+Compute read/write both select COMPUTE_SHADER; transfer selects ALL_TRANSFER;
+vertex/fragment/indirect/color select their corresponding stages. There is no
+execution-only mask or independent stage selector. Replay preserves the barrier
+positions; changing submission boundaries does not narrow the documented scopes.
+Automatic HOST→ALL_COMMANDS and ALL_COMMANDS→HOST visibility surround recordings;
+they do not replace an internal GPU producer/consumer dependency. Metal currently
+uses broader dispatch/blit barriers in three scopes; that is separate backend
+evidence, not validation of a new Metal dependency primitive.
+
+The Vulkan specification distinguishes stage-scoped execution from access-scoped
+visibility; submission order alone adds neither dependency.
+[Synchronization and submission order](https://docs.vulkan.org/spec/latest/chapters/synchronization.html#synchronization-submission-order)
+Outside render passes, a pipeline barrier covers earlier/later queue commands,
+filtered by its stages. A buffer barrier narrows memory access scopes to its range,
+not execution to only commands touching that range.
+[Pipeline barriers](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdPipelineBarrier2.html),
+[buffer barriers](https://docs.vulkan.org/refpages/latest/refpages/source/VkBufferMemoryBarrier2.html)
+
+For three same-stage read/write dispatches, A and C transform the same X region,
+while B transforms disjoint Y. The only application edge is A→C. Enumerating every
+topological order and every single-barrier cut that covers that edge gives:
+
+| Recording (`|` = compute barrier) | Required extra execution edge |
+|---|---|
+| A `|` B C | A→B |
+| A B `|` C | B→C |
+| B A `|` C | B→C |
+| A `|` C B | A→B |
+
+More global barriers only add edges. Different buffers, retained owners, replay or
+extra submissions do not remove these same-stage edges. This is a structural
+counterexample, not yet a measured hardware cost. In an ideal resource-compatible
+schedule with durations A=1, B=2, C=1, A→C alone permits completion at 2; every
+listed barrier graph needs at least 3. Those are illustrative time units, not a
+GPU forecast or a claim that this shader saturates only part of a GPU.
+
+Native `A; set(event); B; wait(event); C` captures only A in the first compute
+scope and C in the second. B is outside both endpoints. Use identical full
+dependency descriptions at set/wait (flags zero), no asymmetric-event extension,
+and no queue-family transfer. The native mapping is real even if this GPU does
+not exploit the freedom.
+[Set scope](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetEvent2.html),
+[wait scope](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdWaitEvents2.html)
+One host-resettable event is owned by the control; reset only after the preceding
+submission has completed, including all waits, before reusing the recording.
+Drain on failures before releasing the event/commands/buffers. No concurrent
+executions share the event. This does not solve simultaneous public-list replay.
+[Host reset](https://docs.vulkan.org/refpages/latest/refpages/source/vkResetEvent.html),
+[event destruction](https://docs.vulkan.org/refpages/latest/refpages/source/vkDestroyEvent.html)
+
+### Frozen first matrix
+
+Use the existing exact uint32 `3*x+7` transform, X=64 KiB and Y=64 KiB/4 MiB,
+each with 64-byte guards on both ends. A/C each execute once on X; B once on Y.
+One queue, one in-flight execution, two HOST allocations, fixed compiled commands,
+mutable initialized bytes, final output observed on the CPU. No shader fusion,
+splitting B, extra queues or extra buffering. Repeated executions use explicit
+compute visibility from prior submissions, identical for all policies.
+
+All four listed orders run through native global barriers, native X-buffer-range
+barriers and existing public global barriers. Add native split-event A/B/C:
+13 policies × two sizes = 26 cases. Every native policy uses the same serial-use
+command flags; public lists retain their existing simultaneous-use flag. One
+event object/reset per execution is additional native-split cost, recorded rather
+than hidden; total driver-private memory is not equated.
+
+Correctness: 256 full-output/guard checks per case on Radeon, 32 on llvmpipe.
+Primary Radeon timing: 100 drained warmups, then 1,000 executions in each of three
+fresh processes per case, rotating policy order (78,000 measured executions).
+Host event reset is included in the submit interval; full readback/oracle work is
+outside timing. Retain all samples, wall time, submit/wait intervals and latency.
+Separate traced correctness/allocation runs verify equal application allocations
+and freeing; no timing layers/tracing or device timestamps in the primary matrix.
+Stop after this matrix, report every order and process range, and do not tune the
+workload until a desired speedup appears. Lack of local speedup leaves quantitative
+cost unresolved; it does not erase the demonstrated scheduling restriction.
