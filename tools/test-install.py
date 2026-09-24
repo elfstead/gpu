@@ -124,7 +124,7 @@ def main():
         if not args.no_gpu: run(["./affine"], cwd=affine, env=environment)
         if args.shader_check:
             shader = [str(prefix / "bin/ogpu-shader"), "--source", "affine.slang", "--output",
-                      "affine.generated.h", "--build-dir", "shader-build", "--name", "affine"]
+                      "affine.generated.h", "--build-dir", "shader-build", "--name", "affine", "--stage", "compute"]
             run([*shader, "--check"], cwd=affine, env=environment)
             source = affine / "affine.slang"
             original = source.read_text()

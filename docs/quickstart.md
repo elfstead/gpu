@@ -126,7 +126,7 @@ Generated headers target C11; C++ wrapper/header generation is not promised.
 The installed `examples/affine` directory uses FP32 scale/bias root values and a
 device pointer. Copy it like the transform example, then run
 `python3 build.py --output affine` and `./affine`. To regenerate, use
-`--source affine.slang --output affine.generated.h --name affine` with the same
+`--source affine.slang --output affine.generated.h --name affine --stage compute` with the same
 installed shader tool. This verifies exact transport/layout, not general floating-
 point accuracy. Nested structures, arrays and vector roots remain unsupported.
 
