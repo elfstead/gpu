@@ -123,7 +123,10 @@ addresses for the other five modules; no runtime feature enablement was added.
 
 Reject unknown capabilities/extensions, specialization, shared/global resources,
 descriptor/heap bindings, extra entry inputs/outputs/builtins, unsupported execution
-modes, nested/array/vector roots and other pointer/scalar field types. Optional
+modes and other pointer/scalar field types. M2 subsequently adds checked nested
+structs/arrays/vectors and named pointer blocks; see the [current device-code
+contract](device-code-contract.md) for the supported subset and uniform root-index
+rule. Optional
 Float16 requirement mapping from the original adapter remains, but this workload
 does not use it or imply a numerical-policy decision. Stage tags and helper names
 are generator-local, not a new public runtime ABI.

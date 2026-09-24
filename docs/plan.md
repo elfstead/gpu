@@ -172,8 +172,12 @@ output and host integration. Existing M1 outputs remain a regression gate.
 [Slice 1 is accepted](compiler-scalar-results.md) at `291eb1f`: FP32 root fields,
 exact guarded output, layout/local-size mutations and independent installed-tool
 regeneration on both drivers; learned-image regressions remain unchanged.
-**Next: slice 2, recursive aggregate and pointed-to argument layouts**, including
-verified pointee metadata rather than name-based guesses. Heap/stage interfaces,
+**Active: slice 2, recursive aggregate and pointed-to argument layouts.** The
+implementation cross-checks a separate reflection-only pointee query against the
+original artifact. Original/reordered/wider-vector fixtures and 20 rejection/layout
+tests pass on both drivers; installed SDK acceptance is next. The first fixture
+used illegal divergent push-array indexing; it was corrected, and a conservative
+uniformity check now rejects it before execution. Heap/stage interfaces,
 build dependencies and the language decision follow. M2 is not accepted; see its
 [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 

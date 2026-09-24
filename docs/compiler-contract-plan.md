@@ -77,4 +77,7 @@ and targeted extensions. [Slice 1 is accepted](compiler-scalar-results.md) at
 `291eb1f`: both driver/layout fixtures, independent installed-tool mutations and
 unchanged learned-image regressions pass. Structured arguments, generated heap/stage interfaces,
 transitive build dependencies and the language-direction decision remain unaccepted.
-Slice 2 is next. This brief is a bounded work queue, not completed M2 evidence.
+Slice 2 is implemented with both-driver original/reordered/vector3/vector4 checks;
+installed SDK acceptance remains next. A failed divergent push-array fixture led
+to an explicit uniform-index check, not a runtime/driver fallback. This brief is
+a bounded work queue, not completed M2 evidence.

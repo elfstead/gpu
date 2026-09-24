@@ -65,9 +65,18 @@ source-type minimum. Arbitrary byte offsets can invalidate that promise.
 [Vulkan address alignment](https://docs.vulkan.org/guide/latest/buffer_device_address_alignment.html)
 
 Unsupported or unverifiable layouts must reject. Do not silently repack at every
-dispatch, truncate fields or require all argument blocks to be inline. Whether the
-current reflection JSON adequately describes pointed-to aggregates is an explicit
-M2 check; a name alone is insufficient evidence of a layout.
+dispatch, truncate fields or require all argument blocks to be inline. The fact that
+current reflection JSON describes pointers only by name is handled through a separate
+reflection-only layout query. The original artifact is independently checked against
+that layout; query-only parameters never enter the GPU program or uploaded root.
+The adapter supports named, nonrecursive C-layout structs, fixed arrays and 2/3/4-lane
+uint32/FP32 vectors. C arrays represent vectors; each size/stride/alignment is checked.
+Namespaces/generic pointee names, recursive graphs of types, matrices and other
+scalar widths remain outside this bounded adapter (not outside all runtime shaders).
+Native block alignment is checked by `spirv-val` as well: C packing is insufficient
+by itself. Wider-vector fixtures place their containing root struct first and use
+explicit reserved scalar fields to satisfy native extent/alignment. The adapter
+does not enable `scalarBlockLayout` or validate as though it were enabled.
 
 ## Aliasing, ordering and work distribution
 
@@ -82,6 +91,14 @@ dimensions. Applications derive the logical grid and guard excess invocations.
 No fixed subgroup size, workgroup execution order or cross-workgroup progress
 guarantee is promised. Do not implement a global barrier by assuming all workgroups
 are simultaneously resident.
+
+Vulkan push-constant arrays require dynamically uniform indices. A per-invocation
+index into an inline root array violates that rule even if `spirv-val` accepts the
+module. Use uniform indexing, explicit constant-indexed reads followed by selection,
+or an application-owned pointed-to array. The adapter proves only constants, root
+loads and a bounded set of derived operations uniform; unknown data flow rejects.
+This conservative proof is a tooling limit, not an added fundamental API rule or
+an automatic rewrite that can hide work. [Vulkan push-constant interface](https://docs.vulkan.org/spec/latest/chapters/interfaces.html#interfaces-resources-pushconst)
 
 Memory visibility is not execution rendezvous. Workgroup cooperation needs the
 appropriate device-code memory/control barriers, reached with the required uniform

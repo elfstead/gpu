@@ -141,13 +141,20 @@ dependency. That page owns the current exact stage/interface subset.
 M2's [scalar-root slice](compiler-contract-plan.md) additionally supports FP32
 scalar fields through `python3 examples/compiler/affine.py [--check]`. It emits
 host representation assertions and validates original/reordered layouts with
-exact binary32 scale/bias results; aggregate roots remain the next slice.
+exact binary32 scale/bias results. M2's aggregate implementation adds nested structs,
+fixed arrays, uint32/FP32 vectors and named struct pointers through
+`python3 examples/compiler/structured.py [--check]`. The shared `layouts.py` checks
+recursive metadata against the original SPIR-V. A separate `-no-codegen` query
+provides pointee layouts; it does not add dummy members to device arguments.
 
 Supported capability mappings remain Shader, PhysicalStorageBufferAddresses and
 Float16; Shader maps to the corresponding enabled compute/graphics profile.
 Unknown capabilities/extensions are rejected. Float16 permission is not a claim
 about precision semantics. Shared storage, descriptor bindings, specialization,
-nested/array/vector roots and other scalar/pointer types remain unsupported.
+matrices, recursive/opaque types and other scalar/pointer widths remain unsupported.
+Only simple unqualified struct pointee names are supported. Nonconstant root indices
+need the adapter's conservative uniformity proof; legal but unproven native programs
+reject rather than acquire hidden repacking or a driver-dependent fallback.
 
 SPIR-V field offsets/types, entry and local size are cross-checked against Slang
 reflection. Trailing struct padding comes from the reflected C layout, checked

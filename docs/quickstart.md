@@ -53,6 +53,7 @@ share/ogpu/manifest.json                # revision, ABI, dirty flag, file hashes
 share/ogpu/licenses/
 share/ogpu/examples/transform/
 share/ogpu/examples/affine/              # generated FP32-root example
+share/ogpu/examples/structured/          # generated nested root and pointer blocks
 share/ogpu/QUICKSTART.md
 ```
 
@@ -115,7 +116,8 @@ python3 build.py
 ```
 
 Add `--check` to require byte-identical reproduction without overwriting the header.
-The generator supports one `main` entry, flat uint32/FP32 fields and uint32/FP32 device
+The generator supports one `main` entry, uint32/FP32 fields and scalar device
+pointers, nested C-layout structs, fixed arrays, 2/3/4-lane vectors and named struct
 pointers, fixed compute workgroups and a narrow fullscreen vertex/display fragment
 interface. It rejects unsupported layouts/resources/capabilities. This is an
 optional pinned compiler adapter, not the runtime's full shader contract or a new
@@ -128,7 +130,18 @@ device pointer. Copy it like the transform example, then run
 `python3 build.py --output affine` and `./affine`. To regenerate, use
 `--source affine.slang --output affine.generated.h --name affine --stage compute` with the same
 installed shader tool. This verifies exact transport/layout, not general floating-
-point accuracy. Nested structures, arrays and vector roots remain unsupported.
+point accuracy.
+
+The installed `examples/structured` directory tests nested root fields and an
+array of pointed-to blocks containing further GPU addresses. Build with
+`python3 build.py --output structured`; regenerate with
+`--source structured.slang --output structured.generated.h --name structured --stage compute`.
+Generated host types supply layout/stride; callers still own all reachable buffers.
+Pointee metadata comes from a separate reflection-only compilation, not extra device
+arguments. Vulkan root arrays require uniform indices; the adapter rejects cases
+its bounded proof cannot establish. Dynamic per-invocation indexing of pointed-to
+arrays is separate. Recursive types, matrices and opaque layouts remain unsupported.
+See the [device-code contract](device-code-contract.md) for details.
 
 For your own application, preserve the important contracts: addresses do not own
 allocations, referenced memory must remain live and in bounds, GPU dependencies

@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,6 +37,7 @@ def main():
     parser.add_argument("--host-view", action="store_true", help="also execute optional direct HOST access with replay")
     parser.add_argument("--split", action="store_true", help="also execute split dependencies with serial replay")
     parser.add_argument("--affine", action="store_true", help="also build/execute the generated FP32-root example")
+    parser.add_argument("--structured", action="store_true", help="also build/execute nested arguments and pointer blocks")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
     installed = args.prefix.resolve()
@@ -138,6 +140,27 @@ def main():
             run(shader, cwd=affine, env=environment)
             run([sys.executable, "build.py", "--output", "affine"], cwd=affine, env=environment)
             if not args.no_gpu: run(["./affine"], cwd=affine, env=environment)
+    if args.structured:
+        structured = temporary / "independent structured app"
+        shutil.copytree(prefix / "share/ogpu/examples/structured", structured)
+        run([sys.executable, "build.py", "--output", "structured"], cwd=structured, env=environment)
+        if not args.no_gpu: run(["./structured"], cwd=structured, env=environment)
+        if args.shader_check:
+            shader = [str(prefix / "bin/ogpu-shader"), "--source", "structured.slang", "--output",
+                      "structured.generated.h", "--build-dir", "shader-build", "--name", "structured", "--stage", "compute"]
+            run([*shader, "--check"], cwd=structured, env=environment)
+            source = structured / "structured.slang"
+            original = source.read_text()
+            changed, count = re.subn(r"(struct \w+ \{\n)(.*?)(\n\};)",
+                lambda m: m[1]+"\n".join(reversed(m[2].splitlines()))+m[3], original, flags=re.S)
+            changed = changed.replace("numthreads(64, 1, 1)", "numthreads(32, 1, 1)")
+            require(count == 4 and changed != original, "structured mutation unchanged")
+            source.write_text(changed)
+            stale = subprocess.run([*shader, "--check"], cwd=structured, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale generated interface" in stale.stderr, "stale structured header accepted")
+            run(shader, cwd=structured, env=environment)
+            run([sys.executable, "build.py", "--output", "structured"], cwd=structured, env=environment)
+            if not args.no_gpu: run(["./structured"], cwd=structured, env=environment)
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")
 
 

@@ -88,6 +88,7 @@ def install(prefix):
         for license_file in licenses:
             copy(license_file, f"share/ogpu/licenses/{dependency['name']}-{dependency['version']}/{license_file.name}")
     copy(ROOT / "examples/compiler/generate.py", "share/ogpu/tools/generate.py")
+    copy(ROOT / "examples/compiler/layouts.py", "share/ogpu/tools/layouts.py")
     copy(ROOT / "tools/sdk/ogpu-shader", "bin/ogpu-shader")
     (staging / "bin/ogpu-shader").chmod(0o755)
     for source, destination in (("examples/compiler/consumer.c", "main.c"),
@@ -100,6 +101,11 @@ def install(prefix):
                                 ("examples/compiler/affine.generated.h", "affine.generated.h"),
                                 ("tools/sdk/build-example.py", "build.py")):
         copy(ROOT / source, f"share/ogpu/examples/affine/{destination}")
+    for source, destination in (("examples/compiler/structured.c", "main.c"),
+                                ("examples/compiler/structured.slang", "structured.slang"),
+                                ("examples/compiler/structured.generated.h", "structured.generated.h"),
+                                ("tools/sdk/build-example.py", "build.py")):
+        copy(ROOT / source, f"share/ogpu/examples/structured/{destination}")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
