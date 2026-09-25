@@ -130,6 +130,49 @@ It explicitly creates buffers, obtains GPU addresses, records dependencies,
 retains allocations and waits for completion. There is no generated hidden
 allocation, migration, dispatch, graph scheduler or numerical policy.
 
+## Optional application build receipts
+
+Both `generate.py` / installed `ogpu-shader` and `link_graphics.py` / installed
+`ogpu-graphics` accept `--manifest build.json --source-root /path/to/source/tree`.
+They also accept repeated `--include-dir` options, in compiler search order.
+The source root is mandatory with a manifest; compiler-reported files and search
+paths outside it, including symlink escapes, reject before publication. Source
+paths in the receipt are relative to that root, while published output paths are
+relative to the manifest. Moving the complete source/output tree preserves checks.
+
+The JSON receipt declares all compiler-reported source inputs and the generated
+C header output, with SHA-256 hashes; each stage also records fixed compiler
+options, ordered search paths and native artifact hash. Adapter source hashes and
+the pinned Slang version identify the generator. The native binaries, reflection
+JSON, depfiles and temporary layout-query source under `--build-dir` are disposable
+scratch, not additional outputs your C build needs. Applications can read the
+receipt's `inputs`/`outputs` maps to integrate with their own build system.
+
+With `--check`, both the generated header and receipt must match current inputs.
+Even a comment-only nested include or imported-module edit rejects a stale receipt
+when native words and header text are unchanged. Missing files, changed import
+resolution, profile/search-order changes and modified output headers reject too.
+Without `--manifest`, the existing header check still recompiles but does **not**
+promise dependency-only edit detection. Existing standalone headers stay unchanged.
+
+Pinned Slang's `-no-codegen -output-includes` report supplies the initial graph and
+reflection-only query inputs; that mode does not emit a depfile. The device
+compilation's Make-style depfile independently agrees with the graph, including
+imported source modules. Hashes must stay unchanged across compilation and queries.
+An added query source is generated scratch, not a caller source dependency. Source
+modules are supported; reported `.slang-module`/`.slang-lib` inputs reject. This is
+not precompiled package resolution, a security sandbox, a cache, or a hermetic
+toolchain record: compiler executables/shared libraries, implicit standard library
+contents, validation/disassembly tools and environment are not bundled or fully
+hashed. Pin the toolchain separately and do not edit inputs/tools during generation.
+Validation/link failures leave published files unchanged; header/receipt publication
+is not a multi-file atomic transaction, and interrupted writes require regeneration.
+
+`python3 examples/compiler/dependency_workflow.py [--check]` exercises nested
+includes, a source-module import, included root/local-size mutations and the same
+guarded affine C consumer. The installed `dependencies` example and the shared
+graphics-include test cover out-of-tree checks without checkout access.
+
 ## Exact limits and remaining obligations
 
 The original experiment above covered one compute entry, a flat root of uint32

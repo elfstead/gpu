@@ -17,6 +17,7 @@ sys.path.insert(0, str(HERE))
 import layouts
 import heaps
 import stages
+import build_inputs
 
 
 def require(condition, message):
@@ -175,7 +176,7 @@ def header(reflection, assembly, binary, source, name="transform"):
     return "\n".join(lines)
 
 
-def compile_source(source, output_dir, compiler, stage="compute", native_heaps=False):
+def compile_source(source, output_dir, compiler, stage="compute", native_heaps=False, include_dirs=(), build_info=None):
     require(stage in ("compute", "vertex", "fragment"), "unsupported compilation stage")
     version = subprocess.run([compiler, "-version"], check=True, text=True, capture_output=True)
     require((version.stdout + version.stderr).strip() == VERSION, f"requires Slang {VERSION}")
@@ -185,7 +186,16 @@ def compile_source(source, output_dir, compiler, stage="compute", native_heaps=F
                "-fvk-use-entrypoint-name", "-fvk-use-c-layout", "-entry", "main", "-stage", stage]
     if native_heaps:
         options += ["-capability", "spvDescriptorHeapEXT"]
-    run(compiler, str(source), *options, "-reflection-json", str(reflection), "-o", str(binary))
+    fixed_options = options.copy()
+    for directory in include_dirs: options += ["-I", str(directory.resolve())]
+    dependencies = output_dir / "compiler.d"
+    if build_info is not None:
+        inputs = build_inputs.snapshot(build_inputs.include_report(compiler, source, options))
+    run(compiler, str(source), *options, "-reflection-json", str(reflection), "-o", str(binary),
+        *(["-depfile", str(dependencies)] if build_info is not None else []))
+    if build_info is not None:
+        require(build_inputs.snapshot(build_inputs.depfile(dependencies)) == inputs,
+                "compiler dependency graph/content changed between scan and compilation")
     run("spirv-val", "--target-env", "vulkan1.4", str(binary))
     reflected = json.loads(reflection.read_text())
     pointees = {}
@@ -199,7 +209,12 @@ def compile_source(source, output_dir, compiler, stage="compute", native_heaps=F
         query.write_text("#include " + json.dumps(str(source.resolve())) + "\n" + "\n".join(
             f"[[vk::push_constant]] ConstantBuffer<{name}> ogpuLayoutQuery_{name};" for name in sorted(pending)) + "\n")
         metadata = output_dir / "layout-query.json"
-        run(compiler, str(query), *options, "-no-codegen", "-reflection-json", str(metadata))
+        if build_info is None:
+            run(compiler, str(query), *options, "-no-codegen", "-reflection-json", str(metadata))
+        else:
+            query_inputs = build_inputs.include_report(compiler, query, options, ("-reflection-json", str(metadata)))
+            require(build_inputs.snapshot(query_inputs - {query.resolve()}) == inputs,
+                    "layout query source dependencies differ from device compilation")
         parameters = json.loads(metadata.read_text())["parameters"]
         for parameter in reflected["parameters"]:
             require([p for p in parameters if p["name"] == parameter["name"]] == [parameter],
@@ -219,6 +234,11 @@ def compile_source(source, output_dir, compiler, stage="compute", native_heaps=F
     if pointees:
         reflected["ogpuPointeeLayouts"] = pointees
         (output_dir / "interface.json").write_text(json.dumps(reflected, indent=2) + "\n")
+    if build_info is not None:
+        require(build_inputs.snapshot(map(Path, inputs)) == inputs, "source inputs changed during compilation")
+        build_info.update(source=str(source.resolve()), options=fixed_options, compiler_version=VERSION,
+                          include_dirs=[str(p.resolve()) for p in include_dirs], inputs=inputs,
+                          artifact_sha256=build_inputs.digest(binary))
     return reflected, run("spirv-dis", str(binary)), binary.read_bytes()
 
 
@@ -282,13 +302,14 @@ def main():
     parser.add_argument("--name", default="transform")
     parser.add_argument("--stage", choices=("compute", "vertex", "fragment"), default="compute")
     parser.add_argument("--native-heaps", action="store_true", help="select the native descriptor-heap compiler profile")
+    build_inputs.add_options(parser)
     args = parser.parse_args()
-    reflected, assembly, binary = compile_source(args.source, args.build_dir, os.getenv("SLANGC", "slangc"), args.stage, args.native_heaps)
+    build_inputs.validate_options(args)
+    info = {} if args.manifest else None
+    reflected, assembly, binary = compile_source(args.source, args.build_dir, os.getenv("SLANGC", "slangc"), args.stage,
+                                                 args.native_heaps, args.include_dir, info)
     generated = header(reflected, assembly, binary, args.source.read_bytes(), args.name)
-    if args.check:
-        require(args.output.read_text() == generated, "stale generated interface; regenerate")
-    else:
-        args.output.write_text(generated)
+    build_inputs.publish(args.output, generated, args, [info], "stale generated interface; regenerate")
     print("Compiler root/artifact/requirements generation PASS")
 
 

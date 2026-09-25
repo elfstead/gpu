@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--structured", action="store_true", help="also build/execute nested arguments and pointer blocks")
     parser.add_argument("--heap-image", action="store_true", help="also build/execute generated image/sampler heap roots")
     parser.add_argument("--stage-pair", action="store_true", help="also build/execute an offline checked graphics pair")
+    parser.add_argument("--dependencies", action="store_true", help="also check transitive shader inputs and generated outputs")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
     installed = args.prefix.resolve()
@@ -188,6 +189,41 @@ def main():
                 run(shader, cwd=heap, env=environment)
             run([sys.executable, "build.py", "--output", "heap-image"], cwd=heap, env=environment)
             if not args.no_gpu: run(execute, cwd=heap, env=environment)
+    if args.dependencies:
+        dependency = temporary / "independent dependency app"
+        shutil.copytree(prefix / "share/ogpu/examples/dependencies", dependency)
+        run([sys.executable, "build.py", "--output", "dependency"], cwd=dependency, env=environment)
+        if not args.no_gpu: run(["./dependency"], cwd=dependency, env=environment)
+        if args.shader_check:
+            shader = [str(prefix / "bin/ogpu-shader"), "--source", "affine.slang", "--name", "affine",
+                      "--stage", "compute", "--output", "affine.generated.h", "--build-dir", "shader-build",
+                      "--source-root", ".", "--manifest", "build.json"]
+            run([*shader, "--check"], cwd=dependency, env=environment)
+            header = (dependency / "affine.generated.h").read_bytes()
+            nested = dependency / "include/math.slangh"
+            text = nested.read_text()
+            nested.write_text(text+"\n// dependency-only edit, no native-code change\n")
+            stale = subprocess.run([*shader, "--check"], cwd=dependency, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale build inputs/outputs" in stale.stderr, "nested dependency edit was not detected")
+            require((dependency / "affine.generated.h").read_bytes() == header, "stale check changed header")
+            run(shader, cwd=dependency, env=environment)
+            require((dependency / "affine.generated.h").read_bytes() == header, "comment-only include changed native header")
+            nested.rename(dependency / "saved-math.slangh")
+            missing = subprocess.run(shader, cwd=dependency, env=environment, text=True, capture_output=True)
+            require(missing.returncode != 0 and "dependency/layout scan failed" in missing.stderr, "missing dependency accepted")
+            require((dependency / "affine.generated.h").read_bytes() == header, "failed compile changed header")
+            (dependency / "saved-math.slangh").rename(nested)
+            root = dependency / "include/arguments.slangh"
+            old = "    float* data;\n    uint count;\n    float scale;\n    float bias;"
+            require(old in root.read_text(), "dependency mutation anchor missing")
+            root.write_text(root.read_text().replace(old, "    float bias;\n    float scale;\n    uint count;\n    float* data;"))
+            config = dependency / "include/config.slangh"
+            config.write_text(config.read_text().replace("LOCAL_SIZE 64", "LOCAL_SIZE 32"))
+            stale = subprocess.run([*shader, "--check"], cwd=dependency, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale generated interface" in stale.stderr, "changed include layout accepted")
+            run(shader, cwd=dependency, env=environment)
+            run([sys.executable, "build.py", "--output", "dependency"], cwd=dependency, env=environment)
+            if not args.no_gpu: run(["./dependency"], cwd=dependency, env=environment)
     if args.stage_pair:
         stage = temporary / "independent stage app"
         shutil.copytree(prefix / "share/ogpu/examples/stage-pair", stage)
@@ -214,6 +250,33 @@ def main():
             stale = subprocess.run([*shader, "--check"], cwd=stage, env=environment, text=True, capture_output=True)
             require(stale.returncode != 0 and "stale generated graphics pair" in stale.stderr, "stale pair accepted")
             run(shader, cwd=stage, env=environment)
+            run([sys.executable, "build.py", "--output", "stage-pair"], cwd=stage, env=environment)
+            if not args.no_gpu: run(["./stage-pair"], cwd=stage, env=environment)
+            # A shared varying declaration is one transitive input of both stages.
+            # Receipt checking must catch a comment-only edit even with identical code.
+            tracked = [*shader, "--source-root", ".", "--manifest", "pair.build.json"]
+            run(tracked, cwd=stage, env=environment)
+            before = json.loads((stage / "pair.build.json").read_text())
+            shared = None
+            for name in ("vertex", "fragment"):
+                source = stage / f"stage_{name}.slang"
+                text = source.read_text()
+                split = text.index("};")+2
+                if shared is None: shared = text[:split]
+                else: require(shared == text[:split], "stage shared declarations disagree")
+                source.write_text('#include "varyings.slangh"\n'+text[split:])
+            include = stage / "varyings.slangh"
+            include.write_text(shared)
+            run(tracked, cwd=stage, env=environment)
+            after = json.loads((stage / "pair.build.json").read_text())
+            require(set(after["inputs"]) == {"stage_vertex.slang", "stage_fragment.slang", "varyings.slangh"}, "shared stage input graph wrong")
+            require([c["artifact_sha256"] for c in before["compilations"]] ==
+                    [c["artifact_sha256"] for c in after["compilations"]], "shared source changed native stages")
+            include.write_text(shared+"\n// dependency-only shared edit\n")
+            stale = subprocess.run([*tracked, "--check"], cwd=stage, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale build inputs/outputs" in stale.stderr, "shared dependency edit accepted")
+            run(tracked, cwd=stage, env=environment)
+            run([*tracked, "--check"], cwd=stage, env=environment)
             run([sys.executable, "build.py", "--output", "stage-pair"], cwd=stage, env=environment)
             if not args.no_gpu: run(["./stage-pair"], cwd=stage, env=environment)
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")

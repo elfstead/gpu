@@ -1,0 +1,7 @@
+#include "config.slangh"
+struct Arguments {
+    float* data;
+    uint count;
+    float scale;
+    float bias;
+};

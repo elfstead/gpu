@@ -57,6 +57,7 @@ share/ogpu/examples/affine/              # generated FP32-root example
 share/ogpu/examples/structured/          # generated nested root and pointer blocks
 share/ogpu/examples/heap-image/          # generated image/sampler heap roots
 share/ogpu/examples/stage-pair/          # checked vertex/fragment varyings
+share/ogpu/examples/dependencies/        # nested includes/import + build receipt
 share/ogpu/QUICKSTART.md
 ```
 
@@ -175,6 +176,29 @@ Remove `--check` to regenerate. A mismatched pair rejects before updating the
 published header; it is not deferred to GPU execution. The optional installed
 test adds `--stage-pair --shader-check` to `tools/test-install.py`. This tool is a
 bounded offline interface checker, not a general linker or stable shader package.
+
+For a shader split across includes/modules, copy the installed `examples/dependencies`
+directory. Its C build still needs no shader compiler: run
+`python3 build.py --output dependency` and `./dependency`. To check the shader and
+its declared build inputs using pinned Slang and SPIRV-Tools:
+
+```sh
+"$OGPU_PREFIX/bin/ogpu-shader" --source affine.slang --name affine --stage compute --output affine.generated.h --build-dir shader-build --source-root . --manifest build.json --check
+```
+
+Remove `--check` to regenerate the header and receipt. `--manifest` is opt-in and
+requires `--source-root`; dependency-only edits are not guaranteed detectable by
+the header check alone. Nested include/import paths must stay inside that root.
+Repeated `--include-dir` options select ordered search paths, also inside the root.
+The same options work with `ogpu-graphics`; a shared include is tracked for both
+stages. The receipt uses relative source/output paths and hashes so it survives
+moving the whole tree. Your build system owns scheduling; there is no runtime
+compiler or reflection dependency. See the
+[receipt scope and limits](compiler-workflow.md#optional-application-build-receipts).
+
+The repository-side installed test adds `--dependencies --stage-pair --shader-check`
+to `tools/test-install.py`. It tests edits that leave native code unchanged,
+missing inputs, regenerated layouts and shared stage declarations.
 
 For your own application, preserve the important contracts: addresses do not own
 allocations, referenced memory must remain live and in bounds, GPU dependencies

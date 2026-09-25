@@ -1,0 +1,3 @@
+float affineOperation(float value, float scale, float bias) {
+    return value * scale + bias;
+}

@@ -7,11 +7,13 @@ import re
 import generate as g
 
 
-def header(vertex, fragment, build, compiler, name, native_heaps=False):
+def header(vertex, fragment, build, compiler, name, native_heaps=False, include_dirs=(), build_info=None):
     g.require(re.fullmatch(r"[a-z][a-z0-9_]*", name), "unsupported pair name")
     artifacts, descriptions = {}, {}
     for stage, source in (("vertex", vertex), ("fragment", fragment)):
-        reflection, assembly, binary = g.compile_source(source, build / stage, compiler, stage, native_heaps)
+        info = {} if build_info is not None else None
+        reflection, assembly, binary = g.compile_source(source, build / stage, compiler, stage, native_heaps, include_dirs, info)
+        if build_info is not None: build_info.append(info)
         descriptions[stage] = g.inspect(reflection, assembly, name+"_"+stage)
         artifacts[stage] = g.header(reflection, assembly, binary, source.read_bytes(), name+"_"+stage)
     inputs = g.stages.link(descriptions["vertex"][0].io, descriptions["fragment"][0].io)
@@ -34,13 +36,13 @@ def main():
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--native-heaps", action="store_true")
     parser.add_argument("--check", action="store_true")
+    g.build_inputs.add_options(parser)
     args = parser.parse_args()
+    g.build_inputs.validate_options(args)
+    info = [] if args.manifest else None
     content = header(args.vertex_source, args.fragment_source, args.build_dir,
-                     os.getenv("SLANGC", "slangc"), args.name, args.native_heaps)
-    if args.check: g.require(args.output.read_text() == content, "stale generated graphics pair")
-    else:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(content)
+                     os.getenv("SLANGC", "slangc"), args.name, args.native_heaps, args.include_dir, info)
+    g.build_inputs.publish(args.output, content, args, info, "stale generated graphics pair")
     print("Graphics pair generation/link PASS")
 
 

@@ -1,0 +1,42 @@
+{
+  "adapter": {
+    "build_inputs.py": "7fa31e7cbff50be5e2db8ca520897f50b77a5d4c3f4894e983ef199ec552912c",
+    "generate.py": "73d00c407853b713749b6975162a9b203794517aaafde740a8ffc642dc99d51e",
+    "heaps.py": "85bb96970c7a36d91fc4f262d6aa13e8f423bbca5cf5eb1895db17a037642276",
+    "layouts.py": "8f50e4433948288938d6eaf204e5d8d7d9326fb69efdb304c866edba30be3383",
+    "link_graphics.py": "b80fc7f3780dbd508a0115d8cb397dca80760a1e6f0bebf676c6ffbea5470475",
+    "stages.py": "dc7d2e00751c82ffc7b8b186ee4bd94cb5212e7218a65fe6c7db0c4612f16c42"
+  },
+  "compilations": [
+    {
+      "artifact_sha256": "6508d5f335f166618d80f06a0e17ad58e3f7685ff0c9546625dde1931df9e7b1",
+      "include_dirs": [],
+      "options": [
+        "-target",
+        "spirv",
+        "-profile",
+        "spirv_1_5",
+        "-emit-spirv-directly",
+        "-fvk-use-entrypoint-name",
+        "-fvk-use-c-layout",
+        "-entry",
+        "main",
+        "-stage",
+        "compute"
+      ],
+      "source": "affine.slang"
+    }
+  ],
+  "compiler": "Slang 2026.14.1",
+  "inputs": {
+    "affine.slang": "96e0a8f1cd8955860d44651bbb11d435fdaa114408fbfa222d6bea9e62dd5d59",
+    "affine_math.slang": "023dec7f5d4cf10f36310ed4a1b2439357267872bf1975c3685a1ee98bcab37a",
+    "include/arguments.slangh": "2d3c257bec8ecec20e92700669f058874fdfba7989209792f4170f92a72628b5",
+    "include/config.slangh": "e115ca7b34d9926a4f519a55920b827eec49840d2792fe1db4591d31b112b2fe",
+    "include/math.slangh": "d290af8a3708efb4badd8593bd000f8844438cf18bbb73fc83ee6be8fd93855c"
+  },
+  "outputs": {
+    "affine.generated.h": "02413f749a1850fb54fb16bb9419e72ebc5a16186311f0758f5da3fcee8884db"
+  },
+  "schema": 1
+}

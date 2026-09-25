@@ -92,6 +92,7 @@ def install(prefix):
     copy(ROOT / "examples/compiler/heaps.py", "share/ogpu/tools/heaps.py")
     copy(ROOT / "examples/compiler/stages.py", "share/ogpu/tools/stages.py")
     copy(ROOT / "examples/compiler/link_graphics.py", "share/ogpu/tools/link_graphics.py")
+    copy(ROOT / "examples/compiler/build_inputs.py", "share/ogpu/tools/build_inputs.py")
     copy(ROOT / "tools/sdk/ogpu-graphics", "bin/ogpu-graphics")
     (staging / "bin/ogpu-graphics").chmod(0o755)
     copy(ROOT / "tools/sdk/ogpu-shader", "bin/ogpu-shader")
@@ -126,6 +127,11 @@ def install(prefix):
                                 ("examples/compiler/pattern.generated.h", "pattern.generated.h"),
                                 ("tools/sdk/build-example.py", "build.py")):
         copy(ROOT / source, f"share/ogpu/examples/stage-pair/{destination}")
+    for name in ("affine.slang", "affine_math.slang", "include/arguments.slangh", "include/config.slangh",
+                 "include/math.slangh", "affine.generated.h", "build.json"):
+        copy(ROOT / "examples/compiler/dependencies" / name, "share/ogpu/examples/dependencies/"+name)
+    copy(ROOT / "examples/compiler/affine.c", "share/ogpu/examples/dependencies/main.c")
+    copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/dependencies/build.py")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
