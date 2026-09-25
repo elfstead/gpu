@@ -104,3 +104,21 @@ stages can remain precompiled during this first checkpoint.
 Then add the bounded vertex/fragment varying pair and its positive/negative link
 checks. A passing heap checkpoint alone does **not** accept slice 3: stage IO
 matching and the shared M1 regression gates still remain.
+
+### Slice 4 execution order
+
+Use pinned Slang's compiler-reported dependency list, not a regex include scanner.
+Exercise a compute source with nested includes and a source module, plus the
+graphics pair and aggregate reflection-only query paths. Record caller source
+inputs and generated outputs in an optional build manifest; hashes must detect
+even dependency edits that leave device code unchanged. Keep input paths relative
+to a declared source root for relocation, and reject dependencies outside that
+root rather than silently omitting them. Source modules are in scope; precompiled
+module/package discovery and general build caching are not.
+
+Installed single-stage and pair commands must support the same dependency checks.
+Test changed/missing nested inputs, changed import resolution, paths with spaces,
+stale/missing generated outputs, and failure without publishing a new header.
+The consumer still owns its build system; no compiler or source access is needed
+to execute a previously generated artifact. Preserve existing standalone headers
+and native words unless an intentional provenance change is documented.
