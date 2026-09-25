@@ -156,9 +156,12 @@ and dependency model, without implying that today's narrow raster API is complet
 
 ## Open decisions and progression
 
-M2 tests aggregate/pointee layouts, generated resource/stage interfaces, declared
-source dependencies and compiler output for workgroup/subgroup/matrix/graphics
-idioms. It ends with a language-direction record, not automatic Slang adoption.
+M2 has checked aggregate/pointee layouts, generated resource/stage interfaces,
+declared source dependencies and native output for workgroup/subgroup/matrix/graphics
+idioms. The [language decision](language-direction.md) retains pinned Slang plus
+this contract; no new frontend or wrapper library is selected. Workgroup/subgroup
+diagnostics do not expand the installed adapter. Public subgroup capability
+queries remain missing; M5 must address them before selecting such a consumer.
 Runtime restrictions and adapter restrictions are tracked separately. The standing
 performance gate asks whether a native implementation can preserve native Vulkan
 opportunities; a convenient generator must not impose compulsory copies, synchronization

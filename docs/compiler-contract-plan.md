@@ -80,10 +80,12 @@ at `c63b014`: aggregate/pointee layouts, original/reordered/wider-vector and ins
 mutation paths pass on both drivers. [The heap checkpoint](compiler-heap-results.md)
 is accepted at `7b0eced`; [the stage pair](compiler-stage-results.md) is accepted at
 `efcbeba`, completing slice 3. [Build dependency integration](compiler-build-results.md)
-is accepted at `839edab`, completing slice 4. The language-direction decision
-remains unaccepted; slice 5 is next. A failed divergent push-array fixture led to an explicit
+is accepted at `839edab`, completing slice 4. The [language-direction decision](language-direction.md)
+is accepted against `8113303`, completing slice 5 and bounded M2: retain pinned
+Slang plus the explicit contract, with no new frontend or wrapper library selected.
+A failed divergent push-array fixture led to an explicit
 uniform-index check, not a runtime/driver fallback. This brief is
-a bounded work queue, not completed M2 evidence.
+the original bounded work queue; the linked results supply its acceptance evidence.
 
 ### Slice 3 execution order
 

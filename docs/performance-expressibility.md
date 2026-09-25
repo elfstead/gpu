@@ -45,7 +45,7 @@ are not automatically proven. Alternative APIs below are candidates, not decisio
 | P4 | Global access-class dependency, no resource/range identity | Express a producer/consumer dependency without ordering unrelated same-stage work. Audit execution ordering separately from visibility; a resource barrier alone is not automatically independent scheduling. | Unresolved; dependency-DAG control required |
 | P5 | Any recorded/unretired heap use excludes all mutation | Update an unused descriptor slot during unrelated reads. Multiple immutable heaps have storage/rebinding/lifetime costs, not assumed equivalence. | Unresolved; descriptor-streaming probe required |
 | P6 | HOST/DEVICE placement; dedicated buffers; narrow image policy | Caller-selected placement, direct device-local host access, suballocation and format/layout choices. Compare concrete cases under equal memory budgets. | Unresolved; platform-specific evidence required |
-| P7 | Generated artifact/root and supported shader subset | Preserve device-code optimization opportunities, including subgroup/workgroup structure and graphics interfaces. Distinguish tool rejection from runtime restriction. | M2 compiler/output evidence required |
+| P7 | Generated artifact/root and supported shader subset | Preserve device-code optimization opportunities, including subgroup/workgroup structure and graphics interfaces. Distinguish tool rejection from runtime restriction. | [Bounded M2 evidence accepted](language-direction.md); broader subgroup/matrix/graphics profiles remain open |
 
 No implicit ownership inference, graph scheduler, legacy backend or stable ABI
 promise is selected. A restriction can be absent from the current experimental

@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-25. This page owns current status and selected work. The
+Updated 2026-09-26. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -160,7 +160,7 @@ Direct encoding/vector optimization is optional backend work. No exact command-
 memory budget, noncoherent hardware acceptance or other audit item is settled.
 Do not widen unrelated surface or treat these results as stabilization.
 
-## Active milestone: M2 — programming/compiler contract
+## Completed M2 — programming/compiler contract
 
 The [bounded acceptance brief](compiler-contract-plan.md) and
 [device-code contract](device-code-contract.md) separate
@@ -187,11 +187,25 @@ installed pair mismatch/stale checks and unchanged M1/heap regressions pass.
 transitive inputs, optional relocatable build receipts, stale/missing dependency
 checks and installed include/module/shared-stage consumers pass on both drivers.
 Existing generated headers and M1 results remain unchanged.
-**Next: slice 5, the language-direction decision grounded in actual native output.**
-This is the remaining M2 slice. M2 is not accepted; see its
-[deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
+[Slice 5's language decision](language-direction.md) is accepted against `8113303`,
+completing bounded M2. Retain pinned Slang plus the explicit device contract; no
+new frontend or wrapper library is selected. Native workgroup/subgroup/matrix
+probes and the structured source control preserve tested strategy choices without
+expanding the installed subset. Subgroup capability discovery and accelerated
+matrix profiles remain explicit M5 work; no general P7 or Metal approval follows.
 
-After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),
+## Active milestone: M3 — sustained resource reuse
+
+Follow the [concrete acceptance brief](resource-reuse-plan.md): checked consumer
+ranges/reuse state first, then integrate arena-backed and dedicated mapped slots
+into the learned-image stream, run sustained correctness/failure/accounting gates,
+record the submission/allocator decision, and validate an independent installed
+consumer. Existing replay/HOST-view/split results supply the starting contract;
+they do not automatically accept the combined workload. No runtime allocator or
+new API is presumed. The next implementation is the example-local checked range
+and slot-state helper with CPU rejection tests.
+
+After M3: an experimental release checkpoint (M7),
 and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate
 native-validation track, not a prerequisite for local progress. The roadmap
 assigns remaining gaps either a milestone or an explicit deferral with entry

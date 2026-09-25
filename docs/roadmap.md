@@ -30,8 +30,8 @@ compatibility are not completed by those results.
 | Milestone | Concrete outcome | Dependency / execution location |
 |---|---|---|
 | M1 — Useful-scale execution | Learned-image workload at video-sized extents, bounded memory, matched Vulkan measurements | Complete; Radeon measurements and smaller llvmpipe correctness controls |
-| M2 — Compiler/programming contract | Documented device-code contract; generated structured arguments and heap interfaces; explicit language-direction decision | Next; use M1 findings on Linux, no Mac prerequisite |
-| M3 — Resource and submission maturity | Sustained multi-frame reuse, measured submission costs, consumer-side allocation assistance, better diagnostics | M1/M2; existing devices |
+| M2 — Compiler/programming contract | Documented device-code contract; generated structured arguments and heap interfaces; explicit language-direction decision | Complete 2026-09-26; [pinned Slang + contract](language-direction.md), not a new frontend |
+| M3 — Resource and submission maturity | Sustained multi-frame reuse, measured submission costs, consumer-side allocation assistance, better diagnostics | Active; [bounded reuse brief](resource-reuse-plan.md), existing devices |
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | M2/M3; offscreen Linux first |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | M2/M3; existing Radeon, no matrix-hardware prerequisite |
 | M6 — Mixed-workload Metal parity | Same learned-image application, generated native interfaces, render/readback and common contract tests | M2; native execution conditional on an available Mac validation window |
@@ -162,10 +162,20 @@ host code; malformed layouts, missing requirements and stale dependencies reject
 existing M1 outputs remain valid. Publish the supported subset and restrictions.
 Native Metal generation is M6, not inferred from SPIR-V success here.
 
+Accepted [language direction and evidence](language-direction.md) complete M2.
+The workgroup/subgroup compiler probes intentionally do not widen the installed
+profile. M5 must first add public subgroup capability discovery and explicit
+requirement checks if its selected algorithms use those operations; accelerated
+matrix support is not inferred from the ordinary FP32 tiled probe.
+
 This decision point prevents the initial language ambition from being silently
 replaced by a runtime, while also avoiding a new frontend merely to rename Slang.
 
 ## M3 — Resource reuse, submission costs and diagnostics
+
+The [execution and acceptance brief](resource-reuse-plan.md) selects the existing
+learned-image stream and separates already accepted frontier work from the new
+range-helper, sustained integration, diagnostics and independent-handoff gates.
 
 **Deliverables**
 

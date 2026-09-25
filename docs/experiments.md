@@ -10,6 +10,14 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [M2 language decision](language-direction.md) is accepted against `8113303`
+(2026-09-26): retain pinned Slang plus the explicit device contract, with no new
+frontend or wrapper library selected. Native reduction, subgroup, tiled matrix,
+structured-pointer and graphics inspection separates compiler/adapter/public-query
+limits. Both driver correctness suites and all small M1 regressions pass; a
+252-sample structured source control finds no demonstrated value-materialization
+penalty. This completes bounded M2, not general performance/profile approval.
+
 The [compiler-facing workflow](compiler-workflow.md) is complete at `66854db`.
 Generated host roots and executable metadata replace manual declarations for
 the existing integer transform. Original and field-order/workgroup-mutated

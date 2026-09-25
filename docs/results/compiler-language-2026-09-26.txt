@@ -1,0 +1,367 @@
+# M2 language-probe receipt — 2026-09-26
+
+Implementation, clean-tree check (empty porcelain), and SHA-256:
+
+8113303181378254011c76cc0ff9ac6ee4948ada
+97fdc2b5fde2cd1d2c288cb2f42e8302e282bb8d3c435cfcef2eda775853aaa1  target/release/libogpu.so
+9775e263dd6df14402b5216933bae3d99624a18bd5044b004461eda14205e761  target/compiler-language/reduce.spv
+0ba4b689af4e7c426ee7fd150afb841d1ea7cf83397f670dc5e91845abaf8919  target/compiler-language/matmul.spv
+eab0dc914e029bedc81b400d0a7f520a560725c7fe969060ac6af16d72b057aa  target/compiler-language/subgroup.spv
+f686a7b8ec04bec4a016e9ed62a8deeda6458a14a73d6dfd1f38ff99e1a4bf54  target/compiler-language/structured/transform.spv
+a2a0e8defa559d837f6a8208d9692e7191721fb32bad5accb108e42fa7acf313  target/compiler-language/structured-direct/transform.spv
+bdbbb294ea675ce13b6e880c3e28f72100507226a470a78e38c3e630261190df  target/compiler-language/graphics/vertex/transform.spv
+81532505fdf88e92fac81834b77045fafdb25431d84a9725c0eb743a144c99e3  target/compiler-language/graphics/fragment/transform.spv
+320ceb8df0258464c377daf34ba6d23e069cf2297322d682cd505424b64323f0  target/compiler-language/structured-timing
+de0ba8bb24d46009caef0321ce90d2bd4013b039e33f0529c2b8fcddbfba0282  target/compiler-language/subgroup-native
+
+Environment: Slang 2026.14.1; Rust 1.97.1; clang 21.1.8; Python 3.14.7.
+Radeon RX 5700 XT/RADV Mesa 26.2.1 and llvmpipe LLVM 21.1.8; Vulkan 1.4.354.
+Validation: VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation, VK_LAYER_VALIDATE_SYNC=1.
+ICDs: /run/opengl-driver/share/vulkan/icd.d/{radeon,lvp}_icd.x86_64.json.
+Commands: language/probe.py --gpu --timing; compiler/stage_workflow.py; learned_image/run.py.
+All three commands run sequentially per driver; both driver loops exit 0.
+Validation-run times are NOT performance evidence. No validation errors detected.
+12 language negative/positive tests; 16 transform checks; 40 ordinary Rust tests pass.
+28 opt-in runtime GPU tests not rerun. Clippy -D warnings, format and diff checks pass.
+Three new C consumers pass clang analysis (only Nix wrapper unused linker flags).
+nm -u subgroup-native: no OGPU symbols/linkage.
+
+Validation summaries:
+
+/tmp/ogpu-language-final-lvp.log:Verified sum mod 2^32 = 3717237828: 3 levels, one batch, one wait.
+/tmp/ogpu-language-final-lvp.log:Reduction count=0: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=1: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=63: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=64: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=65: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=127: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=128: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=129: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=1025: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Reduction count=1: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Verified 50 shapes/patterns per kernel (2 variants) in untimed and timed mode(s), including padding, guards, and unchanged inputs.
+/tmp/ogpu-language-final-lvp.log:  naive maximum absolute error 14.5025; maximum error/bound 0.0159155
+/tmp/ogpu-language-final-lvp.log:  tiled8 maximum absolute error 14.5025; maximum error/bound 0.0159155
+/tmp/ogpu-language-final-lvp.log:Native subgroup: llvmpipe (LLVM 21.1.8, 256 bits); size=8 stages=0xf0 operations=0x6ff
+/tmp/ogpu-language-final-lvp.log:Subgroup count=1 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Subgroup count=63 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Subgroup count=64 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Subgroup count=65 launched=128: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Subgroup count=137 launched=192: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Subgroup count=1 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-lvp.log:Structured PASS: two guarded arrays, three A/B/A passes, nested vectors/arrays, pointer block and guards unchanged; root=32 block=48 local=64
+/tmp/ogpu-language-final-lvp.log:Structured PASS: two guarded arrays, three A/B/A passes, nested vectors/arrays, pointer block and guards unchanged; root=32 block=48 local=64
+/tmp/ogpu-language-final-lvp.log:Structured timing PASS: all samples exact; guards and parameter blocks unchanged
+/tmp/ogpu-language-final-lvp.log:Language probe PASS (compiler/native-artifact diagnostic, not installed profile support)
+/tmp/ogpu-language-final-radeon.log:Verified sum mod 2^32 = 3717237828: 3 levels, one batch, one wait.
+/tmp/ogpu-language-final-radeon.log:Reduction count=0: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=1: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=63: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=64: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=65: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=127: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=128: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=129: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=1025: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Reduction count=1: every partial, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Verified 50 shapes/patterns per kernel (2 variants) in untimed and timed mode(s), including padding, guards, and unchanged inputs.
+/tmp/ogpu-language-final-radeon.log:  naive maximum absolute error 14.5025; maximum error/bound 0.0159155
+/tmp/ogpu-language-final-radeon.log:  tiled8 maximum absolute error 14.5025; maximum error/bound 0.0159155
+/tmp/ogpu-language-final-radeon.log:Native subgroup: AMD Radeon RX 5700 XT (RADV NAVI10); size=64 stages=0x3f operations=0x6ff
+/tmp/ogpu-language-final-radeon.log:Subgroup count=1 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Subgroup count=63 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Subgroup count=64 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Subgroup count=65 launched=128: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Subgroup count=137 launched=192: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Subgroup count=1 launched=64: exact sums/membership/lanes, unchanged input and guards PASS
+/tmp/ogpu-language-final-radeon.log:Structured PASS: two guarded arrays, three A/B/A passes, nested vectors/arrays, pointer block and guards unchanged; root=32 block=48 local=64
+/tmp/ogpu-language-final-radeon.log:Structured PASS: two guarded arrays, three A/B/A passes, nested vectors/arrays, pointer block and guards unchanged; root=32 block=48 local=64
+/tmp/ogpu-language-final-radeon.log:Structured timing PASS: all samples exact; guards and parameter blocks unchanged
+/tmp/ogpu-language-final-radeon.log:Language probe PASS (compiler/native-artifact diagnostic, not installed profile support)
+/tmp/ogpu-language-stages-lvp.log:Ran 15 tests in 0.830s
+/tmp/ogpu-language-stages-lvp.log:Graphics pair original/reordered/renamed/noperspective execution PASS
+/tmp/ogpu-language-stages-radeon.log:Ran 15 tests in 0.827s
+/tmp/ogpu-language-stages-radeon.log:Graphics pair original/reordered/renamed/noperspective execution PASS
+/tmp/ogpu-language-m1-lvp.log:Learned-image Vulkan small/original PASS: 38 cases in both normal/diagnostic modes; max float error=1.71016513e-07, error/bound=0.00667210166, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+/tmp/ogpu-language-m1-lvp.log:Learned-image Vulkan small/mutated PASS: 38 cases in both normal/diagnostic modes; max float error=1.71016513e-07, error/bound=0.00667210166, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+/tmp/ogpu-language-m1-lvp.log:small: original/mutated interfaces, unchanged host source, all GPU outputs byte-identical PASS
+/tmp/ogpu-language-m1-radeon.log:Learned-image Vulkan small/original PASS: 38 cases in both normal/diagnostic modes; max float error=1.71016513e-07, error/bound=0.00667210166, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+/tmp/ogpu-language-m1-radeon.log:Learned-image Vulkan small/mutated PASS: 38 cases in both normal/diagnostic modes; max float error=1.71016513e-07, error/bound=0.00667210166, RGB code delta=1; no intermediate CPU waits/reads or GPU representation copies
+/tmp/ogpu-language-m1-radeon.log:small: original/mutated interfaces, unchanged host source, all GPU outputs byte-identical PASS
+
+Targeted source-shape timing (not API/native comparison):
+Three fresh sequential processes after validation; validation env unset. 3 warmups,
+21 samples/variant/extent/process, AB/BA alternating order. 252 retained samples.
+Variant 0 = accepted value-based structured source; variant 1 = direct pointers.
+Runtime identity coefficients; full output/guards/parameters checked after every sample.
+Batch clock includes one dispatch and dependencies; readbacks outside device timing.
+No clock/affinity pinning, extra hardware, or exclusive-machine guarantee.
+
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=0 ns=14400
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=0 ns=14440
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=1 ns=14360
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=1 ns=14320
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=2 ns=14440
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=2 ns=14960
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=3 ns=14880
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=3 ns=14600
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=4 ns=14920
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=4 ns=14600
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=5 ns=14560
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=5 ns=14840
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=6 ns=14600
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=6 ns=14680
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=7 ns=14800
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=7 ns=14960
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=8 ns=14800
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=8 ns=14520
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=9 ns=14840
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=9 ns=14800
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=10 ns=14440
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=10 ns=14600
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=11 ns=14920
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=11 ns=14640
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=12 ns=14680
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=12 ns=15040
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=13 ns=15000
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=13 ns=14640
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=14 ns=14480
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=14 ns=14480
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=15 ns=14560
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=15 ns=14480
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=16 ns=14560
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=16 ns=14640
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=17 ns=14760
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=17 ns=14640
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=18 ns=14560
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=18 ns=14480
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=19 ns=14920
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=19 ns=14840
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=1 round=20 ns=14760
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=4099 variant=0 round=20 ns=14880
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_TIMING count=4099 variant=0 min_ns=14360 median_ns=14680 max_ns=15040
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_TIMING count=4099 variant=1 min_ns=14320 median_ns=14640 max_ns=14960
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=0 ns=976120
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=0 ns=972440
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=1 ns=972920
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=1 ns=975840
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=2 ns=975400
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=2 ns=972280
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=3 ns=972120
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=3 ns=976040
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=4 ns=974480
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=4 ns=971000
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=5 ns=970560
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=5 ns=975360
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=6 ns=973720
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=6 ns=970720
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=7 ns=970560
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=7 ns=974640
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=8 ns=975480
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=8 ns=971920
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=9 ns=972600
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=9 ns=976120
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=10 ns=976400
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=10 ns=970240
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=11 ns=972120
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=11 ns=975840
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=12 ns=974360
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=12 ns=970360
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=13 ns=973160
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=13 ns=975760
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=14 ns=974680
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=14 ns=976120
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=15 ns=969200
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=15 ns=975040
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=16 ns=975920
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=16 ns=971400
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=17 ns=971160
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=17 ns=975160
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=18 ns=975000
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=18 ns=971200
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=19 ns=973080
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=19 ns=973720
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=20 ns=974960
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=20 ns=972440
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_TIMING count=1048576 variant=0 min_ns=969200 median_ns=971920 max_ns=976120
+/tmp/ogpu-language-final-timing-3.log:STRUCTURED_TIMING count=1048576 variant=1 min_ns=973720 median_ns=975360 max_ns=976400
+/tmp/ogpu-language-final-timing-3.log:Structured timing PASS: all samples exact; guards and parameter blocks unchanged
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=0 ns=14320
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=0 ns=14240
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=1 ns=14640
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=1 ns=14640
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=2 ns=14560
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=2 ns=14560
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=3 ns=14200
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=3 ns=14520
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=4 ns=14320
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=4 ns=14840
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=5 ns=14480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=5 ns=14720
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=6 ns=14360
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=6 ns=14680
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=7 ns=15000
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=7 ns=14520
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=8 ns=14560
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=8 ns=14360
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=9 ns=14720
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=9 ns=14880
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=10 ns=14560
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=10 ns=14880
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=11 ns=14480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=11 ns=14920
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=12 ns=15040
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=12 ns=14440
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=13 ns=14680
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=13 ns=14840
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=14 ns=14480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=14 ns=14440
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=15 ns=14440
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=15 ns=14800
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=16 ns=14600
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=16 ns=14720
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=17 ns=14440
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=17 ns=14520
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=18 ns=14880
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=18 ns=14480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=19 ns=14760
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=19 ns=14840
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=1 round=20 ns=14520
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=4099 variant=0 round=20 ns=14760
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_TIMING count=4099 variant=0 min_ns=14200 median_ns=14560 max_ns=15000
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_TIMING count=4099 variant=1 min_ns=14320 median_ns=14560 max_ns=15040
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=0 ns=975880
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=0 ns=971480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=1 ns=972600
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=1 ns=975600
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=2 ns=976960
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=2 ns=972600
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=3 ns=971920
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=3 ns=975520
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=4 ns=975680
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=4 ns=969800
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=5 ns=969360
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=5 ns=973960
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=6 ns=975240
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=6 ns=967920
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=7 ns=967640
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=7 ns=973480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=8 ns=974880
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=8 ns=972600
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=9 ns=970880
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=9 ns=975520
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=10 ns=974000
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=10 ns=971000
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=11 ns=966760
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=11 ns=976240
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=12 ns=975000
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=12 ns=971640
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=13 ns=972040
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=13 ns=975240
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=14 ns=974480
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=14 ns=975400
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=15 ns=971120
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=15 ns=973160
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=16 ns=974160
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=16 ns=970000
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=17 ns=969040
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=17 ns=973760
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=18 ns=975560
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=18 ns=970360
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=19 ns=970840
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=19 ns=974280
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=20 ns=974640
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=20 ns=970400
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_TIMING count=1048576 variant=0 min_ns=966760 median_ns=970880 max_ns=975400
+/tmp/ogpu-language-final-timing-2.log:STRUCTURED_TIMING count=1048576 variant=1 min_ns=973160 median_ns=975000 max_ns=976960
+/tmp/ogpu-language-final-timing-2.log:Structured timing PASS: all samples exact; guards and parameter blocks unchanged
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=0 ns=14640
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=0 ns=15040
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=1 ns=15000
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=1 ns=15040
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=2 ns=14880
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=2 ns=14760
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=3 ns=14600
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=3 ns=15080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=4 ns=15000
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=4 ns=14800
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=5 ns=14720
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=5 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=6 ns=14920
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=6 ns=14520
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=7 ns=14520
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=7 ns=14680
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=8 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=8 ns=14760
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=9 ns=14680
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=9 ns=15080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=10 ns=15040
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=10 ns=14760
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=11 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=11 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=12 ns=14600
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=12 ns=14600
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=13 ns=14960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=13 ns=14520
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=14 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=14 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=15 ns=14640
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=15 ns=14960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=16 ns=14760
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=16 ns=14680
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=17 ns=14640
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=17 ns=15160
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=18 ns=14640
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=18 ns=14720
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=19 ns=14560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=19 ns=14720
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=1 round=20 ns=14880
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=4099 variant=0 round=20 ns=15000
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_TIMING count=4099 variant=0 min_ns=14520 median_ns=14680 max_ns=15040
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_TIMING count=4099 variant=1 min_ns=14520 median_ns=14760 max_ns=15160
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=0 ns=977160
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=0 ns=972080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=1 ns=972360
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=1 ns=974960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=2 ns=975960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=2 ns=971160
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=3 ns=969840
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=3 ns=974560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=4 ns=974520
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=4 ns=972960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=5 ns=970560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=5 ns=974240
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=6 ns=976480
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=6 ns=972960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=7 ns=971000
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=7 ns=975600
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=8 ns=975560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=8 ns=972280
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=9 ns=970640
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=9 ns=975160
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=10 ns=975600
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=10 ns=971880
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=11 ns=971880
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=11 ns=975440
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=12 ns=976040
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=12 ns=970280
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=13 ns=971520
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=13 ns=973560
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=14 ns=975720
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=14 ns=970520
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=15 ns=971760
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=15 ns=976080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=16 ns=974080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=16 ns=968080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=17 ns=970760
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=17 ns=975080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=18 ns=972680
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=18 ns=970840
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=19 ns=971080
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=19 ns=974960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=1 round=20 ns=976320
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_SAMPLE count=1048576 variant=0 round=20 ns=971880
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_TIMING count=1048576 variant=0 min_ns=968080 median_ns=971160 max_ns=972960
+/tmp/ogpu-language-final-timing-1.log:STRUCTURED_TIMING count=1048576 variant=1 min_ns=972680 median_ns=975440 max_ns=977160
+/tmp/ogpu-language-final-timing-1.log:Structured timing PASS: all samples exact; guards and parameter blocks unchanged
+

@@ -325,6 +325,13 @@ containment. `smoke` uses the real loader and available drivers.
 
 ## Boundary and next step
 
+M2 language/output diagnostics reproduce with
+`python3 examples/compiler/language/probe.py`; add `--gpu --timing` for the bounded
+execution/source-cost control after selecting a driver. See its
+[instructions](../examples/compiler/language/README.md) and the
+[accepted language direction](language-direction.md). Current development follows
+the [M3 resource-reuse brief](resource-reuse-plan.md).
+
 The C header documents ownership, pointer validity, immutable concurrent queries,
 version checks, output behavior, and destruction. Errors are returned directly;
 there is no shared last-error buffer. Rust panics are contained at fallible C entry

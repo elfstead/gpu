@@ -4,6 +4,10 @@ Selected 2026-09-16 after the numerical executable experiment. This brief preced
 implementation and results. No new source language, runtime reflection system,
 public API, or Metal round trip is selected.
 
+Current direction: [M2's accepted language decision](language-direction.md) retains
+pinned Slang plus the explicit device contract. New native workgroup/subgroup
+probes are diagnostic evidence, not additions to the installed subset below.
+
 ## Question and bounded consumer
 
 Can a compiler supply the mechanical host/shader interface while leaving memory
