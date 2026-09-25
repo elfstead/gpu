@@ -123,3 +123,22 @@ stale/missing generated outputs, and failure without publishing a new header.
 The consumer still owns its build system; no compiler or source access is needed
 to execute a previously generated artifact. Preserve existing standalone headers
 and native words unless an intentional provenance change is documented.
+
+### Slice 5 execution order
+
+Compile pinned Slang versions of the existing workgroup reduction and tiled matrix
+algorithm, plus a subgroup arithmetic fixture that assumes neither subgroup size
+nor invocation-to-subgroup mapping. Inspect roots, storage, address operations,
+barrier scopes/semantics and native collectives. Run reduction/matrix through the
+existing public C consumers; run the subgroup diagnostic through a directly queried
+native Vulkan control because the public capability vocabulary has no subgroup
+operation mask. That missing query is recorded, not inferred from a Vulkan version.
+Keep these as compiler/native-artifact probes: the installed generator must still
+reject their currently unsupported entry/storage/capability subset.
+
+Use the already accepted structured-pointer and graphics artifacts for the other
+two comparison rows. Compare all five against the user-controlled native strategy,
+not a universal timing target. No compiler/profile change is permission to alter
+arithmetic tolerances, add hidden copies or assume unsupported matrix hardware.
+The matrix execution probe uses ordinary FP32 workgroup tiling, not cooperative
+matrix acceleration. State that boundary explicitly in the language decision.
