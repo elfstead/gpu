@@ -678,6 +678,17 @@ compiler test. Native packing remains validated without enabling scalar block la
 No runtime ABI change or hidden packing/copies. Generated heaps/stage IO are next;
 M2/P7 and the language-direction decision remain open.
 
+## M2 generated-heap checkpoint (2026-09-25)
+
+At clean `7b0eced`, the [heap checkpoint](compiler-heap-results.md) accepts generated
+roots/artifacts/requirements for the existing image/sampler consumer. Both drivers
+pass 48 original/reordered cases and independent installed regeneration; all small
+M1 outputs remain unchanged. Original device binaries are byte-identical, and no
+runtime API, hidden repacking or ownership inference was introduced. Eleven native
+resource rejection/layout tests pass. The first installed test caught a missing
+CLI forwarding flag, corrected before acceptance. Stage-pair linking remains next;
+slice 3/M2/P7 are not yet accepted.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

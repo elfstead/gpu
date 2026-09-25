@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-24. This page owns current status and selected work. The
+Updated 2026-09-25. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -177,7 +177,10 @@ and pointed-to layouts, original/reordered/wider-vector fixtures, 20 rejection/l
 tests and independent installed-tool mutations pass on both drivers. The initial
 illegal divergent push-array fixture is preserved as a rejection test; it does not
 establish a driver bug or demand a runtime fallback.
-**Next: slice 3, generated image/sampler heaps and a checked graphics stage pair.**
+[The heap portion of slice 3](compiler-heap-results.md) is accepted at `7b0eced`:
+48 original/reordered pixel/lifetime cases per driver, native artifact identity and
+independent installed regeneration pass; M1 regressions remain unchanged.
+**Next: finish slice 3 with a checked producer/consumer graphics stage pair.**
 Build dependencies and the language decision follow. M2 is not accepted; see its
 [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
