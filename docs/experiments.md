@@ -689,6 +689,17 @@ resource rejection/layout tests pass. The first installed test caught a missing
 CLI forwarding flag, corrected before acceptance. Stage-pair linking remains next;
 slice 3/M2/P7 are not yet accepted.
 
+## M2 stage-pair acceptance (2026-09-25)
+
+At clean `efcbeba`, [the stage-pair receipt](compiler-stage-results.md) completes
+slice 3. Native locations/types and interpolation are checked offline, with legal
+field-name and fragment-interpolation differences preserved. Four variants pass
+72 exact-pixel draws per driver and 15 stage tests; relocated installed consumers
+reject mismatches/stale headers and regenerate successfully. Embedded native words,
+existing heap cases and all small M1 outputs remain unchanged. No runtime API or
+conversion layer was added. Transitive build dependencies and the language decision
+remain; M2/P7 are not yet accepted.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

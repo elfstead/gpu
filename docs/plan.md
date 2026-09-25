@@ -180,8 +180,11 @@ establish a driver bug or demand a runtime fallback.
 [The heap portion of slice 3](compiler-heap-results.md) is accepted at `7b0eced`:
 48 original/reordered pixel/lifetime cases per driver, native artifact identity and
 independent installed regeneration pass; M1 regressions remain unchanged.
-**Next: finish slice 3 with a checked producer/consumer graphics stage pair.**
-Build dependencies and the language decision follow. M2 is not accepted; see its
+[The stage-pair portion](compiler-stage-results.md) is accepted at `efcbeba`:
+72 exact-pixel draws per driver across four interface variants, 15 stage tests,
+installed pair mismatch/stale checks and unchanged M1/heap regressions pass.
+**Next: slice 4, declared transitive compiler inputs and generated outputs.**
+The language-direction decision follows. M2 is not accepted; see its
 [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
 After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),

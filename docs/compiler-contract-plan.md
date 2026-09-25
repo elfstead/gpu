@@ -78,9 +78,9 @@ and targeted extensions. [Slice 1 is accepted](compiler-scalar-results.md) at
 unchanged learned-image regressions pass. [Slice 2 is accepted](compiler-aggregate-results.md)
 at `c63b014`: aggregate/pointee layouts, original/reordered/wider-vector and installed
 mutation paths pass on both drivers. [The heap checkpoint](compiler-heap-results.md)
-is accepted at `7b0eced`; graphics stage linking,
-transitive build dependencies and the language-direction decision remain unaccepted.
-The stage-pair portion of slice 3 is next. A failed divergent push-array fixture led to an explicit
+is accepted at `7b0eced`; [the stage pair](compiler-stage-results.md) is accepted at
+`efcbeba`, completing slice 3. Transitive build dependencies and the language-direction
+decision remain unaccepted. Slice 4 is next. A failed divergent push-array fixture led to an explicit
 uniform-index check, not a runtime/driver fallback. This brief is
 a bounded work queue, not completed M2 evidence.
 
