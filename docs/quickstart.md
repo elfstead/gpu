@@ -49,12 +49,14 @@ include/ogpu.h
 lib/libogpu.so
 lib/pkgconfig/ogpu.pc
 bin/ogpu-shader                         # optional offline shader tool
+bin/ogpu-graphics                       # optional checked graphics-pair tool
 share/ogpu/manifest.json                # revision, ABI, dirty flag, file hashes
 share/ogpu/licenses/
 share/ogpu/examples/transform/
 share/ogpu/examples/affine/              # generated FP32-root example
 share/ogpu/examples/structured/          # generated nested root and pointer blocks
 share/ogpu/examples/heap-image/          # generated image/sampler heap roots
+share/ogpu/examples/stage-pair/          # checked vertex/fragment varyings
 share/ogpu/QUICKSTART.md
 ```
 
@@ -159,6 +161,20 @@ Add `--check` to verify existing headers. The optional repository-side installed
 test is `python3 tools/test-install.py --prefix "$OGPU_PREFIX" --heap-image --shader-check`.
 Heap contents and index validity remain application-owned; generated declarations
 do not add ownership tracking or bounds checks to shader accesses.
+
+The installed `examples/stage-pair` directory has both stages embedded in one
+checked header. Copy it, run `python3 build.py --output stage-pair` and `./stage-pair`.
+It verifies interpolated coordinates, a flat integer and exact RGBA8 pixels/guards.
+To regenerate or check the pair:
+
+```sh
+"$OGPU_PREFIX/bin/ogpu-graphics" --vertex-source stage_vertex.slang --fragment-source stage_fragment.slang --name pattern --output pattern.generated.h --build-dir shader-build --check
+```
+
+Remove `--check` to regenerate. A mismatched pair rejects before updating the
+published header; it is not deferred to GPU execution. The optional installed
+test adds `--stage-pair --shader-check` to `tools/test-install.py`. This tool is a
+bounded offline interface checker, not a general linker or stable shader package.
 
 For your own application, preserve the important contracts: addresses do not own
 allocations, referenced memory must remain live and in bounds, GPU dependencies

@@ -16,6 +16,7 @@ ROOT = HERE.parent.parent
 sys.path.insert(0, str(HERE))
 import layouts
 import heaps
+import stages
 
 
 def require(condition, message):
@@ -36,14 +37,6 @@ def uniform_size(typ):
     return sizes[0]["value"], sizes[0]["alignment"]
 
 
-def reflected_type(typ):
-    if typ["kind"] == "scalar":
-        return (typ["scalarType"], 1)
-    require(typ["kind"] == "vector" and typ["elementType"]["kind"] == "scalar",
-            "unsupported entry interface type")
-    return (typ["elementType"]["scalarType"], typ["elementCount"])
-
-
 def inspect(reflection, assembly, name="transform"):
     """Check this subset, not arbitrary SPIR-V. spirv-val runs before this."""
     entries = reflection["entryPoints"]
@@ -61,22 +54,6 @@ def inspect(reflection, assembly, name="transform"):
     require(len(parameters) == (0 if stage == "vertex" else 1), "unexpected root count")
     require(entry["bindings"] == [{"name": p["name"], "binding": p["binding"]} for p in parameters],
             "unexpected entry bindings")
-    semantic, scalar, lanes, builtin = {
-        "compute": ("SV_DISPATCHTHREADID", "uint32", 3, "GlobalInvocationId"),
-        "vertex": ("SV_VULKANVERTEXID", "uint32", 1, "VertexIndex"),
-        "fragment": ("SV_POSITION", "float32", 4, "FragCoord"),
-    }[stage]
-    require(len(entry["parameters"]) == 1 and entry["parameters"][0].get("semanticName") == semantic
-            and reflected_type(entry["parameters"][0]["type"]) == (scalar, lanes),
-            "unsupported entry input")
-    if stage == "compute":
-        require("result" not in entry, "compute output unsupported")
-    else:
-        result = entry["result"]
-        require(result["semanticName"] == ("SV_POSITION" if stage == "vertex" else "SV_TARGET")
-                and reflected_type(result["type"]) == ("float32", 4), "unsupported entry output")
-        require(result.get("binding") == (None if stage == "vertex" else {"kind": "varyingOutput", "index": 0}),
-                "unsupported output binding")
 
     caps = re.findall(r"^\s*OpCapability (\w+)\s*$", assembly, re.M)
     requirements = {"Shader": "compute_queue" if stage == "compute" else "graphics_queue",
@@ -122,37 +99,13 @@ def inspect(reflection, assembly, name="transform"):
     interfaces = native_entries[0][3].split()
     require(len(interfaces) == len(set(interfaces)) and set(interfaces) ==
             {key for key, v in variables if v[2] != "Function"}, "entry variable list mismatch")
-    expected_interface = [("Input", f"BuiltIn {builtin}", "int32" if stage == "vertex" else scalar, lanes)]
-    if stage != "compute":
-        expected_interface.append(("Output", "BuiltIn Position" if stage == "vertex" else "Location 0", "float32", 4))
-    actual_interface = []
-    interface_ids = set()
-    for key, variable in variables:
-        if variable[2] not in ("Input", "Output"):
-            continue
-        interface_ids.add(key)
-        pointer = definitions[variable[1]]
-        require(pointer[:2] == ["OpTypePointer", variable[2]], "invalid interface pointer")
-        typ = definitions[pointer[2]]
-        count = 1
-        if typ[0] == "OpTypeVector":
-            count = int(typ[2])
-            typ = definitions[typ[1]]
-        scalar_name = {("OpTypeFloat", "32"): "float32", ("OpTypeInt", "32", "0"): "uint32",
-                       ("OpTypeInt", "32", "1"): "int32"}.get(tuple(typ))
-        decorations = re.findall(rf"^\s*OpDecorate {re.escape(key)} (.+)$", assembly, re.M)
-        require(len(decorations) == 1, "unsupported interface decorations")
-        actual_interface.append((variable[2], decorations[0], scalar_name, count))
-    require(sorted(actual_interface) == sorted(expected_interface), "native entry interface mismatch")
-    # No hidden/member builtins or extra locations outside the checked variables.
-    decorated_io = re.findall(r"OpDecorate (%\S+) (?:BuiltIn|Location) \w+", assembly)
-    require(set(decorated_io) == interface_ids | heap_ids.keys()
-            and len(decorated_io) == len(interface_ids) + len(heap_ids), "extra interface decoration")
-    require(not re.search(r"OpMemberDecorate %\S+ \d+ (BuiltIn|Location)\b", assembly), "member interfaces unsupported")
+    io = stages.inspect(entry, definitions, variables, assembly, heap_ids)
     pushes = [v for _, v in variables if v[2] == "PushConstant"]
     if stage == "vertex":
         require(not pushes and not physical and not native_heaps, "vertex must be rootless, address-free and heap-free")
-        return [], 0, 1, [], sorted(requirements[c] for c in set(caps))
+        fields = layouts.Fields([], [], False)
+        fields.io = io
+        return fields, 0, 1, [], sorted(requirements[c] for c in set(caps))
     require(len(pushes) == 1, "exactly one SPIR-V root required")
     parameter = parameters[0]
     require(parameter["binding"] == {"kind": "pushConstantBuffer", "index": 0}, "root must be push constants")
@@ -171,6 +124,7 @@ def inspect(reflection, assembly, name="transform"):
         root, struct_id, definitions, assembly, reflection.get("ogpuPointeeLayouts", {}), physical, name)
     require((size, alignment) == (checked_size, checked_alignment), "root size/alignment mismatch")
     result.resources = resources
+    result.io = io
     return result, size, alignment, local, sorted(requirements[c] for c in set(caps))
 
 

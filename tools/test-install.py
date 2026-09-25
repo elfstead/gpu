@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--affine", action="store_true", help="also build/execute the generated FP32-root example")
     parser.add_argument("--structured", action="store_true", help="also build/execute nested arguments and pointer blocks")
     parser.add_argument("--heap-image", action="store_true", help="also build/execute generated image/sampler heap roots")
+    parser.add_argument("--stage-pair", action="store_true", help="also build/execute an offline checked graphics pair")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
     installed = args.prefix.resolve()
@@ -187,6 +188,34 @@ def main():
                 run(shader, cwd=heap, env=environment)
             run([sys.executable, "build.py", "--output", "heap-image"], cwd=heap, env=environment)
             if not args.no_gpu: run(execute, cwd=heap, env=environment)
+    if args.stage_pair:
+        stage = temporary / "independent stage app"
+        shutil.copytree(prefix / "share/ogpu/examples/stage-pair", stage)
+        run([sys.executable, "build.py", "--output", "stage-pair"], cwd=stage, env=environment)
+        if not args.no_gpu: run(["./stage-pair"], cwd=stage, env=environment)
+        if args.shader_check:
+            shader = [str(prefix / "bin/ogpu-graphics"), "--vertex-source", "stage_vertex.slang",
+                      "--fragment-source", "stage_fragment.slang", "--output", "pattern.generated.h",
+                      "--build-dir", "shader-build", "--name", "pattern"]
+            run([*shader, "--check"], cwd=stage, env=environment)
+            old = "    float2 uv : TEXCOORD0;\n    nointerpolation uint tag : TEXCOORD1;"
+            new = "    nointerpolation uint tag : TEXCOORD1;\n    float2 uv : TEXCOORD0;"
+            generated = (stage / "pattern.generated.h").read_bytes()
+            for name in ("vertex", "fragment"):
+                source = stage / f"stage_{name}.slang"
+                text = source.read_text()
+                require(old in text, "stage mutation anchor missing")
+                source.write_text(text.replace(old, new).replace("uint width; uint height;", "uint height; uint width;"))
+                if name == "vertex":
+                    mismatch = subprocess.run(shader, cwd=stage, env=environment, text=True, capture_output=True)
+                    require(mismatch.returncode != 0 and "stage type mismatch" in mismatch.stderr,
+                            "mixed stage pair was not rejected")
+                    require((stage / "pattern.generated.h").read_bytes() == generated, "failed link changed published header")
+            stale = subprocess.run([*shader, "--check"], cwd=stage, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale generated graphics pair" in stale.stderr, "stale pair accepted")
+            run(shader, cwd=stage, env=environment)
+            run([sys.executable, "build.py", "--output", "stage-pair"], cwd=stage, env=environment)
+            if not args.no_gpu: run(["./stage-pair"], cwd=stage, env=environment)
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")
 
 

@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""Offline checked graphics pair generation from caller-owned sources."""
+from pathlib import Path
+import runpy
+import sys
+sys.dont_write_bytecode = True
+directory = Path(__file__).resolve().parents[1] / "share/ogpu/tools"
+sys.path.insert(0, str(directory))
+runpy.run_path(str(directory / "link_graphics.py"), run_name="__main__")

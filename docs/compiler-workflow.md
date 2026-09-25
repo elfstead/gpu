@@ -152,7 +152,32 @@ The M2 heap checkpoint adds the existing compute/sample consumer through
 `--native-heaps`; otherwise Slang emits descriptor-set bindings, which reject.
 Generated roots, embedded artifacts, local size and compatibility checks replace
 the consumer's manual equivalents. The two non-heap raster stages remain supplied
-SPIR-V files. This checkpoint does not yet add varying/stage-link checks.
+SPIR-V files.
+
+The stage-pair extension adds `python3 examples/compiler/stage_workflow.py [--check]`
+and an offline `link_graphics.py` command (installed as `ogpu-graphics`). It checks
+flat structs of up to eight contiguous, whole-location uint32/FP32 scalar/vector
+varyings against native locations/types, plus the existing builtins. Vertex input
+is still only VertexIndex; vertex roots, addresses and heaps remain outside this
+adapter subset. Fragment output remains one location-0 float4 color. Arrays,
+matrices, component packing, nested stage structs, extra builtins, centroid/sample
+interpolation and general vertex attributes are not supported.
+
+Pair matching uses native locations and exact scalar/vector widths, not field or
+semantic names. Extra vertex outputs are permitted. Fragment interpolation is
+Smooth, Flat or NoPerspective; integer fragment inputs must be Flat. Slang JSON
+omits interpolation, so this part of the contract comes from native decorations.
+Producer/consumer interpolation decorations need not match for the current
+monolithic pipeline. See [Vulkan's matching rules](https://docs.vulkan.org/spec/latest/chapters/interfaces.html#interfaces-iointerfaces).
+The check is deliberately narrower than every legal Vulkan interface, not a new
+fundamental API restriction. It neither rewrites shader words nor inserts a
+conversion stage. Varying values themselves are device data, not generated host
+structs or application-packed arguments.
+
+The graphics-pair header embeds both individually validated artifacts only after
+link checks succeed. Failure leaves the previous header untouched. It does not
+prove that arbitrary shader control flow writes every output, validate vertex
+index bounds or replace the application's graphics-state/lifetime obligations.
 
 Supported capability mappings include Shader, PhysicalStorageBufferAddresses,
 Float16, DescriptorHeapEXT and UntypedPointersKHR. Shader maps to the corresponding

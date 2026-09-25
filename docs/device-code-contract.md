@@ -140,8 +140,11 @@ Compute, vertex and fragment executables have different stage inputs/outputs; a
 root type alone is not a stage interface. The currently generated graphics subset
 is rootless Vulkan vertex index to position, and fragment coordinates to location-0
 float4 color with a generated root. The M2 heap checkpoint generates existing
-sampled/storage 2D image and sampler heap interfaces; general varyings and attributes
-remain pending. See the [exact compiler subset](compiler-workflow.md#exact-limits-and-remaining-obligations).
+sampled/storage 2D image and sampler heap interfaces. A bounded offline stage linker
+now checks whole-location uint32/FP32 scalar/vector varyings (including native
+interpolation), matching types and locations rather than field names. General
+varyings and attributes remain outside the adapter subset. See the
+[exact compiler subset](compiler-workflow.md#exact-limits-and-remaining-obligations).
 
 Image/sampler heap indices are non-owning values in distinct heaps. Applications
 must establish descriptor kind, valid slot/range, dimensions, format, sampling and

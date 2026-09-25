@@ -90,6 +90,10 @@ def install(prefix):
     copy(ROOT / "examples/compiler/generate.py", "share/ogpu/tools/generate.py")
     copy(ROOT / "examples/compiler/layouts.py", "share/ogpu/tools/layouts.py")
     copy(ROOT / "examples/compiler/heaps.py", "share/ogpu/tools/heaps.py")
+    copy(ROOT / "examples/compiler/stages.py", "share/ogpu/tools/stages.py")
+    copy(ROOT / "examples/compiler/link_graphics.py", "share/ogpu/tools/link_graphics.py")
+    copy(ROOT / "tools/sdk/ogpu-graphics", "bin/ogpu-graphics")
+    (staging / "bin/ogpu-graphics").chmod(0o755)
     copy(ROOT / "tools/sdk/ogpu-shader", "bin/ogpu-shader")
     (staging / "bin/ogpu-shader").chmod(0o755)
     for source, destination in (("examples/compiler/consumer.c", "main.c"),
@@ -116,6 +120,12 @@ def install(prefix):
                                 ("examples/shaders/image-pattern.frag.spv", "image-pattern.frag.spv"),
                                 ("tools/sdk/build-example.py", "build.py")):
         copy(ROOT / source, f"share/ogpu/examples/heap-image/{destination}")
+    for source, destination in (("examples/compiler/stage_pair.c", "main.c"),
+                                ("examples/compiler/stage_vertex.slang", "stage_vertex.slang"),
+                                ("examples/compiler/stage_fragment.slang", "stage_fragment.slang"),
+                                ("examples/compiler/pattern.generated.h", "pattern.generated.h"),
+                                ("tools/sdk/build-example.py", "build.py")):
+        copy(ROOT / source, f"share/ogpu/examples/stage-pair/{destination}")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
