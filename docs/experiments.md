@@ -700,6 +700,17 @@ existing heap cases and all small M1 outputs remain unchanged. No runtime API or
 conversion layer was added. Transitive build dependencies and the language decision
 remain; M2/P7 are not yet accepted.
 
+## M2 transitive-build acceptance (2026-09-25)
+
+At clean `839edab`, [slice 4](compiler-build-results.md) accepts optional source-root
+build receipts derived from the compiler's include reports and depfiles. Nested
+includes, source modules, named-pointee queries and shared graphics inputs are
+tracked; dependency-only edits with unchanged native code reject stale receipts.
+Fourteen build tests and both drivers' independent installed consumers pass;
+existing headers and all small M1 outputs remain unchanged. No runtime cost or API
+change. These are relocatable source/build receipts, not hermetic compiler bundles
+or a package cache. The language-direction decision is the remaining M2 slice.
+
 ## Parked follow-ups, not a work queue
 
 Larger matrix/submission sweeps, resource-reuse tuning, accelerated numeric

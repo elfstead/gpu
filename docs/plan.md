@@ -183,8 +183,12 @@ independent installed regeneration pass; M1 regressions remain unchanged.
 [The stage-pair portion](compiler-stage-results.md) is accepted at `efcbeba`:
 72 exact-pixel draws per driver across four interface variants, 15 stage tests,
 installed pair mismatch/stale checks and unchanged M1/heap regressions pass.
-**Next: slice 4, declared transitive compiler inputs and generated outputs.**
-The language-direction decision follows. M2 is not accepted; see its
+[Slice 4](compiler-build-results.md) is accepted at `839edab`: compiler-reported
+transitive inputs, optional relocatable build receipts, stale/missing dependency
+checks and installed include/module/shared-stage consumers pass on both drivers.
+Existing generated headers and M1 results remain unchanged.
+**Next: slice 5, the language-direction decision grounded in actual native output.**
+This is the remaining M2 slice. M2 is not accepted; see its
 [deliverables](roadmap.md#m2--define-the-programming-contract-and-broaden-compiler-tooling).
 
 After M2: sustained resource reuse (M3), an experimental release checkpoint (M7),
