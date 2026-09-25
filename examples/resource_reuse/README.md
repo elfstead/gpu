@@ -37,3 +37,7 @@ rejection, known-rejected submission, unknown-outcome/terminal quarantine, expli
 drain and generation exhaustion. This is bookkeeping validation, **not** injected
 runtime/GPU failure evidence. Sustained stream integration and physical allocation
 accounting are the next slice; neither is accepted by these tests.
+
+At `c4009c0`, optimized checks, AddressSanitizer/UBSan and Clang analysis pass.
+LeakSanitizer cannot run under the test environment's tracing; the sanitizer run
+uses `ASAN_OPTIONS=detect_leaks=0`. This is not leak-detection evidence.

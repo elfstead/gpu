@@ -4,6 +4,22 @@ Selected 2026-09-26 after [M2 acceptance](language-direction.md). This is the ne
 bounded milestone, not completed evidence. Use the existing learned-image stream;
 no new GPU, Mac validation window, model, shader algorithm or numerical policy.
 
+## First implementation checkpoint
+
+`c4009c0` adds example-local [ranges and slot-state helpers](../examples/resource_reuse/README.md).
+The optimized `-DNDEBUG -Wall -Wextra -Werror` CPU suite passes 23,808 mixed-alignment
+reservations and 1,000 generation cycles, including capacity/overflow, stale and
+premature reuse, known-unsubmitted abort and quarantined failure/drain transitions.
+AddressSanitizer/UBSan and Clang static analysis pass. LeakSanitizer initially fails
+because it cannot operate under this environment's tracing; the sanitizer rerun
+uses `ASAN_OPTIONS=detect_leaks=0`, with no leak-check claim (the helpers allocate
+no memory). Analyzer warnings are the Nix wrapper's unused linker flags.
+
+This implements step 1's bookkeeping, not proof of real completion or GPU failure
+handling. Terminal quarantine is never recycled even after drain. Generation wrap
+rejects; tickets are slot-local and backing/list/completion ownership stays outside
+the helper. Step 2's learned-image integration is next; M3 remains unaccepted.
+
 ## Reuse established results
 
 The frontier already measured one/two/three slots and 1,000-frame execution;

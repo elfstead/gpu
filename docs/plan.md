@@ -202,8 +202,11 @@ into the learned-image stream, run sustained correctness/failure/accounting gate
 record the submission/allocator decision, and validate an independent installed
 consumer. Existing replay/HOST-view/split results supply the starting contract;
 they do not automatically accept the combined workload. No runtime allocator or
-new API is presumed. The next implementation is the example-local checked range
-and slot-state helper with CPU rejection tests.
+new API is presumed. The [first helper slice](../examples/resource_reuse/README.md)
+is implemented at `c4009c0`: 23,808 mixed-alignment ranges and 1,000 reuse generations,
+with overflow/stale/premature-reuse and failure/drain bookkeeping tests. No GPU
+integration or new failure-injection evidence yet. Next: connect dedicated and
+arena-backed mapped slots to the existing learned-image stream.
 
 After M3: an experimental release checkpoint (M7),
 and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate
