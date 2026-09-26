@@ -6,13 +6,26 @@
 #include "../learned_image/extent.h"
 #include <application.generated.h>
 #endif
+#ifdef FRONTIER_REUSE
+#include "../resource_reuse/ranges.h"
+#include "../resource_reuse/slots.h"
+#endif
 
 enum { SI, SW, SH, SD, SC, SB_COUNT, SG = 64 };
 #ifdef FRONTIER_NATIVE
 typedef NativeBuffer SBuffer;
 typedef NativeImage SImage;
 #else
+#ifdef FRONTIER_REUSE
+typedef struct {
+    OgpuBuffer *buffer;
+    uint64_t offset, size;
+    OgpuHostView view;
+    int owned;
+} SBuffer;
+#else
 typedef OgpuBuffer *SBuffer;
+#endif
 typedef OgpuImage *SImage;
 #endif
 typedef struct {
@@ -20,6 +33,10 @@ typedef struct {
     SImage image;
     uint64_t address[SB_COUNT];
     unsigned input_index;
+#ifdef FRONTIER_REUSE
+    ReuseSlot reuse;
+    uint64_t ticket;
+#endif
 } ImageSlot;
 typedef struct {
     Context base;
@@ -37,8 +54,34 @@ typedef struct {
     Launch grids[3];
     unsigned char *inputs[2], *weights, *reference[2], *pixels;
     unsigned maximum_delta;
+#ifdef FRONTIER_REUSE
+    SBuffer arenas[3]; /* DEVICE, HOST upload, HOST readback; never per-frame. */
+    int arena;
+    uint64_t requested_bytes;
+    unsigned allocations;
+    unsigned char *serial[2];
+    const char *serial_paths[2];
+    int write_serial;
+#endif
 } Stream;
 typedef struct { Frame frame; double upload, read; } StreamFrame;
+
+#ifndef FRONTIER_NATIVE
+static OgpuBuffer *sb_handle(SBuffer *buffer) {
+#ifdef FRONTIER_REUSE
+    return buffer->buffer;
+#else
+    return *buffer;
+#endif
+}
+static uint64_t sb_offset(SBuffer *buffer) {
+#ifdef FRONTIER_REUSE
+    return buffer->offset;
+#else
+    (void)buffer; return 0;
+#endif
+}
+#endif
 
 static int stream_file(const char *path, void *data, size_t bytes) {
     FILE *file = fopen(path, "rb");
@@ -52,8 +95,19 @@ static int sb_create(Context *c, SBuffer *buffer, size_t bytes, int host, uint64
     CHECK(native_buffer_create(&c->native, buffer, bytes, host));
     if (address) *address = buffer->address;
 #else
+#ifdef FRONTIER_REUSE
+    buffer->owned = 1; buffer->size = bytes;
+    API(ogpu_buffer_create(c->device, bytes, host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, &buffer->buffer, &c->error));
+    if (host) {
+        API(ogpu_buffer_host_view(buffer->buffer, &buffer->view, &c->error));
+        CHECK(buffer->view.data && buffer->view.size_bytes == bytes && buffer->view.access_granularity
+            && buffer->view.coherent <= 1);
+    }
+    if (address) API(ogpu_buffer_device_address(buffer->buffer, address, &c->error));
+#else
     API(ogpu_buffer_create(c->device, bytes, host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, buffer, &c->error));
     if (address) API(ogpu_buffer_device_address(*buffer, address, &c->error));
+#endif
 #endif
     return 1;
 }
@@ -61,23 +115,44 @@ static void sb_destroy(Context *c, SBuffer *buffer) {
 #ifdef FRONTIER_NATIVE
     native_buffer_destroy(&c->native, buffer);
 #else
+#ifdef FRONTIER_REUSE
+    (void)c; if (buffer->owned) ogpu_buffer_destroy(buffer->buffer);
+    memset(buffer, 0, sizeof(*buffer));
+#else
     (void)c; ogpu_buffer_destroy(*buffer); *buffer = NULL;
+#endif
 #endif
 }
 static int sb_write(Context *c, SBuffer *buffer, const void *data, size_t bytes) {
 #ifdef FRONTIER_NATIVE
     return native_write(&c->native, buffer, 0, data, bytes);
 #else
+#ifdef FRONTIER_REUSE
+    CHECK(buffer->view.data && bytes <= buffer->size);
+    memcpy((char *)buffer->view.data + buffer->offset, data, bytes);
+    if (!buffer->view.coherent) API(ogpu_buffer_host_flush(buffer->buffer, buffer->offset, bytes, &c->error));
+    return 1;
+#else
     API(ogpu_buffer_write(*buffer, 0, data, bytes, &c->error)); return 1;
+#endif
 #endif
 }
 static int sb_read(Context *c, SBuffer *buffer, void *data, size_t bytes) {
 #ifdef FRONTIER_NATIVE
     return native_read(&c->native, buffer, 0, data, bytes);
 #else
+#ifdef FRONTIER_REUSE
+    CHECK(buffer->view.data && bytes <= buffer->size);
+    if (!buffer->view.coherent) API(ogpu_buffer_host_invalidate(buffer->buffer, buffer->offset, bytes, &c->error));
+    memcpy(data, (char *)buffer->view.data + buffer->offset, bytes); return 1;
+#else
     API(ogpu_buffer_read(*buffer, 0, data, bytes, &c->error)); return 1;
 #endif
+#endif
 }
+#ifdef FRONTIER_REUSE
+#include "../resource_reuse/stream_ranges.h"
+#endif
 static int stream_begin(Context *c, Slot *slot) {
     CHECK(!slot->pending);
 #ifdef FRONTIER_NATIVE
@@ -90,7 +165,8 @@ static int stream_begin(Context *c, Slot *slot) {
             VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT);
     } else CHECK(native_begin(n, b));
 #else
-    API(ogpu_batch_create(c->device, &slot->batch, &c->error));
+    if (slot->storage) { API(ogpu_batch_create_in(slot->storage, &slot->batch, &c->error)); }
+    else { API(ogpu_batch_create(c->device, &slot->batch, &c->error)); }
 #endif
     return 1;
 }
@@ -109,7 +185,12 @@ static int stream_copy_range(Context *c, Slot *slot, SBuffer *src, size_t src_of
 #ifdef FRONTIER_NATIVE
     return native_copy(&c->native, &slot->batch, src, src_offset, dst, dst_offset, bytes);
 #else
-    API(ogpu_batch_copy_buffer(slot->batch, *src, src_offset, *dst, dst_offset, bytes, &c->error)); return 1;
+#ifdef FRONTIER_REUSE
+    CHECK(src_offset <= src->size && bytes <= src->size-src_offset
+        && dst_offset <= dst->size && bytes <= dst->size-dst_offset);
+#endif
+    API(ogpu_batch_copy_buffer(slot->batch, sb_handle(src), sb_offset(src)+src_offset,
+        sb_handle(dst), sb_offset(dst)+dst_offset, bytes, &c->error)); return 1;
 #endif
 }
 static int stream_copy(Context *c, Slot *slot, SBuffer *src, SBuffer *dst, size_t bytes) {
@@ -164,8 +245,8 @@ static int stream_record(Stream *s, unsigned index) {
     API(ogpu_batch_barrier(slot->batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &c->error));
     API(ogpu_batch_dispatch(slot->batch, s->kernels[2], s->grids[2].x, s->grids[2].y, 1, &process, sizeof(process), &c->error));
     API(ogpu_batch_barrier(slot->batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &c->error));
-    API(ogpu_batch_draw_indirect(slot->batch, s->raster, im->image, s->draw, 0, &display, sizeof(display), OGPU_ATTACHMENT_CLEAR, &c->error));
-    API(ogpu_batch_copy_image_to_buffer(slot->batch, im->image, im->readback, SG, &c->error));
+    API(ogpu_batch_draw_indirect(slot->batch, s->raster, im->image, sb_handle(&s->draw), sb_offset(&s->draw), &display, sizeof(display), OGPU_ATTACHMENT_CLEAR, &c->error));
+    API(ogpu_batch_copy_image_to_buffer(slot->batch, im->image, sb_handle(&im->readback), sb_offset(&im->readback)+SG, &c->error));
 #endif
     CHECK(stream_end(c, slot)); return 1;
 }
@@ -182,6 +263,18 @@ static int stream_verify(Stream *s, unsigned index) {
     }
     CHECK(!invalid_alpha && maximum <= 1);
     if (maximum > s->maximum_delta) s->maximum_delta = maximum;
+#ifdef FRONTIER_REUSE
+    if (!s->serial[im->input_index]) {
+        CHECK(s->write_serial);
+        s->serial[im->input_index] = malloc(s->final_size); CHECK(s->serial[im->input_index]);
+        memcpy(s->serial[im->input_index], s->pixels, s->final_size);
+        FILE *file = fopen(s->serial_paths[im->input_index], "wb"); CHECK(file);
+        int okay = fwrite(s->pixels, 1, s->final_size, file) == s->final_size;
+        if (fclose(file)) okay = 0;
+        CHECK(okay);
+    }
+    CHECK(!memcmp(s->pixels, s->serial[im->input_index], s->final_size));
+#endif
     return 1;
 }
 static int stream_retire(Stream *s, unsigned index, StreamFrame *frames, int validate) {
@@ -189,9 +282,15 @@ static int stream_retire(Stream *s, unsigned index, StreamFrame *frames, int val
     if (!slot->pending) return 1;
     StreamFrame *f = &frames[slot->sample_index]; double start = clock_ms();
     CHECK(wait_slot(c, slot)); double waited = clock_ms();
+#ifdef FRONTIER_REUSE
+    CHECK(reuse_completed(&s->slots[index].reuse, s->slots[index].ticket));
+#endif
     CHECK(sb_read(c, &s->slots[index].readback, s->pixels, s->final_size)); double read = clock_ms();
     f->frame.wait = waited - start; f->read = read - waited; f->frame.latency = read - f->frame.start;
     if (validate) CHECK(stream_verify(s, index));
+#ifdef FRONTIER_REUSE
+    CHECK(reuse_release(&s->slots[index].reuse, s->slots[index].ticket));
+#endif
     return 1;
 }
 static int stream_window(Stream *s, unsigned count, StreamFrame *frames, int validate, double *wall) {
@@ -199,10 +298,22 @@ static int stream_window(Stream *s, unsigned count, StreamFrame *frames, int val
     for (unsigned frame = 0; frame < count; ++frame) {
         unsigned index = frame % c->count; Slot *slot = &c->slots[index]; ImageSlot *im = &s->slots[index];
         CHECK(stream_retire(s, index, frames, validate));
+#ifdef FRONTIER_REUSE
+        CHECK(reuse_acquire(&im->reuse, &im->ticket));
+#endif
         im->input_index = frame % 2; slot->sample_index = frame; frames[frame].frame.start = clock_ms();
         CHECK(sb_write(c, &im->upload, s->inputs[im->input_index], s->sizes[SI])); double uploaded = clock_ms();
         CHECK(stream_record(s, index)); double recorded = clock_ms();
+#ifdef FRONTIER_REUSE
+        CHECK(reuse_recorded(&im->reuse, im->ticket));
+        if (!submit_slot(c, slot)) { (void)reuse_quarantine(&im->reuse, im->ticket); return 0; }
+        CHECK(reuse_submitted(&im->reuse, im->ticket));
+        uint64_t rejected = 0;
+        CHECK(!reuse_acquire(&im->reuse, &rejected) && !rejected); /* No premature recycle. */
+        double submitted = clock_ms();
+#else
         CHECK(submit_slot(c, slot)); double submitted = clock_ms();
+#endif
         frames[frame].upload = uploaded - frames[frame].frame.start;
         frames[frame].frame.record = recorded - uploaded; frames[frame].frame.submit = submitted - recorded;
     }
@@ -264,13 +375,24 @@ static int stream_create(Stream *s, char **argv) {
     }
     CHECK(memcmp(s->reference[0], s->reference[1], s->final_size - 2 * SG));
     CHECK(sb_create(c, &s->draw, 16, 1, NULL)); uint32_t draw[] = {3, 1, 0, 0}; CHECK(sb_write(c, &s->draw, draw, sizeof(draw)));
+#ifdef FRONTIER_REUSE
+    CHECK(stream_allocate_ranges(s));
+    if (!s->write_serial) for (unsigned i = 0; i < 2; ++i) {
+        s->serial[i] = malloc(s->final_size); CHECK(s->serial[i]);
+        CHECK(stream_file(s->serial_paths[i], s->serial[i], s->final_size));
+    }
+#endif
     for (unsigned i = 0; i < c->count; ++i) {
         ImageSlot *im = &s->slots[i]; Slot *slot = &c->slots[i];
+#ifndef FRONTIER_REUSE
         for (unsigned j = 0; j < SB_COUNT; ++j) {
             CHECK(sb_create(c, &im->data[j], s->sizes[j], 0, &im->address[j])); im->address[j] += SG;
         }
         size_t upload = s->sizes[SI] > s->sizes[SW] ? s->sizes[SI] : s->sizes[SW];
         CHECK(sb_create(c, &im->upload, upload, 1, NULL) && sb_create(c, &im->readback, s->final_size, 1, NULL));
+#else
+        API(ogpu_recording_storage_create(c->device, &slot->storage, &c->error));
+#endif
         CHECK(sb_write(c, &im->readback, s->pixels, s->final_size));
 #ifdef FRONTIER_NATIVE
         CHECK(native_image_create(n, &im->image, s->ow, s->oh));
@@ -361,6 +483,10 @@ static void stream_destroy(Stream *s) {
         for (unsigned j = 0; j < SB_COUNT; ++j) sb_destroy(c, &im->data[j]);
         sb_destroy(c, &im->upload); sb_destroy(c, &im->readback);
     }
+#ifdef FRONTIER_REUSE
+    for (unsigned i = 0; i < 3; ++i) sb_destroy(c, &s->arenas[i]);
+    for (unsigned i = 0; i < 2; ++i) free(s->serial[i]);
+#endif
     sb_destroy(c, &s->draw);
 #ifdef FRONTIER_NATIVE
     for (unsigned i = 0; i < 3; ++i) native_program_destroy(&c->native, &s->programs[i]);
@@ -386,6 +512,17 @@ int main(int argc, char **argv) {
 #else
     if (strcmp(c->policy, "ogpu") && strcmp(c->policy, "compiled")) return 1;
 #endif
+#ifdef FRONTIER_REUSE
+    const char *allocation = getenv("OGPU_STREAM_ALLOCATION");
+    if (!allocation || (strcmp(allocation, "dedicated") && strcmp(allocation, "arena"))) return 1;
+    s.arena = !strcmp(allocation, "arena");
+    s.serial_paths[0] = getenv("OGPU_STREAM_SERIAL_A"); s.serial_paths[1] = getenv("OGPU_STREAM_SERIAL_B");
+    if (!s.serial_paths[0] || !s.serial_paths[1] || !strcmp(s.serial_paths[0], s.serial_paths[1])) return 1;
+    const char *serial_mode = getenv("OGPU_STREAM_SERIAL_MODE");
+    if (!serial_mode || (strcmp(serial_mode, "write") && strcmp(serial_mode, "check"))) return 1;
+    s.write_serial = !strcmp(serial_mode, "write");
+    if (s.write_serial && (c->count != 1 || !validate)) return 1;
+#endif
     StreamFrame *samples = calloc(frames > 100 ? frames : 100, sizeof(*samples)); if (!samples) return 1;
     int okay = 0; double setup = clock_ms(), wall = 0;
     if (!stream_create(&s, argv)) goto cleanup;
@@ -394,6 +531,9 @@ int main(int argc, char **argv) {
     memset(samples, 0, (frames > 100 ? frames : 100) * sizeof(*samples));
     if (!stream_window(&s, frames, samples, validate, &wall)) goto cleanup;
     if (!stream_check_buffers(&s)) goto cleanup;
+#ifdef FRONTIER_REUSE
+    if (!stream_check_range_padding(&s)) goto cleanup;
+#endif
     printf("STREAM {\"policy\":\"%s\",\"slots\":%u,\"extent\":[%u,%u,%u,%u],\"frames\":%u,"
         "\"warmups\":%u,\"validation\":%s,\"setup_ms\":%.9f,\"wall_ms\":%.9f,\"max_rgb_delta\":%u}\n",
         c->policy, c->count, s.w, s.h, s.ow, s.oh, frames, validate ? 0 : 100, validate ? "true" : "false", setup, wall, s.maximum_delta);

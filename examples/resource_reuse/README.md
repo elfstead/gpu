@@ -1,7 +1,9 @@
 # Consumer-side resource reuse
 
 First implementation slice of the [M3 brief](../../docs/resource-reuse-plan.md).
-No runtime changes, GPU execution or allocator performance claim yet.
+No runtime changes or allocator performance claim. The mapped-stream control below
+now connects these helpers to the existing workload; see the M3 status for accepted
+run coverage rather than treating a successful build as GPU evidence.
 
 ```sh
 mkdir -p target/resource-reuse
@@ -37,6 +39,44 @@ rejection, known-rejected submission, unknown-outcome/terminal quarantine, expli
 drain and generation exhaustion. This is bookkeeping validation, **not** injected
 runtime/GPU failure evidence. Sustained stream integration and physical allocation
 accounting are the next slice; neither is accepted by these tests.
+
+## Mapped-stream integration
+
+```sh
+python3 examples/resource_reuse/run.py --check
+# Select VK_DRIVER_FILES and enable Vulkan/sync validation first:
+python3 examples/resource_reuse/run.py --preflight
+python3 examples/resource_reuse/run.py         # 1,000 small frames/configuration
+python3 examples/resource_reuse/run.py --scale # also 720p and odd-video cases
+```
+
+The opt-in `FRONTIER_REUSE` build of the existing stream compares dedicated buffers
+with three parent buffers: DEVICE data, HOST upload and HOST readback. Every mode
+uses the same mapped-host copying/cache policy and unchanged shader artifacts.
+Each slot has caller-owned recording storage; `ogpu` resets/re-records and `compiled`
+replays a serial immutable list. Raw-pointer backing remains live until all lists
+and executions retire. The old public/native controls remain separately built.
+
+A one-slot reference first passes the independent CPU pixel oracle and saves two
+guarded images. All later frames must pass BOTH that CPU gate and byte-exact serial
+comparison. Input/weights, intermediate guards and HOST inter-range/trailing padding
+are checked after drain. The trace verifies allocation/free/peak counts, not private
+driver command-memory size. Runtime shaders, arithmetic and tolerances are unchanged.
+
+To keep requested bytes equal between strategies, HOST capacity budgets round each
+logical range to 4 KiB in both modes. This is a declared test budget, not a claim
+that a cache atom is 4 KiB: actual views determine placement and flush/invalidation.
+Insufficient capacity rejects before recording; no hidden fallback, growing ring or
+per-frame backing allocation. DEVICE slices need only scalar alignment here and
+have no inter-range gaps. Real noncoherent hardware is not inferred from coherent
+driver success; CPU range tests exercise larger/odd granularity independently.
+
+The runner records revision/dirty state, hashes, individual process logs, logical
+range ownership, requested bytes and traced peak bytes under a fresh
+`target/resource-reuse/stream-*` directory. These runs keep validation/tracing on,
+so their elapsed times are diagnostic, not performance evidence. Runtime fault
+injection, matched native timing and independent installed handoff remain later
+M3 gates. There is no implied GPU race detection from the bookkeeping helper.
 
 At `c4009c0`, optimized checks, AddressSanitizer/UBSan and Clang analysis pass.
 LeakSanitizer cannot run under the test environment's tracing; the sanitizer run

@@ -22,6 +22,16 @@ the helper. Step 2's learned-image integration is next; M3 remains unaccepted.
 
 ## Reuse established results
 
+Reference checked 2026-09-26: Aaltonen's
+[NoGraphicsAPI at db2a8d8](https://github.com/sebbbi/NoGraphicsAPI/tree/db2a8d807a72e21b8eaccd3de81d15907185ee7e)
+already exposes caller-partitioned heaps/non-owning ranges and optional bump/reusable
+allocators, upload and deletion queues. Follow that ownership separation; do not
+claim a new allocator model. Our first integration keeps OGPU's backing buffer
+handles behind consumer ranges and adds its queried cache-granularity obligations
+and explicit completion bookkeeping. It does not demonstrate that a public buffer
+handle is better than his address-range API. Placed textures, multiple queues and
+concurrent recording remain advantages of that implementation outside this slice.
+
 The frontier already measured one/two/three slots and 1,000-frame execution;
 the replay, HOST-view and split-dependency work subsequently exposed better
 contracts. Do not repeat those designs as open questions. The missing integration
