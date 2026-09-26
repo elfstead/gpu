@@ -301,7 +301,14 @@ static int stream_window(Stream *s, unsigned count, StreamFrame *frames, int val
 #ifdef FRONTIER_REUSE
         CHECK(reuse_acquire(&im->reuse, &im->ticket));
 #endif
-        im->input_index = frame % 2; slot->sample_index = frame; frames[frame].frame.start = clock_ms();
+#ifdef FRONTIER_REUSE
+        /* Alternate each slot's contents. Global ABAB alone leaves even-count
+         * slots permanently on A or B and cannot detect a stale upload there. */
+        im->input_index = stream_input_index(frame, c->count);
+#else
+        im->input_index = frame % 2;
+#endif
+        slot->sample_index = frame; frames[frame].frame.start = clock_ms();
         CHECK(sb_write(c, &im->upload, s->inputs[im->input_index], s->sizes[SI])); double uploaded = clock_ms();
         CHECK(stream_record(s, index)); double recorded = clock_ms();
 #ifdef FRONTIER_REUSE

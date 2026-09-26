@@ -89,7 +89,8 @@ def main():
     print(f"Reuse evidence: {dest}", flush=True)
     sources = list(HERE.glob("*.h"))+list(HERE.glob("*.c"))+list(HERE.glob("*.py"))
     sources += [ROOT/"examples/performance_frontier"/n for n in ("stream.c", "small.c", "stream.py", "run.py")]
-    sources += [ROOT/"include/ogpu.h", ROOT/"examples/learned_image/trace_memory.c"]
+    sources += [ROOT/"include/ogpu.h", ROOT/"examples/learned_image/trace_memory.c",
+                ROOT/"examples/learned_image/extent.h", ROOT/"examples/learned_image/benchmark.py"]
     sources += list((ROOT/"examples/learned_image/generated").glob("*.h"))
     report = dict(schema=1, scope="mapped dedicated/arena correctness and allocation counts; no speed claim",
                   revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
@@ -97,6 +98,7 @@ def main():
                   frames=frames, preflight=args.preflight, complete=False,
                   sources={str(p.relative_to(ROOT)):f.digest(p) for p in sources},
                   artifacts={n:f.digest(BUILD/n) for n in ("stream", "stream-legacy", "stream-native")},
+                  allocation_tracer_sha256=f.digest(f.BUILD/"trace-memory.so"),
                   runtime_sha256=f.digest(ROOT/"target/release/libogpu.so"),
                   environment={k:env.get(k) for k in ("VK_DRIVER_FILES", "VK_INSTANCE_LAYERS", "VK_LAYER_VALIDATE_SYNC", "OGPU_TRACE_LOADER")},
                   fixtures={}, runs=[])
@@ -128,6 +130,7 @@ def main():
             require(backing["buffer_requested_bytes"] == requested.setdefault(slots, backing["buffer_requested_bytes"]),
                     "dedicated/arena buffer byte budgets differ")
             row.update(label=name, serial_write=write, serial_sha256=[f.digest(p) for p in serial_paths],
+                       trace=[line for line in r.stderr.splitlines() if line.startswith(("ALLOCATE ", "FREE ", "MEMORY_SUMMARY "))],
                        stdout_sha256=f.digest(dest/(name+".stdout")), stderr_sha256=f.digest(dest/(name+".stderr")))
             report["runs"].append(row); save()
             print(f"Validated {name}: {count} frames; {row['memory']['peak_count']} allocations, {row['memory']['peak_bytes']} bytes", flush=True)

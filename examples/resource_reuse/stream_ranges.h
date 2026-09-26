@@ -3,6 +3,9 @@
  * 4 KiB-rounded per-range budgets are explicit experimental capacity, NOT an
  * assumption about native cache atoms. Actual queried granularity must fit.
  */
+static unsigned stream_input_index(unsigned frame, unsigned slots) {
+    return (frame/slots + frame%slots)%2; /* slots is validated nonzero by main. */
+}
 static int stream_backing(Stream *s, SBuffer *buffer, uint64_t bytes, int host) {
     CHECK(bytes && bytes <= SIZE_MAX);
     CHECK(sb_create(&s->base, buffer, (size_t)bytes, host, NULL));

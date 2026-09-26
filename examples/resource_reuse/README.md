@@ -62,6 +62,8 @@ guarded images. All later frames must pass BOTH that CPU gate and byte-exact ser
 comparison. Input/weights, intermediate guards and HOST inter-range/trailing padding
 are checked after drain. The trace verifies allocation/free/peak counts, not private
 driver command-memory size. Runtime shaders, arithmetic and tolerances are unchanged.
+Inputs alternate on each reuse of each slot; merely alternating global frame input
+would leave two-slot streams permanently assigned A/B and miss stale uploads.
 
 To keep requested bytes equal between strategies, HOST capacity budgets round each
 logical range to 4 KiB in both modes. This is a declared test budget, not a claim
