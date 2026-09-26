@@ -202,11 +202,14 @@ into the learned-image stream, run sustained correctness/failure/accounting gate
 record the submission/allocator decision, and validate an independent installed
 consumer. Existing replay/HOST-view/split results supply the starting contract;
 they do not automatically accept the combined workload. No runtime allocator or
-new API is presumed. The [first helper slice](../examples/resource_reuse/README.md)
-is implemented at `c4009c0`: 23,808 mixed-alignment ranges and 1,000 reuse generations,
-with overflow/stale/premature-reuse and failure/drain bookkeeping tests. No GPU
-integration or new failure-injection evidence yet. Next: connect dedicated and
-arena-backed mapped slots to the existing learned-image stream.
+new API is presumed. The [mapped-stream checkpoint](resource-reuse-results.md)
+is accepted at `6ef0328`, following the `c4009c0` checked helper slice. Dedicated
+and arena-backed mapped slots pass 48,000 candidate frames across both drivers,
+with video extents on Radeon, serial-output identity and allocation cleanup.
+Three-slot native allocation count falls 25 → 7; peak bytes barely change and no
+speedup is claimed. Next: injected failure/drain paths and structured consumer
+diagnostics, then matched cost/allocator decisions and independent SDK handoff.
+M3 is not complete; success-path streaming does not accept failure handling.
 
 After M3: an experimental release checkpoint (M7),
 and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate

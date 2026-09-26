@@ -18,7 +18,15 @@ no memory). Analyzer warnings are the Nix wrapper's unused linker flags.
 This implements step 1's bookkeeping, not proof of real completion or GPU failure
 handling. Terminal quarantine is never recycled even after drain. Generation wrap
 rejects; tickets are slot-local and backing/list/completion ownership stays outside
-the helper. Step 2's learned-image integration is next; M3 remains unaccepted.
+the helper.
+
+The [mapped-stream checkpoint](resource-reuse-results.md) is accepted at `6ef0328`:
+step 2 and step 3's sustained success-path/accounting portion pass 48,000 candidate
+frames across both drivers (video extents on Radeon). Dedicated/arena and owned
+reset/re-record/serial replay all match serial output. Three-slot native allocations
+fall 25 → 7 with virtually unchanged peak bytes; no speed claim. Next: injected
+failure/drain paths and structured consumer diagnostics, then measurement/decision
+and independent installed handoff. M3 remains unaccepted as a whole.
 
 ## Reuse established results
 

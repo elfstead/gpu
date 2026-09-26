@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-16. This page records evidence, not API-stability promises. See
+Updated 2026-09-26. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -9,6 +9,15 @@ the current two-consumer checkpoint and selected work. This ledger is evidence,
 not a development queue; existing experiments remain regression and diagnostic tools.
 
 ## Implemented baseline
+
+The [M3 mapped-stream checkpoint](resource-reuse-results.md) is accepted against
+`6ef0328` (2026-09-26): 48,000 sustained candidate frames, dedicated/arena ranges,
+one/two/three slots and owned reset/re-record/serial replay. Both drivers pass small
+cases; Radeon also passes 720p and odd-video extents. Every frame matches its serial
+reference and the unchanged CPU pixel gate; guards and allocation cleanup pass.
+Three-slot native allocations fall 25 → 7, with almost unchanged allocated bytes.
+No runtime/API change or speed claim. Injected failure handling, matched timing,
+the allocator decision and independent handoff remain; M3 is not complete.
 
 The [M2 language decision](language-direction.md) is accepted against `8113303`
 (2026-09-26): retain pinned Slang plus the explicit device contract, with no new

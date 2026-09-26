@@ -1,0 +1,90 @@
+# M3 mapped-range checkpoint — 2026-09-26
+
+Implementation: 6ef0328390c39c46bf2a7b732afc6a3c959495ec
+Both main runners recorded clean worktrees and complete=true.
+Runtime/public ABI remains 17. No runtime or shader change.
+
+Environment:
+- Rust 1.97.1, Clang 21.1.8, Python 3.14.7.
+- M1 regeneration uses pinned Slang 2026.14.1.
+- Radeon RX 5700 XT / RADV, Mesa 26.2.1; llvmpipe / LLVM 21.1.8.
+- Reported device API [1,4,354] on both drivers.
+- VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
+- VK_LAYER_VALIDATE_SYNC=1
+- VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+  or /run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json
+- OGPU_VULKAN_LIBRARY is the existing environment-selected loader; the reuse
+  runner interposes its allocation tracer and records the actual loader path.
+- Existing local dependency/tool caches reused. Not a clean-machine test.
+
+Commands and accepted coverage:
+1. Radeon: python3 examples/resource_reuse/run.py --scale
+   target/resource-reuse/stream-7bt6f51e
+   39 successful processes: 36 x 1,000 candidate frames, 3 x 12 serial frames.
+   Extents 65x47->131x95, 1280x720->2560x1440, 1919x1079->2561x1441.
+2. llvmpipe: python3 examples/resource_reuse/run.py
+   target/resource-reuse/stream-ogic396_
+   13 successful processes: 12 x 1,000 candidate frames, 12 serial frames.
+   Small extent only.
+   Both cover dedicated/arena x owned reset/serial replay x 1/2/3 slots.
+   Each slot switches its input on every reuse, including two-slot runs.
+   Every candidate frame is byte-identical to its driver's serial output and
+   passes independent CPU RGB <=1 / exact alpha. Post-drain input/weights,
+   intermediate guards, HOST padding and slot-state gates pass.
+   All 52 allocation traces finish with zero live bytes/count.
+   Dedicated counts 9/17/25; arena counts 5/6/7. Requested buffer bytes match.
+   Complete reports retain every range and raw ALLOCATE/FREE/MEMORY_SUMMARY.
+   Source and per-process stdout/stderr hashes rechecked after completion.
+3. Both drivers: python3 examples/performance_frontier/stream.py --preflight
+   Native fresh/reset/replay plus legacy public, 1/2/3 slots, 12 frames each.
+   PASS: 12 configurations / 144 frames per driver.
+   Radeon directory target/performance-frontier/stream-6pq3jeyt
+   llvmpipe directory target/performance-frontier/stream-xgbvhfcm
+4. Both drivers: python3 examples/performance_frontier/stream.py --preflight --compiled
+   Legacy compiled-list path, 1/2/3 slots, 12 frames each.
+   PASS: 3 configurations / 36 frames per driver.
+   Radeon directory target/performance-frontier/stream-mltphhom
+   llvmpipe directory target/performance-frontier/stream-2ipltyzj
+5. Both drivers: python3 examples/learned_image/run.py
+   PASS: 38 small cases x original/mutated interfaces x normal/diagnostic mode,
+   152 frames per driver. Unchanged host source and byte-identical
+   original/mutated outputs within each driver.
+   Max float error 1.71016513e-7, max error/bound 0.00667210166, RGB delta 1.
+6. CPU gates (also run by each resource-reuse runner):
+   Optimized -Wall -Wextra -Werror builds of reuse/legacy/native streams.
+   23,808 checked range reservations and 1,000 slot generation cycles.
+   Mapped-slice bounds/prefix/gap/suffix and per-slot input-alternation tests.
+   Five new evidence-parser rejection tests; existing frontier CPU gates.
+7. Final ordinary checks:
+   cargo test --workspace --offline: 40 passed, 28 GPU tests ignored.
+   cargo clippy --workspace --all-targets --offline -- -D warnings: PASS.
+   cargo fmt --all -- --check: PASS.
+   test_stream_ranges.c: AddressSanitizer + UBSan PASS, including negative gates.
+   ASAN_OPTIONS=detect_leaks=0; no LeakSanitizer evidence.
+   Clang static analysis of FRONTIER_REUSE stream: PASS; Nix wrapper emits
+   unused linker-flag warnings only.
+
+Limits:
+- No timing acceptance: validation and allocation tracing are enabled.
+- Allocation objects decrease; byte differences are tiny native rounding.
+- Explicit device-memory trace is not all driver-private command/CPU memory.
+- Real noncoherent hardware is not accepted by coherent-driver success.
+- No new GPU failure injection, Metal validation or additional hardware.
+- Full runtime GPU/ABI suites not rerun for this examples-only change.
+- Initial full Radeon run at 67e8340 used weaker global ABAB; not accepted
+  instead of the clean 6ef0328 rerun above.
+- M3 remains open: injected failure/drain diagnostics, matched cost/allocator
+  decision, and independent relocated SDK handoff.
+
+Retained report and local runner-log SHA-256:
+792160694cec9751b86bcacb353e7cda6ae29321d5e7dd44c74a473c57a86098  /tmp/ogpu-reuse-final-radeon.log
+88fa798ab67fa29f7740e5cf8a05b849dd082f2e6839ff155a6c74f69d23e8e8  /tmp/ogpu-reuse-final-lvp.log
+93286f8345cc57cd5bdd53f8b67e4c837dc987785122be221516d87bd608939c  /tmp/ogpu-reuse-legacy-radeon.log
+ccc0c0e84eb0be90d7ddc026015e8e7dcdaa4976118d9f14d6fd7277ee69823f  /tmp/ogpu-reuse-legacy-lvp.log
+0b6ebb0f29ec313fc51a671b6887d216d7edf42f5b6b4d7cc6418aacc8f3334c  /tmp/ogpu-reuse-compiled-radeon.log
+b996fbc0c9907f1d8403c06ced5426a79441030a8d41d39688576ad1a9ce8447  /tmp/ogpu-reuse-compiled-lvp.log
+1384788fdc91c9f0a77c85713d76c8f63515354b812b1dd217aa1a9cacabc400  /tmp/ogpu-reuse-m1-radeon.log
+818cd06c76965251da12d4cc9e33c7d36a6bdee9253518d871db1c848e525bec  /tmp/ogpu-reuse-m1-lvp.log
+375502166e6671ad73b5d78d124d895ce48770b0b26af938e65f27f6c6075714  /tmp/ogpu-reuse-final-unit.log
+0bda8b75df4c00e3c1302415c54d59cdd67199cdebd1618b2644cf63f4624bf0  docs/results/resource-reuse-radv-2026-09-26.json
+acad11fa119e0395008191115ea37f47ee0367f5876c214cb636ebbb6400f49c  docs/results/resource-reuse-lvp-2026-09-26.json

@@ -1,6 +1,6 @@
 # Consumer-side resource reuse
 
-First implementation slice of the [M3 brief](../../docs/resource-reuse-plan.md).
+Implementation of the first two slices of the [M3 brief](../../docs/resource-reuse-plan.md).
 No runtime changes or allocator performance claim. The mapped-stream control below
 now connects these helpers to the existing workload; see the M3 status for accepted
 run coverage rather than treating a successful build as GPU evidence.
@@ -37,8 +37,9 @@ CPU tests cover 23,808 mixed-alignment ranges, boundaries/overflow and unchanged
 outputs on rejection, 1,000 reuse generations, stale tickets, pending/ready reuse
 rejection, known-rejected submission, unknown-outcome/terminal quarantine, explicit
 drain and generation exhaustion. This is bookkeeping validation, **not** injected
-runtime/GPU failure evidence. Sustained stream integration and physical allocation
-accounting are the next slice; neither is accepted by these tests.
+runtime/GPU failure evidence. The separate [mapped-stream checkpoint](../../docs/resource-reuse-results.md)
+accepts sustained success-path integration and allocation accounting at `6ef0328`;
+neither follows from CPU helper tests alone.
 
 ## Mapped-stream integration
 
