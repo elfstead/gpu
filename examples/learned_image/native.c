@@ -268,9 +268,11 @@ static int native_buffer_create(Native *n, NativeBuffer *b, VkDeviceSize size, i
     VkBufferDeviceAddressInfo info = {.sType=VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer=b->buffer};
     b->address = n->vkGetBufferDeviceAddress(n->device, &info);
     NEED(b->address);
+#ifndef NATIVE_QUIET_BUFFER_LOG
     printf("NATIVE_BUFFER {\"host\":%s,\"requested\":%" PRIu64 ",\"allocated\":%" PRIu64
            ",\"type\":%u,\"flags\":%u}\n", host ? "true" : "false", size, b->allocated,
            b->type, n->memory.memoryTypes[b->type].propertyFlags);
+#endif
     return 1;
 }
 

@@ -13,7 +13,17 @@
 
 enum { SI, SW, SH, SD, SC, SB_COUNT, SG = 64 };
 #ifdef FRONTIER_NATIVE
+#ifdef FRONTIER_REUSE
+typedef struct {
+    NativeBuffer native; /* Owning or borrowed parent metadata; owned decides teardown. */
+    VkBuffer buffer;
+    uint64_t offset, size;
+    struct { void *data; uint64_t size_bytes, alignment, access_granularity; int coherent; } view;
+    int owned;
+} SBuffer;
+#else
 typedef NativeBuffer SBuffer;
+#endif
 typedef NativeImage SImage;
 #else
 #ifdef FRONTIER_REUSE
@@ -92,8 +102,23 @@ static int stream_file(const char *path, void *data, size_t bytes) {
 }
 static int sb_create(Context *c, SBuffer *buffer, size_t bytes, int host, uint64_t *address) {
 #ifdef FRONTIER_NATIVE
+#ifdef FRONTIER_REUSE
+    buffer->owned = 1; buffer->size = bytes;
+    CHECK(native_buffer_create(&c->native, &buffer->native, bytes, host));
+    buffer->buffer = buffer->native.buffer;
+    if (host) {
+        buffer->view.data = buffer->native.mapped;
+        buffer->view.size_bytes = bytes;
+        buffer->view.alignment = c->native.properties.limits.minMemoryMapAlignment;
+        buffer->view.coherent = buffer->native.coherent;
+        buffer->view.access_granularity = buffer->native.coherent ? 1 : c->native.properties.limits.nonCoherentAtomSize;
+        CHECK(buffer->view.data && buffer->view.access_granularity);
+    }
+    if (address) *address = buffer->native.address;
+#else
     CHECK(native_buffer_create(&c->native, buffer, bytes, host));
     if (address) *address = buffer->address;
+#endif
 #else
 #ifdef FRONTIER_REUSE
     buffer->owned = 1; buffer->size = bytes;
@@ -113,7 +138,12 @@ static int sb_create(Context *c, SBuffer *buffer, size_t bytes, int host, uint64
 }
 static void sb_destroy(Context *c, SBuffer *buffer) {
 #ifdef FRONTIER_NATIVE
+#ifdef FRONTIER_REUSE
+    if (buffer->owned) native_buffer_destroy(&c->native, &buffer->native);
+    memset(buffer, 0, sizeof(*buffer));
+#else
     native_buffer_destroy(&c->native, buffer);
+#endif
 #else
 #ifdef FRONTIER_REUSE
     (void)c; if (buffer->owned) ogpu_buffer_destroy(buffer->buffer);
@@ -123,31 +153,56 @@ static void sb_destroy(Context *c, SBuffer *buffer) {
 #endif
 #endif
 }
-static int sb_write(Context *c, SBuffer *buffer, const void *data, size_t bytes) {
+#ifdef FRONTIER_REUSE
+/* Backend adapters only: the consumer range/cache/ownership policy is shared. */
+static int sb_cache(Context *c, SBuffer *buffer, uint64_t offset, uint64_t bytes, int flush) {
+    CHECK(buffer->view.data && offset <= buffer->view.size_bytes && bytes <= buffer->view.size_bytes-offset);
+    if (!bytes || buffer->view.coherent) return 1;
 #ifdef FRONTIER_NATIVE
-    return native_write(&c->native, buffer, 0, data, bytes);
+    uint64_t atom = buffer->view.access_granularity, end;
+    CHECK(atom && reuse_align(offset+bytes, atom, &end));
+    uint64_t start = offset/atom*atom;
+    VkMappedMemoryRange range = {.sType=VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        .memory=buffer->native.memory, .offset=start,
+        .size=end <= buffer->native.allocated ? end-start : VK_WHOLE_SIZE};
+    Native *n = &c->native;
+    return flush ? vk_ok(n->vkFlushMappedMemoryRanges(n->device, 1, &range), "range flush")
+                 : vk_ok(n->vkInvalidateMappedMemoryRanges(n->device, 1, &range), "range invalidate");
 #else
+    if (flush) { API(ogpu_buffer_host_flush(buffer->buffer, offset, bytes, &c->error)); }
+    else { API(ogpu_buffer_host_invalidate(buffer->buffer, offset, bytes, &c->error)); }
+    return 1;
+#endif
+}
+static int sb_address(Context *c, SBuffer *buffer, uint64_t *address) {
+#ifdef FRONTIER_NATIVE
+    (void)c; *address = buffer->native.address;
+#else
+    API(ogpu_buffer_device_address(buffer->buffer, address, &c->error));
+#endif
+    return 1;
+}
+#endif
+static int sb_write(Context *c, SBuffer *buffer, const void *data, size_t bytes) {
 #ifdef FRONTIER_REUSE
     CHECK(buffer->view.data && bytes <= buffer->size);
     memcpy((char *)buffer->view.data + buffer->offset, data, bytes);
-    if (!buffer->view.coherent) API(ogpu_buffer_host_flush(buffer->buffer, buffer->offset, bytes, &c->error));
-    return 1;
+    return sb_cache(c, buffer, buffer->offset, bytes, 1);
+#elif defined(FRONTIER_NATIVE)
+    return native_write(&c->native, buffer, 0, data, bytes);
 #else
     API(ogpu_buffer_write(*buffer, 0, data, bytes, &c->error)); return 1;
 #endif
-#endif
 }
 static int sb_read(Context *c, SBuffer *buffer, void *data, size_t bytes) {
-#ifdef FRONTIER_NATIVE
-    return native_read(&c->native, buffer, 0, data, bytes);
-#else
 #ifdef FRONTIER_REUSE
     CHECK(buffer->view.data && bytes <= buffer->size);
-    if (!buffer->view.coherent) API(ogpu_buffer_host_invalidate(buffer->buffer, buffer->offset, bytes, &c->error));
+    CHECK(sb_cache(c, buffer, buffer->offset, bytes, 0));
     memcpy(data, (char *)buffer->view.data + buffer->offset, bytes); return 1;
+#elif defined(FRONTIER_NATIVE)
+    return native_read(&c->native, buffer, 0, data, bytes);
 #else
     API(ogpu_buffer_read(*buffer, 0, data, bytes, &c->error)); return 1;
-#endif
 #endif
 }
 #ifdef FRONTIER_REUSE
@@ -182,13 +237,18 @@ static int stream_end(Context *c, Slot *slot) {
 }
 static int stream_copy_range(Context *c, Slot *slot, SBuffer *src, size_t src_offset,
                              SBuffer *dst, size_t dst_offset, size_t bytes) {
-#ifdef FRONTIER_NATIVE
-    return native_copy(&c->native, &slot->batch, src, src_offset, dst, dst_offset, bytes);
-#else
 #ifdef FRONTIER_REUSE
     CHECK(src_offset <= src->size && bytes <= src->size-src_offset
         && dst_offset <= dst->size && bytes <= dst->size-dst_offset);
 #endif
+#ifdef FRONTIER_NATIVE
+#ifdef FRONTIER_REUSE
+    return native_copy(&c->native, &slot->batch, &src->native, src->offset+src_offset,
+        &dst->native, dst->offset+dst_offset, bytes);
+#else
+    return native_copy(&c->native, &slot->batch, src, src_offset, dst, dst_offset, bytes);
+#endif
+#else
     API(ogpu_batch_copy_buffer(slot->batch, sb_handle(src), sb_offset(src)+src_offset,
         sb_handle(dst), sb_offset(dst)+dst_offset, bytes, &c->error)); return 1;
 #endif
@@ -231,8 +291,14 @@ static int stream_record(Stream *s, unsigned index) {
     CHECK(native_dispatch(n, b, &s->programs[2], s->grids[2], &process, sizeof(process)));
     native_barrier(n, b->command, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT,
         VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT);
+#ifdef FRONTIER_REUSE
+    CHECK(!s->draw.offset); /* Draw arguments deliberately remain dedicated. */
+    CHECK(native_draw(n, b, &s->raster, &im->image, &s->draw.native, &display, sizeof(display)));
+    CHECK(native_image_readback(n, b, &im->image, &im->readback.native, im->readback.offset+SG));
+#else
     CHECK(native_draw(n, b, &s->raster, &im->image, &s->draw, &display, sizeof(display)));
     CHECK(native_image_readback(n, b, &im->image, &im->readback, SG));
+#endif
 #else
     API(ogpu_batch_barrier(slot->batch, OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE |
         OGPU_ACCESS_FRAGMENT_READ | OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE,
@@ -398,7 +464,9 @@ static int stream_create(Stream *s, char **argv) {
         size_t upload = s->sizes[SI] > s->sizes[SW] ? s->sizes[SI] : s->sizes[SW];
         CHECK(sb_create(c, &im->upload, upload, 1, NULL) && sb_create(c, &im->readback, s->final_size, 1, NULL));
 #else
+#ifndef FRONTIER_NATIVE
         API(ogpu_recording_storage_create(c->device, &slot->storage, &c->error));
+#endif
 #endif
         CHECK(sb_write(c, &im->readback, s->pixels, s->final_size));
 #ifdef FRONTIER_NATIVE
@@ -534,6 +602,13 @@ int main(int argc, char **argv) {
     int okay = 0; double setup = clock_ms(), wall = 0;
     if (!stream_create(&s, argv)) goto cleanup;
     setup = clock_ms() - setup;
+#ifdef FRONTIER_REUSE
+    /* Known application storage only. Runtime/driver command allocations are NOT zero. */
+    printf("REUSE_CPU_STORAGE {\"stream_stack_bytes\":%zu,\"sample_bytes\":%zu,\"fixture_bytes\":%zu,"
+        "\"runtime_command_bytes\":null,\"driver_command_bytes\":null}\n", sizeof(s),
+        (size_t)(frames > 100 ? frames : 100)*sizeof(*samples),
+        2*s.sizes[SI]+s.sizes[SW]+2*(s.final_size-2*SG)+3*s.final_size);
+#endif
     if (!validate && !stream_window(&s, 100, samples, 0, &wall)) goto cleanup;
     memset(samples, 0, (frames > 100 ? frames : 100) * sizeof(*samples));
     if (!stream_window(&s, frames, samples, validate, &wall)) goto cleanup;

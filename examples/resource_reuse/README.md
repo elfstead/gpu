@@ -49,6 +49,7 @@ python3 examples/resource_reuse/run.py --check
 python3 examples/resource_reuse/run.py --preflight
 python3 examples/resource_reuse/run.py         # 1,000 small frames/configuration
 python3 examples/resource_reuse/run.py --scale # also 720p and odd-video cases
+python3 examples/resource_reuse/run.py --native # add matched Vulkan reset/replay
 ```
 
 The opt-in `FRONTIER_REUSE` build of the existing stream compares dedicated buffers

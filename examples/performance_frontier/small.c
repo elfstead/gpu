@@ -2,6 +2,9 @@
  * Shared scheduling/oracle, independent public/native command encoding. */
 #define _POSIX_C_SOURCE 200809L
 #ifdef FRONTIER_NATIVE
+#ifdef FRONTIER_REUSE
+#define NATIVE_QUIET_BUFFER_LOG
+#endif
 #define main learned_image_native_main
 #include "../learned_image/native.c"
 #undef main

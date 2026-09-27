@@ -12,10 +12,7 @@ static int stream_backing(Stream *s, SBuffer *buffer, uint64_t bytes, int host) 
     CHECK(reuse_add(s->requested_bytes, bytes, &s->requested_bytes)); ++s->allocations;
     if (host) {
         memset(buffer->view.data, 0xa5, (size_t)bytes);
-        if (!buffer->view.coherent) {
-            Context *c = &s->base;
-            API(ogpu_buffer_host_flush(buffer->buffer, 0, bytes, &c->error));
-        }
+        CHECK(sb_cache(&s->base, buffer, 0, bytes, 1));
     }
     return 1;
 }
@@ -24,10 +21,11 @@ static int stream_slice(Context *c, SBuffer *backing, ReuseArena *arena, uint64_
     ReuseRange range;
     uint64_t atom = backing->view.data ? backing->view.access_granularity : 1;
     CHECK(reuse_reserve(arena, bytes, 4, atom, 0, &range));
-    *slice = (SBuffer){.buffer=backing->buffer, .offset=range.payload, .size=bytes, .view=backing->view};
+    *slice = *backing;
+    slice->offset = range.payload; slice->size = bytes; slice->owned = 0;
     if (address) {
         uint64_t base = 0;
-        API(ogpu_buffer_device_address(backing->buffer, &base, &c->error));
+        CHECK(sb_address(c, backing, &base));
         CHECK(base%4 == 0 && reuse_add(base, range.payload+SG, address));
     }
     printf("REUSE_RANGE {\"slot\":%u,\"resource\":%u,\"backing\":%u,\"offset\":%" PRIu64 ",\"size\":%" PRIu64 ",\"end\":%" PRIu64
@@ -75,7 +73,7 @@ static int stream_allocate_ranges(Stream *s) {
  * whole parent here, never while another range has conflicting GPU access. */
 static int stream_padding(Context *c, SBuffer *parent, SBuffer **ranges, unsigned count) {
     CHECK(parent->view.data && parent->view.size_bytes <= SIZE_MAX);
-    if (!parent->view.coherent) API(ogpu_buffer_host_invalidate(parent->buffer, 0, parent->view.size_bytes, &c->error));
+    CHECK(sb_cache(c, parent, 0, parent->view.size_bytes, 0));
     const unsigned char *bytes = parent->view.data;
     uint64_t cursor = 0;
     for (unsigned i = 0; i < count; ++i) {

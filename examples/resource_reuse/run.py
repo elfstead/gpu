@@ -59,6 +59,7 @@ def main():
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--preflight", action="store_true", help="12 frames instead of 1000; not long-run acceptance")
     parser.add_argument("--scale", action="store_true", help="also existing 720p/odd-video extents (Radeon)")
+    parser.add_argument("--native", action="store_true", help="also matched direct Vulkan reset/replay range controls")
     args = parser.parse_args()
     require(not os.getenv("CARGO_TARGET_DIR"), "leave CARGO_TARGET_DIR unset")
     env = os.environ.copy()
@@ -74,10 +75,15 @@ def main():
         ("test-ranges", HERE/"test_stream_ranges.c", ["-Ltarget/release", "-logpu"]),
         ("stream-legacy", ROOT/"examples/performance_frontier/stream.c", ["-Ltarget/release", "-logpu"]),
         ("stream-native", ROOT/"examples/performance_frontier/stream.c", ["-DFRONTIER_NATIVE", "-ldl"]),
+        ("stream-native-ranges", ROOT/"examples/performance_frontier/stream.c", ["-DFRONTIER_NATIVE", "-DFRONTIER_REUSE", "-ldl"]),
+        ("test-native-ranges", HERE/"test_stream_ranges.c", ["-DFRONTIER_NATIVE", "-ldl"]),
+        ("test-native-cache", HERE/"test_native_cache.c", ["-ldl"]),
         ("test-stream", ROOT/"examples/performance_frontier/test_stream.c", ["-Ltarget/release", "-logpu"])):
         subprocess.run([*common, str(source), *extra, "-o", str(BUILD/name)], cwd=ROOT, env=env, check=True)
-    for name in ("test-reuse", "test-stream", "test-ranges"):
+    for name in ("test-reuse", "test-stream", "test-ranges", "test-native-ranges", "test-native-cache"):
         subprocess.run([str(BUILD/name)], env=env, check=True)
+    require("ogpu" not in subprocess.check_output(["nm","-u",str(BUILD/"stream-native-ranges")],text=True).lower(),
+            "native ranges link OGPU")
     subprocess.run([sys.executable, str(HERE/"test_runner.py")], env=env, check=True)
     if args.check:
         print("Reuse build/CPU gates PASS; no GPU"); return
@@ -96,13 +102,15 @@ def main():
     sources += [ROOT/"examples/performance_frontier"/n for n in ("stream.c", "small.c", "stream.py", "run.py")]
     sources += [ROOT/"include/ogpu.h", ROOT/"examples/learned_image/trace_memory.c",
                 ROOT/"examples/learned_image/extent.h", ROOT/"examples/learned_image/benchmark.py"]
+    sources += [ROOT/"examples/learned_image"/n for n in ("native.c","native_workload.h","allocation_tracker.h")]
+    sources += [ROOT/"vendor/Vulkan-Headers/include/vulkan/vulkan_core.h"]
     sources += list((ROOT/"examples/learned_image/generated").glob("*.h"))
     report = dict(schema=1, scope="mapped dedicated/arena correctness and allocation counts; no speed claim",
                   revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                   dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)),
-                  frames=frames, preflight=args.preflight, complete=False,
+                  frames=frames, preflight=args.preflight, native=args.native, complete=False,
                   sources={str(p.relative_to(ROOT)):f.digest(p) for p in sources},
-                  artifacts={n:f.digest(BUILD/n) for n in ("stream", "stream-legacy", "stream-native")},
+                  artifacts={n:f.digest(BUILD/n) for n in ("stream", "stream-legacy", "stream-native", "stream-native-ranges")},
                   allocation_tracer_sha256=f.digest(f.BUILD/"trace-memory.so"),
                   runtime_sha256=f.digest(ROOT/"target/release/libogpu.so"),
                   environment={k:env.get(k) for k in ("VK_DRIVER_FILES", "VK_INSTANCE_LAYERS", "VK_LAYER_VALIDATE_SYNC", "OGPU_TRACE_LOADER")},
@@ -116,15 +124,17 @@ def main():
         serial = dest/(label+"-serial"); serial.mkdir()
         serial_paths = [serial/"a.rgba", serial/"b.rgba"]
         env["OGPU_STREAM_SERIAL_A"], env["OGPU_STREAM_SERIAL_B"] = map(str, serial_paths)
-        requested = {}
+        requested, signatures, layouts = {}, {}, {}
+        policies = ("ogpu", "compiled", "reset", "replay") if args.native else ("ogpu", "compiled")
         configurations = [("dedicated", "ogpu", 1, 12, True)]
         configurations += [(allocation, policy, slots, frames, False) for slots in (1,2,3)
-                           for allocation in ("dedicated", "arena") for policy in ("ogpu", "compiled")]
+                           for allocation in ("dedicated", "arena") for policy in policies]
         for allocation, policy, slots, count, write in configurations:
             name = f"{label}-{allocation}-{policy}-{slots}"+("-serial" if write else "")
             env["OGPU_STREAM_ALLOCATION"] = allocation
             env["OGPU_STREAM_SERIAL_MODE"] = "write" if write else "check"
-            r = subprocess.run([str(BUILD/"stream"), policy, str(slots), *map(str, extent), str(count),
+            binary = "stream-native-ranges" if policy in ("reset","replay") else "stream"
+            r = subprocess.run([str(BUILD/binary), policy, str(slots), *map(str, extent), str(count),
                                 "validate", *map(str, paths)], env=env, text=True, capture_output=True)
             (dest/(name+".stdout")).write_text(r.stdout); (dest/(name+".stderr")).write_text(r.stderr)
             require(r.returncode == 0 and "Validation Error:" not in r.stdout+r.stderr, f"reuse run failed: {name}")
@@ -134,6 +144,10 @@ def main():
             backing = row["backing"]
             require(backing["buffer_requested_bytes"] == requested.setdefault(slots, backing["buffer_requested_bytes"]),
                     "dedicated/arena buffer byte budgets differ")
+            signature = [(a["bytes"],a["type"]) for a in f.bench.records(r.stderr,"ALLOCATE ")]
+            key = (allocation,slots)
+            require(signature == signatures.setdefault(key,signature), "native/public allocation size/type mismatch")
+            require(row["ranges"] == layouts.setdefault(key,row["ranges"]), "native/public range layout mismatch")
             row.update(label=name, serial_write=write, serial_sha256=[f.digest(p) for p in serial_paths],
                        trace=[line for line in r.stderr.splitlines() if line.startswith(("ALLOCATE ", "FREE ", "MEMORY_SUMMARY "))],
                        stdout_sha256=f.digest(dest/(name+".stdout")), stderr_sha256=f.digest(dest/(name+".stderr")))
