@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-26. This page owns current status and selected work. The
+Updated 2026-09-27. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -207,9 +207,12 @@ is accepted at `6ef0328`, following the `c4009c0` checked helper slice. Dedicate
 and arena-backed mapped slots pass 48,000 candidate frames across both drivers,
 with video extents on Radeon, serial-output identity and allocation cleanup.
 Three-slot native allocation count falls 25 → 7; peak bytes barely change and no
-speedup is claimed. Next: injected failure/drain paths and structured consumer
-diagnostics, then matched cost/allocator decisions and independent SDK handoff.
-M3 is not complete; success-path streaming does not accept failure handling.
+speedup is claimed. The [failure/drain checkpoint](resource-reuse-failures.md)
+is accepted at `e771e66`: 48 configurations per driver validate rejected/transient/
+drained-terminal outcomes, structured diagnostics, recovery or quarantine, and
+allocation cleanup. Synthetic loss follows real queue drain; no actual hardware-
+loss claim. Next: matched cost/allocator-submission decisions and independent SDK
+handoff. M3 is not complete; no new runtime/API change was needed for these gates.
 
 After M3: an experimental release checkpoint (M7),
 and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate

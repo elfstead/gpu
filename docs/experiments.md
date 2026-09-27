@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-26. This page records evidence, not API-stability promises. See
+Updated 2026-09-27. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -10,14 +10,24 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [M3 failure/drain checkpoint](resource-reuse-failures.md) is accepted at
+`e771e66` (2026-09-27): 48 configurations on each driver cover rejected submission,
+timeout/transient polling, drained wait error, safely synthesized loss and accepted-
+then-indeterminate submit. Recoverable cases validate another 64 frames; terminal
+cases never recycle or claim valid output. Structured reports join frame/slot/
+generation/ownership to range and native allocation/drain traces. All allocations
+are freed; no runtime/API change, actual hardware-loss or speed claim. Matched
+measurements/decisions and independent handoff remain before M3 acceptance.
+
 The [M3 mapped-stream checkpoint](resource-reuse-results.md) is accepted against
 `6ef0328` (2026-09-26): 48,000 sustained candidate frames, dedicated/arena ranges,
 one/two/three slots and owned reset/re-record/serial replay. Both drivers pass small
 cases; Radeon also passes 720p and odd-video extents. Every frame matches its serial
 reference and the unchanged CPU pixel gate; guards and allocation cleanup pass.
 Three-slot native allocations fall 25 → 7, with almost unchanged allocated bytes.
-No runtime/API change or speed claim. Injected failure handling, matched timing,
-the allocator decision and independent handoff remain; M3 is not complete.
+No runtime/API change or speed claim. The follow-up above now supplies bounded
+injected-failure evidence; matched timing, the allocator decision and independent
+handoff remain before M3 completion.
 
 The [M2 language decision](language-direction.md) is accepted against `8113303`
 (2026-09-26): retain pinned Slang plus the explicit device contract, with no new

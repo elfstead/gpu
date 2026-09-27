@@ -1,0 +1,103 @@
+# M3 failure/drain validation — 2026-09-27
+
+Clean implementation: e771e662a6af49d1acd3c205a10b0d26bbcd68ad
+Both driver reports record dirty=false, complete=true, 48 accepted scenarios.
+Runtime/public ABI 17, shaders, ordinary stream C and numerical gates unchanged.
+
+Environment:
+Rust 1.97.1; Clang 21.1.8; Python 3.14.7.
+Radeon RX 5700 XT / RADV Mesa 26.2.1 and llvmpipe / LLVM 21.1.8.
+Device API [1,4,354] on both drivers.
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
+VK_LAYER_VALIDATE_SYNC=1
+VK_DRIVER_FILES=/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json
+or /run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json.
+Selected real loader and exact source/artifact/fixture identity are in each report.
+Existing local dependency/tool/input caches reused; not clean-machine evidence.
+
+Commands:
+python3 examples/resource_reuse/failures.py --check
+python3 examples/resource_reuse/failures.py  # each driver, sequentially
+python3 examples/resource_reuse/run.py --preflight  # each driver, after failure suite
+
+Final artifacts:
+Radeon target/resource-reuse/failures-r5a9171i/report.json
+llvmpipe target/resource-reuse/failures-oyy4nd6m/report.json
+Each: 48 fault processes + a 12-frame serial reference process.
+Dedicated/arena x owned reset/serial replay x 2/3 slots x six fault modes:
+- OOM rejected before native acceptance; no wait on rejected timeline value.
+- Poll timeout; keep pending receipt/range.
+- Poll transient error; keep pending receipt/range.
+- Wait error before drain; runtime really drains, returns sticky error.
+- Synthetic loss AFTER successful real queue drain; all receipts retire as errors.
+- Submit accepted by real driver, then returns indeterminate error; runtime
+  queue drain is required despite no returned completion.
+
+All scenarios first validate 12 warmup frames. The 24 recoverable scenarios per
+driver validate outstanding frames plus 64 recovery frames each, with exact serial
+comparison AND unchanged independent CPU RGB <=1 / exact alpha. Then check input/
+weights, intermediate guards and HOST padding. Terminal cases quarantine all slots
+and do not accept outputs or recycle. Lists remain retained until explicit teardown.
+
+Structured events identify workload, enabled baseline, frame/slot/generation,
+operation, result/native error text, state and receipt/list ownership.
+Reports join events with named resource/executable labels, ranges, hashes,
+raw ALLOCATE/FREE/MEMORY_SUMMARY and native fault/drain records.
+All 96 scenarios: no Vulkan validation errors, zero tracked live allocations/bytes,
+no backing-allocation growth. Counts remain dedicated 17/25 versus arena 6/7.
+The single-queue shim aborts on backing frees before all real work drains.
+
+Final report source hashes and all 96 stdout/stderr hashes rechecked.
+Every scenario reparsed from its raw log and compared to its report entry.
+Committed JSON is byte-identical to the final local report.
+
+Ordinary mapped stream regression:
+Radeon target/resource-reuse/stream-5sbaztvp
+llvmpipe target/resource-reuse/stream-5dn5iy3v
+12 configurations x 12 frames, plus 12 serial frames per driver.
+All per-frame CPU/serial, integrity, guard, padding and allocation gates pass.
+No new full-scale 48,000-frame, M1, runtime GPU or ABI suite is claimed for this
+diagnostic-only addition; historical acceptance remains separate.
+
+CPU/build checks:
+- Optimized -Wall -Wextra -Werror builds of failure driver, shim and test.
+- Existing checked-range/slot/mapped-stream/parser tests pass.
+- Seven failure-report parser tests cover all six positive modes and reject invalid
+  context/state/errors/ranges, missing drain/quarantine, loss-before-drain,
+  missing injection, leaks and retry without new generation.
+- Shim CPU fakes verify rejection without forwarding, timeout/error without false
+  completion, real drain before loss, accepted-then-error forwarding, drain/free
+  guards, and JSON escaping.
+- Forked negative tests expect SIGABRT for early free, rejected-value wait and
+  synthetic loss without successful drain; child core dumps disabled.
+- AddressSanitizer/UBSan pass for shim/diagnostic CPU tests:
+  cc -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined
+     -Ivendor/Vulkan-Headers/include examples/resource_reuse/test_failure_shim.c
+     -ldl -o target/resource-reuse/test-failure-shim-sanitized
+  ASAN_OPTIONS=detect_leaks=0 target/resource-reuse/test-failure-shim-sanitized
+  LeakSanitizer disabled due environment tracing; no LSan claim.
+- Clang static analysis of failures.c and failure_shim.c passes; only Nix wrapper
+  unused linker-flag warnings.
+- cargo test --workspace --offline: 40 passed, 28 GPU tests ignored.
+- cargo clippy --workspace --all-targets --offline -- -D warnings: PASS.
+- cargo fmt --all -- --check: PASS.
+
+Limits:
+Safe synthetic faults are NOT actual hardware loss or driver recovery evidence.
+Artificial pending observations prove ownership behavior, not physical overlap.
+No noncoherent hardware, Metal, setup-OOM or general multiqueue/layer acceptance.
+No timing claim; all GPU runs use validation and tracing.
+Tracked memory excludes CPU and driver-private command allocations.
+Persistent real wait failures can still block indefinitely by API contract.
+M3 still needs matched cost/allocator-submission decision and independent handoff.
+
+Report and local validation-log SHA-256:
+26ad9e7aceb4c27302b1fd40258129d0e2b4adffe4b1a9fa8db8c912effd4b85  /tmp/ogpu-reuse-failures-final-radeon.log
+199fe66711c5ffa7992946b7268e8d1eb83b1a596f661bf332a4805d18d62176  /tmp/ogpu-reuse-failures-final-lvp.log
+41879742948130db5d134f51cfe76f36464aca60cae16181e68c77f4e15c940c  /tmp/ogpu-reuse-failures-regression-radeon.log
+c4b4fb1038c72c9650d7d622dba81cb6ef1fd3acb539965c0a1d0cd56b55d16a  /tmp/ogpu-reuse-failures-regression-lvp.log
+36c7b10da983583b1b1a790bded067859c558694661c72fc6c172d4b5d105a95  /tmp/ogpu-reuse-failures-build.log
+f423ec10e59b431ad7d3140e29708ee13d3da23ed5420e7b61daee3711e39672  /tmp/ogpu-reuse-failures-sanitized.log
+f2505bb3827e1e18f579a03012bcecbc9915b510ab101af736130d4a2e883102  /tmp/ogpu-reuse-failures-unit.log
+624bc182f07a0177173f842902a9c8fdb7633ea47bb89890507f05fa67722494  docs/results/resource-reuse-failures-radv-2026-09-27.json
+ca8cc411f9b7f0ccf3fd67f8c843c59edac3a76a5ce25d40e31149a59e20047d  docs/results/resource-reuse-failures-lvp-2026-09-27.json

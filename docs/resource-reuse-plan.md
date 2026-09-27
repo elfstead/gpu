@@ -24,9 +24,17 @@ The [mapped-stream checkpoint](resource-reuse-results.md) is accepted at `6ef032
 step 2 and step 3's sustained success-path/accounting portion pass 48,000 candidate
 frames across both drivers (video extents on Radeon). Dedicated/arena and owned
 reset/re-record/serial replay all match serial output. Three-slot native allocations
-fall 25 → 7 with virtually unchanged peak bytes; no speed claim. Next: injected
-failure/drain paths and structured consumer diagnostics, then measurement/decision
-and independent installed handoff. M3 remains unaccepted as a whole.
+fall 25 → 7 with virtually unchanged peak bytes; no speed claim.
+
+The [failure/drain checkpoint](resource-reuse-failures.md) is accepted at `e771e66`
+(2026-09-27): six injected modes across both strategies, two/three slots and
+reset/replay pass all 48 configurations on each driver. Recoverable cases resume
+with full output checks; terminal cases quarantine through teardown, with real
+drain before synthetic loss. Structured reports retain range/generation/ownership
+and native allocation/drain evidence. This closes the selected step 3 failures and
+step 4 consumer-diagnostic scope, not real hardware loss or general debugging.
+Next: matched measurement/allocator-submission decision and independent installed
+handoff. M3 remains unaccepted as a whole.
 
 ## Reuse established results
 
@@ -42,10 +50,11 @@ concurrent recording remain advantages of that implementation outside this slice
 
 The frontier already measured one/two/three slots and 1,000-frame execution;
 the replay, HOST-view and split-dependency work subsequently exposed better
-contracts. Do not repeat those designs as open questions. The missing integration
-is a sustained mixed workload using the current contract with caller-owned ranges,
-bounded reuse, failure handling and useful failure reports. Historical controls
-remain controls, not automatic acceptance of a newly integrated policy.
+contracts. Do not repeat those designs as open questions. This milestone selected
+a sustained mixed workload using the current contract with caller-owned ranges,
+bounded reuse, failure handling and useful failure reports. The checkpoints above
+now supply that integration's bounded correctness evidence. Historical performance
+controls remain controls, not automatic acceptance of the newly integrated policy.
 
 ## Commit-sized sequence
 

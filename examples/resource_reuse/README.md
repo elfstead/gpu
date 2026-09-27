@@ -77,15 +77,20 @@ driver success; CPU range tests exercise larger/odd granularity independently.
 The runner records revision/dirty state, hashes, individual process logs, logical
 range ownership, requested bytes and traced peak bytes under a fresh
 `target/resource-reuse/stream-*` directory. These runs keep validation/tracing on,
-so their elapsed times are diagnostic, not performance evidence. Runtime fault
-injection, matched native timing and independent installed handoff remain later
-M3 gates. There is no implied GPU race detection from the bookkeeping helper.
+so their elapsed times are diagnostic, not performance evidence. The separate
+failure integration below supplies bounded injection evidence; matched native
+timing and independent installed handoff remain M3 gates. There is no implied GPU
+race detection from the bookkeeping helper.
 
 At `c4009c0`, optimized checks, AddressSanitizer/UBSan and Clang analysis pass.
 LeakSanitizer cannot run under the test environment's tracing; the sanitizer run
 uses `ASAN_OPTIONS=detect_leaks=0`. This is not leak-detection evidence.
 
 ## Failure/drain integration
+
+The [bounded checkpoint](../../docs/resource-reuse-failures.md) is accepted at
+`e771e66`: all 48 configurations pass on each available Vulkan driver. It does not
+complete M3's measurement/decision or independent-handoff gates.
 
 ```sh
 python3 examples/resource_reuse/failures.py --check # build and CPU checks

@@ -108,9 +108,10 @@ slice changes examples only; no new Metal or additional physical-GPU claim follo
 
 ## What remains in M3
 
-1. Integrate injected known-rejected submission, temporary observation failure and
-   safely drained terminal failure, with structured frame/slot/generation/operation
-   reports. Current CPU quarantine tests are not injected GPU failure evidence.
+1. **Now accepted separately:** the [failure/drain checkpoint](resource-reuse-failures.md)
+   at `e771e66` adds rejected submission, temporary observation and safely drained
+   terminal failure integration with structured reports. The earlier CPU quarantine
+   tests alone were not injected GPU failure evidence.
 2. Measure setup and steady-state costs outside validation/tracing, using matched
    direct Vulkan controls where this policy adds a new question. Preserve the
    host-sensitive replay evidence; GPU-heavy parity cannot approve the fundamental
