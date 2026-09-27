@@ -84,3 +84,45 @@ M3 gates. There is no implied GPU race detection from the bookkeeping helper.
 At `c4009c0`, optimized checks, AddressSanitizer/UBSan and Clang analysis pass.
 LeakSanitizer cannot run under the test environment's tracing; the sanitizer run
 uses `ASAN_OPTIONS=detect_leaks=0`. This is not leak-detection evidence.
+
+## Failure/drain integration
+
+```sh
+python3 examples/resource_reuse/failures.py --check # build and CPU checks
+python3 examples/resource_reuse/failures.py         # selected driver, Vulkan/sync validation
+```
+
+`failures.c` uses the same mapped stream, shaders, ranges, slot states and teardown
+through the public C API. It is a separate diagnostic executable, not a new runtime
+fault-injection API or timing path. Each process warms up for 12 checked frames,
+then arms one fault explicitly while the other slots have unretired submissions.
+The matrix covers dedicated/arena × owned reset/serial replay × two/three slots.
+
+| Fault | Expected consumer action |
+|---|---|
+| Submit OOM before native acceptance | Discard consumed one-shot recording, abort the known-unsubmitted generation, acquire a new one; a compiled list remains retryable |
+| Poll timeout or temporary error | Keep receipt and range pending; reject reuse, then wait normally |
+| Wait error before real completion | Let the runtime drain before returning the sticky error; quarantine, never accept the output or recycle |
+| Synthetic device loss | Test shim first drains the real queue; consumer then retires all receipts as errors and quarantines all slots |
+| Submit accepted by driver, then reported as indeterminate | Runtime must drain the queue despite returning no completion; quarantine, never recycle |
+
+Recoverable cases check the outstanding frames and another 64 frames against both
+the serial images and CPU oracle, then check input/weight integrity, guards and
+HOST padding. Terminal cases check safe teardown, not valid output. Other receipts
+are explicitly observed even when a queue drain has physically completed their work.
+
+`failure_shim.c` chains the existing allocation tracer and real Vulkan loader. It
+never forwards the rejected OOM submission, never waits its unsignaled value, and
+aborts if backing memory is freed before all real work has drained. Synthetic loss
+is emitted only after a successful real queue-idle call; this is **not actual
+hardware-loss evidence**. Artificial timeout/error observations establish the
+consumer's ownership response, not that the physical GPU was still executing.
+The shim supports exactly this serialized, single-device/queue/timeline workload.
+Do not use it as a general loader, allocator, or production recovery mechanism.
+
+`REUSE_EVENT` records frame/slot/generation, operation, result, state and retained
+receipt/list ownership. The JSON report joins those events to device/enabled
+requirements, named resources/executables, ranges, source/binary/runtime hashes,
+fixtures, allocation and native-drain traces. Process failures and timeouts leave
+an incomplete report and captured logs for diagnosis. A missing gate or failed
+process is never accepted merely because the injection was intentional.

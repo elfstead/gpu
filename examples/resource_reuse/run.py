@@ -20,19 +20,7 @@ require = f.require
 BUILD = ROOT/"target/resource-reuse"
 
 
-def parse(stdout, stderr, allocation, policy, slots, extent, frames):
-    result, device, samples = stream.parse(stdout, policy, slots, extent, frames, True)
-    require(not samples, "validation must not export timing samples")
-    require("Reuse HOST padding and all slot generations retired PASS" in stdout, "missing padding/state gate")
-    memory = f.bench.parse_memory(stderr)
-    expected = 4+slots if allocation == "arena" else 1+8*slots
-    require(memory["allocations"] == memory["frees"] == memory["peak_count"] == expected,
-            "unexpected allocation count, growth or leak")
-    records = f.bench.records(stdout, "REUSE_MEMORY ")
-    require(len(records) == 1, "missing/duplicate allocation policy")
-    record = records[0]
-    require(record["allocation"] == allocation and record["buffer_allocations"] == expected-slots,
-            "wrong backing strategy")
+def parse_ranges(stdout, allocation, slots):
     ranges = f.bench.records(stdout, "REUSE_RANGE ")
     require(len(ranges) == slots*7, "missing range records")
     require(all(r["size"] > 0 and r["atom"] > 0 and r["offset"]%r["atom"] == 0
@@ -46,6 +34,23 @@ def parse(stdout, stderr, allocation, policy, slots, extent, frames):
                 "incorrect range ownership")
         require(r["offset"] >= ends.get(backing, 0), "overlapping ranges")
         ends[backing] = r["end"]
+    return ranges
+
+
+def parse(stdout, stderr, allocation, policy, slots, extent, frames):
+    result, device, samples = stream.parse(stdout, policy, slots, extent, frames, True)
+    require(not samples, "validation must not export timing samples")
+    require("Reuse HOST padding and all slot generations retired PASS" in stdout, "missing padding/state gate")
+    memory = f.bench.parse_memory(stderr)
+    expected = 4+slots if allocation == "arena" else 1+8*slots
+    require(memory["allocations"] == memory["frees"] == memory["peak_count"] == expected,
+            "unexpected allocation count, growth or leak")
+    records = f.bench.records(stdout, "REUSE_MEMORY ")
+    require(len(records) == 1, "missing/duplicate allocation policy")
+    record = records[0]
+    require(record["allocation"] == allocation and record["buffer_allocations"] == expected-slots,
+            "wrong backing strategy")
+    ranges = parse_ranges(stdout, allocation, slots)
     return dict(result=result, device=device, memory=memory, backing=record, ranges=ranges)
 
 
