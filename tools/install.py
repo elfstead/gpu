@@ -133,6 +133,20 @@ def install(prefix):
     copy(ROOT / "examples/compiler/affine.c", "share/ogpu/examples/dependencies/main.c")
     copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/dependencies/build.py")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
+    # Keep the measured consumer's relative source graph intact. Only the public
+    # branch is built; no Vulkan headers/native backend, checkout or target assets.
+    reuse = "share/ogpu/examples/resource-reuse"
+    for name in ("main.c", "build.py", "run.py", "README.md"):
+        copy(ROOT / "tools/sdk/resource-reuse" / name, f"{reuse}/{name}")
+    for relative in ("performance_frontier/stream.c", "performance_frontier/small.c",
+                     "resource_reuse/ranges.h", "resource_reuse/slots.h", "resource_reuse/stream_ranges.h",
+                     "learned_image/extent.h", "compiler/transform.generated.h"):
+        copy(ROOT / "examples" / relative, f"{reuse}/support/{relative}")
+    for name in ("application", "hidden", "denoise", "process", "poison", "fullscreen", "display"):
+        copy(ROOT / f"examples/learned_image/generated/{name}.generated.h",
+             f"{reuse}/{name}.generated.h")
+    for name in ("reference.py", "model.json"):
+        copy(ROOT / "examples/learned_image" / name, f"{reuse}/{name}")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
     pc.write_text("prefix=${pcfiledir}/../..\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n"

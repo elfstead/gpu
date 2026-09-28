@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,6 +37,7 @@ def main():
     parser.add_argument("--replay", action="store_true", help="also execute the optional reusable command-list path")
     parser.add_argument("--host-view", action="store_true", help="also execute optional direct HOST access with replay")
     parser.add_argument("--split", action="store_true", help="also execute split dependencies with serial replay")
+    parser.add_argument("--resource-reuse", action="store_true", help="also build/run the standalone two-slot arena/replay handoff")
     parser.add_argument("--affine", action="store_true", help="also build/execute the generated FP32-root example")
     parser.add_argument("--structured", action="store_true", help="also build/execute nested arguments and pointer blocks")
     parser.add_argument("--heap-image", action="store_true", help="also build/execute generated image/sampler heap roots")
@@ -85,6 +87,42 @@ def main():
     require(failure.returncode != 0 and "ogpu_probe_create" in failure.stderr,
             "absent loader must produce a visible failure")
     print("Missing loader rejects visibly PASS")
+    if args.resource_reuse:
+        reuse = temporary / "independent reuse app"
+        shutil.copytree(prefix / "share/ogpu/examples/resource-reuse", reuse)
+        run([sys.executable, "build.py"], cwd=reuse, env=environment)
+        dependencies = shlex.split((reuse / "reuse.d").read_text().replace("\\\n", "").split(":", 1)[1])
+        dependencies = {Path(p).resolve() for p in dependencies}
+        public = prefix / "include/ogpu.h"
+        require(public in dependencies, "consumer did not use installed public header")
+        require(all(p == public or p.is_relative_to(reuse) for p in dependencies),
+                "consumer has source dependencies outside its copied directory/installed header")
+        require(not any("vulkan" in p.name.lower() for p in dependencies), "consumer imported Vulkan headers")
+        linked = run(["ldd", "./reuse"], cwd=reuse, env=environment)
+        selected = next((line.split("=>", 1)[1].rsplit(" (", 1)[0].strip()
+                         for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")), None)
+        require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so",
+                "reuse consumer did not resolve relocated runtime")
+        failed = subprocess.run([sys.executable, "run.py", "--frames", "4"], cwd=reuse, env=missing,
+                                text=True, capture_output=True, timeout=60)
+        reports = list(reuse.glob("run-*/report.json"))
+        require(failed.returncode != 0 and len(reports) == 1, "reuse missing loader unexpectedly succeeded")
+        incomplete = json.loads(reports[0].read_text())
+        require(not incomplete["complete"] and incomplete.get("error") and not incomplete["runs"],
+                "reuse failure did not retain incomplete report")
+        require("ogpu_probe_create" in (reports[0].parent / "serial.stderr").read_text(),
+                "missing-loader diagnostics lost")
+        if not args.no_gpu:
+            output = run([sys.executable, "run.py"], cwd=reuse, env=environment)
+            require("Installed two-slot arena/replay PASS: 1000 checked frames" in output, "reuse handoff gate missing")
+            completed = [json.loads(p.read_text()) for p in reuse.glob("run-*/report.json") if p != reports[0]]
+            require(len(completed) == 1 and completed[0]["complete"] and completed[0]["frames"] == 1000,
+                    "reuse handoff report incomplete")
+            require(completed[0]["sdk"]["revision"] == identity and completed[0]["sdk"]["abi"] == int(abi),
+                    "reuse SDK identity differs")
+            require(completed[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],
+                    "reuse runtime identity differs")
+        print("Relocated resource-reuse source graph/runtime and failure report PASS")
     if not args.no_gpu:
         run(["./transform"], cwd=application, env=environment)
         if args.recording_storage:

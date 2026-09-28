@@ -58,6 +58,7 @@ share/ogpu/examples/structured/          # generated nested root and pointer blo
 share/ogpu/examples/heap-image/          # generated image/sampler heap roots
 share/ogpu/examples/stage-pair/          # checked vertex/fragment varyings
 share/ogpu/examples/dependencies/        # nested includes/import + build receipt
+share/ogpu/examples/resource-reuse/      # two-slot arena/replay + CPU oracle/model
 share/ogpu/QUICKSTART.md
 ```
 
@@ -72,6 +73,17 @@ ABI versions; it is not a guarantee that arbitrary same-ABI revisions are identi
 The package version remains experimental `0.1.0`; use the revision for identity.
 
 ## Build outside the repository
+
+For the sustained mixed compute/graphics reuse example, copy the entire installed
+`share/ogpu/examples/resource-reuse` directory to your own application directory.
+With `PKG_CONFIG_PATH` set as below, run `python3 build.py` then `python3 run.py` there.
+This generates its own deterministic inputs/CPU references, checks a serial
+baseline, then validates 1,000 frames using two arena-backed slots and compiled
+lists. No checkout fixtures, Vulkan headers, Rust or Slang are needed. The bundled
+README explains cache atoms, range/generation ownership, completion/CPU retirement,
+list lifetimes and error teardown. Reports and partial failure logs stay in fresh
+`run-*` directories. This Linux/Vulkan handoff is not supported on Metal and is not
+a performance benchmark, stable ABI promise or evidence of outside adoption.
 
 In another directory, copy just the installed example files:
 
