@@ -4,6 +4,8 @@ OGPU is an MIT-licensed experimental runtime for explicit GPU memory, programmab
 execution and synchronization. You can use the public C ABI independently of our
 examples and compiler tooling. No account, service, registry publication or project
 approval is needed. Pin a source revision; this is not a stable release or ABI.
+Read the [upgrade/rollback policy](release-policy.md) and [support matrix](support.md)
+before adopting another revision. Both are included in the installed SDK.
 
 ## Requirements
 

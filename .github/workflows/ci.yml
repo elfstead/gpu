@@ -10,8 +10,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config python3
       - run: python3 -B tools/test_installer.py
+      - run: python3 -B tools/test-reuse-handoff.py
       - run: python3 tools/install.py --prefix "$RUNNER_TEMP/ogpu-sdk"
-      - run: python3 tools/test-install.py --prefix "$RUNNER_TEMP/ogpu-sdk" --no-gpu
+      - run: python3 tools/test-install.py --prefix "$RUNNER_TEMP/ogpu-sdk" --no-gpu --resource-reuse
   probe:
     runs-on: ubuntu-24.04
     steps:

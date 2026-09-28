@@ -89,7 +89,9 @@ typedef struct OgpuDeviceInfo {
  * Optional execution features are never required for discovery.
  * out_probe is required and set to NULL on failure. out_error is optional and
  * cleared on success. Zero devices is a successful empty snapshot.
- * Pass OGPU_ABI_VERSION: a mismatch is rejected before writing versioned structs.
+ * Pass OGPU_ABI_VERSION: a mismatch is rejected before writing versioned structs;
+ * out_error is untouched on ABI mismatch or NULL out_probe. Do not read stale
+ * diagnostics for those results. A non-NULL out_probe is cleared on mismatch.
  * Non-NULL pointers must be aligned, valid, and writable for their entire objects;
  * outputs must not overlap. Rust panics are contained; allocation failure may abort. */
 OgpuResult ogpu_probe_create(uint32_t abi_version, OgpuProbe **out_probe, OgpuError *out_error);
@@ -104,7 +106,7 @@ OgpuResult ogpu_probe_device_count(const OgpuProbe *probe, uint32_t *out_count);
 OgpuResult ogpu_probe_device_info(const OgpuProbe *probe, uint32_t index, OgpuDeviceInfo *out_info);
 
 /* Experimental execution: Linux x86-64 uses Vulkan; macOS arm64 uses native Metal
- * on Apple Silicon, currently compute only (macOS 13+). Vulkan requires 1.4 + compute queue;
+ * on Apple Silicon, currently Metal 4 compute only (macOS 26+). Vulkan requires 1.4 + compute queue;
  * requires BDA, timelineSemaphore, synchronization2, maintenance5, storageBuffer16BitAccess,
  * VK_EXT_descriptor_heap, VK_KHR_device_address_commands and
  * VK_KHR_shader_untyped_pointers (including their feature bits).
@@ -508,7 +510,8 @@ OgpuResult ogpu_batch_enable_timing(OgpuBatch *batch, OgpuError *out_error);
 OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_nanoseconds,
     OgpuError *out_error);
 
-/* Images/heaps work on both execution profiles. Rasterization additionally requires
+/* On Vulkan, images/heaps work on both execution profiles; Metal returns UNSUPPORTED.
+ * Rasterization additionally requires
  * create_graphics (dynamicRendering and a shared graphics/compute queue).
  * Uses GENERAL layouts; VK_KHR_unified_image_layouts is enabled when supported
  * for its layout-efficiency guarantee, but is not required. Ownership rules

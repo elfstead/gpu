@@ -133,6 +133,8 @@ def install(prefix):
     copy(ROOT / "examples/compiler/affine.c", "share/ogpu/examples/dependencies/main.c")
     copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/dependencies/build.py")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
+    for name in ("release-policy.md", "support.md"):
+        copy(ROOT / "docs" / name, f"share/ogpu/{name}")
     # Keep the measured consumer's relative source graph intact. Only the public
     # branch is built; no Vulkan headers/native backend, checkout or target assets.
     reuse = "share/ogpu/examples/resource-reuse"

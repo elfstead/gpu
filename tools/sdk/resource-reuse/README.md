@@ -51,7 +51,8 @@ This is correctness/handoff evidence, not performance or external adoption evide
   Unknown submit outcomes quarantine; failed waits do not authorize output use.
   Teardown drains every accepted receipt, destroys lists/recordings, then resources
   and recording storage/device. The wait/submit error contracts supply the drain
-  guarantee; completion destruction alone is not a wait.
+  guarantee. Destroying a pending completion also drains, but cannot return an
+  error diagnostic; explicitly wait first when the outcome matters.
 
 Reports preserve partial stdout/stderr on failure. The separate repository fault
 suite covers synthetic failure/recovery transitions; its loader shim is deliberately

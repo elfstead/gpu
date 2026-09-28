@@ -1,15 +1,17 @@
 # Native Metal 4 backend
 
-Updated 2026-09-16 on `metal-backend`. ABI **12**; use matching headers, library
-and callers. This is an experimental compute backend, not a portability claim.
+Status reconciled 2026-09-28 on `master`; the common boundary is **ABI 17**.
+Native acceptance below remains the 2026-09-16 **ABI-12** result, not a current
+Mac validation. Use matching headers, library and callers. This is an experimental
+compute backend, not a portability claim.
 The Metal 4 migration and subsequent synchronization, feedback and lifetime
 corrections are validated natively on Apple M4 with macOS 26 and Xcode 26.5.
 
-The common boundary is now ABI 13: retirement may retain bounded empty command
+ABI 13 relaxed retirement to permit bounded empty command
 storage. Metal's existing destruction policy satisfies that relaxed rule; no
 native Metal reuse or ABI-13 Mac revalidation is claimed. Rebuild matching callers.
 
-ABI 14 now adds optional explicit recording storage. Metal exports UNSUPPORTED
+ABI 14 added optional explicit recording storage. Metal exports UNSUPPORTED
 stubs for that experiment; its default batch path is unchanged. Neither ABI-14
 native execution nor native allocator reuse has been validated on a Mac.
 
@@ -20,6 +22,10 @@ Metal replay implementation is claimed. See the [experiment](command-lists.md).
 ABI 16 adds optional borrowed HOST views and range cache visibility. Metal exports
 UNSUPPORTED stubs; its copy-based buffer path is unchanged. No native ABI-16 or
 Metal cache-visibility validation is claimed. See [the experiment](host-view-candidate.md).
+
+ABI 17 adds recording-local split dependencies and explicit command-list compile
+flags. Metal exports UNSUPPORTED for split/compile operations, with no fallback
+or native ABI-17 validation. The Linux SDK installer does not package Metal.
 
 ## Boundary and current implementation
 
