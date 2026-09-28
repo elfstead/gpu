@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Build and validate the native M4 indexed/depth reference; no OGPU linkage."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import shlex
+import subprocess
+import sys
+import tempfile
+sys.dont_write_bytecode=True
+HERE=Path(__file__).resolve().parent
+ROOT=HERE.parents[1]
+sys.path.insert(0,str(HERE.parent/'compiler'))
+import generate
+import oracle
+
+
+def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--check',action='store_true')
+    parser.add_argument('--scale',action='store_true')
+    args=parser.parse_args()
+    build=ROOT/'target/graphics-scene';build.mkdir(parents=True,exist_ok=True)
+    dest=Path(tempfile.mkdtemp(prefix='native-',dir=build))
+    print(f'Scene evidence: {dest}',flush=True)
+    report=dict(schema=1,complete=False,scope='native indexed/depth correctness, not public API acceptance or performance',
+                revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+                dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),runs=[],shaders={},
+                environment={k:os.getenv(k) for k in ('VK_DRIVER_FILES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_VULKAN_LIBRARY')})
+    report['toolchain']=dict(slang=generate.VERSION,cc=subprocess.check_output([*shlex.split(os.getenv('CC','cc')),'--version'],text=True).splitlines()[0],
+                             python=sys.version.split()[0])
+    def save(): (dest/'report.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
+    save()
+    try:
+        sources=list(HERE.glob('*.py'))+list(HERE.glob('*.c'))+list(HERE.glob('*.slang'))+[HERE/'README.md']
+        sources += [ROOT/'examples/learned_image'/name for name in ('native.c','native_workload.h','extent.h')]
+        sources += list((ROOT/'examples/learned_image/generated').glob('*.h'))
+        sources += list((ROOT/'examples/compiler').glob('*.py'))
+        sources += [ROOT/'include/ogpu.h',ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
+        report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources)}
+        for name,stage in [('prepare','compute'),('scene.vert','vertex'),('scene.frag','fragment')]:
+            reflection,assembly,binary=generate.compile_source(HERE/(name+'.slang'),dest/stage,os.getenv('SLANGC','slangc'),stage)
+            if stage=='compute':
+                generate.require(reflection['entryPoints'][0]['threadGroupSize']==[8,1,1],'wrong workgroup')
+            if stage!='fragment':
+                parameters=reflection['parameters'];generate.require(len(parameters)==1,'wrong native root count')
+                root=parameters[0]['type']['elementType']
+                fields=[(field['name'],field['binding']['offset'],field['binding']['size']) for field in root['fields']]
+                wanted=[('vertices',0,8)]+([('indices',8,8),('draws',16,8),('phase',24,4),('empty',28,4)] if stage=='compute' else [])
+                generate.require(fields==wanted and generate.uniform_size(root)==(32 if stage=='compute' else 8,8),'native root layout mismatch')
+            # This uses the native compiler, not inspect()/header()'s installed subset.
+            (dest/(stage+'.spv')).write_bytes(binary)
+            report['shaders'][stage]=dict(sha256=digest(dest/(stage+'.spv')),reflection=reflection)
+        binary=dest/'native'
+        command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
+                 '-I'+str(ROOT/'include'),'-I'+str(ROOT/'vendor/Vulkan-Headers/include'),
+                 '-I'+str(ROOT/'examples/learned_image/generated'),str(HERE/'native.c'),'-ldl','-o',str(binary)]
+        subprocess.run(command,check=True)
+        symbols=subprocess.check_output(['nm','-u',str(binary)],text=True)
+        generate.require('ogpu' not in symbols.lower(),'native reference links OGPU')
+        report['executable_sha256']=digest(binary); report['compile_command']=command
+        subprocess.run([sys.executable,'-B',str(HERE/'test_oracle.py')],check=True)
+        if args.check:
+            report['build_only']=True;report['complete']=True;save();print('Scene native build/oracle gates PASS; no GPU');return
+        generate.require(os.getenv('VK_DRIVER_FILES') and 'VK_LAYER_KHRONOS_validation' in os.getenv('VK_INSTANCE_LAYERS','')
+                         and os.getenv('VK_LAYER_VALIDATE_SYNC')=='1' and not os.getenv('VK_LOADER_LAYERS_DISABLE'),
+                         'select one ICD and enable Vulkan/synchronization validation')
+        for width,height in [(257,193),(640,360)]+([(1280,720)] if args.scale else []):
+            output=dest/f'{width}x{height}';output.mkdir()
+            with (output/'stdout').open('w') as out,(output/'stderr').open('w') as err:
+                run=subprocess.run([str(binary),str(width),str(height),str(dest),str(output)],stdout=out,stderr=err,timeout=300)
+            stdout=(output/'stdout').read_text();stderr=(output/'stderr').read_text()
+            generate.require(run.returncode==0 and 'Validation Error:' not in stdout+stderr,'native execution/validation failed; inspect retained logs')
+            generate.require('Native indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
+            devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
+            generate.require(len(devices)==1,'missing/duplicate device identity')
+            if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')
+            rows=[json.loads(line.removeprefix('SCENE_FRAME ')) for line in stdout.splitlines() if line.startswith('SCENE_FRAME ')]
+            expected=[dict(mode=m,phase=int(f==1),frame=f) for m in range(10) for f in range(3)]
+            generate.require(rows==expected,'missing/reordered frame records')
+            checks=[]
+            for row in rows:
+                stem=output/f"mode-{row['mode']}-frame-{row['frame']}"
+                checks.append(dict(**row,**oracle.check(stem.with_suffix('.images').read_bytes(),stem.with_suffix('.geometry').read_bytes(),
+                                                      width,height,row['phase'],row['mode'])))
+            for mode in range(10):
+                for suffix in ('images','geometry'):
+                    generate.require((output/f'mode-{mode}-frame-0.{suffix}').read_bytes()==(output/f'mode-{mode}-frame-2.{suffix}').read_bytes(),'A/B/A repeat mismatch')
+            for frame in range(3):
+                normal=(output/f'mode-0-frame-{frame}.images').read_bytes()
+                for mode in (1,6): generate.require(normal==(output/f'mode-{mode}-frame-{frame}.images').read_bytes(),'draw-order/load mismatch')
+            generate.require((output/'mode-0-frame-0.images').read_bytes()!=(output/'mode-0-frame-1.images').read_bytes(),'moving geometry did not change output')
+            report['runs'].append(dict(extent=[width,height],device=devices[0],checks=checks,
+                                      files={p.name:digest(p) for p in sorted(output.iterdir()) if p.is_file()}))
+            save();print(f'Scene {width}x{height}: all 30 color/depth/geometry/guard checks PASS',flush=True)
+        report['complete']=True;save()
+    except Exception as error:
+        report['error']=str(error);save();raise
+    print(f'Native indexed/depth control PASS; no public API/performance claim: {dest / "report.json"}')
+
+
+if __name__=='__main__': main()

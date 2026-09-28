@@ -244,12 +244,13 @@ static void native_buffer_destroy(Native *n, NativeBuffer *b) {
 }
 
 /* Caller owns partial construction immediately, and always destroys it. */
-static int native_buffer_create(Native *n, NativeBuffer *b, VkDeviceSize size, int host) {
+static int native_buffer_create_usage(Native *n, NativeBuffer *b, VkDeviceSize size, int host,
+                                      VkBufferUsageFlags extra_usage) {
     NEED(size && size <= PTRDIFF_MAX && !b->buffer && !b->memory);
     b->size = size;
     VkBufferCreateInfo create = {.sType=VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size=size,
         .usage=VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
-             | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+             | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | extra_usage,
         .sharingMode=VK_SHARING_MODE_EXCLUSIVE};
     VK_TRY(n->vkCreateBuffer(n->device, &create, NULL, &b->buffer));
     VkMemoryRequirements requirements;
@@ -274,6 +275,10 @@ static int native_buffer_create(Native *n, NativeBuffer *b, VkDeviceSize size, i
            b->type, n->memory.memoryTypes[b->type].propertyFlags);
 #endif
     return 1;
+}
+
+static int native_buffer_create(Native *n, NativeBuffer *b, VkDeviceSize size, int host) {
+    return native_buffer_create_usage(n, b, size, host, 0);
 }
 
 static int native_cache(Native *n, NativeBuffer *b, int flush) {
