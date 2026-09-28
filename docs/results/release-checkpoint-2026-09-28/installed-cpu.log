@@ -1,0 +1,19 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-uubs_4ib
+eba0eed9c03c59e3a158c7f446c5c9108cd427ec
+17
+-I/tmp/ogpu-external-uubs_4ib/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-uubs_4ib/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-uubs_4ib/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007b0e8b571000)
+	libogpu.so => /tmp/ogpu-external-uubs_4ib/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007b0e8b4d9000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007b0e8b200000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007b0e8b4ac000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007b0e8b573000)
+Missing loader rejects visibly PASS
+Built /tmp/ogpu-external-uubs_4ib/independent reuse app/reuse; run python3 run.py
+	linux-vdso.so.1 (0x0000705d90578000)
+	libogpu.so => /tmp/ogpu-external-uubs_4ib/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x0000705d904d8000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x0000705d90200000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x0000705d904ab000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x0000705d9057a000)
+Relocated resource-reuse source graph/runtime and failure report PASS
+External installation build PASS; revision=eba0eed9c03c59e3a158c7f446c5c9108cd427ec, ABI=17; artifacts retained: /tmp/ogpu-external-uubs_4ib

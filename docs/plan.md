@@ -223,9 +223,11 @@ each driver, independent CPU/serial gates and installed-example regressions.
 This completes bounded M3. Runtime/API are unchanged; broader performance-audit
 questions and actual outside adoption remain open.
 
-## Active milestone: M7 — experimental release preparation
+## Completed first M7 checkpoint: local source/SDK preparation
 
-Prepare the first Vulkan-scoped source/local-build checkpoint, not publication:
+The [fresh-source receipt](release-checkpoint.md) accepts clean `eba0eed`: all
+local preparation gates below pass. No publication/tag, remote CI, clean-host,
+minimum-Rust, current Metal or independent-adoption claim follows.
 
 1. Audit public ownership, errors/unsupported behavior, overflow boundaries and
    compatibility documentation; write a revision/ABI upgrade policy and current
@@ -237,7 +239,15 @@ Prepare the first Vulkan-scoped source/local-build checkpoint, not publication:
    requirements and minimal reproduction, then record the candidate's evidence
    and remaining limitations. Tagging, publishing or external outreach is separate.
 
-After this checkpoint: substantial graphics/ML consumers (M4/M5).
+## Active milestone: M4 — substantial offscreen graphics
+
+Follow the [bounded scene brief](graphics-consumer-plan.md): indexed geometry and
+depth first, then mips/views, blending/viewport/scissor and generated stage
+interfaces. Begin with a direct Vulkan indexed/depth reference and analytical
+probes before selecting new public contracts. Preserve native strategy choices;
+GPU-heavy parity alone does not approve the API. Existing devices suffice.
+
+After M4: the bounded ML consumer (M5); refresh M7 after feature milestones.
 Metal parity (M6) remains a separate
 native-validation track, not a prerequisite for local progress. The roadmap
 assigns remaining gaps either a milestone or an explicit deferral with entry

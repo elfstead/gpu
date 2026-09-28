@@ -59,6 +59,10 @@ compute/graphics results, explicit ICD selection and remaining runner provisioni
 
 ## Build and run
 
+The [first experimental source/SDK checkpoint](release-checkpoint.md) records the
+current fresh-source/local validation commands and their limits. It is not a remote
+CI result, portable binary qualification or published release.
+
 For standalone use, start with the [Linux installation and independent-application
 quickstart](quickstart.md). `python3 tools/install.py --prefix /new/absolute/prefix`
 builds and installs a revision-identified release SDK without overwriting an

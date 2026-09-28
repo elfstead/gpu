@@ -1,0 +1,62 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-jn5pn2hh
+eba0eed9c03c59e3a158c7f446c5c9108cd427ec
+17
+-I/tmp/ogpu-external-jn5pn2hh/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-jn5pn2hh/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-jn5pn2hh/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007eb244b3e000)
+	libogpu.so => /tmp/ogpu-external-jn5pn2hh/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007eb244aa6000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007eb244800000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007eb244a79000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007eb244b40000)
+Missing loader rejects visibly PASS
+Built /tmp/ogpu-external-jn5pn2hh/independent reuse app/reuse; run python3 run.py
+	linux-vdso.so.1 (0x0000770cba0e5000)
+	libogpu.so => /tmp/ogpu-external-jn5pn2hh/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x0000770cba045000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x0000770cb9e00000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x0000770cba018000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x0000770cba0e7000)
+Handoff artifacts: /tmp/ogpu-external-jn5pn2hh/independent reuse app/run-zoxdxiq9
+Installed two-slot arena/replay PASS: 1000 checked frames; report: /tmp/ogpu-external-jn5pn2hh/independent reuse app/run-zoxdxiq9/report.json
+Relocated resource-reuse source graph/runtime and failure report PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Borrowed host view: direct produce/consume, partial update, placement/range/output rejection PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Split dependency: paired transforms, token/output/unmatched rejection, serial replay PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Built /tmp/ogpu-external-jn5pn2hh/independent affine app/affine; run it to check device compatibility and execute
+Affine device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Affine PASS: 4099 exact binary32 values, three changing roots, all outputs and guards; root=24 local=64
+Built /tmp/ogpu-external-jn5pn2hh/independent structured app/structured; run it to check device compatibility and execute
+Structured device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Structured PASS: two guarded arrays, three A/B/A passes, nested vectors/arrays, pointer block and guards unchanged; root=32 block=48 local=64
+Built /tmp/ogpu-external-jn5pn2hh/independent heap app/heap-image; run it to check device compatibility and execute
+Executing heap-image on llvmpipe (LLVM 21.1.8, 256 bits)
+heap-image 1x1: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 2x3: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 63x65: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 64x64: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 65x63: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 97x65: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+Built /tmp/ogpu-external-jn5pn2hh/independent dependency app/dependency; run it to check device compatibility and execute
+Affine device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Affine PASS: 4099 exact binary32 values, three changing roots, all outputs and guards; root=24 local=64
+Built /tmp/ogpu-external-jn5pn2hh/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on llvmpipe (LLVM 21.1.8, 256 bits)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+External installation execution PASS; revision=eba0eed9c03c59e3a158c7f446c5c9108cd427ec, ABI=17; artifacts retained: /tmp/ogpu-external-jn5pn2hh

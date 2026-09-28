@@ -1,0 +1,5 @@
+   Compiling cfg-if v1.0.4
+   Compiling ogpu-vulkan-sys v0.1.0 (/tmp/ogpu-m7-BqXRZU/source/crates/vulkan-sys)
+   Compiling libloading v0.8.9
+   Compiling ogpu v0.1.0 (/tmp/ogpu-m7-BqXRZU/source/crates/ogpu)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 4.83s

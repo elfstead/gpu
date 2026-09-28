@@ -1,0 +1,17 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/xtask baseline`
+AMD Radeon RX 5700 XT (RADV NAVI10): Vulkan 1.4.354
+  bufferDeviceAddress              1
+  timelineSemaphore                1
+  synchronization2                 1
+  dynamicRendering                 1
+  maintenance5                     1
+  storageBuffer16BitAccess         1
+  descriptorHeap                   1
+  deviceAddressCommands            1
+  shaderUntypedPointers            1
+  unifiedImageLayouts              0
+  unified layouts are optional (GENERAL layout-efficiency guarantee)
+  maxPushDataSize                  256
+  feature baseline: compute=yes graphics=yes (queue/creation/execution not tested)
+1/1 devices meet compute feature baseline

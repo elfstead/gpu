@@ -1,0 +1,62 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-1eobmt4s
+eba0eed9c03c59e3a158c7f446c5c9108cd427ec
+17
+-I/tmp/ogpu-external-1eobmt4s/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-1eobmt4s/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-1eobmt4s/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x0000770560017000)
+	libogpu.so => /tmp/ogpu-external-1eobmt4s/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x000077055ff7f000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x000077055fc00000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x000077055ff52000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x0000770560019000)
+Missing loader rejects visibly PASS
+Built /tmp/ogpu-external-1eobmt4s/independent reuse app/reuse; run python3 run.py
+	linux-vdso.so.1 (0x00007500926ec000)
+	libogpu.so => /tmp/ogpu-external-1eobmt4s/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x000075009264c000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x0000750092400000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x000075009261f000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007500926ee000)
+Handoff artifacts: /tmp/ogpu-external-1eobmt4s/independent reuse app/run-brerveag
+Installed two-slot arena/replay PASS: 1000 checked frames; report: /tmp/ogpu-external-1eobmt4s/independent reuse app/run-brerveag/report.json
+Relocated resource-reuse source graph/runtime and failure report PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Borrowed host view: direct produce/consume, partial update, placement/range/output rejection PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Split dependency: paired transforms, token/output/unmatched rejection, serial replay PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Built /tmp/ogpu-external-1eobmt4s/independent affine app/affine; run it to check device compatibility and execute
+Affine device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Affine PASS: 4099 exact binary32 values, three changing roots, all outputs and guards; root=24 local=64
+Built /tmp/ogpu-external-1eobmt4s/independent structured app/structured; run it to check device compatibility and execute
+Structured device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Structured PASS: two guarded arrays, three A/B/A passes, nested vectors/arrays, pointer block and guards unchanged; root=32 block=48 local=64
+Built /tmp/ogpu-external-1eobmt4s/independent heap app/heap-image; run it to check device compatibility and execute
+Executing heap-image on AMD Radeon RX 5700 XT (RADV NAVI10)
+heap-image 1x1: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 2x3: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 63x65: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 64x64: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 65x63: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+heap-image 97x65: three submissions, independent heaps, four sampler/index cases, retention/mutation, pixels/guards PASS
+Built /tmp/ogpu-external-1eobmt4s/independent dependency app/dependency; run it to check device compatibility and execute
+Affine device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Affine PASS: 4099 exact binary32 values, three changing roots, all outputs and guards; root=24 local=64
+Built /tmp/ogpu-external-1eobmt4s/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on AMD Radeon RX 5700 XT (RADV NAVI10)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+External installation execution PASS; revision=eba0eed9c03c59e3a158c7f446c5c9108cd427ec, ABI=17; artifacts retained: /tmp/ogpu-external-1eobmt4s

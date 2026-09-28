@@ -1,0 +1,1069 @@
+{
+  "schema": 1,
+  "revision": "eba0eed9c03c59e3a158c7f446c5c9108cd427ec",
+  "source_dirty": false,
+  "abi": 17,
+  "complete": true,
+  "scope": "M7 local Vulkan source/SDK preparation; no publication, clean-host, remote-CI, minimum-Rust or external-adoption claim",
+  "source_clone": "/tmp/ogpu-m7-BqXRZU/source",
+  "clone_origin": "/home/elf/dev/gpu (local --no-hardlinks clone)",
+  "build_state": "Initially absent target and Vulkan-Headers; ordinary build/test/install first. Then pinned headers cloned locally for ABI/mock/bindings.",
+  "headers_revision": "e3b1eec08173d6b825cd3ac88c885a63b621504a",
+  "cached_inputs": [
+    "local Nix toolchain",
+    "Cargo registry /tmp/ogpu-cargo-dependencies.fXh5H4wT",
+    "Slang /tmp/ogpu-slang.yunI5tdx/bin/slangc"
+  ],
+  "environment": {
+    "CARGO_NET_OFFLINE": "true",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_TARGET_DIR": null,
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1"
+  },
+  "drivers": {
+    "radv": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "lvp": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json"
+  },
+  "toolchain": {
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14) (built from a source tarball)",
+    "cc": "clang version 21.1.8",
+    "python": "Python 3.14.7",
+    "spirv-tools": "SPIRV-Tools v2026.3 unknown hash, 1980-01-01T00:00:00+00:00"
+  },
+  "installation_manifest": {
+    "schema": 1,
+    "revision": "eba0eed9c03c59e3a158c7f446c5c9108cd427ec",
+    "source_dirty": false,
+    "abi": 17,
+    "version": "0.1.0",
+    "target": "x86_64-unknown-linux-gnu",
+    "profile": "release",
+    "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14) (built from a source tarball)",
+    "dependencies": [
+      {
+        "name": "ogpu-vulkan-sys",
+        "version": "0.1.0",
+        "license": "MIT"
+      },
+      {
+        "name": "cfg-if",
+        "version": "1.0.4",
+        "license": "MIT OR Apache-2.0"
+      },
+      {
+        "name": "libloading",
+        "version": "0.8.9",
+        "license": "ISC"
+      }
+    ],
+    "files_sha256": {
+      "bin/ogpu-graphics": "3cfd6deaf56d8d5ef6000dfbde1953d144ddc0a5bd146884412b94fb519c3fe0",
+      "bin/ogpu-shader": "66e0f2300df35db10f4c69569fed8f3f292a24f71e0e7262a937b3e5f0424c7f",
+      "include/ogpu.h": "a6ff63f2cb68a4fb39dc5e984fd9ce8675dc56d9c4df3bfd6cecb0b948247c8e",
+      "lib/libogpu.so": "cafe6f31eabb6774707c6c93895bcb429567f8ab70eb9e7c7de331b9fbbd4128",
+      "lib/pkgconfig/ogpu.pc": "22b2106fa23de53c42f6c343f8e0c2e70421d888edf98f69d461d19042fca53f",
+      "share/ogpu/QUICKSTART.md": "fdf06119f88d562b631566690433a0fb8bcdb07a194fe5cd5c47c985b0ceb527",
+      "share/ogpu/examples/affine/affine.generated.h": "c420fc997a4a4eb0cd3ed8b75048b105d1a3fa34551306ffe71c4ce7d130f5fc",
+      "share/ogpu/examples/affine/affine.slang": "c536698cd498ada78d88fd56dfb18bb811536e29588de4c9bcf3294c4c4da971",
+      "share/ogpu/examples/affine/build.py": "bc3ac70a918247b1958bb439e5e5f7f9cec2b5090ca1a1bc43090ef03d6cb70f",
+      "share/ogpu/examples/affine/main.c": "482b63a9ee8bf0d2e7234670e2a84613f2f36512f3a8cc4f20d23b8cfdc66a03",
+      "share/ogpu/examples/dependencies/affine.generated.h": "02413f749a1850fb54fb16bb9419e72ebc5a16186311f0758f5da3fcee8884db",
+      "share/ogpu/examples/dependencies/affine.slang": "96e0a8f1cd8955860d44651bbb11d435fdaa114408fbfa222d6bea9e62dd5d59",
+      "share/ogpu/examples/dependencies/affine_math.slang": "023dec7f5d4cf10f36310ed4a1b2439357267872bf1975c3685a1ee98bcab37a",
+      "share/ogpu/examples/dependencies/build.json": "cf972334b00b8e0b2f8f73f5b738dd1994349e712b0b6eb7f45f36e16af77429",
+      "share/ogpu/examples/dependencies/build.py": "bc3ac70a918247b1958bb439e5e5f7f9cec2b5090ca1a1bc43090ef03d6cb70f",
+      "share/ogpu/examples/dependencies/include/arguments.slangh": "2d3c257bec8ecec20e92700669f058874fdfba7989209792f4170f92a72628b5",
+      "share/ogpu/examples/dependencies/include/config.slangh": "e115ca7b34d9926a4f519a55920b827eec49840d2792fe1db4591d31b112b2fe",
+      "share/ogpu/examples/dependencies/include/math.slangh": "d290af8a3708efb4badd8593bd000f8844438cf18bbb73fc83ee6be8fd93855c",
+      "share/ogpu/examples/dependencies/main.c": "482b63a9ee8bf0d2e7234670e2a84613f2f36512f3a8cc4f20d23b8cfdc66a03",
+      "share/ogpu/examples/heap-image/build.py": "bc3ac70a918247b1958bb439e5e5f7f9cec2b5090ca1a1bc43090ef03d6cb70f",
+      "share/ogpu/examples/heap-image/fullscreen.vert.spv": "038aaffa48ffb4bf19f55f52ad1aa45a0aec64afca64d8f802c49c33df38c138",
+      "share/ogpu/examples/heap-image/heap-process.slang": "b050d0ebc0997238d4eff754bcbe049607762f15f02513a79a99843f43b7a026",
+      "share/ogpu/examples/heap-image/heap-sample.slang": "ea49db72bec34958a06a8f3d3dfc6e2f689a785af8887927fb44ff99691334c8",
+      "share/ogpu/examples/heap-image/heap_process.generated.h": "30ae8f1486cdd2d86cd671e6ed45dd047e27feb9d23ee717d6f2ce2a73a80dc9",
+      "share/ogpu/examples/heap-image/heap_sample.generated.h": "ad3a0b2afb838012147d8327d7a1ca54c7558637c199cc2511537b1d3585fc15",
+      "share/ogpu/examples/heap-image/image-pattern.frag.spv": "5ed25fdfaa44e1cf04d40b14cc2d27f6dda0dfab58d239402f0f33505244f478",
+      "share/ogpu/examples/heap-image/main.c": "55bc02371fcfa2bd5e01e9694d38648b88ee6fbbee02e28fdbb7bacc3765ce0d",
+      "share/ogpu/examples/resource-reuse/README.md": "00ac6c8735ac6a29c3abefdd0245ec6da9a10ca52de58ad9d8fbee978686e92f",
+      "share/ogpu/examples/resource-reuse/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+      "share/ogpu/examples/resource-reuse/build.py": "7e0e338923a933fcf97285e47c1f146a62392ecb62b07206fbcb929fec8a2a89",
+      "share/ogpu/examples/resource-reuse/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+      "share/ogpu/examples/resource-reuse/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+      "share/ogpu/examples/resource-reuse/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+      "share/ogpu/examples/resource-reuse/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+      "share/ogpu/examples/resource-reuse/main.c": "3ce1a85414c04bad7c2dde2b643f609139012de48c21912c139eb548e71b917c",
+      "share/ogpu/examples/resource-reuse/model.json": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+      "share/ogpu/examples/resource-reuse/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+      "share/ogpu/examples/resource-reuse/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+      "share/ogpu/examples/resource-reuse/reference.py": "c5f983459cd4786e46bae32d6c325f83a47fbbf13bc5abcb41782a32ef05077e",
+      "share/ogpu/examples/resource-reuse/run.py": "87335f626aab46e8ea0f21648a730d9343489ac16a3d257a2886fa0085d13ffb",
+      "share/ogpu/examples/resource-reuse/support/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+      "share/ogpu/examples/resource-reuse/support/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+      "share/ogpu/examples/resource-reuse/support/performance_frontier/small.c": "7dd6f7fab7cfa9e8c4fa08c86e0a0a34394d626d947ac4b6c0088befe37ecb91",
+      "share/ogpu/examples/resource-reuse/support/performance_frontier/stream.c": "bd81bab23b00b1ef73186ca38e61fde928a1e68d0521c6488178c2de915ad2a6",
+      "share/ogpu/examples/resource-reuse/support/resource_reuse/ranges.h": "62e8ab0e3dd43beaae12d2896d0a4160eae69e02fe512ad7cca87964af274fc4",
+      "share/ogpu/examples/resource-reuse/support/resource_reuse/slots.h": "9cc80a3db452e8cdb4e11624f2d5b2a0ec4cb783029ac745ed047522d72e3eae",
+      "share/ogpu/examples/resource-reuse/support/resource_reuse/stream_ranges.h": "01e5dae0937c738c09e28fd8f155c17a9542fadd1786c3c8867cafaea3f45397",
+      "share/ogpu/examples/stage-pair/build.py": "bc3ac70a918247b1958bb439e5e5f7f9cec2b5090ca1a1bc43090ef03d6cb70f",
+      "share/ogpu/examples/stage-pair/main.c": "7a47896fa50dbd9b8ee992b562586269f38a614afed83cda2963b72af01d1d25",
+      "share/ogpu/examples/stage-pair/pattern.generated.h": "d82a756f9ae0cf981a95e11de5342d8aa9b3b1d36487bd4833f7cd0fdc843d89",
+      "share/ogpu/examples/stage-pair/stage_fragment.slang": "34c06957aa1ad38e53791caf63ac0ddb5b14b7ff23d1333600e346b21c22e788",
+      "share/ogpu/examples/stage-pair/stage_vertex.slang": "95cf80569a6cedcf4190dfc49905bd370fa5095b55a0ce5e74e3f2b949d74bfa",
+      "share/ogpu/examples/structured/build.py": "bc3ac70a918247b1958bb439e5e5f7f9cec2b5090ca1a1bc43090ef03d6cb70f",
+      "share/ogpu/examples/structured/main.c": "0d27fba55fe3ccbb4c000052e924a8ac318b4a632530c058d35f67fad4a01a0d",
+      "share/ogpu/examples/structured/structured.generated.h": "b24335f90f59d10bfc0c74831f22cd56353dd812f126092b024310c1af21848f",
+      "share/ogpu/examples/structured/structured.slang": "1c12b892928f8054694b96545febed4ad92ca8efbdaba6a14803736febc25f6c",
+      "share/ogpu/examples/transform/build.py": "bc3ac70a918247b1958bb439e5e5f7f9cec2b5090ca1a1bc43090ef03d6cb70f",
+      "share/ogpu/examples/transform/main.c": "4da0cdce5cb9ae7b9255934de2719207d8e2825afb400f017912d3b7c07b4a2d",
+      "share/ogpu/examples/transform/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+      "share/ogpu/examples/transform/transform.slang": "9f75d33cd837a7251bac41970ec7f93107a0c8be46815f77af15bd127aceed8a",
+      "share/ogpu/licenses/Vulkan-Headers-MIT.txt": "a8a1b3f00b17c80b21b9d5f6c1001c2ab40fd6db489a2e3e5063d0880f58335a",
+      "share/ogpu/licenses/cfg-if-1.0.4/LICENSE-APACHE": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+      "share/ogpu/licenses/cfg-if-1.0.4/LICENSE-MIT": "378f5840b258e2779c39418f3f2d7b2ba96f1c7917dd6be0713f88305dbda397",
+      "share/ogpu/licenses/libloading-0.8.9/LICENSE": "b29f8b01452350c20dd1af16ef83b598fea3053578ccc1c7a0ef40e57be2620f",
+      "share/ogpu/licenses/ogpu-MIT.txt": "5cfc6a357ed6056e0ee4da2dad42dcab859adc6765aedfdfb03ef06363dde737",
+      "share/ogpu/release-policy.md": "e61e4005eb64a9f1baa9b38458942566c7d4ae2b9411e3d6b64d6d1df3f7816b",
+      "share/ogpu/support.md": "972fc9a632edd124f66507a2a00b73664641635ff9ee5b0b13c00ba9ec39504f",
+      "share/ogpu/tools/build_inputs.py": "7fa31e7cbff50be5e2db8ca520897f50b77a5d4c3f4894e983ef199ec552912c",
+      "share/ogpu/tools/generate.py": "73d00c407853b713749b6975162a9b203794517aaafde740a8ffc642dc99d51e",
+      "share/ogpu/tools/heaps.py": "85bb96970c7a36d91fc4f262d6aa13e8f423bbca5cf5eb1895db17a037642276",
+      "share/ogpu/tools/layouts.py": "8f50e4433948288938d6eaf204e5d8d7d9326fb69efdb304c866edba30be3383",
+      "share/ogpu/tools/link_graphics.py": "b80fc7f3780dbd508a0115d8cb397dca80760a1e6f0bebf676c6ffbea5470475",
+      "share/ogpu/tools/stages.py": "dc7d2e00751c82ffc7b8b186ee4bd94cb5212e7218a65fe6c7db0c4612f16c42"
+    },
+    "compatibility": "Match header/library/artifacts from one revision; no stable ABI promise.",
+    "binary_scope": "Locally built; host libc/toolchain dependencies are not bundled."
+  },
+  "installation_manifest_sha256": "a00e1bd28936d1d3e461bb10bdff7b21a61e7b1617ddbce5a307e884c91eb27f",
+  "commands": [
+    {
+      "command": "cargo build --locked",
+      "log": "build.log",
+      "log_sha256": "f6bb00cd58eab881397b88c0cd8cd4037f571dc6d6bd42fb048882ed752ef423",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo test --locked",
+      "log": "test.log",
+      "log_sha256": "9249b79044dfe481c1994b486b33efb667f466c7b60af2eb82c00ca91ec16e15",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo fmt --all --check",
+      "log": "fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+      "log": "clippy.log",
+      "log_sha256": "28cdeabc09c3c759209acbdfdcad0f7c0253bcfcecdc53657c1d51f6fb778a83",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 -B tools/test_installer.py",
+      "log": "installer-tests.log",
+      "log_sha256": "62cfbeb2911bb226088bfb0918eb4b05008ea70b20bce854ee2ca8a564bd37a5",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 -B tools/test-reuse-handoff.py",
+      "log": "handoff-tests.log",
+      "log_sha256": "5684d13977a1f6829bcd5f644c72b35ab6f8d42951d571a5f230c4cc35a359f3",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tools/install.py --prefix /tmp/ogpu-m7-BqXRZU/sdk",
+      "log": "install.log",
+      "log_sha256": "f308519e800ccb1b6ac4105c5fc2cab371454ecb82dc588725da0a460db17ec5",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tools/test-install.py --prefix /tmp/ogpu-m7-BqXRZU/sdk --no-gpu --resource-reuse",
+      "log": "installed-cpu.log",
+      "log_sha256": "5984a9a68b0869f67890c639e268800c4145b5dd3fca2a95f70244577a162d95",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask bindings --check",
+      "log": "bindings.log",
+      "log_sha256": "c5f7ee2d160b85b0236fcc82064dcf651f424f376218f07b1c61c87f633b1e04",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask abi",
+      "log": "abi.log",
+      "log_sha256": "9b2330cc6cefca63a527c25e022d43b482839ce930b10bc190ef052bb21c56a7",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask mock",
+      "log": "mock.log",
+      "log_sha256": "fa92db19e30f4c26e8303f63a80f571516b4596c845f9a1d47055bbf6d2e21c5",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask baseline",
+      "log": "baseline-radv.log",
+      "log_sha256": "b481af84bfcef5ede5151eb80d27c799a704ead50928b56fadd55a805c92d24f",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask gpu-tests",
+      "log": "gpu-radv.log",
+      "log_sha256": "7dd9262d586a6392df98fa44fd493ac39154354bd1d9fb6129b6569e9db2849a",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tools/test-install.py --prefix /tmp/ogpu-m7-BqXRZU/sdk --resource-reuse --recording-storage --replay --host-view --split --affine --structured --heap-image --dependencies --stage-pair",
+      "log": "installed-radv.log",
+      "log_sha256": "1f1c8b620211c6f672e98e17b18a0473a6191058293572d0e09d121dd333e54a",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tools/test-install.py --prefix /tmp/ogpu-m7-BqXRZU/sdk --affine --structured --heap-image --dependencies --stage-pair --shader-check",
+      "log": "installed-shader-radv.log",
+      "log_sha256": "01e317ace8aa38b11a2cea2c912c70660a90abbba72230a2158b52fed591e37c",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask baseline",
+      "log": "baseline-lvp.log",
+      "log_sha256": "689d5fec07cbc47f6422134eeb154fbce92a618d2dda151fa9b2776f30c25499",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo xtask gpu-tests",
+      "log": "gpu-lvp.log",
+      "log_sha256": "9b39d1da2909e48c03660250c8f1c680de24fcc3eb98b514955650861e0c4c8e",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tools/test-install.py --prefix /tmp/ogpu-m7-BqXRZU/sdk --resource-reuse --recording-storage --replay --host-view --split --affine --structured --heap-image --dependencies --stage-pair",
+      "log": "installed-lvp.log",
+      "log_sha256": "fe2f4bf24f4afbc0f9cb71b4db6f77ecfccde5c859691319446e8567928364e1",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 tools/test-install.py --prefix /tmp/ogpu-m7-BqXRZU/sdk --affine --structured --heap-image --dependencies --stage-pair --shader-check",
+      "log": "installed-shader-lvp.log",
+      "log_sha256": "5327012d2294c08b1325d9c5261be841dbba6779f28e9f362f4de9988ff7a861",
+      "exit_code": 0
+    }
+  ],
+  "reuse": {
+    "radv": {
+      "report": {
+        "schema": 1,
+        "complete": true,
+        "scope": "installed public C consumer correctness; not timing or external adoption",
+        "frames": 1000,
+        "runs": [
+          {
+            "result": {
+              "policy": "ogpu",
+              "slots": 1,
+              "extent": [
+                65,
+                47,
+                131,
+                95
+              ],
+              "frames": 12,
+              "warmups": 0,
+              "validation": true,
+              "setup_ms": 22.429411992,
+              "wall_ms": 3.633245006,
+              "max_rgb_delta": 1
+            },
+            "device": {
+              "vendor": 4098,
+              "device": 29471,
+              "api": [
+                1,
+                4,
+                354
+              ]
+            },
+            "memory": {
+              "allocation": "dedicated",
+              "buffer_allocations": 8,
+              "buffer_requested_bytes": 391964,
+              "host_upload_budget": 16384,
+              "host_readback_budget": 53248
+            },
+            "ranges": [
+              {
+                "slot": 0,
+                "resource": 0,
+                "backing": 0,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 1,
+                "backing": 1,
+                "offset": 0,
+                "size": 484,
+                "end": 484,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 2,
+                "backing": 2,
+                "offset": 0,
+                "size": 97888,
+                "end": 97888,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 3,
+                "backing": 3,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 4,
+                "backing": 4,
+                "offset": 0,
+                "size": 199248,
+                "end": 199248,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 5,
+                "backing": 5,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 0,
+                "resource": 6,
+                "backing": 6,
+                "offset": 0,
+                "size": 49908,
+                "end": 49908,
+                "atom": 1,
+                "host": true
+              }
+            ],
+            "log_sha256": {
+              "serial.stdout": "3e36cc58c284e73720a6bf830efa0d4fc2050a6027ff98bdb6c63ca13cc2ebbf",
+              "serial.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "result": {
+              "policy": "compiled",
+              "slots": 2,
+              "extent": [
+                65,
+                47,
+                131,
+                95
+              ],
+              "frames": 1000,
+              "warmups": 0,
+              "validation": true,
+              "setup_ms": 21.162653998,
+              "wall_ms": 75.206259996,
+              "max_rgb_delta": 1
+            },
+            "device": {
+              "vendor": 4098,
+              "device": 29471,
+              "api": [
+                1,
+                4,
+                354
+              ]
+            },
+            "memory": {
+              "allocation": "arena",
+              "buffer_allocations": 4,
+              "buffer_requested_bytes": 783912,
+              "host_upload_budget": 32768,
+              "host_readback_budget": 106496
+            },
+            "ranges": [
+              {
+                "slot": 0,
+                "resource": 0,
+                "backing": 0,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 1,
+                "backing": 0,
+                "offset": 12348,
+                "size": 484,
+                "end": 12832,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 2,
+                "backing": 0,
+                "offset": 12832,
+                "size": 97888,
+                "end": 110720,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 3,
+                "backing": 0,
+                "offset": 110720,
+                "size": 12348,
+                "end": 123068,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 4,
+                "backing": 0,
+                "offset": 123068,
+                "size": 199248,
+                "end": 322316,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 5,
+                "backing": 1,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 0,
+                "resource": 6,
+                "backing": 2,
+                "offset": 0,
+                "size": 49908,
+                "end": 49908,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 1,
+                "resource": 0,
+                "backing": 0,
+                "offset": 322316,
+                "size": 12348,
+                "end": 334664,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 1,
+                "backing": 0,
+                "offset": 334664,
+                "size": 484,
+                "end": 335148,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 2,
+                "backing": 0,
+                "offset": 335148,
+                "size": 97888,
+                "end": 433036,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 3,
+                "backing": 0,
+                "offset": 433036,
+                "size": 12348,
+                "end": 445384,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 4,
+                "backing": 0,
+                "offset": 445384,
+                "size": 199248,
+                "end": 644632,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 5,
+                "backing": 1,
+                "offset": 12348,
+                "size": 12348,
+                "end": 24696,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 1,
+                "resource": 6,
+                "backing": 2,
+                "offset": 49908,
+                "size": 49908,
+                "end": 99816,
+                "atom": 1,
+                "host": true
+              }
+            ],
+            "log_sha256": {
+              "candidate.stdout": "8c37216a6e7bce7a5639aec3045f1e58bcbcda280a50181a97a54e1ef11dbcb6",
+              "candidate.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "environment": {
+          "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+          "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+          "VK_LAYER_VALIDATE_SYNC": "1",
+          "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+        },
+        "sdk": {
+          "revision": "eba0eed9c03c59e3a158c7f446c5c9108cd427ec",
+          "abi": 17,
+          "runtime_sha256": "cafe6f31eabb6774707c6c93895bcb429567f8ab70eb9e7c7de331b9fbbd4128",
+          "runtime_path": "/tmp/ogpu-external-1eobmt4s/relocated sdk/lib/libogpu.so"
+        },
+        "executable_sha256": "b7a18c1598f579d9e84e486f5c85c13a62069da56b1b59a91159a0be3aef4074",
+        "source_sha256": {
+          "README.md": "00ac6c8735ac6a29c3abefdd0245ec6da9a10ca52de58ad9d8fbee978686e92f",
+          "application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+          "build.py": "7e0e338923a933fcf97285e47c1f146a62392ecb62b07206fbcb929fec8a2a89",
+          "denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+          "display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+          "fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+          "hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+          "main.c": "3ce1a85414c04bad7c2dde2b643f609139012de48c21912c139eb548e71b917c",
+          "model.json": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+          "poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+          "process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+          "reference.py": "c5f983459cd4786e46bae32d6c325f83a47fbbf13bc5abcb41782a32ef05077e",
+          "run.py": "87335f626aab46e8ea0f21648a730d9343489ac16a3d257a2886fa0085d13ffb",
+          "support/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+          "support/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+          "support/performance_frontier/small.c": "7dd6f7fab7cfa9e8c4fa08c86e0a0a34394d626d947ac4b6c0088befe37ecb91",
+          "support/performance_frontier/stream.c": "bd81bab23b00b1ef73186ca38e61fde928a1e68d0521c6488178c2de915ad2a6",
+          "support/resource_reuse/ranges.h": "62e8ab0e3dd43beaae12d2896d0a4160eae69e02fe512ad7cca87964af274fc4",
+          "support/resource_reuse/slots.h": "9cc80a3db452e8cdb4e11624f2d5b2a0ec4cb783029ac745ed047522d72e3eae",
+          "support/resource_reuse/stream_ranges.h": "01e5dae0937c738c09e28fd8f155c17a9542fadd1786c3c8867cafaea3f45397"
+        },
+        "fixture_sha256": {
+          "weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+          "input-a.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+          "input-b.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+          "reference-a.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+          "reference-b.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b"
+        },
+        "serial_sha256": {
+          "serial-a.rgba": "baa60cd5d15637f9808bea53cfac9616548d81913de86308082e349047c40a5b",
+          "serial-b.rgba": "9a4009f532385a7f19f1daf8734290f7571d43e9cacc47a432efb4e800c72353"
+        }
+      },
+      "missing_loader_report": {
+        "schema": 1,
+        "complete": false,
+        "scope": "installed public C consumer correctness; not timing or external adoption",
+        "frames": 4,
+        "runs": [],
+        "environment": {
+          "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+          "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+          "VK_LAYER_VALIDATE_SYNC": "1",
+          "OGPU_VULKAN_LIBRARY": "/tmp/ogpu-external-1eobmt4s/deliberately-absent-loader.so"
+        },
+        "sdk": {
+          "revision": "eba0eed9c03c59e3a158c7f446c5c9108cd427ec",
+          "abi": 17,
+          "runtime_sha256": "cafe6f31eabb6774707c6c93895bcb429567f8ab70eb9e7c7de331b9fbbd4128",
+          "runtime_path": "/tmp/ogpu-external-1eobmt4s/relocated sdk/lib/libogpu.so"
+        },
+        "executable_sha256": "b7a18c1598f579d9e84e486f5c85c13a62069da56b1b59a91159a0be3aef4074",
+        "source_sha256": {
+          "README.md": "00ac6c8735ac6a29c3abefdd0245ec6da9a10ca52de58ad9d8fbee978686e92f",
+          "application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+          "build.py": "7e0e338923a933fcf97285e47c1f146a62392ecb62b07206fbcb929fec8a2a89",
+          "denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+          "display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+          "fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+          "hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+          "main.c": "3ce1a85414c04bad7c2dde2b643f609139012de48c21912c139eb548e71b917c",
+          "model.json": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+          "poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+          "process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+          "reference.py": "c5f983459cd4786e46bae32d6c325f83a47fbbf13bc5abcb41782a32ef05077e",
+          "run.py": "87335f626aab46e8ea0f21648a730d9343489ac16a3d257a2886fa0085d13ffb",
+          "support/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+          "support/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+          "support/performance_frontier/small.c": "7dd6f7fab7cfa9e8c4fa08c86e0a0a34394d626d947ac4b6c0088befe37ecb91",
+          "support/performance_frontier/stream.c": "bd81bab23b00b1ef73186ca38e61fde928a1e68d0521c6488178c2de915ad2a6",
+          "support/resource_reuse/ranges.h": "62e8ab0e3dd43beaae12d2896d0a4160eae69e02fe512ad7cca87964af274fc4",
+          "support/resource_reuse/slots.h": "9cc80a3db452e8cdb4e11624f2d5b2a0ec4cb783029ac745ed047522d72e3eae",
+          "support/resource_reuse/stream_ranges.h": "01e5dae0937c738c09e28fd8f155c17a9542fadd1786c3c8867cafaea3f45397"
+        },
+        "fixture_sha256": {
+          "weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+          "input-a.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+          "input-b.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+          "reference-a.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+          "reference-b.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b"
+        },
+        "error": "serial exited 1; inspect /tmp/ogpu-external-1eobmt4s/independent reuse app/run-l7cc_mf9/serial.stderr"
+      },
+      "logs": {
+        "serial": {
+          "stdout": "DEVICE {\"vendor\":4098,\"device\":29471,\"api\":[1,4,354]}\nREUSE_RANGE {\"slot\":0,\"resource\":0,\"backing\":0,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":1,\"backing\":1,\"offset\":0,\"size\":484,\"end\":484,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":2,\"backing\":2,\"offset\":0,\"size\":97888,\"end\":97888,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":3,\"backing\":3,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":4,\"backing\":4,\"offset\":0,\"size\":199248,\"end\":199248,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":5,\"backing\":5,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":0,\"resource\":6,\"backing\":6,\"offset\":0,\"size\":49908,\"end\":49908,\"atom\":1,\"host\":true}\nREUSE_MEMORY {\"allocation\":\"dedicated\",\"buffer_allocations\":8,\"buffer_requested_bytes\":391964,\"host_upload_budget\":16384,\"host_readback_budget\":53248}\nREUSE_CPU_STORAGE {\"stream_stack_bytes\":4200,\"sample_bytes\":5600,\"fixture_bytes\":274464,\"runtime_command_bytes\":null,\"driver_command_bytes\":null}\nStreaming final input/weight integrity and all intermediate guards PASS\nReuse HOST padding and all slot generations retired PASS\nSTREAM {\"policy\":\"ogpu\",\"slots\":1,\"extent\":[65,47,131,95],\"frames\":12,\"warmups\":0,\"validation\":true,\"setup_ms\":22.429411992,\"wall_ms\":3.633245006,\"max_rgb_delta\":1}\nStreaming full-frame pixels/readback guards PASS; all slots drained\n",
+          "stderr": ""
+        },
+        "candidate": {
+          "stdout": "DEVICE {\"vendor\":4098,\"device\":29471,\"api\":[1,4,354]}\nREUSE_RANGE {\"slot\":0,\"resource\":0,\"backing\":0,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":1,\"backing\":0,\"offset\":12348,\"size\":484,\"end\":12832,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":2,\"backing\":0,\"offset\":12832,\"size\":97888,\"end\":110720,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":3,\"backing\":0,\"offset\":110720,\"size\":12348,\"end\":123068,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":4,\"backing\":0,\"offset\":123068,\"size\":199248,\"end\":322316,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":5,\"backing\":1,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":0,\"resource\":6,\"backing\":2,\"offset\":0,\"size\":49908,\"end\":49908,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":1,\"resource\":0,\"backing\":0,\"offset\":322316,\"size\":12348,\"end\":334664,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":1,\"backing\":0,\"offset\":334664,\"size\":484,\"end\":335148,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":2,\"backing\":0,\"offset\":335148,\"size\":97888,\"end\":433036,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":3,\"backing\":0,\"offset\":433036,\"size\":12348,\"end\":445384,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":4,\"backing\":0,\"offset\":445384,\"size\":199248,\"end\":644632,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":5,\"backing\":1,\"offset\":12348,\"size\":12348,\"end\":24696,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":1,\"resource\":6,\"backing\":2,\"offset\":49908,\"size\":49908,\"end\":99816,\"atom\":1,\"host\":true}\nREUSE_MEMORY {\"allocation\":\"arena\",\"buffer_allocations\":4,\"buffer_requested_bytes\":783912,\"host_upload_budget\":32768,\"host_readback_budget\":106496}\nREUSE_CPU_STORAGE {\"stream_stack_bytes\":4200,\"sample_bytes\":56000,\"fixture_bytes\":274464,\"runtime_command_bytes\":null,\"driver_command_bytes\":null}\nStreaming final input/weight integrity and all intermediate guards PASS\nReuse HOST padding and all slot generations retired PASS\nSTREAM {\"policy\":\"compiled\",\"slots\":2,\"extent\":[65,47,131,95],\"frames\":1000,\"warmups\":0,\"validation\":true,\"setup_ms\":21.162653998,\"wall_ms\":75.206259996,\"max_rgb_delta\":1}\nStreaming full-frame pixels/readback guards PASS; all slots drained\n",
+          "stderr": ""
+        }
+      }
+    },
+    "lvp": {
+      "report": {
+        "schema": 1,
+        "complete": true,
+        "scope": "installed public C consumer correctness; not timing or external adoption",
+        "frames": 1000,
+        "runs": [
+          {
+            "result": {
+              "policy": "ogpu",
+              "slots": 1,
+              "extent": [
+                65,
+                47,
+                131,
+                95
+              ],
+              "frames": 12,
+              "warmups": 0,
+              "validation": true,
+              "setup_ms": 33.884499997,
+              "wall_ms": 12.468588993,
+              "max_rgb_delta": 0
+            },
+            "device": {
+              "vendor": 65541,
+              "device": 0,
+              "api": [
+                1,
+                4,
+                354
+              ]
+            },
+            "memory": {
+              "allocation": "dedicated",
+              "buffer_allocations": 8,
+              "buffer_requested_bytes": 391964,
+              "host_upload_budget": 16384,
+              "host_readback_budget": 53248
+            },
+            "ranges": [
+              {
+                "slot": 0,
+                "resource": 0,
+                "backing": 0,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 1,
+                "backing": 1,
+                "offset": 0,
+                "size": 484,
+                "end": 484,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 2,
+                "backing": 2,
+                "offset": 0,
+                "size": 97888,
+                "end": 97888,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 3,
+                "backing": 3,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 4,
+                "backing": 4,
+                "offset": 0,
+                "size": 199248,
+                "end": 199248,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 5,
+                "backing": 5,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 0,
+                "resource": 6,
+                "backing": 6,
+                "offset": 0,
+                "size": 49908,
+                "end": 49908,
+                "atom": 1,
+                "host": true
+              }
+            ],
+            "log_sha256": {
+              "serial.stdout": "c5e6519304b08ba8cc777fd8f730163ab87d27293e5e01ba7c6f445aabeb0508",
+              "serial.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "result": {
+              "policy": "compiled",
+              "slots": 2,
+              "extent": [
+                65,
+                47,
+                131,
+                95
+              ],
+              "frames": 1000,
+              "warmups": 0,
+              "validation": true,
+              "setup_ms": 32.969459996,
+              "wall_ms": 315.631131008,
+              "max_rgb_delta": 0
+            },
+            "device": {
+              "vendor": 65541,
+              "device": 0,
+              "api": [
+                1,
+                4,
+                354
+              ]
+            },
+            "memory": {
+              "allocation": "arena",
+              "buffer_allocations": 4,
+              "buffer_requested_bytes": 783912,
+              "host_upload_budget": 32768,
+              "host_readback_budget": 106496
+            },
+            "ranges": [
+              {
+                "slot": 0,
+                "resource": 0,
+                "backing": 0,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 1,
+                "backing": 0,
+                "offset": 12348,
+                "size": 484,
+                "end": 12832,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 2,
+                "backing": 0,
+                "offset": 12832,
+                "size": 97888,
+                "end": 110720,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 3,
+                "backing": 0,
+                "offset": 110720,
+                "size": 12348,
+                "end": 123068,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 4,
+                "backing": 0,
+                "offset": 123068,
+                "size": 199248,
+                "end": 322316,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 0,
+                "resource": 5,
+                "backing": 1,
+                "offset": 0,
+                "size": 12348,
+                "end": 12348,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 0,
+                "resource": 6,
+                "backing": 2,
+                "offset": 0,
+                "size": 49908,
+                "end": 49908,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 1,
+                "resource": 0,
+                "backing": 0,
+                "offset": 322316,
+                "size": 12348,
+                "end": 334664,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 1,
+                "backing": 0,
+                "offset": 334664,
+                "size": 484,
+                "end": 335148,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 2,
+                "backing": 0,
+                "offset": 335148,
+                "size": 97888,
+                "end": 433036,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 3,
+                "backing": 0,
+                "offset": 433036,
+                "size": 12348,
+                "end": 445384,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 4,
+                "backing": 0,
+                "offset": 445384,
+                "size": 199248,
+                "end": 644632,
+                "atom": 1,
+                "host": false
+              },
+              {
+                "slot": 1,
+                "resource": 5,
+                "backing": 1,
+                "offset": 12348,
+                "size": 12348,
+                "end": 24696,
+                "atom": 1,
+                "host": true
+              },
+              {
+                "slot": 1,
+                "resource": 6,
+                "backing": 2,
+                "offset": 49908,
+                "size": 49908,
+                "end": 99816,
+                "atom": 1,
+                "host": true
+              }
+            ],
+            "log_sha256": {
+              "candidate.stdout": "9933cfc373fb8624e2f54eb8030155045652266ea9daa8cf7cebddfb9659ca0e",
+              "candidate.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "environment": {
+          "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+          "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+          "VK_LAYER_VALIDATE_SYNC": "1",
+          "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+        },
+        "sdk": {
+          "revision": "eba0eed9c03c59e3a158c7f446c5c9108cd427ec",
+          "abi": 17,
+          "runtime_sha256": "cafe6f31eabb6774707c6c93895bcb429567f8ab70eb9e7c7de331b9fbbd4128",
+          "runtime_path": "/tmp/ogpu-external-jn5pn2hh/relocated sdk/lib/libogpu.so"
+        },
+        "executable_sha256": "ca3fb051fe8478a1c2e280a764168dc4d54926ed4c4971945da4eff9fbe69cea",
+        "source_sha256": {
+          "README.md": "00ac6c8735ac6a29c3abefdd0245ec6da9a10ca52de58ad9d8fbee978686e92f",
+          "application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+          "build.py": "7e0e338923a933fcf97285e47c1f146a62392ecb62b07206fbcb929fec8a2a89",
+          "denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+          "display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+          "fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+          "hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+          "main.c": "3ce1a85414c04bad7c2dde2b643f609139012de48c21912c139eb548e71b917c",
+          "model.json": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+          "poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+          "process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+          "reference.py": "c5f983459cd4786e46bae32d6c325f83a47fbbf13bc5abcb41782a32ef05077e",
+          "run.py": "87335f626aab46e8ea0f21648a730d9343489ac16a3d257a2886fa0085d13ffb",
+          "support/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+          "support/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+          "support/performance_frontier/small.c": "7dd6f7fab7cfa9e8c4fa08c86e0a0a34394d626d947ac4b6c0088befe37ecb91",
+          "support/performance_frontier/stream.c": "bd81bab23b00b1ef73186ca38e61fde928a1e68d0521c6488178c2de915ad2a6",
+          "support/resource_reuse/ranges.h": "62e8ab0e3dd43beaae12d2896d0a4160eae69e02fe512ad7cca87964af274fc4",
+          "support/resource_reuse/slots.h": "9cc80a3db452e8cdb4e11624f2d5b2a0ec4cb783029ac745ed047522d72e3eae",
+          "support/resource_reuse/stream_ranges.h": "01e5dae0937c738c09e28fd8f155c17a9542fadd1786c3c8867cafaea3f45397"
+        },
+        "fixture_sha256": {
+          "weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+          "input-a.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+          "input-b.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+          "reference-a.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+          "reference-b.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b"
+        },
+        "serial_sha256": {
+          "serial-a.rgba": "6b493fa5556e3febaa3889c1500e98c53c6743213f189f11ba57d9b2ee48765a",
+          "serial-b.rgba": "cbb6549eabbf31429b19a7df45fcc8b36b16f76fe2e7200682463fc4b828c68a"
+        }
+      },
+      "missing_loader_report": {
+        "schema": 1,
+        "complete": false,
+        "scope": "installed public C consumer correctness; not timing or external adoption",
+        "frames": 4,
+        "runs": [],
+        "environment": {
+          "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+          "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+          "VK_LAYER_VALIDATE_SYNC": "1",
+          "OGPU_VULKAN_LIBRARY": "/tmp/ogpu-external-jn5pn2hh/deliberately-absent-loader.so"
+        },
+        "sdk": {
+          "revision": "eba0eed9c03c59e3a158c7f446c5c9108cd427ec",
+          "abi": 17,
+          "runtime_sha256": "cafe6f31eabb6774707c6c93895bcb429567f8ab70eb9e7c7de331b9fbbd4128",
+          "runtime_path": "/tmp/ogpu-external-jn5pn2hh/relocated sdk/lib/libogpu.so"
+        },
+        "executable_sha256": "ca3fb051fe8478a1c2e280a764168dc4d54926ed4c4971945da4eff9fbe69cea",
+        "source_sha256": {
+          "README.md": "00ac6c8735ac6a29c3abefdd0245ec6da9a10ca52de58ad9d8fbee978686e92f",
+          "application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+          "build.py": "7e0e338923a933fcf97285e47c1f146a62392ecb62b07206fbcb929fec8a2a89",
+          "denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+          "display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+          "fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+          "hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+          "main.c": "3ce1a85414c04bad7c2dde2b643f609139012de48c21912c139eb548e71b917c",
+          "model.json": "59ca8473cfce3cc205fce4fc88282e1f99d1883de951b6dfd320161ad0e1a7a0",
+          "poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+          "process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+          "reference.py": "c5f983459cd4786e46bae32d6c325f83a47fbbf13bc5abcb41782a32ef05077e",
+          "run.py": "87335f626aab46e8ea0f21648a730d9343489ac16a3d257a2886fa0085d13ffb",
+          "support/compiler/transform.generated.h": "a3480e29e84da899a51699fc4beb1c9aaa9207d31e9de4d5e18d803c13e41eb1",
+          "support/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+          "support/performance_frontier/small.c": "7dd6f7fab7cfa9e8c4fa08c86e0a0a34394d626d947ac4b6c0088befe37ecb91",
+          "support/performance_frontier/stream.c": "bd81bab23b00b1ef73186ca38e61fde928a1e68d0521c6488178c2de915ad2a6",
+          "support/resource_reuse/ranges.h": "62e8ab0e3dd43beaae12d2896d0a4160eae69e02fe512ad7cca87964af274fc4",
+          "support/resource_reuse/slots.h": "9cc80a3db452e8cdb4e11624f2d5b2a0ec4cb783029ac745ed047522d72e3eae",
+          "support/resource_reuse/stream_ranges.h": "01e5dae0937c738c09e28fd8f155c17a9542fadd1786c3c8867cafaea3f45397"
+        },
+        "fixture_sha256": {
+          "weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+          "input-a.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+          "input-b.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+          "reference-a.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+          "reference-b.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b"
+        },
+        "error": "serial exited 1; inspect /tmp/ogpu-external-jn5pn2hh/independent reuse app/run-8v5yfk90/serial.stderr"
+      },
+      "logs": {
+        "serial": {
+          "stdout": "DEVICE {\"vendor\":65541,\"device\":0,\"api\":[1,4,354]}\nREUSE_RANGE {\"slot\":0,\"resource\":0,\"backing\":0,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":1,\"backing\":1,\"offset\":0,\"size\":484,\"end\":484,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":2,\"backing\":2,\"offset\":0,\"size\":97888,\"end\":97888,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":3,\"backing\":3,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":4,\"backing\":4,\"offset\":0,\"size\":199248,\"end\":199248,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":5,\"backing\":5,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":0,\"resource\":6,\"backing\":6,\"offset\":0,\"size\":49908,\"end\":49908,\"atom\":1,\"host\":true}\nREUSE_MEMORY {\"allocation\":\"dedicated\",\"buffer_allocations\":8,\"buffer_requested_bytes\":391964,\"host_upload_budget\":16384,\"host_readback_budget\":53248}\nREUSE_CPU_STORAGE {\"stream_stack_bytes\":4200,\"sample_bytes\":5600,\"fixture_bytes\":274464,\"runtime_command_bytes\":null,\"driver_command_bytes\":null}\nStreaming final input/weight integrity and all intermediate guards PASS\nReuse HOST padding and all slot generations retired PASS\nSTREAM {\"policy\":\"ogpu\",\"slots\":1,\"extent\":[65,47,131,95],\"frames\":12,\"warmups\":0,\"validation\":true,\"setup_ms\":33.884499997,\"wall_ms\":12.468588993,\"max_rgb_delta\":0}\nStreaming full-frame pixels/readback guards PASS; all slots drained\n",
+          "stderr": ""
+        },
+        "candidate": {
+          "stdout": "DEVICE {\"vendor\":65541,\"device\":0,\"api\":[1,4,354]}\nREUSE_RANGE {\"slot\":0,\"resource\":0,\"backing\":0,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":1,\"backing\":0,\"offset\":12348,\"size\":484,\"end\":12832,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":2,\"backing\":0,\"offset\":12832,\"size\":97888,\"end\":110720,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":3,\"backing\":0,\"offset\":110720,\"size\":12348,\"end\":123068,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":4,\"backing\":0,\"offset\":123068,\"size\":199248,\"end\":322316,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":0,\"resource\":5,\"backing\":1,\"offset\":0,\"size\":12348,\"end\":12348,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":0,\"resource\":6,\"backing\":2,\"offset\":0,\"size\":49908,\"end\":49908,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":1,\"resource\":0,\"backing\":0,\"offset\":322316,\"size\":12348,\"end\":334664,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":1,\"backing\":0,\"offset\":334664,\"size\":484,\"end\":335148,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":2,\"backing\":0,\"offset\":335148,\"size\":97888,\"end\":433036,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":3,\"backing\":0,\"offset\":433036,\"size\":12348,\"end\":445384,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":4,\"backing\":0,\"offset\":445384,\"size\":199248,\"end\":644632,\"atom\":1,\"host\":false}\nREUSE_RANGE {\"slot\":1,\"resource\":5,\"backing\":1,\"offset\":12348,\"size\":12348,\"end\":24696,\"atom\":1,\"host\":true}\nREUSE_RANGE {\"slot\":1,\"resource\":6,\"backing\":2,\"offset\":49908,\"size\":49908,\"end\":99816,\"atom\":1,\"host\":true}\nREUSE_MEMORY {\"allocation\":\"arena\",\"buffer_allocations\":4,\"buffer_requested_bytes\":783912,\"host_upload_budget\":32768,\"host_readback_budget\":106496}\nREUSE_CPU_STORAGE {\"stream_stack_bytes\":4200,\"sample_bytes\":56000,\"fixture_bytes\":274464,\"runtime_command_bytes\":null,\"driver_command_bytes\":null}\nStreaming final input/weight integrity and all intermediate guards PASS\nReuse HOST padding and all slot generations retired PASS\nSTREAM {\"policy\":\"compiled\",\"slots\":2,\"extent\":[65,47,131,95],\"frames\":1000,\"warmups\":0,\"validation\":true,\"setup_ms\":32.969459996,\"wall_ms\":315.631131008,\"max_rgb_delta\":0}\nStreaming full-frame pixels/readback guards PASS; all slots drained\n",
+          "stderr": ""
+        }
+      }
+    }
+  }
+}

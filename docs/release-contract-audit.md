@@ -37,7 +37,8 @@ change or ABI increment is selected.
 Implementation sources are under `crates/ogpu/src/`; each named gate can be found
 there or in `examples/probe.c` / `tests/mock_vulkan.c`. Existing test counts alone
 are not evidence they ran at the new checkpoint: the fresh-source receipt records
-commands and results separately. Historical M3 fault/performance evidence is not
+commands and results separately in the [accepted checkpoint](release-checkpoint.md).
+Historical M3 fault/performance evidence is not
 silently labeled a fresh run.
 
 ## Explicit residual risks

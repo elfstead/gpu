@@ -1,0 +1,63 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/xtask mock`
+Devices: 1
+OGPU mock device (vendor 0000, device 0000, backend Vulkan)
+  Vulkan 1.3.0
+  graphics_queue                         yes
+  compute_queue                          yes
+  buffer_device_address                  yes
+  timeline_semaphore                     yes
+  synchronization2                       yes
+  descriptor_heap                        no
+  device_address_commands                no
+  shader_untyped_pointers                no
+  cooperative_matrix                     no
+  storage_buffer_8bit_access             no
+  storage_buffer_16bit_access            no
+  shader_float16                         yes
+  shader_int8                            no
+  shader_int16                           no
+  shader_int64                           no
+  shader_float64                         no
+  shader_bfloat16                        no
+  shader_bfloat16_cooperative_matrix     no
+  shader_float8                          no
+  shader_float8_cooperative_matrix       no
+  shader_float4                          no
+  shader_float6                          no
+  shader_float8_unsigned_e8m0            no
+  shader_mx_int8                         no
+C API smoke test passed.
+Devices: 1
+OGPU mock device (vendor 0000, device 0000, backend Vulkan)
+  Vulkan 1.3.0
+  graphics_queue                         yes
+  compute_queue                          yes
+  buffer_device_address                  yes
+  timeline_semaphore                     yes
+  synchronization2                       yes
+  descriptor_heap                        no
+  device_address_commands                no
+  shader_untyped_pointers                no
+  cooperative_matrix                     no
+  storage_buffer_8bit_access             no
+  storage_buffer_16bit_access            no
+  shader_float16                         yes
+  shader_int8                            no
+  shader_int16                           no
+  shader_int64                           no
+  shader_float64                         no
+  shader_bfloat16                        no
+  shader_bfloat16_cooperative_matrix     no
+  shader_float8                          no
+  shader_float8_cooperative_matrix       no
+  shader_float4                          no
+  shader_float6                          no
+  shader_float8_unsigned_e8m0            no
+  shader_mx_int8                         no
+C API smoke test passed.
+Devices: 0
+C API smoke test passed.
+Expected failure handled: vkEnumeratePhysicalDevices: VkResult -3
+Expected failure handled: Cannot load "/tmp/ogpu-m7-BqXRZU/source/target/nonexistent-loader/libvulkan.so": /tmp/ogpu-m7-BqXRZU/source/target/nonexistent-loader/libvulkan.so: cannot open shared object file: No such file or directory
+Mock loader, empty enumeration, cleanup-on-error, and missing loader tests passed.

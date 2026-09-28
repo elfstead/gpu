@@ -1,0 +1,7 @@
+   Compiling cfg-if v1.0.4
+   Compiling ogpu-vulkan-sys v0.1.0 (/tmp/ogpu-m7-BqXRZU/source/crates/vulkan-sys)
+   Compiling libloading v0.8.9
+   Compiling ogpu v0.1.0 (/tmp/ogpu-m7-BqXRZU/source/crates/ogpu)
+    Finished `release` profile [optimized] target(s) in 2.25s
+Staging installation: /tmp/ogpu-m7-BqXRZU/.ogpu-install-qj9rpac2
+Installed eba0eed9c03c59e3a158c7f446c5c9108cd427ec, ABI 17 into /tmp/ogpu-m7-BqXRZU/sdk

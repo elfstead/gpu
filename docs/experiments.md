@@ -10,6 +10,14 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [first M7 local preparation checkpoint](release-checkpoint.md) is accepted at
+clean `eba0eed` (2026-09-28). A fresh local clone/empty build directory passes 40
+ordinary tests, 760 ABI checks, bindings/mock checks, 28 GPU tests per driver,
+relocated installed consumers and optional shader regeneration/stale checks.
+The contract audit corrects documentation, not runtime behavior; source/SDK upgrade
+policy, support matrix and consumer issue route are now provided. No remote CI,
+fresh OS, minimum-Rust, publication, new performance or outside-adoption claim.
+
 The [M3 installed handoff](resource-reuse-handoff.md) is accepted at clean `89d71e5`
 (2026-09-28), completing bounded M3. Both drivers pass 12 serial plus 1,000 candidate
 frames from relocated SDKs and copied public-only applications, along with existing
