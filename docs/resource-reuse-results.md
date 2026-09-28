@@ -112,10 +112,10 @@ slice changes examples only; no new Metal or additional physical-GPU claim follo
    at `e771e66` adds rejected submission, temporary observation and safely drained
    terminal failure integration with structured reports. The earlier CPU quarantine
    tests alone were not injected GPU failure evidence.
-2. Measure setup and steady-state costs outside validation/tracing, using matched
-   direct Vulkan controls where this policy adds a new question. Preserve the
-   host-sensitive replay evidence; GPU-heavy parity cannot approve the fundamental
-   API. Decide allocator/submission policy from those results, not object count alone.
+2. **Now accepted separately:** the [matched decision](resource-reuse-performance.md)
+   at `bb76447` selects consumer arenas/two slots/serial replay for the fixed
+   workload. It records re-recording costs and does not approve the entire API
+   from GPU-heavy parity or infer a speedup from allocation counts.
 3. Run the helper/reuse consumer against a relocated installed SDK, without checkout
    headers or private runtime access, and document its failure/lifetime obligations.
 

@@ -1,0 +1,6724 @@
+{
+  "schema": 1,
+  "scope": "matched range allocation/submission strategies; not general API/native parity",
+  "revision": "bb76447da3faecf6c95fc54cfcb8a0b246da3b8b",
+  "dirty": false,
+  "complete": true,
+  "software": true,
+  "sources": {
+    "examples/resource_reuse/test_stream_ranges.c": "726a535722b8a58ad4b56993a0a165f53aee7714c8793944e73bb438f6432633",
+    "examples/resource_reuse/failures.c": "2cc753a5226f7885e4ee4f4925f9f5a32471eaa66a5c1af3e63976c1a18f53ad",
+    "examples/resource_reuse/test_reuse.c": "73ba2c9a2c1fa98f99c28f570ceb2f01635980d2be2c628e3816fc04ffc220ae",
+    "examples/resource_reuse/failure_shim.c": "564da8af163e312d1cec3677b84a90f677bad556bbbef82b990f40395458bf00",
+    "examples/resource_reuse/test_failure_shim.c": "3275cc7fb072601053b2593796b75347db72b8e72aefd7d6bf83d9c8cf1e89ff",
+    "examples/resource_reuse/test_native_cache.c": "e257cd9d37fa6e35693e5d58b3e942c9055de591b436d22b91e47125ddb67db0",
+    "examples/resource_reuse/stream_ranges.h": "01e5dae0937c738c09e28fd8f155c17a9542fadd1786c3c8867cafaea3f45397",
+    "examples/resource_reuse/slots.h": "9cc80a3db452e8cdb4e11624f2d5b2a0ec4cb783029ac745ed047522d72e3eae",
+    "examples/resource_reuse/diagnostics.h": "8f560d60a5ad5fd1fd3a8bbc183aa032b8376272f73dc729a3f7da111a2f9d1e",
+    "examples/resource_reuse/ranges.h": "62e8ab0e3dd43beaae12d2896d0a4160eae69e02fe512ad7cca87964af274fc4",
+    "examples/resource_reuse/export_performance.py": "14f9986c4adef28120f9225f7f9d5c3801b86a946d69f3ec88b69ff3e7f2ba80",
+    "examples/resource_reuse/test_runner.py": "b0c3560a2cf2341270cdf2b101ff720bab68ed5b1121f60324ed0f2628e22f46",
+    "examples/resource_reuse/failures.py": "52e937ec5ccfd3c37a7163f97cedf1a50ef859ffea2552029cd0bd78fab1d571",
+    "examples/resource_reuse/test_performance.py": "bd2899c59a46864416eb4158ad9cb3682e0b8a518a749a0437f9a8ac03914c57",
+    "examples/resource_reuse/test_failures.py": "e2f2c6673a84ef0955d20aa38f465f15448299b267d320598d919d554ba0725b",
+    "examples/resource_reuse/performance.py": "69424b34b3cbf829d308287f57b35e1ecbedf004283cd25b8307c9b61ac8f0db",
+    "examples/resource_reuse/run.py": "70bd2dd5c5c51398fe1570eca99fc87f531d09173a6ebdef462cdbcb37e09926",
+    "examples/performance_frontier/small.c": "7dd6f7fab7cfa9e8c4fa08c86e0a0a34394d626d947ac4b6c0088befe37ecb91",
+    "examples/performance_frontier/stream.c": "bd81bab23b00b1ef73186ca38e61fde928a1e68d0521c6488178c2de915ad2a6",
+    "examples/performance_frontier/stream.py": "2864c5f33c89743665b5d18b64f5a02e4dabda7e5b8ecae057367c5005d3708b",
+    "examples/performance_frontier/run.py": "92459a2d9064eff8c2875f6fd0ff4af2c3cb3d36ce94a9882e36dd2574c8a103",
+    "examples/learned_image/native.c": "f04c13d5b230f0bf30b4dcc84064f83ee91e016be7f1a2a5da4c73b3fd4295c6",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "examples/learned_image/trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "examples/learned_image/benchmark.py": "be2333906872a736686282440bda8360b6888c5d1749fbec23280590c0bf361b",
+    "examples/learned_image/compare_native.py": "d849d6e7a2ea73b51232da3271a6040ee8ea3bf36187ed8048a50198a62d8f3f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "include/ogpu.h": "d12c1ff0aa0a6b745c43bd0af336d8a01c3244f62b4c9ee200a9b3f1d9f8c509",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6"
+  },
+  "artifacts": {
+    "stream": "325556648785742a383b402d88df45f623e392d12f37b8ba53f854f19a756756",
+    "stream-native-ranges": "1e07934b6b91494f8b6d33a45864562ee2c3b8341d7c1fb1743793e5f318549f"
+  },
+  "runtime_sha256": "97fdc2b5fde2cd1d2c288cb2f42e8302e282bb8d3c435cfcef2eda775853aaa1",
+  "tracer_sha256": "ed10efab30f2d8e43d06889136c94ee95d940ee46c2787189abd63e905f83343",
+  "environments": {
+    "validation": {
+      "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+      "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+      "VK_LAYER_VALIDATE_SYNC": "1",
+      "VK_LOADER_LAYERS_DISABLE": null,
+      "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+      "OGPU_VULKAN_LIBRARY": "/home/elf/dev/gpu/target/performance-frontier/trace-memory.so"
+    },
+    "timing": {
+      "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+      "VK_INSTANCE_LAYERS": null,
+      "VK_LAYER_VALIDATE_SYNC": null,
+      "VK_LOADER_LAYERS_DISABLE": "*",
+      "OGPU_TRACE_LOADER": null,
+      "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+    }
+  },
+  "protocol": {
+    "validation_frames": 64,
+    "frames": 500,
+    "warmups": 100,
+    "rounds": 4,
+    "order": "rotate by 2*round+extent_index+slots-1, reverse odd rounds",
+    "clocks": "monotonic wall/CPU intervals; no device queries or clock locking"
+  },
+  "fixtures": {
+    "65x47x131x95": {
+      "/home/elf/dev/gpu/target/learned-image/reference/weights.f32": "195519e3c2c731aa2eec34f2d32ce28e3ba422e7a720b203629d00ab6bdb10b8",
+      "/home/elf/dev/gpu/target/learned-image/reference/65x47-up-0/input.f32": "1a5b5f8a370422bd700b1ae70536c18d4666d9697ae2d81a225f43f1e9339948",
+      "/home/elf/dev/gpu/target/learned-image/reference/65x47-up-1/input.f32": "6aea1e4f3fd04feb1379d393a6d15349cbe7ffd01715011f5b6d32ac2873b543",
+      "/home/elf/dev/gpu/target/learned-image/reference/65x47-up-0/final.rgba": "e18e8a6990fdbd98fe5f24e60a61a2d85b17d0f91ddb9ba4b46497acbfd3393d",
+      "/home/elf/dev/gpu/target/learned-image/reference/65x47-up-1/final.rgba": "7039b9e96f331efd367adf5414d0bc6820e865ea0715c34c3b194318905a3e3b"
+    }
+  },
+  "serial": [
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 12,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 101.529224001,
+        "wall_ms": 21.632240001,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 8,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 447260,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":447260,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "65x47x131x95-serial",
+      "stdout_sha256": "7769896e1611d9dd9f48ec2cc9bf1da2f21c74b851f85ab8ec690713c1aa20cc",
+      "stderr_sha256": "40371d8a9058866b240952d6b43ba9e093baddd4c0b134817ea11cc7a69a6701",
+      "serial_sha256": [
+        "6b493fa5556e3febaa3889c1500e98c53c6743213f189f11ba57d9b2ee48765a",
+        "cbb6549eabbf31429b19a7df45fcc8b36b16f76fe2e7200682463fc4b828c68a"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.221744999,
+        "wall_ms": 33.469299,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 8,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 447260,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":447260,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-dedicated-ogpu",
+      "stdout_sha256": "2d2b40594431b903ffad6f98b16dec0efd3a1a64221327c0dec3bdd2c3ee3986",
+      "stderr_sha256": "40371d8a9058866b240952d6b43ba9e093baddd4c0b134817ea11cc7a69a6701"
+    },
+    {
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.584610999,
+        "wall_ms": 33.835864998,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 8,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 447260,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":447260,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-dedicated-reset",
+      "stdout_sha256": "b26bfde97900b4ddc64a75feb7ec297f139d412d297b905b75eb991e7f046c65",
+      "stderr_sha256": "40371d8a9058866b240952d6b43ba9e093baddd4c0b134817ea11cc7a69a6701"
+    },
+    {
+      "result": {
+        "policy": "compiled",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.275353998,
+        "wall_ms": 29.020219002,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 8,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 447260,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":447260,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-dedicated-compiled",
+      "stdout_sha256": "dacc1bd5cc491a1a943a5e781304891ee7a6c8552157a9fabd7adf3a4f0b05da",
+      "stderr_sha256": "40371d8a9058866b240952d6b43ba9e093baddd4c0b134817ea11cc7a69a6701"
+    },
+    {
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.155065,
+        "wall_ms": 29.239105999,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 8,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 447260,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":9,\"frees\":9,\"peak_bytes\":447260,\"peak_count\":9,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-dedicated-replay",
+      "stdout_sha256": "dd0ec6065ffc503ad24d1eaece6f606dc3a60e2172ef5d2899fcbd9ee3eec3e6",
+      "stderr_sha256": "40371d8a9058866b240952d6b43ba9e093baddd4c0b134817ea11cc7a69a6701"
+    },
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.900697,
+        "wall_ms": 34.502068002,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 5,
+        "frees": 5,
+        "peak_bytes": 447260,
+        "peak_count": 5,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          322316,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":322316,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":5,\"frees\":5,\"peak_bytes\":447260,\"peak_count\":5,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-arena-ogpu",
+      "stdout_sha256": "3e26651b656dfc4869216201de2e5e640ba67662e9bafc44bf6a68922423bdb7",
+      "stderr_sha256": "e5f0d875c1b0996b5f8cd3e0242525172b73d81df3878561c6e0f284e9338ff6"
+    },
+    {
+      "result": {
+        "policy": "reset",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.343073998,
+        "wall_ms": 37.051289,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 5,
+        "frees": 5,
+        "peak_bytes": 447260,
+        "peak_count": 5,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          322316,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":322316,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":5,\"frees\":5,\"peak_bytes\":447260,\"peak_count\":5,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-arena-reset",
+      "stdout_sha256": "d841896f4b18db35b4293092874a4734bd2efb64b8d25c21b04b9a03db95183c",
+      "stderr_sha256": "e5f0d875c1b0996b5f8cd3e0242525172b73d81df3878561c6e0f284e9338ff6"
+    },
+    {
+      "result": {
+        "policy": "compiled",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.426902,
+        "wall_ms": 30.860128,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 5,
+        "frees": 5,
+        "peak_bytes": 447260,
+        "peak_count": 5,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          322316,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":322316,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":5,\"frees\":5,\"peak_bytes\":447260,\"peak_count\":5,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-arena-compiled",
+      "stdout_sha256": "b35731303c682c753b9341041085f499156d9bf4b851b2cd658620c2a6c6118a",
+      "stderr_sha256": "e5f0d875c1b0996b5f8cd3e0242525172b73d81df3878561c6e0f284e9338ff6"
+    },
+    {
+      "result": {
+        "policy": "replay",
+        "slots": 1,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 29.822868999,
+        "wall_ms": 29.241916001,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 391964,
+        "host_upload_budget": 16384,
+        "host_readback_budget": 53248
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 5,
+        "frees": 5,
+        "peak_bytes": 447260,
+        "peak_count": 5,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          322316,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":322316,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":5,\"frees\":5,\"peak_bytes\":447260,\"peak_count\":5,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-1-arena-replay",
+      "stdout_sha256": "469d233ea0c9c4ffb4bcb8646e7cbdd1853b8ca312c9b50b0ce13d6f40c948d1",
+      "stderr_sha256": "e5f0d875c1b0996b5f8cd3e0242525172b73d81df3878561c6e0f284e9338ff6"
+    },
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.395182002,
+        "wall_ms": 24.889473997,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 15,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 17,
+        "frees": 17,
+        "peak_bytes": 894504,
+        "peak_count": 17,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":17,\"frees\":17,\"peak_bytes\":894504,\"peak_count\":17,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-dedicated-ogpu",
+      "stdout_sha256": "97d3109a4eff5e260278893b3dc3f32cd0f89123d32e575653b39ef66b9b992e",
+      "stderr_sha256": "26bdd6175559511c34201fc0c5cf615cfb88d5213c259c9cea5cf777a9a1f064"
+    },
+    {
+      "result": {
+        "policy": "reset",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.507161003,
+        "wall_ms": 24.844554998,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 15,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 17,
+        "frees": 17,
+        "peak_bytes": 894504,
+        "peak_count": 17,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":17,\"frees\":17,\"peak_bytes\":894504,\"peak_count\":17,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-dedicated-reset",
+      "stdout_sha256": "8ade61df18e5e3bc3b37494d4b5779376bd45727ed2083befbeaede90cca5e4e",
+      "stderr_sha256": "26bdd6175559511c34201fc0c5cf615cfb88d5213c259c9cea5cf777a9a1f064"
+    },
+    {
+      "result": {
+        "policy": "compiled",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.782579001,
+        "wall_ms": 23.580109,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 15,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 17,
+        "frees": 17,
+        "peak_bytes": 894504,
+        "peak_count": 17,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":17,\"frees\":17,\"peak_bytes\":894504,\"peak_count\":17,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-dedicated-compiled",
+      "stdout_sha256": "1f04e83c2f26876438d1dbdc5bfb10aa9c387241504427fdef8aac1b1ccc5887",
+      "stderr_sha256": "26bdd6175559511c34201fc0c5cf615cfb88d5213c259c9cea5cf777a9a1f064"
+    },
+    {
+      "result": {
+        "policy": "replay",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.044225998,
+        "wall_ms": 24.39443,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 15,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 17,
+        "frees": 17,
+        "peak_bytes": 894504,
+        "peak_count": 17,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":51677046505519,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":51677046505519}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":17,\"frees\":17,\"peak_bytes\":894504,\"peak_count\":17,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-dedicated-replay",
+      "stdout_sha256": "22478728fe5297f9fff3b94fbd0d856100077e0abfa5f758935d97c04089a00e",
+      "stderr_sha256": "292e25fc9cd49d8aa6e7e4014438e046858269d29d01fd62fd639242f96a45bd"
+    },
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.946757,
+        "wall_ms": 25.907831997,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 6,
+        "frees": 6,
+        "peak_bytes": 894504,
+        "peak_count": 6,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          644632,
+          0
+        ],
+        [
+          32768,
+          0
+        ],
+        [
+          106496,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":644632,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":32768,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":106496,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":6,\"frees\":6,\"peak_bytes\":894504,\"peak_count\":6,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-arena-ogpu",
+      "stdout_sha256": "a51dac173172a5d51baa1e69fc26dcf6f2742305b8cf69ba8a1bd1a9429337f6",
+      "stderr_sha256": "78f38a512dc5360b11fec4acbba0dfbaf5043d7d040cb7a1e544700e97b845ce"
+    },
+    {
+      "result": {
+        "policy": "reset",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 29.916439001,
+        "wall_ms": 24.693556,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 6,
+        "frees": 6,
+        "peak_bytes": 894504,
+        "peak_count": 6,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          644632,
+          0
+        ],
+        [
+          32768,
+          0
+        ],
+        [
+          106496,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":644632,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":32768,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":106496,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":6,\"frees\":6,\"peak_bytes\":894504,\"peak_count\":6,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-arena-reset",
+      "stdout_sha256": "7d7845089390aa0b3d5d70b44a27ddf0afd00ce1db38dd523c1c45888f6392e7",
+      "stderr_sha256": "78f38a512dc5360b11fec4acbba0dfbaf5043d7d040cb7a1e544700e97b845ce"
+    },
+    {
+      "result": {
+        "policy": "compiled",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.477290999,
+        "wall_ms": 23.713926997,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 6,
+        "frees": 6,
+        "peak_bytes": 894504,
+        "peak_count": 6,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          644632,
+          0
+        ],
+        [
+          32768,
+          0
+        ],
+        [
+          106496,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":644632,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":32768,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":106496,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":6,\"frees\":6,\"peak_bytes\":894504,\"peak_count\":6,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-arena-compiled",
+      "stdout_sha256": "81e78bf1bf5a1dbc7fe72649ba0e6d8209e37900fdbcc79e1f31b802a45fa4f4",
+      "stderr_sha256": "78f38a512dc5360b11fec4acbba0dfbaf5043d7d040cb7a1e544700e97b845ce"
+    },
+    {
+      "result": {
+        "policy": "replay",
+        "slots": 2,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.414912999,
+        "wall_ms": 27.599103998,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 783912,
+        "host_upload_budget": 32768,
+        "host_readback_budget": 106496
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 6,
+        "frees": 6,
+        "peak_bytes": 894504,
+        "peak_count": 6,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          644632,
+          0
+        ],
+        [
+          32768,
+          0
+        ],
+        [
+          106496,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":644632,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":32768,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":106496,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":27487790694425,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":27487790694425}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":6,\"frees\":6,\"peak_bytes\":894504,\"peak_count\":6,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-2-arena-replay",
+      "stdout_sha256": "0e4eeb0456f80420bc3173ac031c13f4d628747ba91fd03f5c0fc5316e043bff",
+      "stderr_sha256": "b8b3a4fd70ecc1a7a92f77b45d9db342771ec4a0ebfabb2821233efb808ac05d"
+    },
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.532301001,
+        "wall_ms": 25.067942001,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 22,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 14,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 15,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 16,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 17,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 18,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 19,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 20,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 25,
+        "frees": 25,
+        "peak_bytes": 1341748,
+        "peak_count": 25,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":48378511622188,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":52776558133296,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":54975581388850,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":57174604644404,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":59373627899958,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":61572651155512,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":65970697666620,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":70368744177728,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":61572651155512}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":65970697666620}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":70368744177728}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":48378511622188}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":52776558133296}",
+        "FREE {\"id\":54975581388850}",
+        "FREE {\"id\":57174604644404}",
+        "FREE {\"id\":59373627899958}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":25,\"frees\":25,\"peak_bytes\":1341748,\"peak_count\":25,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-dedicated-ogpu",
+      "stdout_sha256": "6552f732c7111bea5cf76e41536755623345d83ede9fb45bd0fe28bc0ddfa26b",
+      "stderr_sha256": "3028331713118a4d2c56f4cce0211db2786ffe3141fbdf0984df222e224a9a5a"
+    },
+    {
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.199956,
+        "wall_ms": 24.849574003,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 22,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 14,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 15,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 16,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 17,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 18,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 19,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 20,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 25,
+        "frees": 25,
+        "peak_bytes": 1341748,
+        "peak_count": 25,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":48378511622188,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":52776558133296,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":54975581388850,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":57174604644404,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":59373627899958,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":61572651155512,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":65970697666620,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":70368744177728,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":61572651155512}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":65970697666620}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":70368744177728}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":48378511622188}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":52776558133296}",
+        "FREE {\"id\":54975581388850}",
+        "FREE {\"id\":57174604644404}",
+        "FREE {\"id\":59373627899958}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":25,\"frees\":25,\"peak_bytes\":1341748,\"peak_count\":25,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-dedicated-reset",
+      "stdout_sha256": "8937712a906248b9c4d1bd02ec7eb295ef3b6d76d1f71deac4d28dc40089bb4a",
+      "stderr_sha256": "3028331713118a4d2c56f4cce0211db2786ffe3141fbdf0984df222e224a9a5a"
+    },
+    {
+      "result": {
+        "policy": "compiled",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 31.396811999,
+        "wall_ms": 24.056593999,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 22,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 14,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 15,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 16,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 17,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 18,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 19,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 20,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 25,
+        "frees": 25,
+        "peak_bytes": 1341748,
+        "peak_count": 25,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":48378511622188,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":52776558133296,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":54975581388850,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":57174604644404,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":59373627899958,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":61572651155512,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":65970697666620,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":70368744177728,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":61572651155512}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":65970697666620}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":70368744177728}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":48378511622188}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":52776558133296}",
+        "FREE {\"id\":54975581388850}",
+        "FREE {\"id\":57174604644404}",
+        "FREE {\"id\":59373627899958}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":25,\"frees\":25,\"peak_bytes\":1341748,\"peak_count\":25,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-dedicated-compiled",
+      "stdout_sha256": "895cdca2fbc19bf10dba64680a8e8275558f483269e6f3e87ece2224b9c7aa5a",
+      "stderr_sha256": "3028331713118a4d2c56f4cce0211db2786ffe3141fbdf0984df222e224a9a5a"
+    },
+    {
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.755059,
+        "wall_ms": 24.539988,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "dedicated",
+        "buffer_allocations": 22,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 1,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 2,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 3,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 4,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 5,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 6,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 7,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 8,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 9,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 10,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 11,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 12,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 13,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 14,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 15,
+          "offset": 0,
+          "size": 484,
+          "end": 484,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 16,
+          "offset": 0,
+          "size": 97888,
+          "end": 97888,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 17,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 18,
+          "offset": 0,
+          "size": 199248,
+          "end": 199248,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 19,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 20,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 25,
+        "frees": 25,
+        "peak_bytes": 1341748,
+        "peak_count": 25,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          484,
+          0
+        ],
+        [
+          97888,
+          0
+        ],
+        [
+          12348,
+          0
+        ],
+        [
+          199248,
+          0
+        ],
+        [
+          16384,
+          0
+        ],
+        [
+          53248,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":24189255811094,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":28587302322202,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":35184372088864,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":37383395344418,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":39582418599972,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":41781441855526,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":43980465111080,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":46179488366634,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":48378511622188,\"bytes\":484,\"type\":0}",
+        "ALLOCATE {\"id\":50577534877742,\"bytes\":97888,\"type\":0}",
+        "ALLOCATE {\"id\":52776558133296,\"bytes\":12348,\"type\":0}",
+        "ALLOCATE {\"id\":54975581388850,\"bytes\":199248,\"type\":0}",
+        "ALLOCATE {\"id\":57174604644404,\"bytes\":16384,\"type\":0}",
+        "ALLOCATE {\"id\":59373627899958,\"bytes\":53248,\"type\":0}",
+        "ALLOCATE {\"id\":61572651155512,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":67070209294397,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":72567767433282,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":61572651155512}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":24189255811094}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":28587302322202}",
+        "FREE {\"id\":67070209294397}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":35184372088864}",
+        "FREE {\"id\":37383395344418}",
+        "FREE {\"id\":39582418599972}",
+        "FREE {\"id\":41781441855526}",
+        "FREE {\"id\":43980465111080}",
+        "FREE {\"id\":72567767433282}",
+        "FREE {\"id\":46179488366634}",
+        "FREE {\"id\":48378511622188}",
+        "FREE {\"id\":50577534877742}",
+        "FREE {\"id\":52776558133296}",
+        "FREE {\"id\":54975581388850}",
+        "FREE {\"id\":57174604644404}",
+        "FREE {\"id\":59373627899958}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":25,\"frees\":25,\"peak_bytes\":1341748,\"peak_count\":25,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-dedicated-replay",
+      "stdout_sha256": "6e2149a5587dbd40c604b9dd31d8bcd37e560b9516710b3cb1c0be84b3f988df",
+      "stderr_sha256": "799ca400a44a2c3419a3a0379de429a242da9d217e1e09571b68be084a15bcb9"
+    },
+    {
+      "result": {
+        "policy": "ogpu",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.252285,
+        "wall_ms": 25.938793004,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 0,
+          "offset": 644632,
+          "size": 12348,
+          "end": 656980,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 0,
+          "offset": 656980,
+          "size": 484,
+          "end": 657464,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 0,
+          "offset": 657464,
+          "size": 97888,
+          "end": 755352,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 0,
+          "offset": 755352,
+          "size": 12348,
+          "end": 767700,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 0,
+          "offset": 767700,
+          "size": 199248,
+          "end": 966948,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 1,
+          "offset": 24696,
+          "size": 12348,
+          "end": 37044,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 2,
+          "offset": 99816,
+          "size": 49908,
+          "end": 149724,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 7,
+        "frees": 7,
+        "peak_bytes": 1341748,
+        "peak_count": 7,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          966948,
+          0
+        ],
+        [
+          49152,
+          0
+        ],
+        [
+          159744,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":966948,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":49152,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":159744,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":7,\"frees\":7,\"peak_bytes\":1341748,\"peak_count\":7,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-arena-ogpu",
+      "stdout_sha256": "2035071bfd9af7b42c87cd419e108a84391dbd97c055cc942d7c92c151bcd28c",
+      "stderr_sha256": "7312b6bd587050938a3cdc8b18ad98bed7373d0b08f8456320d4fe34f87625f8"
+    },
+    {
+      "result": {
+        "policy": "reset",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.853078,
+        "wall_ms": 24.815575,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 0,
+          "offset": 644632,
+          "size": 12348,
+          "end": 656980,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 0,
+          "offset": 656980,
+          "size": 484,
+          "end": 657464,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 0,
+          "offset": 657464,
+          "size": 97888,
+          "end": 755352,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 0,
+          "offset": 755352,
+          "size": 12348,
+          "end": 767700,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 0,
+          "offset": 767700,
+          "size": 199248,
+          "end": 966948,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 1,
+          "offset": 24696,
+          "size": 12348,
+          "end": 37044,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 2,
+          "offset": 99816,
+          "size": 49908,
+          "end": 149724,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 7,
+        "frees": 7,
+        "peak_bytes": 1341748,
+        "peak_count": 7,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          966948,
+          0
+        ],
+        [
+          49152,
+          0
+        ],
+        [
+          159744,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":966948,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":49152,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":159744,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":7,\"frees\":7,\"peak_bytes\":1341748,\"peak_count\":7,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-arena-reset",
+      "stdout_sha256": "2d6ecc151e5681a4809472e96175766787b5ff43b52fd56e0a7df29b8becfe05",
+      "stderr_sha256": "7312b6bd587050938a3cdc8b18ad98bed7373d0b08f8456320d4fe34f87625f8"
+    },
+    {
+      "result": {
+        "policy": "compiled",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 30.601801001,
+        "wall_ms": 24.538298,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 0,
+          "offset": 644632,
+          "size": 12348,
+          "end": 656980,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 0,
+          "offset": 656980,
+          "size": 484,
+          "end": 657464,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 0,
+          "offset": 657464,
+          "size": 97888,
+          "end": 755352,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 0,
+          "offset": 755352,
+          "size": 12348,
+          "end": 767700,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 0,
+          "offset": 767700,
+          "size": 199248,
+          "end": 966948,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 1,
+          "offset": 24696,
+          "size": 12348,
+          "end": 37044,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 2,
+          "offset": 99816,
+          "size": 49908,
+          "end": 149724,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 4200,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 7,
+        "frees": 7,
+        "peak_bytes": 1341748,
+        "peak_count": 7,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          966948,
+          0
+        ],
+        [
+          49152,
+          0
+        ],
+        [
+          159744,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":966948,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":49152,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":159744,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":26388279066648,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":30786325577756,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":26388279066648}",
+        "FREE {\"id\":30786325577756}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":7,\"frees\":7,\"peak_bytes\":1341748,\"peak_count\":7,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-arena-compiled",
+      "stdout_sha256": "7104589f592cbe1e4fb87259e8a1253e98ef002d1ceb7f6984e788f1ce610a1f",
+      "stderr_sha256": "7312b6bd587050938a3cdc8b18ad98bed7373d0b08f8456320d4fe34f87625f8"
+    },
+    {
+      "result": {
+        "policy": "replay",
+        "slots": 3,
+        "extent": [
+          65,
+          47,
+          131,
+          95
+        ],
+        "frames": 64,
+        "warmups": 0,
+        "validation": true,
+        "setup_ms": 32.310601998,
+        "wall_ms": 23.059673999,
+        "max_rgb_delta": 0
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "backing": {
+        "allocation": "arena",
+        "buffer_allocations": 4,
+        "buffer_requested_bytes": 1175860,
+        "host_upload_budget": 49152,
+        "host_readback_budget": 159744
+      },
+      "ranges": [
+        {
+          "slot": 0,
+          "resource": 0,
+          "backing": 0,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 1,
+          "backing": 0,
+          "offset": 12348,
+          "size": 484,
+          "end": 12832,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 2,
+          "backing": 0,
+          "offset": 12832,
+          "size": 97888,
+          "end": 110720,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 3,
+          "backing": 0,
+          "offset": 110720,
+          "size": 12348,
+          "end": 123068,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 4,
+          "backing": 0,
+          "offset": 123068,
+          "size": 199248,
+          "end": 322316,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 0,
+          "resource": 5,
+          "backing": 1,
+          "offset": 0,
+          "size": 12348,
+          "end": 12348,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 0,
+          "resource": 6,
+          "backing": 2,
+          "offset": 0,
+          "size": 49908,
+          "end": 49908,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 0,
+          "backing": 0,
+          "offset": 322316,
+          "size": 12348,
+          "end": 334664,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 1,
+          "backing": 0,
+          "offset": 334664,
+          "size": 484,
+          "end": 335148,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 2,
+          "backing": 0,
+          "offset": 335148,
+          "size": 97888,
+          "end": 433036,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 3,
+          "backing": 0,
+          "offset": 433036,
+          "size": 12348,
+          "end": 445384,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 4,
+          "backing": 0,
+          "offset": 445384,
+          "size": 199248,
+          "end": 644632,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 1,
+          "resource": 5,
+          "backing": 1,
+          "offset": 12348,
+          "size": 12348,
+          "end": 24696,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 1,
+          "resource": 6,
+          "backing": 2,
+          "offset": 49908,
+          "size": 49908,
+          "end": 99816,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 0,
+          "backing": 0,
+          "offset": 644632,
+          "size": 12348,
+          "end": 656980,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 1,
+          "backing": 0,
+          "offset": 656980,
+          "size": 484,
+          "end": 657464,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 2,
+          "backing": 0,
+          "offset": 657464,
+          "size": 97888,
+          "end": 755352,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 3,
+          "backing": 0,
+          "offset": 755352,
+          "size": 12348,
+          "end": 767700,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 4,
+          "backing": 0,
+          "offset": 767700,
+          "size": 199248,
+          "end": 966948,
+          "atom": 1,
+          "host": false
+        },
+        {
+          "slot": 2,
+          "resource": 5,
+          "backing": 1,
+          "offset": 24696,
+          "size": 12348,
+          "end": 37044,
+          "atom": 1,
+          "host": true
+        },
+        {
+          "slot": 2,
+          "resource": 6,
+          "backing": 2,
+          "offset": 99816,
+          "size": 49908,
+          "end": 149724,
+          "atom": 1,
+          "host": true
+        }
+      ],
+      "cpu_storage": {
+        "stream_stack_bytes": 9040,
+        "sample_bytes": 5600,
+        "fixture_bytes": 274464,
+        "runtime_command_bytes": null,
+        "driver_command_bytes": null
+      },
+      "memory": {
+        "allocations": 7,
+        "frees": 7,
+        "peak_bytes": 1341748,
+        "peak_count": 7,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "allocation_signature": [
+        [
+          16,
+          0
+        ],
+        [
+          966948,
+          0
+        ],
+        [
+          49152,
+          0
+        ],
+        [
+          159744,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ],
+        [
+          55296,
+          0
+        ]
+      ],
+      "trace": [
+        "ALLOCATE {\"id\":13194139533324,\"bytes\":16,\"type\":0}",
+        "ALLOCATE {\"id\":15393162788878,\"bytes\":966948,\"type\":0}",
+        "ALLOCATE {\"id\":17592186044432,\"bytes\":49152,\"type\":0}",
+        "ALLOCATE {\"id\":19791209299986,\"bytes\":159744,\"type\":0}",
+        "ALLOCATE {\"id\":21990232555540,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":27487790694425,\"bytes\":55296,\"type\":0}",
+        "ALLOCATE {\"id\":32985348833310,\"bytes\":55296,\"type\":0}",
+        "FREE {\"id\":21990232555540}",
+        "FREE {\"id\":27487790694425}",
+        "FREE {\"id\":32985348833310}",
+        "FREE {\"id\":15393162788878}",
+        "FREE {\"id\":17592186044432}",
+        "FREE {\"id\":19791209299986}",
+        "FREE {\"id\":13194139533324}",
+        "MEMORY_SUMMARY {\"allocations\":7,\"frees\":7,\"peak_bytes\":1341748,\"peak_count\":7,\"live_bytes\":0,\"live_count\":0}"
+      ],
+      "label": "validation-65x47x131x95-3-arena-replay",
+      "stdout_sha256": "0d1a9a785afed893d62ae6459d8992e3e3e01c78d035579760c70980afb4f598",
+      "stderr_sha256": "1ccb2cd983c1c33faf948d6f634c741afdd013e5ef4e0194782881034cb62fbd"
+    }
+  ],
+  "timing": [],
+  "memory": [],
+  "identity": {
+    "vendor": 65541,
+    "device": 0,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "input_report_sha256": "eed476db37c658b0decb61b267cebddfafa275aaef7110001aa687d3d94f1680",
+  "export_scope": "raw logs, full matrix/order, statistics, allocation/range matching, source/fixture hashes revalidated; GPU oracle not rerun"
+}

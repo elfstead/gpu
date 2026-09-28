@@ -33,8 +33,12 @@ with full output checks; terminal cases quarantine through teardown, with real
 drain before synthetic loss. Structured reports retain range/generation/ownership
 and native allocation/drain evidence. This closes the selected step 3 failures and
 step 4 consumer-diagnostic scope, not real hardware loss or general debugging.
-Next: matched measurement/allocator-submission decision and independent installed
-handoff. M3 remains unaccepted as a whole.
+The [matched measurement/decision](resource-reuse-performance.md) is accepted at
+`bb76447` (2026-09-28): 96,000 samples and matched native allocation/range controls
+select two-slot consumer arenas with serial replay for the fixed workload. No
+runtime allocator/API change, byte-saving claim or blanket native parity follows;
+small-case re-recording overhead and wider audit questions remain visible. The
+independent installed handoff is the remaining M3 gate. M3 is not yet complete.
 
 ## Reuse established results
 

@@ -1,6 +1,6 @@
 # Consumer-side resource reuse
 
-Implementation of the first two slices of the [M3 brief](../../docs/resource-reuse-plan.md).
+Consumer-side implementation of the [M3 brief](../../docs/resource-reuse-plan.md).
 No runtime changes or allocator performance claim. The mapped-stream control below
 now connects these helpers to the existing workload; see the M3 status for accepted
 run coverage rather than treating a successful build as GPU evidence.
@@ -80,8 +80,8 @@ range ownership, requested bytes and traced peak bytes under a fresh
 `target/resource-reuse/stream-*` directory. These runs keep validation/tracing on,
 so their elapsed times are diagnostic, not performance evidence. The separate
 failure integration below supplies bounded injection evidence; matched native
-timing and independent installed handoff remain M3 gates. There is no implied GPU
-race detection from the bookkeeping helper.
+timing is now covered by the separate comparison below. Independent installed
+handoff remains the M3 gate. There is no implied GPU race detection from the helper.
 
 At `c4009c0`, optimized checks, AddressSanitizer/UBSan and Clang analysis pass.
 LeakSanitizer cannot run under the test environment's tracing; the sanitizer run
@@ -91,7 +91,7 @@ uses `ASAN_OPTIONS=detect_leaks=0`. This is not leak-detection evidence.
 
 The [bounded checkpoint](../../docs/resource-reuse-failures.md) is accepted at
 `e771e66`: all 48 configurations pass on each available Vulkan driver. It does not
-complete M3's measurement/decision or independent-handoff gates.
+complete M3; the measurement/decision follows separately below, then independent handoff.
 
 ```sh
 python3 examples/resource_reuse/failures.py --check # build and CPU checks
@@ -132,3 +132,26 @@ requirements, named resources/executables, ranges, source/binary/runtime hashes,
 fixtures, allocation and native-drain traces. Process failures and timeouts leave
 an incomplete report and captured logs for diagnosis. A missing gate or failed
 process is never accepted merely because the injection was intentional.
+
+## Matched native performance control
+
+The [decision and evidence](../../docs/resource-reuse-performance.md) select two
+arena-backed slots with serial compiled lists for the fixed-command handoff.
+Allocation remains consumer-side; no general native-parity or byte-saving claim.
+
+```sh
+python3 examples/resource_reuse/performance.py --check
+python3 examples/resource_reuse/performance.py --software # selected llvmpipe, correctness only
+python3 examples/resource_reuse/performance.py            # selected Radeon, full matrix
+python3 examples/resource_reuse/export_performance.py /run/report.json /new/evidence-directory
+python3 examples/resource_reuse/test_export_performance.py /original/hardware-run/report.json
+```
+
+The direct Vulkan range build links no OGPU, sharing only consumer policy/oracles
+and retaining independent command encoding. It uses actual native cache atoms and
+range-scoped flush/invalidate, not legacy whole-buffer host helpers on shared ranges.
+Allocation sizes/types and layouts must agree with the public path. The runner
+separates every-frame correctness, uninstrumented timing and traced lifecycle
+accounting; see the [protocol](../../docs/resource-reuse-performance-plan.md).
+All samples are retained; export checks the complete matrix, process order, hashes,
+statistics and native/public policy matching before publishing evidence.

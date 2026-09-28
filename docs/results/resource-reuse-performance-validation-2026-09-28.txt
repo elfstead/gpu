@@ -1,0 +1,119 @@
+# M3 matched range performance receipt — 2026-09-28
+
+Measurement implementation: bb76447da3faecf6c95fc54cfcb8a0b246da3b8b
+Both main performance reports are clean, complete, schema 1.
+Offline negative export tests added afterward at aeefe54; no measured code changed.
+Runtime/public ABI 17, shader artifacts and numerical tolerances unchanged.
+
+Protocol: docs/resource-reuse-performance-plan.md (selected before timing).
+Environment: Rust 1.97.1, Clang 21.1.8, Python 3.14.7.
+RADV/Radeon RX 5700 XT, Mesa 26.2.1; llvmpipe/LLVM 21.1.8.
+Device Vulkan API [1,4,354]. Existing tool, fixture, driver and build caches reused.
+No clean-machine or cold-pipeline-cache claim.
+
+Commands, sequential GPU execution:
+python3 examples/resource_reuse/performance.py --check
+python3 examples/resource_reuse/performance.py              # Radeon
+python3 examples/resource_reuse/performance.py --software   # llvmpipe
+python3 examples/resource_reuse/export_performance.py target/resource-reuse/performance-5ycqzq_e/report.json docs/results/resource-reuse-performance-radv-2026-09-28
+python3 examples/resource_reuse/export_performance.py target/resource-reuse/performance-tbwf6sed/report.json docs/results/resource-reuse-performance-lvp-2026-09-28
+
+Invoking environment selects VK_DRIVER_FILES and enables:
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
+VK_LAYER_VALIDATE_SYNC=1
+Traced controls interpose trace-memory.so over the actual selected loader.
+Timing removes validation variables, sets VK_LOADER_LAYERS_DISABLE=* and does not
+interpose allocation tracing. Exact loader/environment fields are in the report.
+No device timestamp queries, GPU clock locking or external profiler.
+
+Radeon:
+- Two extents: 65x47->131x95 and 1919x1079->2561x1441.
+- Dedicated/arena x public/native x owned reset/serial replay x 1/2/3 slots.
+- 48 full-output validation configurations x 64 frames, plus 2 x 12 serial frames.
+- 192 fresh timing processes: four repetitions/control, 100 warmups then 500
+  recorded frames each. 96,000 samples retained in samples.csv.
+- 48 separate traced lifecycle controls: 100 warmups plus 64 frames.
+- Native/public range layouts and explicit allocation sizes/types match.
+  Dedicated/arena requested buffer-byte budgets match. No growth/leaks.
+- Every validation frame matches serial bytes and CPU RGB <=1 / exact alpha.
+  Timed and memory windows check every slot's FINAL output, plus post-drain
+  integrity/guards/padding; not every timed frame.
+
+llvmpipe:
+- Small extent, 24 full-output validation configurations x 64 frames.
+- One 12-frame serial reference. No timing claim.
+
+Exporter:
+Reparsed every raw stdout/stderr; checked hashes, sample CSV equality, full
+matrix/order, summaries, allocation signatures/layouts and source/fixture hashes.
+Ten negative tests pass:
+python3 examples/resource_reuse/test_export_performance.py target/resource-reuse/performance-5ycqzq_e/report.json
+Rejects incomplete/dirty reports, duplicates, sample hash/statistic changes,
+allocation/layout mutations, source mismatch, process order and traced timing.
+An initial test swapped the first groups and correctly failed at the earlier
+summary-order gate; revised test swaps round-1 rows to exercise process-order
+validation specifically. No exporter weakening or measurement rerun was needed.
+
+Additional regressions after main export, on BOTH drivers:
+python3 examples/resource_reuse/run.py --native
+- 24 configurations x 1,000 small frames per driver: 48,000 candidate frames total,
+  plus 12 serial frames per driver.
+- Radeon target/resource-reuse/stream-sne6n3fd
+- llvmpipe target/resource-reuse/stream-_6jeezq3
+python3 examples/resource_reuse/failures.py
+- All 48 scenarios per driver pass again, including recovery/quarantine and cleanup.
+- Radeon target/resource-reuse/failures-fpryo63i
+- llvmpipe target/resource-reuse/failures-qeipznby
+python3 examples/performance_frontier/stream.py --preflight
+- Native fresh/reset/replay plus legacy public ogpu; 1/2/3 slots x 12 frames.
+- Radeon target/performance-frontier/stream-u85w8pyz
+- llvmpipe target/performance-frontier/stream-ftzmp4by
+
+Regression reports record dirty=true: exported evidence directories were untracked.
+No measured source files had changed. Source and individual process-log hashes for
+all 50 sustained-stream processes and 96 failure processes were rechecked afterward.
+The later offline export-test addition is not part of these source snapshots.
+
+Other checks:
+- Optimized public/native/legacy C builds and all existing helper/parser tests pass.
+- Native range binary's undefined symbols contain no OGPU linkage.
+- Five new performance parser/statistics/order tests pass.
+- CPU native cache tests: atom rounding, allocation tail, bounds/overflow, coherent
+  bypass; same mapped-slice/padding tests compile/run through native and public paths.
+- ASan/UBSan pass for native-cache and public mapped-range CPU fixtures.
+  ASAN_OPTIONS=detect_leaks=0 (environment tracing); no LeakSanitizer evidence.
+- Clang static analysis of public and native range stream passes; only Nix unused
+  linker-flag warnings.
+- cargo test --workspace --offline: 40 passed, 28 GPU tests ignored.
+- cargo clippy --workspace --all-targets --offline -- -D warnings: PASS.
+- cargo fmt --all -- --check: PASS.
+- No full runtime GPU/ABI or new M1 scale suite is claimed for these example changes.
+
+Decision/boundaries:
+Two arena-backed slots, serial replay for this fixed-command consumer.
+No runtime allocator or API change. Public/native replay wall ratios 0.995–1.009;
+small-case re-record ratios 1.006–1.088 remain a measured optimization target.
+Do not attribute the full gap to staged encoding without a controlled experiment.
+Allocation count decreases; allocated bytes barely change, no proven arena speedup.
+Known application storage is recorded; runtime/driver command bytes remain unknown.
+No general API parity, native optimum, uniform tails, real noncoherent hardware,
+actual device-loss or Metal claim. Independent SDK handoff remains the last M3 gate.
+
+SHA-256 of retained evidence and local regression logs/reports:
+fd5ede456d93fc0e677d9407793f92c95f121318b149486974ceb7065e77e537  /tmp/ogpu-reuse-perf-radeon.log
+f699a4c0934a65776ed462b64ba00dd1f9e42f9b133a7c5c5e8fe8e48d5dcefb  /tmp/ogpu-reuse-perf-lvp.log
+b69aeb69a1f3268c574f5550e6f63185a639caabec19654ac174694fa51fc415  /tmp/ogpu-reuse-native-final-radeon.log
+d80a2f26f6cc629b34887bb08ac3ee6267c225459124e067847cc794083d362e  /tmp/ogpu-reuse-native-final-lvp.log
+84728b808f4b3682c903b275d0ff95fcf392c919b17f738d1e2645386f21185a  /tmp/ogpu-reuse-native-failures-radeon.log
+ed1657f3499c50409865596f9196b35226642a73824e099df19debd3d75332c6  /tmp/ogpu-reuse-native-failures-lvp.log
+e0ba8a8a9abb83a11c66e80c389f140213bad105acbd1de02a899cf2cdf8b9ab  /tmp/ogpu-reuse-native-legacy-radeon.log
+daa96088a1ae9e1107c6e423e7629154a48154545b4913af5a0019640297fcd3  /tmp/ogpu-reuse-native-legacy-lvp.log
+ccf3814c28b1a16f8b41fdc64cf2336028b58b0c74383abf920563c806ece7d7  /tmp/ogpu-reuse-native-unit.log
+e1de9abac941c18beaaf1804cc216d6e30759185a64a5d996a39c9869a3c355b  /tmp/ogpu-reuse-perf-export-tests.log
+fe0c800f8cc12cffc79e95f1c830c58f76049db61c1aca604eac6ba9c6359535  docs/results/resource-reuse-performance-radv-2026-09-28/report.json
+69e99f8a0b2cb87e003b2f4701ef984ef35924630158317ef9bf3d945a70e723  docs/results/resource-reuse-performance-radv-2026-09-28/samples.csv
+9734b70774d8b526b9ecf60648eee3637dacded62b5eb464c36ffa99ba47d13d  docs/results/resource-reuse-performance-lvp-2026-09-28/report.json
+e0319da1798b86dbc4fdcf9710300516bcab36da0c8d139f6a5f120c0f4fee8e  target/resource-reuse/stream-sne6n3fd/report.json
+a950617fb79f5121cec8df5aebb284c27051d12cadb074c5d76420b92fdd2c4b  target/resource-reuse/stream-_6jeezq3/report.json
+6b216c06e802502d83b400bae9c8eb7a5b6f87228264a814d23f4a7765c2cce9  target/resource-reuse/failures-fpryo63i/report.json
+d6440590da5c7fffb546fff229ef1f8fe0f51473e0ec7cb2ab547e5e4ac8ea1d  target/resource-reuse/failures-qeipznby/report.json

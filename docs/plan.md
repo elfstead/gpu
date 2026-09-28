@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-27. This page owns current status and selected work. The
+Updated 2026-09-28. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -211,8 +211,14 @@ speedup is claimed. The [failure/drain checkpoint](resource-reuse-failures.md)
 is accepted at `e771e66`: 48 configurations per driver validate rejected/transient/
 drained-terminal outcomes, structured diagnostics, recovery or quarantine, and
 allocation cleanup. Synthetic loss follows real queue drain; no actual hardware-
-loss claim. Next: matched cost/allocator-submission decisions and independent SDK
-handoff. M3 is not complete; no new runtime/API change was needed for these gates.
+loss claim. The [matched allocation/submission decision](resource-reuse-performance.md)
+is accepted at `bb76447`: 96,000 new samples, matched native allocations/ranges and
+48,000 additional small correctness frames. Select two arena-backed slots with
+serial replay for this fixed workload; retain consumer-side allocation. Replay
+wall ratios are 0.995–1.009 of matched native, while small-case re-record ratios
+remain 1.006–1.088; no general API approval or attribution of the whole gap follows.
+Next: independent installed-SDK handoff. This remains the last M3 gate; runtime/API
+are unchanged and broader performance-audit questions remain open.
 
 After M3: an experimental release checkpoint (M7),
 and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate

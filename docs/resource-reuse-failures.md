@@ -99,9 +99,9 @@ new runs. Exact commands and hashes are in the
 
 ## Next
 
-Measure matched allocation/submission policies outside validation and tracing,
-account for setup, CPU work, throughput/latency and observable memory, and record
-the allocator/submission decision. Preserve the earlier host-sensitive expressibility
-evidence; a GPU-heavy result cannot approve the fundamental API. Then perform the
-independent relocated-SDK handoff. Those remain the last M3 gates; broader open
-performance-audit items and the post-M3 roadmap remain separate.
+The subsequent [matched allocation/submission decision](resource-reuse-performance.md)
+is now accepted at `bb76447`, without changing the runtime/API. It retains the
+earlier host-sensitive evidence and exposes residual re-recording costs rather
+than approving the fundamental API from GPU-heavy parity. Independent relocated-SDK
+handoff remains the final M3 gate; broader performance-audit items and the post-M3
+roadmap remain separate.

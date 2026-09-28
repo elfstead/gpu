@@ -4,6 +4,9 @@ Protocol selected 2026-09-27, before timing acceptance. Builds on the
 [sustained stream](resource-reuse-results.md), [failure checkpoint](resource-reuse-failures.md)
 and existing host-sensitive [replay evidence](command-list-results.md).
 
+The [completed comparison and decision](resource-reuse-performance.md) is accepted
+at `bb76447`; this page preserves the protocol chosen before those results.
+
 Question: can the public contract express the same native strategy under the same
 resource/correctness requirements, and what allocation/submission policy should
 this consumer use? Matched timing diagnoses this implementation; it cannot approve
