@@ -31,11 +31,11 @@ compatibility are not completed by those results.
 |---|---|---|
 | M1 — Useful-scale execution | Learned-image workload at video-sized extents, bounded memory, matched Vulkan measurements | Complete; Radeon measurements and smaller llvmpipe correctness controls |
 | M2 — Compiler/programming contract | Documented device-code contract; generated structured arguments and heap interfaces; explicit language-direction decision | Complete 2026-09-26; [pinned Slang + contract](language-direction.md), not a new frontend |
-| M3 — Resource and submission maturity | Sustained multi-frame reuse, measured submission costs, consumer-side allocation assistance, better diagnostics | Active; [bounded reuse brief](resource-reuse-plan.md), existing devices |
+| M3 — Resource and submission maturity | Sustained multi-frame reuse, measured submission costs, consumer-side allocation assistance, better diagnostics | Complete 2026-09-28; [installed handoff](resource-reuse-handoff.md) closes the bounded reuse brief |
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | M2/M3; offscreen Linux first |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | M2/M3; existing Radeon, no matrix-hardware prerequisite |
 | M6 — Mixed-workload Metal parity | Same learned-image application, generated native interfaces, render/readback and common contract tests | M2; native execution conditional on an available Mac validation window |
-| M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | First release checkpoint after M1–M3; refresh after M4–M6 |
+| M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Active first checkpoint after M1–M3; refresh after M4–M6; publication separate |
 
 Default local order: **M1 → M2 → M3 → M7 first checkpoint → M4 → M5**.
 M6 can run after M2 when native validation becomes available; it does not block

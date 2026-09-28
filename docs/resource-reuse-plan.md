@@ -1,7 +1,8 @@
 # M3: sustained resource reuse and consumer diagnostics
 
-Selected 2026-09-26 after [M2 acceptance](language-direction.md). This is the next
-bounded milestone, not completed evidence. Use the existing learned-image stream;
+Selected 2026-09-26 after [M2 acceptance](language-direction.md); completed
+2026-09-28 with the [installed handoff](resource-reuse-handoff.md). The brief below
+records the bounded milestone and its acceptance gates. Use the existing learned-image stream;
 no new GPU, Mac validation window, model, shader algorithm or numerical policy.
 
 ## First implementation checkpoint
@@ -38,7 +39,9 @@ The [matched measurement/decision](resource-reuse-performance.md) is accepted at
 select two-slot consumer arenas with serial replay for the fixed workload. No
 runtime allocator/API change, byte-saving claim or blanket native parity follows;
 small-case re-recording overhead and wider audit questions remain visible. The
-independent installed handoff is the remaining M3 gate. M3 is not yet complete.
+independent installed handoff is accepted at clean `89d71e5`: both drivers pass
+1,000 arena/replay frames using only the relocated SDK and copied application.
+This completes bounded M3, not the broader performance audit or stabilization.
 
 ## Reuse established results
 

@@ -67,6 +67,10 @@ checks manifest hashes, relocates the SDK and builds/runs a C consumer outside
 the checkout. `--no-gpu` checks build/link/loader failure only; `--shader-check`
 also checks optional installed shader generation and interface mutation with
 pinned Slang. Tests keep their temporary artifacts and do not provision tools.
+`--resource-reuse` adds the installed two-slot arena/replay learned-image consumer
+and missing-loader report gate; `--no-gpu --resource-reuse` checks its source graph,
+linking and failure path without GPU execution. `python3 tools/test-reuse-handoff.py`
+checks its report rejection rules. See the [M3 handoff receipt](resource-reuse-handoff.md).
 
 `SLANGC=/path/to/slangc cargo xtask learned-image` builds and validates a complete residual denoising,
 resize/color and offscreen-rendering application against a frozen synthetic

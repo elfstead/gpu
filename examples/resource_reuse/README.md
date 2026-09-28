@@ -81,7 +81,8 @@ range ownership, requested bytes and traced peak bytes under a fresh
 so their elapsed times are diagnostic, not performance evidence. The separate
 failure integration below supplies bounded injection evidence; matched native
 timing is now covered by the separate comparison below. Independent installed
-handoff remains the M3 gate. There is no implied GPU race detection from the helper.
+handoff is now accepted in the [M3 handoff receipt](../../docs/resource-reuse-handoff.md).
+There is no implied GPU race detection from the helper.
 
 At `c4009c0`, optimized checks, AddressSanitizer/UBSan and Clang analysis pass.
 LeakSanitizer cannot run under the test environment's tracing; the sanitizer run

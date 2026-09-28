@@ -194,7 +194,7 @@ probes and the structured source control preserve tested strategy choices withou
 expanding the installed subset. Subgroup capability discovery and accelerated
 matrix profiles remain explicit M5 work; no general P7 or Metal approval follows.
 
-## Active milestone: M3 — sustained resource reuse
+## Completed M3: sustained resource reuse
 
 Follow the [concrete acceptance brief](resource-reuse-plan.md): checked consumer
 ranges/reuse state first, then integrate arena-backed and dedicated mapped slots
@@ -217,11 +217,28 @@ is accepted at `bb76447`: 96,000 new samples, matched native allocations/ranges 
 serial replay for this fixed workload; retain consumer-side allocation. Replay
 wall ratios are 0.995–1.009 of matched native, while small-case re-record ratios
 remain 1.006–1.088; no general API approval or attribution of the whole gap follows.
-Next: independent installed-SDK handoff. This remains the last M3 gate; runtime/API
-are unchanged and broader performance-audit questions remain open.
+The [installed-SDK handoff](resource-reuse-handoff.md) is accepted at clean
+`89d71e5`: a relocated public-only consumer passes 1,000 arena/replay frames on
+each driver, independent CPU/serial gates and installed-example regressions.
+This completes bounded M3. Runtime/API are unchanged; broader performance-audit
+questions and actual outside adoption remain open.
 
-After M3: an experimental release checkpoint (M7),
-and substantial graphics/ML consumers (M4/M5). Metal parity (M6) remains a separate
+## Active milestone: M7 — experimental release preparation
+
+Prepare the first Vulkan-scoped source/local-build checkpoint, not publication:
+
+1. Audit public ownership, errors/unsupported behavior, overflow boundaries and
+   compatibility documentation; write a revision/ABI upgrade policy and current
+   support matrix without implying stabilization.
+2. Reproduce build/contract and relocated-consumer gates from a fresh source
+   checkout, distinguishing cached tools/dependencies from a clean-host test.
+   Keep configured CI separate from observed local/remote execution.
+3. Supply a consumer-facing diagnostic/issue route with revision, driver, enabled
+   requirements and minimal reproduction, then record the candidate's evidence
+   and remaining limitations. Tagging, publishing or external outreach is separate.
+
+After this checkpoint: substantial graphics/ML consumers (M4/M5).
+Metal parity (M6) remains a separate
 native-validation track, not a prerequisite for local progress. The roadmap
 assigns remaining gaps either a milestone or an explicit deferral with entry
 criteria; the experimental API is not frozen.

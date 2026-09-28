@@ -10,6 +10,13 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [M3 installed handoff](resource-reuse-handoff.md) is accepted at clean `89d71e5`
+(2026-09-28), completing bounded M3. Both drivers pass 12 serial plus 1,000 candidate
+frames from relocated SDKs and copied public-only applications, along with existing
+installed-example regressions and missing-loader failure reports. Generated inputs
+and CPU references match accepted fixtures without importing checkout assets.
+No runtime/API change, stable ABI, new performance or external-adoption claim.
+
 The [M3 allocation/submission decision](resource-reuse-performance.md) is accepted
 at `bb76447` (2026-09-28): 192 fresh timing processes / 96,000 samples, independent
 native range controls, matching native/public layouts and allocation sizes/types.
@@ -17,8 +24,8 @@ Replay wall ratios are 0.995â€“1.009; small-case re-record ratios remain 1.006â€
 Select two consumer-arena slots with serial replay for the fixed-command handoff,
 not a runtime allocator. No meaningful byte savings, general parity, uniform tails
 or full-gap attribution is claimed. Both drivers pass another 24,000 sustained
-small frames each and all failure/legacy regressions. Independent SDK handoff is
-the remaining M3 gate; broader audit questions stay open.
+small frames each and all failure/legacy regressions. The subsequent installed
+handoff above closes M3; broader audit questions stay open.
 
 The [M3 failure/drain checkpoint](resource-reuse-failures.md) is accepted at
 `e771e66` (2026-09-27): 48 configurations on each driver cover rejected submission,

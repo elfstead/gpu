@@ -3,7 +3,8 @@
 Accepted 2026-09-28 against clean measurement revision `bb76447`, following the
 [predeclared protocol](resource-reuse-performance-plan.md). Offline negative export
 tests were added separately at `aeefe54`. Runtime, public ABI 17, shader artifacts
-and numerical gates are unchanged. **M3 still needs its independent SDK handoff.**
+and numerical gates are unchanged. The subsequent [installed handoff](resource-reuse-handoff.md)
+at `89d71e5` completes bounded M3.
 
 ## Decision
 
@@ -152,6 +153,7 @@ is implied.
 Package the selected two-slot arena/replay consumer as an independent installed-SDK
 handoff: no checkout headers or private runtime APIs, explicit range/list/receipt
 lifetimes, reproducible diagnostics and documented unsupported backends. That is
-the remaining M3 milestone gate before the M7 experimental-release checkpoint.
+the final M3 milestone gate, now accepted in the [handoff receipt](resource-reuse-handoff.md),
+before the M7 experimental-release checkpoint.
 Other performance-audit questions remain open rather than being silently accepted
 by this workload's decision.
