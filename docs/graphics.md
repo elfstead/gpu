@@ -3,6 +3,10 @@
 This narrow optional profile tests shared allocation, argument, submission, and
 completion rules. It does not define a complete graphics API or add presentation.
 
+This page describes the implemented non-indexed API. The M4
+[indexed/depth proposal](indexed-depth-proposal.md) selects its next migration;
+that candidate is not implemented by ABI 17.
+
 Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
 
 ## Device and executable

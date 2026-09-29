@@ -247,10 +247,15 @@ interfaces. The [direct Vulkan indexed/depth reference](graphics-scene-native-re
 is accepted at clean `5da5aaf`: 150 checked frames across both drivers, including
 720p on Radeon, analytical color/depth checks, exact GPU-written records/guards
 and native draw-order/load equivalence. Public/runtime ABI 17 is unchanged.
-Next: resolve index-storage eligibility, independent color/depth clear/load and
-rendering-scope grouping in the public contract proposal, then implement it against
-this control. Preserve native strategy choices;
-GPU-heavy parity alone does not approve the API. Existing devices suffice.
+The [indexed/depth proposal](indexed-depth-proposal.md) selects explicit rendering
+scopes, independent attachment load/store, immutable raster depth state and opt-in
+index eligibility on ordinary buffers. Initialization is separate from per-scope
+clear; draws keep real indexed execution and explicit dependencies. This is a
+candidate for implementation, not an implemented or performance-approved API.
+Next: implement the coherent ABI-18 migration and contract/lifetime gates, then
+the matched public scene, grouped-draw/replay measurements and installed handoff.
+Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
+Existing devices suffice.
 
 After M4: the bounded ML consumer (M5); refresh M7 after feature milestones.
 Metal parity (M6) remains a separate

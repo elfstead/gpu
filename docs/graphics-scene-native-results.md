@@ -96,8 +96,9 @@ two drivers, not a fresh-host, second-physical-vendor or Metal result.
    slice must keep the compiler/runtime contracts aligned; successful direct
    Slang compilation is not acceptance of a widened installed adapter.
 
-Next: a bounded indexed/depth API proposal resolving those choices, then implement
-and compare it against this reference. Choose the better contract even if the old
+Follow-up: the [bounded indexed/depth proposal](indexed-depth-proposal.md) now
+selects a candidate resolving those choices; implement and compare it against
+this reference next. Choose the better contract even if the old
 draw API could be extended. This control does **not** measure cache efficiency,
 rendering-scope cost, replay, two-slot scene execution or public/native overhead;
 none is silently approved by passing pixel checks. M4's remaining graphics slices

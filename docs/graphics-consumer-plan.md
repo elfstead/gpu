@@ -76,6 +76,7 @@ encoding overhead is tracked separately and is not automatically fundamental.
   unchanged learned-image results. Presentation is a separate follow-on boundary;
   no window concepts enter the compute core just to complete this milestone.
 
-Next concrete step: propose the indexed/depth contract against the accepted native
-control, including index storage eligibility, independent attachment load/clear and
-draw grouping. No additional public API is selected by this brief alone.
+The [indexed/depth proposal](indexed-depth-proposal.md) now selects a candidate
+contract and its implementation/acceptance sequence. Next concrete step: the
+coherent ABI-18 runtime migration and contract tests, then matched public/native
+scene acceptance. ABI 17 remains implemented until that migration lands.
