@@ -68,6 +68,8 @@ vkCmdWriteTimestamp2
 vkCmdBeginRendering
 vkCmdEndRendering
 vkCmdDrawIndirect2KHR
+vkCmdBindIndexBuffer3KHR
+vkCmdDrawIndexedIndirect2KHR
 vkCmdCopyImageToMemoryKHR
 vkCmdCopyMemoryToImageKHR
 vkCmdCopyMemoryKHR

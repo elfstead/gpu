@@ -68,6 +68,9 @@ vk VkQueryPool
 vk VkQueryPoolCreateInfo sType pNext flags queryType queryCount pipelineStatistics
 vk VkPhysicalDeviceLimits timestampPeriod
 vk VkDrawIndirectCommand vertexCount instanceCount firstVertex firstInstance
+vk VkDrawIndexedIndirectCommand indexCount instanceCount firstIndex vertexOffset firstInstance
+vk VkBindIndexBuffer3InfoKHR sType pNext addressRange addressFlags indexType
+vk VkPipelineDepthStencilStateCreateInfo sType pNext flags depthTestEnable depthWriteEnable depthCompareOp depthBoundsTestEnable stencilTestEnable front back minDepthBounds maxDepthBounds
 vk VkImage
 vk VkImageView
 vk VkFramebuffer

@@ -2160,6 +2160,15 @@ pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY: VkCommandBufferL
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_SECONDARY: VkCommandBufferLevel = 1;
 pub const VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_MAX_ENUM: VkCommandBufferLevel = 2147483647;
 pub type VkCommandBufferLevel = ::std::os::raw::c_uint;
+pub const VkIndexType_VK_INDEX_TYPE_UINT16: VkIndexType = 0;
+pub const VkIndexType_VK_INDEX_TYPE_UINT32: VkIndexType = 1;
+pub const VkIndexType_VK_INDEX_TYPE_UINT8: VkIndexType = 1000265000;
+pub const VkIndexType_VK_INDEX_TYPE_NONE_KHR: VkIndexType = 1000165000;
+pub const VkIndexType_VK_INDEX_TYPE_NONE_NV: VkIndexType = 1000165000;
+pub const VkIndexType_VK_INDEX_TYPE_UINT8_EXT: VkIndexType = 1000265000;
+pub const VkIndexType_VK_INDEX_TYPE_UINT8_KHR: VkIndexType = 1000265000;
+pub const VkIndexType_VK_INDEX_TYPE_MAX_ENUM: VkIndexType = 2147483647;
+pub type VkIndexType = ::std::os::raw::c_uint;
 pub const VkBorderColor_VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK: VkBorderColor = 0;
 pub const VkBorderColor_VK_BORDER_COLOR_INT_TRANSPARENT_BLACK: VkBorderColor = 1;
 pub const VkBorderColor_VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK: VkBorderColor = 2;
@@ -5226,6 +5235,39 @@ impl Default for VkClearColorValue {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkDrawIndexedIndirectCommand {
+    pub indexCount: u32,
+    pub instanceCount: u32,
+    pub firstIndex: u32,
+    pub vertexOffset: i32,
+    pub firstInstance: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDrawIndexedIndirectCommand",
+    ][::std::mem::size_of::<VkDrawIndexedIndirectCommand>() - 20usize];
+    [
+        "Alignment of VkDrawIndexedIndirectCommand",
+    ][::std::mem::align_of::<VkDrawIndexedIndirectCommand>() - 4usize];
+    [
+        "Offset of field: VkDrawIndexedIndirectCommand::indexCount",
+    ][::std::mem::offset_of!(VkDrawIndexedIndirectCommand, indexCount) - 0usize];
+    [
+        "Offset of field: VkDrawIndexedIndirectCommand::instanceCount",
+    ][::std::mem::offset_of!(VkDrawIndexedIndirectCommand, instanceCount) - 4usize];
+    [
+        "Offset of field: VkDrawIndexedIndirectCommand::firstIndex",
+    ][::std::mem::offset_of!(VkDrawIndexedIndirectCommand, firstIndex) - 8usize];
+    [
+        "Offset of field: VkDrawIndexedIndirectCommand::vertexOffset",
+    ][::std::mem::offset_of!(VkDrawIndexedIndirectCommand, vertexOffset) - 12usize];
+    [
+        "Offset of field: VkDrawIndexedIndirectCommand::firstInstance",
+    ][::std::mem::offset_of!(VkDrawIndexedIndirectCommand, firstInstance) - 16usize];
+};
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkDrawIndirectCommand {
@@ -8865,6 +8907,48 @@ impl Default for VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkBindIndexBuffer3InfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub addressRange: VkDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+    pub indexType: VkIndexType,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBindIndexBuffer3InfoKHR",
+    ][::std::mem::size_of::<VkBindIndexBuffer3InfoKHR>() - 40usize];
+    [
+        "Alignment of VkBindIndexBuffer3InfoKHR",
+    ][::std::mem::align_of::<VkBindIndexBuffer3InfoKHR>() - 8usize];
+    [
+        "Offset of field: VkBindIndexBuffer3InfoKHR::sType",
+    ][::std::mem::offset_of!(VkBindIndexBuffer3InfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkBindIndexBuffer3InfoKHR::pNext",
+    ][::std::mem::offset_of!(VkBindIndexBuffer3InfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkBindIndexBuffer3InfoKHR::addressRange",
+    ][::std::mem::offset_of!(VkBindIndexBuffer3InfoKHR, addressRange) - 16usize];
+    [
+        "Offset of field: VkBindIndexBuffer3InfoKHR::addressFlags",
+    ][::std::mem::offset_of!(VkBindIndexBuffer3InfoKHR, addressFlags) - 32usize];
+    [
+        "Offset of field: VkBindIndexBuffer3InfoKHR::indexType",
+    ][::std::mem::offset_of!(VkBindIndexBuffer3InfoKHR, indexType) - 36usize];
+};
+impl Default for VkBindIndexBuffer3InfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkDrawIndirect2InfoKHR {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -8905,7 +8989,19 @@ impl Default for VkDrawIndirect2InfoKHR {
         }
     }
 }
+pub type PFN_vkCmdBindIndexBuffer3KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkBindIndexBuffer3InfoKHR,
+    ),
+>;
 pub type PFN_vkCmdDrawIndirect2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkDrawIndirect2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdDrawIndexedIndirect2KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pInfo: *const VkDrawIndirect2InfoKHR,

@@ -25,6 +25,7 @@ VkImageUsageFlagBits
 VkImageAspectFlagBits
 VkColorComponentFlagBits
 VkDrawIndirectCommand
+VkDrawIndexedIndirectCommand
 VkQueryResultFlagBits
 VkPhysicalDeviceVulkan12Features
 VkPhysicalDeviceVulkan13Features
