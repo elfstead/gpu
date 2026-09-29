@@ -59,16 +59,16 @@ int main(int argc, char **argv) {
     /* The device retains the instance; discovery can now be released. */
     ogpu_probe_destroy(probe); probe = NULL;
 
-    REQUIRE(ogpu_buffer_create(device, 0, OGPU_MEMORY_HOST, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
-    REQUIRE(ogpu_buffer_create(device, size, 99, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
-    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_DEVICE, &buffer, &error));
+    REQUIRE(ogpu_buffer_create(device, &(OgpuBufferDesc){0, OGPU_MEMORY_HOST, 0}, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
+    REQUIRE(ogpu_buffer_create(device, &(OgpuBufferDesc){size, 99, 0}, &buffer, &error) == OGPU_ERROR_INVALID_ARGUMENT && buffer == NULL);
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){size, OGPU_MEMORY_DEVICE, 0}, &buffer, &error));
     uint32_t unchanged = 0xabcdef01;
     REQUIRE(ogpu_buffer_read(buffer, 0, &unchanged, sizeof(unchanged), &error) == OGPU_ERROR_INVALID_ARGUMENT);
     REQUIRE(unchanged == 0xabcdef01);
     REQUIRE(ogpu_buffer_write(buffer, 0, &unchanged, sizeof(unchanged), &error) == OGPU_ERROR_INVALID_ARGUMENT);
     REQUIRE(ogpu_buffer_write(buffer, size, NULL, 0, &error) == OGPU_ERROR_INVALID_ARGUMENT);
     ogpu_buffer_destroy(buffer); buffer = NULL;
-    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &buffer, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){size, OGPU_MEMORY_HOST, 0}, &buffer, &error));
     uint32_t invalid_module[5] = {0};
     REQUIRE(ogpu_kernel_create(device, &(OgpuShaderDesc){invalid_module, (5) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, 16, &kernel, &error) == OGPU_ERROR_INVALID_ARGUMENT && kernel == NULL);
     TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, ((uint64_t)byte_count / 4) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &kernel, &error));

@@ -1,4 +1,4 @@
-# Reusable command lists — current ABI-17 contract
+# Reusable command lists — current contract
 
 The [explicit-storage result](recording-storage-results.md) removed a recording
 capacity cliff, but did not expose native executable reuse. This experiment asks

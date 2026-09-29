@@ -178,7 +178,7 @@ static int dependency_create(DependencyControl *d) {
         address=c->slots[b].buffer.address;
         CHECK(native_write(&c->native,&c->slots[b].buffer,0,d->host[b],bytes));
 #else
-        API(ogpu_buffer_create(c->device,bytes,OGPU_MEMORY_HOST,&c->slots[b].buffer,&c->error));
+        API(ogpu_buffer_create(c->device, &(OgpuBufferDesc){bytes, OGPU_MEMORY_HOST, 0}, &c->slots[b].buffer, &c->error));
         API(ogpu_buffer_device_address(c->slots[b].buffer,&address,&c->error));
         API(ogpu_buffer_write(c->slots[b].buffer,0,d->host[b],bytes,&c->error));
 #endif

@@ -56,8 +56,10 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 17, with recording-local split dependencies and explicit serial/simultaneous
-replay modes. On Vulkan, ordinary device creation enables compute/images/heaps; rasterization is
+ABI 18, with explicit rendering scopes, indexed execution and D32 depth state,
+alongside recording-local split dependencies and explicit serial/simultaneous
+replay modes. The [migration checkpoint](indexed-depth-migration.md) is not full
+graphics/performance acceptance. On Vulkan, ordinary device creation enables compute/images/heaps; rasterization is
 explicitly opt-in. [Enabled capabilities and exact image-support queries](execution-capabilities.md)
 describe the created device, not just physical support. Terminal completion
 observation retires submission resources independently of the surviving result

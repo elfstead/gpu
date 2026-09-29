@@ -151,7 +151,8 @@ void copy_bytes(Allocation &a, size_t off, const void *input, void *output, size
     } else {
         if (size > state.staging_size) {
             OgpuBuffer *raw = nullptr;
-            GPU(ogpu_buffer_create(state.device.get(), size, OGPU_MEMORY_HOST, &raw, &error));
+            const OgpuBufferDesc desc = {size, OGPU_MEMORY_HOST, 0};
+            GPU(ogpu_buffer_create(state.device.get(), &desc, &raw, &error));
             state.staging.reset(raw);
             state.staging_size = size;
             ++state.stats.staging_allocations;
@@ -220,9 +221,9 @@ ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size)
         a->size = size;
         a->tokens.resize(size + 63);
         OgpuBuffer *raw = nullptr;
-        GPU(ogpu_buffer_create(state->device.get(), size,
-                               state->memory == OgpuGgmlMemory::Host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE,
-                               &raw, &error));
+        const OgpuBufferDesc desc = {size,
+            state->memory == OgpuGgmlMemory::Host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, 0};
+        GPU(ogpu_buffer_create(state->device.get(), &desc, &raw, &error));
         a->buffer.reset(raw);
         GPU(ogpu_buffer_device_address(raw, &a->address, &error));
         ggml_backend_buffer_i iface{};

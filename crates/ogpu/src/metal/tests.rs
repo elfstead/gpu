@@ -13,7 +13,18 @@ fn device() -> OgpuDevice {
 unsafe fn buffer(device: &mut OgpuDevice, size: u64, placement: u32) -> *mut OgpuBuffer {
     let mut buffer = ptr::null_mut();
     assert_eq!(
-        unsafe { ogpu_buffer_create(device, size, placement, &mut buffer, ptr::null_mut()) },
+        unsafe {
+            ogpu_buffer_create(
+                device,
+                &crate::OgpuBufferDesc {
+                    size_bytes: size,
+                    placement: placement,
+                    extra_usage: 0,
+                },
+                &mut buffer,
+                ptr::null_mut(),
+            )
+        },
         SUCCESS
     );
     buffer
@@ -156,7 +167,16 @@ fn byte_copies_retirement_and_registry() {
         let mut invalid = ptr::dangling_mut();
         let too_large = device.inner.raw.max_buffer_length() + 1;
         assert_eq!(
-            ogpu_buffer_create(&mut device, too_large, 0, &mut invalid, ptr::null_mut()),
+            ogpu_buffer_create(
+                &mut device,
+                &crate::OgpuBufferDesc {
+                    size_bytes: too_large,
+                    placement: 0,
+                    extra_usage: 0
+                },
+                &mut invalid,
+                ptr::null_mut()
+            ),
             OUT_OF_RANGE
         );
         assert!(invalid.is_null());
@@ -362,7 +382,16 @@ fn nullable_public_and_internal_allocations() {
         let mut output = ptr::dangling_mut();
         FAIL_NEXT_BUFFER_ALLOCATION.with(|flag| flag.set(true));
         assert_eq!(
-            ogpu_buffer_create(&mut device, 16, 0, &mut output, ptr::null_mut()),
+            ogpu_buffer_create(
+                &mut device,
+                &crate::OgpuBufferDesc {
+                    size_bytes: 16,
+                    placement: 0,
+                    extra_usage: 0
+                },
+                &mut output,
+                ptr::null_mut()
+            ),
             INTERNAL_ERROR
         );
         assert!(output.is_null());

@@ -87,17 +87,16 @@ int main(int argc, char **argv) {
     REQUIRE(read_shader(argv[2], &vertex_words, &vertex_count) == EXIT_SUCCESS);
     REQUIRE(read_shader(argv[3], &fragment_words, &fragment_count) == EXIT_SUCCESS);
     TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){compute_words, (compute_count) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &producer, &error));
-    TRY(ogpu_raster_create(device, &(OgpuShaderDesc){vertex_words, (vertex_count) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
-            &(OgpuShaderDesc){fragment_words, (fragment_count) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
+    TRY(ogpu_raster_create(device, &(OgpuShaderDesc){vertex_words, (vertex_count) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, &(OgpuShaderDesc){fragment_words, (fragment_count) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, &(OgpuRasterDesc){sizeof(Root), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &raster, &error));
     const OgpuImageDesc image_desc = {OGPU_IMAGE_2D, 64, 64, OGPU_FORMAT_RGBA8_UNORM,
         OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC, 0};
     TRY(ogpu_image_create(device, &image_desc, &target, &error));
 
     /* Ordinary allocations, not special vertex/indirect memory types. The GPU will
      * generate all three vec4 positions and all four indirect-draw fields. */
-    TRY(ogpu_buffer_create(device, 3 * 4 * sizeof(float), OGPU_MEMORY_HOST, &vertices, &error));
-    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &indirect, &error));
-    TRY(ogpu_buffer_create(device, image_size, OGPU_MEMORY_HOST, &readback, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){3 * 4 * sizeof(float), OGPU_MEMORY_HOST, 0}, &vertices, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, 0}, &indirect, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){image_size, OGPU_MEMORY_HOST, 0}, &readback, &error));
     pixels = malloc((size_t)image_size);
     REQUIRE(pixels != NULL);
     Root root = {0};
@@ -110,7 +109,11 @@ int main(int argc, char **argv) {
     TRY(ogpu_batch_dispatch(batch, producer, 1, 1, 1, &root, sizeof(root), &error));
     TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ, &error));
-    TRY(ogpu_batch_draw_indirect(batch, raster, target, indirect, 0, &root, sizeof(root), OGPU_ATTACHMENT_CLEAR, &error));
+    TRY(ogpu_batch_discard_image(batch, target, &error));
+    const OgpuRenderingDesc rendering_4 = {.color = {target, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
+    TRY(ogpu_batch_begin_rendering(batch, &rendering_4, &error));
+    TRY(ogpu_batch_draw_indirect(batch, raster, indirect, 0, &root, sizeof(root), &error));
+    TRY(ogpu_batch_end_rendering(batch, &error));
     TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, 0, &error));
     TRY(ogpu_batch_submit(batch, &completion, &error));
 

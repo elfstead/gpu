@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
     source = malloc(bytes); actual = malloc(bytes); REQUIRE(source && actual);
     source[0] = -8192; source[MAX_COUNT+1] = 8192;
     for (unsigned i = 0; i < MAX_COUNT; ++i) source[i+1] = (float)((int)(i%257)-128);
-    TRY(ogpu_buffer_create(device, bytes, OGPU_MEMORY_HOST, &data, &error));
-    TRY(ogpu_buffer_create(device, sizeof(blocks), OGPU_MEMORY_HOST, &parameters, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){bytes, OGPU_MEMORY_HOST, 0}, &data, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizeof(blocks), OGPU_MEMORY_HOST, 0}, &parameters, &error));
     TRY(ogpu_buffer_device_address(data, &blocks[1].arg_data, &error)); blocks[1].arg_data += 4;
     for (unsigned c = 0; c < 2; ++c) blocks[1].arg_coefficients[c].arg_scaleBias[0] = 1;
     StructuredArguments root = {.arg_chosen=1};

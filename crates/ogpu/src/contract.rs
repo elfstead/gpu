@@ -58,13 +58,72 @@ pub(crate) fn dispatch(
 }
 
 pub(crate) fn access(mask: u32, graphics: bool) -> Result<(), Error> {
-    if mask == 0 || mask & !511 != 0 {
+    if mask == 0 || mask & !4095 != 0 {
         return Err(Error::new(INVALID_ARGUMENT, "Invalid access mask"));
     }
-    if !graphics && mask & (4 | 8 | 16 | 128 | 256) != 0 {
+    if !graphics && mask & (4 | 8 | 16 | 128 | 256 | 512 | 1024 | 2048) != 0 {
         return Err(Error::new(
             UNSUPPORTED,
             "Graphics access on a compute-only queue",
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn buffer_desc(desc: &crate::OgpuBufferDesc) -> Result<usize, Error> {
+    if desc.size_bytes == 0
+        || desc.size_bytes > isize::MAX as u64
+        || desc.placement > 1
+        || desc.extra_usage & !1 != 0
+    {
+        return Err(Error::new(INVALID_ARGUMENT, "Invalid buffer description"));
+    }
+    Ok(desc.size_bytes as usize)
+}
+
+pub(crate) fn index_range(
+    buffer_size: usize,
+    address: u64,
+    offset: u64,
+    size: u64,
+    format: u32,
+) -> Result<(), Error> {
+    let element = match format {
+        0 => 2,
+        1 => 4,
+        _ => return Err(Error::new(INVALID_ARGUMENT, "Invalid index format")),
+    };
+    if size == 0
+        || offset % element != 0
+        || size % element != 0
+        || address.checked_add(offset).is_none_or(|a| a % element != 0)
+    {
+        return Err(Error::new(
+            INVALID_ARGUMENT,
+            "Invalid index alignment or empty range",
+        ));
+    }
+    range(buffer_size, offset, size)?;
+    Ok(())
+}
+
+pub(crate) fn attachments(desc: &crate::OgpuRenderingDesc) -> Result<(), Error> {
+    let c = desc.color;
+    let d = desc.depth;
+    if c.image.is_null()
+        || c.load > 2
+        || c.store > 1
+        || (c.load == 0 && c.clear.iter().any(|v| !v.is_finite()))
+        || d.reserved != 0
+        || (d.image.is_null() && (d.load != 0 || d.store != 0 || d.clear != 0.0))
+        || (!d.image.is_null()
+            && (d.load > 2
+                || d.store > 1
+                || (d.load == 0 && (!d.clear.is_finite() || !(0.0..=1.0).contains(&d.clear)))))
+    {
+        return Err(Error::new(
+            INVALID_ARGUMENT,
+            "Invalid rendering attachment operations",
         ));
     }
     Ok(())
@@ -158,7 +217,11 @@ mod tests {
         assert!(dispatch([1; 3], [2; 3], 4, 8).is_err());
         access(1 | 2 | 32 | 64, false).unwrap();
         assert_eq!(access(256, false).unwrap_err().status, UNSUPPORTED);
-        assert_eq!(access(512, true).unwrap_err().status, INVALID_ARGUMENT);
+        access(4095, true).unwrap();
+        for bit in [512, 1024, 2048] {
+            assert_eq!(access(bit, false).unwrap_err().status, UNSUPPORTED);
+        }
+        assert_eq!(access(4096, true).unwrap_err().status, INVALID_ARGUMENT);
         assert!(access(0, true).is_err());
     }
     #[test]

@@ -195,9 +195,16 @@ fn gpu_raster_specialization_and_vertex_pulling() {
                     &mut handle,
                     &vd,
                     &fd,
-                    8,
-                    99,
-                    0,
+                    &crate::OgpuRasterDesc {
+                        push_size_bytes: 8,
+                        topology: 99,
+                        color_format: 0,
+                        depth_format: u32::MAX,
+                        depth_test: 0,
+                        depth_write: 0,
+                        depth_compare: 7,
+                        reserved: 0
+                    },
                     &mut raster,
                     ptr::null_mut()
                 ),
@@ -205,7 +212,23 @@ fn gpu_raster_specialization_and_vertex_pulling() {
             );
             assert!(raster.is_null());
             assert_eq!(
-                ogpu_raster_create(&mut handle, &vd, &fd, 8, 1, 0, &mut raster, ptr::null_mut()),
+                ogpu_raster_create(
+                    &mut handle,
+                    &vd,
+                    &fd,
+                    &crate::OgpuRasterDesc {
+                        push_size_bytes: 8,
+                        topology: 1,
+                        color_format: 0,
+                        depth_format: u32::MAX,
+                        depth_test: 0,
+                        depth_write: 0,
+                        depth_compare: 7,
+                        reserved: 0
+                    },
+                    &mut raster,
+                    ptr::null_mut()
+                ),
                 SUCCESS
             );
         }
@@ -252,19 +275,34 @@ fn gpu_raster_specialization_and_vertex_pulling() {
             inner: Batch::new(device).unwrap(),
         };
         batch.inner.retain_buffer(vertices).unwrap();
+        batch.inner.discard_image(image.inner.clone()).unwrap();
+        let rendering = crate::OgpuRenderingDesc {
+            color: crate::OgpuColorAttachment {
+                image: &mut image,
+                clear: [0.0, 0.0, 0.0, 1.0],
+                ..Default::default()
+            },
+            depth: Default::default(),
+        };
+        batch
+            .inner
+            .begin_rendering(image.inner.clone(), None, rendering)
+            .unwrap();
         unsafe {
             assert_eq!(
                 ogpu_batch_draw_indirect(
                     &mut batch,
                     &mut *raster,
-                    &mut image,
                     &mut indirect,
                     0,
                     root.as_ptr().cast(),
                     8,
-                    0,
                     ptr::null_mut()
                 ),
+                SUCCESS
+            );
+            assert_eq!(
+                ogpu_batch_end_rendering(&mut batch, ptr::null_mut()),
                 SUCCESS
             );
             assert_eq!(

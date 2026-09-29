@@ -238,7 +238,7 @@ static int create(Context *c) {
 #ifdef FRONTIER_NATIVE
         CHECK(native_buffer_create(n, &s->buffer, sizeof(data), 1)); address = s->buffer.address;
 #else
-        API(ogpu_buffer_create(c->device, sizeof(data), OGPU_MEMORY_HOST, &s->buffer, &c->error));
+        API(ogpu_buffer_create(c->device, &(OgpuBufferDesc){sizeof(data), OGPU_MEMORY_HOST, 0}, &s->buffer, &c->error));
         API(ogpu_buffer_device_address(s->buffer, &address, &c->error));
         if (!strcmp(c->policy, "owned") || !strcmp(c->policy, "compiled")) {
             API(ogpu_recording_storage_create(c->device, &s->storage, &c->error));

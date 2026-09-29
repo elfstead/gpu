@@ -173,7 +173,7 @@ static int host_create(HostAccess *h) {
         address = backing(h, i)->address + byte_offset(h, i);
 #else
         if (!h->shared || !i) {
-            API(ogpu_buffer_create(c->device, h->shared ? c->count * h->stride : h->bytes, OGPU_MEMORY_HOST, &s->buffer, &c->error));
+            API(ogpu_buffer_create(c->device, &(OgpuBufferDesc){h->shared ? c->count * h->stride : h->bytes, OGPU_MEMORY_HOST, 0}, &s->buffer, &c->error));
             if (h->mapped) {
                 API(ogpu_buffer_host_view(s->buffer, &h->views[i], &c->error));
                 CHECK(h->views[i].data && h->views[i].alignment && h->views[i].access_granularity);

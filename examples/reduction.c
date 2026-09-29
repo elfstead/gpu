@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     }
     REQUIRE(device != NULL);
     TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words, ((uint64_t)byte_count / 4) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(Root), &kernel, &error));
-    TRY(ogpu_buffer_create(device, size, OGPU_MEMORY_HOST, &source, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){size, OGPU_MEMORY_HOST, 0}, &source, &error));
     input = malloc((size_t)size);
     REQUIRE(input != NULL);
     uint64_t reference = 0;
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
         uint32_t groups = remaining / 128 + (remaining % 128 != 0);
         if (groups == 0) groups = 1;
         REQUIRE(levels < sizeof(scratch) / sizeof(scratch[0]));
-        TRY(ogpu_buffer_create(device, (uint64_t)groups * sizeof(uint32_t), OGPU_MEMORY_HOST, &scratch[levels], &error));
+        TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){(uint64_t)groups * sizeof(uint32_t), OGPU_MEMORY_HOST, 0}, &scratch[levels], &error));
         Root root = {0};
         root.input_address = input_address;
         root.count = remaining;

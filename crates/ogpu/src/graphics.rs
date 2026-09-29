@@ -1,4 +1,4 @@
-//! Explicit 1D/2D images and fixed-state RGBA8 offscreen rendering.
+//! Explicit images, attachment scopes and prepared indexed/depth raster execution.
 use super::*;
 
 const FORMAT: vk::VkFormat = vk::VkFormat_VK_FORMAT_R8G8B8A8_UNORM;
@@ -8,6 +8,9 @@ pub(crate) const STORAGE: u32 = 2;
 pub(crate) const COLOR: u32 = 4;
 pub(crate) const COPY_SRC: u32 = 8;
 pub(crate) const COPY_DST: u32 = 16;
+pub(crate) const DEPTH: u32 = 32;
+pub(crate) const D32: u32 = 4;
+pub(crate) const NO_FORMAT: u32 = u32::MAX;
 
 pub use crate::api_types::OgpuImageDesc as ImageDesc;
 
@@ -26,11 +29,16 @@ impl ImageDesc {
 
     fn validate(&self, limits: &vk::VkPhysicalDeviceLimits) -> Result<usize, Error> {
         if !matches!(self.dimension, 1 | 2)
-            || self.format > 3
+            || self.format > D32
             || (self.format == 3 && self.usage & (STORAGE | COLOR) != 0)
+            || (self.format == D32
+                && (self.dimension != 2
+                    || self.usage & DEPTH == 0
+                    || self.usage & !(DEPTH | COPY_SRC | COPY_DST) != 0))
+            || (self.format != D32 && self.usage & DEPTH != 0)
             || self.reserved != 0
             || self.usage == 0
-            || self.usage & !(SAMPLED | STORAGE | COLOR | COPY_SRC | COPY_DST) != 0
+            || self.usage & !(SAMPLED | STORAGE | COLOR | COPY_SRC | COPY_DST | DEPTH) != 0
             || self.width == 0
             || self.height == 0
             || (self.dimension == 1
@@ -42,7 +50,7 @@ impl ImageDesc {
         {
             return Err(Error::new(INVALID_ARGUMENT, "Invalid image description"));
         }
-        if self.usage & COLOR != 0 {
+        if self.usage & (COLOR | DEPTH) != 0 {
             target_size(self.width, self.height, limits)?;
         }
         (self.width as usize)
@@ -58,15 +66,24 @@ impl ImageDesc {
             1 => vk::VkFormat_VK_FORMAT_R32_SFLOAT,
             2 => vk::VkFormat_VK_FORMAT_R16G16B16A16_SFLOAT,
             3 => vk::VkFormat_VK_FORMAT_R16G16B16A16_UNORM,
+            D32 => vk::VkFormat_VK_FORMAT_D32_SFLOAT,
             _ => unreachable!("validated image format"),
         }
     }
 
     pub(super) fn texel_size(&self) -> usize {
-        if self.format >= 2 {
+        if matches!(self.format, 2 | 3) {
             8
         } else {
             4
+        }
+    }
+
+    fn aspect(&self) -> vk::VkImageAspectFlags {
+        if self.format == D32 {
+            vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_DEPTH_BIT
+        } else {
+            vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT
         }
     }
 
@@ -81,6 +98,10 @@ impl ImageDesc {
     fn vk_usage(&self) -> vk::VkImageUsageFlags {
         [
             (SAMPLED, vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_SAMPLED_BIT),
+            (
+                DEPTH,
+                vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            ),
             (STORAGE, vk::VkImageUsageFlagBits_VK_IMAGE_USAGE_STORAGE_BIT),
             (
                 COLOR,
@@ -178,7 +199,7 @@ impl Image {
     pub(crate) fn check_support(device: &Device, desc: ImageDesc) -> Result<usize, Error> {
         device.ready()?;
         let size = desc.validate(&device.limits)?;
-        if desc.usage & COLOR != 0 {
+        if desc.usage & (COLOR | DEPTH) != 0 {
             ready(device)?;
         }
         let (width, height) = (desc.width, desc.height);
@@ -317,7 +338,7 @@ impl Image {
                 viewType: desc.view_type(),
                 format: desc.vk_format(),
                 subresourceRange: vk::VkImageSubresourceRange {
-                    aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
+                    aspectMask: desc.aspect(),
                     baseMipLevel: 0,
                     levelCount: 1,
                     baseArrayLayer: 0,
@@ -325,7 +346,7 @@ impl Image {
                 },
                 ..Default::default()
             };
-            if desc.usage & COLOR != 0 {
+            if desc.usage & (COLOR | DEPTH) != 0 {
                 d.result(
                     "vkCreateImageView",
                     (d.f.vkCreateImageView.unwrap())(
@@ -338,89 +359,6 @@ impl Image {
             }
         }
         Ok(result)
-    }
-
-    pub(super) unsafe fn draw(
-        &self,
-        command: vk::VkCommandBuffer,
-        raster: &Raster,
-        indirect: &Buffer,
-        offset: u64,
-        root: &[u8],
-        load: u32,
-    ) {
-        let d = &self.device;
-        let area = vk::VkRect2D {
-            offset: vk::VkOffset2D { x: 0, y: 0 },
-            extent: vk::VkExtent2D {
-                width: self.desc.width,
-                height: self.desc.height,
-            },
-        };
-        let clear = vk::VkClearValue {
-            color: vk::VkClearColorValue {
-                float32: [0.0, 0.0, 0.0, 1.0],
-            },
-        };
-        let attachment = vk::VkRenderingAttachmentInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-            imageView: self.view,
-            imageLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
-            loadOp: if load == batch::CLEAR {
-                vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR
-            } else {
-                vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_LOAD
-            },
-            storeOp: vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_STORE,
-            clearValue: clear,
-            ..Default::default()
-        };
-        let begin = vk::VkRenderingInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_INFO,
-            renderArea: area,
-            layerCount: 1,
-            colorAttachmentCount: 1,
-            pColorAttachments: &attachment,
-            ..Default::default()
-        };
-        let viewport = vk::VkViewport {
-            x: 0.0,
-            y: 0.0,
-            width: self.desc.width as f32,
-            height: self.desc.height as f32,
-            minDepth: 0.0,
-            maxDepth: 1.0,
-        };
-        // SAFETY: validated same-device objects are retained by the recording; caller
-        // guarantees indirect contents and reachable shader memory. Commands are recording.
-        unsafe {
-            if load == batch::CLEAR {
-                self.discard(command);
-            }
-            (d.f.vkCmdBeginRendering.unwrap())(command, &begin);
-            (d.f.vkCmdBindPipeline.unwrap())(
-                command,
-                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
-                raster.pipeline,
-            );
-            (d.f.vkCmdSetViewport.unwrap())(command, 0, 1, &viewport);
-            (d.f.vkCmdSetScissor.unwrap())(command, 0, 1, &area);
-            batch::push_data(d, command, root);
-            let draw = vk::VkDrawIndirect2InfoKHR {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
-                addressRange: vk::VkStridedDeviceAddressRangeKHR {
-                    address: indirect.address + offset,
-                    size: 16,
-                    stride: 16,
-                },
-                addressFlags:
-                    vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
-                drawCount: 1,
-                ..Default::default()
-            };
-            (d.f.vkCmdDrawIndirect2KHR.unwrap())(command, &draw);
-            (d.f.vkCmdEndRendering.unwrap())(command);
-        }
     }
 
     pub(super) unsafe fn discard(&self, command: vk::VkCommandBuffer) {
@@ -438,7 +376,7 @@ impl Image {
             dstQueueFamilyIndex: vk::VK_QUEUE_FAMILY_IGNORED as u32,
             image: self.image,
             subresourceRange: vk::VkImageSubresourceRange {
-                aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
+                aspectMask: self.desc.aspect(),
                 levelCount: 1,
                 layerCount: 1,
                 ..Default::default()
@@ -472,7 +410,7 @@ impl Image {
             addressFlags: vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
             imageLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
             imageSubresource: vk::VkImageSubresourceLayers {
-                aspectMask: vk::VkImageAspectFlagBits_VK_IMAGE_ASPECT_COLOR_BIT,
+                aspectMask: self.desc.aspect(),
                 mipLevel: 0,
                 baseArrayLayer: 0,
                 layerCount: 1,
@@ -538,6 +476,7 @@ pub(crate) struct Raster {
     pub(super) device: Rc<Device>,
     pub(super) push_size: u32,
     pub(super) target_format: u32,
+    pub(super) depth_format: u32,
     modules: [vk::VkShaderModule; 2],
     pipeline: vk::VkPipeline,
 }
@@ -551,12 +490,44 @@ impl Raster {
         device: Rc<Device>,
         vertex: &[u32],
         fragment: &[u32],
-        push_size: u32,
+        desc: crate::OgpuRasterDesc,
         constants: [&[SpecializationConstant]; 2],
-        topology: u32,
-        target_format: u32,
     ) -> Result<Self, Error> {
         ready(&device)?;
+        let crate::OgpuRasterDesc {
+            push_size_bytes: push_size,
+            topology,
+            color_format: target_format,
+            depth_format,
+            depth_test,
+            depth_write,
+            depth_compare,
+            reserved,
+        } = desc;
+        if !matches!(target_format, 0 | 2)
+            || !matches!(depth_format, D32 | NO_FORMAT)
+            || depth_test > 1
+            || depth_write > 1
+            || depth_compare > 7
+            || reserved != 0
+            || (depth_format == NO_FORMAT
+                && (depth_test != 0 || depth_write != 0 || depth_compare != 7))
+        {
+            return Err(Error::new(INVALID_ARGUMENT, "Invalid raster description"));
+        }
+        if depth_format == D32 {
+            Image::check_support(
+                &device,
+                ImageDesc {
+                    dimension: 2,
+                    width: 1,
+                    height: 1,
+                    format: D32,
+                    usage: DEPTH,
+                    reserved: 0,
+                },
+            )?;
+        }
         // The executable fixes attachment format, independently of any image.
         Image::check_support(
             &device,
@@ -603,6 +574,7 @@ impl Raster {
             device,
             push_size,
             target_format,
+            depth_format,
             modules: [ptr::null_mut(); 2],
             pipeline: ptr::null_mut(),
         };
@@ -699,11 +671,24 @@ impl Raster {
                 flags: vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
                 ..Default::default()
             };
+            let depth = vk::VkPipelineDepthStencilStateCreateInfo {
+                sType:
+                    vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                depthTestEnable: depth_test,
+                depthWriteEnable: depth_write,
+                depthCompareOp: depth_compare as vk::VkCompareOp,
+                ..Default::default()
+            };
             let rendering = vk::VkPipelineRenderingCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                 pNext: (&flags as *const vk::VkPipelineCreateFlags2CreateInfo).cast(),
                 colorAttachmentCount: 1,
                 pColorAttachmentFormats: &format,
+                depthAttachmentFormat: if depth_format == D32 {
+                    vk::VkFormat_VK_FORMAT_D32_SFLOAT
+                } else {
+                    vk::VkFormat_VK_FORMAT_UNDEFINED
+                },
                 ..Default::default()
             };
             let create = vk::VkGraphicsPipelineCreateInfo {
@@ -716,6 +701,7 @@ impl Raster {
                 pRasterizationState: &raster,
                 pMultisampleState: &multisample,
                 pColorBlendState: &blend,
+                pDepthStencilState: &depth,
                 pDynamicState: &dynamic,
                 pNext: (&rendering as *const vk::VkPipelineRenderingCreateInfo).cast(),
                 basePipelineIndex: -1,
@@ -734,6 +720,169 @@ impl Raster {
             )?;
         }
         Ok(result)
+    }
+}
+
+impl Raster {
+    pub(super) unsafe fn draw(
+        &self,
+        command: vk::VkCommandBuffer,
+        indirect: &Buffer,
+        offset: u64,
+        root: &[u8],
+        indices: Option<&batch::IndexBinding>,
+    ) {
+        let d = &self.device;
+        unsafe {
+            (d.f.vkCmdBindPipeline.unwrap())(
+                command,
+                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
+                self.pipeline,
+            );
+            batch::push_data(d, command, root);
+            let draw = vk::VkDrawIndirect2InfoKHR {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
+                addressRange: vk::VkStridedDeviceAddressRangeKHR {
+                    address: indirect.address + offset,
+                    size: if indices.is_some() { 20 } else { 16 },
+                    stride: if indices.is_some() { 20 } else { 16 },
+                },
+                addressFlags:
+                    vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+                drawCount: 1,
+                ..Default::default()
+            };
+            if let Some(i) = indices {
+                let binding = vk::VkBindIndexBuffer3InfoKHR {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR,
+                    addressRange: vk::VkDeviceAddressRangeKHR {
+                        address: i.buffer.address + i.offset,
+                        size: i.size,
+                    },
+                    addressFlags:
+                        vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+                    indexType: if i.format == 0 {
+                        vk::VkIndexType_VK_INDEX_TYPE_UINT16
+                    } else {
+                        vk::VkIndexType_VK_INDEX_TYPE_UINT32
+                    },
+                    ..Default::default()
+                };
+                (d.f.vkCmdBindIndexBuffer3KHR.unwrap())(command, &binding);
+                (d.f.vkCmdDrawIndexedIndirect2KHR.unwrap())(command, &draw);
+            } else {
+                (d.f.vkCmdDrawIndirect2KHR.unwrap())(command, &draw);
+            }
+        }
+    }
+}
+
+pub(super) struct Rendering {
+    pub color: Rc<Image>,
+    pub depth: Option<Rc<Image>>,
+    pub desc: crate::OgpuRenderingDesc,
+}
+
+impl Rendering {
+    pub fn new(
+        device: &Rc<Device>,
+        color: Rc<Image>,
+        depth: Option<Rc<Image>>,
+        desc: crate::OgpuRenderingDesc,
+    ) -> Result<Self, Error> {
+        ready(device)?;
+        if !Rc::ptr_eq(device, &color.device) || color.desc.usage & COLOR == 0 {
+            return Err(Error::new(INVALID_ARGUMENT, "Invalid color attachment"));
+        }
+        if let Some(d) = &depth {
+            if !Rc::ptr_eq(device, &d.device)
+                || d.desc.usage & DEPTH == 0
+                || d.desc.width != color.desc.width
+                || d.desc.height != color.desc.height
+            {
+                return Err(Error::new(INVALID_ARGUMENT, "Invalid depth attachment"));
+            }
+        }
+        crate::contract::attachments(&desc)?;
+        Ok(Self { color, depth, desc })
+    }
+
+    pub fn matches(&self, raster: &Raster) -> bool {
+        raster.target_format == self.color.desc.format
+            && raster.depth_format == self.depth.as_ref().map_or(NO_FORMAT, |d| d.desc.format)
+    }
+
+    pub unsafe fn begin(&self, command: vk::VkCommandBuffer) {
+        let d = &self.color.device;
+        let area = vk::VkRect2D {
+            offset: vk::VkOffset2D { x: 0, y: 0 },
+            extent: vk::VkExtent2D {
+                width: self.color.desc.width,
+                height: self.color.desc.height,
+            },
+        };
+        let attachment = |image: &Image, load, store, clear_value| vk::VkRenderingAttachmentInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            imageView: image.view,
+            imageLayout: vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
+            loadOp: match load {
+                0 => vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_CLEAR,
+                1 => vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_LOAD,
+                _ => vk::VkAttachmentLoadOp_VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            },
+            storeOp: if store == 0 {
+                vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_STORE
+            } else {
+                vk::VkAttachmentStoreOp_VK_ATTACHMENT_STORE_OP_DONT_CARE
+            },
+            clearValue: clear_value,
+            ..Default::default()
+        };
+        let color = attachment(
+            &self.color,
+            self.desc.color.load,
+            self.desc.color.store,
+            vk::VkClearValue {
+                color: vk::VkClearColorValue {
+                    float32: self.desc.color.clear,
+                },
+            },
+        );
+        let depth = self.depth.as_ref().map(|image| {
+            attachment(
+                image,
+                self.desc.depth.load,
+                self.desc.depth.store,
+                vk::VkClearValue {
+                    depthStencil: vk::VkClearDepthStencilValue {
+                        depth: self.desc.depth.clear,
+                        stencil: 0,
+                    },
+                },
+            )
+        });
+        let begin = vk::VkRenderingInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_INFO,
+            renderArea: area,
+            layerCount: 1,
+            colorAttachmentCount: 1,
+            pColorAttachments: &color,
+            pDepthAttachment: depth.as_ref().map_or(ptr::null(), |d| d),
+            ..Default::default()
+        };
+        let viewport = vk::VkViewport {
+            x: 0.0,
+            y: 0.0,
+            width: area.extent.width as f32,
+            height: area.extent.height as f32,
+            minDepth: 0.0,
+            maxDepth: 1.0,
+        };
+        unsafe {
+            (d.f.vkCmdBeginRendering.unwrap())(command, &begin);
+            (d.f.vkCmdSetViewport.unwrap())(command, 0, 1, &viewport);
+            (d.f.vkCmdSetScissor.unwrap())(command, 0, 1, &area);
+        }
     }
 }
 

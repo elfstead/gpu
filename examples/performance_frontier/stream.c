@@ -122,7 +122,7 @@ static int sb_create(Context *c, SBuffer *buffer, size_t bytes, int host, uint64
 #else
 #ifdef FRONTIER_REUSE
     buffer->owned = 1; buffer->size = bytes;
-    API(ogpu_buffer_create(c->device, bytes, host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, &buffer->buffer, &c->error));
+    API(ogpu_buffer_create(c->device, &(OgpuBufferDesc){bytes, host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, 0}, &buffer->buffer, &c->error));
     if (host) {
         API(ogpu_buffer_host_view(buffer->buffer, &buffer->view, &c->error));
         CHECK(buffer->view.data && buffer->view.size_bytes == bytes && buffer->view.access_granularity
@@ -130,7 +130,7 @@ static int sb_create(Context *c, SBuffer *buffer, size_t bytes, int host, uint64
     }
     if (address) API(ogpu_buffer_device_address(buffer->buffer, address, &c->error));
 #else
-    API(ogpu_buffer_create(c->device, bytes, host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, buffer, &c->error));
+    API(ogpu_buffer_create(c->device, &(OgpuBufferDesc){bytes, host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, 0}, buffer, &c->error));
     if (address) API(ogpu_buffer_device_address(*buffer, address, &c->error));
 #endif
 #endif
@@ -311,7 +311,11 @@ static int stream_record(Stream *s, unsigned index) {
     API(ogpu_batch_barrier(slot->batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_COMPUTE_READ, &c->error));
     API(ogpu_batch_dispatch(slot->batch, s->kernels[2], s->grids[2].x, s->grids[2].y, 1, &process, sizeof(process), &c->error));
     API(ogpu_batch_barrier(slot->batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &c->error));
-    API(ogpu_batch_draw_indirect(slot->batch, s->raster, im->image, sb_handle(&s->draw), sb_offset(&s->draw), &display, sizeof(display), OGPU_ATTACHMENT_CLEAR, &c->error));
+    API(ogpu_batch_discard_image(slot->batch, im->image, &c->error));
+    const OgpuRenderingDesc rendering_3 = {.color = {im->image, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
+    API(ogpu_batch_begin_rendering(slot->batch, &rendering_3, &c->error));
+    API(ogpu_batch_draw_indirect(slot->batch, s->raster, sb_handle(&s->draw), sb_offset(&s->draw), &display, sizeof(display), &c->error));
+    API(ogpu_batch_end_rendering(slot->batch, &c->error));
     API(ogpu_batch_copy_image_to_buffer(slot->batch, im->image, sb_handle(&im->readback), sb_offset(&im->readback)+SG, &c->error));
 #endif
     CHECK(stream_end(c, slot)); return 1;
@@ -426,8 +430,7 @@ static int stream_create(Stream *s, char **argv) {
     OgpuShaderDesc shaders[] = {hidden_shader(), denoise_shader(), process_shader(), fullscreen_shader(), display_shader()};
     unsigned roots[] = {hidden_push_size, denoise_push_size, process_push_size};
     for (unsigned i = 0; i < 3; ++i) API(ogpu_kernel_create(c->device, &shaders[i], roots[i], &s->kernels[i], &c->error));
-    API(ogpu_raster_create(c->device, &shaders[3], &shaders[4], display_push_size,
-        OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &s->raster, &c->error));
+    API(ogpu_raster_create(c->device, &shaders[3], &shaders[4], &(OgpuRasterDesc){display_push_size, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &s->raster, &c->error));
 #endif
     uint32_t pixels, out;
     CHECK(image_count(s->w, s->h, 8, &pixels) && image_count(s->ow, s->oh, 4, &out)

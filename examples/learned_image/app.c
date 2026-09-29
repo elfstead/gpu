@@ -169,16 +169,15 @@ int main(int argc, char **argv) {
     const uint32_t roots[] = {hidden_push_size, denoise_push_size, process_push_size, poison_push_size};
     for (unsigned i = 0; i < 4; ++i) TRY(ogpu_kernel_create(device, &shaders[i], roots[i], &kernels[i], &error));
     REQUIRE(fullscreen_push_size == 0);
-    TRY(ogpu_raster_create(device, &shaders[4], &shaders[5], display_push_size,
-        OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
+    TRY(ogpu_raster_create(device, &shaders[4], &shaders[5], &(OgpuRasterDesc){display_push_size, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &raster, &error));
     for (unsigned i = 0; i < BUFFER_COUNT; ++i) {
-        TRY(ogpu_buffer_create(device, sizes[i], OGPU_MEMORY_DEVICE, &buffers[i], &error));
+        TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizes[i], OGPU_MEMORY_DEVICE, 0}, &buffers[i], &error));
         TRY(ogpu_buffer_device_address(buffers[i], &addresses[i], &error));
         addresses[i] += GUARD;
     }
-    TRY(ogpu_buffer_create(device, upload_size, OGPU_MEMORY_HOST, &upload, &error));
-    TRY(ogpu_buffer_create(device, readback_size, OGPU_MEMORY_HOST, &readback, &error));
-    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &draw, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){upload_size, OGPU_MEMORY_HOST, 0}, &upload, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){readback_size, OGPU_MEMORY_HOST, 0}, &readback, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, 0}, &draw, &error));
     const OgpuDrawArguments draw_args = {3, 1, 0, 0};
     TRY(ogpu_buffer_write(draw, 0, &draw_args, sizeof(draw_args), &error));
     OgpuImageDesc image = {OGPU_IMAGE_2D, ow, oh, OGPU_FORMAT_RGBA8_UNORM,
@@ -199,7 +198,7 @@ int main(int argc, char **argv) {
     ogpu_batch_destroy(batch); batch = NULL;
     uint64_t input_b_address = 0;
     if (resident) {
-        TRY(ogpu_buffer_create(device, sizes[INPUT], OGPU_MEMORY_DEVICE, &input_b, &error));
+        TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizes[INPUT], OGPU_MEMORY_DEVICE, 0}, &input_b, &error));
         TRY(ogpu_buffer_device_address(input_b, &input_b_address, &error));
         input_b_address += GUARD;
         for (unsigned slot = 0; slot < 2; ++slot) {
@@ -290,7 +289,11 @@ int main(int argc, char **argv) {
             TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
             // The fragment shader reads the compute-written allocation directly.
             // No intermediate buffer->image representation copy is necessary.
-            TRY(ogpu_batch_draw_indirect(batch, raster, target, draw, 0, &display, sizeof(display), OGPU_ATTACHMENT_CLEAR, &error));
+            TRY(ogpu_batch_discard_image(batch, target, &error));
+            const OgpuRenderingDesc rendering_6 = {.color = {target, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
+            TRY(ogpu_batch_begin_rendering(batch, &rendering_6, &error));
+            TRY(ogpu_batch_draw_indirect(batch, raster, draw, 0, &display, sizeof(display), &error));
+            TRY(ogpu_batch_end_rendering(batch, &error));
             if (!resident || diagnostic) TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, GUARD, &error));
             if (diagnostic) {
                 TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE | OGPU_ACCESS_TRANSFER_WRITE,

@@ -1,4 +1,8 @@
 //! C ownership boundary for dispatch, one-shot batches and immutable command lists.
+use crate::compute::IndexBinding;
+#[cfg(test)]
+#[path = "rendering_tests.rs"]
+mod rendering_tests;
 #[cfg(test)]
 use crate::SUCCESS;
 use crate::{
@@ -9,6 +13,7 @@ use crate::{
     Error, OgpuDeviceLimits, OgpuError, OgpuHostView, OgpuProbe, OgpuResult, OgpuShaderDesc,
     OgpuSpecializationConstant, OgpuTimingInfo, INVALID_ARGUMENT, OUT_OF_RANGE,
 };
+use crate::{OgpuBufferDesc, OgpuIndexRange, OgpuRasterDesc, OgpuRenderingDesc};
 use std::{ffi::c_void, ptr, rc::Rc};
 
 pub struct OgpuDevice {
@@ -515,23 +520,33 @@ pub unsafe extern "C" fn ogpu_device_destroy(device: *mut OgpuDevice) {
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_buffer_create(
     device: *mut OgpuDevice,
-    size: u64,
-    placement: u32,
+    desc: *const OgpuBufferDesc,
     out_buffer: *mut *mut OgpuBuffer,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         create(out_buffer, error, || {
             required(device)?;
-            let size = usize::try_from(size)
-                .map_err(|_| Error::new(INVALID_ARGUMENT, "Buffer too large"))?;
-            let placement = match placement {
-                0 => crate::compute::Placement::Host,
-                1 => crate::compute::Placement::Device,
-                _ => return Err(Error::new(INVALID_ARGUMENT, "Invalid buffer placement")),
+            required(desc)?;
+            let desc = &*desc;
+            let size = crate::contract::buffer_desc(desc)?;
+            let placement = if desc.placement == 0 {
+                crate::compute::Placement::Host
+            } else {
+                crate::compute::Placement::Device
+            };
+            let usage = if desc.extra_usage & 1 != 0 {
+                ogpu_vulkan_sys::VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+            } else {
+                0
             };
             Ok(OgpuBuffer {
-                inner: Rc::new(Buffer::placed((*device).inner.clone(), size, placement)?),
+                inner: Rc::new(Buffer::allocate(
+                    (*device).inner.clone(),
+                    size,
+                    placement,
+                    usage,
+                )?),
             })
         })
     }
@@ -1040,15 +1055,14 @@ pub unsafe extern "C" fn ogpu_raster_create(
     device: *mut OgpuDevice,
     vertex_desc: *const OgpuShaderDesc,
     fragment_desc: *const OgpuShaderDesc,
-    push_size: u32,
-    topology: u32,
-    target_format: u32,
+    desc: *const OgpuRasterDesc,
     out_raster: *mut *mut OgpuRaster,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         create(out_raster, error, || {
             required(device)?;
+            required(desc)?;
             let (vertex, vertex_constants) = shader(vertex_desc)?;
             let (fragment, fragment_constants) = shader(fragment_desc)?;
             Ok(OgpuRaster {
@@ -1056,10 +1070,8 @@ pub unsafe extern "C" fn ogpu_raster_create(
                     (*device).inner.clone(),
                     vertex,
                     fragment,
-                    push_size,
+                    *desc,
                     [vertex_constants, fragment_constants],
-                    topology,
-                    target_format,
                 )?),
             })
         })
@@ -1078,41 +1090,143 @@ pub unsafe extern "C" fn ogpu_raster_destroy(raster: *mut OgpuRaster) {
 }
 
 /// # Safety
-/// See include/ogpu.h: valid handles/arguments, valid GPU-produced indirect contents,
-/// live reachable addresses through completion, and explicit race-free dependencies.
+/// Live objects and readable description; same device, initialized attachments,
+/// explicit dependencies and external serialization as documented in ogpu.h.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_batch_draw_indirect(
+pub unsafe extern "C" fn ogpu_batch_begin_rendering(
     batch: *mut OgpuBatch,
-    raster: *mut OgpuRaster,
-    target: *mut OgpuImage,
-    indirect: *mut OgpuBuffer,
-    offset: u64,
-    arguments: *const c_void,
-    argument_bytes: u32,
-    load: u32,
+    desc: *const OgpuRenderingDesc,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         call(error, || {
             required(batch)?;
-            required(raster)?;
-            required(target)?;
-            required(indirect)?;
-            let offset = usize::try_from(offset)
-                .map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
-            let root = if argument_bytes == 0 {
-                &[]
+            required(desc)?;
+            crate::contract::attachments(&*desc)?;
+            let color = (*(*desc).color.image).inner.clone();
+            let depth = if (*desc).depth.image.is_null() {
+                None
             } else {
-                required(arguments)?;
-                std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
+                Some((*(*desc).depth.image).inner.clone())
             };
-            (*batch).inner.draw(
-                (*raster).inner.clone(),
-                (*target).inner.clone(),
-                (*indirect).inner.clone(),
+            (*batch).inner.begin_rendering(color, depth, *desc)
+        })
+    }
+}
+
+/// # Safety
+/// Live externally serialized batch, writable independent error.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_end_rendering(
+    batch: *mut OgpuBatch,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            (*batch).inner.end_rendering()
+        })
+    }
+}
+
+unsafe fn record_draw(
+    batch: *mut OgpuBatch,
+    raster: *mut OgpuRaster,
+    indirect: *mut OgpuBuffer,
+    offset: u64,
+    arguments: *const c_void,
+    argument_bytes: u32,
+    indices: Option<IndexBinding>,
+) -> Result<(), Error> {
+    unsafe {
+        required(batch)?;
+        required(raster)?;
+        required(indirect)?;
+        let offset =
+            usize::try_from(offset).map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
+        let root = if argument_bytes == 0 {
+            &[]
+        } else {
+            required(arguments)?;
+            std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
+        };
+        (*batch).inner.draw(
+            (*raster).inner.clone(),
+            (*indirect).inner.clone(),
+            offset,
+            root,
+            indices,
+        )
+    }
+}
+
+/// # Safety
+/// See ogpu.h: live handles, readable root, valid GPU-produced data and reachable
+/// addresses, matching active rendering scope, explicit dependencies; serialized.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_draw_indirect(
+    batch: *mut OgpuBatch,
+    raster: *mut OgpuRaster,
+    indirect: *mut OgpuBuffer,
+    offset: u64,
+    arguments: *const c_void,
+    argument_bytes: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            record_draw(
+                batch,
+                raster,
+                indirect,
                 offset,
-                root,
-                load,
+                arguments,
+                argument_bytes,
+                None,
+            )
+        })
+    }
+}
+
+/// # Safety
+/// As draw_indirect, plus readable index range and live buffer; GPU indices and
+/// effective vertex addresses satisfy the trusted bounds contract in ogpu.h.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_draw_indexed_indirect(
+    batch: *mut OgpuBatch,
+    raster: *mut OgpuRaster,
+    indices: *const OgpuIndexRange,
+    indirect: *mut OgpuBuffer,
+    offset: u64,
+    arguments: *const c_void,
+    argument_bytes: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(indices)?;
+            let i = &*indices;
+            required(i.buffer)?;
+            if i.reserved != 0 {
+                return Err(Error::new(
+                    INVALID_ARGUMENT,
+                    "Index range reserved field must be zero",
+                ));
+            }
+            let binding = IndexBinding {
+                buffer: (*i.buffer).inner.clone(),
+                offset: i.offset,
+                size: i.size_bytes,
+                format: i.format,
+            };
+            record_draw(
+                batch,
+                raster,
+                indirect,
+                offset,
+                arguments,
+                argument_bytes,
+                Some(binding),
             )
         })
     }
@@ -1247,9 +1361,16 @@ mod tests {
                     ptr::null_mut(),
                     ptr::null(),
                     ptr::null(),
-                    0,
-                    0,
-                    0,
+                    &crate::OgpuRasterDesc {
+                        push_size_bytes: 0,
+                        topology: 0,
+                        color_format: 0,
+                        depth_format: u32::MAX,
+                        depth_test: 0,
+                        depth_write: 0,
+                        depth_compare: 7,
+                        reserved: 0
+                    },
                     &mut raster,
                     ptr::null_mut()
                 ),
@@ -1261,10 +1382,8 @@ mod tests {
                     ptr::null_mut(),
                     ptr::null_mut(),
                     ptr::null_mut(),
-                    ptr::null_mut(),
                     0,
                     ptr::null(),
-                    0,
                     0,
                     ptr::null_mut()
                 ),
@@ -1475,7 +1594,16 @@ mod tests {
             assert_eq!(error.vulkan_result, 0);
             assert_eq!(error.message[255], 0);
             assert_eq!(
-                ogpu_buffer_create(ptr::null_mut(), 1, 0, &mut buffer, &mut error),
+                ogpu_buffer_create(
+                    ptr::null_mut(),
+                    &crate::OgpuBufferDesc {
+                        size_bytes: 1,
+                        placement: 0,
+                        extra_usage: 0
+                    },
+                    &mut buffer,
+                    &mut error
+                ),
                 INVALID_ARGUMENT
             );
             assert!(buffer.is_null());

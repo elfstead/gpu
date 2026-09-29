@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P4 global/range/split dependency controls and ABI-17 public split endpoints."""
+"""P4 global/range/split dependency controls and current public split endpoints."""
 import argparse
 import csv
 import importlib.util
@@ -170,7 +170,7 @@ def main():
               and not env.get("VK_LOADER_LAYERS_DISABLE"), "enable sync validation")
     f.require((env.get("VK_DRIVER_FILES") or env.get("VK_ICD_FILENAMES")) and not env.get("OGPU_TRACE_LOADER"), "select one ICD without tracing")
     dest = Path(tempfile.mkdtemp(prefix="dependencies-", dir=f.BUILD)); print(f"Dependency artifacts: {dest}", flush=True)
-    r = dict(schema=2, scope="P4 A->C with independent B; ABI-17 serial public/native replay; one queue/slot, two HOST allocations",
+    r = dict(schema=2, scope="P4 A->C with independent B; ABI-18 serial public/native replay; one queue/slot, two HOST allocations",
              revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=f.ROOT, text=True).strip(),
              dirty=bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=f.ROOT, text=True)),
              software=args.software, graph=graph_check(), sources=source_hashes(),

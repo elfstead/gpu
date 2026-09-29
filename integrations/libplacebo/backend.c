@@ -267,7 +267,7 @@ static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload,
             "frame capacity or repeated staging use");
     REQUIRE(!f || upload || callback, "frame readback requires a callback");
     if (!t->staging[slot]) {
-        TRY(ogpu_buffer_create(b->device, t->size, OGPU_MEMORY_HOST, &t->staging[slot], &error));
+        TRY(ogpu_buffer_create(b->device, &(OgpuBufferDesc){t->size, OGPU_MEMORY_HOST, 0}, &t->staging[slot], &error));
         ++b->stats.staging_allocs; b->stats.staging_bytes += t->size;
         b->stats.peak_staging_bytes = PL_MAX(b->stats.peak_staging_bytes, b->stats.staging_bytes);
     }
@@ -405,8 +405,7 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
         const OgpuShaderDesc vertex = {p->vertex.words, (p->vertex.count) * 4, NULL, values, count, OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
         const uint32_t format = !strcmp(pass->params.target_format->name, "rgba8") ?
             OGPU_FORMAT_RGBA8_UNORM : OGPU_FORMAT_RGBA16_FLOAT;
-        TRY(ogpu_raster_create(b->device, &vertex, &shader, p->root_size,
-            OGPU_TOPOLOGY_TRIANGLE_STRIP, format, &raster, &error));
+        TRY(ogpu_raster_create(b->device, &vertex, &shader, &(OgpuRasterDesc){p->root_size, OGPU_TOPOLOGY_TRIANGLE_STRIP, format, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &raster, &error));
     }
     ogpu_kernel_destroy(p->kernel); ogpu_raster_destroy(p->raster);
     p->kernel = kernel; p->raster = raster;
@@ -492,7 +491,7 @@ static pl_pass pass_create(pl_gpu gpu, const struct pl_pass_params *in)
     if (!compute) {
         REQUIRE(compile_native(in->vertex_shader, 2, in->vertex_attribs[0].name,
                 in->vertex_attribs[1].name, in->push_constants_size, &p->vertex), "vertex compilation failed");
-        TRY(ogpu_buffer_create(b->device, 16, OGPU_MEMORY_HOST, &p->indirect, &error));
+        TRY(ogpu_buffer_create(b->device, &(OgpuBufferDesc){16, OGPU_MEMORY_HOST, 0}, &p->indirect, &error));
         const OgpuDrawArguments args = {4, 1, 0, 0};
         TRY(ogpu_buffer_write(p->indirect, 0, &args, sizeof(args), &error));
     }
@@ -504,7 +503,7 @@ static pl_pass pass_create(pl_gpu gpu, const struct pl_pass_params *in)
         TRY(ogpu_image_heap_create(b->device, SLOTS, &bank->images, &error));
         TRY(ogpu_sampler_heap_create(b->device, SLOTS, &bank->samplers, &error));
         if (!compute) {
-            TRY(ogpu_buffer_create(b->device, 64, OGPU_MEMORY_HOST, &bank->vertices, &error));
+            TRY(ogpu_buffer_create(b->device, &(OgpuBufferDesc){64, OGPU_MEMORY_HOST, 0}, &bank->vertices, &error));
             TRY(ogpu_buffer_device_address(bank->vertices, &bank->vertex_address, &error));
         }
     }
@@ -587,8 +586,14 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
         memcpy(root + p->vertex_offset, &bank->vertex_address, 8);
         mark_use(gpu, target);
         TRY(ogpu_batch_retain_buffer(batch, bank->vertices, &error));
-        TRY(ogpu_batch_draw_indirect(batch, p->raster, target->image, p->indirect, 0,
-            root, p->root_size, params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR, &error));
+        if (!params->load_target) TRY(ogpu_batch_discard_image(batch, target->image, &error));
+        const OgpuRenderingDesc rendering = {.color = {target->image,
+            params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR,
+            OGPU_STORE_STORE, {0, 0, 0, 1}}};
+        TRY(ogpu_batch_begin_rendering(batch, &rendering, &error));
+        TRY(ogpu_batch_draw_indirect(batch, p->raster, p->indirect, 0,
+            root, p->root_size, &error));
+        TRY(ogpu_batch_end_rendering(batch, &error));
     }
     if (!finish(gpu, batch, bank)) goto fail;
     if (reusing_receipt) ++b->stats.receipt_reuses;

@@ -1,8 +1,9 @@
 # M4: deterministic offscreen scene
 
 Selected after the first M7 local preparation checkpoint. The first native control
-is [accepted at `5da5aaf`](graphics-scene-native-results.md) on 2026-09-29; no public
-indexed/depth support is implemented yet. Use the available Radeon and llvmpipe;
+is [accepted at `5da5aaf`](graphics-scene-native-results.md) on 2026-09-29; the
+[ABI-18 migration](indexed-depth-migration.md) implements the public indexed/depth
+slice, but matched scene/performance acceptance remains. Use Radeon and llvmpipe;
 no Mac, second physical GPU, window-system integration or asset download is required.
 
 ## Consumer and sequence
@@ -77,6 +78,7 @@ encoding overhead is tracked separately and is not automatically fundamental.
   no window concepts enter the compute core just to complete this milestone.
 
 The [indexed/depth proposal](indexed-depth-proposal.md) now selects a candidate
-contract and its implementation/acceptance sequence. Next concrete step: the
-coherent ABI-18 runtime migration and contract tests, then matched public/native
-scene acceptance. ABI 17 remains implemented until that migration lands.
+contract and its implementation/acceptance sequence. The coherent ABI-18 runtime
+migration and focused tests are implemented. Next concrete step: matched public/native
+scene acceptance and the remaining lifetime/description gates, then grouped-draw
+performance and installed scene handoff.

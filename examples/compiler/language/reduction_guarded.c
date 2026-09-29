@@ -28,8 +28,8 @@ int main(int argc, char **argv) {
     TRY(ogpu_device_create(probe, 0, &device, &error));
     TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){.code=code, .code_size=(uint64_t)bytes,
         .format=OGPU_SHADER_SPIRV}, sizeof(Root), &kernel, &error));
-    TRY(ogpu_buffer_create(device, sizeof(source), OGPU_MEMORY_HOST, &input, &error));
-    TRY(ogpu_buffer_create(device, sizeof(partial), OGPU_MEMORY_HOST, &output, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizeof(source), OGPU_MEMORY_HOST, 0}, &input, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizeof(partial), OGPU_MEMORY_HOST, 0}, &output, &error));
     Root root = {0};
     TRY(ogpu_buffer_device_address(input, &root.input_address, &error));
     TRY(ogpu_buffer_device_address(output, &root.output_address, &error));

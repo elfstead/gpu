@@ -9,7 +9,7 @@ spec.loader.exec_module(runner)
 
 class FailureEvidenceTests(unittest.TestCase):
     def fixture(self, mode):
-        context = dict(abi=17,backend="vulkan",workload="learned-image",mode=mode,allocation="arena",policy="compiled",slots=2)
+        context = dict(abi=18,backend="vulkan",workload="learned-image",mode=mode,allocation="arena",policy="compiled",slots=2)
         context.update({k:1 for k in ("graphics","compute","buffer_address","timeline","synchronization2",
                                      "descriptor_heap","address_commands","untyped_pointers")})
         def event(slot, operation, state, result=0, native_result=0, pending=False, generation=7):
@@ -54,7 +54,7 @@ class FailureEvidenceTests(unittest.TestCase):
         for mode in range(1,7): self.assertEqual(self.parse(mode)["context"]["mode"],mode)
 
     def test_reject_invalid_context_state_and_error(self):
-        for old,new in [('"abi": 17','"abi": 16'),('"timeline": 1','"timeline": 0'),
+        for old,new in [('"abi": 18','"abi": 17'),('"timeline": 1','"timeline": 0'),
                         ('"retains_list": true','"retains_list": false'),('"native_result": -1','"native_result": -4'),
                         ('"state": "pending"','"state": "idle"'),('"verified_recovery_frames": 64','"verified_recovery_frames": 0')]:
             with self.subTest(old=old), self.assertRaises(RuntimeError):

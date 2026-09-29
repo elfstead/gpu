@@ -563,7 +563,25 @@ fn access_masks_are_explicit_and_checked() {
         access(COLOR_READ).unwrap().flags,
         vk::VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
     );
-    for mask in [0, 512, 513, u32::MAX] {
+    assert_eq!(
+        access(INDEX_READ).unwrap().stages,
+        vk::VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT
+    );
+    assert_eq!(
+        access(INDEX_READ).unwrap().flags,
+        vk::VK_ACCESS_2_INDEX_READ_BIT
+    );
+    assert_eq!(
+        access(DEPTH_READ | DEPTH_WRITE).unwrap().stages,
+        vk::VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+            | vk::VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT
+    );
+    assert_eq!(
+        access(DEPTH_READ | DEPTH_WRITE).unwrap().flags,
+        vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+            | vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    );
+    for mask in [0, 4096, 4097, u32::MAX] {
         assert_eq!(access(mask).unwrap_err().status, INVALID_ARGUMENT);
     }
 }

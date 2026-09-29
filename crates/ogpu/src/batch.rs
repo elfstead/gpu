@@ -20,7 +20,12 @@ pub(crate) const TRANSFER_READ: u32 = 32;
 pub(crate) const TRANSFER_WRITE: u32 = 64;
 pub(crate) const FRAGMENT_READ: u32 = 128;
 pub(crate) const COLOR_READ: u32 = 256;
+pub(crate) const INDEX_READ: u32 = 512;
+pub(crate) const DEPTH_READ: u32 = 1024;
+pub(crate) const DEPTH_WRITE: u32 = 2048;
+#[cfg(test)]
 pub(crate) const CLEAR: u32 = 0;
+#[cfg(test)]
 pub(crate) const LOAD: u32 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -36,6 +41,23 @@ fn access(mask: u32) -> Result<Access, Error> {
         flags: 0,
     };
     for (bit, stage, flags) in [
+        (
+            INDEX_READ,
+            vk::VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT,
+            vk::VK_ACCESS_2_INDEX_READ_BIT,
+        ),
+        (
+            DEPTH_READ,
+            vk::VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+                | vk::VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+        ),
+        (
+            DEPTH_WRITE,
+            vk::VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+                | vk::VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        ),
         (
             COLOR_READ,
             vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -90,7 +112,16 @@ fn access(mask: u32) -> Result<Access, Error> {
     Ok(result)
 }
 
+pub(crate) struct IndexBinding {
+    pub buffer: Rc<Buffer>,
+    pub offset: u64,
+    pub size: u64,
+    pub format: u32,
+}
+
 enum Step {
+    BeginRendering(graphics::Rendering),
+    EndRendering,
     DependencyBegin(usize),
     DependencyEnd(usize),
     CopyBuffer {
@@ -114,11 +145,10 @@ enum Step {
     },
     Draw {
         raster: Rc<Raster>,
-        target: Rc<Image>,
+        indices: Option<IndexBinding>,
         indirect: Rc<Buffer>,
         offset: u64,
         root: Vec<u8>,
-        load: u32,
     },
     ImageCopy {
         image: Rc<Image>,
@@ -136,6 +166,7 @@ pub(crate) struct Batch {
     retained: Vec<Rc<Buffer>>,
     storage: Option<StorageLease>,
     dependencies: Vec<DependencyScope>,
+    rendering: Option<usize>,
 }
 
 struct DependencyScope {
@@ -154,6 +185,7 @@ impl Batch {
         destination_offset: usize,
         size: usize,
     ) -> Result<(), Error> {
+        self.outside_rendering()?;
         self.recording()?;
         if !Rc::ptr_eq(&self.device, &source.device)
             || !Rc::ptr_eq(&self.device, &destination.device)
@@ -185,6 +217,7 @@ impl Batch {
     }
 
     pub(crate) fn discard_image(&mut self, target: Rc<Image>) -> Result<(), Error> {
+        self.outside_rendering()?;
         if !Rc::ptr_eq(&self.device, &target.device) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
@@ -228,6 +261,7 @@ impl Batch {
             retained: Vec::new(),
             storage: None,
             dependencies: Vec::new(),
+            rendering: None,
         })
     }
 
@@ -246,6 +280,41 @@ impl Batch {
     fn recording(&mut self) -> Result<&mut Vec<Step>, Error> {
         self.device.ready()?;
         contract::recording(&mut self.steps)
+    }
+
+    fn outside_rendering(&mut self) -> Result<(), Error> {
+        self.recording()?;
+        if self.rendering.is_some() {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Operation is not allowed inside rendering",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn begin_rendering(
+        &mut self,
+        color: Rc<Image>,
+        depth: Option<Rc<Image>>,
+        desc: crate::OgpuRenderingDesc,
+    ) -> Result<(), Error> {
+        self.outside_rendering()?;
+        let rendering = graphics::Rendering::new(&self.device, color, depth, desc)?;
+        let index = self.recording()?.len();
+        self.recording()?.push(Step::BeginRendering(rendering));
+        self.rendering = Some(index);
+        Ok(())
+    }
+
+    pub(crate) fn end_rendering(&mut self) -> Result<(), Error> {
+        self.recording()?;
+        if self.rendering.is_none() {
+            return Err(Error::new(INVALID_ARGUMENT, "No active rendering scope"));
+        }
+        self.recording()?.push(Step::EndRendering);
+        self.rendering = None;
+        Ok(())
     }
 
     pub(crate) fn enable_timing(&mut self) -> Result<(), Error> {
@@ -273,6 +342,7 @@ impl Batch {
         groups: [u32; 3],
         root: &[u8],
     ) -> Result<(), Error> {
+        self.outside_rendering()?;
         if !Rc::ptr_eq(&self.device, &kernel.device) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
@@ -294,6 +364,7 @@ impl Batch {
     }
 
     pub(crate) fn barrier(&mut self, source: u32, destination: u32) -> Result<(), Error> {
+        self.outside_rendering()?;
         contract::access(source, self.device.graphics)?;
         contract::access(destination, self.device.graphics)?;
         let source = access(source)?;
@@ -307,6 +378,7 @@ impl Batch {
     }
 
     pub(crate) fn dependency_begin(&mut self, source: u32, destination: u32) -> Result<u64, Error> {
+        self.outside_rendering()?;
         self.recording()?;
         contract::access(source, self.device.graphics)?;
         contract::access(destination, self.device.graphics)?;
@@ -327,6 +399,7 @@ impl Batch {
     }
 
     pub(crate) fn dependency_end(&mut self, token: u64) -> Result<(), Error> {
+        self.outside_rendering()?;
         self.recording()?;
         let index = self
             .dependencies
@@ -346,47 +419,48 @@ impl Batch {
     pub(crate) fn draw(
         &mut self,
         raster: Rc<Raster>,
-        target: Rc<Image>,
         indirect: Rc<Buffer>,
         offset: usize,
         root: &[u8],
-        load: u32,
+        indices: Option<IndexBinding>,
     ) -> Result<(), Error> {
-        if !matches!(load, CLEAR | LOAD) {
-            return Err(Error::new(
-                INVALID_ARGUMENT,
-                "Invalid attachment load operation",
-            ));
-        }
-        if !Rc::ptr_eq(&self.device, &raster.device)
-            || !Rc::ptr_eq(&self.device, &target.device)
-            || !Rc::ptr_eq(&self.device, &indirect.device)
+        self.recording()?;
+        let scope = self
+            .rendering
+            .ok_or_else(|| Error::new(INVALID_ARGUMENT, "Draw requires rendering scope"))?;
+        let Step::BeginRendering(rendering) = &self.steps.as_ref().unwrap()[scope] else {
+            unreachable!()
+        };
+        if !Rc::ptr_eq(&self.device, &raster.device) || !Rc::ptr_eq(&self.device, &indirect.device)
         {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Draw objects belong to different devices",
             ));
         }
-        if offset % 4 != 0 || root.len() != raster.push_size as usize {
+        if !rendering.matches(&raster) || offset % 4 != 0 || root.len() != raster.push_size as usize
+        {
             return Err(Error::new(
                 INVALID_ARGUMENT,
-                "Invalid indirect offset or raster argument size",
+                "Draw format, indirect offset or root size mismatch",
             ));
         }
-        if target.desc.usage & graphics::COLOR == 0 || target.desc.format != raster.target_format {
-            return Err(Error::new(
-                INVALID_ARGUMENT,
-                "Image is not a matching color attachment",
-            ));
+        if let Some(i) = &indices {
+            if !Rc::ptr_eq(&self.device, &i.buffer.device) || !i.buffer.index_eligible {
+                return Err(Error::new(
+                    INVALID_ARGUMENT,
+                    "Index buffer is not eligible or belongs to another device",
+                ));
+            }
+            contract::index_range(i.buffer.size, i.buffer.address, i.offset, i.size, i.format)?;
         }
-        indirect.range(offset, 16)?;
+        indirect.range(offset, if indices.is_some() { 20 } else { 16 })?;
         self.recording()?.push(Step::Draw {
             raster,
-            target,
             indirect,
             offset: offset as u64,
             root: root.to_vec(),
-            load,
+            indices,
         });
         Ok(())
     }
@@ -397,6 +471,7 @@ impl Batch {
         destination: Rc<Buffer>,
         offset: usize,
     ) -> Result<(), Error> {
+        self.outside_rendering()?;
         self.copy_image(target, destination, offset, false)
     }
 
@@ -406,6 +481,7 @@ impl Batch {
         offset: usize,
         image: Rc<Image>,
     ) -> Result<(), Error> {
+        self.outside_rendering()?;
         self.copy_image(image, source, offset, true)
     }
 
@@ -496,6 +572,12 @@ impl Batch {
 
     fn take_for_preparation(&mut self) -> Result<Completion, Error> {
         contract::recording(&mut self.steps)?;
+        if self.rendering.is_some() {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Recording has an open rendering scope",
+            ));
+        }
         if self.dependencies.iter().any(|d| !d.ended) {
             return Err(Error::new(
                 INVALID_ARGUMENT,
@@ -1056,6 +1138,8 @@ impl Completion {
                         };
                         (d.f.vkCmdCopyMemoryKHR.unwrap())(command, &info);
                     }
+                    Step::BeginRendering(rendering) => rendering.begin(command),
+                    Step::EndRendering => (d.f.vkCmdEndRendering.unwrap())(command),
                     Step::DiscardImage(target) => target.discard(command),
                     Step::BindImages(heap) => heap.bind(command),
                     Step::BindSamplers(heap) => heap.bind(command),
@@ -1085,12 +1169,11 @@ impl Completion {
                     ),
                     Step::Draw {
                         raster,
-                        target,
                         indirect,
                         offset,
                         root,
-                        load,
-                    } => target.draw(command, raster, indirect, *offset, root, *load),
+                        indices,
+                    } => raster.draw(command, indirect, *offset, root, indices.as_ref()),
                     Step::ImageCopy {
                         image,
                         buffer,

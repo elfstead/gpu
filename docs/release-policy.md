@@ -5,7 +5,7 @@ checkpoint. It is not a published release announcement or stable API commitment.
 
 ## Identity and compatibility
 
-Pin the full source commit, not just `master`, package version `0.1.0`, or ABI 17.
+Pin the full source commit, not just `master`, package version `0.1.0`, or an ABI number.
 Use the installed `share/ogpu/manifest.json`: source revision/dirty state, target,
 profile, compiler, dependency licenses and file hashes identify the SDK contents.
 Hashes detect accidental mismatch; the local manifest is not a signed provenance

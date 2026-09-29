@@ -64,7 +64,7 @@ int main(void) {
         expected[b] = malloc(bytes); REQUIRE(expected[b]);
         expected[b][0] = -8192.0f; expected[b][count + 1] = 8192.0f;
         for (uint32_t i = 0; i < count; ++i) expected[b][i + 1] = (float)((int)(i % 257) - 128 + (int)b);
-        TRY(ogpu_buffer_create(device, bytes, OGPU_MEMORY_HOST, &data[b], &error));
+        TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){bytes, OGPU_MEMORY_HOST, 0}, &data[b], &error));
         TRY(ogpu_buffer_write(data[b], 0, expected[b], bytes, &error));
         TRY(ogpu_buffer_device_address(data[b], &blocks[b].arg_data, &error));
         blocks[b].arg_data += sizeof(float);
@@ -77,7 +77,7 @@ int main(void) {
             blocks[b].arg_coefficients[c].arg_selectors[1] = b + c + 1;
         }
     }
-    TRY(ogpu_buffer_create(device, parameter_bytes, OGPU_MEMORY_HOST, &parameters, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){parameter_bytes, OGPU_MEMORY_HOST, 0}, &parameters, &error));
     uint64_t address = 0;
     TRY(ogpu_buffer_device_address(parameters, &address, &error));
     REQUIRE((address + prefix) % _Alignof(structured_type_Block) == 0);

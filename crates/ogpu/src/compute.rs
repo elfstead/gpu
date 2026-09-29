@@ -16,7 +16,7 @@ pub use specialization::SpecializationConstant;
 
 #[path = "batch.rs"]
 mod batch;
-pub(crate) use batch::{Batch, CommandList, Completion, RecordingStorage};
+pub(crate) use batch::{Batch, CommandList, Completion, IndexBinding, RecordingStorage};
 #[path = "graphics.rs"]
 mod graphics;
 pub use graphics::ImageDesc;
@@ -66,6 +66,8 @@ functions! {
     vkCmdBeginRendering: PFN_vkCmdBeginRendering,
     vkCmdEndRendering: PFN_vkCmdEndRendering,
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
+    vkCmdBindIndexBuffer3KHR: PFN_vkCmdBindIndexBuffer3KHR,
+    vkCmdDrawIndexedIndirect2KHR: PFN_vkCmdDrawIndexedIndirect2KHR,
     vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
     vkCmdCopyMemoryToImageKHR: PFN_vkCmdCopyMemoryToImageKHR,
     vkCmdCopyMemoryKHR: PFN_vkCmdCopyMemoryKHR,
@@ -562,6 +564,7 @@ fn host_atom_range(
 mod host_view_tests;
 
 pub(crate) struct Buffer {
+    pub(super) index_eligible: bool,
     device: Rc<Device>,
     buffer: vk::VkBuffer,
     memory: vk::VkDeviceMemory,
@@ -638,6 +641,7 @@ impl Buffer {
         Self::with_usage(device, size, 0)
     }
 
+    #[cfg(test)]
     pub(crate) fn placed(
         device: Rc<Device>,
         size: usize,
@@ -654,7 +658,7 @@ impl Buffer {
         Self::allocate(device, size, Placement::Host, extra_usage)
     }
 
-    fn allocate(
+    pub(crate) fn allocate(
         device: Rc<Device>,
         size: usize,
         placement: Placement,
@@ -668,6 +672,9 @@ impl Buffer {
             ));
         }
         let mut result = Self {
+            index_eligible: extra_usage
+                & vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+                != 0,
             device,
             buffer: ptr::null_mut(),
             memory: ptr::null_mut(),

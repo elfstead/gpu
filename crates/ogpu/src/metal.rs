@@ -586,20 +586,19 @@ pub unsafe extern "C" fn ogpu_device_timing_info(
 #[allow(unexpected_cfgs)] // objc 0.2's selector macro checks its historical cargo-clippy feature.
 pub unsafe extern "C" fn ogpu_buffer_create(
     device: *mut OgpuDevice,
-    size: u64,
-    placement: u32,
+    desc: *const crate::OgpuBufferDesc,
     out: *mut *mut OgpuBuffer,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         create(out, error, || {
             required(device)?;
-            let size =
-                usize::try_from(size).map_err(|_| fail(INVALID_ARGUMENT, "Buffer too large"))?;
-            if size == 0 {
-                return Err(fail(INVALID_ARGUMENT, "Buffer size must be nonzero"));
+            required(desc)?;
+            let size = crate::contract::buffer_desc(&*desc)?;
+            if (*desc).extra_usage != 0 {
+                return Err(fail(UNSUPPORTED, "Metal index storage is not implemented"));
             }
-            let host = match placement {
+            let host = match (*desc).placement {
                 0 => true,
                 1 => false,
                 _ => return Err(fail(INVALID_ARGUMENT, "Invalid buffer placement")),
@@ -1220,7 +1219,10 @@ unsupported_call!(ogpu_image_heap_write(heap: *mut OgpuImageHeap, first: u32, en
 unsupported_call!(ogpu_image_heap_clear(heap: *mut OgpuImageHeap, first: u32, count: u32));
 unsupported_call!(ogpu_sampler_heap_write(heap: *mut OgpuSamplerHeap, first: u32, entries: *const c_void, count: u32));
 unsupported_call!(ogpu_batch_bind_sampler_heap(batch: *mut OgpuBatch, heap: *const OgpuSamplerHeap));
-unsupported_call!(ogpu_batch_draw_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, image: *mut OgpuImage, indirect: *mut OgpuBuffer, offset: u64, arguments: *const c_void, argument_bytes: u32, load: u32));
+unsupported_call!(ogpu_batch_begin_rendering(batch: *mut OgpuBatch, desc: *const crate::OgpuRenderingDesc));
+unsupported_call!(ogpu_batch_end_rendering(batch: *mut OgpuBatch));
+unsupported_call!(ogpu_batch_draw_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indirect: *mut OgpuBuffer, offset: u64, arguments: *const c_void, argument_bytes: u32));
+unsupported_call!(ogpu_batch_draw_indexed_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indices: *const crate::OgpuIndexRange, indirect: *mut OgpuBuffer, offset: u64, arguments: *const c_void, argument_bytes: u32));
 unsupported_call!(ogpu_batch_copy_image_to_buffer(batch: *mut OgpuBatch, image: *mut OgpuImage, destination: *mut OgpuBuffer, offset: u64));
 unsupported_call!(ogpu_batch_copy_buffer_to_image(batch: *mut OgpuBatch, source: *mut OgpuBuffer, offset: u64, image: *mut OgpuImage));
 
@@ -1256,9 +1258,7 @@ pub unsafe extern "C" fn ogpu_raster_create(
     _device: *mut OgpuDevice,
     _vertex: *const OgpuShaderDesc,
     _fragment: *const OgpuShaderDesc,
-    _push_size: u32,
-    _topology: u32,
-    _target_format: u32,
+    _desc: *const crate::OgpuRasterDesc,
     out: *mut *mut OgpuRaster,
     error: *mut OgpuError,
 ) -> OgpuResult {
@@ -1332,7 +1332,16 @@ mod tests {
         };
         unsafe {
             assert_eq!(
-                ogpu_buffer_create(&mut device_handle, 16, 0, &mut buffer, &mut error),
+                ogpu_buffer_create(
+                    &mut device_handle,
+                    &crate::OgpuBufferDesc {
+                        size_bytes: 16,
+                        placement: 0,
+                        extra_usage: 0
+                    },
+                    &mut buffer,
+                    &mut error
+                ),
                 SUCCESS
             );
             let status = ogpu_kernel_create(&mut device_handle, &desc, 8, &mut kernel, &mut error);

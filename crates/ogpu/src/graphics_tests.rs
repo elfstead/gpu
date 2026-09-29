@@ -78,12 +78,28 @@ fn gpu_rgba16_transfers_and_raster() {
         let fragment = words(include_bytes!("../../../examples/shaders/hdr.frag.spv"));
         for format in [1, 3] {
             assert!(
-                matches!(unsafe { Raster::new(d.clone(), &vertex, &fragment, 0, [&[], &[]], 0, format) },
+                matches!(unsafe { Raster::new(d.clone(), &vertex, &fragment, crate::OgpuRasterDesc { push_size_bytes: 0, topology: 0, color_format: format, depth_format: u32::MAX, depth_test: 0, depth_write: 0, depth_compare: 7, reserved: 0 }, [&[], &[]]) },
                 Err(e) if e.status == INVALID_ARGUMENT)
             );
         }
         let raster = Rc::new(unsafe {
-            Raster::new(d.clone(), &vertex, &fragment, 0, [&[], &[]], 0, 2).unwrap()
+            Raster::new(
+                d.clone(),
+                &vertex,
+                &fragment,
+                crate::OgpuRasterDesc {
+                    push_size_bytes: 0,
+                    topology: 0,
+                    color_format: 2,
+                    depth_format: u32::MAX,
+                    depth_test: 0,
+                    depth_write: 0,
+                    depth_compare: 7,
+                    reserved: 0,
+                },
+                [&[], &[]],
+            )
+            .unwrap()
         });
         let rgba8 = Rc::new(Image::new(d.clone(), ImageDesc::rgba8(3, 5)).unwrap());
         let indirect = Rc::new(Buffer::new(d.clone(), 16).unwrap());
@@ -99,7 +115,7 @@ fn gpu_rgba16_transfers_and_raster() {
         let mut batch = Batch::new(d.clone()).unwrap();
         assert_eq!(
             batch
-                .draw(
+                .draw_color_for_test(
                     raster.clone(),
                     rgba8,
                     indirect.clone(),
@@ -112,7 +128,7 @@ fn gpu_rgba16_transfers_and_raster() {
             INVALID_ARGUMENT
         );
         batch
-            .draw(raster, image.clone(), indirect, 0, &[], batch::CLEAR)
+            .draw_color_for_test(raster, image.clone(), indirect, 0, &[], batch::CLEAR)
             .unwrap();
         batch
             .copy_image_to_buffer(image, buffer.clone(), 8)
@@ -551,10 +567,17 @@ fn gpu_image_preservation() {
                 &words(include_bytes!(
                     "../../../examples/shaders/image-pattern.frag.spv"
                 )),
-                0,
+                crate::OgpuRasterDesc {
+                    push_size_bytes: 0,
+                    topology: 0,
+                    color_format: 0,
+                    depth_format: u32::MAX,
+                    depth_test: 0,
+                    depth_write: 0,
+                    depth_compare: 7,
+                    reserved: 0,
+                },
                 [&[], &[]],
-                0,
-                0,
             )
             .unwrap()
         });
@@ -567,10 +590,17 @@ fn gpu_image_preservation() {
                 &words(include_bytes!(
                     "../../../examples/shaders/triangle.frag.spv"
                 )),
-                16,
+                crate::OgpuRasterDesc {
+                    push_size_bytes: 16,
+                    topology: 0,
+                    color_format: 0,
+                    depth_format: u32::MAX,
+                    depth_test: 0,
+                    depth_write: 0,
+                    depth_compare: 7,
+                    reserved: 0,
+                },
                 [&[], &[]],
-                0,
-                0,
             )
             .unwrap()
         });
@@ -611,7 +641,7 @@ fn gpu_image_preservation() {
         assert!(unsafe { rejected.submit() }.is_err());
         let mut first = Batch::new(d.clone()).unwrap();
         first
-            .draw(
+            .draw_color_for_test(
                 pattern,
                 target.clone(),
                 indirect.clone(),
@@ -632,7 +662,7 @@ fn gpu_image_preservation() {
         for load in [batch::LOAD, batch::CLEAR] {
             let mut draw = Batch::new(d.clone()).unwrap();
             assert!(draw
-                .draw(
+                .draw_color_for_test(
                     triangle.clone(),
                     target.clone(),
                     indirect.clone(),
@@ -646,7 +676,7 @@ fn gpu_image_preservation() {
                 batch::COLOR_READ | batch::COLOR_WRITE,
             )
             .unwrap();
-            draw.draw(
+            draw.draw_color_for_test(
                 triangle.clone(),
                 target.clone(),
                 indirect.clone(),
@@ -851,8 +881,25 @@ fn gpu_graphics_failures() {
                 );
                 Image::new(device.clone(), ImageDesc::rgba8(64, 64)).map(drop)
             } else {
-                unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0, 0) }
-                    .map(drop)
+                unsafe {
+                    Raster::new(
+                        device.clone(),
+                        &vertex,
+                        &fragment,
+                        crate::OgpuRasterDesc {
+                            push_size_bytes: 16,
+                            topology: 0,
+                            color_format: 0,
+                            depth_format: u32::MAX,
+                            depth_test: 0,
+                            depth_write: 0,
+                            depth_compare: 7,
+                            reserved: 0,
+                        },
+                        [&[], &[]],
+                    )
+                }
+                .map(drop)
             };
             assert_eq!(
                 result.unwrap_err().vk,
@@ -870,7 +917,7 @@ fn gpu_graphics_failures() {
             matches!(Image::new(device.clone(), ImageDesc::rgba8(64, 64)), Err(e) if e.status == UNSUPPORTED)
         );
         assert!(
-            matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0, 0) }, Err(e) if e.status == UNSUPPORTED)
+            matches!(unsafe { Raster::new(device.clone(), &vertex, &fragment, crate::OgpuRasterDesc { push_size_bytes: 16, topology: 0, color_format: 0, depth_format: u32::MAX, depth_test: 0, depth_write: 0, depth_compare: 7, reserved: 0 }, [&[], &[]]) }, Err(e) if e.status == UNSUPPORTED)
         );
         let mut batch = Batch::new(device).unwrap();
         assert_eq!(
@@ -989,11 +1036,27 @@ fn gpu_graphics() {
             matches!(Image::new(device.clone(), ImageDesc::rgba8(0, 64)), Err(e) if e.status == INVALID_ARGUMENT)
         );
         assert!(
-            matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, 16, [&[], &[]], 0, 0) }, Err(e) if e.status == INVALID_ARGUMENT)
+            matches!(unsafe { Raster::new(device.clone(), &[0; 5], &fragment, crate::OgpuRasterDesc { push_size_bytes: 16, topology: 0, color_format: 0, depth_format: u32::MAX, depth_test: 0, depth_write: 0, depth_compare: 7, reserved: 0 }, [&[], &[]]) }, Err(e) if e.status == INVALID_ARGUMENT)
         );
         let kernel = Rc::new(unsafe { Kernel::new(device.clone(), &compute, 16, &[]).unwrap() });
         let raster = Rc::new(unsafe {
-            Raster::new(device.clone(), &vertex, &fragment, 16, [&[], &[]], 0, 0).unwrap()
+            Raster::new(
+                device.clone(),
+                &vertex,
+                &fragment,
+                crate::OgpuRasterDesc {
+                    push_size_bytes: 16,
+                    topology: 0,
+                    color_format: 0,
+                    depth_format: u32::MAX,
+                    depth_test: 0,
+                    depth_write: 0,
+                    depth_compare: 7,
+                    reserved: 0,
+                },
+                [&[], &[]],
+            )
+            .unwrap()
         });
         let target = Rc::new(Image::new(device.clone(), ImageDesc::rgba8(64, 64)).unwrap());
         let vertices = Buffer::new(device.clone(), 48).unwrap();
@@ -1011,7 +1074,7 @@ fn gpu_graphics() {
         assert_eq!(
             Batch::new(device.clone())
                 .unwrap()
-                .draw(
+                .draw_color_for_test(
                     raster.clone(),
                     non_attachment,
                     indirect.clone(),
@@ -1031,7 +1094,7 @@ fn gpu_graphics() {
         let mut wrong = Batch::new(other).unwrap();
         assert_eq!(
             wrong
-                .draw(
+                .draw_color_for_test(
                     raster.clone(),
                     target.clone(),
                     indirect.clone(),
@@ -1056,7 +1119,7 @@ fn gpu_graphics() {
             // Copy initialization is now a trusted cross-submission obligation.
             assert_eq!(
                 batch
-                    .draw(
+                    .draw_color_for_test(
                         raster.clone(),
                         target.clone(),
                         indirect.clone(),
@@ -1070,7 +1133,7 @@ fn gpu_graphics() {
             );
             assert_eq!(
                 batch
-                    .draw(
+                    .draw_color_for_test(
                         raster.clone(),
                         target.clone(),
                         indirect.clone(),
@@ -1084,7 +1147,7 @@ fn gpu_graphics() {
             );
             assert_eq!(
                 batch
-                    .draw(
+                    .draw_color_for_test(
                         raster.clone(),
                         target.clone(),
                         indirect.clone(),
@@ -1106,7 +1169,7 @@ fn gpu_graphics() {
                 .unwrap();
             for copy in 0..2 {
                 batch
-                    .draw(
+                    .draw_color_for_test(
                         raster.clone(),
                         target.clone(),
                         indirect.clone(),
@@ -1179,4 +1242,37 @@ fn gpu_graphics() {
         tested += 1;
     }
     assert!(tested > 0, "No graphics+compute device found");
+}
+
+// Convenience for pre-scope regression fixtures; production callers use explicit
+// begin/draw/end. Scope-specific tests exercise those operations independently.
+impl Batch {
+    fn draw_color_for_test(
+        &mut self,
+        raster: Rc<Raster>,
+        target: Rc<Image>,
+        indirect: Rc<Buffer>,
+        offset: usize,
+        root: &[u8],
+        load: u32,
+    ) -> Result<(), Error> {
+        let desc = crate::OgpuRenderingDesc {
+            // The internal encoder uses retained Rc images, never this ABI pointer.
+            color: crate::OgpuColorAttachment {
+                image: ptr::dangling_mut(),
+                load,
+                store: 0,
+                clear: [0.0, 0.0, 0.0, 1.0],
+            },
+            depth: Default::default(),
+        };
+        crate::contract::attachments(&desc)?;
+        if load == batch::CLEAR {
+            self.discard_image(target.clone())?;
+        }
+        self.begin_rendering(target, None, desc)?;
+        let result = self.draw(raster, indirect, offset, root, None);
+        self.end_rendering()?;
+        result
+    }
 }

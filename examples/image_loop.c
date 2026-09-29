@@ -88,15 +88,15 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC, 0};
     TRY(ogpu_image_create(device, &image_desc, &first, &error));
     TRY(ogpu_image_create(device, &image_desc, &last, &error));
-    TRY(ogpu_buffer_create(device, 48, OGPU_MEMORY_HOST, &vertices, &error));
-    TRY(ogpu_buffer_create(device, sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, &indirect, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){48, OGPU_MEMORY_HOST, 0}, &vertices, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){sizeof(OgpuDrawArguments), OGPU_MEMORY_HOST, 0}, &indirect, &error));
     DrawRoot draw = {0};
     ProcessRoot process = {.width = width, .height = height};
     ReadRoot read = {.width = width};
     TRY(ogpu_buffer_device_address(vertices, &draw.vertices, &error));
     TRY(ogpu_buffer_device_address(indirect, &draw.draw, &error));
     for (unsigned i = 0; i < 3; ++i) {
-        TRY(ogpu_buffer_create(device, size + 8, OGPU_MEMORY_HOST, &buffers[i], &error));
+        TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){size + 8, OGPU_MEMORY_HOST, 0}, &buffers[i], &error));
         images[i] = malloc((size_t)size + 8);
         REQUIRE(images[i] != NULL);
     }
@@ -124,14 +124,22 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         TRY(ogpu_batch_dispatch(batch, producer, 1, 1, 1, &draw, sizeof(draw), &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE,
             OGPU_ACCESS_VERTEX_READ | OGPU_ACCESS_INDIRECT_READ, &error));
-        TRY(ogpu_batch_draw_indirect(batch, first_raster, first, indirect, 0, &draw, sizeof(draw), OGPU_ATTACHMENT_CLEAR, &error));
+        TRY(ogpu_batch_discard_image(batch, first, &error));
+        const OgpuRenderingDesc rendering_6 = {.color = {first, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
+        TRY(ogpu_batch_begin_rendering(batch, &rendering_6, &error));
+        TRY(ogpu_batch_draw_indirect(batch, first_raster, indirect, 0, &draw, sizeof(draw), &error));
+        TRY(ogpu_batch_end_rendering(batch, &error));
         TRY(ogpu_batch_copy_image_to_buffer(batch, first, buffers[0], 4, &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_TRANSFER_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
         ProcessRoot copied = process;
         TRY(ogpu_batch_dispatch(batch, processor, (width * height + 63) / 64, 1, 1, &copied, sizeof(copied), &error));
         memset(&copied, 0, sizeof(copied)); /* Recording must already have copied it. */
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_COMPUTE_WRITE, OGPU_ACCESS_FRAGMENT_READ, &error));
-        TRY(ogpu_batch_draw_indirect(batch, last_raster, last, indirect, 0, &read, sizeof(read), OGPU_ATTACHMENT_CLEAR, &error));
+        TRY(ogpu_batch_discard_image(batch, last, &error));
+        const OgpuRenderingDesc rendering_5 = {.color = {last, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
+        TRY(ogpu_batch_begin_rendering(batch, &rendering_5, &error));
+        TRY(ogpu_batch_draw_indirect(batch, last_raster, indirect, 0, &read, sizeof(read), &error));
+        TRY(ogpu_batch_end_rendering(batch, &error));
         TRY(ogpu_batch_copy_image_to_buffer(batch, last, buffers[2], 4, &error));
         TRY(ogpu_batch_submit(batch, &completion, &error));
         ogpu_batch_destroy(batch);
@@ -189,10 +197,8 @@ int main(int argc, char **argv) {
         printf("Executing graphics -> compute -> graphics on %s\n", info.name);
         TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[0], (counts[0]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(DrawRoot), &producer, &error));
         TRY(ogpu_kernel_create(device, &(OgpuShaderDesc){words[3], (counts[3]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(ProcessRoot), &processor, &error));
-        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[1], (counts[1]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
-            &(OgpuShaderDesc){words[2], (counts[2]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(DrawRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &first, &error));
-        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[4], (counts[4]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0},
-            &(OgpuShaderDesc){words[5], (counts[5]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, sizeof(ReadRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &last, &error));
+        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[1], (counts[1]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, &(OgpuShaderDesc){words[2], (counts[2]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, &(OgpuRasterDesc){sizeof(DrawRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &first, &error));
+        TRY(ogpu_raster_create(device, &(OgpuShaderDesc){words[4], (counts[4]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, &(OgpuShaderDesc){words[5], (counts[5]) * 4, NULL, NULL, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0}, &(OgpuRasterDesc){sizeof(ReadRoot), OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &last, &error));
         const uint32_t sizes[][2] = {{1, 1}, {2, 3}, {63, 65}, {64, 64}, {65, 63}, {97, 65}};
         for (unsigned j = 0; j < sizeof(sizes) / sizeof(sizes[0]); ++j)
             REQUIRE(run_case(device, producer, processor, first, last, sizes[j][0], sizes[j][1]) == EXIT_SUCCESS);

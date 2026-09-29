@@ -19,8 +19,8 @@ static int run_case(OgpuDevice *device, OgpuRaster *raster, uint32_t width, uint
     OgpuImageDesc desc = {OGPU_IMAGE_2D, width, height, OGPU_FORMAT_RGBA8_UNORM,
         OGPU_IMAGE_USAGE_COLOR | OGPU_IMAGE_USAGE_COPY_SRC, 0};
     TRY(ogpu_image_create(device, &desc, &image, &error));
-    TRY(ogpu_buffer_create(device, 16, OGPU_MEMORY_HOST, &indirect, &error));
-    TRY(ogpu_buffer_create(device, size + 128, OGPU_MEMORY_HOST, &readback, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){16, OGPU_MEMORY_HOST, 0}, &indirect, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){size + 128, OGPU_MEMORY_HOST, 0}, &readback, &error));
     const uint32_t triangle[] = {3, 1, 0, 0};
     TRY(ogpu_buffer_write(indirect, 0, triangle, sizeof(triangle), &error));
     for (unsigned frame = 0; frame < 3; ++frame) {
@@ -28,7 +28,11 @@ static int run_case(OgpuDevice *device, OgpuRaster *raster, uint32_t width, uint
         TRY(ogpu_buffer_write(readback, 0, pixels, size + 128, &error));
         TRY(ogpu_batch_create(device, &batch, &error));
         Pattern_fragmentArguments root = {.arg_width = width, .arg_height = height};
-        TRY(ogpu_batch_draw_indirect(batch, raster, image, indirect, 0, &root, sizeof(root), OGPU_ATTACHMENT_CLEAR, &error));
+        TRY(ogpu_batch_discard_image(batch, image, &error));
+        const OgpuRenderingDesc rendering_3 = {.color = {image, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
+        TRY(ogpu_batch_begin_rendering(batch, &rendering_3, &error));
+        TRY(ogpu_batch_draw_indirect(batch, raster, indirect, 0, &root, sizeof(root), &error));
+        TRY(ogpu_batch_end_rendering(batch, &error));
         memset(&root, 0xff, sizeof(root));
         TRY(ogpu_batch_copy_image_to_buffer(batch, image, readback, 64, &error));
         TRY(ogpu_batch_submit(batch, &completion, &error));
@@ -88,8 +92,7 @@ int main(void) {
         REQUIRE(pattern_vertex_compatible(&caps, &limits) && pattern_fragment_compatible(&caps, &limits));
         printf("Executing stage pair on %s\n", info.name);
         OgpuShaderDesc vertex = pattern_vertex_shader(), fragment = pattern_fragment_shader();
-        TRY(ogpu_raster_create(device, &vertex, &fragment, pattern_push_size,
-            OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, &raster, &error));
+        TRY(ogpu_raster_create(device, &vertex, &fragment, &(OgpuRasterDesc){pattern_push_size, OGPU_TOPOLOGY_TRIANGLE_LIST, OGPU_FORMAT_RGBA8_UNORM, OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0}, &raster, &error));
         const uint32_t sizes[][2] = {{1, 1}, {2, 3}, {63, 65}, {64, 64}, {65, 63}, {97, 65}};
         for (unsigned j = 0; j < sizeof(sizes) / sizeof(sizes[0]); ++j)
             REQUIRE(run_case(device, raster, sizes[j][0], sizes[j][1]) == EXIT_SUCCESS);

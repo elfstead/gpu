@@ -28,7 +28,7 @@ def parse(stdout, stderr, mode, allocation, policy, slots):
     context = f.bench.records(stdout, "REUSE_CONTEXT ")
     require(len(context) == 1, "missing/duplicate context")
     context = context[0]
-    expected = dict(abi=17, backend="vulkan", workload="learned-image", mode=mode,
+    expected = dict(abi=18, backend="vulkan", workload="learned-image", mode=mode,
                     allocation=allocation, policy=policy, slots=slots)
     require(all(context.get(k) == v for k,v in expected.items()), "wrong failure configuration")
     require(all(context.get(k) == 1 for k in ("graphics", "compute", "buffer_address", "timeline",

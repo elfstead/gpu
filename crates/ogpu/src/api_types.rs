@@ -1,5 +1,65 @@
 //! Single definitions of backend-independent C data structures.
 #[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct OgpuBufferDesc {
+    pub size_bytes: u64,
+    pub placement: u32,
+    pub extra_usage: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct OgpuRasterDesc {
+    pub push_size_bytes: u32,
+    pub topology: u32,
+    pub color_format: u32,
+    pub depth_format: u32,
+    pub depth_test: u32,
+    pub depth_write: u32,
+    pub depth_compare: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OgpuColorAttachment {
+    pub image: *mut crate::OgpuImage,
+    pub load: u32,
+    pub store: u32,
+    pub clear: [f32; 4],
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OgpuDepthAttachment {
+    pub image: *mut crate::OgpuImage,
+    pub load: u32,
+    pub store: u32,
+    pub clear: f32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OgpuRenderingDesc {
+    pub color: OgpuColorAttachment,
+    pub depth: OgpuDepthAttachment,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct OgpuIndexRange {
+    pub buffer: *mut crate::OgpuBuffer,
+    pub offset: u64,
+    pub size_bytes: u64,
+    pub format: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct OgpuDrawIndexedArguments {
+    pub index_count: u32,
+    pub instance_count: u32,
+    pub first_index: u32,
+    pub vertex_offset: i32,
+    pub first_instance: u32,
+}
+#[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct OgpuDeviceLimits {
     pub max_group_size: [u32; 3],

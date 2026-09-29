@@ -70,7 +70,7 @@ static int create_matrix(OgpuDevice *device, uint32_t rows, uint32_t cols,
     matrix->count = (size_t)rows * matrix->stride + 2;
     matrix->host = malloc(matrix->count * sizeof(float));
     REQUIRE(matrix->host != NULL);
-    TRY(ogpu_buffer_create(device, matrix->count * sizeof(float), OGPU_MEMORY_HOST, &matrix->buffer, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){matrix->count * sizeof(float), OGPU_MEMORY_HOST, 0}, &matrix->buffer, &error));
     poison_matrix(matrix);
     exit_code = EXIT_SUCCESS;
 cleanup:

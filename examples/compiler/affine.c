@@ -49,7 +49,7 @@ int main(void) {
     REQUIRE(affine_local[1] == 1 && affine_local[2] == 1);
     const uint32_t groups = count / affine_local[0] + (count % affine_local[0] != 0);
     REQUIRE(groups <= limits.max_dispatch[0]);
-    TRY(ogpu_buffer_create(device, bytes, OGPU_MEMORY_HOST, &buffer, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){bytes, OGPU_MEMORY_HOST, 0}, &buffer, &error));
     OgpuShaderDesc shader = affine_shader();
     TRY(ogpu_kernel_create(device, &shader, sizeof(AffineArguments), &kernel, &error));
     expected = malloc(bytes); actual = malloc(bytes);

@@ -1,6 +1,6 @@
 # Current support boundary
 
-Updated 2026-09-28; experimental C ABI 17. Pin a full source revision. This table
+Updated 2026-09-29; experimental C ABI 18. Pin a full source revision. This table
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
@@ -29,9 +29,12 @@ second software implementation, not another GPU vendor. Current reports use Mesa
 or current Metal validation is claimed. Synthetic error/cache tests cover selected
 contract branches, not those missing environments.
 
-Raster supports a single offscreen color attachment, non-indexed indirect triangle
-list/strip, fixed fill/no-cull/full-target state, one sample, no depth/stencil or
-blending. Image formats are RGBA8_UNORM, R32_FLOAT, RGBA16_FLOAT and RGBA16_UNORM with
+Raster supports scoped offscreen color plus optional D32 depth, indexed/non-indexed
+indirect triangle list/strip, fixed fill/no-cull/full-target state and one sample;
+no stencil or blending. ABI 18 adds explicit load/store and depth test/write/compare
+state, plus opt-in index eligibility on buffers (Metal rejects that extra usage).
+The [migration checkpoint](indexed-depth-migration.md) is not full M4 acceptance.
+Image formats are RGBA8_UNORM, R32_FLOAT, RGBA16_FLOAT, RGBA16_UNORM and D32_FLOAT with
 specific usage restrictions; query the exact description. Images have one mip,
 layer and sample. No presentation, general rendering backend or image aliasing API.
 

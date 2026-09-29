@@ -3,9 +3,9 @@
 This narrow optional profile tests shared allocation, argument, submission, and
 completion rules. It does not define a complete graphics API or add presentation.
 
-This page describes the implemented non-indexed API. The M4
-[indexed/depth proposal](indexed-depth-proposal.md) selects its next migration;
-that candidate is not implemented by ABI 17.
+ABI 18 implements the scoped/indexed/depth slice selected by the
+[proposal](indexed-depth-proposal.md). The [migration checkpoint](indexed-depth-migration.md)
+separates its focused checks from the remaining M4 scene/performance acceptance.
 
 Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
 
@@ -16,7 +16,7 @@ graphics and compute, and dynamic rendering, in addition
 to the [modern execution baseline](modern-baseline.md).
 It returns UNSUPPORTED if none exists. At ABI 8, ordinary `ogpu_device_create`
 enables compute and images/heaps, never rasterization, even on a shared queue.
-Color attachments, raster creation and graphics access masks require explicit
+Color/depth attachments, raster creation and graphics access masks require explicit
 graphics creation. Discovery remains independent. No new optional
 graphics shader arithmetic features are enabled beyond that baseline.
 
@@ -39,13 +39,18 @@ validity, stage interfaces, and reachable address bounds remain trusted contract
 
 Raster creation selects triangle list or triangle strip (ABI 7); other topology
 values are rejected. Primitive restart is disabled. Remaining state is fixed: fill, no culling, full-target
-viewport/scissor, one sample, one RGBA8 UNORM or RGBA16F color output, no blending/depth/stencil.
+viewport/scissor, one sample, one RGBA8 UNORM or RGBA16F color output, no blending/stencil.
+`OgpuRasterDesc` selects optional D32 depth, test/write flags and one of the eight
+ordinary comparisons. Formats must match the rendering scope even with depth
+testing disabled. Disabled testing suppresses fragment depth writes. No depth
+format requires both flags zero and compare ALWAYS; there is no shader depth
+output, depth bias/bounds test or primitive restart.
 This is an experiment constraint, not a commitment to hard-code graphics state.
 
 ## Images and drawing
 
-`ogpu_image_create` (ABI 6) takes a copied description: 1D/2D, RGBA8 UNORM/R32F/RGBA16F,
-extents and explicit sampled/storage/color/copy usages. The image owns specialized
+`ogpu_image_create` takes a copied description: 1D/2D, an explicit supported format,
+extents and sampled/storage/color/depth/copy usages. The image owns specialized
 optimal storage and a view when used as a color attachment. It has no device address
 or CPU mapping. Format/dimension/usage support is checked; color use is limited to
 2D RGBA8/RGBA16F. ABI 11 raster creation specifies the target format;
@@ -70,10 +75,24 @@ without allocating image/memory/descriptor resources. It shares creation's prefl
 including linear-filter support for sampled images; success does not guarantee
 available allocation memory. See [query results and capability boundaries](execution-capabilities.md).
 
-`ogpu_batch_draw_indirect` selects attachment CLEAR (opaque black) or LOAD (preserved
-texels), then executes one non-indexed indirect draw. Both store the result. LOAD
-requires initialized contents and dependencies to COLOR_READ | COLOR_WRITE; it does
-not enable blending or attachment feedback. Its record is four uint32 values in order:
+`ogpu_batch_begin_rendering` starts a scope with one required color attachment and
+optional same-sized D32 depth attachment. Each independently selects CLEAR (explicit
+finite value), LOAD or DISCARD, and STORE or DISCARD. Clear depth is in [0,1].
+Images must already be initialized with `discard_image` before first use: CLEAR
+defines values, not layout. LOAD needs defined prior contents; discarded values
+cannot be read before being written. Begin/end add no implicit data barrier;
+the caller orders prior/later attachment accesses, including load/store operations.
+Empty scopes still perform attachment operations. End does not submit or wait.
+
+Multiple compatible draws, heap bindings and buffer-retention calls may occur
+inside a scope; dispatch/copy/discard/barrier/split endpoints may not. Timing
+selection remains batch metadata. Invalid operations leave recording unchanged;
+an open scope rejects submit/compile without consumption so the caller can end
+and retry. Ordinary attachment ordering is native rendering behavior, not a
+global barrier per draw. Attachment feedback/local reads remain unsupported.
+
+`ogpu_batch_draw_indirect` executes one non-indexed indirect draw within the scope.
+Its record is four uint32 values in order:
 `vertex_count`, `instance_count`, `first_vertex`, `first_instance`. The last must
 be zero because optional indirect-first-instance support is not enabled. The
 record offset must be a multiple of four and all 16 bytes must fit the buffer.
@@ -86,12 +105,27 @@ recording and uses `vkCmdDrawIndirect2KHR`. It is not a new allocation type: com
 writes the same memory. The public handle is an ownership choice, not a workaround
 for an older Vulkan command interface.
 
+`ogpu_batch_draw_indexed_indirect` additionally supplies a retained `OgpuIndexRange`
+within a buffer created with `OgpuBufferDesc.extra_usage=OGPU_BUFFER_INDEX`.
+Other buffers use zero extra usage. This eligibility does not prevent compute
+writes or sharing vertex/index/indirect ranges within a buffer. UINT16 and UINT32
+are supported, with aligned nonempty ranges; the 20-byte indirect record contains
+index_count, instance_count, first_index, signed vertex_offset, first_instance.
+`first_index` is relative to the range. The caller guarantees generated counts
+stay in range, first_instance is zero, and effective vertex addresses are valid.
+The backend binds an address range and issues a real native indexed draw. There
+is no CPU inspection, shader-emulated indexing, hidden copy or new allocation type.
+
+D32 images use DEPTH plus optional COPY_SRC/COPY_DST only, 2D and one mip/layer/sample.
+Do not equate D32 with R32 color storage. Exact support queries and creation share
+validation; depth operations use the depth aspect. Sampled/storage depth is deferred.
+
 `ogpu_batch_copy_image_to_buffer` copies the whole image into an ordinary buffer at a
 texel-size-aligned offset, tightly packed as width × height × texel-size bytes
-(four for RGBA8/R32F, eight for RGBA16F) in the image's
+(four for RGBA8/R32F/D32F, eight for RGBA16F/RGBA16_UNORM) in the image's
 format, row by
 row starting at image coordinate (0,0). The caller must initialize the target through
-CLEAR or explicit discard followed by writes, in this or an earlier successfully
+explicit discard followed by writes/CLEAR, in this or an earlier successfully
 submitted batch, with all copied texels written before the copy. There is no same-batch
 initialization scan. Rejected/abandoned initialization does not authorize later reads.
 Subsequent uses preserve contents unless CLEAR or discard explicitly invalidates them.
@@ -101,9 +135,9 @@ HOST or DEVICE buffer, retaining both operands. Initialize GENERAL before first 
 the upload orders prior GPU accesses, and later shader/attachment consumers require
 an explicit TRANSFER_WRITE dependency. Repeated uploads preserve the layout.
 
-Known target operations manage their own image transitions and attachment/copy
+Discard and copy operations manage their own image transitions and copy
 dependencies. The Vulkan backend uses an initial UNDEFINED layout (discard), a
-transition to GENERAL followed by dynamic rendering, and a global synchronization2
+transition to GENERAL, separately scoped dynamic rendering, and a global synchronization2
 dependency making earlier image writes visible to address-based image readback. Ordinary
 use stays in GENERAL; no render-pass/framebuffer objects or mutable layout tracker
 remain. The discard transition orders prior uses, including across submissions.
@@ -115,7 +149,9 @@ No layout-state tracker or hidden initialization submission is needed.
 ## Shared dependencies and ownership
 
 The access vocabulary extends with vertex-read, fragment-read, indirect-read,
-color-read/write, transfer-read, and transfer-write. Graphics accesses are rejected on
+color-read/write, index-read, depth-read/write, transfer-read, and transfer-write.
+INDEX_READ maps to fixed-function index input, not vertex shader reads; depth
+accesses cover early and late tests. Graphics accesses are rejected on
 a compute-only execution queue. Batch barriers translate each access to its
 execution stage; they remain global and do not inspect pointer arguments.
 

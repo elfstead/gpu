@@ -14,8 +14,9 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 17**, adding
-recording-local split dependencies and explicit serial/simultaneous replay after
+Metal compute backend. The language-neutral C boundary is now **ABI 18**, adding
+scoped indexed/depth rendering and description-based buffer/raster creation.
+ABI 17 added recording-local split dependencies and explicit serial/simultaneous replay after
 ABI 16's optional borrowed HOST views and range visibility on Vulkan and ABI 15's
 immutable command lists and ABI 14's explicit recording-storage
 ownership; ABI 13 relaxed retirement to allow bounded empty command storage. The bounded macOS arm64
@@ -246,14 +247,16 @@ depth first, then mips/views, blending/viewport/scissor and generated stage
 interfaces. The [direct Vulkan indexed/depth reference](graphics-scene-native-results.md)
 is accepted at clean `5da5aaf`: 150 checked frames across both drivers, including
 720p on Radeon, analytical color/depth checks, exact GPU-written records/guards
-and native draw-order/load equivalence. Public/runtime ABI 17 is unchanged.
+and native draw-order/load equivalence. The [ABI-18 migration](indexed-depth-migration.md)
+implements the public/runtime slice and migrates existing callers, with focused
+indexed/depth scope, replay and ownership tests on both Linux drivers.
 The [indexed/depth proposal](indexed-depth-proposal.md) selects explicit rendering
 scopes, independent attachment load/store, immutable raster depth state and opt-in
 index eligibility on ordinary buffers. Initialization is separate from per-scope
 clear; draws keep real indexed execution and explicit dependencies. This is a
-candidate for implementation, not an implemented or performance-approved API.
-Next: implement the coherent ABI-18 migration and contract/lifetime gates, then
-the matched public scene, grouped-draw/replay measurements and installed handoff.
+candidate with an implemented slice, not a performance-approved API.
+Next: the matched public scene and remaining description/failure gates, then
+grouped-draw/replay measurements and the installed scene handoff.
 Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
 Existing devices suffice.
 

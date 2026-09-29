@@ -72,7 +72,7 @@ int main(void) {
     const uint32_t groups = count / transform_local[0] + (count % transform_local[0] != 0);
     REQUIRE(groups <= limits.max_dispatch[0]);
     ogpu_probe_destroy(probe); probe = NULL;
-    TRY(ogpu_buffer_create(device, bytes, OGPU_MEMORY_HOST, &buffer, &error));
+    TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){bytes, OGPU_MEMORY_HOST, 0}, &buffer, &error));
     OgpuShaderDesc shader = transform_shader();
     TRY(ogpu_kernel_create(device, &shader, sizeof(TransformArguments), &kernel, &error));
     expected = malloc((size_t)bytes); actual = malloc((size_t)bytes);
@@ -83,7 +83,7 @@ int main(void) {
         memset(&view, 0xff, sizeof(view));
         REQUIRE(ogpu_buffer_host_view(NULL, &view, &error) == OGPU_ERROR_INVALID_ARGUMENT);
         REQUIRE(!view.data && !view.size_bytes && !view.alignment && !view.access_granularity && !view.coherent);
-        TRY(ogpu_buffer_create(device, 16, OGPU_MEMORY_DEVICE, &denied, &error));
+        TRY(ogpu_buffer_create(device, &(OgpuBufferDesc){16, OGPU_MEMORY_DEVICE, 0}, &denied, &error));
         REQUIRE(ogpu_buffer_host_view(denied, &view, &error) == OGPU_ERROR_INVALID_ARGUMENT);
         REQUIRE(!view.data && !view.size_bytes);
         REQUIRE(ogpu_buffer_host_flush(denied, 0, 0, &error) == OGPU_ERROR_INVALID_ARGUMENT);

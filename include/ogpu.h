@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(17)
+#define OGPU_ABI_VERSION UINT32_C(18)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -179,7 +179,15 @@ OgpuResult ogpu_device_create_graphics(const OgpuProbe *probe, uint32_t index,
  * with range-scoped synchronization; these copy helpers retain whole-buffer rules. */
 #define OGPU_MEMORY_HOST UINT32_C(0)
 #define OGPU_MEMORY_DEVICE UINT32_C(1)
-OgpuResult ogpu_buffer_create(OgpuDevice *device, uint64_t size_bytes, uint32_t placement,
+/* extra_usage=0 preserves address/copy/indirect use; INDEX additionally permits
+ * fixed-function index reads. Unknown bits are invalid; Metal rejects INDEX.
+ * Eligibility does not change placement or prevent compute writes to the buffer. */
+#define OGPU_BUFFER_INDEX 1u
+typedef struct OgpuBufferDesc {
+    uint64_t size_bytes;
+    uint32_t placement, extra_usage;
+} OgpuBufferDesc;
+OgpuResult ogpu_buffer_create(OgpuDevice *device, const OgpuBufferDesc *desc,
     OgpuBuffer **out_buffer, OgpuError *out_error);
 void ogpu_buffer_destroy(OgpuBuffer *buffer);
 OgpuResult ogpu_buffer_write(OgpuBuffer *buffer, uint64_t offset, const void *data, uint64_t size_bytes, OgpuError *out_error);
@@ -358,7 +366,8 @@ OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t gr
 
 /* Global dependency from earlier to later commands on this queue, including
  * earlier submissions. Each mask must be a nonzero combination of the access bits
- * above. No dependency is inferred from GPU pointers or dispatch order. */
+ * defined in this header. No dependency is inferred from GPU pointers or dispatch order.
+ * Barriers and split endpoints must be outside rendering scopes. */
 OgpuResult ogpu_batch_barrier(OgpuBatch *batch, uint32_t source_access,
     uint32_t destination_access, OgpuError *out_error);
 
@@ -516,7 +525,7 @@ OgpuResult ogpu_completion_elapsed_ns(OgpuCompletion *completion, double *out_na
  * Uses GENERAL layouts; VK_KHR_unified_image_layouts is enabled when supported
  * for its layout-efficiency guarantee, but is not required. Ownership rules
  * apply. Both objects retain their device. Images use specialized storage, NOT
- * addressable allocations. No window, presentation, depth, or blending. */
+ * addressable allocations. No window, presentation, stencil, or blending. */
 typedef struct OgpuImage OgpuImage;
 typedef struct OgpuRaster OgpuRaster;
 
@@ -524,7 +533,9 @@ typedef struct OgpuRaster OgpuRaster;
  * Extents and usage must be nonzero; reserved=0. COLOR requires 2D RGBA8 or RGBA16F.
  * Device support is checked for the requested format/dimension/usage combination.
  * SAMPLED promises nearest and linear filtering. Operations require matching usage.
- * Initial contents/layout are undefined: discard or CLEAR before first use. */
+ * DEPTH requires 2D D32 with optional COPY_SRC/COPY_DST only.
+ * Initial contents/layout are undefined: discard before first use; CLEAR alone
+ * initializes values, not layout. */
 #define OGPU_IMAGE_1D 1u
 #define OGPU_IMAGE_2D 2u
 #define OGPU_FORMAT_RGBA8_UNORM 0u
@@ -532,11 +543,14 @@ typedef struct OgpuRaster OgpuRaster;
 #define OGPU_FORMAT_RGBA16_FLOAT 2u
 /* Packed uint16 normalized components; currently SAMPLED/COPY usages only. */
 #define OGPU_FORMAT_RGBA16_UNORM 3u
+#define OGPU_FORMAT_D32_FLOAT 4u
+#define OGPU_FORMAT_NONE UINT32_MAX
 #define OGPU_IMAGE_USAGE_SAMPLED 1u
 #define OGPU_IMAGE_USAGE_STORAGE 2u
 #define OGPU_IMAGE_USAGE_COLOR 4u
 #define OGPU_IMAGE_USAGE_COPY_SRC 8u
 #define OGPU_IMAGE_USAGE_COPY_DST 16u
+#define OGPU_IMAGE_USAGE_DEPTH 32u
 typedef struct OgpuImageDesc {
     uint32_t dimension, width, height, format, usage, reserved;
 } OgpuImageDesc;
@@ -547,7 +561,7 @@ typedef struct OgpuImageDesc {
  * capability or format/usage/extent support. Driver errors remain errors.
  * No GPU work or image/memory/descriptor allocation. Unlike cached device queries,
  * checks require a non-lost device. SAMPLED still promises nearest AND linear.
- * COLOR is supported only on create_graphics devices. */
+ * COLOR/DEPTH are supported only on create_graphics devices. */
 OgpuResult ogpu_image_check_support(const OgpuDevice *device, const OgpuImageDesc *desc,
     OgpuError *out_error);
 OgpuResult ogpu_image_create(OgpuDevice *device, const OgpuImageDesc *desc,
@@ -627,17 +641,32 @@ OgpuResult ogpu_batch_discard_image(OgpuBatch *batch, const OgpuImage *target,
  * by the vertex shader; fragment location 0 is a floating-point RGBA output.
  * Triangle-list or triangle-strip topology, fixed fill/no-cull state,
  * full-target viewport/scissor, one sample,
- * no depth/stencil or blending. Root range is shared by vertex AND fragment stages;
+ * no stencil/blending/bias/bounds test/shader depth output. Root range is shared by vertex AND fragment stages;
  * size/alignment/trusted-shader rules match kernel_create. No source compiler. */
 #define OGPU_TOPOLOGY_TRIANGLE_LIST 0u
 #define OGPU_TOPOLOGY_TRIANGLE_STRIP 1u
 /* Vertex and fragment specialization IDs are independent, even when equal.
- * target_format is RGBA8_UNORM or RGBA16_FLOAT and must match each draw target.
+ * color_format is RGBA8_UNORM or RGBA16_FLOAT; depth_format is NONE or D32_FLOAT.
+ * Both must match the active scope, even when testing is disabled. Depth flags
+ * are exactly 0 or 1; disabled testing suppresses fragment depth writes regardless
+ * of depth_write. NONE requires both flags 0 and compare ALWAYS. reserved=0.
  * RGBA16_FLOAT is packed four-component IEEE binary16 storage (8 bytes/texel);
  * shaders may use ordinary float32 arithmetic. */
+#define OGPU_COMPARE_NEVER 0u
+#define OGPU_COMPARE_LESS 1u
+#define OGPU_COMPARE_EQUAL 2u
+#define OGPU_COMPARE_LESS_EQUAL 3u
+#define OGPU_COMPARE_GREATER 4u
+#define OGPU_COMPARE_NOT_EQUAL 5u
+#define OGPU_COMPARE_GREATER_EQUAL 6u
+#define OGPU_COMPARE_ALWAYS 7u
+typedef struct OgpuRasterDesc {
+    uint32_t push_size_bytes, topology, color_format, depth_format;
+    uint32_t depth_test, depth_write, depth_compare, reserved;
+} OgpuRasterDesc;
 OgpuResult ogpu_raster_create(OgpuDevice *device,
     const OgpuShaderDesc *vertex, const OgpuShaderDesc *fragment,
-    uint32_t push_size_bytes, uint32_t topology, uint32_t target_format,
+    const OgpuRasterDesc *desc,
     OgpuRaster **out_raster, OgpuError *out_error);
 void ogpu_raster_destroy(OgpuRaster *raster);
 
@@ -653,20 +682,76 @@ typedef struct OgpuDrawArguments {
 
 #define OGPU_ATTACHMENT_CLEAR 0u
 #define OGPU_ATTACHMENT_LOAD 1u
+#define OGPU_ATTACHMENT_DISCARD 2u
+#define OGPU_STORE_STORE 0u
+#define OGPU_STORE_DISCARD 1u
 #define OGPU_ACCESS_COLOR_READ 256u
-/* Execute ONE non-indexed indirect draw. CLEAR discards and clears to opaque black;
- * LOAD preserves prior contents and requires initialized, written texels plus an
- * explicit dependency to COLOR_READ | COLOR_WRITE. Both store final contents. All
- * objects must belong to the batch device. Indirect offset is 4-byte aligned and
- * a full 16-byte record must fit. Arguments are copied; their size must match raster.
- * Records retain raster, target, and indirect buffer, but NOT pointees embedded
- * in arguments. Explicit barriers must order compute-produced vertex/draw data.
- * Image operations manage image layouts and attachment/copy dependencies; every
- * CLEAR draw discards previous target contents. Public handles may be destroyed after
- * recording; retained resources are released only after discard/completion cleanup. */
+#define OGPU_ACCESS_INDEX_READ 512u
+#define OGPU_ACCESS_DEPTH_READ 1024u
+#define OGPU_ACCESS_DEPTH_WRITE 2048u
+typedef struct OgpuColorAttachment {
+    OgpuImage *image;
+    uint32_t load, store;
+    float clear[4];
+} OgpuColorAttachment;
+typedef struct OgpuDepthAttachment {
+    OgpuImage *image;
+    uint32_t load, store;
+    float clear;
+    uint32_t reserved;
+} OgpuDepthAttachment;
+typedef struct OgpuRenderingDesc {
+    OgpuColorAttachment color;
+    OgpuDepthAttachment depth;
+} OgpuRenderingDesc;
+/* One required color, optional depth (NULL image and all other fields zero).
+ * Present attachments must match device/extent. Descriptions copied; images retained.
+ * Full image area. CLEAR validates finite color and finite depth in [0,1]; other
+ * loads ignore clear values. Reserved=0, unknown load/store values invalid.
+ * All images must already be initialized to GENERAL (discard_image before first
+ * use). LOAD also needs defined prior contents. DISCARD load leaves values undefined;
+ * STORE preserves defined results, DISCARD store permits their loss. Do not read
+ * undefined/discarded results. Empty scopes still perform attachment operations.
+ * Begin/end introduce no implicit data dependencies. Caller orders prior/later
+ * accesses, including loads/stores, outside scopes. Ordinary attachment ordering
+ * between draws is native; shader feedback/local reads are not supported.
+ * Within a scope only draw, heap binding, retain_buffer and timing selection are
+ * allowed. No nesting, dispatch, copy, discard or dependency endpoints/barriers.
+ * Invalid operations leave recording unchanged. Open scopes reject submit/compile
+ * without consumption, allowing end and retry. Public handles may be destroyed
+ * after recording; recorded/list/submitted uses retain resources until retirement. */
+OgpuResult ogpu_batch_begin_rendering(OgpuBatch *batch,
+    const OgpuRenderingDesc *desc, OgpuError *out_error);
+OgpuResult ogpu_batch_end_rendering(OgpuBatch *batch, OgpuError *out_error);
+/* Execute ONE non-indexed indirect draw inside a matching scope. Offset is
+ * four-byte aligned and 16 bytes must fit. Root size must match raster; bytes are
+ * copied. Retains raster and indirect, NOT root pointees. Dependencies order
+ * compute-written data explicitly. Same-device objects only. */
 OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
-    OgpuImage *target, OgpuBuffer *indirect, uint64_t indirect_offset,
-    const void *arguments, uint32_t argument_bytes, uint32_t load, OgpuError *out_error);
+    OgpuBuffer *indirect, uint64_t indirect_offset,
+    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+#define OGPU_INDEX_UINT16 0u
+#define OGPU_INDEX_UINT32 1u
+typedef struct OgpuIndexRange {
+    OgpuBuffer *buffer;
+    uint64_t offset, size_bytes;
+    uint32_t format, reserved;
+} OgpuIndexRange;
+typedef struct OgpuDrawIndexedArguments {
+    uint32_t index_count, instance_count, first_index;
+    int32_t vertex_offset;
+    uint32_t first_instance;
+} OgpuDrawIndexedArguments;
+/* Like non-indexed draw, with a retained INDEX-eligible buffer range and 20-byte
+ * indirect record. Range nonempty, in bounds, offset/size aligned to element size;
+ * reserved=0. first_index is relative to the range. GPU-produced record/index
+ * contents are trusted: (first_index+index_count)*index_size <= range size without
+ * overflow, first_instance=0, and every effective vertex/root address valid.
+ * Zero counts do not waive range/record checks. Native signed vertex offset;
+ * no primitive restart. No CPU inspection, emulated indexing or hidden copies. */
+OgpuResult ogpu_batch_draw_indexed_indirect(OgpuBatch *batch, OgpuRaster *raster,
+    const OgpuIndexRange *indices, OgpuBuffer *indirect, uint64_t indirect_offset,
+    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
 
 /* Caller must initialize GENERAL and write every copied texel in this or an earlier
  * successfully submitted batch. No hidden initialization or host-side layout tracker.

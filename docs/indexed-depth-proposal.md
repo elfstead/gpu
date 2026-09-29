@@ -1,8 +1,8 @@
 # Indexed/depth graphics: candidate contract
 
 Proposed 2026-09-29 against the [accepted native scene](graphics-scene-native-results.md)
-at `5da5aaf`. **Design selected for implementation, not an implemented or accepted
-public API.** The header/runtime remain ABI 17. This is the second slice of
+at `5da5aaf`. **Design proposal; implementation status is tracked separately** in the
+[ABI-18 migration checkpoint](indexed-depth-migration.md). This is the second slice of
 [M4](graphics-consumer-plan.md), not completion of that milestone or a stable ABI.
 
 ## Decision and alternatives
@@ -27,9 +27,10 @@ though a more sophisticated implementation of the old draw API could fuse draws.
 
 ## Proposed C surface
 
-Names below describe the next ABI; they are not callable today. Use fixed-width
+The sketch below motivated ABI 18; the header is authoritative for the implemented
+signatures, constants and rules. Use fixed-width
 integer fields/constants, not C enums or compiler-dependent bitfields. Exact
-numeric assignments and layout assertions belong in the implementation commit.
+numeric assignments and layout assertions live with the implementation.
 
 ```c
 typedef struct OgpuBufferDesc {

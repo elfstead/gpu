@@ -63,6 +63,13 @@ vk VkCommandBufferBeginInfo sType pNext flags pInheritanceInfo
 const VK_WHOLE_SIZE
 const32 VK_SUBPASS_EXTERNAL
 api OgpuDrawArguments vertex_count instance_count first_vertex first_instance
+api OgpuDrawIndexedArguments index_count instance_count first_index vertex_offset first_instance
+api OgpuBufferDesc size_bytes placement extra_usage
+api OgpuRasterDesc push_size_bytes topology color_format depth_format depth_test depth_write depth_compare reserved
+api OgpuColorAttachment image load store clear
+api OgpuDepthAttachment image load store clear reserved
+api OgpuRenderingDesc color depth
+api OgpuIndexRange buffer offset size_bytes format reserved
 api OgpuTimingInfo timestamp_period_ns timestamp_valid_bits reserved
 vk VkQueryPool
 vk VkQueryPoolCreateInfo sType pNext flags queryType queryCount pipelineStatistics
