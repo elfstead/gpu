@@ -1,0 +1,102 @@
+   Compiling ogpu v0.1.0 (/home/elf/dev/gpu/crates/ogpu)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.77s
+     Running unittests src/lib.rs (target/debug/deps/ogpu-3ec42a31983147ca)
+
+running 71 tests
+test compute::batch::dependency_tests::gpu_split_dependencies ... ignored, requires Vulkan; split endpoints, serial reuse and lifetime/error ownership
+test compute::batch::retirement_tests::gpu_host_view_ranges ... ignored, requires Vulkan; direct mapped range access while another range is gated pending
+test compute::batch::retirement_tests::gpu_replay_retirement ... ignored, requires Vulkan; same-list simultaneous submissions, gated ownership and terminal loss
+test compute::batch::retirement_tests::gpu_retirement ... ignored, requires Vulkan; gated scratch reuse compares caller ownership and explicit retention
+test compute::batch::storage_tests::gpu_command_lists ... ignored, requires Vulkan; encode-once replay, ownership and retry/poison/failure paths
+test compute::batch::storage_tests::gpu_command_storage ... ignored, requires Vulkan; bounded command-storage reuse, warm-cache errors and query independence
+test compute::batch::storage_tests::gpu_owned_recording_storage ... ignored, requires Vulkan; explicit storage leases, oversized reuse, trim and owner destruction
+test compute::batch::tests::gpu_batch_failures ... ignored, requires Vulkan; injects failures around real resource ownership
+test compute::batch::tests::gpu_batches ... ignored, requires Vulkan; run with --ignored --nocapture
+test compute::batch::tests::gpu_completion_receipts ... ignored, requires Vulkan; receipt lifetime, exact destruction order and lazy timing
+test compute::batch::tests::gpu_timeline_boundaries ... ignored, requires Vulkan; timeline construction, gaps, limits, and out-of-order waits
+test compute::batch::timing_tests::gpu_timing ... ignored, requires Vulkan; optional timing states, independent pools, and query failures
+test compute::batch::storage_tests::cache_admission_bounds_steps_roots_and_overflow ... ok
+test compute::batch::dependency_tests::command_list_modes_reject_unknown_flags ... ok
+test compute::batch::tests::access_masks_are_explicit_and_checked ... ok
+test compute::graphics::tests::gpu_graphics ... ignored, requires a graphics+compute Vulkan device
+test compute::graphics::tests::gpu_graphics_failures ... ignored, requires Vulkan; injects graphics creation failures with real resource cleanup
+test compute::graphics::tests::gpu_image_preservation ... ignored, requires graphics Vulkan; preservation, LOAD/CLEAR and abandoned/rejected discard
+test compute::graphics::tests::gpu_optional_unified_layouts ... ignored, requires graphics Vulkan; unified layouts optional, dynamic rendering required
+test compute::graphics::tests::gpu_rgba16_transfers_and_raster ... ignored, requires a graphics+compute Vulkan device
+test compute::batch::timing_tests::timestamp_clock_validation_and_wrap ... ok
+test compute::batch::tests::dispatch_grid_checks_each_axis_inclusively ... ok
+test compute::batch::tests::unexpected_submit_errors_require_queue_draining ... ok
+test compute::graphics::tests::image_description_respects_usage_and_dimension_limits ... ok
+test compute::graphics::tests::image_memory_accepts_visible_local_and_unified_memory ... ok
+test compute::graphics::tests::image_memory_prefers_device_only_local_in_either_order ... ok
+test compute::graphics::tests::image_memory_preserves_eligibility_and_exclusions ... ok
+test compute::graphics::tests::queue_selection_keeps_graphics_optional ... ok
+test compute::heaps::tests::gpu_heaps ... ignored, requires graphics Vulkan; independent heaps, gated mutation, atomic writes and poisoned flush
+test compute::graphics::tests::target_extents_and_memory_types_are_checked ... ok
+test compute::host_view_tests::gpu_host_views ... ignored, requires Vulkan; borrowed view, mocked noncoherent cache/error paths on real backing
+test compute::heaps::tests::heap_alignment_checks_overflow_and_invalid_properties ... ok
+test compute::memory_tests::gpu_buffer_transfers ... ignored, requires modern Vulkan; placement, byte copies, compute and retained-copy cleanup
+test compute::host_view_tests::host_atom_ranges_cover_atoms_without_overflow ... ok
+test compute::reduction_tests::gpu_reduction ... ignored, requires Vulkan; checks shared-memory reduction and all intermediate levels
+test compute::tests::gpu_roundtrip ... ignored, requires a real Vulkan loader/device; run with --ignored --nocapture
+test compute::memory_tests::placement_selection_handles_discrete_uma_and_exclusions ... ok
+test compute::reduction_tests::reduction_stage_boundaries ... ok
+test compute::tests::memory_selection_prefers_coherent_but_accepts_noncoherent ... ok
+test compute::tests::modern_baseline_rejects_each_missing_requirement ... ok
+test contract::tests::ranges_and_byte_copies ... ok
+test contract::tests::pending_resources_cannot_be_retired - should panic ... ok
+test contract::tests::recording_is_consumed_once_even_if_submission_fails ... ok
+test contract::tests::root_grid_and_access_limits ... ok
+test execution_api::dispatch_tests::gpu_dispatch_grids ... ignored, requires Vulkan; multidimensional dispatch through both C entry points
+test execution_api::executable_tests::gpu_compute_specialization ... ignored, requires Vulkan; creation-time int/uint/float/bool specialization and shared arrays
+test execution_api::executable_tests::gpu_raster_specialization_and_vertex_pulling ... ignored, requires graphics Vulkan; per-stage specialization, triangle strip and lowered vertex input
+test contract::tests::terminal_success_and_failure_retire_once_and_cache_outcome ... ok
+test contract::tests::unaccepted_preparation_releases_resources ... ok
+test execution_api::image_tests::gpu_compute_image_sampling ... ignored, requires compute Vulkan; images/heaps without enabled rasterization
+test execution_api::image_tests::gpu_float_image_sampling ... ignored, requires graphics Vulkan; native 1D/2D R32F nearest/linear sampling and storage
+test execution_api::image_tests::gpu_image_transfers ... ignored, requires graphics Vulkan; image descriptions, copies, usages and retained ownership
+test execution_api::executable_tests::shader_descriptions_reject_invalid_pointer_count_and_reserved_fields ... ok
+test execution_api::rendering_tests::gpu_depth_attachment_operations ... ignored, requires graphics Vulkan; empty scopes, D32 upload, independent LOAD/CLEAR and abandoned ownership
+test execution_api::rendering_tests::gpu_indexed_depth_scopes ... ignored, requires graphics Vulkan; public indexed/depth scopes, rejection, replay and retained ownership
+test execution_api::image_tests::image_null_arguments_need_no_driver ... ok
+test execution_api::rendering_tests::rendering_descriptions_and_ranges_need_no_driver ... ok
+test execution_api::tests::invalid_batch_arguments_need_no_driver ... ok
+test execution_api::tests::invalid_execution_arguments_need_no_driver ... ok
+test execution_api::tests::invalid_graphics_arguments_need_no_driver ... ok
+test execution_api::tests::invalid_timing_arguments_need_no_driver ... ok
+test shader::tests::native_artifacts_are_not_spirv_and_need_explicit_launch_metadata ... ok
+test tests::invalid_arguments_and_version_do_not_load_vulkan ... ok
+test tests::diagnostic_is_terminated_and_preserves_utf8 ... ok
+test tests::panic_is_contained ... ok
+test vulkan::tests::empty_enumeration_is_success ... ok
+test vulkan::tests::extension_match_is_exact_and_bounded ... ok
+test vulkan::tests::first_call_error_is_preserved ... ok
+test vulkan::tests::incomplete_enumeration_is_retried_and_truncated ... ok
+test vulkan::tests::incomplete_is_bounded ... ok
+test compute::tests::wait_error_does_not_release_pending_resources ... ok
+
+test result: ok. 41 passed; 0 failed; 30 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ogpu_vulkan_sys-a06ee5b40fe923a7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/xtask-5863ae286a12b369)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ogpu
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests ogpu_vulkan_sys
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

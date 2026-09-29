@@ -1,0 +1,88 @@
+Cleaning... 0 files.
+The Meson build system
+Version: 1.10.2
+Source dir: /tmp/ogpu-abi18-integrations.ACn1ZQ/libplacebo
+Build dir: /home/elf/dev/gpu/target/libplacebo-upstream
+Build type: native build
+Project name: libplacebo
+Project version: 7.371.0
+C compiler for the host machine: clang (clang 21.1.8 "clang version 21.1.8")
+C linker for the host machine: clang ld.bfd 2.46
+C++ compiler for the host machine: clang++ (clang 21.1.8 "clang version 21.1.8")
+C++ linker for the host machine: clang++ ld.bfd 2.46
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Compiler for C supports arguments -Wincompatible-pointer-types: YES (cached)
+Compiler for C supports arguments -Wc23-extensions: YES (cached)
+Compiler for C supports link arguments -Wl,--exclude-libs=ALL: YES (cached)
+Library m found: YES
+Program python3 found: YES (/nix/store/b5bpi6zfajzzrwwpgba2q6li3nnya4bs-python3-3.14.7/bin/python3.14)
+Dependency threads found: YES unknown (cached)
+Header "pthread.h" has symbol "pthread_condattr_setclock" with dependency threads: YES (cached)
+Dependency libunwind skipped: feature unwind disabled
+Library execinfo found: NO
+Checking for function "backtrace_symbols" with dependency -lexecinfo: YES (cached)
+Check usable header "dbghelp.h" : NO (cached)
+Fetching value of define "__MINGW32__" : (undefined) (cached)
+Dependency shaderc found: YES 2026.1.1 (cached)
+Header "shaderc/shaderc.h" has symbol "shaderc_env_version_vulkan_1_4" with dependency shaderc: YES (cached)
+Header "shaderc/shaderc.h" has symbol "shaderc_env_version_vulkan_1_3" with dependency shaderc: YES (cached)
+Check usable header "d3d11.h" : NO (cached)
+Check usable header "d3d11_4.h" skipped: feature d3d11 disabled
+Check usable header "dxgi1_6.h" skipped: feature d3d11 disabled
+Dependency spirv-cross-c-shared skipped: feature d3d11 disabled
+Library version skipped: feature d3d11 disabled
+Library dl found: YES
+Dependency vulkan found: YES 1.4.357 (cached)
+Header "vulkan/vulkan_core.h" has symbol "VK_VERSION_1_4" with dependency vulkan: YES (cached)
+Dependency lcms2 skipped: feature lcms disabled
+Dependency dovi skipped: feature libdovi disabled
+Dependency libxxhash skipped: feature xxhash disabled
+Configuring config.h using configuration
+Configuring config_internal.h using configuration
+WARNING: Library target 'placebo' has 'name_prefix' set. Compilers may not find it from its '-lplacebo' linker flag in the 'libplacebo.pc' pkg-config file.
+WARNING: Library target 'placebo' has 'name_prefix' set. Compilers may not find it from its '-lplacebo' linker flag in the 'libplacebo-uninstalled.pc' pkg-config file.
+Found pkg-config: YES (/nix/store/7fx93fz9c809w8yjxb0934zw6xcjis58-pkg-config-wrapper-0.29.2/bin/pkg-config) 0.29.2
+Build targets in project: 16
+
+libplacebo 7.371.0
+
+  Optional features
+    d3d11          : NO
+    dovi           : NO
+    gl-proc-addr   : YES
+    glslang        : NO
+    lcms           : NO
+    libdovi        : NO
+    opengl         : NO
+    shaderc        : YES
+    vk-proc-addr   : YES
+    vulkan         : YES
+    xxhash         : NO
+
+  User defined options
+    bench          : false
+    buildtype      : release
+    d3d11          : disabled
+    default_library: shared
+    demos          : false
+    dovi           : disabled
+    glslang        : disabled
+    lcms           : disabled
+    libdovi        : disabled
+    opengl         : disabled
+    shaderc        : enabled
+    tests          : false
+    unwind         : disabled
+    vk-proc-addr   : enabled
+    vulkan         : enabled
+    vulkan-registry: /home/elf/dev/gpu/vendor/Vulkan-Headers/registry/vk.xml
+    wrap_mode      : nodownload
+    xxhash         : disabled
+
+Found ninja-1.13.2 at /nix/store/6ji6bq0si2j8ibdrxqgcmh1cw0wmdiyk-ninja-1.13.2/bin/ninja
+ninja: Entering directory `/home/elf/dev/gpu/target/libplacebo-upstream'
+[1/3] Generating src/version.h with a custom command
+INFO: autodetecting backend as ninja
+INFO: calculating backend command to run: /nix/store/6ji6bq0si2j8ibdrxqgcmh1cw0wmdiyk-ninja-1.13.2/bin/ninja -C /home/elf/dev/gpu/target/libplacebo-upstream -j 8
+    Finished `release` profile [optimized] target(s) in 0.02s

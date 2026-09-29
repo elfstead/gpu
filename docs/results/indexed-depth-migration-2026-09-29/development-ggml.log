@@ -1,0 +1,254 @@
+t10k-images-idx3-ubyte: OK
+t10k-labels-idx1-ubyte: OK
+mnist-fc-f32.gguf: OK
+    Finished `release` profile [optimized] target(s) in 0.02s
+GGML SPIR-V storage-only half contract PASS
+-- Warning: ccache not found - consider installing it for faster compilation or disable this warning with GGML_CCACHE=OFF
+-- CMAKE_SYSTEM_PROCESSOR: x86_64
+-- GGML_SYSTEM_ARCH: x86
+-- Including CPU backend
+-- x86 detected
+-- Adding CPU backend variant ggml-cpu: -msse4.2;-mf16c;-mfma;-mbmi2;-mavx;-mavx2 GGML_SSE42;GGML_F16C;GGML_FMA;GGML_BMI2;GGML_AVX;GGML_AVX2
+-- ggml version: 0.23.0
+-- ggml commit:  7840aaba
+-- Configuring done (0.6s)
+-- Generating done (0.2s)
+-- Build files have been written to: /home/elf/dev/gpu/target/ggml-integration
+[1/44] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-threading.cpp.o
+[2/44] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-alloc.c.o
+[3/44] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml.cpp.o
+[4/44] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-opt.cpp.o
+[5/44] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-backend.cpp.o
+[6/44] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml.c.o
+[7/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/hbm.cpp.o
+[8/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.cpp.o
+[9/44] Building C object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ggml-cpu.c.o
+[10/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/traits.cpp.o
+[11/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/iqp.cpp.o
+[12/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/amx.cpp.o
+[13/44] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/ggml-backend-meta.cpp.o
+[14/44] Building CXX object ggml/src/CMakeFiles/ggml-base.dir/gguf.cpp.o
+[15/44] Building C object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/quants.c.o
+[16/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/amx/mmq.cpp.o
+[17/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/vec.cpp.o
+[18/44] Building C object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/arch/x86/quants.c.o
+[19/44] Building C object ggml/src/CMakeFiles/ggml-base.dir/ggml-quants.c.o
+[20/44] Building CXX object ggml/src/CMakeFiles/ggml.dir/ggml-backend-dl.cpp.o
+[21/44] Linking CXX shared library ggml/src/libggml-base.so.0.23.0
+[22/44] Creating library symlink ggml/src/libggml-base.so.0 ggml/src/libggml-base.so
+[23/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/binary-ops.cpp.o
+[24/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/arch/x86/repack.cpp.o
+[25/44] Building CXX object ggml/src/CMakeFiles/ggml.dir/ggml-backend-reg.cpp.o
+[26/44] Building CXX object CMakeFiles/ogpu-ggml-lifecycle.dir/lifecycle.cpp.o
+[27/44] Building CXX object CMakeFiles/ogpu-mnist.dir/backend.cpp.o
+[28/44] Building CXX object CMakeFiles/ogpu-mnist.dir/mnist.cpp.o
+[29/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/repack.cpp.o
+[30/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/unary-ops.cpp.o
+[31/44] Building CXX object CMakeFiles/ogpu-mnist.dir/tmp/ogpu-abi18-integrations.ACn1ZQ/ggml/examples/mnist/mnist-common.cpp.o
+[32/44] Building CXX object CMakeFiles/ogpu-ggml-convert.dir/convert-weights.cpp.o
+[33/44] Building CXX object CMakeFiles/ogpu-ggml-matrix-check.dir/matrix-check.cpp.o
+[34/44] Building CXX object CMakeFiles/ogpu-ggml-lifecycle.dir/backend.cpp.o
+[35/44] Building CXX object CMakeFiles/ogpu-ggml-matrix-check.dir/backend.cpp.o
+[36/44] Building CXX object ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/ops.cpp.o
+[37/44] Linking CXX shared library ggml/src/libggml-cpu.so.0.23.0
+[38/44] Creating library symlink ggml/src/libggml-cpu.so.0 ggml/src/libggml-cpu.so
+[39/44] Linking CXX shared library ggml/src/libggml.so.0.23.0
+[40/44] Creating library symlink ggml/src/libggml.so.0 ggml/src/libggml.so
+[41/44] Linking CXX executable ogpu-ggml-matrix-check
+[42/44] Linking CXX executable ogpu-mnist
+[43/44] Linking CXX executable ogpu-ggml-lifecycle
+[44/44] Linking CXX executable ogpu-ggml-convert
+scoped lifecycle PASS
+integrations/ggml/check-lifecycle.sh: line 10: 1455121 Aborted                    target/ggml-integration/ogpu-ggml-lifecycle integrations/ggml/shaders "$mode" "$memory" > "$log" 2>&1
+integrations/ggml/check-lifecycle.sh: line 10: 1455125 Aborted                    target/ggml-integration/ogpu-ggml-lifecycle integrations/ggml/shaders "$mode" "$memory" > "$log" 2>&1
+live-child lifetime violations rejected PASS
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unaligned tensor address
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unaligned tensor address
+mixed_matrix k=13 m=11 n=3 alignment=2 repeated=3 max_error=1.31609067e-06 PASS
+mixed_matrix k=1 m=1 n=1 alignment=2 repeated=3 max_error=0 PASS
+matrix_payload original=1588000 half=794000 biases=unchanged PASS
+74b76688dc7388b9cee7147ca30c1b412b9e72377fae0a3baaf7196d93d4a4b5  /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+7c41d857d2212993082644fcc11e45dd2433cb6e0ae219db411928eecff46b4c  /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using OGPU (AMD Radeon RX 5700 XT (RADV NAVI10)) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from 'integrations/ggml/fixtures/mnist-fc-f32.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from integrations/ggml/fixtures/mnist-fc-f32.gguf
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+batch=1 mode=direct memory=device images=10000 calls=10000 dispatches=50000 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=6272 separate_bytes=6272 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+memory_stats batch=1 mode=direct memory=device setup_upload_bytes=798040 setup_transfer_ms=1.608 uploads=20000 downloads=10000 upload_bytes=31760000 download_bytes=400000 transfer_ms=3035.538 graph_ms=2930.223 staging_allocations=1
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using OGPU (AMD Radeon RX 5700 XT (RADV NAVI10)) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from 'integrations/ggml/fixtures/mnist-fc-f32.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from integrations/ggml/fixtures/mnist-fc-f32.gguf
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+batch=17 mode=direct memory=device images=10000 calls=589 dispatches=2945 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=103552 separate_bytes=103552 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+memory_stats batch=17 mode=direct memory=device setup_upload_bytes=830040 setup_transfer_ms=1.420 uploads=1178 downloads=589 upload_bytes=31801288 download_bytes=400520 transfer_ms=193.983 graph_ms=184.517 staging_allocations=1
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using OGPU (AMD Radeon RX 5700 XT (RADV NAVI10)) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from 'integrations/ggml/fixtures/mnist-fc-f32.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from integrations/ggml/fixtures/mnist-fc-f32.gguf
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+batch=64 mode=direct memory=device images=10000 calls=157 dispatches=785 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=389120 separate_bytes=389120 aliases=0 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+memory_stats batch=64 mode=direct memory=device setup_upload_bytes=924040 setup_transfer_ms=1.446 uploads=314 downloads=157 upload_bytes=31912448 download_bytes=401920 transfer_ms=54.191 graph_ms=53.614 staging_allocations=1
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using OGPU (AMD Radeon RX 5700 XT (RADV NAVI10)) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from 'integrations/ggml/fixtures/mnist-fc-f32.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from integrations/ggml/fixtures/mnist-fc-f32.gguf
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+batch=1 mode=scheduled memory=device images=10000 calls=10000 dispatches=50000 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=2112 separate_bytes=6272 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+memory_stats batch=1 mode=scheduled memory=device setup_upload_bytes=798040 setup_transfer_ms=1.468 uploads=20000 downloads=10000 upload_bytes=31760000 download_bytes=400000 transfer_ms=3157.658 graph_ms=2991.434 staging_allocations=1
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using OGPU (AMD Radeon RX 5700 XT (RADV NAVI10)) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from 'integrations/ggml/fixtures/mnist-fc-f32.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from integrations/ggml/fixtures/mnist-fc-f32.gguf
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+batch=17 mode=scheduled memory=device images=10000 calls=589 dispatches=2945 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=34752 separate_bytes=103552 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+memory_stats batch=17 mode=scheduled memory=device setup_upload_bytes=830040 setup_transfer_ms=1.535 uploads=1178 downloads=589 upload_bytes=31801288 download_bytes=400520 transfer_ms=190.086 graph_ms=184.499 staging_allocations=1
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/widened.gguf
+mnist_model: using OGPU (AMD Radeon RX 5700 XT (RADV NAVI10)) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from '/home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from /home/elf/dev/gpu/target/ggml-integration/weights.knvxupFE/half.gguf
+mnist_model: using CPU (AMD Ryzen 9 5900X 12-Core Processor) as primary backend
+mnist_model: unsupported operations will be executed on the following fallback backends (in order of priority):
+mnist_model:  - OGPU (AMD Radeon RX 5700 XT (RADV NAVI10))
+mnist_model:  - CPU (AMD Ryzen 9 5900X 12-Core Processor)
+mnist_model_init_from_file: loading model weights from 'integrations/ggml/fixtures/mnist-fc-f32.gguf'
+mnist_model_init_from_file: model arch is mnist-fc
+mnist_model_init_from_file: successfully loaded weights from integrations/ggml/fixtures/mnist-fc-f32.gguf
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: unsupported graph operation/type/layout
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+OGPU graph failed: overlapping input/output tensors
+batch=64 mode=scheduled memory=device images=10000 calls=157 dispatches=785 correct=9801 max_logit_error=2.67028809e-05 intermediate_bytes=130560 separate_bytes=389120 aliases=3 weights=f16 matrix_bytes=794000 max_fp32_drift=0.00321006775 changed_predictions=0 original_correct=9801 PASS
+memory_stats batch=64 mode=scheduled memory=device setup_upload_bytes=924040 setup_transfer_ms=1.484 uploads=314 downloads=157 upload_bytes=31912448 download_bytes=401920 transfer_ms=54.567 graph_ms=53.329 staging_allocations=1
+Acceptance log: /home/elf/dev/gpu/target/ggml-integration/acceptance.oXaB4T4A

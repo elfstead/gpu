@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running `target/debug/xtask abi`
+C/Rust ABI checks passed (824 layout values).
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/xtask bindings --check`
+Pinned Vulkan bindings reproduce exactly.

@@ -1,0 +1,68 @@
+    Blocking waiting for file lock on build directory
+   Compiling ogpu v0.1.0 (/home/elf/dev/gpu/crates/ogpu)
+    Finished `release` profile [optimized] target(s) in 2.07s
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.005s
+
+OK
+Consumer ranges/state PASS: 23808 mixed-alignment ranges, 1000 generations, overflow/reuse/drain rejection
+Frontier check line 334: !invalid_alpha && maximum <= 1
+Frontier check line 334: !invalid_alpha && maximum <= 1
+Frontier check line 326: s->pixels[i] == 0xa5 && s->pixels[s->final_size - SG + i] == 0xa5
+Frontier check line 326: s->pixels[i] == 0xa5 && s->pixels[s->final_size - SG + i] == 0xa5
+Streaming exact-alpha/RGB-bound/prefix/suffix host checks PASS
+Frontier check line 83: bytes[cursor] == 0xa5
+Frontier check line 83: bytes[cursor] == 0xa5
+Frontier check line 86: bytes[cursor] == 0xa5
+Frontier check line 81: range->buffer == parent->buffer && range->offset >= cursor
+Frontier check line 82: range->offset <= parent->view.size_bytes && range->size <= parent->view.size_bytes-range->offset
+Frontier check line 82: range->offset <= parent->view.size_bytes && range->size <= parent->view.size_bytes-range->offset
+Frontier check line 188: buffer->view.data && bytes <= buffer->size
+Frontier check line 199: buffer->view.data && bytes <= buffer->size
+Mapped slice bounds/prefix/gap/suffix and per-slot input alternation tests PASS (coherent CPU fixture)
+Frontier check line 83: bytes[cursor] == 0xa5
+Frontier check line 83: bytes[cursor] == 0xa5
+Frontier check line 86: bytes[cursor] == 0xa5
+Frontier check line 81: range->buffer == parent->buffer && range->offset >= cursor
+Frontier check line 82: range->offset <= parent->view.size_bytes && range->size <= parent->view.size_bytes-range->offset
+Frontier check line 82: range->offset <= parent->view.size_bytes && range->size <= parent->view.size_bytes-range->offset
+Frontier check line 188: buffer->view.data && bytes <= buffer->size
+Frontier check line 199: buffer->view.data && bytes <= buffer->size
+Mapped slice bounds/prefix/gap/suffix and per-slot input alternation tests PASS (coherent CPU fixture)
+Frontier check line 159: buffer->view.data && offset <= buffer->view.size_bytes && bytes <= buffer->view.size_bytes-offset
+Frontier check line 159: buffer->view.data && offset <= buffer->view.size_bytes && bytes <= buffer->view.size_bytes-offset
+Frontier check line 163: atom && reuse_align(offset+bytes, atom, &end)
+Native range-cache alignment, allocation-tail, bounds and coherence tests PASS (CPU fakes)
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.001s
+
+OK
+Reuse evidence: /home/elf/dev/gpu/target/resource-reuse/stream-he27d1xx
+Validated 65x47x131x95-dedicated-ogpu-1-serial: 12 frames; 9 allocations, 453424 bytes
+Validated 65x47x131x95-dedicated-ogpu-1: 12 frames; 9 allocations, 453424 bytes
+Validated 65x47x131x95-dedicated-compiled-1: 12 frames; 9 allocations, 453424 bytes
+Validated 65x47x131x95-dedicated-reset-1: 12 frames; 9 allocations, 453424 bytes
+Validated 65x47x131x95-dedicated-replay-1: 12 frames; 9 allocations, 453424 bytes
+Validated 65x47x131x95-arena-ogpu-1: 12 frames; 5 allocations, 453408 bytes
+Validated 65x47x131x95-arena-compiled-1: 12 frames; 5 allocations, 453408 bytes
+Validated 65x47x131x95-arena-reset-1: 12 frames; 5 allocations, 453408 bytes
+Validated 65x47x131x95-arena-replay-1: 12 frames; 5 allocations, 453408 bytes
+Validated 65x47x131x95-dedicated-ogpu-2: 12 frames; 17 allocations, 906832 bytes
+Validated 65x47x131x95-dedicated-compiled-2: 12 frames; 17 allocations, 906832 bytes
+Validated 65x47x131x95-dedicated-reset-2: 12 frames; 17 allocations, 906832 bytes
+Validated 65x47x131x95-dedicated-replay-2: 12 frames; 17 allocations, 906832 bytes
+Validated 65x47x131x95-arena-ogpu-2: 12 frames; 6 allocations, 906800 bytes
+Validated 65x47x131x95-arena-compiled-2: 12 frames; 6 allocations, 906800 bytes
+Validated 65x47x131x95-arena-reset-2: 12 frames; 6 allocations, 906800 bytes
+Validated 65x47x131x95-arena-replay-2: 12 frames; 6 allocations, 906800 bytes
+Validated 65x47x131x95-dedicated-ogpu-3: 12 frames; 25 allocations, 1360240 bytes
+Validated 65x47x131x95-dedicated-compiled-3: 12 frames; 25 allocations, 1360240 bytes
+Validated 65x47x131x95-dedicated-reset-3: 12 frames; 25 allocations, 1360240 bytes
+Validated 65x47x131x95-dedicated-replay-3: 12 frames; 25 allocations, 1360240 bytes
+Validated 65x47x131x95-arena-ogpu-3: 12 frames; 7 allocations, 1360192 bytes
+Validated 65x47x131x95-arena-compiled-3: 12 frames; 7 allocations, 1360192 bytes
+Validated 65x47x131x95-arena-reset-3: 12 frames; 7 allocations, 1360192 bytes
+Validated 65x47x131x95-arena-replay-3: 12 frames; 7 allocations, 1360192 bytes
+Reuse stream PASS: /home/elf/dev/gpu/target/resource-reuse/stream-he27d1xx

@@ -1,0 +1,1962 @@
+{
+  "schema": 1,
+  "revision": "e51c3fd8ed007d8df0c6ec33f5692dcac943cc7d",
+  "source_dirty": false,
+  "date": "2026-09-29",
+  "abi": 18,
+  "scope": "scoped indexed/depth runtime migration, focused public tests and existing-consumer regressions; not full M4 or performance acceptance",
+  "cpu_tests": 41,
+  "gpu_tests_per_driver": 30,
+  "abi_layout_values": 824,
+  "logs": {
+    "cpu": {
+      "file": "cpu.log",
+      "sha256": "f10ca58b9c38b3aaab0151cb4d7691b965812832da3f519d3e062d9c2d588624",
+      "source_path": "/tmp/ogpu-abi18-clean-cpu.log",
+      "original_sha256": "e0a3ca1307e96d308aeb6dff5cb5b1ef61f46fdfaf9237ce03357e7148040b8a",
+      "normalization": "Export omits one trailing blank line; log content otherwise unchanged."
+    },
+    "clippy": {
+      "file": "clippy.log",
+      "sha256": "f03da8d2862a623e9e9b5d6f9f4502db7b6d308337d472661381a0dd9b88ff0d",
+      "source_path": "/tmp/ogpu-abi18-clean-clippy.log"
+    },
+    "abi": {
+      "file": "abi.log",
+      "sha256": "37a96ce16a8331c31da100100d5779a481424b5ff98f45caaac00f236d1b83c9",
+      "source_path": "/tmp/ogpu-abi18-clean-abi.log"
+    },
+    "mock": {
+      "file": "mock.log",
+      "sha256": "38e5fc30975f66f966c9dfacec36572343e60f744ae23c3acfedc18f829363f4",
+      "source_path": "/tmp/ogpu-abi18-clean-mock.log"
+    },
+    "python": {
+      "file": "python.log",
+      "sha256": "1da3d66f24450f0d9f44fcd1f4aba3b25fb2cb11917d8b15e2d360d26e663d20",
+      "source_path": "/tmp/ogpu-abi18-clean-python.log"
+    },
+    "install": {
+      "file": "install.log",
+      "sha256": "d9ad71f4aabb29886cd269f8d03336420252660daa8638848ce1852c0e5473f9",
+      "source_path": "/tmp/ogpu-abi18-clean-install.log"
+    },
+    "radv": {
+      "file": "radv.log",
+      "sha256": "37158bafe65c7d28e140a2f09b49b5f75fd2b2a50938376908b912a701261e77",
+      "source_path": "/tmp/ogpu-abi18-clean-radv.log"
+    },
+    "lvp": {
+      "file": "lvp.log",
+      "sha256": "547e271cfd4746d2b282ac750a95cf3f8589bc0a8e45c43f6900073a93f58412",
+      "source_path": "/tmp/ogpu-abi18-clean-lvp.log"
+    },
+    "reuse-radv": {
+      "file": "reuse-radv.log",
+      "sha256": "01eeeb5243b0937f86c821df00706a185e40be4a257ed8df0bf3114d1c134664",
+      "source_path": "/tmp/ogpu-abi18-clean-reuse-radv.log"
+    },
+    "reuse-lvp": {
+      "file": "reuse-lvp.log",
+      "sha256": "e43bf7be7cf0f5400a5e4b6b915093f8b9c5fce69a884c1252b1974c71f509db",
+      "source_path": "/tmp/ogpu-abi18-clean-reuse-lvp.log"
+    },
+    "sdk-radv": {
+      "file": "sdk-radv.log",
+      "sha256": "d31b1093a1ecacfd15e1198850ce55f49d1898b70bd5b5b3dbef2b78b8e36dbf",
+      "source_path": "/tmp/ogpu-abi18-clean-sdk-radv.log"
+    },
+    "sdk-lvp": {
+      "file": "sdk-lvp.log",
+      "sha256": "8a05355bd1dffe9b9f2d618ea05543f79c9316ed1c59a47c83279af101af42e0",
+      "source_path": "/tmp/ogpu-abi18-clean-sdk-lvp.log"
+    },
+    "diagnostics-build": {
+      "file": "diagnostics-build.log",
+      "sha256": "cb8ec06f8828ba1f9475072d1ebbc2b81b5cb19f6281b85fe31bbc8af3d429c2",
+      "source_path": "/tmp/ogpu-abi18-clean-diagnostics-build.log"
+    }
+  },
+  "drivers": {
+    "radv": {
+      "reuse_report_path": "/home/elf/dev/gpu/target/resource-reuse/stream-he27d1xx/report.json",
+      "reuse_report_sha256": "6483e3c46f62830501d744d3dc579cb684894ff3567051639553ce8f37e97167",
+      "runtime_sha256": "54ca39336b8107256d33d971b77513e47d8a6001bbb7c1da718a7b162267eb1a",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "configurations": [
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1-serial",
+          "result": {
+            "policy": "ogpu",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.657247007,
+            "wall_ms": 3.583175004,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1",
+          "result": {
+            "policy": "ogpu",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.032133996,
+            "wall_ms": 3.517665982,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-1",
+          "result": {
+            "policy": "compiled",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.642338008,
+            "wall_ms": 1.941590995,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-1",
+          "result": {
+            "policy": "reset",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.465849996,
+            "wall_ms": 3.902340978,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-1",
+          "result": {
+            "policy": "replay",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.627398014,
+            "wall_ms": 1.773662001,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-1",
+          "result": {
+            "policy": "ogpu",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 19.641468018,
+            "wall_ms": 3.375547022,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-1",
+          "result": {
+            "policy": "compiled",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.173682004,
+            "wall_ms": 1.841122001,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-1",
+          "result": {
+            "policy": "reset",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.173183024,
+            "wall_ms": 3.898221016,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-1",
+          "result": {
+            "policy": "replay",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.355651021,
+            "wall_ms": 1.884140998,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-2",
+          "result": {
+            "policy": "ogpu",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.895306021,
+            "wall_ms": 3.260757983,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-2",
+          "result": {
+            "policy": "compiled",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.314121991,
+            "wall_ms": 1.026078999,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-2",
+          "result": {
+            "policy": "reset",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.768316001,
+            "wall_ms": 2.771293998,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-2",
+          "result": {
+            "policy": "replay",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.757885993,
+            "wall_ms": 1.010139972,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-2",
+          "result": {
+            "policy": "ogpu",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 19.872965008,
+            "wall_ms": 2.517004997,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-2",
+          "result": {
+            "policy": "compiled",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.929244995,
+            "wall_ms": 1.137299001,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-2",
+          "result": {
+            "policy": "reset",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 19.758336008,
+            "wall_ms": 2.642574012,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-2",
+          "result": {
+            "policy": "replay",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.282770991,
+            "wall_ms": 1.02530998,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-3",
+          "result": {
+            "policy": "ogpu",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.407420009,
+            "wall_ms": 2.615273982,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-3",
+          "result": {
+            "policy": "compiled",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.825984985,
+            "wall_ms": 0.971450984,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-3",
+          "result": {
+            "policy": "reset",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.143553019,
+            "wall_ms": 2.683723003,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-3",
+          "result": {
+            "policy": "replay",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 21.215241998,
+            "wall_ms": 1.001330018,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-3",
+          "result": {
+            "policy": "ogpu",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.619248003,
+            "wall_ms": 2.792563021,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-3",
+          "result": {
+            "policy": "compiled",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.698638022,
+            "wall_ms": 1.002909988,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-3",
+          "result": {
+            "policy": "reset",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.394250005,
+            "wall_ms": 2.766842991,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-3",
+          "result": {
+            "policy": "replay",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 20.807216018,
+            "wall_ms": 0.971630007,
+            "max_rgb_delta": 1
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 4098,
+            "device": 29471,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        }
+      ]
+    },
+    "lvp": {
+      "reuse_report_path": "/home/elf/dev/gpu/target/resource-reuse/stream-33yyg1pl/report.json",
+      "reuse_report_sha256": "527bd92963aa910fa9fbcf984b16f5f506de890891d5d37eac5a250cdc298463",
+      "runtime_sha256": "54ca39336b8107256d33d971b77513e47d8a6001bbb7c1da718a7b162267eb1a",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "configurations": [
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1-serial",
+          "result": {
+            "policy": "ogpu",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.701328993,
+            "wall_ms": 19.086892992,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1",
+          "result": {
+            "policy": "ogpu",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.340622008,
+            "wall_ms": 11.077021986,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-1",
+          "result": {
+            "policy": "compiled",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.589780003,
+            "wall_ms": 9.443467021,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-1",
+          "result": {
+            "policy": "reset",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.485561013,
+            "wall_ms": 10.841394007,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-1",
+          "result": {
+            "policy": "replay",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.278462976,
+            "wall_ms": 9.95865199,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-1",
+          "result": {
+            "policy": "ogpu",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.397412002,
+            "wall_ms": 11.101590008,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-1",
+          "result": {
+            "policy": "compiled",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.253313005,
+            "wall_ms": 10.161440998,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-1",
+          "result": {
+            "policy": "reset",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.211523026,
+            "wall_ms": 11.361009002,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-1",
+          "result": {
+            "policy": "replay",
+            "slots": 1,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 29.753087997,
+            "wall_ms": 10.079941005,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-2",
+          "result": {
+            "policy": "ogpu",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.460880995,
+            "wall_ms": 9.33354798,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-2",
+          "result": {
+            "policy": "compiled",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 32.452172011,
+            "wall_ms": 9.147830009,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-2",
+          "result": {
+            "policy": "reset",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.692289025,
+            "wall_ms": 9.421828002,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-2",
+          "result": {
+            "policy": "replay",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.125353992,
+            "wall_ms": 9.149360001,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-2",
+          "result": {
+            "policy": "ogpu",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 29.598520011,
+            "wall_ms": 9.009301007,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-2",
+          "result": {
+            "policy": "compiled",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.338091999,
+            "wall_ms": 8.946281999,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-2",
+          "result": {
+            "policy": "reset",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.435460985,
+            "wall_ms": 9.279949009,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-2",
+          "result": {
+            "policy": "replay",
+            "slots": 2,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.921407014,
+            "wall_ms": 9.370687991,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-3",
+          "result": {
+            "policy": "ogpu",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 30.648239017,
+            "wall_ms": 9.593066007,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-3",
+          "result": {
+            "policy": "compiled",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 32.650249988,
+            "wall_ms": 9.12165001,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-3",
+          "result": {
+            "policy": "reset",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.411421001,
+            "wall_ms": 10.336908996,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-3",
+          "result": {
+            "policy": "replay",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 32.070854992,
+            "wall_ms": 9.238519996,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-3",
+          "result": {
+            "policy": "ogpu",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 34.255553991,
+            "wall_ms": 9.586136013,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-3",
+          "result": {
+            "policy": "compiled",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 31.83376798,
+            "wall_ms": 8.680474997,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-3",
+          "result": {
+            "policy": "reset",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 32.042465985,
+            "wall_ms": 9.417468011,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-3",
+          "result": {
+            "policy": "replay",
+            "slots": 3,
+            "extent": [
+              65,
+              47,
+              131,
+              95
+            ],
+            "frames": 12,
+            "warmups": 0,
+            "validation": true,
+            "setup_ms": 32.155485004,
+            "wall_ms": 9.946231991,
+            "max_rgb_delta": 0
+          },
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          },
+          "device": {
+            "vendor": 65541,
+            "device": 0,
+            "api": [
+              1,
+              4,
+              354
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "limits": [
+    "No native Metal validation",
+    "One physical GPU plus software llvmpipe",
+    "New focused index test uses host-written records; full GPU-generated native-matched scene remains",
+    "No grouped-draw timing, full M4 or performance-expressibility approval",
+    "SDK uses existing color-only graphics examples, not the new indexed scene",
+    "Integration and compiler runs labelled development below preceded the clean commit; not clean-revision acceptance"
+  ],
+  "sdk": {
+    "manifest_path": "/tmp/ogpu-abi18-integrations.ACn1ZQ/sdk-clean/share/ogpu/manifest.json",
+    "manifest_sha256": "7d8e6000eb68052c6a0412e0e7355b34a5cc52477ebe514ab27efe58c40b8986",
+    "revision": "e51c3fd8ed007d8df0c6ec33f5692dcac943cc7d",
+    "source_dirty": false,
+    "abi": 18,
+    "flags": "--recording-storage --replay --host-view --split --resource-reuse --affine --structured --heap-image --stage-pair --dependencies --shader-check"
+  },
+  "development_checks": {
+    "compiler": {
+      "log": "development-compiler.log",
+      "source_path": "/tmp/ogpu-abi18-compiler.log",
+      "sha256": "249b883d4b514dd4a34f618612c1f22aa02035f876eee41c6a7c89cb1962d5f7",
+      "clean_revision_acceptance": false
+    },
+    "libplacebo": {
+      "log": "development-libplacebo.log",
+      "source_path": "/tmp/ogpu-abi18-placebo-fresh.log",
+      "sha256": "430b2a074cb9b77ed1fe844e4de15bcfd1325e0e46e7d80f378118f52171dd24",
+      "clean_revision_acceptance": false
+    },
+    "ggml": {
+      "log": "development-ggml.log",
+      "source_path": "/tmp/ogpu-abi18-ggml.log",
+      "sha256": "84364fdf0e4d6840562aafac6fea077f352416384f5636f8f44252e3285e25ca",
+      "clean_revision_acceptance": false
+    }
+  },
+  "commands": {
+    "cpu": "cargo test --locked --workspace",
+    "clippy": "cargo clippy --locked --workspace --all-targets -- -D warnings",
+    "abi": "cargo xtask abi; cargo xtask bindings --check",
+    "mock": "cargo xtask mock",
+    "gpu": "cargo xtask gpu-tests",
+    "reuse": "python3 examples/resource_reuse/run.py --native --preflight",
+    "sdk": "python3 tools/test-install.py --prefix SDK [flags above]",
+    "python": [
+      "python3 examples/resource_reuse/test_failures.py",
+      "python3 examples/resource_reuse/test_runner.py"
+    ]
+  },
+  "attempts_not_claimed": [
+    "Broad unittest discovery failed because of duplicate test_runner module names; isolated focused tests pass.",
+    "Unconfigured performance-export tests require an explicit historical timing-report argument; not rerun as part of this correctness migration.",
+    "Old temporary integration source checkouts were incomplete; fresh pinned checkouts used successfully."
+  ]
+}

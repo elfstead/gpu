@@ -1,0 +1,14 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running `target/debug/xtask compiler-workflow`
+Compiler root/artifact/requirements generation PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=32
+Compiler workflow execution PASS
+................
+----------------------------------------------------------------------
+Ran 16 tests in 0.009s
+
+OK
+    Finished `release` profile [optimized] target(s) in 0.02s

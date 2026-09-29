@@ -1,0 +1,4 @@
+   Compiling ogpu v0.1.0 (/home/elf/dev/gpu/crates/ogpu)
+    Finished `release` profile [optimized] target(s) in 1.79s
+Staging installation: /tmp/ogpu-abi18-integrations.ACn1ZQ/.ogpu-install-e090_l1f
+Installed e51c3fd8ed007d8df0c6ec33f5692dcac943cc7d, ABI 18 into /tmp/ogpu-abi18-integrations.ACn1ZQ/sdk-clean

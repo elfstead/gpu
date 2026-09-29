@@ -1,0 +1,51 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `target/debug/xtask gpu-tests`
+
+running 30 tests
+test compute::graphics::tests::gpu_image_preservation ... ok
+test compute::host_view_tests::gpu_host_views ... ok
+test compute::batch::dependency_tests::gpu_split_dependencies ... ok
+test compute::graphics::tests::gpu_rgba16_transfers_and_raster ... ok
+test execution_api::executable_tests::gpu_compute_specialization ... ok
+test compute::batch::retirement_tests::gpu_host_view_ranges ... ok
+test compute::batch::storage_tests::gpu_command_lists ... ok
+test execution_api::dispatch_tests::gpu_dispatch_grids ... ok
+test compute::graphics::tests::gpu_graphics ... ok
+test execution_api::executable_tests::gpu_raster_specialization_and_vertex_pulling ... ok
+test execution_api::image_tests::gpu_compute_image_sampling ... ok
+test execution_api::rendering_tests::gpu_depth_attachment_operations ... ok
+test compute::batch::tests::gpu_batches ... ok
+test execution_api::image_tests::gpu_float_image_sampling ... ok
+Verified two dispatches and partial update on AMD Radeon RX 5700 XT (RADV NAVI10)
+test compute::memory_tests::gpu_buffer_transfers ... ok
+test compute::tests::gpu_roundtrip ... ok
+test execution_api::rendering_tests::gpu_indexed_depth_scopes ... ok
+test compute::heaps::tests::gpu_heaps ... ok
+test compute::batch::retirement_tests::gpu_replay_retirement ... ok
+Gated scratch reuse passed: assisted=false, range 0 reused while range 1 pending
+test compute::batch::storage_tests::gpu_owned_recording_storage ... ok
+test execution_api::image_tests::gpu_image_transfers ... ok
+Verified optional timing on 1/1 execution devices
+test compute::batch::timing_tests::gpu_timing ... ok
+Gated scratch reuse passed: assisted=true, range 0 reused while range 1 pending
+test compute::batch::retirement_tests::gpu_retirement ... ok
+test compute::batch::tests::gpu_completion_receipts ... ok
+test compute::batch::tests::gpu_timeline_boundaries ... ok
+test compute::graphics::tests::gpu_optional_unified_layouts ... ok
+test compute::graphics::tests::gpu_graphics_failures ... ok
+test compute::batch::storage_tests::gpu_command_storage ... ok
+test compute::batch::tests::gpu_batch_failures ... ok
+Verified 68 reductions, including every intermediate level and guards, on AMD Radeon RX 5700 XT (RADV NAVI10)
+test compute::reduction_tests::gpu_reduction ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.87s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (target/debug/deps/ogpu-3ec42a31983147ca)
+compute image/heap commands: dedicated compute family=true, index=1
+   Doc-tests ogpu

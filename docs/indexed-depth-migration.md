@@ -55,11 +55,32 @@ empty clear scopes, color CLEAR/depth LOAD and color LOAD/depth CLEAR independen
 discarded results followed by explicit clear, and abandoned open-scope ownership.
 It compares all uploaded/preserved/cleared depth texels, not just an interior probe.
 
-Development verification uses Radeon RX 5700 XT and llvmpipe with validation and
-sync validation enabled, plus ordinary CPU/layout/binding/mock/compiler and migrated
-consumer checks. These runs are on the development worktree; the following clean
-revision run and evidence receipt identify the final checkpoint. Do not substitute
-this for the native scene's analytical full-image oracle or sustained measurements.
+Accepted at clean `e51c3fd8ed007d8df0c6ec33f5692dcac943cc7d`, 2026-09-29:
+
+- 41 ordinary Rust tests, Clippy with warnings denied, 824 C/Rust layout values,
+  reproducible pinned bindings, mock loader tests and 12 focused Python parser tests.
+- 30 GPU tests on each of Radeon RX 5700 XT and llvmpipe, with validation and sync
+  validation enabled, including both new public rendering tests.
+- Existing learned-image/native reuse preflight: 25 configurations × 12 frames per
+  driver, all allocation counters balanced. This is not a sustained/scale rerun.
+- Fresh clean-revision SDK installed and relocated; all optional example paths,
+  shader/dependency checks and two-slot resource-reuse handoff execute on both drivers.
+  That handoff includes 1,000 checked frames per driver; it is the existing learned
+  consumer, not the new indexed scene. The diagnostic interposer also rebuilds.
+
+[Receipt and raw logs](results/indexed-depth-migration-2026-09-29/receipt.json)
+retain revision/hash identities, commands, limits and local original report paths.
+The complete reuse reports remain local; the receipt retains per-case results and
+allocation counts, not every binary artifact. Compiler workflow, pinned libplacebo
+native-reference comparison and GGML DEVICE/F16 acceptance passed on the development
+worktree before this commit; those logs are explicitly labelled development evidence.
+Old temporary integration sources were incomplete; fresh pinned clones were used.
+
+Broad Python discovery was not an acceptance command: duplicate module names and
+an export test requiring a timing-report argument prevented that invocation. The
+two relevant parser suites passed when invoked explicitly; no export/performance
+revalidation is claimed. No current Mac validation. Do not substitute this checkpoint
+for the native scene's analytical full-image oracle or sustained graphics measurements.
 
 ## Still required for this slice
 

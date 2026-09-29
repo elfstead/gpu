@@ -1,0 +1,394 @@
+Cleaning... 0 files.
+The Meson build system
+Version: 1.10.2
+Source dir: /tmp/ogpu-abi18-integrations.ACn1ZQ/libplacebo
+Build dir: /home/elf/dev/gpu/target/libplacebo-upstream
+Build type: native build
+Project name: libplacebo
+Project version: 7.371.0
+C compiler for the host machine: clang (clang 21.1.8 "clang version 21.1.8")
+C linker for the host machine: clang ld.bfd 2.46
+C++ compiler for the host machine: clang++ (clang 21.1.8 "clang version 21.1.8")
+C++ linker for the host machine: clang++ ld.bfd 2.46
+Host machine cpu family: x86_64
+Host machine cpu: x86_64
+Compiler for C supports arguments -Wincompatible-pointer-types: YES (cached)
+Compiler for C supports arguments -Wc23-extensions: YES (cached)
+Compiler for C supports link arguments -Wl,--exclude-libs=ALL: YES (cached)
+Library m found: YES
+Program python3 found: YES (/nix/store/b5bpi6zfajzzrwwpgba2q6li3nnya4bs-python3-3.14.7/bin/python3.14)
+Dependency threads found: YES unknown (cached)
+Header "pthread.h" has symbol "pthread_condattr_setclock" with dependency threads: YES (cached)
+Dependency libunwind skipped: feature unwind disabled
+Library execinfo found: NO
+Checking for function "backtrace_symbols" with dependency -lexecinfo: YES (cached)
+Check usable header "dbghelp.h" : NO (cached)
+Fetching value of define "__MINGW32__" : (undefined) (cached)
+Dependency shaderc found: YES 2026.1.1 (cached)
+Header "shaderc/shaderc.h" has symbol "shaderc_env_version_vulkan_1_4" with dependency shaderc: YES (cached)
+Header "shaderc/shaderc.h" has symbol "shaderc_env_version_vulkan_1_3" with dependency shaderc: YES (cached)
+Check usable header "d3d11.h" : NO (cached)
+Check usable header "d3d11_4.h" skipped: feature d3d11 disabled
+Check usable header "dxgi1_6.h" skipped: feature d3d11 disabled
+Dependency spirv-cross-c-shared skipped: feature d3d11 disabled
+Library version skipped: feature d3d11 disabled
+Library dl found: YES
+Dependency vulkan found: YES 1.4.357 (cached)
+Header "vulkan/vulkan_core.h" has symbol "VK_VERSION_1_4" with dependency vulkan: YES (cached)
+Dependency lcms2 skipped: feature lcms disabled
+Dependency dovi skipped: feature libdovi disabled
+Dependency libxxhash skipped: feature xxhash disabled
+Configuring config.h using configuration
+Configuring config_internal.h using configuration
+WARNING: Library target 'placebo' has 'name_prefix' set. Compilers may not find it from its '-lplacebo' linker flag in the 'libplacebo.pc' pkg-config file.
+WARNING: Library target 'placebo' has 'name_prefix' set. Compilers may not find it from its '-lplacebo' linker flag in the 'libplacebo-uninstalled.pc' pkg-config file.
+Found pkg-config: YES (/nix/store/7fx93fz9c809w8yjxb0934zw6xcjis58-pkg-config-wrapper-0.29.2/bin/pkg-config) 0.29.2
+Build targets in project: 16
+
+libplacebo 7.371.0
+
+  Optional features
+    d3d11          : NO
+    dovi           : NO
+    gl-proc-addr   : YES
+    glslang        : NO
+    lcms           : NO
+    libdovi        : NO
+    opengl         : NO
+    shaderc        : YES
+    vk-proc-addr   : YES
+    vulkan         : YES
+    xxhash         : NO
+
+  User defined options
+    bench          : false
+    buildtype      : release
+    d3d11          : disabled
+    default_library: shared
+    demos          : false
+    dovi           : disabled
+    glslang        : disabled
+    lcms           : disabled
+    libdovi        : disabled
+    opengl         : disabled
+    shaderc        : enabled
+    tests          : false
+    unwind         : disabled
+    vk-proc-addr   : enabled
+    vulkan         : enabled
+    vulkan-registry: /home/elf/dev/gpu/vendor/Vulkan-Headers/registry/vk.xml
+    wrap_mode      : nodownload
+    xxhash         : disabled
+
+Found ninja-1.13.2 at /nix/store/6ji6bq0si2j8ibdrxqgcmh1cw0wmdiyk-ninja-1.13.2/bin/ninja
+ninja: Entering directory `/home/elf/dev/gpu/target/libplacebo-upstream'
+[1/64] Generating src/shaders/custom.c with a custom command (wrapped by meson to set env)
+[2/64] Generating src/shaders.c with a custom command (wrapped by meson to set env)
+[3/64] Generating src/shaders/dithering.c with a custom command (wrapped by meson to set env)
+[4/64] Generating src/renderer.c with a custom command (wrapped by meson to set env)
+[5/64] Generating src/shaders/film_grain.c with a custom command (wrapped by meson to set env)
+[6/64] Generating src/shaders/custom_mpv.c with a custom command (wrapped by meson to set env)
+[7/64] Generating src/shaders/deinterlacing.c with a custom command (wrapped by meson to set env)
+[8/64] Generating src/shaders/colorspace.c with a custom command (wrapped by meson to set env)
+[9/64] Generating src/version.h with a custom command
+[10/64] Generating src/shaders/film_grain_av1.c with a custom command (wrapped by meson to set env)
+[11/64] Generating src/shaders/lut.c with a custom command (wrapped by meson to set env)
+[12/64] Generating src/shaders/film_grain_h274.c with a custom command (wrapped by meson to set env)
+[13/64] Generating src/shaders/icc.c with a custom command (wrapped by meson to set env)
+[14/64] Generating src/shaders/sampling.c with a custom command (wrapped by meson to set env)
+[15/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_custom.c.o
+[16/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_deinterlacing.c.o
+[17/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_dithering.c.o
+[18/64] Generating src/vulkan/utils_gen.c with a custom command (wrapped by meson to set env)
+[19/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_film_grain.c.o
+[20/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_icc.c.o
+[21/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders.c.o
+[22/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_film_grain_h274.c.o
+[23/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_colorspace.c.o
+[24/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_film_grain_av1.c.o
+[25/64] Compiling C object src/libplacebo.so.371.p/cache.c.o
+[26/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_lut.c.o
+[27/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_custom_mpv.c.o
+[28/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._shaders_sampling.c.o
+[29/64] Compiling C object src/libplacebo.so.371.p/common.c.o
+[30/64] Compiling C object src/libplacebo.so.371.p/dither.c.o
+[31/64] Compiling C object src/libplacebo.so.371.p/dummy.c.o
+[32/64] Compiling C object src/libplacebo.so.371.p/colorspace.c.o
+[33/64] Compiling C object src/libplacebo.so.371.p/format.c.o
+[34/64] Compiling C object src/libplacebo.so.371.p/filters.c.o
+[35/64] Compiling C object src/libplacebo.so.371.p/glsl_spirv.c.o
+[36/64] Compiling C object src/libplacebo.so.371.p/dispatch.c.o
+[37/64] Compiling C object src/libplacebo.so.371.p/log.c.o
+[38/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._renderer.c.o
+[39/64] Compiling C object src/libplacebo.so.371.p/pl_alloc.c.o
+[40/64] Compiling C object src/libplacebo.so.371.p/swapchain.c.o
+[41/64] Compiling C object src/libplacebo.so.371.p/gpu.c.o
+[42/64] Compiling C object src/libplacebo.so.371.p/gpu_utils.c.o
+[43/64] Compiling C object src/libplacebo.so.371.p/pl_string.c.o
+[44/64] Compiling C object src/libplacebo.so.371.p/gamut_mapping.c.o
+[45/64] Compiling C object src/libplacebo.so.371.p/options.c.o
+[46/64] Compiling C object src/libplacebo.so.371.p/utils_dolbyvision.c.o
+[47/64] Compiling C object src/libplacebo.so.371.p/opengl_stubs.c.o
+[48/64] Compiling C object src/libplacebo.so.371.p/glsl_spirv_shaderc.c.o
+[49/64] Compiling C object src/libplacebo.so.371.p/utils_upload.c.o
+[50/64] Compiling C object src/libplacebo.so.371.p/tone_mapping.c.o
+[51/64] Compiling C object src/libplacebo.so.371.p/meson-generated_.._vulkan_utils_gen.c.o
+[52/64] Compiling C object src/libplacebo.so.371.p/vulkan_command.c.o
+[53/64] Compiling C object src/libplacebo.so.371.p/utils_frame_queue.c.o
+[54/64] Compiling C object src/libplacebo.so.371.p/vulkan_formats.c.o
+[55/64] Compiling C object src/libplacebo.so.371.p/vulkan_gpu.c.o
+[56/64] Compiling C object src/libplacebo.so.371.p/vulkan_gpu_buf.c.o
+[57/64] Compiling C object src/libplacebo.so.371.p/vulkan_utils.c.o
+[58/64] Compiling C object src/libplacebo.so.371.p/vulkan_swapchain.c.o
+[59/64] Compiling C object src/libplacebo.so.371.p/vulkan_context.c.o
+[60/64] Compiling C object src/libplacebo.so.371.p/vulkan_gpu_tex.c.o
+[61/64] Compiling C object src/libplacebo.so.371.p/vulkan_gpu_pass.c.o
+[62/64] Compiling C object src/libplacebo.so.371.p/vulkan_malloc.c.o
+[63/64] Compiling C++ object src/libplacebo.so.371.p/convert.cc.o
+[64/64] Linking target src/libplacebo.so.371
+INFO: autodetecting backend as ninja
+INFO: calculating backend command to run: /nix/store/6ji6bq0si2j8ibdrxqgcmh1cw0wmdiyk-ninja-1.13.2/bin/ninja -C /home/elf/dev/gpu/target/libplacebo-upstream -j 8
+    Finished `release` profile [optimized] target(s) in 0.02s
+adapter unorm16 sampling/transfer live=0 PASS
+adapter specialization mode=specialization-update live=0 PASS
+OGPU libplacebo: only full packed host image transfers are supported
+adapter rejection=partial-upload live=0 PASS
+OGPU libplacebo: unsupported image dimension/interop/blit
+adapter rejection=unsupported-image live=0 PASS
+native compiler: unsupported resource declaration: layout(binding=0) uniform sampler3D input_image;
+OGPU libplacebo: shader compilation failed
+adapter rejection=unsupported-shader live=0 PASS
+OGPU libplacebo: invalid or premature frame slot reuse
+adapter frame=frame-reuse live=0 PASS
+OGPU libplacebo: frame capacity or repeated staging use
+adapter frame=frame-capacity live=0 PASS
+OGPU libplacebo: only full packed host image transfers are supported
+adapter frame=frame-partial live=0 PASS
+OGPU libplacebo: frame capacity or repeated staging use
+adapter frame=frame-staging live=0 PASS
+adapter frame=frame-destroy live=0 PASS
+adapter frame=frame-pending live=0 PASS
+OGPU libplacebo: injected transient poll failure
+OGPU libplacebo: frame completion failed to retire
+adapter frame=frame-poll-error live=0 PASS
+OGPU libplacebo: injected submission rejection
+adapter frame=frame-submit-error live=0 PASS
+adapter specialization mode=queued-specialization live=0 PASS
+OGPU libplacebo: pass bank already in use or frame capacity exceeded
+adapter specialization mode=queued-bank-reuse live=0 PASS
+OGPU libplacebo: invalid or premature frame slot reuse
+adapter frame=frame-reuse live=0 PASS
+OGPU libplacebo: frame capacity or repeated staging use
+adapter frame=frame-capacity live=0 PASS
+OGPU libplacebo: only full packed host image transfers are supported
+adapter frame=frame-partial live=0 PASS
+OGPU libplacebo: frame capacity or repeated staging use
+adapter frame=frame-staging live=0 PASS
+adapter frame=frame-destroy live=0 PASS
+adapter frame=frame-pending live=0 PASS
+OGPU libplacebo: injected transient poll failure
+adapter frame=frame-poll-error live=0 PASS
+OGPU libplacebo: injected submission rejection
+adapter frame=frame-submit-error live=0 PASS
+adapter specialization mode=queued-specialization live=0 PASS
+OGPU libplacebo: pass bank already in use or frame capacity exceeded
+adapter specialization mode=queued-bank-reuse live=0 PASS
+/home/elf/dev/gpu/integrations/libplacebo/check-backend.sh: line 18: 1454552 Aborted                    (core dumped) "$tests" live-child >> "$log" 2>&1
+Adapter rejection/cleanup and live-child checks PASS: /home/elf/dev/gpu/target/libplacebo-integration/backend-checks.TXPHgWM7.log
+libplacebo[4]: Initialized libplacebo v7.371.0 (v7.360.0-124-g3330a515) (API v371)
+libplacebo[4]: Spent 16.541 ms enumerating instance extensions
+libplacebo[4]: Creating vulkan instance with extensions:
+libplacebo[4]:     VK_KHR_surface
+libplacebo[4]:     VK_EXT_swapchain_colorspace
+libplacebo[4]:     VK_KHR_get_surface_capabilities2
+libplacebo[4]:     VK_KHR_surface_maintenance1
+libplacebo[4]:     VK_EXT_surface_maintenance1
+libplacebo[4]:     VK_KHR_portability_enumeration
+libplacebo[4]: Probing for vulkan devices:
+libplacebo[4]:     GPU 0: AMD Radeon RX 5700 XT (RADV NAVI10) v1.4.354 (discrete)
+libplacebo[4]:            uuid: 00:00:00:00:13:00:00:00:00:00:00:00:00:00:00:00
+libplacebo[4]: Vulkan device properties:
+libplacebo[4]:     Device Name: AMD Radeon RX 5700 XT (RADV NAVI10)
+libplacebo[4]:     Device ID: 1002:731f
+libplacebo[4]:     Device UUID: 00:00:00:00:13:00:00:00:00:00:00:00:00:00:00:00
+libplacebo[4]:     Driver version: 6802001
+libplacebo[4]:     API version: 1.4.354
+libplacebo[4]:     Driver ID: VK_DRIVER_ID_MESA_RADV
+libplacebo[4]:     Driver name: radv
+libplacebo[4]:     Driver info: Mesa 26.2.1
+libplacebo[4]:     Conformance version: 1.4.5.3
+libplacebo[4]:     Driver UUID: 41:4D:44:2D:4D:45:53:41:2D:44:52:56:00:00:00:00
+libplacebo[4]: Creating vulkan device with extensions:
+libplacebo[4]:     VK_KHR_swapchain
+libplacebo[4]:     VK_KHR_external_memory_fd
+libplacebo[4]:     VK_EXT_external_memory_dma_buf
+libplacebo[4]:     VK_EXT_external_memory_host
+libplacebo[4]:     VK_KHR_external_semaphore_fd
+libplacebo[4]:     VK_EXT_pci_bus_info
+libplacebo[4]:     VK_EXT_hdr_metadata
+libplacebo[4]:     VK_EXT_image_drm_format_modifier
+libplacebo[4]:     VK_KHR_swapchain_maintenance1
+libplacebo[4]:     VK_EXT_swapchain_maintenance1
+libplacebo[4]:     VK_KHR_internally_synchronized_queues
+libplacebo[4]: Memory heaps supported by device:
+libplacebo[4]:     0: flags 0x1 size 7936M
+libplacebo[4]:     1: flags 0x0 size   15G
+libplacebo[4]:     2: flags 0x1 size  256M
+libplacebo[4]: Memory summary:     0 used     0 res     0 alloc, efficiency 100.00%, utilization 100.00%, max page:  496M
+libplacebo[4]: shaderc SPIR-V version 1.6 rev 1
+libplacebo[4]: Initialized SPIR-V compiler 'shaderc'
+libplacebo[4]: GPU information:
+libplacebo[4]:     GLSL version: 450 (vulkan)
+libplacebo[4]:       max_shmem_size:            65536
+libplacebo[4]:       max_group_threads:         1024
+libplacebo[4]:       max_group_size[0]:         1024
+libplacebo[4]:       max_group_size[1]:         1024
+libplacebo[4]:       max_group_size[2]:         1024
+libplacebo[4]:       subgroup_size:             64
+libplacebo[4]:       min_gather_offset:         -32
+libplacebo[4]:       max_gather_offset:         31
+libplacebo[4]:     Limits:
+libplacebo[4]:       thread_safe:               1
+libplacebo[4]:       callbacks:                 1
+libplacebo[4]:       max_buf_size:              16783863808
+libplacebo[4]:       max_ubo_size:              4294967295
+libplacebo[4]:       max_ssbo_size:             4294967295
+libplacebo[4]:       max_vbo_size:              8321499136
+libplacebo[4]:       max_mapped_size:           16783863808
+libplacebo[4]:       max_buffer_texels:         536870912
+libplacebo[4]:       align_host_ptr:            4096
+libplacebo[4]:       host_cached:               1
+libplacebo[4]:       max_tex_1d_dim:            16384
+libplacebo[4]:       max_tex_2d_dim:            16384
+libplacebo[4]:       max_tex_3d_dim:            8192
+libplacebo[4]:       blittable_1d_3d:           1
+libplacebo[4]:       buf_transfer:              1
+libplacebo[4]:       align_tex_xfer_pitch:      1
+libplacebo[4]:       align_tex_xfer_offset:     4
+libplacebo[4]:       max_variable_comps:        0
+libplacebo[4]:       max_constants:             18446744073709551615
+libplacebo[4]:       max_pushc_size:            256
+libplacebo[4]:       align_vertex_stride:       1
+libplacebo[4]:       max_dispatch[0]:           4294967295
+libplacebo[4]:       max_dispatch[1]:           65535
+libplacebo[4]:       max_dispatch[2]:           65535
+libplacebo[4]:       fragment_queues:           1
+libplacebo[4]:       compute_queues:            1
+libplacebo[4]:     External API interop:
+libplacebo[4]:       UUID: 00:00:00:00:13:00:00:00:00:00:00:00:00:00:00:00
+libplacebo[4]:       PCI: 0000:13:00:0
+libplacebo[4]:       buf export caps: 0x9
+libplacebo[4]:       buf import caps: 0x19
+libplacebo[4]:       tex export caps: 0x9
+libplacebo[4]:       tex import caps: 0x19
+libplacebo[4]:       sync export caps: 0x1
+libplacebo[4]:       sync import caps: 0x0
+libplacebo[4]: Spent 448.599 ms translating SPIR-V (slow!)
+libplacebo[4]: Spent 20.891 ms creating pipeline
+libplacebo[4]: Spent 22.792 ms creating pipeline
+libplacebo[4]: Spent 47.326 ms translating SPIR-V
+libplacebo[4]: Spent 48.041 ms translating SPIR-V
+reference=16x16 output=33x33 frame=0 checksum=6077da899e737992 compute=1 raster=1 PASS
+reference=16x16 output=33x33 frame=1 checksum=c4a042a941b7c649 compute=1 raster=1 PASS
+reference=16x16 output=33x33 frame=2 checksum=6077da899e737992 compute=1 raster=1 PASS
+reference=31x17 output=63x35 frame=0 checksum=07bc54e4efda576c compute=1 raster=1 PASS
+reference=31x17 output=63x35 frame=1 checksum=aa6bdd379eca27da compute=1 raster=1 PASS
+reference=31x17 output=63x35 frame=2 checksum=07bc54e4efda576c compute=1 raster=1 PASS
+reference=64x33 output=129x67 frame=0 checksum=877603bb4a291db6 compute=1 raster=1 PASS
+reference=64x33 output=129x67 frame=1 checksum=c939cd3459af40b7 compute=1 raster=1 PASS
+reference=64x33 output=129x67 frame=2 checksum=877603bb4a291db6 compute=1 raster=1 PASS
+upstream-reference creates=6 compute=9 raster=9 PASS (not OGPU execution)
+libplacebo[4]: Initialized libplacebo v7.371.0 (v7.360.0-124-g3330a515) (API v371)
+ogpu=16x16 output=33x33 frame=0 checksum=6077da899e737992 compute=1 raster=1 PASS
+ogpu=16x16 output=33x33 frame=1 checksum=c4a042a941b7c649 compute=1 raster=1 PASS
+ogpu=16x16 output=33x33 frame=2 checksum=6077da899e737992 compute=1 raster=1 PASS
+ogpu=31x17 output=63x35 frame=0 checksum=07bc54e4efda576c compute=1 raster=1 PASS
+ogpu=31x17 output=63x35 frame=1 checksum=aa6bdd379eca27da compute=1 raster=1 PASS
+ogpu=31x17 output=63x35 frame=2 checksum=07bc54e4efda576c compute=1 raster=1 PASS
+ogpu=64x33 output=129x67 frame=0 checksum=877603bb4a291db6 compute=1 raster=1 PASS
+ogpu=64x33 output=129x67 frame=1 checksum=c939cd3459af40b7 compute=1 raster=1 PASS
+ogpu=64x33 output=129x67 frame=2 checksum=877603bb4a291db6 compute=1 raster=1 PASS
+ogpu-consumer creates=6 compute=9 raster=9 uploads=12 downloads=18 live=0 PASS
+OGPU/reference intermediate+final comparison bytes=286488 differing=0 max_byte_delta=0 PASS
+libplacebo[4]: Initialized libplacebo v7.371.0 (v7.360.0-124-g3330a515) (API v371)
+stream=sync extent=16x16 frame=0 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=1 checksum=c4a042a941b7c649 PASS
+stream=sync extent=16x16 frame=2 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=3 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=4 checksum=c4a042a941b7c649 PASS
+stream=sync extent=16x16 frame=5 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=6 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=7 checksum=c4a042a941b7c649 PASS
+stream=sync extent=16x16 frame=8 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=9 checksum=6077da899e737992 PASS
+stream=sync extent=16x16 frame=10 checksum=c4a042a941b7c649 PASS
+stream=sync extent=16x16 frame=11 checksum=6077da899e737992 PASS
+stream=sync extent=31x17 frame=0 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=1 checksum=aa6bdd379eca27da PASS
+stream=sync extent=31x17 frame=2 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=3 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=4 checksum=aa6bdd379eca27da PASS
+stream=sync extent=31x17 frame=5 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=6 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=7 checksum=aa6bdd379eca27da PASS
+stream=sync extent=31x17 frame=8 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=9 checksum=07bc54e4efda576c PASS
+stream=sync extent=31x17 frame=10 checksum=aa6bdd379eca27da PASS
+stream=sync extent=31x17 frame=11 checksum=07bc54e4efda576c PASS
+stream=sync extent=64x33 frame=0 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=1 checksum=c939cd3459af40b7 PASS
+stream=sync extent=64x33 frame=2 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=3 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=4 checksum=c939cd3459af40b7 PASS
+stream=sync extent=64x33 frame=5 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=6 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=7 checksum=c939cd3459af40b7 PASS
+stream=sync extent=64x33 frame=8 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=9 checksum=877603bb4a291db6 PASS
+stream=sync extent=64x33 frame=10 checksum=c939cd3459af40b7 PASS
+stream=sync extent=64x33 frame=11 checksum=877603bb4a291db6 PASS
+stream-summary mode=sync frames=0 collected=0 peak_inflight=0 submissions=183 waits=183 polls=0 peak_operations=0 callbacks=72 staging_allocs=21 peak_staging_bytes=156208 peak_banks=4 peak_textures=7 peak_texture_bytes=156208 live=0 PASS
+OGPU/reference intermediate+final comparison bytes=1145952 differing=0 max_byte_delta=0 PASS
+Stream sync: /home/elf/dev/gpu/target/libplacebo-integration/stream-sync.9hM5Gp58
+libplacebo[4]: Initialized libplacebo v7.371.0 (v7.360.0-124-g3330a515) (API v371)
+stream=two extent=16x16 frame=0 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=1 checksum=c4a042a941b7c649 PASS
+stream=two extent=16x16 frame=2 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=3 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=4 checksum=c4a042a941b7c649 PASS
+stream=two extent=16x16 frame=5 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=6 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=7 checksum=c4a042a941b7c649 PASS
+stream=two extent=16x16 frame=8 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=9 checksum=6077da899e737992 PASS
+stream=two extent=16x16 frame=10 checksum=c4a042a941b7c649 PASS
+stream=two extent=16x16 frame=11 checksum=6077da899e737992 PASS
+stream=two extent=31x17 frame=0 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=1 checksum=aa6bdd379eca27da PASS
+stream=two extent=31x17 frame=2 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=3 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=4 checksum=aa6bdd379eca27da PASS
+stream=two extent=31x17 frame=5 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=6 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=7 checksum=aa6bdd379eca27da PASS
+stream=two extent=31x17 frame=8 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=9 checksum=07bc54e4efda576c PASS
+stream=two extent=31x17 frame=10 checksum=aa6bdd379eca27da PASS
+stream=two extent=31x17 frame=11 checksum=07bc54e4efda576c PASS
+stream=two extent=64x33 frame=0 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=1 checksum=c939cd3459af40b7 PASS
+stream=two extent=64x33 frame=2 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=3 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=4 checksum=c939cd3459af40b7 PASS
+stream=two extent=64x33 frame=5 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=6 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=7 checksum=c939cd3459af40b7 PASS
+stream=two extent=64x33 frame=8 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=9 checksum=877603bb4a291db6 PASS
+stream=two extent=64x33 frame=10 checksum=c939cd3459af40b7 PASS
+stream=two extent=64x33 frame=11 checksum=877603bb4a291db6 PASS
+stream-summary mode=two frames=36 collected=36 peak_inflight=2 submissions=183 waits=0 polls=219 peak_operations=11 callbacks=72 staging_allocs=21 peak_staging_bytes=156208 peak_banks=4 peak_textures=7 peak_texture_bytes=156208 live=0 PASS
+OGPU/reference intermediate+final comparison bytes=1145952 differing=0 max_byte_delta=0 PASS
+Stream two: /home/elf/dev/gpu/target/libplacebo-integration/stream-two.Gku4mi0a
+Reference: /home/elf/dev/gpu/target/libplacebo-integration/reference.BM5sOmlL
+OGPU: /home/elf/dev/gpu/target/libplacebo-integration/ogpu.1HxYxBYY
