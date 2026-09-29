@@ -1,0 +1,796 @@
+{
+  "schema": 1,
+  "revision": "5da5aafda342ad03c2a20c5e78339b9fe0ed1974",
+  "date": "2026-09-29",
+  "scope": "native M4 reference and bounded learned-image preflight; no public API or timing acceptance",
+  "drivers": {
+    "radv": {
+      "scene_report_sha256": "77edaad2543acd8f69440c396acde95bd127d0550b27a3aab2220f1c23c0f43a",
+      "scene_directory": "/home/elf/dev/gpu/target/graphics-scene/native-amud8jjs",
+      "checks": [
+        {
+          "extent": [
+            257,
+            193
+          ],
+          "frames": 30,
+          "checked_pixels": 1381950
+        },
+        {
+          "extent": [
+            640,
+            360
+          ],
+          "frames": 30,
+          "checked_pixels": 6636000
+        },
+        {
+          "extent": [
+            1280,
+            720
+          ],
+          "frames": 30,
+          "checked_pixels": 27169920
+        }
+      ],
+      "regression_report_sha256": "738f61fcb300e70aa09aa974fcebdd682e0ca20ee2f751cbbd73f4d28abef463",
+      "regression_directory": "/home/elf/dev/gpu/target/resource-reuse/stream-7a7lvsse",
+      "regression_scope": "12 frames x 25 configurations (including serial baseline); not a sustained/scale rerun",
+      "regression_configurations": [
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1-serial",
+          "policy": "ogpu",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1",
+          "policy": "ogpu",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-1",
+          "policy": "compiled",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-1",
+          "policy": "reset",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-1",
+          "policy": "replay",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 453424,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-1",
+          "policy": "ogpu",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-1",
+          "policy": "compiled",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-1",
+          "policy": "reset",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-1",
+          "policy": "replay",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 453408,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-2",
+          "policy": "ogpu",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-2",
+          "policy": "compiled",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-2",
+          "policy": "reset",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-2",
+          "policy": "replay",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 906832,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-2",
+          "policy": "ogpu",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-2",
+          "policy": "compiled",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-2",
+          "policy": "reset",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-2",
+          "policy": "replay",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 906800,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-3",
+          "policy": "ogpu",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-3",
+          "policy": "compiled",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-3",
+          "policy": "reset",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-3",
+          "policy": "replay",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1360240,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-3",
+          "policy": "ogpu",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-3",
+          "policy": "compiled",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-3",
+          "policy": "reset",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-3",
+          "policy": "replay",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1360192,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        }
+      ],
+      "runtime_sha256": "97fdc2b5fde2cd1d2c288cb2f42e8302e282bb8d3c435cfcef2eda775853aaa1",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      }
+    },
+    "lvp": {
+      "scene_report_sha256": "1620675451a6a0246094a897ae96d75f1a5220bbfaf7aa019a9bf142b16337c1",
+      "scene_directory": "/home/elf/dev/gpu/target/graphics-scene/native-pvg2qum3",
+      "checks": [
+        {
+          "extent": [
+            257,
+            193
+          ],
+          "frames": 30,
+          "checked_pixels": 1381950
+        },
+        {
+          "extent": [
+            640,
+            360
+          ],
+          "frames": 30,
+          "checked_pixels": 6636000
+        }
+      ],
+      "regression_report_sha256": "af4f8efa561905f89100fd95c8f0009a03cd559dd7e8ddec4081b037434849f5",
+      "regression_directory": "/home/elf/dev/gpu/target/resource-reuse/stream-hjlufvsl",
+      "regression_scope": "12 frames x 25 configurations (including serial baseline); not a sustained/scale rerun",
+      "regression_configurations": [
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1-serial",
+          "policy": "ogpu",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-1",
+          "policy": "ogpu",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-1",
+          "policy": "compiled",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-1",
+          "policy": "reset",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-1",
+          "policy": "replay",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 9,
+            "frees": 9,
+            "peak_bytes": 447260,
+            "peak_count": 9,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-1",
+          "policy": "ogpu",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-1",
+          "policy": "compiled",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-1",
+          "policy": "reset",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-1",
+          "policy": "replay",
+          "slots": 1,
+          "frames": 12,
+          "memory": {
+            "allocations": 5,
+            "frees": 5,
+            "peak_bytes": 447260,
+            "peak_count": 5,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-2",
+          "policy": "ogpu",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-2",
+          "policy": "compiled",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-2",
+          "policy": "reset",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-2",
+          "policy": "replay",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 17,
+            "frees": 17,
+            "peak_bytes": 894504,
+            "peak_count": 17,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-2",
+          "policy": "ogpu",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-2",
+          "policy": "compiled",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-2",
+          "policy": "reset",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-2",
+          "policy": "replay",
+          "slots": 2,
+          "frames": 12,
+          "memory": {
+            "allocations": 6,
+            "frees": 6,
+            "peak_bytes": 894504,
+            "peak_count": 6,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-ogpu-3",
+          "policy": "ogpu",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-compiled-3",
+          "policy": "compiled",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-reset-3",
+          "policy": "reset",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-dedicated-replay-3",
+          "policy": "replay",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 25,
+            "frees": 25,
+            "peak_bytes": 1341748,
+            "peak_count": 25,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-ogpu-3",
+          "policy": "ogpu",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-compiled-3",
+          "policy": "compiled",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-reset-3",
+          "policy": "reset",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        },
+        {
+          "label": "65x47x131x95-arena-replay-3",
+          "policy": "replay",
+          "slots": 3,
+          "frames": 12,
+          "memory": {
+            "allocations": 7,
+            "frees": 7,
+            "peak_bytes": 1341748,
+            "peak_count": 7,
+            "live_bytes": 0,
+            "live_count": 0
+          }
+        }
+      ],
+      "runtime_sha256": "97fdc2b5fde2cd1d2c288cb2f42e8302e282bb8d3c435cfcef2eda775853aaa1",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      }
+    }
+  },
+  "commands": [
+    "SLANGC=/path/to/slangc python3 examples/graphics_scene/run.py --check",
+    "python3 examples/graphics_scene/run.py --scale (Radeon)",
+    "python3 examples/graphics_scene/run.py (llvmpipe)",
+    "python3 examples/resource_reuse/run.py --native --preflight (each driver)",
+    "clang --analyze -std=c11 -Iinclude -Ivendor/Vulkan-Headers/include -Iexamples/learned_image/generated examples/graphics_scene/native.c -o /tmp/ogpu-scene-analysis.plist"
+  ],
+  "limits": [
+    "Full image/depth/geometry output remains in the local scene directories; committed reports retain all output hashes and execution logs, not the large binary outputs.",
+    "No new public ABI/runtime behavior, native performance comparison, replay/two-slot scene acceptance, broader raster conformance or Metal validation.",
+    "Static analysis passed with only Nix-wrapper unused linker-argument warnings; no sanitizer coverage claimed."
+  ]
+}

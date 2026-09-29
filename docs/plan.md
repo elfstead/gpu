@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-28. This page owns current status and selected work. The
+Updated 2026-09-29. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -243,8 +243,13 @@ minimum-Rust, current Metal or independent-adoption claim follows.
 
 Follow the [bounded scene brief](graphics-consumer-plan.md): indexed geometry and
 depth first, then mips/views, blending/viewport/scissor and generated stage
-interfaces. Begin with a direct Vulkan indexed/depth reference and analytical
-probes before selecting new public contracts. Preserve native strategy choices;
+interfaces. The [direct Vulkan indexed/depth reference](graphics-scene-native-results.md)
+is accepted at clean `5da5aaf`: 150 checked frames across both drivers, including
+720p on Radeon, analytical color/depth checks, exact GPU-written records/guards
+and native draw-order/load equivalence. Public/runtime ABI 17 is unchanged.
+Next: resolve index-storage eligibility, independent color/depth clear/load and
+rendering-scope grouping in the public contract proposal, then implement it against
+this control. Preserve native strategy choices;
 GPU-heavy parity alone does not approve the API. Existing devices suffice.
 
 After M4: the bounded ML consumer (M5); refresh M7 after feature milestones.

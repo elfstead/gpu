@@ -1,7 +1,8 @@
 # M4: deterministic offscreen scene
 
-Selected after the first M7 local preparation checkpoint. This is a new acceptance
-brief, not implemented graphics support. Use the available Radeon and llvmpipe;
+Selected after the first M7 local preparation checkpoint. The first native control
+is [accepted at `5da5aaf`](graphics-scene-native-results.md) on 2026-09-29; no public
+indexed/depth support is implemented yet. Use the available Radeon and llvmpipe;
 no Mac, second physical GPU, window-system integration or asset download is required.
 
 ## Consumer and sequence
@@ -75,5 +76,6 @@ encoding overhead is tracked separately and is not automatically fundamental.
   unchanged learned-image results. Presentation is a separate follow-on boundary;
   no window concepts enter the compute core just to complete this milestone.
 
-Next concrete step: implement the native indexed/depth control and its analytical
-probes. No additional public API is selected by this brief alone.
+Next concrete step: propose the indexed/depth contract against the accepted native
+control, including index storage eligibility, independent attachment load/clear and
+draw grouping. No additional public API is selected by this brief alone.

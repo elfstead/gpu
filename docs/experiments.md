@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-28. This page records evidence, not API-stability promises. See
+Updated 2026-09-29. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -9,6 +9,14 @@ the current two-consumer checkpoint and selected work. This ledger is evidence,
 not a development queue; existing experiments remain regression and diagnostic tools.
 
 ## Implemented baseline
+
+The [first native M4 indexed/depth control](graphics-scene-native-results.md) is
+accepted at clean `5da5aaf` (2026-09-29): 90 Radeon and 60 llvmpipe frames pass
+analytic color/depth, exact computed geometry/index/draw records, guards, A/B/A
+and reversed-order/split-load equivalence. Both drivers pass the bounded 25x12
+learned-image reuse preflight. No public indexed/depth API, performance, two-slot
+scene or wider graphics acceptance follows. Attachment grouping and native index
+storage eligibility are explicit inputs to the next contract proposal.
 
 The [first M7 local preparation checkpoint](release-checkpoint.md) is accepted at
 clean `eba0eed` (2026-09-28). A fresh local clone/empty build directory passes 40

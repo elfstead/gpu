@@ -1,0 +1,1197 @@
+{
+  "schema": 1,
+  "complete": true,
+  "scope": "native indexed/depth correctness, not public API acceptance or performance",
+  "revision": "5da5aafda342ad03c2a20c5e78339b9fe0ed1974",
+  "dirty": false,
+  "runs": [
+    {
+      "extent": [
+        257,
+        193
+      ],
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "checks": [
+        {
+          "mode": 0,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 0,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 0,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 1,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 1,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 1,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 2,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 2,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 2,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 3,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 3,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 3,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 4,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 4,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 4,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 5,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 5,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 5,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 6,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 6,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 6,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 7,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 7,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 7,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 8,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 8,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 8,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 9,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 9,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "mode": 9,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        }
+      ],
+      "files": {
+        "mode-0-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-0-frame-0.images": "a8eaef5b0c319b2103db6aab401bca880e74fbd267fc73a6dc13f594a88b4b06",
+        "mode-0-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-0-frame-1.images": "ea80a6d98991b361c6e5784d8028e3c512f9c85ecd3753b663aa02705a51c1c6",
+        "mode-0-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-0-frame-2.images": "a8eaef5b0c319b2103db6aab401bca880e74fbd267fc73a6dc13f594a88b4b06",
+        "mode-1-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-1-frame-0.images": "a8eaef5b0c319b2103db6aab401bca880e74fbd267fc73a6dc13f594a88b4b06",
+        "mode-1-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-1-frame-1.images": "ea80a6d98991b361c6e5784d8028e3c512f9c85ecd3753b663aa02705a51c1c6",
+        "mode-1-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-1-frame-2.images": "a8eaef5b0c319b2103db6aab401bca880e74fbd267fc73a6dc13f594a88b4b06",
+        "mode-2-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-2-frame-0.images": "9ae54b3e3c598e56545a18c83c8c736ef3401a2eaad2388e269375e8a1a44f1f",
+        "mode-2-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-2-frame-1.images": "9ae54b3e3c598e56545a18c83c8c736ef3401a2eaad2388e269375e8a1a44f1f",
+        "mode-2-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-2-frame-2.images": "9ae54b3e3c598e56545a18c83c8c736ef3401a2eaad2388e269375e8a1a44f1f",
+        "mode-3-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-3-frame-0.images": "9ae54b3e3c598e56545a18c83c8c736ef3401a2eaad2388e269375e8a1a44f1f",
+        "mode-3-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-3-frame-1.images": "9ae54b3e3c598e56545a18c83c8c736ef3401a2eaad2388e269375e8a1a44f1f",
+        "mode-3-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-3-frame-2.images": "9ae54b3e3c598e56545a18c83c8c736ef3401a2eaad2388e269375e8a1a44f1f",
+        "mode-4-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-4-frame-0.images": "2d23dc933db6bfd77b2cb3f05cc550994933445db9fcd94cb710aebb17547dcd",
+        "mode-4-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-4-frame-1.images": "2d23dc933db6bfd77b2cb3f05cc550994933445db9fcd94cb710aebb17547dcd",
+        "mode-4-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-4-frame-2.images": "2d23dc933db6bfd77b2cb3f05cc550994933445db9fcd94cb710aebb17547dcd",
+        "mode-5-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-5-frame-0.images": "64d090d16ca72f40c334df5feeb810655de01b638035000b22444dd19fcba42d",
+        "mode-5-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-5-frame-1.images": "64d090d16ca72f40c334df5feeb810655de01b638035000b22444dd19fcba42d",
+        "mode-5-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-5-frame-2.images": "64d090d16ca72f40c334df5feeb810655de01b638035000b22444dd19fcba42d",
+        "mode-6-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-6-frame-0.images": "a8eaef5b0c319b2103db6aab401bca880e74fbd267fc73a6dc13f594a88b4b06",
+        "mode-6-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-6-frame-1.images": "ea80a6d98991b361c6e5784d8028e3c512f9c85ecd3753b663aa02705a51c1c6",
+        "mode-6-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-6-frame-2.images": "a8eaef5b0c319b2103db6aab401bca880e74fbd267fc73a6dc13f594a88b4b06",
+        "mode-7-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-7-frame-0.images": "06f4bdb3914a79db92870817dfab7d35658c21e0a12eefc8579eff950bb5bdfa",
+        "mode-7-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-7-frame-1.images": "d4bf55f0d51e6b7b66be7d0af052f61be60bc3883c6b166614e6839f5b80eddb",
+        "mode-7-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-7-frame-2.images": "06f4bdb3914a79db92870817dfab7d35658c21e0a12eefc8579eff950bb5bdfa",
+        "mode-8-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-8-frame-0.images": "2d23dc933db6bfd77b2cb3f05cc550994933445db9fcd94cb710aebb17547dcd",
+        "mode-8-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-8-frame-1.images": "2d23dc933db6bfd77b2cb3f05cc550994933445db9fcd94cb710aebb17547dcd",
+        "mode-8-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-8-frame-2.images": "2d23dc933db6bfd77b2cb3f05cc550994933445db9fcd94cb710aebb17547dcd",
+        "mode-9-frame-0.geometry": "99937cd1c00f93b8c5b0d8a0ffe9daa16983cb00eca969de0fe083058accd988",
+        "mode-9-frame-0.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "mode-9-frame-1.geometry": "a27a41d97c380b8d6398f366813ee8c9d9d67fd33d50461e1f04be678ae26dfa",
+        "mode-9-frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "mode-9-frame-2.geometry": "99937cd1c00f93b8c5b0d8a0ffe9daa16983cb00eca969de0fe083058accd988",
+        "mode-9-frame-2.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "7c9636750bfdbcfcc59e2ba78f904ddaa4c5cc04c2122b73aadb61813e0356f0"
+      }
+    },
+    {
+      "extent": [
+        640,
+        360
+      ],
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "checks": [
+        {
+          "mode": 0,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 0,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 0,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 1,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 1,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 1,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 2,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 2,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 2,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 3,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 3,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 3,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 4,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 4,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 4,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 5,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 5,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 5,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 6,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 6,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 6,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 7,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 7,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 7,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 8,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 8,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 8,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 9,
+          "phase": 0,
+          "frame": 0,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 9,
+          "phase": 1,
+          "frame": 1,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        },
+        {
+          "mode": 9,
+          "phase": 0,
+          "frame": 2,
+          "checked_pixels": 221200,
+          "excluded_edge_pixels": 9200
+        }
+      ],
+      "files": {
+        "mode-0-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-0-frame-0.images": "431b292c5e939a75728e031cfc6fc154b37b39eeeeabe2106e4b2bd6857575ce",
+        "mode-0-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-0-frame-1.images": "d45f8a1b28980eeb1d295330bb00a2c1e7f70927c8205a6300513f641eb2290a",
+        "mode-0-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-0-frame-2.images": "431b292c5e939a75728e031cfc6fc154b37b39eeeeabe2106e4b2bd6857575ce",
+        "mode-1-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-1-frame-0.images": "431b292c5e939a75728e031cfc6fc154b37b39eeeeabe2106e4b2bd6857575ce",
+        "mode-1-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-1-frame-1.images": "d45f8a1b28980eeb1d295330bb00a2c1e7f70927c8205a6300513f641eb2290a",
+        "mode-1-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-1-frame-2.images": "431b292c5e939a75728e031cfc6fc154b37b39eeeeabe2106e4b2bd6857575ce",
+        "mode-2-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-2-frame-0.images": "6294e3006b06dd82db16317d63d4c994b01d1baa9e7646fc2196a1d12c774d5b",
+        "mode-2-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-2-frame-1.images": "6294e3006b06dd82db16317d63d4c994b01d1baa9e7646fc2196a1d12c774d5b",
+        "mode-2-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-2-frame-2.images": "6294e3006b06dd82db16317d63d4c994b01d1baa9e7646fc2196a1d12c774d5b",
+        "mode-3-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-3-frame-0.images": "6294e3006b06dd82db16317d63d4c994b01d1baa9e7646fc2196a1d12c774d5b",
+        "mode-3-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-3-frame-1.images": "6294e3006b06dd82db16317d63d4c994b01d1baa9e7646fc2196a1d12c774d5b",
+        "mode-3-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-3-frame-2.images": "6294e3006b06dd82db16317d63d4c994b01d1baa9e7646fc2196a1d12c774d5b",
+        "mode-4-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-4-frame-0.images": "14a391a1508243849aa2c66ca85e1a8ff1d392a8afe0f5de885dfc23108ace2a",
+        "mode-4-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-4-frame-1.images": "14a391a1508243849aa2c66ca85e1a8ff1d392a8afe0f5de885dfc23108ace2a",
+        "mode-4-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-4-frame-2.images": "14a391a1508243849aa2c66ca85e1a8ff1d392a8afe0f5de885dfc23108ace2a",
+        "mode-5-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-5-frame-0.images": "3139feb1f769b71d7cae0b33482a77d80e0f77fcea783da51e9cdea5e5c13ed2",
+        "mode-5-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-5-frame-1.images": "3139feb1f769b71d7cae0b33482a77d80e0f77fcea783da51e9cdea5e5c13ed2",
+        "mode-5-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-5-frame-2.images": "3139feb1f769b71d7cae0b33482a77d80e0f77fcea783da51e9cdea5e5c13ed2",
+        "mode-6-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-6-frame-0.images": "431b292c5e939a75728e031cfc6fc154b37b39eeeeabe2106e4b2bd6857575ce",
+        "mode-6-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-6-frame-1.images": "d45f8a1b28980eeb1d295330bb00a2c1e7f70927c8205a6300513f641eb2290a",
+        "mode-6-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-6-frame-2.images": "431b292c5e939a75728e031cfc6fc154b37b39eeeeabe2106e4b2bd6857575ce",
+        "mode-7-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-7-frame-0.images": "4e208e91557796a2f77a94b82922fd1a33bd30b7282e907d17bf593bc6559fa2",
+        "mode-7-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-7-frame-1.images": "d4be45f3eb46f61b6d7c9b73e0248357277142f17b23f3d851c018ac975ff2ca",
+        "mode-7-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-7-frame-2.images": "4e208e91557796a2f77a94b82922fd1a33bd30b7282e907d17bf593bc6559fa2",
+        "mode-8-frame-0.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-8-frame-0.images": "14a391a1508243849aa2c66ca85e1a8ff1d392a8afe0f5de885dfc23108ace2a",
+        "mode-8-frame-1.geometry": "6039a719468e2613c9800880a21fd3808244456a08987d5320f189c12549d7e4",
+        "mode-8-frame-1.images": "14a391a1508243849aa2c66ca85e1a8ff1d392a8afe0f5de885dfc23108ace2a",
+        "mode-8-frame-2.geometry": "4b5086d2795abbc60f3ec7de49c618f55e756d45a810782c9124b3edd9941d26",
+        "mode-8-frame-2.images": "14a391a1508243849aa2c66ca85e1a8ff1d392a8afe0f5de885dfc23108ace2a",
+        "mode-9-frame-0.geometry": "99937cd1c00f93b8c5b0d8a0ffe9daa16983cb00eca969de0fe083058accd988",
+        "mode-9-frame-0.images": "52466d42da8d800ab9deaa0711884dd1bd68a766b3ed3afeb079dd23b4d55c93",
+        "mode-9-frame-1.geometry": "a27a41d97c380b8d6398f366813ee8c9d9d67fd33d50461e1f04be678ae26dfa",
+        "mode-9-frame-1.images": "52466d42da8d800ab9deaa0711884dd1bd68a766b3ed3afeb079dd23b4d55c93",
+        "mode-9-frame-2.geometry": "99937cd1c00f93b8c5b0d8a0ffe9daa16983cb00eca969de0fe083058accd988",
+        "mode-9-frame-2.images": "52466d42da8d800ab9deaa0711884dd1bd68a766b3ed3afeb079dd23b4d55c93",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout": "d9553a2284dae052cb263089436e35f073cfeffd27e6695de705da2897f333a3"
+      }
+    }
+  ],
+  "shaders": {
+    "compute": {
+      "sha256": "c96bb812538f15927e766df1de5d07947a3c533fe43bf2707aa29e420f7e83fd",
+      "reflection": {
+        "parameters": [
+          {
+            "name": "root",
+            "binding": {
+              "kind": "pushConstantBuffer",
+              "index": 0
+            },
+            "type": {
+              "kind": "constantBuffer",
+              "elementType": {
+                "kind": "struct",
+                "name": "Root",
+                "fields": [
+                  {
+                    "name": "vertices",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "float",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 0,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "indices",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "uint",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 8,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "draws",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "uint",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 16,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "phase",
+                    "type": {
+                      "kind": "scalar",
+                      "scalarType": "uint32",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 4,
+                          "alignment": 4
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 24,
+                      "size": 4,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "empty",
+                    "type": {
+                      "kind": "scalar",
+                      "scalarType": "uint32",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 4,
+                          "alignment": 4
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 28,
+                      "size": 4,
+                      "elementStride": 0
+                    }
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 32,
+                    "alignment": 8
+                  }
+                ]
+              },
+              "containerVarLayout": {
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              },
+              "elementVarLayout": {
+                "type": {
+                  "kind": "struct",
+                  "name": "Root",
+                  "fields": [
+                    {
+                      "name": "vertices",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "float",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "indices",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "uint",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 8,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "draws",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "uint",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 16,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "phase",
+                      "type": {
+                        "kind": "scalar",
+                        "scalarType": "uint32",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 4,
+                            "alignment": 4
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 24,
+                        "size": 4,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "empty",
+                      "type": {
+                        "kind": "scalar",
+                        "scalarType": "uint32",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 4,
+                            "alignment": 4
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 28,
+                        "size": 4,
+                        "elementStride": 0
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 32,
+                      "alignment": 8
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 32,
+                  "elementStride": 0
+                }
+              },
+              "sizes": [
+                {
+                  "kind": "pushConstantBuffer",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        ],
+        "entryPoints": [
+          {
+            "name": "main",
+            "stage": "compute",
+            "parameters": [
+              {
+                "name": "thread",
+                "semanticName": "SV_DISPATCHTHREADID",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 3,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "uint32"
+                  },
+                  "sizes": []
+                }
+              }
+            ],
+            "threadGroupSize": [
+              8,
+              1,
+              1
+            ],
+            "bindings": [
+              {
+                "name": "root",
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              }
+            ]
+          }
+        ],
+        "bindlessSpaceIndex": 0
+      }
+    },
+    "vertex": {
+      "sha256": "c60ab4841b2e29ccec49cd44d4de5d6ea40fb434026a11e9a350a067243e53a1",
+      "reflection": {
+        "parameters": [
+          {
+            "name": "root",
+            "binding": {
+              "kind": "pushConstantBuffer",
+              "index": 0
+            },
+            "type": {
+              "kind": "constantBuffer",
+              "elementType": {
+                "kind": "struct",
+                "name": "Root",
+                "fields": [
+                  {
+                    "name": "vertices",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "float",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 0,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 8,
+                    "alignment": 8
+                  }
+                ]
+              },
+              "containerVarLayout": {
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              },
+              "elementVarLayout": {
+                "type": {
+                  "kind": "struct",
+                  "name": "Root",
+                  "fields": [
+                    {
+                      "name": "vertices",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "float",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 8,
+                      "alignment": 8
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 8,
+                  "elementStride": 0
+                }
+              },
+              "sizes": [
+                {
+                  "kind": "pushConstantBuffer",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        ],
+        "entryPoints": [
+          {
+            "name": "main",
+            "stage": "vertex",
+            "parameters": [
+              {
+                "name": "id",
+                "semanticName": "SV_VULKANVERTEXID",
+                "type": {
+                  "kind": "scalar",
+                  "scalarType": "uint32",
+                  "sizes": []
+                }
+              }
+            ],
+            "result": {
+              "stage": "vertex",
+              "binding": {
+                "kind": "varyingOutput",
+                "index": 0
+              },
+              "type": {
+                "kind": "struct",
+                "name": "Varyings",
+                "fields": [
+                  {
+                    "name": "position",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": []
+                    },
+                    "semanticName": "SV_POSITION"
+                  },
+                  {
+                    "name": "surface",
+                    "type": {
+                      "kind": "scalar",
+                      "scalarType": "uint32",
+                      "sizes": [
+                        {
+                          "kind": "varyingOutput",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "stage": "vertex",
+                    "binding": {
+                      "kind": "varyingOutput",
+                      "index": 0
+                    },
+                    "semanticName": "TEXCOORD"
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "varyingOutput",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "bindings": [
+              {
+                "name": "root",
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              }
+            ]
+          }
+        ],
+        "bindlessSpaceIndex": 0
+      }
+    },
+    "fragment": {
+      "sha256": "8c22bef95c8d3d68ca89cb5023e42e9ae77ade2f23c8ee175e54854b84010389",
+      "reflection": {
+        "parameters": [],
+        "entryPoints": [
+          {
+            "name": "main",
+            "stage": "fragment",
+            "parameters": [
+              {
+                "name": "surface",
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 0
+                },
+                "semanticName": "TEXCOORD",
+                "type": {
+                  "kind": "scalar",
+                  "scalarType": "uint32",
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ],
+            "result": {
+              "stage": "fragment",
+              "binding": {
+                "kind": "varyingOutput",
+                "index": 0
+              },
+              "semanticName": "SV_TARGET",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "varyingOutput",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "bindings": []
+          }
+        ],
+        "bindlessSpaceIndex": 0
+      }
+    }
+  },
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+  },
+  "toolchain": {
+    "slang": "2026.14.1",
+    "cc": "clang version 21.1.8",
+    "python": "3.14.7"
+  },
+  "sources": {
+    "examples/compiler/affine.py": "1505b3a4a9bcb2fa89f6df769cc3735aad6490576289dbc1c174a19958e123e3",
+    "examples/compiler/build_inputs.py": "7fa31e7cbff50be5e2db8ca520897f50b77a5d4c3f4894e983ef199ec552912c",
+    "examples/compiler/dependency_workflow.py": "eb9c29c40bc97201c6cb4a85a5ad6b91d55bdfcae8c1176c5e71cd322102c798",
+    "examples/compiler/generate.py": "73d00c407853b713749b6975162a9b203794517aaafde740a8ffc642dc99d51e",
+    "examples/compiler/heap_workflow.py": "a6cd34ba9d288d50ba4261ce6cf7a14e01e9b47e97c5846d7c395dbfdc5b8d6b",
+    "examples/compiler/heaps.py": "85bb96970c7a36d91fc4f262d6aa13e8f423bbca5cf5eb1895db17a037642276",
+    "examples/compiler/layouts.py": "8f50e4433948288938d6eaf204e5d8d7d9326fb69efdb304c866edba30be3383",
+    "examples/compiler/link_graphics.py": "b80fc7f3780dbd508a0115d8cb397dca80760a1e6f0bebf676c6ffbea5470475",
+    "examples/compiler/run.py": "c31004244eb46e4147f82d1d4aad74f97930b8cbeebdbc0dd8181dee306033ed",
+    "examples/compiler/stage_workflow.py": "3c1bedf64a27ffcb09348b35d021714e573a39b3c178714cf5aa90a571593ca2",
+    "examples/compiler/stages.py": "dc7d2e00751c82ffc7b8b186ee4bd94cb5212e7218a65fe6c7db0c4612f16c42",
+    "examples/compiler/structured.py": "c7ae9cbb356cb57e88209fdbeae0cac8eba88a5c34877b3316fd045827ab7172",
+    "examples/compiler/test_affine.py": "d8240fbc1d1f2978034b1d010ef73d2c0f267ad0612ab50e42f5eac3fd5194be",
+    "examples/compiler/test_build_inputs.py": "4ad7d2a774d56ebe3668744682b849ef347724121a41bc60bce75347008d8c32",
+    "examples/compiler/test_generate.py": "52f164fed2c2ad0a0c678ec7997a6849067f87c4dcea3eb4ad31f44fc867453a",
+    "examples/compiler/test_heaps.py": "a669f5393c5cf316a1417db80b20a2c5943e77ca3d0360a1bab6578fa5977405",
+    "examples/compiler/test_stages.py": "4d07a8cde2d661a8cf895b56ea0bb6cf4bb9db814f31df8c9307a5d0421caf0f",
+    "examples/compiler/test_structured.py": "6cedebf4e1ff942bbfa664e41b5dd7cb699b20271b65657cfa55b9a715d566e6",
+    "examples/graphics_scene/README.md": "16aabd61477ca3025ff7485c6de1a7b622da9bb7870925f4edb84b0b7123235d",
+    "examples/graphics_scene/native.c": "bac2434a1b5bf47d3b43e45034ec13c3d13c25b621e173acb0b765d367057bbd",
+    "examples/graphics_scene/oracle.py": "f9398dac8f54de55f8b8b5d762885ee37b9d5c19b657e0d833d519a00dc99cf3",
+    "examples/graphics_scene/prepare.slang": "0589f222c87d93098c28aaaea8e319bc03d65ee7329e9592077b80c06edc5946",
+    "examples/graphics_scene/run.py": "a9e7c554d996bd96fb2fcd0a6fa08745f9d9386f4a4aad7c048ce083221e9b21",
+    "examples/graphics_scene/scene.frag.slang": "31766007137264d4f408851126004ff90baacf7ed3ddd50a0091ff5f4a2f6231",
+    "examples/graphics_scene/scene.vert.slang": "3a66bcfb02f1f6b47cee1331c75069b3bd537e22f806b5ba19c814f1bcd84756",
+    "examples/graphics_scene/test_oracle.py": "b01eec982601981f117b8af8d173b2d0fced11ca8615a6fd6a0d95b2cc078c52",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+    "examples/learned_image/native.c": "8fd380edeb902fbf9372650311625c8d1406c4020c26d7c937c89d437d5d931b",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "include/ogpu.h": "a6ff63f2cb68a4fb39dc5e984fd9ce8675dc56d9c4df3bfd6cecb0b948247c8e",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6"
+  },
+  "executable_sha256": "c7a156f77bc1f9fab0fda3cfc9d7f2227a3b3902b096e21f9d719bc340cb627d",
+  "compile_command": [
+    "clang",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-I/home/elf/dev/gpu/include",
+    "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+    "-I/home/elf/dev/gpu/examples/learned_image/generated",
+    "/home/elf/dev/gpu/examples/graphics_scene/native.c",
+    "-ldl",
+    "-o",
+    "/home/elf/dev/gpu/target/graphics-scene/native-pvg2qum3/native"
+  ]
+}
