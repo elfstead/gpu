@@ -1,0 +1,189 @@
+In file included from examples/graphics_scene/reuse_public.c:2:
+examples/graphics_scene/public.c:102:5: warning: Potential memory leak [unix.Malloc]
+  102 |     GPU(ogpu_buffer_write(s->upload,0,s->cpu,256,&s->error));
+      |     ^
+examples/graphics_scene/public.c:9:21: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                     ^
+examples/graphics_scene/reuse_public.c:57:8: note: Left side of '||' is false
+   57 |     if(!reuse_config(&r,argc,argv) || !reuse_reference(&r)) goto done;
+      |        ^
+examples/graphics_scene/reuse_public.c:57:5: note: Taking false branch
+   57 |     if(!reuse_config(&r,argc,argv) || !reuse_reference(&r)) goto done;
+      |     ^
+examples/graphics_scene/reuse_public.c:58:8: note: Assuming field 'slots' is not equal to 0
+   58 |     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;
+      |        ^~~~~~~~
+examples/graphics_scene/reuse_public.c:58:8: note: Left side of '||' is false
+examples/graphics_scene/reuse_public.c:58:20: note: Assuming field 'slots' is <= 2
+   58 |     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;
+      |                    ^~~~~~~~~
+examples/graphics_scene/reuse_public.c:58:8: note: Left side of '||' is false
+   58 |     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;
+      |        ^
+examples/graphics_scene/reuse_public.c:58:33: note: Assuming field 'frames' is >= field 'slots'
+   58 |     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;
+      |                                 ^~~~~~~~~~~~~~~~
+examples/graphics_scene/reuse_public.c:58:5: note: Taking false branch
+   58 |     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;
+      |     ^
+examples/graphics_scene/reuse_public.c:60:8: note: Assuming the condition is false
+   60 |     if(!scene_create_context(&context,r.shaders)) goto done;
+      |        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/reuse_public.c:60:5: note: Taking false branch
+   60 |     if(!scene_create_context(&context,r.shaders)) goto done;
+      |     ^
+examples/graphics_scene/reuse_public.c:61:22: note: 'i' is < field 'slots'
+   61 |     for(unsigned i=0;i<r.slots;++i) if(!slot_create(&slots[i],&context,&r)) goto done;
+      |                      ^
+examples/graphics_scene/reuse_public.c:61:5: note: Loop condition is true.  Entering loop body
+   61 |     for(unsigned i=0;i<r.slots;++i) if(!slot_create(&slots[i],&context,&r)) goto done;
+      |     ^
+examples/graphics_scene/reuse_public.c:61:41: note: Calling 'slot_create'
+   61 |     for(unsigned i=0;i<r.slots;++i) if(!slot_create(&slots[i],&context,&r)) goto done;
+      |                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/reuse_public.c:23:10: note: Calling 'scene_create_resources'
+   23 |     NEED(scene_create_resources(s) && buffer_create(s,&slot->control,136,OGPU_MEMORY_HOST,0));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:8:28: note: expanded from macro 'NEED'
+    8 | #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
+      |                            ^
+examples/graphics_scene/public.c:90:5: note: Assuming 'status_' is equal to 0
+   90 |     GPU(ogpu_image_check_support(s->device,&color,&s->error)); GPU(ogpu_image_check_support(s->device,&depth,&s->error));
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:90:5: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:90:5: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:90:64: note: Assuming 'status_' is equal to 0
+   90 |     GPU(ogpu_image_check_support(s->device,&color,&s->error)); GPU(ogpu_image_check_support(s->device,&depth,&s->error));
+      |                                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:90:64: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:90:64: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:91:5: note: Assuming 'status_' is equal to 0
+   91 |     GPU(ogpu_image_create(s->device,&color,&s->color,&s->error)); GPU(ogpu_image_create(s->device,&depth,&s->depth,&s->error));
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:91:5: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:91:5: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:91:67: note: Assuming 'status_' is equal to 0
+   91 |     GPU(ogpu_image_create(s->device,&color,&s->color,&s->error)); GPU(ogpu_image_create(s->device,&depth,&s->depth,&s->error));
+      |                                                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:91:67: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:91:67: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:92:10: note: Left side of '&&' is true
+   92 |     NEED(buffer_create(s,&s->vertices,256,OGPU_MEMORY_DEVICE,0)
+      |          ^
+examples/graphics_scene/public.c:92:10: note: Left side of '&&' is true
+examples/graphics_scene/public.c:92:10: note: Left side of '&&' is true
+examples/graphics_scene/public.c:92:10: note: Left side of '&&' is true
+examples/graphics_scene/public.c:92:10: note: Left side of '&&' is true
+examples/graphics_scene/public.c:92:5: note: Taking false branch
+   92 |     NEED(buffer_create(s,&s->vertices,256,OGPU_MEMORY_DEVICE,0)
+      |     ^
+examples/graphics_scene/public.c:8:22: note: expanded from macro 'NEED'
+    8 | #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
+      |                      ^
+examples/graphics_scene/public.c:92:5: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:8:17: note: expanded from macro 'NEED'
+    8 | #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
+      |                 ^
+examples/graphics_scene/public.c:98:5: note: Assuming 'status_' is equal to 0
+   98 |     GPU(ogpu_buffer_device_address(s->vertices,&s->root.vertices,&s->error)); s->root.vertices+=GUARD;
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:98:5: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:98:5: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:99:5: note: Assuming 'status_' is equal to 0
+   99 |     GPU(ogpu_buffer_device_address(s->indices,&s->root.indices,&s->error)); s->root.indices+=GUARD;
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:99:5: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:99:5: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:100:5: note: Assuming 'status_' is equal to 0
+  100 |     GPU(ogpu_buffer_device_address(s->draws,&s->root.draws,&s->error)); s->root.draws+=GUARD;
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:9:48: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                                ^~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:100:5: note: Taking false branch
+examples/graphics_scene/public.c:9:45: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                                             ^
+examples/graphics_scene/public.c:100:5: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:9:16: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                ^
+examples/graphics_scene/public.c:101:12: note: Memory is allocated
+  101 |     s->cpu=malloc(2*s->pixels+4*GUARD); NEED(s->cpu); memset(s->cpu,0xa5,2*s->pixels+4*GUARD);
+      |            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+examples/graphics_scene/public.c:101:41: note: Assuming field 'cpu' is non-null
+  101 |     s->cpu=malloc(2*s->pixels+4*GUARD); NEED(s->cpu); memset(s->cpu,0xa5,2*s->pixels+4*GUARD);
+      |                                         ^~~~~~~~~~~~
+examples/graphics_scene/public.c:8:26: note: expanded from macro 'NEED'
+    8 | #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
+      |                          ^~~~
+examples/graphics_scene/public.c:101:41: note: Taking false branch
+examples/graphics_scene/public.c:8:22: note: expanded from macro 'NEED'
+    8 | #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
+      |                      ^
+examples/graphics_scene/public.c:101:41: note: Loop condition is false.  Exiting loop
+examples/graphics_scene/public.c:8:17: note: expanded from macro 'NEED'
+    8 | #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
+      |                 ^
+examples/graphics_scene/public.c:102:5: note: Potential memory leak
+  102 |     GPU(ogpu_buffer_write(s->upload,0,s->cpu,256,&s->error));
+      |     ^
+examples/graphics_scene/public.c:9:21: note: expanded from macro 'GPU'
+    9 | #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
+      |                     ^
+1 warning generated.

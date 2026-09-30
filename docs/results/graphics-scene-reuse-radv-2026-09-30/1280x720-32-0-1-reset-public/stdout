@@ -1,0 +1,12 @@
+DEVICE {"vendor":4098,"device":29471,"api":[1,4,354]}
+PUBLIC_SCENE {"abi":18,"index_bytes":4,"gpu_generated":true}
+REUSE_FRAME {"frame":0,"slot":0,"generation":0,"phase":0,"empty":0}
+REUSE_FRAME {"frame":1,"slot":0,"generation":1,"phase":1,"empty":0}
+REUSE_FRAME {"frame":2,"slot":0,"generation":2,"phase":0,"empty":1}
+REUSE_FRAME {"frame":3,"slot":0,"generation":3,"phase":0,"empty":0}
+REUSE_FRAME {"frame":4,"slot":0,"generation":4,"phase":0,"empty":0}
+REUSE_FRAME {"frame":5,"slot":0,"generation":5,"phase":1,"empty":0}
+REUSE_FRAME {"frame":6,"slot":0,"generation":6,"phase":0,"empty":1}
+REUSE_FRAME {"frame":7,"slot":0,"generation":7,"phase":0,"empty":0}
+REUSE_SUMMARY {"frames":8,"slots":1,"mode":0,"index_bytes":4,"replay":0,"encodes":8,"peak_unretired":1,"requested_bytes":14747416}
+Public scene reuse drained and checked

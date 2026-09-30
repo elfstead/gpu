@@ -2,7 +2,8 @@
 
 Selected 2026-09-30 after the [matched scene](graphics-scene-public-results.md)
 and [contract matrix](indexed-depth-contract-results.md). This is the next
-experiment, **not an implemented runner or an accepted performance result**.
+experiment. Its [slot/replay correctness increment](graphics-scene-reuse-results.md)
+is now accepted at `637c7db`; **timing and the stronger native frontier remain open**.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 
 ## First increment: stable slots and replay

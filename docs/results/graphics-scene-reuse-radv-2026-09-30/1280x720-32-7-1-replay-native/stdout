@@ -1,0 +1,20 @@
+Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0
+DEVICE {"vendor":4098,"device":29471,"api":[1,4,354]}
+NATIVE_IMAGE {"logical":3686400,"allocated":3956736,"type":0,"flags":1}
+NATIVE_BUFFER {"host":false,"requested":256,"allocated":256,"type":0,"flags":1}
+NATIVE_BUFFER {"host":false,"requested":160,"allocated":160,"type":0,"flags":1}
+NATIVE_BUFFER {"host":false,"requested":168,"allocated":176,"type":0,"flags":1}
+NATIVE_BUFFER {"host":true,"requested":256,"allocated":256,"type":5,"flags":14}
+NATIVE_BUFFER {"host":true,"requested":7373056,"allocated":7373056,"type":5,"flags":14}
+NATIVE_BUFFER {"host":true,"requested":584,"allocated":592,"type":5,"flags":14}
+NATIVE_BUFFER {"host":true,"requested":136,"allocated":144,"type":5,"flags":14}
+REUSE_FRAME {"frame":0,"slot":0,"generation":0,"phase":0,"empty":0}
+REUSE_FRAME {"frame":1,"slot":0,"generation":1,"phase":1,"empty":0}
+REUSE_FRAME {"frame":2,"slot":0,"generation":2,"phase":0,"empty":1}
+REUSE_FRAME {"frame":3,"slot":0,"generation":3,"phase":0,"empty":0}
+REUSE_FRAME {"frame":4,"slot":0,"generation":4,"phase":0,"empty":0}
+REUSE_FRAME {"frame":5,"slot":0,"generation":5,"phase":1,"empty":0}
+REUSE_FRAME {"frame":6,"slot":0,"generation":6,"phase":0,"empty":1}
+REUSE_FRAME {"frame":7,"slot":0,"generation":7,"phase":0,"empty":0}
+REUSE_SUMMARY {"frames":8,"slots":1,"mode":7,"index_bytes":4,"replay":1,"encodes":1,"peak_unretired":1,"requested_bytes":14747416}
+Native scene reuse drained and checked

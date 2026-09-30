@@ -5,7 +5,8 @@ is [accepted at `5da5aaf`](graphics-scene-native-results.md) on 2026-09-29; the
 [ABI-18 migration](indexed-depth-migration.md) implements the public indexed/depth
 slice. The [matched public scene](graphics-scene-public-results.md) and
 [expanded contract matrix](indexed-depth-contract-results.md) now pass; reuse and
-performance acceptance remain. Use Radeon and llvmpipe;
+performance acceptance remained at that checkpoint. [Slot/replay correctness](graphics-scene-reuse-results.md)
+is now accepted; performance remains open. Use Radeon and llvmpipe;
 no Mac, second physical GPU, window-system integration or asset download is required.
 
 ## Consumer and sequence
@@ -82,5 +83,5 @@ encoding overhead is tracked separately and is not automatically fundamental.
 The [indexed/depth proposal](indexed-depth-proposal.md) now selects a candidate
 contract and its implementation/acceptance sequence. The coherent ABI-18 runtime
 migration, matched scene and bounded lifetime/description gates are accepted.
-Next: [stable slots and grouped-draw/replay measurements](indexed-depth-performance-plan.md),
+Stable slots now pass. Next: [grouped-draw/replay measurements](indexed-depth-performance-plan.md),
 including stronger native strategy controls, then installed scene handoff.

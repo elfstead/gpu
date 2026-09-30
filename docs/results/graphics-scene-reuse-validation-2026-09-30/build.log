@@ -1,0 +1,8 @@
+Reuse evidence: /home/elf/dev/gpu/target/graphics-scene/reuse-_ag3xca4
+    Finished `release` profile [optimized] target(s) in 0.11s
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.005s
+
+OK
+Reuse build/parser gates PASS; no GPU
