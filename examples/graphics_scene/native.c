@@ -20,6 +20,12 @@ typedef struct {
     size_t pixels;
     unsigned char *cpu;
 } Scene;
+#ifdef SCENE_NATIVE_FRONTIER
+static int frontier_draw(Scene *s);
+#define SCENE_DRAW_BYTES (132u+20u*frontier_records)
+#else
+#define SCENE_DRAW_BYTES 168u
+#endif
 
 static int scene_shader(Native *n, NativeProgram *p, unsigned stage, const char *directory, const char *name) {
     char path[4096]; NEED(native_path(path, directory, name));
@@ -124,6 +130,10 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
         .addressRange={s->indices.address+GUARD,8*s->index_bytes}, .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
         .indexType=s->index_bytes==2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32};
     s->bind_index(b->command, &indices);
+#ifdef SCENE_NATIVE_FRONTIER
+    (void)first; (void)count;
+    NEED(frontier_draw(s));
+#else
     for (unsigned i=0; i<count; ++i) {
         unsigned which=(first+i)%2;
         VkDrawIndirect2InfoKHR draw = {.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
@@ -131,6 +141,7 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
             .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR, .drawCount=1};
         s->draw_indexed(b->command, &draw);
     }
+#endif
     n->vkCmdEndRendering(b->command); return 1;
 }
 
@@ -161,7 +172,7 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     n->vkCmdCopyImageToMemoryKHR(b->command,&copy);
     NEED(native_copy(n,b,&s->vertices,0,&s->geometry,0,256)
         && native_copy(n,b,&s->indices,0,&s->geometry,256,160)
-        && native_copy(n,b,&s->draws,0,&s->geometry,416,168));
+        && native_copy(n,b,&s->draws,0,&s->geometry,416,SCENE_DRAW_BYTES));
     return 1;
 }
 
@@ -198,13 +209,13 @@ static int scene_create_resources(Scene *s) {
     NEED(native_image_create(n,&s->color,s->width,s->height) && scene_depth(s));
     NEED(native_buffer_create(n,&s->vertices,256,0)
         && native_buffer_create_usage(n,&s->indices,160,0,VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
-        && native_buffer_create(n,&s->draws,168,0) && native_buffer_create(n,&s->upload,256,1)
-        && native_buffer_create(n,&s->readback,2*s->pixels+4*GUARD,1) && native_buffer_create(n,&s->geometry,584,1));
+        && native_buffer_create(n,&s->draws,SCENE_DRAW_BYTES,0) && native_buffer_create(n,&s->upload,SCENE_DRAW_BYTES>256 ? SCENE_DRAW_BYTES : 256,1)
+        && native_buffer_create(n,&s->readback,2*s->pixels+4*GUARD,1) && native_buffer_create(n,&s->geometry,416+SCENE_DRAW_BYTES,1));
     s->cpu=malloc(2*s->pixels+4*GUARD); NEED(s->cpu);
     memset(s->cpu,0xa5,2*s->pixels+4*GUARD);
-    NEED(native_write(n,&s->upload,0,s->cpu,256) && native_write(n,&s->readback,0,s->cpu,2*s->pixels+4*GUARD));
+    NEED(native_write(n,&s->upload,0,s->cpu,s->upload.size) && native_write(n,&s->readback,0,s->cpu,2*s->pixels+4*GUARD));
     NEED(native_begin(n,&s->batch) && native_copy(n,&s->batch,&s->upload,0,&s->vertices,0,256)
-        && native_copy(n,&s->batch,&s->upload,0,&s->indices,0,160) && native_copy(n,&s->batch,&s->upload,0,&s->draws,0,168)
+        && native_copy(n,&s->batch,&s->upload,0,&s->indices,0,160) && native_copy(n,&s->batch,&s->upload,0,&s->draws,0,SCENE_DRAW_BYTES)
         && native_submit(n,&s->batch) && native_wait(n,&s->batch));
     native_batch_destroy(n,&s->batch); return 1;
 }

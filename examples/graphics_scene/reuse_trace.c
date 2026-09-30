@@ -7,7 +7,7 @@
 
 #define COMMANDS(X) X(vkCreateCommandPool) X(vkDestroyCommandPool) X(vkResetCommandPool) \
     X(vkBeginCommandBuffer) X(vkEndCommandBuffer) X(vkQueueSubmit2) X(vkQueueWaitIdle) \
-    X(vkCmdBeginRendering) X(vkCmdEndRendering) X(vkCmdDrawIndexedIndirect2KHR)
+    X(vkCmdBeginRendering) X(vkCmdEndRendering) X(vkCmdDrawIndexedIndirect2KHR) X(vkCmdDrawIndexedIndirectCount2KHR)
 #define COUNT_FIELD(name) uint64_t name;
 static struct { COMMANDS(COUNT_FIELD) } counts;
 #undef COUNT_FIELD
@@ -24,13 +24,24 @@ RESULT_HOOK(vkQueueSubmit2,(VkQueue q,uint32_t n,const VkSubmitInfo2 *s,VkFence 
 RESULT_HOOK(vkQueueWaitIdle,(VkQueue q),(q))
 VOID_HOOK(vkCmdBeginRendering,(VkCommandBuffer c,const VkRenderingInfo *i),(c,i))
 VOID_HOOK(vkCmdEndRendering,(VkCommandBuffer c),(c))
-VOID_HOOK(vkCmdDrawIndexedIndirect2KHR,(VkCommandBuffer c,const VkDrawIndirect2InfoKHR *i),(c,i))
+static uint64_t indexed_records, counted_capacity;
+static PFN_vkCmdDrawIndexedIndirect2KHR real_vkCmdDrawIndexedIndirect2KHR;
+static void VKAPI_CALL traced_vkCmdDrawIndexedIndirect2KHR(VkCommandBuffer c,const VkDrawIndirect2InfoKHR *i) {
+    ++counts.vkCmdDrawIndexedIndirect2KHR;indexed_records+=i->drawCount;
+    real_vkCmdDrawIndexedIndirect2KHR(c,i);
+}
+static PFN_vkCmdDrawIndexedIndirectCount2KHR real_vkCmdDrawIndexedIndirectCount2KHR;
+static void VKAPI_CALL traced_vkCmdDrawIndexedIndirectCount2KHR(VkCommandBuffer c,const VkDrawIndirectCount2InfoKHR *i) {
+    ++counts.vkCmdDrawIndexedIndirectCount2KHR;counted_capacity+=i->maxDrawCount;
+    real_vkCmdDrawIndexedIndirectCount2KHR(c,i);
+}
 
 void scene_trace_snapshot(unsigned phase) {
     fprintf(stderr,"COMMAND_COUNTS {\"phase\":%u",phase);
 #define PRINT(name) fprintf(stderr,",\"" #name "\":%" PRIu64,counts.name);
     COMMANDS(PRINT)
 #undef PRINT
+    fprintf(stderr,",\"indexed_records\":%" PRIu64 ",\"counted_capacity\":%" PRIu64,indexed_records,counted_capacity);
     fputs("}\n",stderr);
 }
 static PFN_vkGetDeviceProcAddr command_device_get;

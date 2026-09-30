@@ -175,12 +175,17 @@ static int native_create(Native *n) {
     VkPhysicalDevice16BitStorageFeatures storage = {.sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES, .pNext=&v12};
     VkPhysicalDeviceFeatures2 features = {.sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext=&storage};
     n->vkGetPhysicalDeviceFeatures2(n->physical, &features);
+#ifdef NATIVE_INDEXED_FRONTIER
+    /* Opt-in experimental native control only; ordinary controls stay baseline. */
+    NEED(features.features.multiDrawIndirect && v12.drawIndirectCount);
+#endif
     NEED(v12.bufferDeviceAddress && v12.timelineSemaphore && v13.synchronization2
          && v13.dynamicRendering && v14.maintenance5 && storage.storageBuffer16BitAccess
          && heap.descriptorHeap && addresses.deviceAddressCommands && untyped.shaderUntypedPointers);
     int float16 = v12.shaderFloat16;
     has_unified = has_unified && unified.unifiedImageLayouts;
-    /* Enable only the OGPU profile, never the entire query result. */
+    /* Enable only the OGPU profile (plus an explicitly compiled experimental
+       frontier below), never the entire query result. */
     unified.unifiedImageLayoutsVideo = VK_FALSE;
     untyped.pNext = has_unified ? &unified : NULL;
     heap = (VkPhysicalDeviceDescriptorHeapFeaturesEXT){.sType=heap.sType, .pNext=&addresses, .descriptorHeap=VK_TRUE};
@@ -188,6 +193,9 @@ static int native_create(Native *n) {
     v13 = (VkPhysicalDeviceVulkan13Features){.sType=v13.sType, .pNext=&v14, .synchronization2=VK_TRUE, .dynamicRendering=VK_TRUE};
     v12 = (VkPhysicalDeviceVulkan12Features){.sType=v12.sType, .pNext=&v13, .bufferDeviceAddress=VK_TRUE,
         .timelineSemaphore=VK_TRUE, .shaderFloat16=float16};
+#ifdef NATIVE_INDEXED_FRONTIER
+    v12.drawIndirectCount=VK_TRUE;
+#endif
     storage = (VkPhysicalDevice16BitStorageFeatures){.sType=storage.sType, .pNext=&v12, .storageBuffer16BitAccess=VK_TRUE};
     VkPhysicalDeviceDriverProperties driver = {.sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES};
     VkPhysicalDeviceTimelineSemaphoreProperties timeline = {
@@ -222,6 +230,13 @@ static int native_create(Native *n) {
     VkDeviceCreateInfo device = {.sType=VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, .pNext=&storage,
         .queueCreateInfoCount=1, .pQueueCreateInfos=&queue, .enabledExtensionCount=has_unified ? 4 : 3,
         .ppEnabledExtensionNames=names};
+#ifdef NATIVE_INDEXED_FRONTIER
+    VkPhysicalDeviceFeatures frontier_features={.multiDrawIndirect=VK_TRUE};
+    device.pEnabledFeatures=&frontier_features;
+    NEED(n->properties.limits.maxDrawIndirectCount >= 512);
+    printf("FRONTIER_FEATURES {\"multiDrawIndirect\":true,\"drawIndirectCount\":true,\"maxDrawIndirectCount\":%u}\n",
+        n->properties.limits.maxDrawIndirectCount);
+#endif
     VK_TRY(n->vkCreateDevice(n->physical, &device, NULL, &n->device));
     n->vkGetDeviceQueue(n->device, n->family, 0, &n->queue);
     VkSemaphoreTypeCreateInfo type = {.sType=VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO, .semaphoreType=VK_SEMAPHORE_TYPE_TIMELINE};
