@@ -66,3 +66,7 @@ reuse and matched grouped small-draw/replay measurements. The latter must expose
 host-sensitive costs, not infer API adequacy from a large GPU-heavy frame. Generated
 stage-pair and installed-scene handoff remain required before moving to mip/views.
 No Metal, new physical GPU, sanitizer or timing acceptance is claimed here.
+
+Follow-up: the [expanded contract matrix](indexed-depth-contract-results.md) and
+[full UINT16 counterpart](graphics-scene-u16-results.md) now pass. The next active
+gate is [scene reuse and native-performance measurement](indexed-depth-performance-plan.md).

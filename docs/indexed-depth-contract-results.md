@@ -25,7 +25,8 @@ No production runtime or ABI changes were needed for these additional gates.
 
 These are synthetic failure controls around real resources, not physical device
 loss, exhaustive Vulkan-driver failures or a timing result. Host-written UINT16
-coverage does not replace the full GPU-generated scene's narrower UINT32 evidence.
+coverage did not itself replace the full GPU-generated scene's UINT32 evidence;
+the subsequent [matched UINT16 scene](graphics-scene-u16-results.md) closes that gap.
 
 Full regression acceptance: **32 GPU tests on each driver**, 41 ordinary Rust
 tests, Clippy with warnings denied, and 824 C/Rust ABI values. Radeon RX 5700 XT and

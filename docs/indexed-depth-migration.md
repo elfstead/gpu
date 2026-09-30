@@ -87,6 +87,8 @@ for the native scene's analytical full-image oracle or sustained graphics measur
 1. **Completed:** [matched public scene](graphics-scene-public-results.md), all ten
    modes at odd/useful extents, GPU-written geometry/indices/records, independent
    oracle and exact native/public output agreement on both drivers.
+   The [UINT16 counterpart](graphics-scene-u16-results.md) also passes, including
+   exact image agreement across index widths and checked unused index-buffer tails.
 2. **Completed bounded matrix:** [contract results](indexed-depth-contract-results.md)
    cover every compare/test/write combination with UINT16/UINT32, read-only LOAD
    draws, mismatch/foreign-logical-device rejection and indexed preparation/replay/

@@ -286,6 +286,9 @@ tracking, automatic pointee retention, host waits or per-frame allocation policy
    Compare fresh recording and replay at equal slot/storage budgets. Any measured
    API-imposed loss of a native strategy reopens this proposal; parity alone does
    not close untested multi-draw, dynamic-state, depth-only or transient-memory cases.
+   The [concrete experiment brief](indexed-depth-performance-plan.md) specifies
+   mutable per-slot data, retirement, accounting and stronger native multi-record/
+   count-buffer controls; matching N single-record calls is not the full frontier.
 5. **Generated/installed handoff and decision.** Extend the offline stage-pair
    checker for the scene's vertex root and flat integer varying, with rejection
    tests, before claiming generated consumer support. Exercise the scene against
