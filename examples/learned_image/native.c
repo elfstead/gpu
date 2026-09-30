@@ -174,7 +174,15 @@ static int native_create(Native *n) {
     VkPhysicalDeviceVulkan12Features v12 = {.sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, .pNext=&v13};
     VkPhysicalDevice16BitStorageFeatures storage = {.sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES, .pNext=&v12};
     VkPhysicalDeviceFeatures2 features = {.sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, .pNext=&storage};
+#ifdef NATIVE_DRAW_IDENTITY
+    VkPhysicalDeviceShaderDrawParametersFeatures draw_parameters={
+        .sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,.pNext=&storage};
+    features.pNext=&draw_parameters;
+#endif
     n->vkGetPhysicalDeviceFeatures2(n->physical, &features);
+#ifdef NATIVE_DRAW_IDENTITY
+    NEED(draw_parameters.shaderDrawParameters);
+#endif
 #ifdef NATIVE_INDEXED_FRONTIER
     /* Opt-in experimental native control only; ordinary controls stay baseline. */
     NEED(features.features.multiDrawIndirect && v12.drawIndirectCount);
@@ -236,6 +244,10 @@ static int native_create(Native *n) {
     NEED(n->properties.limits.maxDrawIndirectCount >= 512);
     printf("FRONTIER_FEATURES {\"multiDrawIndirect\":true,\"drawIndirectCount\":true,\"maxDrawIndirectCount\":%u}\n",
         n->properties.limits.maxDrawIndirectCount);
+#endif
+#ifdef NATIVE_DRAW_IDENTITY
+    device.pNext=&draw_parameters;
+    printf("DRAW_IDENTITY_FEATURES {\"shaderDrawParameters\":true}\n");
 #endif
     VK_TRY(n->vkCreateDevice(n->physical, &device, NULL, &n->device));
     n->vkGetDeviceQueue(n->device, n->family, 0, &n->queue);

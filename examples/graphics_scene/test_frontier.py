@@ -55,5 +55,28 @@ class FrontierTests(unittest.TestCase):
                     expected=6 if strategy=='count' or frame['active'] else 0
                     self.assertEqual(f.struct.unpack_from('<I',mesh,480)[0],expected)
 
+    def test_identity_oracle_preserves_depth_guards_and_exposes_grouping(self):
+        image=f.oracle.GUARD+f.oracle.BLACK+f.oracle.RED+f.oracle.GREEN+f.oracle.GUARD*2+bytes(range(12))+f.oracle.GUARD
+        single=f.identity_image(image,3,1,512,'single')
+        multi=f.identity_image(image,3,1,512,'multi')
+        self.assertEqual(single[:64],image[:64]);self.assertEqual(single[76:],image[76:])
+        self.assertEqual(multi[:64],image[:64]);self.assertEqual(multi[76:],image[76:])
+        self.assertEqual(single[64:76],f.oracle.BLACK+bytes((2,0,255,255,3,0,255,255)))
+        self.assertEqual(multi[64:76],f.oracle.BLACK+bytes((2,0,255,255,1,4,255,255)))
+        self.assertEqual(multi,f.identity_image(image,3,1,512,'count'))
+        for strategy in f.STRATEGIES:
+            self.assertEqual(single,f.identity_image(image,3,1,1,strategy))
+        with self.assertRaises((ValueError,RuntimeError)):
+            f.identity_image(image[:64]+bytes((1,1,1,1))+image[68:],3,1,512,'multi')
+
+    def test_identity_feature_is_explicit(self):
+        out,err,device,_,_=self.fixture(64,'multi')
+        with self.assertRaises((ValueError,RuntimeError)):
+            f.check_log(out,err(),64,'multi',device,True)
+        out+='DRAW_IDENTITY_FEATURES {"shaderDrawParameters":true}\n'
+        f.check_log(out,err(),64,'multi',device,True)
+        with self.assertRaises((ValueError,RuntimeError)):
+            f.check_log(out,err(),64,'multi',device)
+
 
 if __name__=='__main__': unittest.main()

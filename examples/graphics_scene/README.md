@@ -169,3 +169,20 @@ features and use equal allocation budgets. The scene has no shader-visible draw
 ID; it does not establish a general fusion mapping. This initial probe uses one
 serial slot and fresh per-frame command storage, **not the planned reset/replay
 timing policy**. No performance or public API acceptance follows from it.
+
+### Draw identity control
+
+Add `--identity` to the same command to use a vertex shader reading `SV_DrawIndex`
+and a fragment shader encoding draw identity/surface in exact RGBA8 bytes. The
+diagnostic executable alone queries/enables `shaderDrawParameters`; baseline
+executables keep their original feature profile. SPIR-V must contain both
+`DrawParameters` and `BuiltIn DrawIndex` in this variant, and neither in the
+ordinary vertex variant. Root/geometry/record/count/allocation shapes are unchanged.
+
+The oracle recolors the analytically checked scene coverage and retains every
+depth/guard byte. The runner also requires multi/count equality and single/multi
+inequality in full-capacity frames at N=64/512, with equality in the one-record,
+empty and partial cases. This is an intentional semantic counterexample, not a
+failed matched-output benchmark. The current public profile does not enable draw
+parameters; the probe identifies a native strategy/semantic choice to preserve,
+not a counterexample using a currently supported public shader. No timing claim.
