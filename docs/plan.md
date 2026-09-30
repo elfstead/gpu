@@ -258,8 +258,10 @@ candidate with an implemented slice, not a performance-approved API.
 The [matched public scene](graphics-scene-public-results.md) now passes all ten
 modes on both drivers: 150 frames per consumer, including 720p on Radeon, with
 independent oracle checks and byte-exact native/public agreement through the edges.
-Next: the remaining description/failure gates, then
-grouped-draw/replay measurements and the installed scene handoff.
+The [expanded contract matrix](indexed-depth-contract-results.md) also passes:
+all compare/test/write combinations, both index widths, mismatch/recovery and
+indexed failure lifetimes; the complete suite is now 32 GPU tests per driver.
+Next: scene reuse, grouped-draw/replay measurements and the installed scene handoff.
 Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
 Existing devices suffice.
 

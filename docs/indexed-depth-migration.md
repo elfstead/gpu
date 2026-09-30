@@ -87,10 +87,10 @@ for the native scene's analytical full-image oracle or sustained graphics measur
 1. **Completed:** [matched public scene](graphics-scene-public-results.md), all ten
    modes at odd/useful extents, GPU-written geometry/indices/records, independent
    oracle and exact native/public output agreement on both drivers.
-2. Complete the proposal's broader cases: every compare operation, disabled
-   test/write behavior, read-only depth with actual draws, mismatch/cross-device
-   matrices and indexed preparation/loss fault injection. Existing generic
-   failure/drain tests are regression evidence, not exhaustive new-path coverage.
+2. **Completed bounded matrix:** [contract results](indexed-depth-contract-results.md)
+   cover every compare/test/write combination with UINT16/UINT32, read-only LOAD
+   draws, mismatch/foreign-logical-device rejection and indexed preparation/replay/
+   drained synthetic-loss injection. This is not exhaustive driver-failure coverage.
 3. Two-slot scene reuse and matched small grouped-draw/replay measurements. No
    fundamental/native performance approval follows from passing these tests.
 4. Widen generated stage-pair checking for the scene's vertex root/flat varying,
