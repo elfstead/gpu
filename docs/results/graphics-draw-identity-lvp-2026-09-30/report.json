@@ -1,0 +1,2771 @@
+{
+  "schema": 2,
+  "complete": true,
+  "scope": "Native indexed multi-record/count correctness frontier; deliberately NOT timing.",
+  "runs": [
+    {
+      "name": "257x193-1-single",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-1-single",
+        "1",
+        "single"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 1,
+      "strategy": "single",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 8,
+          "capacity": 1
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 1
+        }
+      ],
+      "requested_bytes": 795408,
+      "files": {
+        "frame-0.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-0.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-3.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-3.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-4.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-4.geometry": "704b4a8fca2545797a788c3e0e2939d8d4fb84a19b8127b7f5b45768f168c55c",
+        "frame-5.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-5.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "c5b0e689d748fbd962021d2283f1c077cc3e386694478770c83ef953d812fc8f",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 825096,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 8,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          568,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "be3ce79d76a701767dd2673d1f30ff0c49ce6100706f442cb8d12145ec36eaa4",
+        "stderr": "2032dc2f179680faed35f5c6313f5876af7a846cd596250c143734b0adf25c7e"
+      }
+    },
+    {
+      "name": "257x193-1-multi",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-1-multi",
+        "1",
+        "multi"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 1,
+      "strategy": "multi",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 8,
+          "capacity": 1
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 1
+        }
+      ],
+      "requested_bytes": 795408,
+      "files": {
+        "frame-0.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-0.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-3.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-3.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-4.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-4.geometry": "704b4a8fca2545797a788c3e0e2939d8d4fb84a19b8127b7f5b45768f168c55c",
+        "frame-5.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-5.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "c5b0e689d748fbd962021d2283f1c077cc3e386694478770c83ef953d812fc8f",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 825096,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 8,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          568,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "be3ce79d76a701767dd2673d1f30ff0c49ce6100706f442cb8d12145ec36eaa4",
+        "stderr": "2032dc2f179680faed35f5c6313f5876af7a846cd596250c143734b0adf25c7e"
+      }
+    },
+    {
+      "name": "257x193-1-count",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-1-count",
+        "1",
+        "count"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 1,
+      "strategy": "count",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 8,
+          "capacity": 1
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 1,
+          "capacity": 1
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 1
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 1
+        }
+      ],
+      "requested_bytes": 795408,
+      "files": {
+        "frame-0.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-0.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "5cc9c7344831eba13ab5ccc9a7c56a830208a3cef954d3d24c600c6401a2aae7",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-3.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-3.geometry": "5cc9c7344831eba13ab5ccc9a7c56a830208a3cef954d3d24c600c6401a2aae7",
+        "frame-4.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-4.geometry": "704b4a8fca2545797a788c3e0e2939d8d4fb84a19b8127b7f5b45768f168c55c",
+        "frame-5.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-5.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "21a9315f3a3b0164fd0a0cb3d76a38ba45900e71bdfa78cff5adbdc77e22a232",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 825096,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 8
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 8
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 0,
+        "counted_capacity": 8
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          568,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "be3ce79d76a701767dd2673d1f30ff0c49ce6100706f442cb8d12145ec36eaa4",
+        "stderr": "bc516f1ee2d7b02ff8ed1568aeb5607b057ee1643ec706d780bfcc2e13d8b622"
+      }
+    },
+    {
+      "name": "257x193-64-single",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-64-single",
+        "64",
+        "single"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 64,
+      "strategy": "single",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 64,
+          "capacity": 64
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 64
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 64
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 32,
+          "capacity": 64
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 71,
+          "capacity": 64
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 64,
+          "capacity": 64
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 64
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 64
+        }
+      ],
+      "requested_bytes": 799084,
+      "files": {
+        "frame-0.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-0.geometry": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9d463c3a6b0db4708c5bb26d9b6be91f714d19b22409b907b942cff0c787cce6",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "e48905328506bba12d5a608eb330ea2fff2adeedd1109cd670f9cce8038032e8",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "beb3c3cc8a4d20cc9ce3b7f465c07149a79d1fac5a4414d9fd6258b4182d3b0a",
+        "frame-4.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-4.geometry": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c",
+        "frame-5.images": "3729a51d1fe683ec52d3f1cd69ab3e4c2fc8f8a0698692dec45ecc5952f3bd1e",
+        "frame-5.geometry": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "6c8d9c6947d9500af0cfa6c6b57299e86606ab78a82f81a4e56e1ab5db2567f8",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "23c05c0165f28205cdb83f0f8c5688fa84be139625b5000cd93a91f96376f939"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 828772,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 512,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 512,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 512,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 512,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1828,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "3998cc253f6a70e81ab61a7e399494a7da67b0530d84c6056fa4e11540d01f24",
+        "stderr": "a72c6dfebbe3cc941c5e4cda7fec392ffdf35a8e4a1af655bcc1ad5c2694b408"
+      }
+    },
+    {
+      "name": "257x193-64-multi",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-64-multi",
+        "64",
+        "multi"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 64,
+      "strategy": "multi",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 64,
+          "capacity": 64
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 64
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 64
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 32,
+          "capacity": 64
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 71,
+          "capacity": 64
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 64,
+          "capacity": 64
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 64
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 64
+        }
+      ],
+      "requested_bytes": 799084,
+      "files": {
+        "frame-0.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-0.geometry": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9d463c3a6b0db4708c5bb26d9b6be91f714d19b22409b907b942cff0c787cce6",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "e48905328506bba12d5a608eb330ea2fff2adeedd1109cd670f9cce8038032e8",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "beb3c3cc8a4d20cc9ce3b7f465c07149a79d1fac5a4414d9fd6258b4182d3b0a",
+        "frame-4.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-4.geometry": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c",
+        "frame-5.images": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+        "frame-5.geometry": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "6c8d9c6947d9500af0cfa6c6b57299e86606ab78a82f81a4e56e1ab5db2567f8",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "23c05c0165f28205cdb83f0f8c5688fa84be139625b5000cd93a91f96376f939"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 828772,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 512,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1828,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "3998cc253f6a70e81ab61a7e399494a7da67b0530d84c6056fa4e11540d01f24",
+        "stderr": "2320b3c2861bd2fd175ebd8f3add42de21b98177d87d1f4dc9f43fc6de4750f0"
+      }
+    },
+    {
+      "name": "257x193-64-count",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-64-count",
+        "64",
+        "count"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 64,
+      "strategy": "count",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 64,
+          "capacity": 64
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 64
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 64
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 32,
+          "capacity": 64
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 71,
+          "capacity": 64
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 64,
+          "capacity": 64
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 64
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 64
+        }
+      ],
+      "requested_bytes": 799084,
+      "files": {
+        "frame-0.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-0.geometry": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "1254347e662f074751760a6a7a286b746e8b8e0a680c3c3f54725956b5fc3802",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "329748f9b9552c3b8220d7a297af711ffc36e822e72dd57cad486621ce5cbb38",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "0996943f5b7ff9dce29df36d738a27e2264d75765b88378e4cf7fdb838788446",
+        "frame-4.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-4.geometry": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c",
+        "frame-5.images": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+        "frame-5.geometry": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "794329d2ce6403007fa42f271a679669eb6b6e00a02862761ada91e1c8bc00bd",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "3afbb55077389ff3ac61c41a235d483016b8474d8fedd51b827bd0ffbff90f5f"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 828772,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 512
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 512
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 0,
+        "counted_capacity": 512
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1828,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "3998cc253f6a70e81ab61a7e399494a7da67b0530d84c6056fa4e11540d01f24",
+        "stderr": "20ad22a03cabe33ec102982ca554c7c22b3978ad4a0333baa14b9917d6e4925a"
+      }
+    },
+    {
+      "name": "257x193-512-single",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-512-single",
+        "512",
+        "single"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 512,
+      "strategy": "single",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 512,
+          "capacity": 512
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 512
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 512
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 256,
+          "capacity": 512
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 519,
+          "capacity": 512
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 512,
+          "capacity": 512
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 512
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 512
+        }
+      ],
+      "requested_bytes": 825964,
+      "files": {
+        "frame-0.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-0.geometry": "da835a1793cec4ffb3f65763e43536975efc28051dfba8fef8b5482aa7402017",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "95acc9373d1121247837ba673dfea4a53a900daf2335f6e800d371aa1fcbd5d3",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "8e35c2318eed6169c501db8174c612efa4b413333598ba49eb520ea41265c9c4",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "6eab1ac13b7fc625d1c68a7bf813687eb642648e3fb686ba99a9e1131b3458aa",
+        "frame-4.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-4.geometry": "ca522dcc2d016cbebb71990655c60c1eed8d6eb82a3abc2ebfadd1df96cb0b4c",
+        "frame-5.images": "3729a51d1fe683ec52d3f1cd69ab3e4c2fc8f8a0698692dec45ecc5952f3bd1e",
+        "frame-5.geometry": "d1aa6d205f840065f4c3fc9a86845932e3e8e034cbc0f5d0ec52e8918471846c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "da690c9862cca582eae1566a190cabb3285539ffb6486e83d859161fa3f2bc24",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "50adf4bb83f7298faa86e80d8aff272b50532111cc3acebf7b4f08dc71196692"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 855652,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 4096,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 4096,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 4096,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 4096,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10788,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "06cf2eb20d1c1f47c673e1c67b4d1483a030236169e2585a0c3bd4e6d50c4e22",
+        "stderr": "8804d42351a05b2a9007c90d07f994951e40c7959c444756b2399c384df10658"
+      }
+    },
+    {
+      "name": "257x193-512-multi",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-512-multi",
+        "512",
+        "multi"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 512,
+      "strategy": "multi",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 512,
+          "capacity": 512
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 512
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 512
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 256,
+          "capacity": 512
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 519,
+          "capacity": 512
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 512,
+          "capacity": 512
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 512
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 512
+        }
+      ],
+      "requested_bytes": 825964,
+      "files": {
+        "frame-0.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-0.geometry": "da835a1793cec4ffb3f65763e43536975efc28051dfba8fef8b5482aa7402017",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "95acc9373d1121247837ba673dfea4a53a900daf2335f6e800d371aa1fcbd5d3",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "8e35c2318eed6169c501db8174c612efa4b413333598ba49eb520ea41265c9c4",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "6eab1ac13b7fc625d1c68a7bf813687eb642648e3fb686ba99a9e1131b3458aa",
+        "frame-4.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-4.geometry": "ca522dcc2d016cbebb71990655c60c1eed8d6eb82a3abc2ebfadd1df96cb0b4c",
+        "frame-5.images": "9061342998a326c1f749161a6fe8e444d22aecf4640067e9db9a1adfecd52552",
+        "frame-5.geometry": "d1aa6d205f840065f4c3fc9a86845932e3e8e034cbc0f5d0ec52e8918471846c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "da690c9862cca582eae1566a190cabb3285539ffb6486e83d859161fa3f2bc24",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "50adf4bb83f7298faa86e80d8aff272b50532111cc3acebf7b4f08dc71196692"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 855652,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 4096,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10788,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "06cf2eb20d1c1f47c673e1c67b4d1483a030236169e2585a0c3bd4e6d50c4e22",
+        "stderr": "e4d2ce3f287dd39149cf65bfbe6fe47d0190daf338bfa417894a645dac228709"
+      }
+    },
+    {
+      "name": "257x193-512-count",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/257x193-512-count",
+        "512",
+        "count"
+      ],
+      "extent": [
+        257,
+        193
+      ],
+      "capacity": 512,
+      "strategy": "count",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": [
+        {
+          "frame": 0,
+          "phase": 0,
+          "active": 512,
+          "capacity": 512
+        },
+        {
+          "frame": 1,
+          "phase": 1,
+          "active": 0,
+          "capacity": 512
+        },
+        {
+          "frame": 2,
+          "phase": 0,
+          "active": 1,
+          "capacity": 512
+        },
+        {
+          "frame": 3,
+          "phase": 1,
+          "active": 256,
+          "capacity": 512
+        },
+        {
+          "frame": 4,
+          "phase": 0,
+          "active": 519,
+          "capacity": 512
+        },
+        {
+          "frame": 5,
+          "phase": 1,
+          "active": 512,
+          "capacity": 512
+        },
+        {
+          "frame": 6,
+          "phase": 0,
+          "active": 0,
+          "capacity": 512
+        },
+        {
+          "frame": 7,
+          "phase": 1,
+          "active": 1,
+          "capacity": 512
+        }
+      ],
+      "requested_bytes": 825964,
+      "files": {
+        "frame-0.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-0.geometry": "da835a1793cec4ffb3f65763e43536975efc28051dfba8fef8b5482aa7402017",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "838ec773aa226d4a29d39463dd855da6c1798c2555199a30f39c3fc3a1f5af0e",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "885bd524c142299126e4e05732f16740f311ef100a86895e15111392a662cc09",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "8f6760c58d7ce4f654e239b57d05c0cf7cea479914d7f5b958508e8cf5ad0d50",
+        "frame-4.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-4.geometry": "ca522dcc2d016cbebb71990655c60c1eed8d6eb82a3abc2ebfadd1df96cb0b4c",
+        "frame-5.images": "9061342998a326c1f749161a6fe8e444d22aecf4640067e9db9a1adfecd52552",
+        "frame-5.geometry": "d1aa6d205f840065f4c3fc9a86845932e3e8e034cbc0f5d0ec52e8918471846c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "66ad16d13be853947d50a361e562342b249b24d5bb593974dbec2ebaadf6e1ba",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "9b7741ce6e052568fa7af5368555d8b1001abcd3ef25d888fc56bbb93eb2a354"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 855652,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 4096
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 0,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 4096
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 0,
+        "counted_capacity": 4096
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10788,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "06cf2eb20d1c1f47c673e1c67b4d1483a030236169e2585a0c3bd4e6d50c4e22",
+        "stderr": "1b4ab9ff079a9437037045f9808cc89b3d18099164ab8e0b5fc69d03dfc5c103"
+      }
+    }
+  ],
+  "baseline": [
+    {
+      "name": "baseline-257x193",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/baseline",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-jtx1rlog",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/baseline-257x193",
+        "32"
+      ],
+      "comparison": {
+        "frames": 30,
+        "files": 60,
+        "compared_bytes": 11929440,
+        "exact": true
+      },
+      "memory": {
+        "allocations": 8,
+        "frees": 8,
+        "peak_bytes": 824984,
+        "peak_count": 8,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "logs": {
+        "stdout": "7c9636750bfdbcfcc59e2ba78f904ddaa4c5cc04c2122b73aadb61813e0356f0",
+        "stderr": "3b59b3645271659ef6370db971398241a5315fa223d9557a4e7c5b2ae26681a5"
+      }
+    }
+  ],
+  "scale": false,
+  "identity": true,
+  "revision": "e6baf7bf5e4aed7fd5515d4fed8d23cc07b5514f",
+  "dirty": false,
+  "toolchain": {
+    "cc": "clang version 21.1.8",
+    "slang": "2026.14.1",
+    "python": "3.14.7"
+  },
+  "sources": {
+    "examples/compiler/affine.py": "1505b3a4a9bcb2fa89f6df769cc3735aad6490576289dbc1c174a19958e123e3",
+    "examples/compiler/build_inputs.py": "7fa31e7cbff50be5e2db8ca520897f50b77a5d4c3f4894e983ef199ec552912c",
+    "examples/compiler/dependency_workflow.py": "eb9c29c40bc97201c6cb4a85a5ad6b91d55bdfcae8c1176c5e71cd322102c798",
+    "examples/compiler/generate.py": "73d00c407853b713749b6975162a9b203794517aaafde740a8ffc642dc99d51e",
+    "examples/compiler/heap_workflow.py": "a6cd34ba9d288d50ba4261ce6cf7a14e01e9b47e97c5846d7c395dbfdc5b8d6b",
+    "examples/compiler/heaps.py": "85bb96970c7a36d91fc4f262d6aa13e8f423bbca5cf5eb1895db17a037642276",
+    "examples/compiler/layouts.py": "8f50e4433948288938d6eaf204e5d8d7d9326fb69efdb304c866edba30be3383",
+    "examples/compiler/link_graphics.py": "b80fc7f3780dbd508a0115d8cb397dca80760a1e6f0bebf676c6ffbea5470475",
+    "examples/compiler/run.py": "c31004244eb46e4147f82d1d4aad74f97930b8cbeebdbc0dd8181dee306033ed",
+    "examples/compiler/stage_workflow.py": "3c1bedf64a27ffcb09348b35d021714e573a39b3c178714cf5aa90a571593ca2",
+    "examples/compiler/stages.py": "dc7d2e00751c82ffc7b8b186ee4bd94cb5212e7218a65fe6c7db0c4612f16c42",
+    "examples/compiler/structured.py": "c7ae9cbb356cb57e88209fdbeae0cac8eba88a5c34877b3316fd045827ab7172",
+    "examples/compiler/test_affine.py": "d8240fbc1d1f2978034b1d010ef73d2c0f267ad0612ab50e42f5eac3fd5194be",
+    "examples/compiler/test_build_inputs.py": "4ad7d2a774d56ebe3668744682b849ef347724121a41bc60bce75347008d8c32",
+    "examples/compiler/test_generate.py": "52f164fed2c2ad0a0c678ec7997a6849067f87c4dcea3eb4ad31f44fc867453a",
+    "examples/compiler/test_heaps.py": "a669f5393c5cf316a1417db80b20a2c5943e77ca3d0360a1bab6578fa5977405",
+    "examples/compiler/test_stages.py": "4d07a8cde2d661a8cf895b56ea0bb6cf4bb9db814f31df8c9307a5d0421caf0f",
+    "examples/compiler/test_structured.py": "6cedebf4e1ff942bbfa664e41b5dd7cb699b20271b65657cfa55b9a715d566e6",
+    "examples/graphics_scene/README.md": "943f6a368f6051d71f2abb37a328c1f19dda37847dd469ab59b8eead83bc5da7",
+    "examples/graphics_scene/frontier.c": "909ff3d1aed8cba8231a926eb25e3799dea7a68992a214850e82ebb1443f0c4e",
+    "examples/graphics_scene/frontier.py": "6c544cc40eb2abba10934f65603e7a90176ce171478c9a19e4ae79648e90eb19",
+    "examples/graphics_scene/frontier.slang": "cfd6c993979979494ba6a6e19d7191a22f42baae5a108386758ea9a83f69a36d",
+    "examples/graphics_scene/identity.frag.slang": "6f93b06a89ea36fbb9d62f0b8ac1860c7848b3aaf7d6843d38ba2824be58c4c2",
+    "examples/graphics_scene/identity.vert.slang": "df38bdfb4242c2ece1534a6271417002dc059231a299d10d5dab5713237e24d9",
+    "examples/graphics_scene/native.c": "7d6dcca41254709d444e9c85e486577c31d4bc1f94df4a15743ee3a1c1cac244",
+    "examples/graphics_scene/oracle.py": "19e201a2749ad50f16e0fb1e1f0d433680d4c1926c1a44806502d76302af81d0",
+    "examples/graphics_scene/prepare.slang": "caadf22369e4b1db324ecde72cf1c89a5abd5a8d3b7f9d75ebb1869de2231136",
+    "examples/graphics_scene/prepare16.slang": "5ebce5945f375228c0db1205f64223c0ecb1475fea6505be947065c06b3114c1",
+    "examples/graphics_scene/prepare_reuse.slang": "08b8a1d97198ed8293e0f4d65df9c3a16e0ba9a7977c02cec6f556b3013bdcac",
+    "examples/graphics_scene/prepare_reuse16.slang": "e4055c92155a052bdde2c0a3af74497a6372872aa47a7d102568f5f07d0dce39",
+    "examples/graphics_scene/public.c": "7bba36d75d4184268c5dab1e9a6d77c267541265664037f7ac9498fef9847df0",
+    "examples/graphics_scene/reuse.h": "f2532f549705addc050700e6c5c8e6bcd3bf9ab00140964b44ce9e62c97fe6cf",
+    "examples/graphics_scene/reuse.py": "484fa176d309f1fa42693c5a9c005f970222a163357d44ecb6cfe0693db996b7",
+    "examples/graphics_scene/reuse_cpu_trace.h": "a7369b0f390010ded900c3259fa5b7365aac8b0fb46822df99e25f95bbe0f6d8",
+    "examples/graphics_scene/reuse_failures.py": "2be97ce24e51043ef612a175e3747328a10a5fd5e07554cbd4ce9db11a26d879",
+    "examples/graphics_scene/reuse_native.c": "d280514abe31a99c7e6081490c2f0903d36761d95b1865eeb67c6ed6b2c98d92",
+    "examples/graphics_scene/reuse_public.c": "094ad25fe010de1a1ee60694e26fd8166556492d9a00e9e74fdba931b45872ca",
+    "examples/graphics_scene/reuse_trace.c": "11722ffd98b1dcab02363ca4a803479f0e2c70550a628dce2f21e5332b31a5ab",
+    "examples/graphics_scene/reuse_write_failure.c": "3c40477543a674300df4f5346e7c3e03b261f639be224c528641240270c0630f",
+    "examples/graphics_scene/run.py": "8ae7e3a1db5779712496f221c6dd6091da4ca30e0c5c43cf6b6e0580a376713a",
+    "examples/graphics_scene/scene.frag.slang": "31766007137264d4f408851126004ff90baacf7ed3ddd50a0091ff5f4a2f6231",
+    "examples/graphics_scene/scene.vert.slang": "3a66bcfb02f1f6b47cee1331c75069b3bd537e22f806b5ba19c814f1bcd84756",
+    "examples/graphics_scene/test_frontier.py": "3839a272765da4675af62546ca98f780d25121a0b00b648c402bacfe6e193e8a",
+    "examples/graphics_scene/test_oracle.py": "64e9d20ddfde1c9eb752b63ef691af7599d16a0c9c321b746d502df7848458d7",
+    "examples/graphics_scene/test_reuse.c": "6608729e9e1e28b772ff08fcc131c59ac6c30af8a4d313ab3334e884163f38fc",
+    "examples/graphics_scene/test_reuse.py": "c65e908056b020db231422897582b55105dff76290719b050634539313997f9e",
+    "examples/graphics_scene/test_runner.py": "d3632ce865a6e627b6b02d06f0c84033c3d59839681d345f1253fab5dada9d74",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "examples/learned_image/extent.h": "83bbd9dba4a8bc1a4e0aadad86da8daba32b227d07ea34b9bf7139a52673a900",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+    "examples/learned_image/native.c": "0015a75ef2f85c2bd29c977970e75c83fd75f98d4a8406da79a6db491143a0d9",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "include/ogpu.h": "a1fafa66e02d71954a16980ea468cbcdb7ad2457347764e2ba3a14858c6c5c9a",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6"
+  },
+  "shaders": {
+    "compute": {
+      "sha256": "cd92e09851375c2415f1af56df1de9d0acc1c747b80260177f01b2a55a959b90",
+      "reflection": {
+        "parameters": [
+          {
+            "name": "root",
+            "binding": {
+              "kind": "pushConstantBuffer",
+              "index": 0
+            },
+            "type": {
+              "kind": "constantBuffer",
+              "elementType": {
+                "kind": "struct",
+                "name": "Root",
+                "fields": [
+                  {
+                    "name": "vertices",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "float",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 0,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "indices",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "uint",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 8,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "draws",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "uint",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 16,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  },
+                  {
+                    "name": "control",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "uint",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 24,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 32,
+                    "alignment": 8
+                  }
+                ]
+              },
+              "containerVarLayout": {
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              },
+              "elementVarLayout": {
+                "type": {
+                  "kind": "struct",
+                  "name": "Root",
+                  "fields": [
+                    {
+                      "name": "vertices",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "float",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "indices",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "uint",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 8,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "draws",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "uint",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 16,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    },
+                    {
+                      "name": "control",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "uint",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 24,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 32,
+                      "alignment": 8
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 32,
+                  "elementStride": 0
+                }
+              },
+              "sizes": [
+                {
+                  "kind": "pushConstantBuffer",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        ],
+        "entryPoints": [
+          {
+            "name": "main",
+            "stage": "compute",
+            "parameters": [
+              {
+                "name": "thread",
+                "semanticName": "SV_DISPATCHTHREADID",
+                "type": {
+                  "kind": "vector",
+                  "elementCount": 3,
+                  "elementType": {
+                    "kind": "scalar",
+                    "scalarType": "uint32"
+                  },
+                  "sizes": []
+                }
+              }
+            ],
+            "threadGroupSize": [
+              8,
+              1,
+              1
+            ],
+            "bindings": [
+              {
+                "name": "root",
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              }
+            ]
+          }
+        ],
+        "bindlessSpaceIndex": 0
+      }
+    },
+    "vertex": {
+      "sha256": "bc114e5b5913eb332e880cc17cf8645ff2b99dbccd12199c521730c9c7f20de6",
+      "reflection": {
+        "parameters": [
+          {
+            "name": "root",
+            "binding": {
+              "kind": "pushConstantBuffer",
+              "index": 0
+            },
+            "type": {
+              "kind": "constantBuffer",
+              "elementType": {
+                "kind": "struct",
+                "name": "Root",
+                "fields": [
+                  {
+                    "name": "vertices",
+                    "type": {
+                      "kind": "pointer",
+                      "valueType": "float",
+                      "sizes": [
+                        {
+                          "kind": "uniform",
+                          "value": 8,
+                          "alignment": 8
+                        }
+                      ]
+                    },
+                    "binding": {
+                      "kind": "uniform",
+                      "offset": 0,
+                      "size": 8,
+                      "elementStride": 0
+                    }
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "uniform",
+                    "value": 8,
+                    "alignment": 8
+                  }
+                ]
+              },
+              "containerVarLayout": {
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              },
+              "elementVarLayout": {
+                "type": {
+                  "kind": "struct",
+                  "name": "Root",
+                  "fields": [
+                    {
+                      "name": "vertices",
+                      "type": {
+                        "kind": "pointer",
+                        "valueType": "float",
+                        "sizes": [
+                          {
+                            "kind": "uniform",
+                            "value": 8,
+                            "alignment": 8
+                          }
+                        ]
+                      },
+                      "binding": {
+                        "kind": "uniform",
+                        "offset": 0,
+                        "size": 8,
+                        "elementStride": 0
+                      }
+                    }
+                  ],
+                  "sizes": [
+                    {
+                      "kind": "uniform",
+                      "value": 8,
+                      "alignment": 8
+                    }
+                  ]
+                },
+                "binding": {
+                  "kind": "uniform",
+                  "offset": 0,
+                  "size": 8,
+                  "elementStride": 0
+                }
+              },
+              "sizes": [
+                {
+                  "kind": "pushConstantBuffer",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        ],
+        "entryPoints": [
+          {
+            "name": "main",
+            "stage": "vertex",
+            "parameters": [
+              {
+                "name": "id",
+                "semanticName": "SV_VULKANVERTEXID",
+                "type": {
+                  "kind": "scalar",
+                  "scalarType": "uint32",
+                  "sizes": []
+                }
+              },
+              {
+                "name": "draw",
+                "semanticName": "SV_DRAWINDEX",
+                "type": {
+                  "kind": "scalar",
+                  "scalarType": "uint32",
+                  "sizes": []
+                }
+              }
+            ],
+            "result": {
+              "stage": "vertex",
+              "binding": {
+                "kind": "varyingOutput",
+                "index": 0
+              },
+              "type": {
+                "kind": "struct",
+                "name": "Varyings",
+                "fields": [
+                  {
+                    "name": "position",
+                    "type": {
+                      "kind": "vector",
+                      "elementCount": 4,
+                      "elementType": {
+                        "kind": "scalar",
+                        "scalarType": "float32"
+                      },
+                      "sizes": []
+                    },
+                    "semanticName": "SV_POSITION"
+                  },
+                  {
+                    "name": "identity",
+                    "type": {
+                      "kind": "scalar",
+                      "scalarType": "uint32",
+                      "sizes": [
+                        {
+                          "kind": "varyingOutput",
+                          "value": 1
+                        }
+                      ]
+                    },
+                    "stage": "vertex",
+                    "binding": {
+                      "kind": "varyingOutput",
+                      "index": 0
+                    },
+                    "semanticName": "TEXCOORD"
+                  }
+                ],
+                "sizes": [
+                  {
+                    "kind": "varyingOutput",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "bindings": [
+              {
+                "name": "root",
+                "binding": {
+                  "kind": "pushConstantBuffer",
+                  "index": 0
+                }
+              }
+            ]
+          }
+        ],
+        "bindlessSpaceIndex": 0
+      }
+    },
+    "fragment": {
+      "sha256": "b88712f79486fbcbd95e52ee63ce63cd6a8c90126549a91fd454ea279c048e99",
+      "reflection": {
+        "parameters": [],
+        "entryPoints": [
+          {
+            "name": "main",
+            "stage": "fragment",
+            "parameters": [
+              {
+                "name": "identity",
+                "stage": "fragment",
+                "binding": {
+                  "kind": "varyingInput",
+                  "index": 0
+                },
+                "semanticName": "TEXCOORD",
+                "type": {
+                  "kind": "scalar",
+                  "scalarType": "uint32",
+                  "sizes": [
+                    {
+                      "kind": "varyingInput",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ],
+            "result": {
+              "stage": "fragment",
+              "binding": {
+                "kind": "varyingOutput",
+                "index": 0
+              },
+              "semanticName": "SV_TARGET",
+              "type": {
+                "kind": "vector",
+                "elementCount": 4,
+                "elementType": {
+                  "kind": "scalar",
+                  "scalarType": "float32"
+                },
+                "sizes": [
+                  {
+                    "kind": "varyingOutput",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "bindings": []
+          }
+        ],
+        "bindlessSpaceIndex": 0
+      }
+    }
+  },
+  "builds": {
+    "native": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+        "-I/home/elf/dev/gpu/examples/learned_image/generated",
+        "-DNATIVE_DRAW_IDENTITY",
+        "/home/elf/dev/gpu/examples/graphics_scene/frontier.c",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/native"
+      ],
+      "sha256": "0bd0375865933eeee92337b1194b95c9b3683bef779e5c89d515edadcb27a8a4"
+    },
+    "baseline": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+        "-I/home/elf/dev/gpu/examples/learned_image/generated",
+        "/home/elf/dev/gpu/examples/graphics_scene/native.c",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/baseline"
+      ],
+      "sha256": "19ddb79d90d412837a27b81c91e9a91cee0a27eddb48abcc9bd7797caece9579"
+    },
+    "trace.so": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+        "-I/home/elf/dev/gpu/examples/learned_image/generated",
+        "-shared",
+        "-fPIC",
+        "/home/elf/dev/gpu/examples/graphics_scene/reuse_trace.c",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/trace.so"
+      ],
+      "sha256": "4d215a51f4b6201142236039f897a473d64916730fed37f11096fd027cfc7420"
+    }
+  },
+  "reference": {
+    "path": "/home/elf/dev/gpu/target/graphics-scene/matched-jtx1rlog/report.json",
+    "sha256": "73b3e63be5b64ad4a381ddcd7bb6318787aca2687fd31cb68a265c61906c8b04",
+    "revision": "0999689873019ee740cbb1e10aa18db55888c7c5"
+  },
+  "reference_runs": [
+    {
+      "directory": "/home/elf/dev/gpu/target/graphics-scene/matched-jtx1rlog/257x193-native",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "checks": [
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        },
+        {
+          "checked_pixels": 46065,
+          "excluded_edge_pixels": 3536
+        }
+      ]
+    }
+  ],
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "OGPU_VULKAN_LIBRARY": "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/trace.so",
+    "OGPU_SCENE_TRACE": "1"
+  }
+}

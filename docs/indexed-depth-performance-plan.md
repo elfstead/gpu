@@ -4,12 +4,14 @@ Selected 2026-09-30 after the [matched scene](graphics-scene-public-results.md)
 and [contract matrix](indexed-depth-contract-results.md). This is the next
 experiment. Its [slot/replay correctness increment](graphics-scene-reuse-results.md)
 is now accepted at `637c7db`. The [native multi-record/count correctness probe](graphics-indexed-frontier-results.md)
-passes at `62f1ad7`; **timing, matched public strategies and draw-identity mapping remain open**.
+passes at `62f1ad7`. The [identity-sensitive control](graphics-draw-identity-results.md)
+at `e6baf7b` supports the [selected range/count contract](indirect-draw-ranges.md).
+**Public implementation/acceptance and matched timing remain open**.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 
-## Next checkpoint: draw-contract decision
+## Draw-contract decision and remaining acceptance
 
-The next checkpoint is a retain/change decision for explicit record ranges,
+This checkpoint records a retain/change decision for explicit record ranges,
 stride, GPU counts and shader-visible draw identity—not merely a timing report.
 First close the semantic mapping: exercise draw identity in single/multi/count
 execution and specify retained backing, bounds, dependency and replay behavior.
@@ -21,6 +23,12 @@ its capability/rejection/lifetime gates and compare matched strategies. Existing
 one-record behavior is a semantic control, not a compatibility veto. Timing below
 remains required to assess implementation costs, not to grant permission for a
 better API. Finish this checkpoint before expanding into the remaining M4 slices.
+
+Decision recorded 2026-09-30: select explicit fixed/counted ranges with identity
+local to each range. The native identity probe supplies a concrete semantic
+distinction; ABI 18 itself does not enable this shader capability. Follow the
+selected contract's implementation, lifetime, capability and boundary matrix next.
+The measurements below remain acceptance work, not a reason to delay the choice.
 
 ## First increment: stable slots and replay
 

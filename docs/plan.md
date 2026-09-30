@@ -271,9 +271,14 @@ The [stronger native indexed frontier](graphics-indexed-frontier-results.md) now
 passes 216 frames at 1/64/512 records: single commands, multi-record commands and
 GPU-counted execution, including zero/partial/full counts. Public range/count
 expressibility and shader-visible draw identity remain open; this is not timing.
-Next: [draw-contract decision and matched measurements](indexed-depth-performance-plan.md):
-close draw identity and range/count semantics, select/accept a better contract if
-warranted, then measure its native mappings and complete installed scene handoff.
+The [native draw-identity follow-up](graphics-draw-identity-results.md) passes
+144 identity-sensitive frames plus ordinary regressions. It distinguishes separate
+single draws from one range, without claiming that ABI 18 enables that capability.
+The [selected range/count contract](indirect-draw-ranges.md) makes that semantic
+choice explicit. Next implement the coordinated public migration and its
+capability/bounds/lifetime/replay gates, then measure native mappings and complete
+installed scene handoff. Header/runtime are still ABI 18; this is a design decision,
+not an implemented feature claim.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and
 numerical requirements before its dependent kernels.

@@ -1,0 +1,20 @@
+FRONTIER_FEATURES {"multiDrawIndirect":true,"drawIndirectCount":true,"maxDrawIndirectCount":4294967295}
+Native device: AMD Radeon RX 5700 XT (RADV NAVI10); vendor=4098 device=29471 api=4211042 driver=radv Mesa 26.2.1 queue=0 float16=1 unified=0
+DEVICE {"vendor":4098,"device":29471,"api":[1,4,354]}
+NATIVE_IMAGE {"logical":198404,"allocated":258048,"type":0,"flags":1}
+NATIVE_BUFFER {"host":false,"requested":256,"allocated":256,"type":0,"flags":1}
+NATIVE_BUFFER {"host":false,"requested":160,"allocated":160,"type":0,"flags":1}
+NATIVE_BUFFER {"host":false,"requested":1412,"allocated":1424,"type":0,"flags":1}
+NATIVE_BUFFER {"host":true,"requested":1412,"allocated":1424,"type":5,"flags":14}
+NATIVE_BUFFER {"host":true,"requested":397064,"allocated":397072,"type":5,"flags":14}
+NATIVE_BUFFER {"host":true,"requested":1828,"allocated":1840,"type":5,"flags":14}
+NATIVE_BUFFER {"host":true,"requested":144,"allocated":144,"type":5,"flags":14}
+FRONTIER_FRAME {"frame":0,"phase":0,"active":64,"capacity":64}
+FRONTIER_FRAME {"frame":1,"phase":1,"active":0,"capacity":64}
+FRONTIER_FRAME {"frame":2,"phase":0,"active":1,"capacity":64}
+FRONTIER_FRAME {"frame":3,"phase":1,"active":32,"capacity":64}
+FRONTIER_FRAME {"frame":4,"phase":0,"active":71,"capacity":64}
+FRONTIER_FRAME {"frame":5,"phase":1,"active":64,"capacity":64}
+FRONTIER_FRAME {"frame":6,"phase":0,"active":0,"capacity":64}
+FRONTIER_FRAME {"frame":7,"phase":1,"active":1,"capacity":64}
+Native indexed frontier drained

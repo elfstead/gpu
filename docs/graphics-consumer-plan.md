@@ -83,6 +83,9 @@ encoding overhead is tracked separately and is not automatically fundamental.
 The [indexed/depth proposal](indexed-depth-proposal.md) now selects a candidate
 contract and its implementation/acceptance sequence. The coherent ABI-18 runtime
 migration, matched scene and bounded lifetime/description gates are accepted.
-Stable slots and [stronger native multi-record/count correctness](graphics-indexed-frontier-results.md)
-now pass. Next: [matched grouped-draw/replay measurements](indexed-depth-performance-plan.md),
-including range/count expressibility and draw identity, then installed scene handoff.
+Stable slots, stronger native multi-record/count correctness and
+[draw-identity controls](graphics-draw-identity-results.md) now pass. The
+[range/count contract](indirect-draw-ranges.md) is selected, not implemented.
+Next: coordinated public migration and capability/lifetime acceptance, followed
+by [matched grouped-draw/replay measurements](indexed-depth-performance-plan.md)
+and installed scene handoff.
