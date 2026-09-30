@@ -45,12 +45,14 @@ static int read_shader(Scene *s, unsigned index, const char *directory, const ch
 done:
     if(fclose(f)) okay=0; return okay;
 }
+#ifndef SCENE_REUSE_CONSUMER
 static int write_file(const char *directory, const char *name, const void *data, size_t bytes) {
     char path[4096]; NEED(path_join(path,directory,name));
     FILE *f=fopen(path,"wb"); if(!f) { perror(path); return 0; }
     int okay=fwrite(data,1,bytes,f)==bytes && !ferror(f);
     if(fclose(f)) okay=0; return okay;
 }
+#endif
 static int buffer_create(Scene *s, OgpuBuffer **out, uint64_t bytes, uint32_t placement, uint32_t extra_usage) {
     OgpuBufferDesc desc={bytes,placement,extra_usage};
     GPU(ogpu_buffer_create(s->device,&desc,out,&s->error)); return 1;
@@ -61,7 +63,7 @@ static int submit_wait(Scene *s) {
     GPU(ogpu_completion_wait(s->completion,&s->error));
     ogpu_completion_destroy(s->completion); s->completion=NULL; return 1;
 }
-static int scene_create(Scene *s, const char *directory) {
+static int scene_create_context(Scene *s, const char *directory) {
     GPU(ogpu_probe_create(OGPU_ABI_VERSION,&s->probe,&s->error));
     uint32_t count=0; GPU(ogpu_probe_device_count(s->probe,&count));
     NEED(count==1); /* Same unambiguous device selection as the native control. */
@@ -80,6 +82,9 @@ static int scene_create(Scene *s, const char *directory) {
             i!=1,i!=2,i==3 ? OGPU_COMPARE_ALWAYS : OGPU_COMPARE_LESS,0};
         GPU(ogpu_raster_create(s->device,&shaders[1],&shaders[2],&desc,&s->raster[i],&s->error));
     }
+    return 1;
+}
+static int scene_create_resources(Scene *s) {
     OgpuImageDesc color={OGPU_IMAGE_2D,s->width,s->height,OGPU_FORMAT_RGBA8_UNORM,OGPU_IMAGE_USAGE_COLOR|OGPU_IMAGE_USAGE_COPY_SRC,0};
     OgpuImageDesc depth={OGPU_IMAGE_2D,s->width,s->height,OGPU_FORMAT_D32_FLOAT,OGPU_IMAGE_USAGE_DEPTH|OGPU_IMAGE_USAGE_COPY_SRC,0};
     GPU(ogpu_image_check_support(s->device,&color,&s->error)); GPU(ogpu_image_check_support(s->device,&depth,&s->error));
@@ -116,12 +121,10 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     }
     GPU(ogpu_batch_end_rendering(s->batch,&s->error)); return 1;
 }
-static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, const char *directory) {
-    GPU(ogpu_batch_create(s->device,&s->batch,&s->error));
+static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COMPUTE_WRITE|OGPU_ACCESS_VERTEX_READ|OGPU_ACCESS_INDEX_READ|
         OGPU_ACCESS_INDIRECT_READ|OGPU_ACCESS_TRANSFER_READ|OGPU_ACCESS_TRANSFER_WRITE,OGPU_ACCESS_COMPUTE_WRITE,&s->error));
-    s->root.phase=phase; s->root.empty=mode==9;
-    GPU(ogpu_batch_dispatch(s->batch,s->prepare,1,1,1,&s->root,sizeof(s->root),&s->error));
+    GPU(ogpu_batch_dispatch(s->batch,s->prepare,1,1,1,compute_root,sizeof(SceneRoot),&s->error));
     GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_INDEX_READ|OGPU_ACCESS_VERTEX_READ|OGPU_ACCESS_INDIRECT_READ,&s->error));
     /* Match the native control's per-frame discard policy, not a requirement to
@@ -139,6 +142,13 @@ static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, 
     GPU(ogpu_batch_copy_buffer(s->batch,s->vertices,0,s->geometry,0,256,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->indices,0,s->geometry,256,160,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->draws,0,s->geometry,416,168,&s->error));
+    return 1;
+}
+#ifndef SCENE_REUSE_CONSUMER
+static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, const char *directory) {
+    GPU(ogpu_batch_create(s->device,&s->batch,&s->error));
+    s->root.phase=phase; s->root.empty=mode==9;
+    NEED(scene_commands(s,mode,&s->root));
     NEED(submit_wait(s));
     GPU(ogpu_buffer_read(s->readback,0,s->cpu,2*s->pixels+4*GUARD,&s->error));
     char name[128]; snprintf(name,sizeof(name),"mode-%u-frame-%u.images",mode,frame);
@@ -148,18 +158,22 @@ static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, 
     NEED(write_file(directory,name,s->cpu,584));
     printf("SCENE_FRAME {\"mode\":%u,\"phase\":%u,\"frame\":%u}\n",mode,phase,frame); return 1;
 }
-static void scene_destroy(Scene *s) {
+#endif
+static void scene_destroy_resources(Scene *s) {
     /* Drain an accepted submission even on read/wait errors, before releasing
        any allocation reachable only through compute/vertex root addresses. */
     ogpu_completion_destroy(s->completion); ogpu_batch_destroy(s->batch);
     ogpu_buffer_destroy(s->geometry); ogpu_buffer_destroy(s->readback); ogpu_buffer_destroy(s->upload);
     ogpu_buffer_destroy(s->draws); ogpu_buffer_destroy(s->indices); ogpu_buffer_destroy(s->vertices);
     ogpu_image_destroy(s->depth); ogpu_image_destroy(s->color);
+    free(s->cpu);
+}
+static void scene_destroy_context(Scene *s) {
     for(unsigned i=0;i<4;++i) ogpu_raster_destroy(s->raster[i]);
     ogpu_kernel_destroy(s->prepare); ogpu_device_destroy(s->device); ogpu_probe_destroy(s->probe);
     for(unsigned i=0;i<3;++i) free(s->shaders[i]);
-    free(s->cpu);
 }
+#ifndef SCENE_REUSE_CONSUMER
 int main(int argc, char **argv) {
     if(argc!=5 && argc!=6) { fprintf(stderr,"Usage: public width height shaders output-directory [16|32]\n"); return 1; }
     Scene s={.index_bytes=4};
@@ -172,12 +186,13 @@ int main(int argc, char **argv) {
     else if(!strcmp(argv[1],"1280") && !strcmp(argv[2],"720")) { s.width=1280;s.height=720; }
     else return 1;
     s.pixels=(size_t)s.width*s.height*4; int okay=0;
-    if(!scene_create(&s,argv[3])) goto done;
+    if(!scene_create_context(&s,argv[3]) || !scene_create_resources(&s)) goto done;
     for(unsigned mode=0;mode<MODES;++mode) for(unsigned frame=0;frame<3;++frame)
         if(!scene_frame(&s,mode,frame==1,frame,argv[4])) goto done;
     okay=1;
 done:
-    scene_destroy(&s);
+    scene_destroy_resources(&s); scene_destroy_context(&s);
     if(okay) puts("Public indexed/depth frames drained; CPU oracle must independently accept outputs");
     return !okay;
 }
+#endif

@@ -79,3 +79,47 @@ not the later two-slot/replay or performance comparison. It does not measure ver
 cache efficiency or settle the public indexed/depth design. No invalid native GPU
 addresses/indices are deliberately executed. Depth-format rejection is a setup
 failure, not a successful skipped test. All accepted work drains before teardown.
+
+## Stable scene reuse
+
+`reuse.py` implements the first correctness increment from the
+[performance brief](../../docs/indexed-depth-performance-plan.md), not timing.
+It uses one shared device/queue and shared prepared executables, with one/two
+independent slots. Each slot has fixed attachments and buffers plus either owned
+reset/re-record storage or one serial immutable list. Compute reads phase/empty
+flags through an immutable pointer to guarded HOST control storage. Each slot
+cycles A/B/empty/A; only retired slots are read or mutated. No list-per-phase,
+extra generation submission, CPU-generated geometry or successful queue-idle path.
+
+The matrix is UINT16/UINT32 × modes 0/6/7/8 × one/two slots × reset/replay ×
+native/public. These modes cover grouped draws and independent color/depth LOAD
+preservation. Mode 8 hides movement in final pixels; the geometry must still change.
+Native and public use identical reuse shader binaries and allocation-size/type
+multisets. Slot resources live through drain and list destruction. All slots drain
+before shared context or pointer-referenced allocations are destroyed on failure.
+
+Provide accepted same-driver reports from both index widths:
+
+```sh
+python3 examples/graphics_scene/reuse.py --check
+python3 examples/graphics_scene/reuse.py --reference32 PATH32/report.json --reference16 PATH16/report.json
+# --preflight: 8 frames/configuration (development, not sustained acceptance)
+# --software: 64 frames/configuration; default: 1,000 frames on Radeon
+# --scale: also 1280x720, 8 frames/configuration (A/B/empty/A on each of two slots)
+```
+
+The runner rechecks reference hashes and analytically validates all 30 serial
+reference frames at each selected extent/index width. Consumers then compare
+**every retired image/geometry/guard byte** against the appropriate accepted
+reference, plus the entire control buffer. The analytic expectations are cached
+through these byte comparisons, not recomputed per repeated frame. Large output
+frames are not dumped repeatedly; per-frame generation records and process logs
+are retained. CPU tests reject corrupt inputs/outputs and false/incomplete reports.
+
+A test-only loader traces actual recording/scope/indexed-draw/submission/reset/
+pool calls and allocation lifetimes. Replay must have no hot recording or pool
+changes; reset must have bounded pool creation, not per-frame allocation. All
+native pools and buffer/image memory allocations must be released. Requested
+bytes, traced allocation bytes and command-object counts are reported separately;
+private driver command-memory size remains unknown. Two unretired receipts are
+not a claim of physical GPU overlap. Keep validation/tracing out of future timing.

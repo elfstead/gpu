@@ -8,7 +8,8 @@ typedef struct { uint64_t vertices, indices, draws; uint32_t phase, empty; } Sce
 _Static_assert(sizeof(SceneRoot) == 32 && offsetof(SceneRoot, phase) == 24, "native root layout");
 _Static_assert(sizeof(VkDrawIndexedIndirectCommand) == 20, "native indirect layout");
 typedef struct {
-    Native n;
+    Native owned;
+    Native *n; /* Owned by the context; slot scenes borrow it. */
     NativeBatch batch;
     NativeProgram prepare, raster[4];
     NativeImage color, depth;
@@ -33,7 +34,7 @@ done:
 }
 
 static int scene_raster(Scene *s, unsigned mode, const char *directory) {
-    Native *n = &s->n; NativeProgram *p = &s->raster[mode]; p->root_size = 8;
+    Native *n = s->n; NativeProgram *p = &s->raster[mode]; p->root_size = 8;
     NEED(scene_shader(n, p, 0, directory, "vertex.spv") && scene_shader(n, p, 1, directory, "fragment.spv"));
     VkPipelineShaderStageCreateInfo stages[2] = {
         {.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .stage=VK_SHADER_STAGE_VERTEX_BIT, .module=p->modules[0], .pName="main"},
@@ -63,7 +64,7 @@ static int scene_raster(Scene *s, unsigned mode, const char *directory) {
 }
 
 static int scene_depth(Scene *s) {
-    Native *n = &s->n; NativeImage *im = &s->depth;
+    Native *n = s->n; NativeImage *im = &s->depth;
     VkImageUsageFlags usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     VkImageFormatProperties support;
     VK_TRY(n->vkGetPhysicalDeviceImageFormatProperties(n->physical, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TYPE_2D,
@@ -99,12 +100,12 @@ static void scene_transition(Scene *s) {
         .image=i ? s->depth.image : s->color.image,
         .subresourceRange={.aspectMask=i ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, .levelCount=1, .layerCount=1}};
     VkDependencyInfo dep = {.sType=VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .imageMemoryBarrierCount=2, .pImageMemoryBarriers=barriers};
-    s->n.vkCmdPipelineBarrier2(s->batch.command, &dep);
+    s->n->vkCmdPipelineBarrier2(s->batch.command, &dep);
 }
 
 static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_load, float clear,
                       unsigned first, unsigned count) {
-    Native *n=&s->n; NativeBatch *b=&s->batch; NativeProgram *p=&s->raster[pipeline];
+    Native *n=s->n; NativeBatch *b=&s->batch; NativeProgram *p=&s->raster[pipeline];
     VkRenderingAttachmentInfo color = {.sType=VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO, .imageView=s->color.view,
         .imageLayout=VK_IMAGE_LAYOUT_GENERAL, .loadOp=color_load ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp=VK_ATTACHMENT_STORE_OP_STORE, .clearValue={.color={.float32={0,0,0,1}}}};
@@ -133,13 +134,11 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     n->vkCmdEndRendering(b->command); return 1;
 }
 
-static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, const char *directory) {
-    Native *n=&s->n; NativeBatch *b=&s->batch;
-    NEED(native_begin(n,b));
+static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
+    Native *n=s->n; NativeBatch *b=&s->batch;
     native_barrier(n,b->command,VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,VK_ACCESS_2_SHADER_WRITE_BIT);
-    SceneRoot root={s->vertices.address+GUARD,s->indices.address+GUARD,s->draws.address+GUARD,phase,mode==9};
-    NEED(native_dispatch(n,b,&s->prepare,(Launch){.x=1,.y=1},&root,sizeof(root)));
+    NEED(native_dispatch(n,b,&s->prepare,(Launch){.x=1,.y=1},compute_root,sizeof(SceneRoot)));
     native_barrier(n,b->command,VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,VK_ACCESS_2_SHADER_WRITE_BIT,
         VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
         VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT);
@@ -163,6 +162,14 @@ static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, 
     NEED(native_copy(n,b,&s->vertices,0,&s->geometry,0,256)
         && native_copy(n,b,&s->indices,0,&s->geometry,256,160)
         && native_copy(n,b,&s->draws,0,&s->geometry,416,168));
+    return 1;
+}
+
+#ifndef SCENE_REUSE_CONSUMER
+static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, const char *directory) {
+    Native *n=s->n; NativeBatch *b=&s->batch;
+    SceneRoot root={s->vertices.address+GUARD,s->indices.address+GUARD,s->draws.address+GUARD,phase,mode==9};
+    NEED(native_begin(n,b) && scene_commands(s,mode,&root));
     NEED(native_submit(n,b) && native_wait(n,b)); native_batch_destroy(n,b);
     size_t total=2*s->pixels+4*GUARD;
     NEED(native_read(n,&s->readback,0,s->cpu,total));
@@ -174,14 +181,20 @@ static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, 
     printf("SCENE_FRAME {\"mode\":%u,\"phase\":%u,\"frame\":%u}\n",mode,phase,frame); return 1;
 }
 
-static int scene_create(Scene *s, const char *directory) {
-    Native *n=&s->n; NEED(native_create(n));
+#endif
+static int scene_create_context(Scene *s, const char *directory) {
+    s->n=&s->owned;
+    Native *n=s->n; NEED(native_create(n));
     PFN_vkGetInstanceProcAddr get=(PFN_vkGetInstanceProcAddr)dlsym(n->library,"vkGetInstanceProcAddr"); NEED(get);
     s->bind_index=(PFN_vkCmdBindIndexBuffer3KHR)get(n->instance,"vkCmdBindIndexBuffer3KHR");
     s->draw_indexed=(PFN_vkCmdDrawIndexedIndirect2KHR)get(n->instance,"vkCmdDrawIndexedIndirect2KHR");
     NEED(s->bind_index && s->draw_indexed);
     NEED(scene_shader(n,&s->prepare,2,directory,"compute.spv"));
     for(unsigned i=0;i<4;++i) NEED(scene_raster(s,i,directory));
+    return 1;
+}
+static int scene_create_resources(Scene *s) {
+    Native *n=s->n;
     NEED(native_image_create(n,&s->color,s->width,s->height) && scene_depth(s));
     NEED(native_buffer_create(n,&s->vertices,256,0)
         && native_buffer_create_usage(n,&s->indices,160,0,VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
@@ -195,14 +208,19 @@ static int scene_create(Scene *s, const char *directory) {
         && native_submit(n,&s->batch) && native_wait(n,&s->batch));
     native_batch_destroy(n,&s->batch); return 1;
 }
-static void scene_destroy(Scene *s) {
-    Native *n=&s->n; native_batch_destroy(n,&s->batch); /* Drain before destroying any backing. */
+static void scene_destroy_resources(Scene *s) {
+    Native *n=s->n; native_batch_destroy(n,&s->batch); /* Drain before destroying any backing. */
     native_buffer_destroy(n,&s->geometry); native_buffer_destroy(n,&s->readback); native_buffer_destroy(n,&s->upload);
     native_buffer_destroy(n,&s->draws); native_buffer_destroy(n,&s->indices); native_buffer_destroy(n,&s->vertices);
     native_image_destroy(n,&s->depth); native_image_destroy(n,&s->color);
-    for(unsigned i=0;i<4;++i) native_program_destroy(n,&s->raster[i]);
-    native_program_destroy(n,&s->prepare); native_destroy(n); free(s->cpu);
+    free(s->cpu);
 }
+static void scene_destroy_context(Scene *s) {
+    Native *n=s->n;
+    for(unsigned i=0;i<4;++i) native_program_destroy(n,&s->raster[i]);
+    native_program_destroy(n,&s->prepare); native_destroy(n);
+}
+#ifndef SCENE_REUSE_CONSUMER
 int main(int argc, char **argv) {
     if(argc!=5 && argc!=6) { fprintf(stderr,"Usage: native width height shaders output-directory [16|32]\n"); return 1; }
     Scene s={.index_bytes=4};
@@ -216,12 +234,13 @@ int main(int argc, char **argv) {
     else if(!strcmp(argv[1],"1280") && !strcmp(argv[2],"720")) { s.width=1280;s.height=720; }
     else return 1;
     s.pixels=(size_t)s.width*s.height*4; int okay=0;
-    if(!scene_create(&s,argv[3])) goto done;
+    if(!scene_create_context(&s,argv[3]) || !scene_create_resources(&s)) goto done;
     for(unsigned mode=0;mode<MODES;++mode) for(unsigned frame=0;frame<3;++frame)
         if(!scene_frame(&s,mode,frame==1,frame,argv[4])) goto done;
     okay=1;
 done:
-    scene_destroy(&s);
+    scene_destroy_resources(&s); scene_destroy_context(&s);
     if(okay) puts("Native indexed/depth frames drained; CPU oracle must independently accept outputs");
     return !okay;
 }
+#endif
