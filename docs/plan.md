@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-29. This page owns current status and selected work. The
+Updated 2026-09-30. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -255,7 +255,10 @@ scopes, independent attachment load/store, immutable raster depth state and opt-
 index eligibility on ordinary buffers. Initialization is separate from per-scope
 clear; draws keep real indexed execution and explicit dependencies. This is a
 candidate with an implemented slice, not a performance-approved API.
-Next: the matched public scene and remaining description/failure gates, then
+The [matched public scene](graphics-scene-public-results.md) now passes all ten
+modes on both drivers: 150 frames per consumer, including 720p on Radeon, with
+independent oracle checks and byte-exact native/public agreement through the edges.
+Next: the remaining description/failure gates, then
 grouped-draw/replay measurements and the installed scene handoff.
 Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
 Existing devices suffice.

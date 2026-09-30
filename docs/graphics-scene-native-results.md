@@ -98,8 +98,8 @@ two drivers, not a fresh-host, second-physical-vendor or Metal result.
 
 Follow-up: the [bounded indexed/depth proposal](indexed-depth-proposal.md) now
 selects a candidate resolving those choices; the [ABI-18 migration](indexed-depth-migration.md)
-implements the runtime slice. Compare the full public scene against this reference
-next. Choose the better contract even if the old
+implements the runtime slice. The [matched public scene](graphics-scene-public-results.md)
+now passes against this reference on both drivers. Choose the better contract even if the old
 draw API could be extended. This control does **not** measure cache efficiency,
 rendering-scope cost, replay, two-slot scene execution or public/native overhead;
 none is silently approved by passing pixel checks. M4's remaining graphics slices

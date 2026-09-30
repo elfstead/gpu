@@ -84,9 +84,9 @@ for the native scene's analytical full-image oracle or sustained graphics measur
 
 ## Still required for this slice
 
-1. Public counterpart of all ten accepted native scene modes, at odd and useful
-   extents, using its GPU-written geometry/indices/records and independent oracle.
-   The focused test uses host-written records; it does not prove that full chain.
+1. **Completed:** [matched public scene](graphics-scene-public-results.md), all ten
+   modes at odd/useful extents, GPU-written geometry/indices/records, independent
+   oracle and exact native/public output agreement on both drivers.
 2. Complete the proposal's broader cases: every compare operation, disabled
    test/write behavior, read-only depth with actual draws, mismatch/cross-device
    matrices and indexed preparation/loss fault injection. Existing generic
