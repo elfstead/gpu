@@ -123,3 +123,14 @@ native pools and buffer/image memory allocations must be released. Requested
 bytes, traced allocation bytes and command-object counts are reported separately;
 private driver command-memory size remains unknown. Two unretired receipts are
 not a claim of physical GPU overlap. Keep validation/tracing out of future timing.
+
+`reuse_failures.py --reuse-report PATH/TO/accepted-reuse/report.json` builds a
+diagnostic public consumer with ASan/UBSan and explicit counting of its own C
+allocations. A test-only interposer rejects HOST writes during first/second slot
+setup, before the first frame and while the other slot has an accepted submission.
+Reset and replay both include success controls. Expected failure exits must not
+accept output, and every counted consumer/native allocation and command pool must
+be released. This directly probes cleanup around the retained Clang leak warning;
+it does not disable the warning or claim exhaustive allocation-failure coverage.
+LeakSanitizer stays disabled; CPU counting covers these C sources, not all library
+allocations. Fault injection never invents GPU completion or device loss.

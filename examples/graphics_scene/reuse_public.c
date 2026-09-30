@@ -1,4 +1,7 @@
 #define SCENE_REUSE_CONSUMER
+#ifdef SCENE_CPU_TRACE
+#include "reuse_cpu_trace.h"
+#endif
 #include "public.c"
 #include "reuse.h"
 
@@ -77,5 +80,8 @@ done:
         ogpu_buffer_destroy(slots[i].control);ogpu_recording_storage_destroy(slots[i].storage);
     }
     scene_destroy_context(&context);reuse_free(&r);
+#ifdef SCENE_CPU_TRACE
+    scene_cpu_summary();
+#endif
     if(okay) puts("Public scene reuse drained and checked");return !okay;
 }
