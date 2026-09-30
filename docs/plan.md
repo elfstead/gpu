@@ -267,8 +267,12 @@ The [one/two-slot reuse checkpoint](graphics-scene-reuse-results.md) now accepts
 68,608 frames across both drivers, plus 360 serial regression frames. Native-call
 tracing verifies real replay without hot re-encoding and bounded reset storage;
 native/public allocation budgets match and every tracked allocation is freed.
-Next: [grouped-draw/replay measurements](indexed-depth-performance-plan.md),
-including stronger native multi-record/count-buffer strategies, then the installed scene handoff.
+The [stronger native indexed frontier](graphics-indexed-frontier-results.md) now
+passes 216 frames at 1/64/512 records: single commands, multi-record commands and
+GPU-counted execution, including zero/partial/full counts. Public range/count
+expressibility and shader-visible draw identity remain open; this is not timing.
+Next: [matched grouped-draw/replay measurements](indexed-depth-performance-plan.md)
+with these controls and the explicit range/count alternative, then installed scene handoff.
 Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
 Existing devices suffice.
 

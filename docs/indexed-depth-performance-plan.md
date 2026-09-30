@@ -3,7 +3,8 @@
 Selected 2026-09-30 after the [matched scene](graphics-scene-public-results.md)
 and [contract matrix](indexed-depth-contract-results.md). This is the next
 experiment. Its [slot/replay correctness increment](graphics-scene-reuse-results.md)
-is now accepted at `637c7db`; **timing and the stronger native frontier remain open**.
+is now accepted at `637c7db`. The [native multi-record/count correctness probe](graphics-indexed-frontier-results.md)
+passes at `62f1ad7`; **timing, matched public strategies and draw-identity mapping remain open**.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 
 ## First increment: stable slots and replay

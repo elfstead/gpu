@@ -1,0 +1,33 @@
+{
+  "scope": "bounded eight-frame reuse regressions; full reports/process logs remain local",
+  "runs": [
+    {
+      "driver": "radv",
+      "path": "target/graphics-scene/reuse-gihtj3fp/report.json",
+      "sha256": "683da6a9ebd15d36201b8d64aa97a059c3f8d6319c935bcf3b5bf5c40d779a8c",
+      "revision": "62f1ad7bbc2ae9f6ca2562eab4a37643d9dc2272",
+      "complete": true,
+      "dirty": false,
+      "preflight": true,
+      "configurations": 64,
+      "checked_frames": 512,
+      "serial_regression_frames": 120,
+      "source_hashes_verified": true,
+      "process_hashes_and_checks_reverified": true
+    },
+    {
+      "driver": "lvp",
+      "path": "target/graphics-scene/reuse-0sx085nx/report.json",
+      "sha256": "ab011c692e68a66e6d0a221c36767e0cc5a57332ab1309a78bac7d44a0708035",
+      "revision": "62f1ad7bbc2ae9f6ca2562eab4a37643d9dc2272",
+      "complete": true,
+      "dirty": false,
+      "preflight": true,
+      "configurations": 64,
+      "checked_frames": 512,
+      "serial_regression_frames": 120,
+      "source_hashes_verified": true,
+      "process_hashes_and_checks_reverified": true
+    }
+  ]
+}

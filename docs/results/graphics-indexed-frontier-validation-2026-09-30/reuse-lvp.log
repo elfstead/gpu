@@ -1,0 +1,41 @@
+Reuse evidence: /home/elf/dev/gpu/target/graphics-scene/reuse-0sx085nx
+    Finished `release` profile [optimized] target(s) in 0.02s
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.005s
+
+OK
+Refactored serial scene: complete native/public matrices match accepted references
+Reuse 257x193 u16 mode=0 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=0 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=0 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=0 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=6 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=6 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=6 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=6 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=7 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=7 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=7 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=7 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=8 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=8 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=8 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u16 mode=8 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=0 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=0 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=0 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=0 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=6 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=6 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=6 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=6 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=7 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=7 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=7 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=7 slots=2 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=8 slots=1 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=8 slots=1 replay: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=8 slots=2 reset: 8 frames/consumer PASS
+Reuse 257x193 u32 mode=8 slots=2 replay: 8 frames/consumer PASS
+Matched scene reuse PASS; no timing claim: /home/elf/dev/gpu/target/graphics-scene/reuse-0sx085nx/report.json

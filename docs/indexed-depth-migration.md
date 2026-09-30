@@ -95,7 +95,8 @@ for the native scene's analytical full-image oracle or sustained graphics measur
    drained synthetic-loss injection. This is not exhaustive driver-failure coverage.
 3. [One/two-slot scene reuse](graphics-scene-reuse-results.md) now passes for reset
    and serial replay, both index widths and both drivers. Matched small grouped-draw/
-   replay measurements and stronger native controls remain. No fundamental/native
+   replay measurements remain; [stronger native multi-record/count correctness](graphics-indexed-frontier-results.md)
+   now passes, without resolving public range/count or draw-identity semantics. No fundamental/native
    performance approval follows from passing correctness and allocation checks.
 4. Widen generated stage-pair checking for the scene's vertex root/flat varying,
    then add its standalone installed consumer and record the bounded decision.
