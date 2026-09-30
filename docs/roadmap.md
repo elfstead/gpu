@@ -44,6 +44,13 @@ No calendar estimates are assigned before measuring each implementation's scope.
 Each milestone ends in a committed result and decision, not another open-ended
 list of experiments.
 
+Sequence clarification 2026-09-30: finish M4's **draw-contract decision** before
+the remaining graphics slices; begin M5 with an executable-capability/numerical
+contract, not kernels alone. After the consumer milestones, complete the
+[core-contract review](core-contract-review.md) before considering stabilization.
+Experimental packaging may continue earlier. Consumer usefulness, native strategy
+preservation and stabilization are separate gates; none silently passes another.
+
 Sequence amendment 2026-09-19: the [performance-expressibility gate](performance-expressibility.md)
 pulls the contract audit, repeated small-dispatch and streaming-slot experiments
 forward from M3 before M2 implementation. M1's matched-policy result remains
@@ -227,6 +234,13 @@ Use a matched native Vulkan rendering of the same scene as a control and
 analytical probes for depth/blend outcomes. Predeclare pixel tolerances for
 filtering and edge coverage; do not demand unrealistic universal bit equality.
 
+Slice (a) ends in an explicit retain/change decision for indirect ranges,
+GPU-generated counts and shader-visible draw identity. Matched timing measures
+costs, but is not a prerequisite for adopting a better contract justified by a
+structural restriction. Preserve the strongest identified native strategy rather
+than treating N single-record commands as the only baseline. See the
+[decision and measurement brief](indexed-depth-performance-plan.md).
+
 **Done when:** the scene and deliberately invalid combinations pass/fail as
 specified, allocation reuse and compute-written inputs remain valid, and the
 learned-image path has no regression. No generic fixed-function state object
@@ -252,6 +266,14 @@ intermediates resident and scheduling in the consumer. Use independent CPU
 references and predeclared tolerances, not only final classification agreement.
 Quantized arithmetic may be implemented with ordinary instructions on the Radeon;
 do not claim accelerated dot products when none are exposed.
+
+**Opening gate:** specify queried/enabled executable requirements for the selected
+workgroup/subgroup operations, layouts, scalar/storage types, accumulation and
+numerical permissions. Add unsupported/mismatch rejection and generated-interface
+checks before selecting kernels that depend on them. Separate tooling restrictions
+from runtime/backend restrictions. No implicit subgroup size, matrix support or
+precision permission follows from the backend version. Hardware matrix variants
+remain separate from the baseline consumer.
 
 **Done when:** the complete block executes without CPU operator fallback, all
 intermediates meet the declared numerical contract, supported/rejected layouts
@@ -308,6 +330,9 @@ packaging, but it does block claiming that feedback has occurred.
 Stabilization is a later decision: broader physical GPU/vendor/memory coverage,
 native mixed-backend evidence, performance comparisons and contract tests are
 required before stronger guarantees. No stable API promise follows from a tag.
+The [core-contract review](core-contract-review.md) is an explicit prerequisite
+to considering that decision, not an additional claim made by experimental M7
+packaging. Native Metal and broader hardware evidence remain independently scoped.
 
 ## Explicit coverage of the remaining horizon
 

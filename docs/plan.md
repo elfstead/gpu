@@ -271,8 +271,12 @@ The [stronger native indexed frontier](graphics-indexed-frontier-results.md) now
 passes 216 frames at 1/64/512 records: single commands, multi-record commands and
 GPU-counted execution, including zero/partial/full counts. Public range/count
 expressibility and shader-visible draw identity remain open; this is not timing.
-Next: [matched grouped-draw/replay measurements](indexed-depth-performance-plan.md)
-with these controls and the explicit range/count alternative, then installed scene handoff.
+Next: [draw-contract decision and matched measurements](indexed-depth-performance-plan.md):
+close draw identity and range/count semantics, select/accept a better contract if
+warranted, then measure its native mappings and complete installed scene handoff.
+Structural evidence may justify the decision before timing. After that, finish
+M4's mip/view/blend slices; begin M5 with explicit executable capability and
+numerical requirements before its dependent kernels.
 Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
 Existing devices suffice.
 
@@ -281,6 +285,10 @@ Metal parity (M6) remains a separate
 native-validation track, not a prerequisite for local progress. The roadmap
 assigns remaining gaps either a milestone or an explicit deferral with entry
 criteria; the experimental API is not frozen.
+After the consumer milestones, the [core-contract review](core-contract-review.md)
+gives descriptor independence, allocation/aliasing freedom and host/GPU concurrency
+an explicit disposition before stabilization is considered. It does not block
+experimental packaging or claim unavailable hardware/backend evidence.
 
 ## Completed work: reproducible two-consumer checkpoint
 

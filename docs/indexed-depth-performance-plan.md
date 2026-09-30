@@ -7,6 +7,21 @@ is now accepted at `637c7db`. The [native multi-record/count correctness probe](
 passes at `62f1ad7`; **timing, matched public strategies and draw-identity mapping remain open**.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 
+## Next checkpoint: draw-contract decision
+
+The next checkpoint is a retain/change decision for explicit record ranges,
+stride, GPU counts and shader-visible draw identity—not merely a timing report.
+First close the semantic mapping: exercise draw identity in single/multi/count
+execution and specify retained backing, bounds, dependency and replay behavior.
+Do not fuse N calls by assuming their shaders cannot observe the change.
+
+Select the smallest contract preserving the native strategies. A demonstrated
+structural restriction may justify the alternative before timing; then implement
+its capability/rejection/lifetime gates and compare matched strategies. Existing
+one-record behavior is a semantic control, not a compatibility veto. Timing below
+remains required to assess implementation costs, not to grant permission for a
+better API. Finish this checkpoint before expanding into the remaining M4 slices.
+
 ## First increment: stable slots and replay
 
 Use one device/queue, shared prepared compute/raster executables, and one or two
