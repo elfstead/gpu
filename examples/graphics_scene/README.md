@@ -1,8 +1,10 @@
-# M4 native indexed/depth control
+# M4 matched indexed/depth scene
 
-This is the first control from the M4 brief, **not** new public OGPU support. It
-links only libc/libdl and calls Vulkan directly. Existing native loader, allocation,
-shader-module and drain helpers are reused; no runtime implementation is imported.
+The direct Vulkan control links only libc/libdl. Its ABI-18 public counterpart
+includes only `ogpu.h` and standard C headers. Both use identical shader binaries,
+allocation sizes, guarded GPU-generated data and scene modes. Existing native
+loader, allocation, shader-module and drain helpers are reused only by the native
+control; no runtime implementation is imported into either consumer.
 
 Predeclared scene: two indexed quads (eight unique vertices, twelve index uses),
 far opaque red at z=0.75 and near opaque green at z=0.25. Compute writes vertices,
@@ -45,6 +47,15 @@ does not derive its expected image by rasterizing or copying shader code.
 
 Use `python3 examples/graphics_scene/run.py --check` for build/oracle tests;
 `run.py` for 257x193 and 640x360; `run.py --scale` also covers 1280x720 (Radeon).
+Add `--public` to build/run both consumers. Acceptance requires each consumer to
+pass the independent oracle, then byte-for-byte native/public equality of every
+image and geometry file, including edges excluded by the analytic oracle and all
+guards. Negative tests reject truncated, changed and missing comparison files.
+Device identities must match throughout. Public roots contain GPU addresses;
+there is no CPU readback between generation and drawing. Both consumers use fresh
+recordings, explicit per-frame image discard and stable allocations. Public image
+copies use the runtime's copy dependencies; explicit generation-to-draw and
+between-scope dependencies remain visible in the consumer.
 Select one ICD and enable Vulkan + synchronization validation. Pinned Slang
 2026.14.1 and SPIRV-Tools compile native shaders; this does not widen the installed
 compiler's vertex-root subset. Fresh report directories retain shaders, full
@@ -52,6 +63,6 @@ color/depth/geometry output, sources/artifact hashes and logs. Failures stay inc
 
 This first control uses serialized fresh recordings and stable allocations; it is
 not the later two-slot/replay or performance comparison. It does not measure vertex
-cache efficiency or prove a public indexed/depth design. No invalid native GPU
+cache efficiency or settle the public indexed/depth design. No invalid native GPU
 addresses/indices are deliberately executed. Depth-format rejection is a setup
 failure, not a successful skipped test. All accepted work drains before teardown.

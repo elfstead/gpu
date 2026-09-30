@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and validate the native M4 indexed/depth reference; no OGPU linkage."""
+"""Validate the native M4 reference, optionally matched against the public ABI-18 scene."""
 import argparse
 import hashlib
 import json
@@ -20,15 +20,30 @@ import oracle
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def compare_outputs(native, public, rows):
+    """Compare every byte including excluded raster edges and all padding/guards."""
+    compared=0
+    for row in rows:
+        for suffix in ('images','geometry'):
+            name=f"mode-{row['mode']}-frame-{row['frame']}.{suffix}"
+            expected=(native/name).read_bytes();actual=(public/name).read_bytes()
+            generate.require(actual==expected,f'public/native byte mismatch: {name}')
+            compared+=len(actual)
+    return dict(frames=len(rows),files=2*len(rows),compared_bytes=compared,exact=True)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--scale',action='store_true')
+    parser.add_argument('--public',action='store_true',help='also build/run public API consumer and require exact native agreement')
     args=parser.parse_args()
     build=ROOT/'target/graphics-scene';build.mkdir(parents=True,exist_ok=True)
-    dest=Path(tempfile.mkdtemp(prefix='native-',dir=build))
+    dest=Path(tempfile.mkdtemp(prefix='matched-' if args.public else 'native-',dir=build))
     print(f'Scene evidence: {dest}',flush=True)
-    report=dict(schema=1,complete=False,scope='native indexed/depth correctness, not public API acceptance or performance',
+    report=dict(schema=2 if args.public else 1,complete=False,
+                scope='matched public/native indexed/depth correctness; not full M4 or performance acceptance' if args.public else
+                    'native indexed/depth correctness, not public API acceptance or performance',
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),runs=[],shaders={},
                 environment={k:os.getenv(k) for k in ('VK_DRIVER_FILES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_VULKAN_LIBRARY')})
@@ -64,19 +79,43 @@ def main():
         symbols=subprocess.check_output(['nm','-u',str(binary)],text=True)
         generate.require('ogpu' not in symbols.lower(),'native reference links OGPU')
         report['executable_sha256']=digest(binary); report['compile_command']=command
+        executables={'native':binary}
+        if args.public:
+            generate.require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
+            subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
+            public=dest/'public'
+            public_command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
+                            '-I'+str(ROOT/'include'),str(HERE/'public.c'),'-L'+str(ROOT/'target/release'),
+                            '-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-o',str(public)]
+            subprocess.run(public_command,check=True)
+            symbols=subprocess.check_output(['nm','-u',str(public)],text=True)
+            generate.require('ogpu_batch_draw_indexed_indirect' in symbols and not any(
+                line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split()),'public consumer boundary mismatch')
+            report['public']=dict(executable_sha256=digest(public),compile_command=public_command,
+                                  runtime_sha256=digest(ROOT/'target/release/libogpu.so'),abi=18)
+            executables['public']=public
         subprocess.run([sys.executable,'-B',str(HERE/'test_oracle.py')],check=True)
+        subprocess.run([sys.executable,'-B',str(HERE/'test_runner.py')],check=True)
         if args.check:
-            report['build_only']=True;report['complete']=True;save();print('Scene native build/oracle gates PASS; no GPU');return
+            report['build_only']=True;report['complete']=True;save();print('Scene build/oracle gates PASS; no GPU');return
         generate.require(os.getenv('VK_DRIVER_FILES') and 'VK_LAYER_KHRONOS_validation' in os.getenv('VK_INSTANCE_LAYERS','')
                          and os.getenv('VK_LAYER_VALIDATE_SYNC')=='1' and not os.getenv('VK_LOADER_LAYERS_DISABLE'),
                          'select one ICD and enable Vulkan/synchronization validation')
+        environment=os.environ.copy()
+        if args.public:
+            environment['LD_LIBRARY_PATH']=str(ROOT/'target/release')+':'+environment.get('LD_LIBRARY_PATH','')
+            report['public']['LD_LIBRARY_PATH']=environment['LD_LIBRARY_PATH']
         for width,height in [(257,193),(640,360)]+([(1280,720)] if args.scale else []):
-            output=dest/f'{width}x{height}';output.mkdir()
+          for backend,binary in executables.items():
+            output=dest/(f'{width}x{height}-{backend}' if args.public else f'{width}x{height}');output.mkdir()
             with (output/'stdout').open('w') as out,(output/'stderr').open('w') as err:
-                run=subprocess.run([str(binary),str(width),str(height),str(dest),str(output)],stdout=out,stderr=err,timeout=300)
+                run=subprocess.run([str(binary),str(width),str(height),str(dest),str(output)],stdout=out,stderr=err,timeout=300,env=environment)
             stdout=(output/'stdout').read_text();stderr=(output/'stderr').read_text()
-            generate.require(run.returncode==0 and 'Validation Error:' not in stdout+stderr,'native execution/validation failed; inspect retained logs')
-            generate.require('Native indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
+            generate.require(run.returncode==0 and 'Validation Error:' not in stdout+stderr,f'{backend} execution/validation failed; inspect retained logs')
+            generate.require(f'{backend.title()} indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
+            if backend=='public':
+                context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
+                generate.require(context==[dict(abi=18,index_bytes=4,gpu_generated=True)],'wrong public scene configuration')
             devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
             generate.require(len(devices)==1,'missing/duplicate device identity')
             if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')
@@ -95,13 +134,16 @@ def main():
                 normal=(output/f'mode-0-frame-{frame}.images').read_bytes()
                 for mode in (1,6): generate.require(normal==(output/f'mode-{mode}-frame-{frame}.images').read_bytes(),'draw-order/load mismatch')
             generate.require((output/'mode-0-frame-0.images').read_bytes()!=(output/'mode-0-frame-1.images').read_bytes(),'moving geometry did not change output')
-            report['runs'].append(dict(extent=[width,height],device=devices[0],checks=checks,
-                                      files={p.name:digest(p) for p in sorted(output.iterdir()) if p.is_file()}))
-            save();print(f'Scene {width}x{height}: all 30 color/depth/geometry/guard checks PASS',flush=True)
+            result=dict(extent=[width,height],device=devices[0],checks=checks,
+                        files={p.name:digest(p) for p in sorted(output.iterdir()) if p.is_file()})
+            if args.public: result.update(backend=backend,directory=output.name)
+            if backend=='public': result['native_comparison']=compare_outputs(dest/f'{width}x{height}-native',output,rows)
+            report['runs'].append(result)
+            save();print(f'Scene {backend} {width}x{height}: all 30 color/depth/geometry/guard checks PASS',flush=True)
         report['complete']=True;save()
     except Exception as error:
         report['error']=str(error);save();raise
-    print(f'Native indexed/depth control PASS; no public API/performance claim: {dest / "report.json"}')
+    print(f'{"Matched public/native" if args.public else "Native"} indexed/depth control PASS; no full M4/performance claim: {dest / "report.json"}')
 
 
 if __name__=='__main__': main()
