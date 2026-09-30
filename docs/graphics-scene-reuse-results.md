@@ -111,6 +111,41 @@ Reproduce with the commands and prerequisites in the
 UINT16/UINT32 references. Radeon uses default 1,000 frames plus `--scale`;
 llvmpipe uses `--software`. `--preflight` is explicitly development evidence.
 
+## Follow-up: targeted cleanup failure checks
+
+Accepted at clean `4fdcc070f6c453a3c32e01c0fd77bda49fc18d24` on both drivers.
+The public consumer now has an optional diagnostic allocation counter. Combined
+with ASan/UBSan, native allocation/pool tracing and a buffer-write failure
+interposer, it checks the cleanup paths implicated by the static diagnostic.
+The interposer rejects a write before forwarding it; it does not fake GPU work.
+
+Each driver runs reset and replay with two slots, UINT16 and preservation mode 8:
+
+| Injected failure | Consumer CPU allocations | GPU allocations | Accepted native submissions |
+|---|---:|---:|---:|
+| None; eight successful frames | 11 | 18 | 10 |
+| First slot's initial write | 10 | 8 | 0 |
+| Second slot's initial write | 11 | 17 | 1 |
+| First frame's control write | 11 | 18 | 2 |
+| Second frame's control write, first slot pending | 11 | 18 | 3 |
+
+All **20 configurations** release every counted CPU/GPU allocation and command
+pool. Injected failures exit unsuccessfully without claiming an accepted frame;
+successful controls pass the full reuse checks. The counter covers consumer
+allocations, not runtime/libc/driver CPU allocations. LeakSanitizer remains
+disabled. These tested paths do not reproduce the reported leak, but do not
+establish that the static diagnostic is a compiler defect or prove all paths safe.
+
+- [Radeon report and logs](results/graphics-scene-reuse-failures-radv-2026-09-30/report.json),
+  SHA-256 `931d53e537c596f18a369359ea84cecd56d8d2d2a97d42d5d46bf86601eef1f6`.
+- [llvmpipe report and logs](results/graphics-scene-reuse-failures-lvp-2026-09-30/report.json),
+  SHA-256 `425bf7376a9c2a58b44196bf92b898f2d90b4aa0dde61824a272086ee8b6b2f5`.
+
+Reports and logs are byte-identical exports; source, artifact, runtime and log
+hashes were checked. Local originals are `reuse-failures-_y2kp0et` and
+`reuse-failures-ojpuzeka` under `target/graphics-scene`. Reproduction instructions
+are in the consumer README.
+
 ## Decision and next step
 
 Keep the current immutable-list/mutable-data contract for the next experiment:

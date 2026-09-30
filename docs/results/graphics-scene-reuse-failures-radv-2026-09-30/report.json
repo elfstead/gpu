@@ -1,0 +1,436 @@
+{
+  "schema": 1,
+  "complete": true,
+  "revision": "4fdcc070f6c453a3c32e01c0fd77bda49fc18d24",
+  "dirty": false,
+  "runs": [
+    {
+      "name": "reset-0",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "reset",
+        "16"
+      ],
+      "fault": 0,
+      "exit": 0,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 18,
+        "frees": 18,
+        "peak_bytes": 2165392,
+        "peak_count": 18,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 10,
+      "logs": {
+        "stdout": "98ade74e84dc9bedd639d74fbeada1f1886eaba9970e8e3b70e7262173717ddc",
+        "stderr": "f1067738f2e8fd6a080b76b45316f31846162102046a59863b4afda35ca5bc45"
+      }
+    },
+    {
+      "name": "reset-1",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "reset",
+        "16"
+      ],
+      "fault": 1,
+      "exit": 1,
+      "cpu": {
+        "allocations": 10,
+        "frees": 10,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 8,
+        "frees": 8,
+        "peak_bytes": 1082552,
+        "peak_count": 8,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 0,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "285c8b2d60bce607ce6f538c5348295fd4ab45fb095a9e76c5b063bfb846aae0"
+      }
+    },
+    {
+      "name": "reset-3",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "reset",
+        "16"
+      ],
+      "fault": 3,
+      "exit": 1,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 17,
+        "frees": 17,
+        "peak_bytes": 2165248,
+        "peak_count": 17,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 1,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "47631ade502149ec7a8c9927d84526f49fbb215dcbab1b5df276d85fb9108edf"
+      }
+    },
+    {
+      "name": "reset-5",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "reset",
+        "16"
+      ],
+      "fault": 5,
+      "exit": 1,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 18,
+        "frees": 18,
+        "peak_bytes": 2165392,
+        "peak_count": 18,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 2,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "9d8976856e6bce86b75147be18aa72e0d6663c8e6b931f6224382fd5bd895386"
+      }
+    },
+    {
+      "name": "reset-6",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "reset",
+        "16"
+      ],
+      "fault": 6,
+      "exit": 1,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 18,
+        "frees": 18,
+        "peak_bytes": 2165392,
+        "peak_count": 18,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 3,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "1ddb5f51cb91082b9cfe705a328c459ced562b81350ba528f7ef2bd7c3cec59e"
+      }
+    },
+    {
+      "name": "replay-0",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "replay",
+        "16"
+      ],
+      "fault": 0,
+      "exit": 0,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 18,
+        "frees": 18,
+        "peak_bytes": 2165392,
+        "peak_count": 18,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 10,
+      "logs": {
+        "stdout": "4d0592bf1fe2114fb5aa28520610d2b8f0478f5b8378b32e610dc03bdeccf9eb",
+        "stderr": "273a6979051550f1d67905e1cc22428eaea7dbabadc5a75e851243d0d98da220"
+      }
+    },
+    {
+      "name": "replay-1",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "replay",
+        "16"
+      ],
+      "fault": 1,
+      "exit": 1,
+      "cpu": {
+        "allocations": 10,
+        "frees": 10,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 8,
+        "frees": 8,
+        "peak_bytes": 1082552,
+        "peak_count": 8,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 0,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "285c8b2d60bce607ce6f538c5348295fd4ab45fb095a9e76c5b063bfb846aae0"
+      }
+    },
+    {
+      "name": "replay-3",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "replay",
+        "16"
+      ],
+      "fault": 3,
+      "exit": 1,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 17,
+        "frees": 17,
+        "peak_bytes": 2165248,
+        "peak_count": 17,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 1,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "b3f070a63c0441ea9476bc2ae10899fbc87f0ee81abd00c66a7b31148c9c2b03"
+      }
+    },
+    {
+      "name": "replay-5",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "replay",
+        "16"
+      ],
+      "fault": 5,
+      "exit": 1,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 18,
+        "frees": 18,
+        "peak_bytes": 2165392,
+        "peak_count": 18,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 2,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "121dd806924bc84e2ac5186ebd83540fd15c0847e8a790575ddf37755e2a04c2"
+      }
+    },
+    {
+      "name": "replay-6",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/shaders16",
+        "/home/elf/dev/gpu/target/graphics-scene/matched-25rvtpvm/257x193-native",
+        "8",
+        "8",
+        "2",
+        "replay",
+        "16"
+      ],
+      "fault": 6,
+      "exit": 1,
+      "cpu": {
+        "allocations": 11,
+        "frees": 11,
+        "live_count": 0,
+        "live_bytes": 0
+      },
+      "gpu": {
+        "allocations": 18,
+        "frees": 18,
+        "peak_bytes": 2165392,
+        "peak_count": 18,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "native_submissions": 3,
+      "logs": {
+        "stdout": "d19583824f91e4d280b5401ce0b0a3ee525006ddef31cd881288a41cb5b952b9",
+        "stderr": "e1e877ef9e4bcaa49fddd1f9318b4e80791f8beceae760871a653ae93249ccbc"
+      }
+    }
+  ],
+  "reuse_report": {
+    "path": "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/report.json",
+    "sha256": "0e4abba446677c392a5597a41507d4190f5b9a515099dd70d2ed54c6df2c7142"
+  },
+  "scope": "C-consumer allocations and cleanup under HOST-write rejection; not real device loss or LeakSanitizer",
+  "sources": {
+    "examples/graphics_scene/reuse_public.c": "094ad25fe010de1a1ee60694e26fd8166556492d9a00e9e74fdba931b45872ca",
+    "examples/graphics_scene/public.c": "7bba36d75d4184268c5dab1e9a6d77c267541265664037f7ac9498fef9847df0",
+    "examples/graphics_scene/reuse.h": "f2532f549705addc050700e6c5c8e6bcd3bf9ab00140964b44ce9e62c97fe6cf",
+    "examples/graphics_scene/reuse_cpu_trace.h": "a7369b0f390010ded900c3259fa5b7365aac8b0fb46822df99e25f95bbe0f6d8",
+    "examples/graphics_scene/reuse_write_failure.c": "3c40477543a674300df4f5346e7c3e03b261f639be224c528641240270c0630f",
+    "examples/graphics_scene/reuse_failures.py": "2be97ce24e51043ef612a175e3747328a10a5fd5e07554cbd4ce9db11a26d879",
+    "examples/graphics_scene/reuse.py": "484fa176d309f1fa42693c5a9c005f970222a163357d44ecb6cfe0693db996b7",
+    "include/ogpu.h": "a1fafa66e02d71954a16980ea468cbcdb7ad2457347764e2ba3a14858c6c5c9a",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214"
+  },
+  "build_command": [
+    "clang",
+    "-std=c11",
+    "-O1",
+    "-g",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-DSCENE_CPU_TRACE",
+    "-fsanitize=address,undefined",
+    "-fno-omit-frame-pointer",
+    "-I/home/elf/dev/gpu/include",
+    "/home/elf/dev/gpu/examples/graphics_scene/reuse_public.c",
+    "-L/home/elf/dev/gpu/target/release",
+    "-Wl,-rpath,/home/elf/dev/gpu/target/release",
+    "-logpu",
+    "-ldl",
+    "-o",
+    "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/public"
+  ],
+  "shim_command": [
+    "clang",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-shared",
+    "-fPIC",
+    "-I/home/elf/dev/gpu/include",
+    "/home/elf/dev/gpu/examples/graphics_scene/reuse_write_failure.c",
+    "-ldl",
+    "-o",
+    "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/failure.so"
+  ],
+  "artifacts": {
+    "public": "143772e1732e05dc85dcaa241a232365d2f074887896db6469a03864d0d63887",
+    "failure.so": "7af72da32111938ad1e4ed2e037a9f2780ea60ff30b7556f253763fbd9761b5d"
+  },
+  "runtime_sha256": "54ca39336b8107256d33d971b77513e47d8a6001bbb7c1da718a7b162267eb1a",
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "ASAN_OPTIONS": "detect_leaks=0",
+    "UBSAN_OPTIONS": "halt_on_error=1",
+    "LD_PRELOAD": "/home/elf/dev/gpu/target/graphics-scene/reuse-failures-_y2kp0et/failure.so",
+    "OGPU_SCENE_TRACE": "1",
+    "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "OGPU_VULKAN_LIBRARY": "/home/elf/dev/gpu/target/graphics-scene/reuse-4qbxx5p8/trace.so"
+  }
+}
