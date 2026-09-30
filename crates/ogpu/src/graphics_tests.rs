@@ -855,7 +855,7 @@ fn gpu_graphics_failures() {
                 assert_eq!(query.status, UNSUPPORTED);
             }
         }
-        for point in 0..6 {
+        for (point, with_depth) in (0..6).flat_map(|point| [(point, false), (point, true)]) {
             let mut device = Device::new_graphics(instance.clone(), physical).unwrap();
             let f = &mut Rc::get_mut(&mut device).unwrap().f;
             match point {
@@ -873,13 +873,25 @@ fn gpu_graphics_failures() {
                     f.vkCreateGraphicsPipelines = Some(fail_after_pipeline);
                 }
             }
+            let image_desc = if with_depth {
+                ImageDesc {
+                    dimension: 2,
+                    width: 64,
+                    height: 64,
+                    format: 4,
+                    usage: 32 | COPY_SRC | COPY_DST,
+                    reserved: 0,
+                }
+            } else {
+                ImageDesc::rgba8(64, 64)
+            };
             let result = if point < 4 {
                 // Creation/allocation failures must not affect allocation-free preflight.
                 assert_eq!(
-                    Image::check_support(&device, ImageDesc::rgba8(64, 64)).unwrap(),
+                    Image::check_support(&device, image_desc).unwrap(),
                     64 * 64 * 4
                 );
-                Image::new(device.clone(), ImageDesc::rgba8(64, 64)).map(drop)
+                Image::new(device.clone(), image_desc).map(drop)
             } else {
                 unsafe {
                     Raster::new(
@@ -890,9 +902,9 @@ fn gpu_graphics_failures() {
                             push_size_bytes: 16,
                             topology: 0,
                             color_format: 0,
-                            depth_format: u32::MAX,
-                            depth_test: 0,
-                            depth_write: 0,
+                            depth_format: if with_depth { 4 } else { u32::MAX },
+                            depth_test: u32::from(with_depth),
+                            depth_write: u32::from(with_depth),
                             depth_compare: 7,
                             reserved: 0,
                         },

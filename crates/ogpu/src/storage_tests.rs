@@ -1,6 +1,9 @@
 //! Real-driver storage reuse, bounds and failure fallback. No synthetic GPU completion.
 use super::*;
 
+#[path = "rendering_failures.rs"]
+mod rendering_failures;
+
 #[test]
 fn cache_admission_bounds_steps_roots_and_overflow() {
     assert!(cacheable_shape(0, [].into_iter()));

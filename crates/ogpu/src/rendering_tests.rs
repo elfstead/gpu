@@ -133,6 +133,243 @@ fn rendering_descriptions_and_ranges_need_no_driver() {
     }
 }
 
+#[test]
+#[ignore = "requires graphics Vulkan; every depth compare/test/write combination and read-only LOAD draws"]
+fn gpu_depth_compare_matrix() {
+    let instance = Arc::new(Instance::new().unwrap());
+    let vertex = words(include_bytes!(
+        "../../../examples/shaders/triangle.vert.spv"
+    ));
+    let fragment = words(include_bytes!(
+        "../../../examples/shaders/triangle.frag.spv"
+    ));
+    let shader = |words: &[u32]| OgpuShaderDesc {
+        code: words.as_ptr().cast(),
+        code_size: (words.len() * 4) as u64,
+        entry_point: ptr::null(),
+        constants: ptr::null(),
+        constant_count: 0,
+        format: 0,
+        local_size: [0; 3],
+        reserved: 0,
+    };
+    // Incoming z=.5 against [.25, .5, .75, 1]: NEVER, LESS, EQUAL,
+    // LESS_EQUAL, GREATER, NOT_EQUAL, GREATER_EQUAL, ALWAYS.
+    // This explicit truth table is independent of the runtime's native mapping.
+    let pass_masks = [0u8, 12, 2, 14, 1, 13, 3, 15];
+    let depths = [0.25f32, 0.5, 0.75, 1.0];
+    let mut tested = 0;
+    for physical in instance.physical_devices().unwrap() {
+        let d = match Device::new_graphics(instance.clone(), physical) {
+            Ok(d) => d,
+            Err(e) if e.status == UNSUPPORTED => continue,
+            Err(e) => panic!("{e:?}"),
+        };
+        let mut device = OgpuDevice { inner: d.clone() };
+        unsafe {
+            let mut color = image(&mut device, 0, 4 | 8);
+            let mut depth = image(&mut device, 4, 32 | 8 | 16);
+            let vertices = buffer(&mut device, 48, 0);
+            let mut indices = buffer(&mut device, 12, 1);
+            let mut indirect = buffer(&mut device, 20, 0);
+            let mut source = buffer(&mut device, 4096, 0);
+            let mut output = buffer(&mut device, 8200, 0);
+            // Oversized triangle covers every pixel center: no edge exclusions.
+            let data: Vec<u8> = [
+                -1.0f32, -1.0, 0.5, 1.0, 3.0, -1.0, 0.5, 1.0, -1.0, 3.0, 0.5, 1.0,
+            ]
+            .into_iter()
+            .flat_map(f32::to_ne_bytes)
+            .collect();
+            vertices.inner.write(0, &data).unwrap();
+            let record: Vec<u8> = [3u32, 1, 0, 0, 0]
+                .into_iter()
+                .flat_map(u32::to_ne_bytes)
+                .collect();
+            indirect.inner.write(0, &record).unwrap();
+            let uploaded: Vec<u8> = (0..1024)
+                .flat_map(|i| depths[i % 4].to_ne_bytes())
+                .collect();
+            source.inner.write(0, &uploaded).unwrap();
+            output.inner.write(0, &[0xa5; 8200]).unwrap();
+            let root = vertices.inner.address().unwrap().to_ne_bytes();
+            for format in 0..2 {
+                let bytes: Vec<u8> = if format == 0 {
+                    [0u16, 1, 2]
+                        .into_iter()
+                        .flat_map(u16::to_ne_bytes)
+                        .collect()
+                } else {
+                    [0u32, 1, 2]
+                        .into_iter()
+                        .flat_map(u32::to_ne_bytes)
+                        .collect()
+                };
+                indices.inner.write(0, &bytes).unwrap();
+                let range = OgpuIndexRange {
+                    buffer: &mut *indices,
+                    offset: 0,
+                    size_bytes: bytes.len() as u64,
+                    format,
+                    reserved: 0,
+                };
+                for (compare, mask) in pass_masks.into_iter().enumerate() {
+                    for test in 0..2 {
+                        for write in 0..2 {
+                            let desc = OgpuRasterDesc {
+                                push_size_bytes: 8,
+                                topology: 0,
+                                color_format: 0,
+                                depth_format: 4,
+                                depth_test: test,
+                                depth_write: write,
+                                depth_compare: compare as u32,
+                                reserved: 0,
+                            };
+                            let mut raw = ptr::null_mut();
+                            assert_eq!(
+                                ogpu_raster_create(
+                                    &mut device,
+                                    &shader(&vertex),
+                                    &shader(&fragment),
+                                    &desc,
+                                    &mut raw,
+                                    ptr::null_mut()
+                                ),
+                                SUCCESS
+                            );
+                            let mut raster = Box::from_raw(raw);
+                            let mut batch = OgpuBatch {
+                                inner: Batch::new(d.clone()).unwrap(),
+                            };
+                            assert_eq!(
+                                ogpu_batch_discard_image(&mut batch, &*color, ptr::null_mut()),
+                                SUCCESS
+                            );
+                            assert_eq!(
+                                ogpu_batch_discard_image(&mut batch, &*depth, ptr::null_mut()),
+                                SUCCESS
+                            );
+                            assert_eq!(
+                                ogpu_batch_copy_buffer_to_image(
+                                    &mut batch,
+                                    &mut *source,
+                                    0,
+                                    &mut *depth,
+                                    ptr::null_mut()
+                                ),
+                                SUCCESS
+                            );
+                            assert_eq!(
+                                ogpu_batch_barrier(&mut batch, 64, 1024 | 2048, ptr::null_mut()),
+                                SUCCESS
+                            );
+                            let mut rendering = OgpuRenderingDesc {
+                                color: OgpuColorAttachment {
+                                    image: &mut *color,
+                                    clear: [0.0, 0.0, 1.0, 1.0],
+                                    ..Default::default()
+                                },
+                                depth: OgpuDepthAttachment {
+                                    image: &mut *depth,
+                                    load: 1,
+                                    ..Default::default()
+                                },
+                            };
+                            for pass in 0..2 {
+                                if pass == 1 {
+                                    assert_eq!(
+                                        ogpu_batch_barrier(
+                                            &mut batch,
+                                            16 | 1024 | 2048,
+                                            256 | 16 | 1024 | 2048,
+                                            ptr::null_mut()
+                                        ),
+                                        SUCCESS
+                                    );
+                                    rendering.color.load = 1;
+                                }
+                                assert_eq!(
+                                    ogpu_batch_begin_rendering(
+                                        &mut batch,
+                                        &rendering,
+                                        ptr::null_mut()
+                                    ),
+                                    SUCCESS
+                                );
+                                assert_eq!(
+                                    ogpu_batch_draw_indexed_indirect(
+                                        &mut batch,
+                                        &mut *raster,
+                                        &range,
+                                        &mut *indirect,
+                                        0,
+                                        root.as_ptr().cast(),
+                                        8,
+                                        ptr::null_mut()
+                                    ),
+                                    SUCCESS
+                                );
+                                assert_eq!(
+                                    ogpu_batch_end_rendering(&mut batch, ptr::null_mut()),
+                                    SUCCESS
+                                );
+                            }
+                            assert_eq!(
+                                ogpu_batch_copy_image_to_buffer(
+                                    &mut batch,
+                                    &mut *color,
+                                    &mut *output,
+                                    4,
+                                    ptr::null_mut()
+                                ),
+                                SUCCESS
+                            );
+                            assert_eq!(
+                                ogpu_batch_copy_image_to_buffer(
+                                    &mut batch,
+                                    &mut *depth,
+                                    &mut *output,
+                                    4100,
+                                    ptr::null_mut()
+                                ),
+                                SUCCESS
+                            );
+                            batch.inner.submit().unwrap().wait().unwrap();
+                            let mut actual = [0u8; 8200];
+                            output
+                                .inner
+                                .read(0, actual.as_mut_ptr(), actual.len())
+                                .unwrap();
+                            assert_eq!(&actual[..4], &[0xa5; 4]);
+                            assert_eq!(&actual[8196..], &[0xa5; 4]);
+                            for pixel in 0..1024 {
+                                let pass = test == 0 || mask & (1 << (pixel % 4)) != 0;
+                                let expected = if pass {
+                                    [255, 0, 0, 255]
+                                } else {
+                                    [0, 0, 255, 255]
+                                };
+                                let z = if pass && test != 0 && write != 0 {
+                                    0.5
+                                } else {
+                                    depths[pixel % 4]
+                                };
+                                assert_eq!(&actual[4+pixel*4..8+pixel*4], &expected,
+                                    "color: index={format} compare={compare} test={test} write={write} pixel={pixel}");
+                                assert_eq!(&actual[4100+pixel*4..4104+pixel*4], &z.to_ne_bytes(),
+                                    "depth: index={format} compare={compare} test={test} write={write} pixel={pixel}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        tested += 1;
+    }
+    assert!(tested > 0);
+}
+
 fn words(bytes: &[u8]) -> Vec<u32> {
     bytes
         .chunks_exact(4)
@@ -315,6 +552,102 @@ fn gpu_indexed_depth_scopes() {
                         ..Default::default()
                     },
                 };
+                // Distinct logical devices on one physical GPU are enough to test
+                // identity rejection; this is not a second-physical-GPU claim.
+                let mut foreign = OgpuDevice {
+                    inner: Device::new_graphics(instance.clone(), physical).unwrap(),
+                };
+                let mut foreign_color = image(&mut foreign, 0, 4 | 8);
+                let mut foreign_depth = image(&mut foreign, 4, 32 | 8);
+                let mut foreign_indices = buffer(&mut foreign, 64, 1);
+                let mut foreign_indirect = buffer(&mut foreign, 40, 0);
+                let mut foreign_raw = ptr::null_mut();
+                assert_eq!(
+                    ogpu_raster_create(
+                        &mut foreign,
+                        &shader(&vertex),
+                        &shader(&fragment),
+                        &raster_desc,
+                        &mut foreign_raw,
+                        ptr::null_mut()
+                    ),
+                    SUCCESS
+                );
+                let mut foreign_raster = Box::from_raw(foreign_raw);
+                let mut wrong_color = image(&mut device, 2, 4 | 8);
+                let mut wrong_usage = image(&mut device, 0, 1 | 8);
+                let mut small = ptr::null_mut();
+                assert_eq!(
+                    ogpu_image_create(
+                        &mut device,
+                        &OgpuImageDesc {
+                            dimension: 2,
+                            width: 16,
+                            height: 32,
+                            format: 4,
+                            usage: 32 | 8,
+                            reserved: 0,
+                        },
+                        &mut small,
+                        ptr::null_mut()
+                    ),
+                    SUCCESS
+                );
+                let mut small = Box::from_raw(small);
+                // Rejected begin must not open a scope or retain bad attachments.
+                let mut rejected = OgpuBatch {
+                    inner: Batch::new(d.clone()).unwrap(),
+                };
+                for bad in 0..5 {
+                    let mut r = desc;
+                    match bad {
+                        0 => r.color.image = &mut *foreign_color,
+                        1 => r.depth.image = &mut *foreign_depth,
+                        2 => r.depth.image = &mut *small,
+                        3 => r.color.image = &mut *wrong_usage,
+                        _ => r.depth.image = &mut *color,
+                    }
+                    assert_eq!(
+                        ogpu_batch_begin_rendering(&mut rejected, &r, ptr::null_mut()),
+                        INVALID_ARGUMENT
+                    );
+                    assert_eq!(
+                        ogpu_batch_end_rendering(&mut rejected, ptr::null_mut()),
+                        INVALID_ARGUMENT
+                    );
+                }
+                // Valid scopes with incompatible raster formats reject draws,
+                // then can end and be discarded without native execution.
+                for no_depth in [false, true] {
+                    let mut r = desc;
+                    if no_depth {
+                        r.depth = OgpuDepthAttachment::default();
+                    } else {
+                        r.color.image = &mut *wrong_color;
+                    }
+                    assert_eq!(
+                        ogpu_batch_begin_rendering(&mut rejected, &r, ptr::null_mut()),
+                        SUCCESS
+                    );
+                    assert_eq!(
+                        ogpu_batch_draw_indexed_indirect(
+                            &mut rejected,
+                            &mut *raster,
+                            &range,
+                            &mut *indirect,
+                            0,
+                            root.as_ptr().cast(),
+                            8,
+                            ptr::null_mut()
+                        ),
+                        INVALID_ARGUMENT
+                    );
+                    assert_eq!(
+                        ogpu_batch_end_rendering(&mut rejected, ptr::null_mut()),
+                        SUCCESS
+                    );
+                }
+                drop(rejected);
                 // Initialize layouts once, separately from the replayed CLEAR scopes.
                 let mut init = OgpuBatch {
                     inner: Batch::new(d.clone()).unwrap(),
@@ -455,6 +788,50 @@ fn gpu_indexed_depth_scopes() {
                         INVALID_ARGUMENT
                     );
                 }
+                // Reject each foreign draw object independently. A valid draw
+                // after these failures must still compile, execute and replay.
+                for bad in 0..4 {
+                    let mut r = range;
+                    if bad == 0 {
+                        r.buffer = &mut *foreign_indices;
+                    }
+                    let pipeline = if bad == 1 {
+                        &mut *foreign_raster
+                    } else {
+                        &mut *raster
+                    };
+                    let records = if bad == 2 {
+                        &mut *foreign_indirect
+                    } else {
+                        &mut *indirect
+                    };
+                    assert_eq!(
+                        ogpu_batch_draw_indexed_indirect(
+                            &mut batch,
+                            pipeline,
+                            &r,
+                            records,
+                            0,
+                            root.as_ptr().cast(),
+                            if bad == 3 { 4 } else { 8 },
+                            ptr::null_mut()
+                        ),
+                        INVALID_ARGUMENT
+                    );
+                }
+                let weak_foreign_image = Rc::downgrade(&foreign_depth.inner);
+                let weak_foreign_index = Rc::downgrade(&foreign_indices.inner);
+                let weak_foreign_raster = Rc::downgrade(&foreign_raster.inner);
+                drop((
+                    foreign_color,
+                    foreign_depth,
+                    foreign_indices,
+                    foreign_indirect,
+                    foreign_raster,
+                ));
+                assert!(weak_foreign_image.upgrade().is_none());
+                assert!(weak_foreign_index.upgrade().is_none());
+                assert!(weak_foreign_raster.upgrade().is_none());
                 assert_eq!(
                     ogpu_batch_retain_buffer(&mut batch, &*vertices, ptr::null_mut()),
                     SUCCESS
