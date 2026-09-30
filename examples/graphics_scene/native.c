@@ -15,7 +15,7 @@ typedef struct {
     NativeBuffer vertices, indices, draws, upload, readback, geometry;
     PFN_vkCmdBindIndexBuffer3KHR bind_index;
     PFN_vkCmdDrawIndexedIndirect2KHR draw_indexed;
-    uint32_t width, height;
+    uint32_t width, height, index_bytes;
     size_t pixels;
     unsigned char *cpu;
 } Scene;
@@ -120,7 +120,8 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     n->vkCmdSetViewport(b->command, 0, 1, &viewport); n->vkCmdSetScissor(b->command, 0, 1, &area);
     uint64_t address=s->vertices.address+GUARD; NEED(native_push(n,b,p,&address,sizeof(address)));
     VkBindIndexBuffer3InfoKHR indices = {.sType=VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR,
-        .addressRange={s->indices.address+GUARD,32}, .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR, .indexType=VK_INDEX_TYPE_UINT32};
+        .addressRange={s->indices.address+GUARD,8*s->index_bytes}, .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
+        .indexType=s->index_bytes==2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32};
     s->bind_index(b->command, &indices);
     for (unsigned i=0; i<count; ++i) {
         unsigned which=(first+i)%2;
@@ -203,8 +204,12 @@ static void scene_destroy(Scene *s) {
     native_program_destroy(n,&s->prepare); native_destroy(n); free(s->cpu);
 }
 int main(int argc, char **argv) {
-    if(argc!=5) { fprintf(stderr,"Usage: native width height shaders output-directory\n"); return 1; }
-    Scene s={0};
+    if(argc!=5 && argc!=6) { fprintf(stderr,"Usage: native width height shaders output-directory [16|32]\n"); return 1; }
+    Scene s={.index_bytes=4};
+    if(argc==6) {
+        if(!strcmp(argv[5],"16")) s.index_bytes=2;
+        else if(strcmp(argv[5],"32")) return 1;
+    }
     /* Deliberately bounded CLI; large/arbitrary extents are not this control. */
     if(!strcmp(argv[1],"257") && !strcmp(argv[2],"193")) { s.width=257;s.height=193; }
     else if(!strcmp(argv[1],"640") && !strcmp(argv[2],"360")) { s.width=640;s.height=360; }

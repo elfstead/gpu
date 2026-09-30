@@ -7,6 +7,13 @@ struct Root {
     uint empty;
 };
 [[vk::push_constant]] ConstantBuffer<Root> root;
+uint sceneIndex(uint id) {
+    if (id == 2 || id == 5) return 1;
+    if (id == 3) return 2;
+    if (id == 4 || id == 6) return 3;
+    if (id == 7) return 4;
+    return 0xffffffffu;
+}
 [shader("compute")]
 [numthreads(8, 1, 1)]
 void main(uint3 thread : SV_DispatchThreadID) {
@@ -20,12 +27,13 @@ void main(uint3 thread : SV_DispatchThreadID) {
     root.vertices[4 * id + 2] = near ? 0.25 : 0.75;
     root.vertices[4 * id + 3] = 1.0;
     // Two poison entries exercise firstIndex. Native baseVertex is -1 / +3.
-    uint index = 0xffffffffu;
-    if (id == 2 || id == 5) index = 1;
-    if (id == 3) index = 2;
-    if (id == 4 || id == 6) index = 3;
-    if (id == 7) index = 4;
-    root.indices[id] = index;
+#ifdef SCENE_INDEX16
+    // Generate pairs with ordinary uint arithmetic/stores. Fixed-function index
+    // width does not imply a shader-int16 capability requirement.
+    if (id < 4) root.indices[id] = (sceneIndex(2 * id) & 0xffffu) | (sceneIndex(2 * id + 1) << 16);
+#else
+    root.indices[id] = sceneIndex(id);
+#endif
     if (id < 2) {
         root.draws[5 * id] = root.empty != 0 ? 0 : 6;
         root.draws[5 * id + 1] = 1;

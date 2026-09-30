@@ -26,21 +26,23 @@ def interior(x, y, width, height, phase):
             and all(abs(y-edge) > 2/height for edge in (-.75,.75,-.375,.375)))
 
 
-def geometry(phase, empty):
+def geometry(phase, empty, index_bytes=4):
     # Explicit vertex table and native indirect layout, separate from image oracle.
     center = -.125 if phase == 0 else .125
     vertices = [(-.75,-.75,.75,1.),(.75,-.75,.75,1.),(.75,.75,.75,1.),(-.75,.75,.75,1.),
                 (center-.25,-.375,.25,1.),(center+.25,-.375,.25,1.),
                 (center+.25,.375,.25,1.),(center-.25,.375,.25,1.)]
     v = struct.pack('<32f', *(component for vertex in vertices for component in vertex))
-    indices = struct.pack('<8I', 0xffffffff,0xffffffff,1,2,3,1,3,4)
+    if index_bytes not in (2,4): raise ValueError('unsupported index width')
+    poison=(1 << (8*index_bytes))-1
+    indices = struct.pack('<8'+('H' if index_bytes==2 else 'I'), poison,poison,1,2,3,1,3,4)
     draws = b''.join(struct.pack('<IIIiI', 0 if empty else 6,1,2,base,0) for base in (-1,3))
-    return GUARD+v+GUARD+GUARD+indices+GUARD+GUARD+draws+GUARD
+    return GUARD+v+GUARD+GUARD+indices+bytes([0xa5])*(96-len(indices))+GUARD+draws+GUARD
 
 
-def check(images, mesh, width, height, phase, mode):
+def check(images, mesh, width, height, phase, mode, index_bytes=4):
     size=width*height*4
-    if len(images)!=2*size+256 or mesh!=geometry(phase,mode==9):
+    if len(images)!=2*size+256 or mesh!=geometry(phase,mode==9,index_bytes):
         raise ValueError('image size or computed geometry/index/indirect/guard mismatch')
     if images[:64]!=GUARD or images[64+size:192+size]!=GUARD*2 or images[-64:]!=GUARD:
         raise ValueError('image readback guard mismatch')

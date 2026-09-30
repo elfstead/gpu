@@ -39,5 +39,23 @@ class OracleTests(unittest.TestCase):
         with self.assertRaises(ValueError): oracle.check(images,mesh[:-1],w,h,0,9)
         with self.assertRaises(ValueError): oracle.check(images[:-1],mesh,w,h,0,9)
 
+    def test_index_widths(self):
+        for phase in (0,1):
+            for empty in (False,True):
+                narrow=oracle.geometry(phase,empty,2);wide=oracle.geometry(phase,empty,4)
+                self.assertEqual(len(narrow),584)
+                self.assertEqual(narrow[:320],wide[:320])
+                self.assertEqual(narrow[416:],wide[416:])
+                self.assertEqual(struct.unpack('<8H',narrow[320:336]),(65535,65535,1,2,3,1,3,4))
+                self.assertEqual(narrow[336:416],bytes([0xa5])*80)
+        w,h=257,193
+        images=oracle.GUARD+oracle.BLACK*(w*h)+oracle.GUARD*2+struct.pack('<f',1.)*(w*h)+oracle.GUARD
+        mesh=oracle.geometry(0,True,2)
+        oracle.check(images,mesh,w,h,0,9,2)
+        with self.assertRaises(ValueError): oracle.check(images,mesh,w,h,0,9,4)
+        damaged=bytearray(mesh);damaged[336]^=1
+        with self.assertRaises(ValueError): oracle.check(images,damaged,w,h,0,9,2)
+        with self.assertRaises(ValueError): oracle.geometry(0,False,1)
+
 
 if __name__=='__main__': unittest.main()

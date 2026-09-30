@@ -14,6 +14,12 @@ Indices have two poison prefix entries; `firstIndex=2`, `vertexOffset=-1/+3`,
 non-indexed shader emulation of index lookup. The near rectangle shifts between
 -0.125 and +0.125 on X in A/B/A frames.
 
+Default indices are UINT32. `--index16` selects a compute variant that packs pairs
+of UINT16 indices with ordinary uint arithmetic, without newly requiring shader
+16-bit arithmetic/storage features. Native and public draws bind UINT16 and a
+16-byte range instead of 32 bytes. Allocations stay the same size; the unused
+16 bytes remain poison and are checked. Positions and indirect records are unchanged.
+
 RGBA8 color + D32_SFLOAT depth, single sample/mip/layer, no culling/blending,
 full-target viewport/scissor. Both exact image format/usage combinations must be
 supported; no fallback format. The index buffer explicitly has INDEX_BUFFER usage:
@@ -56,6 +62,13 @@ there is no CPU readback between generation and drawing. Both consumers use fres
 recordings, explicit per-frame image discard and stable allocations. Public image
 copies use the runtime's copy dependencies; explicit generation-to-draw and
 between-scope dependencies remain visible in the consumer.
+UINT16 GPU acceptance additionally requires `--reference32 PATH/TO/report.json`
+pointing to a clean accepted matched UINT32 run at all requested extents on the
+same driver. Every color/depth image byte must agree across index widths, after
+checking the reference artifact hash and independently accepting the new geometry.
+For example, run `run.py --public` first, then
+`run.py --public --index16 --reference32 target/graphics-scene/matched-.../report.json`.
+Use `--scale` on both runs to include 720p.
 Select one ICD and enable Vulkan + synchronization validation. Pinned Slang
 2026.14.1 and SPIRV-Tools compile native shaders; this does not widen the installed
 compiler's vertex-root subset. Fresh report directories retain shaders, full

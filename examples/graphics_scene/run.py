@@ -32,16 +32,30 @@ def compare_outputs(native, public, rows):
     return dict(frames=len(rows),files=2*len(rows),compared_bytes=compared,exact=True)
 
 
+def compare_index_width(reference_root, reference_run, output, rows):
+    compared=0
+    for row in rows:
+        name=f"mode-{row['mode']}-frame-{row['frame']}.images"
+        path=reference_root/reference_run['directory']/name
+        generate.require(digest(path)==reference_run['files'][name],'UINT32 reference artifact hash mismatch')
+        expected=path.read_bytes()
+        generate.require(expected==(output/name).read_bytes(),f'index-width image mismatch: {name}')
+        compared+=len(expected)
+    return dict(frames=len(rows),files=len(rows),compared_bytes=compared,exact=True)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--scale',action='store_true')
     parser.add_argument('--public',action='store_true',help='also build/run public API consumer and require exact native agreement')
+    parser.add_argument('--index16',action='store_true',help='generate and bind UINT16 instead of UINT32 indices')
+    parser.add_argument('--reference32',type=Path,help='accepted matched UINT32 report; required for UINT16 GPU acceptance')
     args=parser.parse_args()
     build=ROOT/'target/graphics-scene';build.mkdir(parents=True,exist_ok=True)
     dest=Path(tempfile.mkdtemp(prefix='matched-' if args.public else 'native-',dir=build))
     print(f'Scene evidence: {dest}',flush=True)
-    report=dict(schema=2 if args.public else 1,complete=False,
+    report=dict(schema=3,index_bytes=2 if args.index16 else 4,complete=False,
                 scope='matched public/native indexed/depth correctness; not full M4 or performance acceptance' if args.public else
                     'native indexed/depth correctness, not public API acceptance or performance',
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
@@ -52,13 +66,22 @@ def main():
     def save(): (dest/'report.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
     save()
     try:
+        reference=None
+        if args.reference32:
+            generate.require(args.index16 and args.public,'UINT32 reference is only for matched UINT16 runs')
+            reference=json.loads(args.reference32.read_text())
+            generate.require(reference.get('complete') and not reference.get('dirty') and not reference.get('build_only')
+                             and reference.get('schema') in (2,3) and reference.get('index_bytes',4)==4,
+                             'UINT32 reference must be a clean accepted matched GPU report')
+            report['reference32']=dict(path=str(args.reference32.resolve()),sha256=digest(args.reference32),revision=reference['revision'])
+        generate.require(args.check or not args.index16 or reference is not None,'UINT16 GPU acceptance requires --public --reference32')
         sources=list(HERE.glob('*.py'))+list(HERE.glob('*.c'))+list(HERE.glob('*.slang'))+[HERE/'README.md']
         sources += [ROOT/'examples/learned_image'/name for name in ('native.c','native_workload.h','extent.h')]
         sources += list((ROOT/'examples/learned_image/generated').glob('*.h'))
         sources += list((ROOT/'examples/compiler').glob('*.py'))
         sources += [ROOT/'include/ogpu.h',ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources)}
-        for name,stage in [('prepare','compute'),('scene.vert','vertex'),('scene.frag','fragment')]:
+        for name,stage in [('prepare16' if args.index16 else 'prepare','compute'),('scene.vert','vertex'),('scene.frag','fragment')]:
             reflection,assembly,binary=generate.compile_source(HERE/(name+'.slang'),dest/stage,os.getenv('SLANGC','slangc'),stage)
             if stage=='compute':
                 generate.require(reflection['entryPoints'][0]['threadGroupSize']==[8,1,1],'wrong workgroup')
@@ -106,40 +129,46 @@ def main():
             environment['LD_LIBRARY_PATH']=str(ROOT/'target/release')+':'+environment.get('LD_LIBRARY_PATH','')
             report['public']['LD_LIBRARY_PATH']=environment['LD_LIBRARY_PATH']
         for width,height in [(257,193),(640,360)]+([(1280,720)] if args.scale else []):
-          for backend,binary in executables.items():
-            output=dest/(f'{width}x{height}-{backend}' if args.public else f'{width}x{height}');output.mkdir()
-            with (output/'stdout').open('w') as out,(output/'stderr').open('w') as err:
-                run=subprocess.run([str(binary),str(width),str(height),str(dest),str(output)],stdout=out,stderr=err,timeout=300,env=environment)
-            stdout=(output/'stdout').read_text();stderr=(output/'stderr').read_text()
-            generate.require(run.returncode==0 and 'Validation Error:' not in stdout+stderr,f'{backend} execution/validation failed; inspect retained logs')
-            generate.require(f'{backend.title()} indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
-            if backend=='public':
-                context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
-                generate.require(context==[dict(abi=18,index_bytes=4,gpu_generated=True)],'wrong public scene configuration')
-            devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
-            generate.require(len(devices)==1,'missing/duplicate device identity')
-            if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')
-            rows=[json.loads(line.removeprefix('SCENE_FRAME ')) for line in stdout.splitlines() if line.startswith('SCENE_FRAME ')]
-            expected=[dict(mode=m,phase=int(f==1),frame=f) for m in range(10) for f in range(3)]
-            generate.require(rows==expected,'missing/reordered frame records')
-            checks=[]
-            for row in rows:
-                stem=output/f"mode-{row['mode']}-frame-{row['frame']}"
-                checks.append(dict(**row,**oracle.check(stem.with_suffix('.images').read_bytes(),stem.with_suffix('.geometry').read_bytes(),
-                                                      width,height,row['phase'],row['mode'])))
-            for mode in range(10):
-                for suffix in ('images','geometry'):
-                    generate.require((output/f'mode-{mode}-frame-0.{suffix}').read_bytes()==(output/f'mode-{mode}-frame-2.{suffix}').read_bytes(),'A/B/A repeat mismatch')
-            for frame in range(3):
-                normal=(output/f'mode-0-frame-{frame}.images').read_bytes()
-                for mode in (1,6): generate.require(normal==(output/f'mode-{mode}-frame-{frame}.images').read_bytes(),'draw-order/load mismatch')
-            generate.require((output/'mode-0-frame-0.images').read_bytes()!=(output/'mode-0-frame-1.images').read_bytes(),'moving geometry did not change output')
-            result=dict(extent=[width,height],device=devices[0],checks=checks,
-                        files={p.name:digest(p) for p in sorted(output.iterdir()) if p.is_file()})
-            if args.public: result.update(backend=backend,directory=output.name)
-            if backend=='public': result['native_comparison']=compare_outputs(dest/f'{width}x{height}-native',output,rows)
-            report['runs'].append(result)
-            save();print(f'Scene {backend} {width}x{height}: all 30 color/depth/geometry/guard checks PASS',flush=True)
+            for backend,binary in executables.items():
+                output=dest/(f'{width}x{height}-{backend}' if args.public else f'{width}x{height}');output.mkdir()
+                with (output/'stdout').open('w') as out,(output/'stderr').open('w') as err:
+                    run=subprocess.run([str(binary),str(width),str(height),str(dest),str(output),'16' if args.index16 else '32'],stdout=out,stderr=err,timeout=300,env=environment)
+                stdout=(output/'stdout').read_text();stderr=(output/'stderr').read_text()
+                generate.require(run.returncode==0 and 'Validation Error:' not in stdout+stderr,f'{backend} execution/validation failed; inspect retained logs')
+                generate.require(f'{backend.title()} indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
+                if backend=='public':
+                    context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
+                    generate.require(context==[dict(abi=18,index_bytes=report['index_bytes'],gpu_generated=True)],'wrong public scene configuration')
+                devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
+                generate.require(len(devices)==1,'missing/duplicate device identity')
+                if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')
+                rows=[json.loads(line.removeprefix('SCENE_FRAME ')) for line in stdout.splitlines() if line.startswith('SCENE_FRAME ')]
+                expected=[dict(mode=m,phase=int(f==1),frame=f) for m in range(10) for f in range(3)]
+                generate.require(rows==expected,'missing/reordered frame records')
+                checks=[]
+                for row in rows:
+                    stem=output/f"mode-{row['mode']}-frame-{row['frame']}"
+                    checks.append(dict(**row,**oracle.check(stem.with_suffix('.images').read_bytes(),stem.with_suffix('.geometry').read_bytes(),
+                                                          width,height,row['phase'],row['mode'],report['index_bytes'])))
+                for mode in range(10):
+                    for suffix in ('images','geometry'):
+                        generate.require((output/f'mode-{mode}-frame-0.{suffix}').read_bytes()==(output/f'mode-{mode}-frame-2.{suffix}').read_bytes(),'A/B/A repeat mismatch')
+                for frame in range(3):
+                    normal=(output/f'mode-0-frame-{frame}.images').read_bytes()
+                    for mode in (1,6): generate.require(normal==(output/f'mode-{mode}-frame-{frame}.images').read_bytes(),'draw-order/load mismatch')
+                generate.require((output/'mode-0-frame-0.images').read_bytes()!=(output/'mode-0-frame-1.images').read_bytes(),'moving geometry did not change output')
+                result=dict(extent=[width,height],device=devices[0],checks=checks,
+                            files={p.name:digest(p) for p in sorted(output.iterdir()) if p.is_file()})
+                if args.public: result.update(backend=backend,directory=output.name)
+                if backend=='public': result['native_comparison']=compare_outputs(dest/f'{width}x{height}-native',output,rows)
+                if reference is not None:
+                    matches=[r for r in reference['runs'] if r['extent']==[width,height] and r['backend']==backend]
+                    generate.require(len(matches)==1 and matches[0]['device']==devices[0]
+                        and [dict(mode=c['mode'],phase=c['phase'],frame=c['frame']) for c in matches[0]['checks']]==rows,
+                        'UINT32 reference device/frame/extent mismatch')
+                    result['index_width_comparison']=compare_index_width(args.reference32.parent,matches[0],output,rows)
+                report['runs'].append(result)
+                save();print(f'Scene {backend} {width}x{height}: all 30 color/depth/geometry/guard checks PASS',flush=True)
         report['complete']=True;save()
     except Exception as error:
         report['error']=str(error);save();raise

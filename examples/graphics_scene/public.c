@@ -24,7 +24,7 @@ typedef struct {
     OgpuCompletion *completion;
     OgpuError error;
     SceneRoot root;
-    uint32_t width, height;
+    uint32_t width, height, index_bytes;
     size_t pixels;
     unsigned char *cpu;
     uint32_t *shaders[3];
@@ -70,7 +70,7 @@ static int scene_create(Scene *s, const char *directory) {
     GPU(ogpu_device_create_graphics(s->probe,0,&s->device,&s->error));
     printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",
         info.vendor_id,info.device_id,info.vulkan_api_major,info.vulkan_api_minor,info.vulkan_api_patch);
-    printf("PUBLIC_SCENE {\"abi\":%u,\"index_bytes\":4,\"gpu_generated\":true}\n",OGPU_ABI_VERSION);
+    printf("PUBLIC_SCENE {\"abi\":%u,\"index_bytes\":%u,\"gpu_generated\":true}\n",OGPU_ABI_VERSION,s->index_bytes);
     NEED(read_shader(s,0,directory,"compute.spv") && read_shader(s,1,directory,"vertex.spv") && read_shader(s,2,directory,"fragment.spv"));
     OgpuShaderDesc shaders[3]={0};
     for(unsigned i=0;i<3;++i) { shaders[i].code=s->shaders[i]; shaders[i].code_size=s->shader_bytes[i]; shaders[i].format=OGPU_SHADER_SPIRV; }
@@ -107,7 +107,8 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     OgpuRenderingDesc desc={.color={s->color,color_load ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR,
         OGPU_STORE_STORE,{0,0,0,1}},.depth={s->depth,depth_load ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR,OGPU_STORE_STORE,clear,0}};
     GPU(ogpu_batch_begin_rendering(s->batch,&desc,&s->error));
-    OgpuIndexRange indices={s->indices,GUARD,32,OGPU_INDEX_UINT32,0};
+    OgpuIndexRange indices={s->indices,GUARD,8*s->index_bytes,
+        s->index_bytes==2 ? OGPU_INDEX_UINT16 : OGPU_INDEX_UINT32,0};
     for(unsigned i=0;i<count;++i) {
         unsigned which=(first+i)%2;
         GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],&indices,s->draws,GUARD+20*which,
@@ -160,8 +161,12 @@ static void scene_destroy(Scene *s) {
     free(s->cpu);
 }
 int main(int argc, char **argv) {
-    if(argc!=5) { fprintf(stderr,"Usage: public width height shaders output-directory\n"); return 1; }
-    Scene s={0};
+    if(argc!=5 && argc!=6) { fprintf(stderr,"Usage: public width height shaders output-directory [16|32]\n"); return 1; }
+    Scene s={.index_bytes=4};
+    if(argc==6) {
+        if(!strcmp(argv[5],"16")) s.index_bytes=2;
+        else if(strcmp(argv[5],"32")) return 1;
+    }
     if(!strcmp(argv[1],"257") && !strcmp(argv[2],"193")) { s.width=257;s.height=193; }
     else if(!strcmp(argv[1],"640") && !strcmp(argv[2],"360")) { s.width=640;s.height=360; }
     else if(!strcmp(argv[1],"1280") && !strcmp(argv[2],"720")) { s.width=1280;s.height=720; }

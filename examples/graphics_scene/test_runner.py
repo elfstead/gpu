@@ -9,6 +9,22 @@ runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_index_width_comparison(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);old=root/'old';new=root/'new'
+            old.mkdir();new.mkdir()
+            name='mode-0-frame-0.images'
+            (old/name).write_bytes(b'expected');(new/name).write_bytes(b'expected')
+            reference=dict(directory='old',files={name:runner.digest(old/name)})
+            rows=[dict(mode=0,phase=0,frame=0)]
+            self.assertEqual(runner.compare_index_width(root,reference,new,rows),dict(frames=1,files=1,compared_bytes=8,exact=True))
+            (new/name).write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError,'index-width image mismatch'):
+                runner.compare_index_width(root,reference,new,rows)
+            (old/name).write_bytes(b'changed')
+            with self.assertRaisesRegex(ValueError,'reference artifact hash mismatch'):
+                runner.compare_index_width(root,reference,new,rows)
+
     def test_exact_and_mutated_outputs(self):
         with tempfile.TemporaryDirectory() as directory:
             native=Path(directory)/'native';public=Path(directory)/'public'
