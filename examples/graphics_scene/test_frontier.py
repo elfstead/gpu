@@ -55,6 +55,17 @@ class FrontierTests(unittest.TestCase):
                     expected=6 if strategy=='count' or frame['active'] else 0
                     self.assertEqual(f.struct.unpack_from('<I',mesh,480)[0],expected)
 
+    def test_count_followup_requires_both_native_commands(self):
+        out,err,device,counts,_=self.fixture(64,'count')
+        for row in counts[1:]:
+            row['vkCmdDrawIndexedIndirect2KHR']=8
+            row['indexed_records']=512
+        f.check_log(out,err(),64,'count-fixed',device)
+        for key in ('vkCmdDrawIndexedIndirect2KHR','vkCmdDrawIndexedIndirectCount2KHR','indexed_records','counted_capacity'):
+            bad=copy.deepcopy(counts);bad[1][key]-=1
+            with self.assertRaises((ValueError,RuntimeError)):
+                f.check_log(out,err(bad),64,'count-fixed',device)
+
     def test_identity_oracle_preserves_depth_guards_and_exposes_grouping(self):
         image=f.oracle.GUARD+f.oracle.BLACK+f.oracle.RED+f.oracle.GREEN+f.oracle.GUARD*2+bytes(range(12))+f.oracle.GUARD
         single=f.identity_image(image,3,1,512,'single')

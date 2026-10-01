@@ -138,8 +138,9 @@ matrix profiles and a project-wide fast-math policy remain undecided.
 
 Compute, vertex and fragment executables have different stage inputs/outputs; a
 root type alone is not a stage interface. The currently generated graphics subset
-is rootless Vulkan vertex index to position, and fragment coordinates to location-0
-float4 color with a generated root. The M2 heap checkpoint generates existing
+includes Vulkan vertex index and optional draw identity, address-based vertex
+roots, and location-0 float4 fragment color. Graphics roots and fragment coordinates
+can be absent when unused. The M2 heap checkpoint generates existing
 sampled/storage 2D image and sampler heap interfaces. A bounded offline stage linker
 now checks whole-location uint32/FP32 scalar/vector varyings (including native
 interpolation), matching types and locations rather than field names. General

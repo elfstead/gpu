@@ -52,7 +52,7 @@ def inspect(reflection, assembly, name="transform"):
     else:
         require(not local, "graphics entry cannot declare local dimensions")
     parameters = reflection["parameters"]
-    require(len(parameters) == (0 if stage == "vertex" else 1), "unexpected root count")
+    require(len(parameters) in ((1,) if stage == "compute" else (0, 1)), "unexpected root count")
     require(entry["bindings"] == [{"name": p["name"], "binding": p["binding"]} for p in parameters],
             "unexpected entry bindings")
 
@@ -61,13 +61,18 @@ def inspect(reflection, assembly, name="transform"):
                     "PhysicalStorageBufferAddresses": "buffer_device_address",
                     "DescriptorHeapEXT": "descriptor_heap",
                     "UntypedPointersKHR": "shader_untyped_pointers",
-                    "Float16": "shader_float16"}
+                    "Float16": "shader_float16",
+                    "DrawParameters": "shader_draw_parameters"}
     require(set(caps) <= requirements.keys() and "Shader" in caps,
             "unmapped or missing capability")
+    draw_identity = bool(re.search(r"OpDecorate %\S+ BuiltIn DrawIndex\b", assembly))
+    require(("DrawParameters" in caps) == draw_identity and (not draw_identity or stage == "vertex"),
+            "draw identity requires vertex DrawParameters")
     extensions = re.findall(r'^\s*OpExtension "([^"]+)"\s*$', assembly, re.M)
     require(set(extensions) <= {"SPV_KHR_physical_storage_buffer", "SPV_EXT_descriptor_heap",
                                 "SPV_KHR_untyped_pointers"}, "unmapped extension")
     native_heaps = "DescriptorHeapEXT" in caps
+    require(stage != "vertex" or not native_heaps, "vertex heap interfaces unsupported")
     require(native_heaps == ("UntypedPointersKHR" in caps) == ("SPV_EXT_descriptor_heap" in extensions)
             == ("SPV_KHR_untyped_pointers" in extensions), "heap capability/extension mismatch")
     require("OpSpecConstant" not in assembly and "OpExecutionModeId" not in assembly,
@@ -102,8 +107,8 @@ def inspect(reflection, assembly, name="transform"):
             {key for key, v in variables if v[2] != "Function"}, "entry variable list mismatch")
     io = stages.inspect(entry, definitions, variables, assembly, heap_ids)
     pushes = [v for _, v in variables if v[2] == "PushConstant"]
-    if stage == "vertex":
-        require(not pushes and not physical and not native_heaps, "vertex must be rootless, address-free and heap-free")
+    if not parameters:
+        require(not pushes and not physical and not native_heaps, "rootless stage must be address-free and heap-free")
         fields = layouts.Fields([], [], False)
         fields.io = io
         return fields, 0, 1, [], sorted(requirements[c] for c in set(caps))

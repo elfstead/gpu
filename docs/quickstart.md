@@ -59,6 +59,7 @@ share/ogpu/examples/affine/              # generated FP32-root example
 share/ogpu/examples/structured/          # generated nested root and pointer blocks
 share/ogpu/examples/heap-image/          # generated image/sampler heap roots
 share/ogpu/examples/stage-pair/          # checked vertex/fragment varyings
+share/ogpu/examples/draw-ranges/         # GPU counts, draw identity, reset/replay
 share/ogpu/examples/dependencies/        # nested includes/import + build receipt
 share/ogpu/examples/resource-reuse/      # two-slot arena/replay + CPU oracle/model
 share/ogpu/QUICKSTART.md
@@ -179,6 +180,14 @@ do not add ownership tracking or bounds checks to shader accesses.
 
 The installed `examples/stage-pair` directory has both stages embedded in one
 checked header. Copy it, run `python3 build.py --output stage-pair` and `./stage-pair`.
+
+For the ABI-19 range contract, copy `examples/draw-ranges`, run
+`python3 build.py --output draw-ranges` and `./draw-ranges`. It checks 540 frames
+of fixed/count ranges, local identity, indexed/non-indexed drawing and reset/replay
+using generated embedded shaders. No compiler or Vulkan headers are needed.
+This is a correctness handoff, not a benchmark or the full indexed/depth scene.
+The strict counted→fixed case currently fails on local llvmpipe Mesa 26.2.1 and
+also fails in direct Vulkan; see the [known regression](draw-count-followup.md).
 It verifies interpolated coordinates, a flat integer and exact RGBA8 pixels/guards.
 To regenerate or check the pair:
 

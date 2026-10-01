@@ -150,8 +150,10 @@ range/count backing and in-tree call-site migration are implemented. CPU bounds
 tests and focused public replay/lifetime tests pass; the public identity scene
 matches accepted native output and allocation shapes at 1/64/512 records on RADV
 and llvmpipe. These diagnostic scenes use one-shot storage, not a matched timing
-policy. Generated draw-identity support, broader identity edge cases, matched
-one/two-slot reset/replay timing and the installed range consumer remain pending.
+policy. Generated draw-identity support and a small installed range consumer now
+cover holes and per-operation identity reset. The [counted→fixed gate](draw-count-followup.md)
+exposes a direct-Vulkan llvmpipe failure; retain that unresolved driver boundary.
+Matched one/two-slot scene reset/replay timing and complete scene handoff remain.
 Metal entry points remain explicitly unsupported and are not natively validated.
 
 1. Coordinate header/runtime ABI, feature discovery/enablement, native bindings,

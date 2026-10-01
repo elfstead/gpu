@@ -127,6 +127,14 @@ def install(prefix):
                                 ("examples/compiler/pattern.generated.h", "pattern.generated.h"),
                                 ("tools/sdk/build-example.py", "build.py")):
         copy(ROOT / source, f"share/ogpu/examples/stage-pair/{destination}")
+    for source, destination in (("examples/compiler/ranges.c", "main.c"),
+                                ("examples/graphics_scene/identity.vert.slang", "identity.vert.slang"),
+                                ("examples/graphics_scene/identity.frag.slang", "identity.frag.slang"),
+                                ("examples/compiler/identity.generated.h", "identity.generated.h"),
+                                ("examples/compiler/range_count.slang", "range_count.slang"),
+                                ("examples/compiler/range_count.generated.h", "range_count.generated.h"),
+                                ("tools/sdk/build-example.py", "build.py")):
+        copy(ROOT / source, f"share/ogpu/examples/draw-ranges/{destination}")
     for name in ("affine.slang", "affine_math.slang", "include/arguments.slangh", "include/config.slangh",
                  "include/math.slangh", "affine.generated.h", "build.json"):
         copy(ROOT / "examples/compiler/dependencies" / name, "share/ogpu/examples/dependencies/"+name)

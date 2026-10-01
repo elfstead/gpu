@@ -17,12 +17,15 @@ static int frontier_draw(Scene *s) {
     VkDrawIndirect2InfoKHR info={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
         .addressRange={s->draws.address+64,20*frontier_records,20},
         .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,.drawCount=frontier_records};
-    if(frontier_strategy==2) {
+    if(frontier_strategy>=2) {
         VkDrawIndirectCount2InfoKHR count={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_COUNT_2_INFO_KHR,
             .addressRange=info.addressRange,.addressFlags=info.addressFlags,
             .countAddressRange={s->draws.address+64+20*frontier_records,4},
             .countAddressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,.maxDrawCount=frontier_records};
         draw_count(s->batch.command,&count);
+        /* Diagnostic control: the fixed draw must not inherit a preceding
+         * count word, even if that word is zero. Not a timing strategy. */
+        if(frontier_strategy==3) s->draw_indexed(s->batch.command,&info);
     } else if(frontier_strategy==1) s->draw_indexed(s->batch.command,&info);
     else for(unsigned i=0;i<frontier_records;++i) {
         info.addressRange.address=s->draws.address+64+20*i;info.addressRange.size=20;info.drawCount=1;
@@ -32,7 +35,7 @@ static int frontier_draw(Scene *s) {
 }
 int main(int argc,char **argv) {
     Scene s={.index_bytes=4};NativeBuffer control={0};int okay=0;
-    if(argc!=7) { fprintf(stderr,"Usage: frontier width height shaders output records single|multi|count\n");return 1; }
+    if(argc!=7) { fprintf(stderr,"Usage: frontier width height shaders output records single|multi|count|count-fixed\n");return 1; }
     if(!strcmp(argv[1],"257") && !strcmp(argv[2],"193")) { s.width=257;s.height=193; }
     else if(!strcmp(argv[1],"1280") && !strcmp(argv[2],"720")) { s.width=1280;s.height=720; }
     else return 1;
@@ -43,6 +46,7 @@ int main(int argc,char **argv) {
     if(!strcmp(argv[6],"single")) frontier_strategy=0;
     else if(!strcmp(argv[6],"multi")) frontier_strategy=1;
     else if(!strcmp(argv[6],"count")) frontier_strategy=2;
+    else if(!strcmp(argv[6],"count-fixed")) frontier_strategy=3;
     else return 1;
     s.pixels=(size_t)s.width*s.height*4;
     if(!scene_create_context(&s,argv[3])) goto done;
@@ -52,7 +56,7 @@ int main(int argc,char **argv) {
     unsigned counts[]={frontier_records,0,1,frontier_records/2,frontier_records+7,frontier_records,0,1};
     for(unsigned f=0;f<8;++f) {
         unsigned char input[144];memset(input,0xa5,sizeof(input));
-        uint32_t values[]={f%2,counts[f],frontier_records,frontier_strategy==2};memcpy(input+64,values,sizeof(values));
+        uint32_t values[]={f%2,counts[f],frontier_records,frontier_strategy>=2};memcpy(input+64,values,sizeof(values));
         uint64_t root[]={s.vertices.address+64,s.indices.address+64,s.draws.address+64,control.address+64};
         if(!native_write(s.n,&control,0,input,sizeof(input)) || !native_begin(s.n,&s.batch)
             || !scene_commands(&s,0,root) || !native_submit(s.n,&s.batch) || !native_wait(s.n,&s.batch)) goto done;

@@ -12,7 +12,7 @@ jobs:
       - run: python3 -B tools/test_installer.py
       - run: python3 -B tools/test-reuse-handoff.py
       - run: python3 tools/install.py --prefix "$RUNNER_TEMP/ogpu-sdk"
-      - run: python3 tools/test-install.py --prefix "$RUNNER_TEMP/ogpu-sdk" --no-gpu --resource-reuse
+      - run: python3 tools/test-install.py --prefix "$RUNNER_TEMP/ogpu-sdk" --no-gpu --resource-reuse --draw-ranges
   probe:
     runs-on: ubuntu-24.04
     steps:

@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--structured", action="store_true", help="also build/execute nested arguments and pointer blocks")
     parser.add_argument("--heap-image", action="store_true", help="also build/execute generated image/sampler heap roots")
     parser.add_argument("--stage-pair", action="store_true", help="also build/execute an offline checked graphics pair")
+    parser.add_argument("--draw-ranges", action="store_true", help="also check generated draw identity and GPU counts with reset/replay")
     parser.add_argument("--dependencies", action="store_true", help="also check transitive shader inputs and generated outputs")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
@@ -317,6 +318,52 @@ def main():
             run([*tracked, "--check"], cwd=stage, env=environment)
             run([sys.executable, "build.py", "--output", "stage-pair"], cwd=stage, env=environment)
             if not args.no_gpu: run(["./stage-pair"], cwd=stage, env=environment)
+    if args.draw_ranges:
+        ranges = temporary / "independent draw ranges app"
+        shutil.copytree(prefix / "share/ogpu/examples/draw-ranges", ranges)
+        def execute_ranges():
+            run([sys.executable, "build.py", "--output", "draw-ranges"], cwd=ranges, env=environment)
+            linked = run(["ldd", "./draw-ranges"], cwd=ranges, env=environment)
+            selected = next((line.split("=>", 1)[1].rsplit(" (", 1)[0].strip()
+                            for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")), None)
+            require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so",
+                    "range consumer did not resolve relocated runtime")
+            flags = shlex.split(run([pkg, "--cflags", "ogpu"], cwd=ranges, env=environment))
+            dependencies = run([*shlex.split(os.getenv("CC", "cc")), "-MM", "-I.", *flags, "main.c"],
+                               cwd=ranges, env=environment)
+            paths = {Path(p) if Path(p).is_absolute() else ranges / p for p in
+                     shlex.split(dependencies.replace("\\\n", "").split(":", 1)[1])}
+            paths = {p.resolve() for p in paths}
+            require(prefix / "include/ogpu.h" in paths and
+                    all(p == prefix / "include/ogpu.h" or p.is_relative_to(ranges) for p in paths),
+                    "range consumer escaped installed header/copied source graph")
+            failed = subprocess.run(["./draw-ranges"], cwd=ranges, env=missing, text=True, capture_output=True)
+            require(failed.returncode != 0 and "ogpu_probe_create" in failed.stderr, "range missing loader not diagnosed")
+            if not args.no_gpu:
+                output = run(["./draw-ranges"], cwd=ranges, env=environment)
+                require("Generated indirect range consumer PASS: 540 frames per device" in output,
+                        "range execution gate missing")
+        execute_ranges()
+        if args.shader_check:
+            pair = [str(prefix / "bin/ogpu-graphics"), "--vertex-source", "identity.vert.slang",
+                    "--fragment-source", "identity.frag.slang", "--output", "identity.generated.h",
+                    "--build-dir", "pair-build", "--name", "identity"]
+            count = [str(prefix / "bin/ogpu-shader"), "--source", "range_count.slang", "--output", "range_count.generated.h",
+                     "--build-dir", "count-build", "--name", "range_count", "--stage", "compute"]
+            run([*pair, "--check"], cwd=ranges, env=environment)
+            run([*count, "--check"], cwd=ranges, env=environment)
+            # Named generated fields keep the consumer unchanged after root reorder.
+            source = ranges / "range_count.slang"
+            original = source.read_text()
+            changed = original.replace("uint* count; uint* active;", "uint* active; uint* count;")
+            require(changed != original, "range root mutation missing")
+            source.write_text(changed)
+            stale = subprocess.run([*count, "--check"], cwd=ranges, env=environment, text=True, capture_output=True)
+            require(stale.returncode != 0 and "stale generated interface" in stale.stderr, "stale count root accepted")
+            run(count, cwd=ranges, env=environment)
+            run(pair, cwd=ranges, env=environment)
+            execute_ranges()
+        print("Relocated generated draw-range consumer PASS")
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")
 
 

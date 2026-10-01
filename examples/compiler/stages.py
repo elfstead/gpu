@@ -21,7 +21,7 @@ def reflected_type(typ):
 
 def reflected(entry):
     stage = entry["stage"]
-    require(len(entry["parameters"]) == 1, "unsupported entry input count")
+    require(len(entry["parameters"]) in ((1, 2) if stage == "vertex" else (1,)), "unsupported entry input count")
     expected = []
 
     def field(value, storage):
@@ -30,13 +30,14 @@ def reflected(entry):
         builtin = {
             ("compute", "Input", "SV_DISPATCHTHREADID"): ("GlobalInvocationId", "uint32", 3),
             ("vertex", "Input", "SV_VULKANVERTEXID"): ("VertexIndex", "uint32", 1),
+            ("vertex", "Input", "SV_DRAWINDEX"): ("DrawIndex", "uint32", 1),
             ("vertex", "Output", "SV_POSITION"): ("Position", "float32", 4),
             ("fragment", "Input", "SV_POSITION"): ("FragCoord", "float32", 4),
         }.get((stage, storage, semantic))
         if builtin:
             require((scalar, lanes) == builtin[1:] and "binding" not in value, "builtin reflection mismatch")
-            # Slang exposes an unsigned source VertexID with signed native builtin.
-            expected.append((storage, "BuiltIn "+builtin[0], "int32" if builtin[0] == "VertexIndex" else scalar, lanes))
+            # Slang exposes unsigned source IDs with signed native builtins.
+            expected.append((storage, "BuiltIn "+builtin[0], "int32" if builtin[0] in ("VertexIndex", "DrawIndex") else scalar, lanes))
             return
         require((stage, storage) in (("vertex", "Output"), ("fragment", "Input"), ("fragment", "Output")),
                 "unsupported stage varying direction")
@@ -63,19 +64,25 @@ def reflected(entry):
         for member in fields: field(member, storage)
         varying = [int(row[1].split()[1]) for row in expected[before:] if row[1].startswith("Location")]
         require(varying and sorted(varying) == list(range(len(varying))), "noncontiguous reflected stage struct")
-        require(item["binding"] == {"kind": "varying"+storage, "index": 0, "count": len(varying)}
+        binding = dict(item["binding"])
+        # Slang omits count for a single occupied location.
+        if len(varying) == 1: binding.setdefault("count", 1)
+        require(binding == {"kind": "varying"+storage, "index": 0, "count": len(varying)}
                 and item["type"]["sizes"] == [{"kind": "varying"+storage, "value": len(varying)}],
                 "stage aggregate binding mismatch")
 
-    value(entry["parameters"][0], "Input")
+    for parameter in entry["parameters"]: value(parameter, "Input")
     if stage == "compute":
         require("result" not in entry, "compute output unsupported")
     else:
         value(entry["result"], "Output")
     required_builtins = {"compute": [("Input", "BuiltIn GlobalInvocationId")],
                          "vertex": [("Input", "BuiltIn VertexIndex"), ("Output", "BuiltIn Position")],
+                         "fragment": []}[stage]
+    optional_builtins = {"compute": [], "vertex": [("Input", "BuiltIn DrawIndex")],
                          "fragment": [("Input", "BuiltIn FragCoord")]}[stage]
-    require(sorted((row[0], row[1]) for row in expected if row[1].startswith("BuiltIn")) == sorted(required_builtins),
+    actual_builtins = [(row[0], row[1]) for row in expected if row[1].startswith("BuiltIn")]
+    require(set(required_builtins) <= set(actual_builtins) <= set(required_builtins + optional_builtins),
             "required stage builtin missing/duplicated")
     require(len({(row[0], row[1]) for row in expected}) == len(expected), "overlapping stage locations")
     return expected

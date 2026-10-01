@@ -36,8 +36,11 @@ no stencil or blending. ABI 18 adds explicit load/store and depth test/write/com
 state, plus opt-in index eligibility on buffers (Metal rejects that extra usage).
 ABI 19 adds explicit fixed/count indirect ranges and local draw identity, with
 retained record/count backing and a queried native capacity limit. The migration
-checkpoint is not full M4 acceptance; generated draw-identity support and matched
-scene timing/installed range handoff are still pending.
+checkpoint is not full M4 acceptance. Generated draw identity and a small installed
+range consumer are implemented; matched scene timing/complete scene handoff remain.
+The expanded [counted→fixed regression](draw-count-followup.md) fails on local
+llvmpipe and reproduces in direct Vulkan; Radeon passes. No driver workaround or
+software acceptance waiver is implemented.
 Image formats are RGBA8_UNORM, R32_FLOAT, RGBA16_FLOAT, RGBA16_UNORM and D32_FLOAT with
 specific usage restrictions; query the exact description. Images have one mip,
 layer and sample. No presentation, general rendering backend or image aliasing API.

@@ -77,6 +77,9 @@ def check_log(stdout,stderr,capacity,strategy,device,identity=False,public=False
     require(final['vkQueueWaitIdle']==0 and final['vkResetCommandPool']==(1 if uncached else 9 if public else 0) and
             final['vkCreateCommandPool']==final['vkDestroyCommandPool']==(9 if not public or uncached else 1),'wrong pool/idle policy')
     wanted=(8*capacity,0,8*capacity,0) if strategy=='single' else (8,0,8*capacity,0) if strategy=='multi' else (0,8,0,8*capacity)
+    if strategy=='count-fixed':
+        require(not public,'count-fixed is a native diagnostic')
+        wanted=(8,8,8*capacity,8*capacity)
     require(tuple(hot[k] for k in ('vkCmdDrawIndexedIndirect2KHR','vkCmdDrawIndexedIndirectCount2KHR',
                                   'indexed_records','counted_capacity'))==wanted,'wrong actual native draw strategy')
     allocations=rows(stderr,'ALLOCATE ');require(len(allocations)==9,'missing allocation events')

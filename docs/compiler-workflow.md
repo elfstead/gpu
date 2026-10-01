@@ -205,8 +205,12 @@ The stage-pair extension adds `python3 examples/compiler/stage_workflow.py [--ch
 and an offline `link_graphics.py` command (installed as `ogpu-graphics`). It checks
 flat structs of up to eight contiguous, whole-location uint32/FP32 scalar/vector
 varyings against native locations/types, plus the existing builtins. Vertex input
-is still only VertexIndex; vertex roots, addresses and heaps remain outside this
-adapter subset. Fragment output remains one location-0 float4 color. Arrays,
+includes VertexIndex and optional DrawIndex. The ABI-19 range extension adds
+checked vertex roots and address-based fetching using the existing root/pointee
+layout rules; vertex heap interfaces remain outside the adapter subset. Graphics
+stages may be rootless, and fragment coordinates are optional when unused.
+DrawIndex requires the mapped enabled `shader_draw_parameters` capability and
+is vertex-only. Fragment output remains one location-0 float4 color. Arrays,
 matrices, component packing, nested stage structs, extra builtins, centroid/sample
 interpolation and general vertex attributes are not supported.
 
@@ -225,6 +229,17 @@ The graphics-pair header embeds both individually validated artifacts only after
 link checks succeed. Failure leaves the previous header untouched. It does not
 prove that arbitrary shader control flow writes every output, validate vertex
 index bounds or replace the application's graphics-state/lifetime obligations.
+
+`python3 examples/compiler/range_workflow.py [--check]` checks the range extension.
+The standalone consumer uses the native frontier's unchanged identity shaders,
+generated vertex roots and GPU-written count words. Its 60 configurations cover
+fixed/count/zero-capacity execution, holes and per-operation identity reset
+(fixed→fixed and counted→fixed),
+non-indexed/UINT16/UINT32, shared/separate count backing and explicit storage
+reset/serial replay. Nine count updates per configuration check every pixel and
+record/count/index/control guard. Installed consumption uses `--draw-ranges` in
+`tools/test-install.py`; adding `--shader-check` regenerates both stages and the
+count kernel, including a reordered compute root without changing host code.
 
 Supported capability mappings include Shader, PhysicalStorageBufferAddresses,
 Float16, DescriptorHeapEXT and UntypedPointersKHR. Shader maps to the corresponding
