@@ -209,3 +209,11 @@ calls currently repeat that state. The trace preserves this implementation cost
 rather than making the native control artificially repeat public work. The
 [counted→fixed driver regression](../../docs/draw-count-followup.md) remains a
 separate strict test; these scenes do not mix count/fixed operations in one scope.
+
+`range_timing.py --correctness PATH/report.json` requires a clean sustained
+Radeon range-reuse report matching current source/runtime/shader hashes. It runs
+three rotated process rounds, each with a drained 100-frame warmup and 1,000
+samples. GPU readback copies stay in every frame; full CPU byte checking happens
+after each window for all final slots. See the [metric definitions and scope](../../docs/indexed-depth-performance-plan.md#first-timing-increment-grouped-gpu-copy-complete).
+`--preflight` relaxes provenance for development and uses only 16 samples/one
+round; such a report is not timing acceptance. No software timing is claimed.

@@ -92,6 +92,33 @@ independent population. Require equal slot counts and declared storage/input/
 readback budgets. Unmeasurable private command-memory bytes stay unknown; object
 counts are not a substitute. No llvmpipe timing claim.
 
+### First timing increment: grouped, GPU-copy-complete
+
+After the 76,608-frame range reuse gate, measure the 72 grouped 257×193
+configurations first, in three fresh process rounds with rotated draw-strategy
+order and alternating native/public order. Each process drains a separate
+100-frame warmup, then times 1,000 frames using the same slot encoders and shaders.
+The runner requires clean sustained correctness with matching source/runtime/
+shader hashes before accepting a non-preflight run.
+
+`record_submit_ms` includes host control update, reset/record or list submission,
+queue submission and consumed public batch cleanup. `wait_ms` includes observation
+and public receipt retirement/destruction; native retains its slot pool.
+`retirement_ms` spans the start of control/record/submit to observed retirement,
+not GPU execution alone. Wall time spans the complete measured submit/drain
+window. Every frame retains the same GPU color/depth/geometry readback copies,
+but CPU readback/oracle inspection happens only for each final slot after the
+window (and after warmup). Label this **GPU-copy-complete**, not complete host
+output consumption or the every-frame correctness runner's wall time.
+
+Validation, diagnostic interposition and implicit layers are disabled only for
+these timing processes. Keep raw samples; report per-process medians/nearest-rank
+p95 and wall/frame, then summarize processes without pretending samples are
+independent repetitions. Scope-break and useful-scale controls remain separate
+increments. Do not compare identity-sensitive single and range programs as if
+their outputs were equivalent; native/public pairs within each strategy are the
+matched comparisons.
+
 ## Do not approve an artificially weak native frontier
 
 The shared native setup intentionally enables only the OGPU baseline. Its lack

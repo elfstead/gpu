@@ -73,7 +73,10 @@ static int slot_observe(Slot *slot, Reuse *r) {
         && native_read(n,&slot->control,0,control,sizeof(control)));
     return reuse_check(r,slot->frame,s->cpu,mesh,control);
 }
-int main(int argc, char **argv) {
+#ifndef SCENE_REUSE_MAIN
+#define SCENE_REUSE_MAIN main
+#endif
+int SCENE_REUSE_MAIN(int argc, char **argv) {
     Reuse r={0};Scene context={0};Slot slots[2]={0};int okay=0;
     if(!reuse_config(&r,argc,argv) || !reuse_reference(&r)) goto done;
     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;

@@ -65,11 +65,16 @@ static void reuse_control(unsigned char bytes[REUSE_CONTROL_BYTES],unsigned vari
     memset(bytes,0xa5,REUSE_CONTROL_BYTES);
     uint32_t values[]={variant%2,reuse_active(variant),frontier_records,frontier_strategy==2};memcpy(bytes+64,values,sizeof(values));
 }
-static int reuse_check(Reuse *r,unsigned frame,const unsigned char *images,const unsigned char *mesh,const unsigned char *control) {
+static int reuse_verify(Reuse *r,unsigned frame,const unsigned char *images,const unsigned char *mesh,const unsigned char *control) {
     unsigned generation=frame/r->slots,variant=reuse_variant(generation);
     unsigned char expected[REUSE_CONTROL_BYTES];reuse_control(expected,variant);
     NEED(!memcmp(images,r->images[variant],r->image_bytes) && !memcmp(mesh,r->mesh[variant],REUSE_MESH_BYTES)
         && !memcmp(control,expected,sizeof(expected)));
+    return 1;
+}
+static int reuse_check(Reuse *r,unsigned frame,const unsigned char *images,const unsigned char *mesh,const unsigned char *control) {
+    unsigned generation=frame/r->slots,variant=reuse_variant(generation);
+    NEED(reuse_verify(r,frame,images,mesh,control));
     NEED(r->pending && frame==r->checked);--r->pending;++r->checked;
     printf("RANGE_FRAME {\"frame\":%u,\"slot\":%u,\"generation\":%u,\"phase\":%u,\"active\":%u}\n",
         frame,frame%r->slots,generation,variant%2,reuse_active(variant));return 1;
