@@ -284,8 +284,11 @@ execution. Its counted→fixed edge case exposes a llvmpipe failure also reprodu
 in direct Vulkan; do not weaken the oracle or add a runtime workaround. Unaffected
 software cases pass. [Matched range storage/replay](graphics-range-reuse-results.md)
 now passes 76,608 full-byte frames at clean `6ae1d5a`, preserving fixed/count
-native commands and equal allocation budgets. Next measure these native mappings,
-add useful-scale/scope controls, and finish complete installed scene handoff.
+native commands and equal allocation budgets. The [first grouped timings](graphics-range-timing-results.md)
+at `cee13c9` add 216,000 samples: fixed/count wall ratios are 0.986–1.054 of matched
+native, while 512 separate calls expose avoidable-state-work candidates and a
+1.803 ratio at one-slot reset. Next isolate redundant state encoding without
+fusing draws, then add useful-scale/scope controls and complete scene handoff.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and

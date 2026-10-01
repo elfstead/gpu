@@ -10,6 +10,13 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [first grouped range timings](graphics-range-timing-results.md) at clean
+`cee13c9` add 216,000 samples from 216 fresh Radeon processes after same-source
+72,000-frame correctness. Fixed/count wall ratios are 0.986–1.054 of matched native;
+512 separate calls expose a 1.803 one-slot reset ratio and repeated-state-work
+candidates. Select a bounded state-encoding experiment, not fusion or a general
+API performance approval. Useful-scale/scope and complete scene handoff remain.
+
 The [matched range/storage/replay checkpoint](graphics-range-reuse-results.md)
 passes at clean `6ae1d5a`: 72,000 Radeon and 4,608 llvmpipe full-byte frames,
 matching allocation budgets and actual native range/count/reset/replay traces.
