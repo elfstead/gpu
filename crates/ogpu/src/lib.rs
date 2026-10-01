@@ -31,7 +31,7 @@ use std::{
 };
 
 pub type OgpuResult = i32;
-pub const ABI_VERSION: u32 = 18;
+pub const ABI_VERSION: u32 = 19;
 pub const BACKEND_VULKAN: u32 = 1;
 pub const BACKEND_METAL: u32 = 2;
 pub const SUCCESS: OgpuResult = 0;
@@ -77,6 +77,9 @@ pub struct OgpuCapabilities {
     pub shader_float6: u32,
     pub shader_float8_unsigned_e8m0: u32,
     pub shader_mx_int8: u32,
+    pub multi_draw_indirect: u32,
+    pub draw_indirect_count: u32,
+    pub shader_draw_parameters: u32,
 }
 
 #[repr(C)]

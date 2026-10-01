@@ -16,7 +16,9 @@ pub use specialization::SpecializationConstant;
 
 #[path = "batch.rs"]
 mod batch;
-pub(crate) use batch::{Batch, CommandList, Completion, IndexBinding, RecordingStorage};
+pub(crate) use batch::{
+    Batch, CommandList, Completion, IndexBinding, IndirectBinding, RecordingStorage,
+};
 #[path = "graphics.rs"]
 mod graphics;
 pub use graphics::ImageDesc;
@@ -68,6 +70,8 @@ functions! {
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
     vkCmdBindIndexBuffer3KHR: PFN_vkCmdBindIndexBuffer3KHR,
     vkCmdDrawIndexedIndirect2KHR: PFN_vkCmdDrawIndexedIndirect2KHR,
+    vkCmdDrawIndirectCount2KHR: PFN_vkCmdDrawIndirectCount2KHR,
+    vkCmdDrawIndexedIndirectCount2KHR: PFN_vkCmdDrawIndexedIndirectCount2KHR,
     vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
     vkCmdCopyMemoryToImageKHR: PFN_vkCmdCopyMemoryToImageKHR,
     vkCmdCopyMemoryKHR: PFN_vkCmdCopyMemoryKHR,
@@ -232,6 +236,16 @@ impl Device {
     ) -> Result<Rc<Self>, Error> {
         let info = instance.device_info(physical)?;
         require_baseline(&info)?;
+        if require_graphics
+            && (info.capabilities.multi_draw_indirect == 0
+                || info.capabilities.draw_indirect_count == 0
+                || info.capabilities.shader_draw_parameters == 0)
+        {
+            return Err(Error::new(
+                UNSUPPORTED,
+                "Graphics requires multiDrawIndirect, drawIndirectCount and shaderDrawParameters",
+            ));
+        }
         let image_extension =
             instance.supports_extension(physical, c"VK_KHR_unified_image_layouts")?;
         let mut f = Functions::load(&instance)?;
@@ -305,6 +319,12 @@ impl Device {
             let unified_images = image_extension && images.unifiedImageLayouts != 0;
             let mut properties = vk::VkPhysicalDeviceProperties::default();
             (f.vkGetPhysicalDeviceProperties.unwrap())(physical, &mut properties);
+            if graphics && properties.limits.maxDrawIndirectCount == 0 {
+                return Err(Error::new(
+                    UNSUPPORTED,
+                    "Graphics requires a nonzero indirect draw limit",
+                ));
+            }
             let mut memory = vk::VkPhysicalDeviceMemoryProperties::default();
             (f.vkGetPhysicalDeviceMemoryProperties.unwrap())(physical, &mut memory);
             let priority = 1.0;
@@ -353,6 +373,7 @@ impl Device {
                 bufferDeviceAddress: vk::VK_TRUE,
                 timelineSemaphore: vk::VK_TRUE,
                 shaderFloat16: u32::from(float16),
+                drawIndirectCount: u32::from(graphics),
                 pNext: (&mut v13 as *mut vk::VkPhysicalDeviceVulkan13Features).cast(),
                 ..Default::default()
             };
@@ -364,15 +385,27 @@ impl Device {
             if unified_images {
                 extensions.push(c"VK_KHR_unified_image_layouts".as_ptr());
             }
-            let storage16 = vk::VkPhysicalDevice16BitStorageFeatures {
+            let mut storage16 = vk::VkPhysicalDevice16BitStorageFeatures {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
                 storageBuffer16BitAccess: vk::VK_TRUE,
                 pNext: (&mut v12 as *mut vk::VkPhysicalDeviceVulkan12Features).cast(),
                 ..Default::default()
             };
+            let draw_parameters = vk::VkPhysicalDeviceShaderDrawParametersFeatures {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
+                pNext: (&mut storage16 as *mut vk::VkPhysicalDevice16BitStorageFeatures).cast(),
+                shaderDrawParameters: u32::from(graphics),
+            };
+            let core_features = vk::VkPhysicalDeviceFeatures {
+                multiDrawIndirect: u32::from(graphics),
+                ..Default::default()
+            };
             let create = vk::VkDeviceCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                pNext: (&storage16 as *const vk::VkPhysicalDevice16BitStorageFeatures).cast(),
+                pNext: (&draw_parameters
+                    as *const vk::VkPhysicalDeviceShaderDrawParametersFeatures)
+                    .cast(),
+                pEnabledFeatures: &core_features,
                 enabledExtensionCount: extensions.len() as u32,
                 ppEnabledExtensionNames: extensions.as_ptr(),
                 queueCreateInfoCount: 1,
@@ -489,6 +522,11 @@ impl Device {
             max_image_1d: self.limits.maxImageDimension1D,
             max_image_2d: self.limits.maxImageDimension2D,
             max_push_data_bytes: self.max_push_data,
+            max_indirect_draw_count: if self.graphics {
+                self.limits.maxDrawIndirectCount
+            } else {
+                0
+            },
         }
     }
 
@@ -504,6 +542,9 @@ impl Device {
             shader_untyped_pointers: 1,
             storage_buffer_16bit_access: 1,
             shader_float16: u32::from(self.float16),
+            multi_draw_indirect: u32::from(self.graphics),
+            draw_indirect_count: u32::from(self.graphics),
+            shader_draw_parameters: u32::from(self.graphics),
             ..Default::default()
         }
     }

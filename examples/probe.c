@@ -36,6 +36,9 @@ static void print_capabilities(const OgpuCapabilities *c) {
     SHOW(shader_float6);
     SHOW(shader_float8_unsigned_e8m0);
     SHOW(shader_mx_int8);
+    SHOW(multi_draw_indirect);
+    SHOW(draw_indirect_count);
+    SHOW(shader_draw_parameters);
 #undef SHOW
 }
 

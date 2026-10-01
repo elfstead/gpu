@@ -293,8 +293,14 @@ fn gpu_raster_specialization_and_vertex_pulling() {
                 ogpu_batch_draw_indirect(
                     &mut batch,
                     &mut *raster,
-                    &mut indirect,
-                    0,
+                    &crate::OgpuIndirectRange {
+                        buffer: &mut indirect,
+                        offset: 0,
+                        stride_bytes: 16,
+                        max_draw_count: 1,
+                        count_buffer: std::ptr::null_mut(),
+                        count_offset: 0
+                    },
                     root.as_ptr().cast(),
                     8,
                     ptr::null_mut()

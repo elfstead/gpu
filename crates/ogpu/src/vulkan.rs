@@ -272,6 +272,16 @@ impl Instance {
             VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR,
             supported(c"VK_KHR_shader_untyped_pointers")
         );
+        let draw_parameters = query!(
+            vk::VkPhysicalDeviceShaderDrawParametersFeatures,
+            VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
+            api >= V1_1 || supported(c"VK_KHR_shader_draw_parameters")
+        );
+        let draw_count = query!(
+            vk::VkPhysicalDeviceVulkan12Features,
+            VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            api >= V1_2
+        );
         let matrix = query!(
             vk::VkPhysicalDeviceCooperativeMatrixFeaturesKHR,
             VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_KHR,
@@ -348,6 +358,9 @@ impl Instance {
             shader_float6: flag(microscaling.shaderFloat6),
             shader_float8_unsigned_e8m0: flag(microscaling.shaderFloat8UnsignedE8M0),
             shader_mx_int8: flag(microscaling.shaderMXInt8),
+            multi_draw_indirect: flag(core.features.multiDrawIndirect),
+            draw_indirect_count: flag(draw_count.drawIndirectCount),
+            shader_draw_parameters: flag(draw_parameters.shaderDrawParameters),
         };
         let mut name = props.deviceName;
         name[255] = 0;

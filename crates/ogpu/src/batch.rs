@@ -119,6 +119,15 @@ pub(crate) struct IndexBinding {
     pub format: u32,
 }
 
+pub(crate) struct IndirectBinding {
+    pub buffer: Rc<Buffer>,
+    pub offset: u64,
+    pub stride: u32,
+    pub maximum: u32,
+    pub count: Option<Rc<Buffer>>,
+    pub count_offset: u64,
+}
+
 enum Step {
     BeginRendering(graphics::Rendering),
     EndRendering,
@@ -146,8 +155,7 @@ enum Step {
     Draw {
         raster: Rc<Raster>,
         indices: Option<IndexBinding>,
-        indirect: Rc<Buffer>,
-        offset: u64,
+        indirect: IndirectBinding,
         root: Vec<u8>,
     },
     ImageCopy {
@@ -419,8 +427,7 @@ impl Batch {
     pub(crate) fn draw(
         &mut self,
         raster: Rc<Raster>,
-        indirect: Rc<Buffer>,
-        offset: usize,
+        indirect: IndirectBinding,
         root: &[u8],
         indices: Option<IndexBinding>,
     ) -> Result<(), Error> {
@@ -431,18 +438,22 @@ impl Batch {
         let Step::BeginRendering(rendering) = &self.steps.as_ref().unwrap()[scope] else {
             unreachable!()
         };
-        if !Rc::ptr_eq(&self.device, &raster.device) || !Rc::ptr_eq(&self.device, &indirect.device)
+        if !Rc::ptr_eq(&self.device, &raster.device)
+            || !Rc::ptr_eq(&self.device, &indirect.buffer.device)
+            || indirect
+                .count
+                .as_ref()
+                .is_some_and(|b| !Rc::ptr_eq(&self.device, &b.device))
         {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Draw objects belong to different devices",
             ));
         }
-        if !rendering.matches(&raster) || offset % 4 != 0 || root.len() != raster.push_size as usize
-        {
+        if !rendering.matches(&raster) || root.len() != raster.push_size as usize {
             return Err(Error::new(
                 INVALID_ARGUMENT,
-                "Draw format, indirect offset or root size mismatch",
+                "Draw format or root size mismatch",
             ));
         }
         if let Some(i) = &indices {
@@ -454,11 +465,21 @@ impl Batch {
             }
             contract::index_range(i.buffer.size, i.buffer.address, i.offset, i.size, i.format)?;
         }
-        indirect.range(offset, if indices.is_some() { 20 } else { 16 })?;
+        contract::indirect_span(
+            indirect.buffer.size,
+            indirect.offset,
+            indirect.stride,
+            indirect.maximum,
+            if indices.is_some() { 20 } else { 16 },
+            self.device.limits.maxDrawIndirectCount,
+        )?;
+        contract::indirect_count(
+            indirect.count.as_ref().map(|b| b.size),
+            indirect.count_offset,
+        )?;
         self.recording()?.push(Step::Draw {
             raster,
             indirect,
-            offset: offset as u64,
             root: root.to_vec(),
             indices,
         });
@@ -1170,10 +1191,9 @@ impl Completion {
                     Step::Draw {
                         raster,
                         indirect,
-                        offset,
                         root,
                         indices,
-                    } => raster.draw(command, indirect, *offset, root, indices.as_ref()),
+                    } => raster.draw(command, indirect, root, indices.as_ref()),
                     Step::ImageCopy {
                         image,
                         buffer,

@@ -405,7 +405,18 @@ unsafe extern "C" fn checked_image_device(
             .iter()
             .any(|&name| std::ffi::CStr::from_ptr(name) == c"VK_KHR_unified_image_layouts");
         assert_eq!(enabled, EXPECT_UNIFIED.get());
-        let storage16 = (*create)
+        let draw_parameters = (*create)
+            .pNext
+            .cast::<vk::VkPhysicalDeviceShaderDrawParametersFeatures>();
+        assert_eq!(
+            (*draw_parameters).sType,
+            vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES
+        );
+        assert_eq!(
+            (*draw_parameters).shaderDrawParameters != 0,
+            EXPECT_RASTER.get()
+        );
+        let storage16 = (*draw_parameters)
             .pNext
             .cast::<vk::VkPhysicalDevice16BitStorageFeatures>();
         assert_eq!(
@@ -426,7 +437,13 @@ unsafe extern "C" fn checked_image_device(
         assert_eq!((*v13).dynamicRendering != 0, EXPECT_RASTER.get());
         assert_eq!((*v12).shaderFloat16 != 0, EXPECT_FLOAT16.get());
         assert_eq!((*v12).shaderInt8, vk::VK_FALSE);
-        assert!((*create).pEnabledFeatures.is_null());
+        assert_eq!((*v12).drawIndirectCount != 0, EXPECT_RASTER.get());
+        assert!(!(*create).pEnabledFeatures.is_null());
+        assert_eq!(
+            (*(*create).pEnabledFeatures).multiDrawIndirect != 0,
+            EXPECT_RASTER.get()
+        );
+        assert_eq!((*(*create).pEnabledFeatures).shaderInt64, vk::VK_FALSE);
         let v14 = (*v13).pNext.cast::<vk::VkPhysicalDeviceVulkan14Features>();
         let heap = (*v14)
             .pNext
@@ -1283,7 +1300,19 @@ impl Batch {
             self.discard_image(target.clone())?;
         }
         self.begin_rendering(target, None, desc)?;
-        let result = self.draw(raster, indirect, offset, root, None);
+        let result = self.draw(
+            raster,
+            crate::compute::IndirectBinding {
+                buffer: indirect,
+                offset: offset as u64,
+                stride: 16,
+                maximum: 1,
+                count: None,
+                count_offset: 0,
+            },
+            root,
+            None,
+        );
         self.end_rendering()?;
         result
     }

@@ -12,6 +12,51 @@ pub(crate) fn range(size: usize, offset: u64, length: u64) -> Result<(usize, usi
     Ok((offset, length))
 }
 
+pub(crate) fn indirect_span(
+    size: usize,
+    offset: u64,
+    stride: u32,
+    count: u32,
+    record_size: u32,
+    limit: u32,
+) -> Result<u64, Error> {
+    if offset % 4 != 0 || stride % 4 != 0 || stride < record_size {
+        return Err(Error::new(
+            INVALID_ARGUMENT,
+            "Invalid indirect offset or stride",
+        ));
+    }
+    if count > limit {
+        return Err(Error::new(
+            OUT_OF_RANGE,
+            "Indirect capacity exceeds enabled limit",
+        ));
+    }
+    let span = if count == 0 {
+        0
+    } else {
+        u64::from(count - 1)
+            .checked_mul(u64::from(stride))
+            .and_then(|n| n.checked_add(u64::from(record_size)))
+            .ok_or_else(|| Error::new(OUT_OF_RANGE, "Indirect span overflow"))?
+    };
+    range(size, offset, span)?;
+    Ok(span)
+}
+
+pub(crate) fn indirect_count(size: Option<usize>, offset: u64) -> Result<(), Error> {
+    if offset % 4 != 0 || (size.is_none() && offset != 0) {
+        return Err(Error::new(
+            INVALID_ARGUMENT,
+            "Invalid indirect count offset",
+        ));
+    }
+    if let Some(size) = size {
+        range(size, offset, 4)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn copy_ranges(
     source_size: usize,
     source_offset: u64,

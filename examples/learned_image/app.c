@@ -292,7 +292,7 @@ int main(int argc, char **argv) {
             TRY(ogpu_batch_discard_image(batch, target, &error));
             const OgpuRenderingDesc rendering_6 = {.color = {target, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
             TRY(ogpu_batch_begin_rendering(batch, &rendering_6, &error));
-            TRY(ogpu_batch_draw_indirect(batch, raster, draw, 0, &display, sizeof(display), &error));
+            TRY(ogpu_batch_draw_indirect(batch, raster, &(OgpuIndirectRange){.buffer=draw,.offset=0,.stride_bytes=16,.max_draw_count=1}, &display, sizeof(display), &error));
             TRY(ogpu_batch_end_rendering(batch, &error));
             if (!resident || diagnostic) TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, GUARD, &error));
             if (diagnostic) {

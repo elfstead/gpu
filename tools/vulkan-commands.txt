@@ -70,6 +70,8 @@ vkCmdEndRendering
 vkCmdDrawIndirect2KHR
 vkCmdBindIndexBuffer3KHR
 vkCmdDrawIndexedIndirect2KHR
+vkCmdDrawIndirectCount2KHR
+vkCmdDrawIndexedIndirectCount2KHR
 vkCmdCopyImageToMemoryKHR
 vkCmdCopyMemoryToImageKHR
 vkCmdCopyMemoryKHR

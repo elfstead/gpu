@@ -250,6 +250,7 @@ fn limits(d: &MetalDevice) -> OgpuDeviceLimits {
         max_image_1d: 0,
         max_image_2d: 0,
         max_push_data_bytes: 4096,
+        max_indirect_draw_count: 0,
     }
 }
 
@@ -1221,8 +1222,8 @@ unsupported_call!(ogpu_sampler_heap_write(heap: *mut OgpuSamplerHeap, first: u32
 unsupported_call!(ogpu_batch_bind_sampler_heap(batch: *mut OgpuBatch, heap: *const OgpuSamplerHeap));
 unsupported_call!(ogpu_batch_begin_rendering(batch: *mut OgpuBatch, desc: *const crate::OgpuRenderingDesc));
 unsupported_call!(ogpu_batch_end_rendering(batch: *mut OgpuBatch));
-unsupported_call!(ogpu_batch_draw_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indirect: *mut OgpuBuffer, offset: u64, arguments: *const c_void, argument_bytes: u32));
-unsupported_call!(ogpu_batch_draw_indexed_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indices: *const crate::OgpuIndexRange, indirect: *mut OgpuBuffer, offset: u64, arguments: *const c_void, argument_bytes: u32));
+unsupported_call!(ogpu_batch_draw_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, draws: *const crate::OgpuIndirectRange, arguments: *const c_void, argument_bytes: u32));
+unsupported_call!(ogpu_batch_draw_indexed_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indices: *const crate::OgpuIndexRange, draws: *const crate::OgpuIndirectRange, arguments: *const c_void, argument_bytes: u32));
 unsupported_call!(ogpu_batch_copy_image_to_buffer(batch: *mut OgpuBatch, image: *mut OgpuImage, destination: *mut OgpuBuffer, offset: u64));
 unsupported_call!(ogpu_batch_copy_buffer_to_image(batch: *mut OgpuBatch, source: *mut OgpuBuffer, offset: u64, image: *mut OgpuImage));
 

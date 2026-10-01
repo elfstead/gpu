@@ -347,6 +347,9 @@ fn float_image_sampling(graphics: bool) {
             caps,
             crate::OgpuCapabilities {
                 graphics_queue: u32::from(graphics),
+                multi_draw_indirect: u32::from(graphics),
+                draw_indirect_count: u32::from(graphics),
+                shader_draw_parameters: u32::from(graphics),
                 compute_queue: 1,
                 buffer_device_address: 1,
                 timeline_semaphore: 1,

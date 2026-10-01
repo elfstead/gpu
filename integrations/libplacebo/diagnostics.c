@@ -166,9 +166,9 @@ OgpuResult __wrap_ogpu_batch_dispatch(OgpuBatch *b,OgpuKernel *k,uint32_t x,uint
     if(measured && omit_compute) { ++omitted[0]; return OGPU_SUCCESS; }
     return __real_ogpu_batch_dispatch(b,k,x,y,z,args,size,e);
 }
-OgpuResult __real_ogpu_batch_draw_indirect(OgpuBatch *,OgpuRaster *,OgpuBuffer *,uint64_t,const void *,uint32_t,OgpuError *);
-OgpuResult __wrap_ogpu_batch_draw_indirect(OgpuBatch *b,OgpuRaster *r,OgpuBuffer *i,uint64_t offset,const void *args,uint32_t size,OgpuError *e)
+OgpuResult __real_ogpu_batch_draw_indirect(OgpuBatch *,OgpuRaster *,const OgpuIndirectRange *,const void *,uint32_t,OgpuError *);
+OgpuResult __wrap_ogpu_batch_draw_indirect(OgpuBatch *b,OgpuRaster *r,const OgpuIndirectRange *draws,const void *args,uint32_t size,OgpuError *e)
 {
     if(measured && omit_raster) { ++omitted[1]; return OGPU_SUCCESS; }
-    return __real_ogpu_batch_draw_indirect(b,r,i,offset,args,size,e);
+    return __real_ogpu_batch_draw_indirect(b,r,draws,args,size,e);
 }

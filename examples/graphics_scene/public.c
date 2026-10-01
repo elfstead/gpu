@@ -1,4 +1,4 @@
-/* Public ABI-18 counterpart of native.c. No Vulkan headers or private runtime APIs. */
+/* Public ABI-19 counterpart of native.c. No Vulkan headers or private runtime APIs. */
 #include "ogpu.h"
 #include <inttypes.h>
 #include <stdio.h>
@@ -30,6 +30,13 @@ typedef struct {
     uint32_t *shaders[3];
     uint64_t shader_bytes[3];
 } Scene;
+#ifdef SCENE_PUBLIC_FRONTIER
+static int frontier_draw(Scene *s, unsigned pipeline, const OgpuIndexRange *indices);
+#define SCENE_DRAW_BYTES (132u+20u*frontier_records)
+#else
+#define SCENE_DRAW_BYTES 168u
+#endif
+#define SCENE_UPLOAD_BYTES (SCENE_DRAW_BYTES>256 ? SCENE_DRAW_BYTES : 256)
 
 static int path_join(char out[4096], const char *directory, const char *name) {
     int n=snprintf(out,4096,"%s/%s",directory,name); return n>=0 && n<4096;
@@ -45,7 +52,7 @@ static int read_shader(Scene *s, unsigned index, const char *directory, const ch
 done:
     if(fclose(f)) okay=0; return okay;
 }
-#ifndef SCENE_REUSE_CONSUMER
+#if !defined(SCENE_REUSE_CONSUMER) || defined(SCENE_PUBLIC_FRONTIER)
 static int write_file(const char *directory, const char *name, const void *data, size_t bytes) {
     char path[4096]; NEED(path_join(path,directory,name));
     FILE *f=fopen(path,"wb"); if(!f) { perror(path); return 0; }
@@ -91,20 +98,20 @@ static int scene_create_resources(Scene *s) {
     GPU(ogpu_image_create(s->device,&color,&s->color,&s->error)); GPU(ogpu_image_create(s->device,&depth,&s->depth,&s->error));
     NEED(buffer_create(s,&s->vertices,256,OGPU_MEMORY_DEVICE,0)
         && buffer_create(s,&s->indices,160,OGPU_MEMORY_DEVICE,OGPU_BUFFER_INDEX)
-        && buffer_create(s,&s->draws,168,OGPU_MEMORY_DEVICE,0)
-        && buffer_create(s,&s->upload,256,OGPU_MEMORY_HOST,0)
+        && buffer_create(s,&s->draws,SCENE_DRAW_BYTES,OGPU_MEMORY_DEVICE,0)
+        && buffer_create(s,&s->upload,SCENE_UPLOAD_BYTES,OGPU_MEMORY_HOST,0)
         && buffer_create(s,&s->readback,2*s->pixels+4*GUARD,OGPU_MEMORY_HOST,0)
-        && buffer_create(s,&s->geometry,584,OGPU_MEMORY_HOST,0));
+        && buffer_create(s,&s->geometry,416+SCENE_DRAW_BYTES,OGPU_MEMORY_HOST,0));
     GPU(ogpu_buffer_device_address(s->vertices,&s->root.vertices,&s->error)); s->root.vertices+=GUARD;
     GPU(ogpu_buffer_device_address(s->indices,&s->root.indices,&s->error)); s->root.indices+=GUARD;
     GPU(ogpu_buffer_device_address(s->draws,&s->root.draws,&s->error)); s->root.draws+=GUARD;
     s->cpu=malloc(2*s->pixels+4*GUARD); NEED(s->cpu); memset(s->cpu,0xa5,2*s->pixels+4*GUARD);
-    GPU(ogpu_buffer_write(s->upload,0,s->cpu,256,&s->error));
+    GPU(ogpu_buffer_write(s->upload,0,s->cpu,SCENE_UPLOAD_BYTES,&s->error));
     GPU(ogpu_buffer_write(s->readback,0,s->cpu,2*s->pixels+4*GUARD,&s->error));
     GPU(ogpu_batch_create(s->device,&s->batch,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->upload,0,s->vertices,0,256,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->upload,0,s->indices,0,160,&s->error));
-    GPU(ogpu_batch_copy_buffer(s->batch,s->upload,0,s->draws,0,168,&s->error));
+    GPU(ogpu_batch_copy_buffer(s->batch,s->upload,0,s->draws,0,SCENE_DRAW_BYTES,&s->error));
     return submit_wait(s);
 }
 static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_load, float clear,
@@ -114,11 +121,14 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     GPU(ogpu_batch_begin_rendering(s->batch,&desc,&s->error));
     OgpuIndexRange indices={s->indices,GUARD,8*s->index_bytes,
         s->index_bytes==2 ? OGPU_INDEX_UINT16 : OGPU_INDEX_UINT32,0};
+#ifdef SCENE_PUBLIC_FRONTIER
+    (void)first;(void)count;NEED(frontier_draw(s,pipeline,&indices));
+#else
     for(unsigned i=0;i<count;++i) {
         unsigned which=(first+i)%2;
-        GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],&indices,s->draws,GUARD+20*which,
-            &s->root.vertices,8,&s->error));
+        GPU(ogpu_batch_draw_indexed_indirect(s->batch, s->raster[pipeline], &indices, &(OgpuIndirectRange){.buffer=s->draws,.offset=GUARD+20*which,.stride_bytes=20,.max_draw_count=1}, &s->root.vertices, 8, &s->error));
     }
+#endif
     GPU(ogpu_batch_end_rendering(s->batch,&s->error)); return 1;
 }
 static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
@@ -141,7 +151,7 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     GPU(ogpu_batch_copy_image_to_buffer(s->batch,s->depth,s->readback,s->pixels+3*GUARD,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->vertices,0,s->geometry,0,256,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->indices,0,s->geometry,256,160,&s->error));
-    GPU(ogpu_batch_copy_buffer(s->batch,s->draws,0,s->geometry,416,168,&s->error));
+    GPU(ogpu_batch_copy_buffer(s->batch,s->draws,0,s->geometry,416,SCENE_DRAW_BYTES,&s->error));
     return 1;
 }
 #ifndef SCENE_REUSE_CONSUMER

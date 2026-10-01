@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(18)
+#define OGPU_ABI_VERSION UINT32_C(19)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -61,6 +61,9 @@ typedef struct OgpuCapabilities {
     uint32_t shader_float6;
     uint32_t shader_float8_unsigned_e8m0;
     uint32_t shader_mx_int8;
+    uint32_t multi_draw_indirect;
+    uint32_t draw_indirect_count;
+    uint32_t shader_draw_parameters;
 } OgpuCapabilities;
 
 /* Device kinds are our values, not Vulkan enum values. */
@@ -135,7 +138,11 @@ void ogpu_device_destroy(OgpuDevice *device);
  * compute_queue=1; graphics_queue=1 only for create_graphics. The fixed modern
  * baseline includes storage_buffer_16bit_access=1 (also mandatory in Vulkan 1.4).
  * Vulkan also enables shader_float16 when physically supported; query the enabled
- * bit before selecting a Float16 executable. Other numeric/storage/matrix fields
+ * bit before selecting a Float16 executable. Graphics creation additionally
+ * requires/enables multi_draw_indirect, draw_indirect_count and
+ * shader_draw_parameters; compute-only devices enable none of these three.
+ * DrawIndex is local to each range operation; optional graphics SPIR-V must
+ * obey the enabled feature/stage contract. Other numeric/storage/matrix fields
  * remain 0. Half storage and half arithmetic are separate requirements.
  * Metal enables its documented native numeric baseline; query rather than infer
  * capabilities from another backend. No implicit optional-feature negotiation.
@@ -152,13 +159,16 @@ typedef struct OgpuDeviceLimits {
     uint32_t max_group_size[3], max_group_invocations, max_shared_memory_bytes;
     uint32_t max_dispatch[3], max_image_1d, max_image_2d;
     uint64_t max_push_data_bytes;
+    uint32_t max_indirect_draw_count; /* Zero on compute-only devices. */
 } OgpuDeviceLimits;
 OgpuResult ogpu_device_limits(const OgpuDevice *device, OgpuDeviceLimits *out_limits,
     OgpuError *out_error);
 
 /* Optional profile: requires one queue family supporting BOTH graphics and compute.
+ * Also requires dynamic rendering, multi-record indirect draws, GPU indirect
+ * counts and shader draw parameters; enables the corresponding capability bits.
  * Other device creation/ownership rules match ogpu_device_create; UNSUPPORTED if
- * no such family exists. Ordinary creation still accepts compute-only devices. */
+ * the profile is unavailable. Ordinary creation still accepts compute-only devices. */
 OgpuResult ogpu_device_create_graphics(const OgpuProbe *probe, uint32_t index,
     OgpuDevice **out_device, OgpuError *out_error);
 
@@ -723,12 +733,33 @@ typedef struct OgpuRenderingDesc {
 OgpuResult ogpu_batch_begin_rendering(OgpuBatch *batch,
     const OgpuRenderingDesc *desc, OgpuError *out_error);
 OgpuResult ogpu_batch_end_rendering(OgpuBatch *batch, OgpuError *out_error);
-/* Execute ONE non-indexed indirect draw inside a matching scope. Offset is
- * four-byte aligned and 16 bytes must fit. Root size must match raster; bytes are
- * copied. Retains raster and indirect, NOT root pointees. Dependencies order
- * compute-written data explicitly. Same-device objects only. */
+typedef struct OgpuIndirectRange {
+    OgpuBuffer *buffer;
+    uint64_t offset;
+    uint32_t stride_bytes, max_draw_count;
+    OgpuBuffer *count_buffer; /* NULL selects fixed max_draw_count. */
+    uint64_t count_offset;   /* Must be zero in fixed mode. */
+} OgpuIndirectRange;
+/* Execute a range inside a matching scope. Fixed mode executes max_draw_count
+ * records; counted mode reads a uint32 on the GPU and executes min(word, maximum).
+ * No CPU inspection, staging or emulation. All handles belong to this device.
+ * Offset is four-byte aligned; stride is a multiple of four and >= record size
+ * (16 non-indexed, 20 indexed), even for zero/one capacity. Checked span is
+ * (maximum-1)*stride+record_size, or zero at capacity zero; offset may equal
+ * buffer size only for zero capacity. Maximum <= max_indirect_draw_count.
+ * Count offset is four-byte aligned and four bytes must fit, even at zero
+ * capacity. Count and record buffers may be the same. GPU count zero does not
+ * waive capacity bounds. Zero capacity validates/retains everything but emits
+ * no draw; attachment scope effects remain. Root size must match raster.
+ * Successful recording copies descriptor/root and retains raster/record/count
+ * buffers, NOT root pointees, through recording/list/submission lifetimes.
+ * Caller explicitly orders compute-written records/count and referenced data.
+ * Draw identity starts at zero per range and follows record ordinal, including
+ * holes with zero vertex/index/instance count; offset/stride add no identity base.
+ * Separate count-one calls each expose zero. No observable fusion/splitting.
+ * Invalid arguments leave recording unchanged. */
 OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
-    OgpuBuffer *indirect, uint64_t indirect_offset,
+    const OgpuIndirectRange *draws,
     const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
 #define OGPU_INDEX_UINT16 0u
 #define OGPU_INDEX_UINT32 1u
@@ -743,14 +774,14 @@ typedef struct OgpuDrawIndexedArguments {
     uint32_t first_instance;
 } OgpuDrawIndexedArguments;
 /* Like non-indexed draw, with a retained INDEX-eligible buffer range and 20-byte
- * indirect record. Range nonempty, in bounds, offset/size aligned to element size;
+ * indirect records. Index range nonempty, in bounds, offset/size aligned to element size;
  * reserved=0. first_index is relative to the range. GPU-produced record/index
  * contents are trusted: (first_index+index_count)*index_size <= range size without
  * overflow, first_instance=0, and every effective vertex/root address valid.
  * Zero counts do not waive range/record checks. Native signed vertex offset;
  * no primitive restart. No CPU inspection, emulated indexing or hidden copies. */
 OgpuResult ogpu_batch_draw_indexed_indirect(OgpuBatch *batch, OgpuRaster *raster,
-    const OgpuIndexRange *indices, OgpuBuffer *indirect, uint64_t indirect_offset,
+    const OgpuIndexRange *indices, const OgpuIndirectRange *draws,
     const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
 
 /* Caller must initialize GENERAL and write every copied texel in this or an earlier

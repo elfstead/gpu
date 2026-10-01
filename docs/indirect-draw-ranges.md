@@ -1,10 +1,10 @@
 # Draw-contract decision: explicit indirect ranges and GPU counts
 
 Selected 2026-09-30 following the [native frontier](graphics-indexed-frontier-results.md)
-and its [draw-identity follow-up](graphics-draw-identity-results.md). **Implementation target, not implemented API**:
-the current header/runtime remain ABI 18 until the coordinated migration lands.
+and its [draw-identity follow-up](graphics-draw-identity-results.md). Implemented in
+the coordinated **ABI 19** migration on 2026-10-01; wider acceptance remains open.
 This closes the choice of direction in the [M4 decision gate](indexed-depth-performance-plan.md),
-not its public implementation, lifetime or performance acceptance.
+not its complete consumer or performance acceptance.
 
 ## Decision
 
@@ -31,15 +31,15 @@ Reasons:
   Native strategy preservation is the reason; matched timing still evaluates the
   resulting implementation and does not disappear from acceptance.
 
-The current public profile does **not** enable `shaderDrawParameters`. The identity
+The preceding ABI-18 profile did **not** enable `shaderDrawParameters`. The identity
 probe therefore establishes a native semantic choice to expose, not a fusion bug
-in a currently valid ABI-18 shader. A backend could still fuse proven identity-
+in a valid ABI-18 shader. ABI 19 enables it for graphics. A backend could still fuse proven identity-
 insensitive calls; that optimization is not a substitute for a first-class range.
 
 ## Selected C shape
 
-Names/layouts below are the migration target; implemented header/ABI checks become
-authoritative when the change lands. Fixed-width integers, no owning range object:
+The implemented header and ABI checks are authoritative. Fixed-width integers,
+no owning range object:
 
 ```c
 typedef struct OgpuIndirectRange {
@@ -143,6 +143,15 @@ implementation/validation establishes a mapping; no compute regression is allowe
 | General device-generated pipelines/root/state commands | Deferred; this decision covers record ranges and a count word, not arbitrary GPU command topology |
 
 ## Implementation and acceptance order
+
+Checkpoint: header/runtime, modern feature enablement, native commands, retained
+range/count backing and in-tree call-site migration are implemented. CPU bounds
+tests and focused public replay/lifetime tests pass; the public identity scene
+matches accepted native output and allocation shapes at 1/64/512 records on RADV
+and llvmpipe. These diagnostic scenes use one-shot storage, not a matched timing
+policy. Generated draw-identity support, broader identity edge cases, matched
+one/two-slot reset/replay timing and the installed range consumer remain pending.
+Metal entry points remain explicitly unsupported and are not natively validated.
 
 1. Coordinate header/runtime ABI, feature discovery/enablement, native bindings,
    range validation and retained step representation. Migrate every in-tree

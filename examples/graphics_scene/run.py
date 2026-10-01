@@ -115,7 +115,7 @@ def main():
             generate.require('ogpu_batch_draw_indexed_indirect' in symbols and not any(
                 line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split()),'public consumer boundary mismatch')
             report['public']=dict(executable_sha256=digest(public),compile_command=public_command,
-                                  runtime_sha256=digest(ROOT/'target/release/libogpu.so'),abi=18)
+                                  runtime_sha256=digest(ROOT/'target/release/libogpu.so'),abi=19)
             executables['public']=public
         subprocess.run([sys.executable,'-B',str(HERE/'test_oracle.py')],check=True)
         subprocess.run([sys.executable,'-B',str(HERE/'test_runner.py')],check=True)
@@ -138,7 +138,7 @@ def main():
                 generate.require(f'{backend.title()} indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
                 if backend=='public':
                     context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
-                    generate.require(context==[dict(abi=18,index_bytes=report['index_bytes'],gpu_generated=True)],'wrong public scene configuration')
+                    generate.require(context==[dict(abi=19,index_bytes=report['index_bytes'],gpu_generated=True)],'wrong public scene configuration')
                 devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
                 generate.require(len(devices)==1,'missing/duplicate device identity')
                 if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')

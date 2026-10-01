@@ -52,6 +52,16 @@ pub struct OgpuIndexRange {
 }
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+pub struct OgpuIndirectRange {
+    pub buffer: *mut crate::OgpuBuffer,
+    pub offset: u64,
+    pub stride_bytes: u32,
+    pub max_draw_count: u32,
+    pub count_buffer: *mut crate::OgpuBuffer,
+    pub count_offset: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct OgpuDrawIndexedArguments {
     pub index_count: u32,
     pub instance_count: u32,
@@ -69,6 +79,7 @@ pub struct OgpuDeviceLimits {
     pub max_image_1d: u32,
     pub max_image_2d: u32,
     pub max_push_data_bytes: u64,
+    pub max_indirect_draw_count: u32,
 }
 
 #[repr(C)]

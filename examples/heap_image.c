@@ -76,7 +76,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         TRY(ogpu_batch_discard_image(batch, source, &error));
         const OgpuRenderingDesc rendering_5 = {.color = {source, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
         TRY(ogpu_batch_begin_rendering(batch, &rendering_5, &error));
-        TRY(ogpu_batch_draw_indirect(batch, pattern, indirect, 0, NULL, 0, &error));
+        TRY(ogpu_batch_draw_indirect(batch, pattern, &(OgpuIndirectRange){.buffer=indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, NULL, 0, &error));
         TRY(ogpu_batch_end_rendering(batch, &error));
         TRY(ogpu_batch_discard_image(batch, processed, &error));
         TRY(ogpu_batch_submit(batch, &completions[0], &error));
@@ -102,7 +102,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *compute, OgpuRaster *pattern
         TRY(ogpu_batch_discard_image(batch, final, &error));
         const OgpuRenderingDesc rendering_4 = {.color = {final, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
         TRY(ogpu_batch_begin_rendering(batch, &rendering_4, &error));
-        TRY(ogpu_batch_draw_indirect(batch, sample, indirect, 0, &sampling, sizeof(sampling), &error));
+        TRY(ogpu_batch_draw_indirect(batch, sample, &(OgpuIndirectRange){.buffer=indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, &sampling, sizeof(sampling), &error));
         TRY(ogpu_batch_end_rendering(batch, &error));
         TRY(ogpu_batch_copy_image_to_buffer(batch, final, readback, 4, &error));
         // Diagnostic copies happen only after the full GPU chain. The processed

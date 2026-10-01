@@ -6771,6 +6771,44 @@ impl Default for VkPhysicalDevice16BitStorageFeatures {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderDrawParametersFeatures {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderDrawParameters: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderDrawParametersFeatures",
+    ][::std::mem::size_of::<VkPhysicalDeviceShaderDrawParametersFeatures>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderDrawParametersFeatures",
+    ][::std::mem::align_of::<VkPhysicalDeviceShaderDrawParametersFeatures>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderDrawParametersFeatures::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderDrawParametersFeatures, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderDrawParametersFeatures::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderDrawParametersFeatures, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderDrawParametersFeatures::shaderDrawParameters",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderDrawParametersFeatures, shaderDrawParameters
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceShaderDrawParametersFeatures {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type PFN_vkEnumerateInstanceVersion = ::std::option::Option<
     unsafe extern "C" fn(pApiVersion: *mut u32) -> VkResult,
 >;
@@ -8989,6 +9027,56 @@ impl Default for VkDrawIndirect2InfoKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDrawIndirectCount2InfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub addressRange: VkStridedDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+    pub countAddressRange: VkDeviceAddressRangeKHR,
+    pub countAddressFlags: VkAddressCommandFlagsKHR,
+    pub maxDrawCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDrawIndirectCount2InfoKHR",
+    ][::std::mem::size_of::<VkDrawIndirectCount2InfoKHR>() - 72usize];
+    [
+        "Alignment of VkDrawIndirectCount2InfoKHR",
+    ][::std::mem::align_of::<VkDrawIndirectCount2InfoKHR>() - 8usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::sType",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::pNext",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::addressRange",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, addressRange) - 16usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::addressFlags",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, addressFlags) - 40usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::countAddressRange",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, countAddressRange) - 48usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::countAddressFlags",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, countAddressFlags) - 64usize];
+    [
+        "Offset of field: VkDrawIndirectCount2InfoKHR::maxDrawCount",
+    ][::std::mem::offset_of!(VkDrawIndirectCount2InfoKHR, maxDrawCount) - 68usize];
+};
+impl Default for VkDrawIndirectCount2InfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type PFN_vkCmdBindIndexBuffer3KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -9023,6 +9111,18 @@ pub type PFN_vkCmdCopyImageToMemoryKHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pCopyMemoryInfo: *const VkCopyDeviceMemoryImageInfoKHR,
+    ),
+>;
+pub type PFN_vkCmdDrawIndirectCount2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkDrawIndirectCount2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdDrawIndexedIndirectCount2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkDrawIndirectCount2InfoKHR,
     ),
 >;
 #[repr(C)]

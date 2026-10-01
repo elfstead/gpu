@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_batch_discard_image(batch, target, &error));
     const OgpuRenderingDesc rendering_4 = {.color = {target, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
     TRY(ogpu_batch_begin_rendering(batch, &rendering_4, &error));
-    TRY(ogpu_batch_draw_indirect(batch, raster, indirect, 0, &root, sizeof(root), &error));
+    TRY(ogpu_batch_draw_indirect(batch, raster, &(OgpuIndirectRange){.buffer=indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, &root, sizeof(root), &error));
     TRY(ogpu_batch_end_rendering(batch, &error));
     TRY(ogpu_batch_copy_image_to_buffer(batch, target, readback, 0, &error));
     TRY(ogpu_batch_submit(batch, &completion, &error));

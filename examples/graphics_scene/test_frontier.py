@@ -78,5 +78,22 @@ class FrontierTests(unittest.TestCase):
         with self.assertRaises((ValueError,RuntimeError)):
             f.check_log(out,err(),64,'multi',device)
 
+    def test_public_cache_policy_is_not_mistaken_for_owned_reuse(self):
+        for capacity in (1,64,512):
+            for strategy in f.STRATEGIES:
+                out,err,device,commands,_=self.fixture(capacity,strategy)
+                out=out.replace('Native indexed','Public indexed')
+                uncached=capacity==512 and strategy=='single'
+                start,end,final=copy.deepcopy(commands)
+                start.update(vkDestroyCommandPool=0,vkResetCommandPool=1)
+                end.update(vkCreateCommandPool=9 if uncached else 1,vkDestroyCommandPool=8 if uncached else 0,
+                           vkResetCommandPool=1 if uncached else 9)
+                final.update(vkCreateCommandPool=end['vkCreateCommandPool'],vkDestroyCommandPool=end['vkDestroyCommandPool']+1,
+                             vkResetCommandPool=end['vkResetCommandPool'])
+                f.check_log(out,err((start,end,final)),capacity,strategy,device,public=True)
+                final['vkCreateCommandPool']+=1
+                with self.assertRaises((ValueError,RuntimeError)):
+                    f.check_log(out,err((start,end,final)),capacity,strategy,device,public=True)
+
 
 if __name__=='__main__': unittest.main()

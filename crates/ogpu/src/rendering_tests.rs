@@ -122,8 +122,14 @@ fn rendering_descriptions_and_ranges_need_no_driver() {
                 ptr::null_mut(),
                 ptr::null_mut(),
                 ptr::null(),
-                ptr::null_mut(),
-                0,
+                &crate::OgpuIndirectRange {
+                    buffer: ptr::null_mut(),
+                    offset: 0,
+                    stride_bytes: 20,
+                    max_draw_count: 1,
+                    count_buffer: std::ptr::null_mut(),
+                    count_offset: 0
+                },
                 ptr::null(),
                 0,
                 ptr::null_mut()
@@ -131,6 +137,95 @@ fn rendering_descriptions_and_ranges_need_no_driver() {
             INVALID_ARGUMENT
         );
     }
+}
+
+#[test]
+fn indirect_ranges_validate_capacity_stride_count_and_terminal_bounds() {
+    for record in [16, 20] {
+        for stride in [record, 32, 64] {
+            for count in [0, 1, 2, 512] {
+                let span = if count == 0 {
+                    0
+                } else {
+                    (count as u64 - 1) * stride as u64 + record as u64
+                };
+                assert_eq!(
+                    contract::indirect_span((64 + span) as usize, 64, stride, count, record, 512)
+                        .unwrap(),
+                    span
+                );
+                if span != 0 {
+                    assert_eq!(
+                        contract::indirect_span(
+                            (63 + span) as usize,
+                            64,
+                            stride,
+                            count,
+                            record,
+                            512
+                        )
+                        .unwrap_err()
+                        .status,
+                        OUT_OF_RANGE
+                    );
+                }
+            }
+        }
+        for (offset, stride) in [(1, record), (0, 0), (0, record - 4), (0, record + 1)] {
+            for count in [0, 1, 2] {
+                assert_eq!(
+                    contract::indirect_span(256, offset, stride, count, record, 512)
+                        .unwrap_err()
+                        .status,
+                    INVALID_ARGUMENT
+                );
+            }
+        }
+        assert_eq!(
+            contract::indirect_span(256, u64::MAX - 3, record, 1, record, 512)
+                .unwrap_err()
+                .status,
+            OUT_OF_RANGE
+        );
+        assert_eq!(
+            contract::indirect_span(256, 0, u32::MAX - 3, u32::MAX, record, u32::MAX)
+                .unwrap_err()
+                .status,
+            OUT_OF_RANGE
+        );
+        assert_eq!(
+            contract::indirect_span(256, 0, record, 513, record, 512)
+                .unwrap_err()
+                .status,
+            OUT_OF_RANGE
+        );
+        assert_eq!(
+            contract::indirect_span(256, 260, record, 0, record, 512)
+                .unwrap_err()
+                .status,
+            OUT_OF_RANGE
+        );
+    }
+    contract::indirect_count(None, 0).unwrap();
+    contract::indirect_count(Some(8), 4).unwrap();
+    assert_eq!(
+        contract::indirect_count(None, 4).unwrap_err().status,
+        INVALID_ARGUMENT
+    );
+    assert_eq!(
+        contract::indirect_count(Some(8), 1).unwrap_err().status,
+        INVALID_ARGUMENT
+    );
+    assert_eq!(
+        contract::indirect_count(Some(8), 8).unwrap_err().status,
+        OUT_OF_RANGE
+    );
+    assert_eq!(
+        contract::indirect_count(Some(8), u64::MAX - 3)
+            .unwrap_err()
+            .status,
+        OUT_OF_RANGE
+    );
 }
 
 #[test]
@@ -302,8 +397,14 @@ fn gpu_depth_compare_matrix() {
                                         &mut batch,
                                         &mut *raster,
                                         &range,
-                                        &mut *indirect,
-                                        0,
+                                        &crate::OgpuIndirectRange {
+                                            buffer: &mut *indirect,
+                                            offset: 0,
+                                            stride_bytes: 20,
+                                            max_draw_count: 1,
+                                            count_buffer: std::ptr::null_mut(),
+                                            count_offset: 0
+                                        },
                                         root.as_ptr().cast(),
                                         8,
                                         ptr::null_mut()
@@ -370,14 +471,14 @@ fn gpu_depth_compare_matrix() {
     assert!(tested > 0);
 }
 
-fn words(bytes: &[u8]) -> Vec<u32> {
+pub(super) fn words(bytes: &[u8]) -> Vec<u32> {
     bytes
         .chunks_exact(4)
         .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
         .collect()
 }
 
-unsafe fn buffer(device: &mut OgpuDevice, size: u64, usage: u32) -> Box<OgpuBuffer> {
+pub(super) unsafe fn buffer(device: &mut OgpuDevice, size: u64, usage: u32) -> Box<OgpuBuffer> {
     unsafe {
         let mut out = ptr::null_mut();
         assert_eq!(
@@ -397,7 +498,7 @@ unsafe fn buffer(device: &mut OgpuDevice, size: u64, usage: u32) -> Box<OgpuBuff
     }
 }
 
-unsafe fn image(device: &mut OgpuDevice, format: u32, usage: u32) -> Box<OgpuImage> {
+pub(super) unsafe fn image(device: &mut OgpuDevice, format: u32, usage: u32) -> Box<OgpuImage> {
     unsafe {
         let desc = OgpuImageDesc {
             dimension: 2,
@@ -634,8 +735,14 @@ fn gpu_indexed_depth_scopes() {
                             &mut rejected,
                             &mut *raster,
                             &range,
-                            &mut *indirect,
-                            0,
+                            &crate::OgpuIndirectRange {
+                                buffer: &mut *indirect,
+                                offset: 0,
+                                stride_bytes: 20,
+                                max_draw_count: 1,
+                                count_buffer: std::ptr::null_mut(),
+                                count_offset: 0
+                            },
                             root.as_ptr().cast(),
                             8,
                             ptr::null_mut()
@@ -673,8 +780,14 @@ fn gpu_indexed_depth_scopes() {
                         &mut batch,
                         &mut *raster,
                         &range,
-                        &mut *indirect,
-                        0,
+                        &crate::OgpuIndirectRange {
+                            buffer: &mut *indirect,
+                            offset: 0,
+                            stride_bytes: 20,
+                            max_draw_count: 1,
+                            count_buffer: std::ptr::null_mut(),
+                            count_offset: 0
+                        },
                         root.as_ptr().cast(),
                         8,
                         ptr::null_mut()
@@ -756,8 +869,14 @@ fn gpu_indexed_depth_scopes() {
                             &mut batch,
                             &mut *raster,
                             &range,
-                            &mut *indirect,
-                            offset,
+                            &crate::OgpuIndirectRange {
+                                buffer: &mut *indirect,
+                                offset,
+                                stride_bytes: 20,
+                                max_draw_count: 1,
+                                count_buffer: std::ptr::null_mut(),
+                                count_offset: 0
+                            },
                             root.as_ptr().cast(),
                             8,
                             ptr::null_mut()
@@ -779,8 +898,14 @@ fn gpu_indexed_depth_scopes() {
                             &mut batch,
                             &mut *raster,
                             &r,
-                            &mut *indirect,
-                            0,
+                            &crate::OgpuIndirectRange {
+                                buffer: &mut *indirect,
+                                offset: 0,
+                                stride_bytes: 20,
+                                max_draw_count: 1,
+                                count_buffer: std::ptr::null_mut(),
+                                count_offset: 0
+                            },
                             root.as_ptr().cast(),
                             8,
                             ptr::null_mut()
@@ -810,8 +935,14 @@ fn gpu_indexed_depth_scopes() {
                             &mut batch,
                             pipeline,
                             &r,
-                            records,
-                            0,
+                            &crate::OgpuIndirectRange {
+                                buffer: records,
+                                offset: 0,
+                                stride_bytes: 20,
+                                max_draw_count: 1,
+                                count_buffer: std::ptr::null_mut(),
+                                count_offset: 0
+                            },
                             root.as_ptr().cast(),
                             if bad == 3 { 4 } else { 8 },
                             ptr::null_mut()
@@ -842,8 +973,14 @@ fn gpu_indexed_depth_scopes() {
                             &mut batch,
                             &mut *raster,
                             &range,
-                            &mut *indirect,
-                            offset,
+                            &crate::OgpuIndirectRange {
+                                buffer: &mut *indirect,
+                                offset,
+                                stride_bytes: 20,
+                                max_draw_count: 1,
+                                count_buffer: std::ptr::null_mut(),
+                                count_offset: 0
+                            },
                             root.as_ptr().cast(),
                             8,
                             ptr::null_mut()

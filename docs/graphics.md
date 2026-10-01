@@ -6,13 +6,16 @@ completion rules. It does not define a complete graphics API or add presentation
 ABI 18 implements the scoped/indexed/depth slice selected by the
 [proposal](indexed-depth-proposal.md). The [migration checkpoint](indexed-depth-migration.md)
 separates its focused checks from the remaining M4 scene/performance acceptance.
+ABI 19 replaces single-record argument pairs with [explicit indirect ranges and
+GPU counts](indirect-draw-ranges.md), including local draw identity.
 
 Run the [C example](../examples/graphics.c) with `cargo xtask graphics`.
 
 ## Device and executable
 
 `ogpu_device_create_graphics` requires a single queue family supporting both
-graphics and compute, and dynamic rendering, in addition
+graphics and compute, dynamic rendering, multiDrawIndirect, drawIndirectCount and
+shaderDrawParameters, in addition
 to the [modern execution baseline](modern-baseline.md).
 It returns UNSUPPORTED if none exists. At ABI 8, ordinary `ogpu_device_create`
 enables compute and images/heaps, never rasterization, even on a shared queue.

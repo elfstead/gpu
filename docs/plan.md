@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-09-30. This page owns current status and selected work. The
+Updated 2026-10-01. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -14,7 +14,8 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 18**, adding
+Metal compute backend. The language-neutral C boundary is now **ABI 19**, adding
+explicit indirect ranges, GPU counts and graphics draw identity. ABI 18 added
 scoped indexed/depth rendering and description-based buffer/raster creation.
 ABI 17 added recording-local split dependencies and explicit serial/simultaneous replay after
 ABI 16's optional borrowed HOST views and range visibility on Vulkan and ABI 15's
@@ -34,7 +35,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
 | Performance | ABI-15 replay cuts repeated host work about 88% at 512 dispatches; ABI-16 host views remove forced copies and express independent ranges, with 13% less wall time at one slot/4 MiB | Bounded matched-strategy evidence, not approval of the fundamental API or equal total command-memory budgets |
-| Validation | Indexed/depth checkpoint: 32 GPU tests per Linux driver, 41 ordinary tests, 824 ABI checks, matched scenes and 68,608 slot/replay frames; ABI-18 relocated installed consumers on both drivers | Scene performance and its generated/installed handoff remain; no new Metal validation; synthetic failures are not real device-loss evidence |
+| Validation | Range migration: 33 GPU tests per Linux driver, 42 ordinary tests, 847 ABI checks and byte-identical public/native range scenes; earlier indexed/depth slot/replay and installed evidence remains revision-specific | Range performance and generated/installed handoff remain; no new Metal validation; synthetic failures are not real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -275,10 +276,11 @@ The [native draw-identity follow-up](graphics-draw-identity-results.md) passes
 144 identity-sensitive frames plus ordinary regressions. It distinguishes separate
 single draws from one range, without claiming that ABI 18 enables that capability.
 The [selected range/count contract](indirect-draw-ranges.md) makes that semantic
-choice explicit. Next implement the coordinated public migration and its
-capability/bounds/lifetime/replay gates, then measure native mappings and complete
-installed scene handoff. Header/runtime are still ABI 18; this is a design decision,
-not an implemented feature claim.
+choice explicit and is now implemented at ABI 19. The focused capability, bounds,
+lifetime and replay gates pass on both local Vulkan drivers; public/native range
+scenes agree byte-for-byte. Next complete generated draw-identity support and
+edge-case coverage, measure matched native mappings, and finish installed scene
+handoff. Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and
 numerical requirements before its dependent kernels.

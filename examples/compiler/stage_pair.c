@@ -31,7 +31,7 @@ static int run_case(OgpuDevice *device, OgpuRaster *raster, uint32_t width, uint
         TRY(ogpu_batch_discard_image(batch, image, &error));
         const OgpuRenderingDesc rendering_3 = {.color = {image, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
         TRY(ogpu_batch_begin_rendering(batch, &rendering_3, &error));
-        TRY(ogpu_batch_draw_indirect(batch, raster, indirect, 0, &root, sizeof(root), &error));
+        TRY(ogpu_batch_draw_indirect(batch, raster, &(OgpuIndirectRange){.buffer=indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, &root, sizeof(root), &error));
         TRY(ogpu_batch_end_rendering(batch, &error));
         memset(&root, 0xff, sizeof(root));
         TRY(ogpu_batch_copy_image_to_buffer(batch, image, readback, 64, &error));

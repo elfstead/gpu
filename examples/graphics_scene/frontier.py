@@ -46,9 +46,9 @@ def identity_image(reference,width,height,capacity,strategy):
     return bytes(result)
 
 
-def check_log(stdout,stderr,capacity,strategy,device,identity=False):
+def check_log(stdout,stderr,capacity,strategy,device,identity=False,public=False):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
-    require('Native indexed frontier drained' in stdout,'missing drain marker')
+    require(('Public' if public else 'Native')+' indexed frontier drained' in stdout,'missing drain marker')
     require(rows(stdout,'DEVICE ')==[device],'wrong device')
     require(rows(stdout,'DRAW_IDENTITY_FEATURES ')==([dict(shaderDrawParameters=True)] if identity else []),
             'wrong draw-identity feature profile')
@@ -62,15 +62,20 @@ def check_log(stdout,stderr,capacity,strategy,device,identity=False):
     commands=rows(stderr,'COMMAND_COUNTS ')
     require(len(commands)==3 and [c['phase'] for c in commands]==[0,1,2],'missing command snapshots')
     start,end,final=commands
-    require(all(final[k]==end[k] for k in end if k!='phase'),'unexpected commands during teardown')
+    require(all(final[k]==end[k]+int(public and k=='vkDestroyCommandPool') for k in end if k!='phase'),
+            'unexpected commands during teardown')
     require(start['vkQueueSubmit2']==start['vkBeginCommandBuffer']==start['vkEndCommandBuffer']==1,'wrong setup count')
     hot={k:end[k]-start[k] for k in start if k!='phase'}
     require(all(v>=0 for v in hot.values()),'counter decreased')
-    for name in ('vkQueueSubmit2','vkBeginCommandBuffer','vkEndCommandBuffer','vkCmdBeginRendering','vkCmdEndRendering',
-                 'vkCreateCommandPool','vkDestroyCommandPool'):
+    for name in ('vkQueueSubmit2','vkBeginCommandBuffer','vkEndCommandBuffer','vkCmdBeginRendering','vkCmdEndRendering'):
         require(hot[name]==8,f'wrong {name} count')
-    require(final['vkQueueWaitIdle']==final['vkResetCommandPool']==0 and
-            final['vkCreateCommandPool']==final['vkDestroyCommandPool']==9,'wrong pool/idle policy')
+    # One-shot public controls use the existing bounded device cache. The 512
+    # individual-call case exceeds its 256-step admission bound; this is NOT the
+    # caller-owned reset/replay timing policy and must not hide pool churn.
+    uncached=public and strategy=='single' and capacity==512
+    require(hot['vkCreateCommandPool']==hot['vkDestroyCommandPool']==(8 if not public or uncached else 0),'wrong hot pool policy')
+    require(final['vkQueueWaitIdle']==0 and final['vkResetCommandPool']==(1 if uncached else 9 if public else 0) and
+            final['vkCreateCommandPool']==final['vkDestroyCommandPool']==(9 if not public or uncached else 1),'wrong pool/idle policy')
     wanted=(8*capacity,0,8*capacity,0) if strategy=='single' else (8,0,8*capacity,0) if strategy=='multi' else (0,8,0,8*capacity)
     require(tuple(hot[k] for k in ('vkCmdDrawIndexedIndirect2KHR','vkCmdDrawIndexedIndirectCount2KHR',
                                   'indexed_records','counted_capacity'))==wanted,'wrong actual native draw strategy')

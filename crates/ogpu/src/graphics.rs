@@ -727,12 +727,14 @@ impl Raster {
     pub(super) unsafe fn draw(
         &self,
         command: vk::VkCommandBuffer,
-        indirect: &Buffer,
-        offset: u64,
+        indirect: &batch::IndirectBinding,
         root: &[u8],
         indices: Option<&batch::IndexBinding>,
     ) {
         let d = &self.device;
+        if indirect.maximum == 0 {
+            return;
+        }
         unsafe {
             (d.f.vkCmdBindPipeline.unwrap())(
                 command,
@@ -743,13 +745,14 @@ impl Raster {
             let draw = vk::VkDrawIndirect2InfoKHR {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
                 addressRange: vk::VkStridedDeviceAddressRangeKHR {
-                    address: indirect.address + offset,
-                    size: if indices.is_some() { 20 } else { 16 },
-                    stride: if indices.is_some() { 20 } else { 16 },
+                    address: indirect.buffer.address + indirect.offset,
+                    size: u64::from(indirect.maximum - 1) * u64::from(indirect.stride)
+                        + if indices.is_some() { 20 } else { 16 },
+                    stride: u64::from(indirect.stride),
                 },
                 addressFlags:
                     vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
-                drawCount: 1,
+                drawCount: indirect.maximum,
                 ..Default::default()
             };
             if let Some(i) = indices {
@@ -769,6 +772,26 @@ impl Raster {
                     ..Default::default()
                 };
                 (d.f.vkCmdBindIndexBuffer3KHR.unwrap())(command, &binding);
+            }
+            if let Some(count) = &indirect.count {
+                let counted = vk::VkDrawIndirectCount2InfoKHR {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_COUNT_2_INFO_KHR,
+                    addressRange: draw.addressRange,
+                    addressFlags: draw.addressFlags,
+                    countAddressRange: vk::VkDeviceAddressRangeKHR {
+                        address: count.address + indirect.count_offset,
+                        size: 4,
+                    },
+                    countAddressFlags: draw.addressFlags,
+                    maxDrawCount: indirect.maximum,
+                    ..Default::default()
+                };
+                if indices.is_some() {
+                    (d.f.vkCmdDrawIndexedIndirectCount2KHR.unwrap())(command, &counted);
+                } else {
+                    (d.f.vkCmdDrawIndirectCount2KHR.unwrap())(command, &counted);
+                }
+            } else if indices.is_some() {
                 (d.f.vkCmdDrawIndexedIndirect2KHR.unwrap())(command, &draw);
             } else {
                 (d.f.vkCmdDrawIndirect2KHR.unwrap())(command, &draw);

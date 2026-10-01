@@ -591,8 +591,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
             params->load_target ? OGPU_ATTACHMENT_LOAD : OGPU_ATTACHMENT_CLEAR,
             OGPU_STORE_STORE, {0, 0, 0, 1}}};
         TRY(ogpu_batch_begin_rendering(batch, &rendering, &error));
-        TRY(ogpu_batch_draw_indirect(batch, p->raster, p->indirect, 0,
-            root, p->root_size, &error));
+        TRY(ogpu_batch_draw_indirect(batch, p->raster, &(OgpuIndirectRange){.buffer=p->indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, root, p->root_size, &error));
         TRY(ogpu_batch_end_rendering(batch, &error));
     }
     if (!finish(gpu, batch, bank)) goto fail;

@@ -104,6 +104,8 @@ fn gpu_indexed_rendering_failures() {
                         )
                         .unwrap();
                     let root = vertices.address().unwrap().to_ne_bytes();
+                    let count = Rc::new(Buffer::new(d.clone(), 4).unwrap());
+                    count.write(0, &1u32.to_ne_bytes()).unwrap();
                     let raster = Rc::new(unsafe {
                         Raster::new(
                             d.clone(),
@@ -128,6 +130,7 @@ fn gpu_indexed_rendering_failures() {
                         Rc::downgrade(&vertices),
                         Rc::downgrade(&indices),
                         Rc::downgrade(&indirect),
+                        Rc::downgrade(&count),
                     ];
                     let pipeline = Rc::downgrade(&raster);
                     let mut batch = new_batch();
@@ -156,8 +159,14 @@ fn gpu_indexed_rendering_failures() {
                     batch
                         .draw(
                             raster,
-                            indirect,
-                            0,
+                            crate::compute::IndirectBinding {
+                                buffer: indirect,
+                                offset: 0,
+                                stride: 20,
+                                maximum: 1,
+                                count: Some(count),
+                                count_offset: 0,
+                            },
                             &root,
                             Some(IndexBinding {
                                 buffer: indices,

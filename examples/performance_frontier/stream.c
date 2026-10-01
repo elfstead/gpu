@@ -314,7 +314,7 @@ static int stream_record(Stream *s, unsigned index) {
     API(ogpu_batch_discard_image(slot->batch, im->image, &c->error));
     const OgpuRenderingDesc rendering_3 = {.color = {im->image, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
     API(ogpu_batch_begin_rendering(slot->batch, &rendering_3, &c->error));
-    API(ogpu_batch_draw_indirect(slot->batch, s->raster, sb_handle(&s->draw), sb_offset(&s->draw), &display, sizeof(display), &c->error));
+    API(ogpu_batch_draw_indirect(slot->batch, s->raster, &(OgpuIndirectRange){.buffer=sb_handle(&s->draw),.offset=sb_offset(&s->draw),.stride_bytes=16,.max_draw_count=1}, &display, sizeof(display), &c->error));
     API(ogpu_batch_end_rendering(slot->batch, &c->error));
     API(ogpu_batch_copy_image_to_buffer(slot->batch, im->image, sb_handle(&im->readback), sb_offset(&im->readback)+SG, &c->error));
 #endif

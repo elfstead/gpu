@@ -1,5 +1,8 @@
 //! C ownership boundary for dispatch, one-shot batches and immutable command lists.
-use crate::compute::IndexBinding;
+use crate::compute::{IndexBinding, IndirectBinding};
+#[cfg(test)]
+#[path = "indirect_tests.rs"]
+mod indirect_tests;
 #[cfg(test)]
 #[path = "rendering_tests.rs"]
 mod rendering_tests;
@@ -13,7 +16,7 @@ use crate::{
     Error, OgpuDeviceLimits, OgpuError, OgpuHostView, OgpuProbe, OgpuResult, OgpuShaderDesc,
     OgpuSpecializationConstant, OgpuTimingInfo, INVALID_ARGUMENT, OUT_OF_RANGE,
 };
-use crate::{OgpuBufferDesc, OgpuIndexRange, OgpuRasterDesc, OgpuRenderingDesc};
+use crate::{OgpuBufferDesc, OgpuIndexRange, OgpuIndirectRange, OgpuRasterDesc, OgpuRenderingDesc};
 use std::{ffi::c_void, ptr, rc::Rc};
 
 pub struct OgpuDevice {
@@ -1132,8 +1135,7 @@ pub unsafe extern "C" fn ogpu_batch_end_rendering(
 unsafe fn record_draw(
     batch: *mut OgpuBatch,
     raster: *mut OgpuRaster,
-    indirect: *mut OgpuBuffer,
-    offset: u64,
+    draws: *const OgpuIndirectRange,
     arguments: *const c_void,
     argument_bytes: u32,
     indices: Option<IndexBinding>,
@@ -1141,22 +1143,30 @@ unsafe fn record_draw(
     unsafe {
         required(batch)?;
         required(raster)?;
-        required(indirect)?;
-        let offset =
-            usize::try_from(offset).map_err(|_| Error::new(OUT_OF_RANGE, "Offset too large"))?;
+        required(draws)?;
+        let draws = &*draws;
+        required(draws.buffer)?;
+        let indirect = IndirectBinding {
+            buffer: (*draws.buffer).inner.clone(),
+            offset: draws.offset,
+            stride: draws.stride_bytes,
+            maximum: draws.max_draw_count,
+            count: if draws.count_buffer.is_null() {
+                None
+            } else {
+                Some((*draws.count_buffer).inner.clone())
+            },
+            count_offset: draws.count_offset,
+        };
         let root = if argument_bytes == 0 {
             &[]
         } else {
             required(arguments)?;
             std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
         };
-        (*batch).inner.draw(
-            (*raster).inner.clone(),
-            (*indirect).inner.clone(),
-            offset,
-            root,
-            indices,
-        )
+        (*batch)
+            .inner
+            .draw((*raster).inner.clone(), indirect, root, indices)
     }
 }
 
@@ -1167,23 +1177,14 @@ unsafe fn record_draw(
 pub unsafe extern "C" fn ogpu_batch_draw_indirect(
     batch: *mut OgpuBatch,
     raster: *mut OgpuRaster,
-    indirect: *mut OgpuBuffer,
-    offset: u64,
+    draws: *const OgpuIndirectRange,
     arguments: *const c_void,
     argument_bytes: u32,
     error: *mut OgpuError,
 ) -> OgpuResult {
     unsafe {
         call(error, || {
-            record_draw(
-                batch,
-                raster,
-                indirect,
-                offset,
-                arguments,
-                argument_bytes,
-                None,
-            )
+            record_draw(batch, raster, draws, arguments, argument_bytes, None)
         })
     }
 }
@@ -1196,8 +1197,7 @@ pub unsafe extern "C" fn ogpu_batch_draw_indexed_indirect(
     batch: *mut OgpuBatch,
     raster: *mut OgpuRaster,
     indices: *const OgpuIndexRange,
-    indirect: *mut OgpuBuffer,
-    offset: u64,
+    draws: *const OgpuIndirectRange,
     arguments: *const c_void,
     argument_bytes: u32,
     error: *mut OgpuError,
@@ -1222,8 +1222,7 @@ pub unsafe extern "C" fn ogpu_batch_draw_indexed_indirect(
             record_draw(
                 batch,
                 raster,
-                indirect,
-                offset,
+                draws,
                 arguments,
                 argument_bytes,
                 Some(binding),
@@ -1382,7 +1381,6 @@ mod tests {
                     ptr::null_mut(),
                     ptr::null_mut(),
                     ptr::null_mut(),
-                    0,
                     ptr::null(),
                     0,
                     ptr::null_mut()

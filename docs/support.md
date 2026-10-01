@@ -1,6 +1,6 @@
 # Current support boundary
 
-Updated 2026-09-29; experimental C ABI 18. Pin a full source revision. This table
+Updated 2026-10-01; experimental C ABI 19. Pin a full source revision. This table
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
@@ -18,7 +18,8 @@ Vulkan requires buffer device addresses, timeline semaphores, synchronization2,
 maintenance5, storageBuffer16BitAccess, descriptor heaps, device address commands
 and shader untyped pointers with their required bits. Discovery is weaker than
 execution: an enumerated device can reject creation. Raster additionally needs a
-shared graphics/compute queue and dynamic rendering. Unified image layouts are
+shared graphics/compute queue, dynamic rendering, multiDrawIndirect,
+drawIndirectCount and shaderDrawParameters. Unified image layouts are
 enabled when supported, not required. FP16 arithmetic is enabled when supported;
 storage16 is not proof of arithmetic, subgroup or matrix support. Query the created
 device, not just physical capabilities. There is no legacy emulation path.
@@ -33,7 +34,10 @@ Raster supports scoped offscreen color plus optional D32 depth, indexed/non-inde
 indirect triangle list/strip, fixed fill/no-cull/full-target state and one sample;
 no stencil or blending. ABI 18 adds explicit load/store and depth test/write/compare
 state, plus opt-in index eligibility on buffers (Metal rejects that extra usage).
-The migration checkpoint is not full M4 acceptance.
+ABI 19 adds explicit fixed/count indirect ranges and local draw identity, with
+retained record/count backing and a queried native capacity limit. The migration
+checkpoint is not full M4 acceptance; generated draw-identity support and matched
+scene timing/installed range handoff are still pending.
 Image formats are RGBA8_UNORM, R32_FLOAT, RGBA16_FLOAT, RGBA16_UNORM and D32_FLOAT with
 specific usage restrictions; query the exact description. Images have one mip,
 layer and sample. No presentation, general rendering backend or image aliasing API.

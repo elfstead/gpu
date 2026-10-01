@@ -127,7 +127,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         TRY(ogpu_batch_discard_image(batch, first, &error));
         const OgpuRenderingDesc rendering_6 = {.color = {first, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
         TRY(ogpu_batch_begin_rendering(batch, &rendering_6, &error));
-        TRY(ogpu_batch_draw_indirect(batch, first_raster, indirect, 0, &draw, sizeof(draw), &error));
+        TRY(ogpu_batch_draw_indirect(batch, first_raster, &(OgpuIndirectRange){.buffer=indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, &draw, sizeof(draw), &error));
         TRY(ogpu_batch_end_rendering(batch, &error));
         TRY(ogpu_batch_copy_image_to_buffer(batch, first, buffers[0], 4, &error));
         TRY(ogpu_batch_barrier(batch, OGPU_ACCESS_TRANSFER_WRITE, OGPU_ACCESS_COMPUTE_READ, &error));
@@ -138,7 +138,7 @@ static int run_case(OgpuDevice *device, OgpuKernel *producer, OgpuKernel *proces
         TRY(ogpu_batch_discard_image(batch, last, &error));
         const OgpuRenderingDesc rendering_5 = {.color = {last, OGPU_ATTACHMENT_CLEAR, OGPU_STORE_STORE, {0, 0, 0, 1}}};
         TRY(ogpu_batch_begin_rendering(batch, &rendering_5, &error));
-        TRY(ogpu_batch_draw_indirect(batch, last_raster, indirect, 0, &read, sizeof(read), &error));
+        TRY(ogpu_batch_draw_indirect(batch, last_raster, &(OgpuIndirectRange){.buffer=indirect,.offset=0,.stride_bytes=16,.max_draw_count=1}, &read, sizeof(read), &error));
         TRY(ogpu_batch_end_rendering(batch, &error));
         TRY(ogpu_batch_copy_image_to_buffer(batch, last, buffers[2], 4, &error));
         TRY(ogpu_batch_submit(batch, &completion, &error));
