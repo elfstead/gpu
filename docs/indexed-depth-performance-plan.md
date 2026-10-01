@@ -6,7 +6,10 @@ experiment. Its [slot/replay correctness increment](graphics-scene-reuse-results
 is now accepted at `637c7db`. The [native multi-record/count correctness probe](graphics-indexed-frontier-results.md)
 passes at `62f1ad7`. The [identity-sensitive control](graphics-draw-identity-results.md)
 at `e6baf7b` supports the [selected range/count contract](indirect-draw-ranges.md).
-**Public implementation/acceptance and matched timing remain open**.
+The public ABI-19 implementation and [focused migration checks](indirect-draw-range-results.md)
+are complete, followed by the [generated range handoff](draw-count-followup.md).
+**Matched scene range/replay acceptance and timing remain open**. The local
+software counted→fixed failure is retained separately; Radeon work can continue.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 
 ## Draw-contract decision and remaining acceptance
@@ -99,8 +102,8 @@ out of unrelated controls.
 Native multi-record execution and GPU count-buffer execution are distinct cases.
 After matched single-record grouping, test native multi-record commands, then
 GPU-generated active counts (including zero and changing counts) without CPU
-readback. The current public surface exposes neither operation. Do not assume a
-future backend can fuse calls: provide a legal mapping preserving shader-visible
+readback. ABI 19 now exposes both operations explicitly. Do not assume a
+backend can fuse separate calls: provide a legal mapping preserving shader-visible
 draw identity, mutable record/count semantics, ownership, ordering and budgets.
 Otherwise leave the strategy unexpressed and consider the better API alternative.
 

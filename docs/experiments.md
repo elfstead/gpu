@@ -10,6 +10,13 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [generated range handoff and native regression](draw-count-followup.md) at
+clean `cd8d0e8` adds 540 passing Radeon frames and relocated supplied/regenerated
+SDK consumption. llvmpipe passes 432 unaffected frames, but its counted→fixed
+sequence fails in both the public consumer and direct Vulkan. The strict failure
+and original logs are retained; neither a workaround nor software acceptance is
+claimed. Matched scene timing remains open.
+
 The [ABI-19 range/count migration](indirect-draw-range-results.md) is accepted at
 clean `2c20170`: 33 GPU tests per local Vulkan driver, 42 ordinary tests, 847 ABI
 checks and 144 public/native identity-sensitive frames pass. This implements the

@@ -1,0 +1,40 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-zhfnpj9o
+cd8d0e8d397e101a48679242c76d4266fbefdf15
+19
+-I/tmp/ogpu-external-zhfnpj9o/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-zhfnpj9o/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-zhfnpj9o/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007d09e0c39000)
+	libogpu.so => /tmp/ogpu-external-zhfnpj9o/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007d09e0b9b000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007d09e0800000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007d09e0b6e000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007d09e0c3b000)
+Missing loader rejects visibly PASS
+Installed shader interface generation PASS
+Installed shader interface generation PASS
+Built /tmp/ogpu-external-zhfnpj9o/independent app/transform; run it to check device compatibility and execute
+Built /tmp/ogpu-external-zhfnpj9o/independent draw ranges app/draw-ranges; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007d0b00901000)
+	libogpu.so => /tmp/ogpu-external-zhfnpj9o/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007d0b00863000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007d0b00600000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007d0b00836000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007d0b00903000)
+-I/tmp/ogpu-external-zhfnpj9o/relocated\ sdk/lib/pkgconfig/../../include
+main.o: main.c identity.generated.h \
+  /tmp/ogpu-external-zhfnpj9o/relocated\ sdk/lib/pkgconfig/../../include/ogpu.h \
+  range_count.generated.h
+Graphics pair generation/link PASS
+Installed shader interface generation PASS
+Installed shader interface generation PASS
+Graphics pair generation/link PASS
+Built /tmp/ogpu-external-zhfnpj9o/independent draw ranges app/draw-ranges; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007ab5bb4f4000)
+	libogpu.so => /tmp/ogpu-external-zhfnpj9o/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007ab5bb456000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007ab5bb200000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007ab5bb429000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007ab5bb4f6000)
+-I/tmp/ogpu-external-zhfnpj9o/relocated\ sdk/lib/pkgconfig/../../include
+main.o: main.c identity.generated.h \
+  /tmp/ogpu-external-zhfnpj9o/relocated\ sdk/lib/pkgconfig/../../include/ogpu.h \
+  range_count.generated.h
+Relocated generated draw-range consumer PASS
+External installation build PASS; revision=cd8d0e8d397e101a48679242c76d4266fbefdf15, ABI=19; artifacts retained: /tmp/ogpu-external-zhfnpj9o

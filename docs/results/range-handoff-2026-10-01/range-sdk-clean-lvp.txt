@@ -1,0 +1,63 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-az0ksn8c
+cd8d0e8d397e101a48679242c76d4266fbefdf15
+19
+-I/tmp/ogpu-external-az0ksn8c/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-az0ksn8c/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-az0ksn8c/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x0000780e79e0c000)
+	libogpu.so => /tmp/ogpu-external-az0ksn8c/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x0000780e79d6e000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x0000780e79a00000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x0000780e79d41000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x0000780e79e0e000)
+Missing loader rejects visibly PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Borrowed host view: direct produce/consume, partial update, placement/range/output rejection PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Split dependency: paired transforms, token/output/unmatched rejection, serial replay PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Installed shader interface generation PASS
+Installed shader interface generation PASS
+Built /tmp/ogpu-external-az0ksn8c/independent app/transform; run it to check device compatibility and execute
+Compiler consumer device: llvmpipe (LLVM 21.1.8, 256 bits) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=32
+Built /tmp/ogpu-external-az0ksn8c/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on llvmpipe (LLVM 21.1.8, 256 bits)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Built /tmp/ogpu-external-az0ksn8c/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on llvmpipe (LLVM 21.1.8, 256 bits)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Built /tmp/ogpu-external-az0ksn8c/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on llvmpipe (LLVM 21.1.8, 256 bits)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+External installation execution PASS; revision=cd8d0e8d397e101a48679242c76d4266fbefdf15, ABI=19; artifacts retained: /tmp/ogpu-external-az0ksn8c

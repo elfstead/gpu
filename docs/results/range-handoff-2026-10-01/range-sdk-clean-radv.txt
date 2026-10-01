@@ -1,0 +1,210 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-e9df5k17
+cd8d0e8d397e101a48679242c76d4266fbefdf15
+19
+-I/tmp/ogpu-external-e9df5k17/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-e9df5k17/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-e9df5k17/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007e6e49dd6000)
+	libogpu.so => /tmp/ogpu-external-e9df5k17/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007e6e49d38000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007e6e49a00000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007e6e49d0b000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007e6e49dd8000)
+Missing loader rejects visibly PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Explicit recording storage: reserve/reject/reuse/trim/early-owner-destruction PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Borrowed host view: direct produce/consume, partial update, placement/range/output rejection PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=64
+Split dependency: paired transforms, token/output/unmatched rejection, serial replay PASS
+Reusable command list: copied roots/mutable data/persistent ownership/early destruction PASS
+Installed shader interface generation PASS
+Installed shader interface generation PASS
+Built /tmp/ogpu-external-e9df5k17/independent app/transform; run it to check device compatibility and execute
+Compiler consumer device: AMD Radeon RX 5700 XT (RADV NAVI10) (backend=1)
+Compiler consumer PASS: 4099 integers, three passes, guards, partial upload, parent destruction; root=16 local=32
+Built /tmp/ogpu-external-e9df5k17/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on AMD Radeon RX 5700 XT (RADV NAVI10)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Built /tmp/ogpu-external-e9df5k17/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on AMD Radeon RX 5700 XT (RADV NAVI10)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Graphics pair generation/link PASS
+Built /tmp/ogpu-external-e9df5k17/independent stage app/stage-pair; run it to check device compatibility and execute
+Executing stage pair on AMD Radeon RX 5700 XT (RADV NAVI10)
+Stage pair 1x1: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 2x3: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 63x65: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 64x64: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 65x63: three draws, exact pixels/guards, root snapshot PASS
+Stage pair 97x65: three draws, exact pixels/guards, root snapshot PASS
+Built /tmp/ogpu-external-e9df5k17/independent draw ranges app/draw-ranges; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x000078a335a48000)
+	libogpu.so => /tmp/ogpu-external-e9df5k17/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x000078a3359aa000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x000078a335600000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x000078a33597d000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x000078a335a4a000)
+-I/tmp/ogpu-external-e9df5k17/relocated\ sdk/lib/pkgconfig/../../include
+main.o: main.c identity.generated.h \
+  /tmp/ogpu-external-e9df5k17/relocated\ sdk/lib/pkgconfig/../../include/ogpu.h \
+  range_count.generated.h
+Range identity format=0 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Generated indirect range consumer PASS: 540 frames per device, ABI=19
+Graphics pair generation/link PASS
+Installed shader interface generation PASS
+Installed shader interface generation PASS
+Graphics pair generation/link PASS
+Built /tmp/ogpu-external-e9df5k17/independent draw ranges app/draw-ranges; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007722cc46b000)
+	libogpu.so => /tmp/ogpu-external-e9df5k17/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007722cc3cd000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007722cc000000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007722cc3a0000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007722cc46d000)
+-I/tmp/ogpu-external-e9df5k17/relocated\ sdk/lib/pkgconfig/../../include
+main.o: main.c identity.generated.h \
+  /tmp/ogpu-external-e9df5k17/relocated\ sdk/lib/pkgconfig/../../include/ogpu.h \
+  range_count.generated.h
+Range identity format=0 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=2: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Generated indirect range consumer PASS: 540 frames per device, ABI=19
+Relocated generated draw-range consumer PASS
+External installation execution PASS; revision=cd8d0e8d397e101a48679242c76d4266fbefdf15, ABI=19; artifacts retained: /tmp/ogpu-external-e9df5k17

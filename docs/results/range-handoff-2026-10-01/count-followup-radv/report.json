@@ -1,0 +1,331 @@
+{
+  "schema": 1,
+  "complete": true,
+  "passed": true,
+  "revision": "cd8d0e8d397e101a48679242c76d4266fbefdf15",
+  "dirty": false,
+  "reference": {
+    "path": "/home/elf/dev/gpu/target/graphics-scene/frontier-0jz8pbv_/report.json",
+    "sha256": "cbdcc8905d446a163906e72eb71cd14513589cb58f38391939980318f79f001e"
+  },
+  "frames": [
+    {
+      "frame": 0,
+      "phase": 0,
+      "active": 64,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": true,
+      "expected_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "actual_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "geometry_sha256": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f"
+    },
+    {
+      "frame": 1,
+      "phase": 1,
+      "active": 0,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": false,
+      "expected_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "actual_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "geometry_sha256": "1254347e662f074751760a6a7a286b746e8b8e0a680c3c3f54725956b5fc3802"
+    },
+    {
+      "frame": 2,
+      "phase": 0,
+      "active": 1,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": false,
+      "expected_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "actual_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "geometry_sha256": "329748f9b9552c3b8220d7a297af711ffc36e822e72dd57cad486621ce5cbb38"
+    },
+    {
+      "frame": 3,
+      "phase": 1,
+      "active": 32,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": false,
+      "expected_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "actual_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "geometry_sha256": "0996943f5b7ff9dce29df36d738a27e2264d75765b88378e4cf7fdb838788446"
+    },
+    {
+      "frame": 4,
+      "phase": 0,
+      "active": 71,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": true,
+      "expected_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "actual_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "geometry_sha256": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c"
+    },
+    {
+      "frame": 5,
+      "phase": 1,
+      "active": 64,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": true,
+      "expected_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "actual_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "geometry_sha256": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c"
+    },
+    {
+      "frame": 6,
+      "phase": 0,
+      "active": 0,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": false,
+      "expected_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "actual_sha256": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+      "geometry_sha256": "794329d2ce6403007fa42f271a679669eb6b6e00a02862761ada91e1c8bc00bd"
+    },
+    {
+      "frame": 7,
+      "phase": 1,
+      "active": 1,
+      "capacity": 64,
+      "passed": true,
+      "matches_count_only": false,
+      "expected_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "actual_sha256": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+      "geometry_sha256": "3afbb55077389ff3ac61c41a235d483016b8474d8fedd51b827bd0ffbff90f5f"
+    }
+  ],
+  "compiler": "clang version 21.1.8",
+  "builds": {
+    "native": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+        "-I/home/elf/dev/gpu/examples/learned_image/generated",
+        "-DNATIVE_DRAW_IDENTITY",
+        "/home/elf/dev/gpu/examples/graphics_scene/frontier.c",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/count-followup-208gv0ty/native"
+      ],
+      "sha256": "7e58d0a35d666d1a27db75ab0819f79136a597dc35095552a79432994ff1b563"
+    },
+    "trace.so": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+        "-I/home/elf/dev/gpu/examples/learned_image/generated",
+        "-shared",
+        "-fPIC",
+        "/home/elf/dev/gpu/examples/graphics_scene/reuse_trace.c",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/count-followup-208gv0ty/trace.so"
+      ],
+      "sha256": "4d215a51f4b6201142236039f897a473d64916730fed37f11096fd027cfc7420"
+    }
+  },
+  "sources": {
+    "examples/graphics_scene/count_followup.py": "bb156571edf3d9bacd8766fc4c07659936d67ca2bcc789b8cb652f7faa7389f9",
+    "examples/graphics_scene/frontier.c": "9d96533feb58fa7d6d2ddaa682625fa72bd238b2dc978154925392c49e00aa07",
+    "examples/graphics_scene/frontier.py": "2b18a441a98398db03ba34060f8c7f652ab6a50668ee8399138e106e18c87fa3",
+    "examples/graphics_scene/frontier_public.c": "9a0ea87b0b6ec6f1d62692dba956d23c69bc1f7ffd17e3203bcc8085999dac98",
+    "examples/graphics_scene/native.c": "7d6dcca41254709d444e9c85e486577c31d4bc1f94df4a15743ee3a1c1cac244",
+    "examples/graphics_scene/oracle.py": "19e201a2749ad50f16e0fb1e1f0d433680d4c1926c1a44806502d76302af81d0",
+    "examples/graphics_scene/public.c": "7ef6f2c8d116a514a3868bbcaacf718a6ac7e6c1369fb474a2c797fa89ba5ebc",
+    "examples/graphics_scene/ranges.py": "e611e189c3308c91865653fa4902901f26d8418b68a28c6869d69677c11d904a",
+    "examples/graphics_scene/reuse.h": "f2532f549705addc050700e6c5c8e6bcd3bf9ab00140964b44ce9e62c97fe6cf",
+    "examples/graphics_scene/reuse.py": "484fa176d309f1fa42693c5a9c005f970222a163357d44ecb6cfe0693db996b7",
+    "examples/graphics_scene/reuse_cpu_trace.h": "a7369b0f390010ded900c3259fa5b7365aac8b0fb46822df99e25f95bbe0f6d8",
+    "examples/graphics_scene/reuse_failures.py": "2be97ce24e51043ef612a175e3747328a10a5fd5e07554cbd4ce9db11a26d879",
+    "examples/graphics_scene/reuse_native.c": "d280514abe31a99c7e6081490c2f0903d36761d95b1865eeb67c6ed6b2c98d92",
+    "examples/graphics_scene/reuse_public.c": "094ad25fe010de1a1ee60694e26fd8166556492d9a00e9e74fdba931b45872ca",
+    "examples/graphics_scene/reuse_trace.c": "11722ffd98b1dcab02363ca4a803479f0e2c70550a628dce2f21e5332b31a5ab",
+    "examples/graphics_scene/reuse_write_failure.c": "3c40477543a674300df4f5346e7c3e03b261f639be224c528641240270c0630f",
+    "examples/graphics_scene/run.py": "90eb42a839e8866430b364965668c63b30b50ad3c65f8e24606c3e76b421d3b4",
+    "examples/graphics_scene/test_frontier.py": "cdcc188a2be49e207925a726dca0a7175c9ee8685ebd2f5f5a40d98e582a1efd",
+    "examples/graphics_scene/test_oracle.py": "64e9d20ddfde1c9eb752b63ef691af7599d16a0c9c321b746d502df7848458d7",
+    "examples/graphics_scene/test_reuse.c": "6608729e9e1e28b772ff08fcc131c59ac6c30af8a4d313ab3334e884163f38fc",
+    "examples/graphics_scene/test_reuse.py": "c65e908056b020db231422897582b55105dff76290719b050634539313997f9e",
+    "examples/graphics_scene/test_runner.py": "d3632ce865a6e627b6b02d06f0c84033c3d59839681d345f1253fab5dada9d74",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "examples/learned_image/generated/application.generated.h": "57b674773484867b9e3cad209400f90bbd8f1d75a009b739d06764f1dc68b01b",
+    "examples/learned_image/generated/denoise.generated.h": "63cbdfb35d3ffadf0d55e68f5a2dd92d63e6fbf1a71b718bf19d4fe51addb379",
+    "examples/learned_image/generated/display.generated.h": "6b0dd221c862f33fb466f59b09c5ebeeb221720876c6532a5fe7a465351f635f",
+    "examples/learned_image/generated/fullscreen.generated.h": "0fedd0b6bfc0f224890c5657e9c22fbd5aad906e395a234b55680f8458dc5c97",
+    "examples/learned_image/generated/hidden.generated.h": "6b2fdfcc1245aaa155078d389e9de259ec32fdc533c9cbe4cadc3242a374f9ed",
+    "examples/learned_image/generated/poison.generated.h": "1fbdbc1f15dfdbb85504f76f2059f2c82a93c435a1577761f5364d42a66dd637",
+    "examples/learned_image/generated/process.generated.h": "a3b391d2fca598aea40a652015a449a6c24bdfedee7813aa3762fa911f6ab2a7",
+    "examples/learned_image/native.c": "0015a75ef2f85c2bd29c977970e75c83fd75f98d4a8406da79a6db491143a0d9",
+    "examples/learned_image/native_workload.h": "6b06236290646461fad91782ba61d4930d22a63bb063cbe4d91c82b70758fa52",
+    "examples/learned_image/trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "include/ogpu.h": "f901501f9a2fc7944996f0bbeb188dadd4e7b7220d6e6136940c47bcb968c1e4",
+    "vendor/Vulkan-Headers/include/vulkan/vulkan_core.h": "a7ac0d7e35e77f642c175af5d36729cfdae2d626d2aaa9145c030a42bd44edc6"
+  },
+  "shaders": {
+    "compute": "cd92e09851375c2415f1af56df1de9d0acc1c747b80260177f01b2a55a959b90",
+    "vertex": "bc114e5b5913eb332e880cc17cf8645ff2b99dbccd12199c521730c9c7f20de6",
+    "fragment": "b88712f79486fbcbd95e52ee63ce63cd6a8c90126549a91fd454ea279c048e99"
+  },
+  "device": {
+    "vendor": 4098,
+    "device": 29471,
+    "api": [
+      1,
+      4,
+      354
+    ]
+  },
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+  },
+  "command": [
+    "/home/elf/dev/gpu/target/graphics-scene/count-followup-208gv0ty/native",
+    "257",
+    "193",
+    "/home/elf/dev/gpu/target/graphics-scene/frontier-0jz8pbv_",
+    "/home/elf/dev/gpu/target/graphics-scene/count-followup-208gv0ty",
+    "64",
+    "count-fixed"
+  ],
+  "traces": {
+    "features": {
+      "multiDrawIndirect": true,
+      "drawIndirectCount": true,
+      "maxDrawIndirectCount": 4294967295
+    },
+    "memory": {
+      "allocations": 9,
+      "frees": 9,
+      "peak_bytes": 1086360,
+      "peak_count": 9,
+      "live_bytes": 0,
+      "live_count": 0
+    },
+    "commands": [
+      {
+        "phase": 0,
+        "vkCreateCommandPool": 1,
+        "vkDestroyCommandPool": 1,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 1,
+        "vkEndCommandBuffer": 1,
+        "vkQueueSubmit2": 1,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 0,
+        "vkCmdEndRendering": 0,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 0,
+        "counted_capacity": 0
+      },
+      {
+        "phase": 1,
+        "vkCreateCommandPool": 9,
+        "vkDestroyCommandPool": 9,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 9,
+        "vkEndCommandBuffer": 9,
+        "vkQueueSubmit2": 9,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 512,
+        "counted_capacity": 512
+      },
+      {
+        "phase": 2,
+        "vkCreateCommandPool": 9,
+        "vkDestroyCommandPool": 9,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 9,
+        "vkEndCommandBuffer": 9,
+        "vkQueueSubmit2": 9,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 512,
+        "counted_capacity": 512
+      }
+    ],
+    "hot_commands": {
+      "vkCreateCommandPool": 8,
+      "vkDestroyCommandPool": 8,
+      "vkResetCommandPool": 0,
+      "vkBeginCommandBuffer": 8,
+      "vkEndCommandBuffer": 8,
+      "vkQueueSubmit2": 8,
+      "vkQueueWaitIdle": 0,
+      "vkCmdBeginRendering": 8,
+      "vkCmdEndRendering": 8,
+      "vkCmdDrawIndexedIndirect2KHR": 8,
+      "vkCmdDrawIndexedIndirectCount2KHR": 8,
+      "indexed_records": 512,
+      "counted_capacity": 512
+    },
+    "allocation_shape": [
+      [
+        144,
+        5
+      ],
+      [
+        160,
+        0
+      ],
+      [
+        256,
+        0
+      ],
+      [
+        1424,
+        0
+      ],
+      [
+        1424,
+        5
+      ],
+      [
+        1840,
+        5
+      ],
+      [
+        258048,
+        0
+      ],
+      [
+        397072,
+        5
+      ],
+      [
+        425992,
+        0
+      ]
+    ]
+  },
+  "logs": {
+    "stdout": "7d7986de7a75c92157632e7cc1d18bfa06e4a775af4fd851960d6e65bd9c55be",
+    "stderr": "6555b27b11445da003664548caa1591b55c311d460f01a0a59ba54c81a9f2bc2"
+  }
+}

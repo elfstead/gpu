@@ -278,9 +278,13 @@ single draws from one range, without claiming that ABI 18 enables that capabilit
 The [selected range/count contract](indirect-draw-ranges.md) makes that semantic
 choice explicit and is now implemented at ABI 19. The focused capability, bounds,
 lifetime and replay gates pass on both local Vulkan drivers; public/native range
-scenes agree byte-for-byte. Next complete generated draw-identity support and
-edge-case coverage, measure matched native mappings, and finish installed scene
-handoff. Diagnostic correctness is not performance acceptance.
+scenes agree byte-for-byte. The [generated range handoff](draw-count-followup.md#compilerinstalled-checkpoint)
+at `cd8d0e8` passes 540 strict Radeon frames and supplied/regenerated relocated SDK
+execution. Its counted→fixed edge case exposes a llvmpipe failure also reproduced
+in direct Vulkan; do not weaken the oracle or add a runtime workaround. Unaffected
+software cases pass. Next extend the matched scene to ranges under owned storage
+and replay, measure native mappings, and finish complete installed scene handoff.
+Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and
 numerical requirements before its dependent kernels.

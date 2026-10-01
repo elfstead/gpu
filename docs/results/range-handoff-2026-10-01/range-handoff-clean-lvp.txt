@@ -1,0 +1,82 @@
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.010s
+
+OK
+    Finished `release` profile [optimized] target(s) in 0.01s
+range pixel format=0 shared=0 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=0 shared=0 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=0 shared=1 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=0 shared=1 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=0 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=0 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=1 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=1 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=0 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=0 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=1 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=1 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+Generated indirect range consumer FAILED: 12 configurations
+range check line 179: tested && !failed
+Range identity format=0 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Traceback (most recent call last):
+  File "/home/elf/dev/gpu/examples/compiler/range_workflow.py", line 45, in <module>
+    if __name__ == '__main__': main()
+                               ~~~~^^
+  File "/home/elf/dev/gpu/examples/compiler/range_workflow.py", line 39, in main
+    g.require(result.returncode == 0 and 'Validation Error:' not in result.stdout+result.stderr
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              and 'Generated indirect range consumer PASS: 540 frames per device' in result.stdout,
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              'range execution failed')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/elf/dev/gpu/examples/compiler/generate.py", line 25, in require
+    raise ValueError(message)
+ValueError: range execution failed
