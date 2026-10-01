@@ -282,8 +282,10 @@ scenes agree byte-for-byte. The [generated range handoff](draw-count-followup.md
 at `cd8d0e8` passes 540 strict Radeon frames and supplied/regenerated relocated SDK
 execution. Its counted→fixed edge case exposes a llvmpipe failure also reproduced
 in direct Vulkan; do not weaken the oracle or add a runtime workaround. Unaffected
-software cases pass. Next extend the matched scene to ranges under owned storage
-and replay, measure native mappings, and finish complete installed scene handoff.
+software cases pass. [Matched range storage/replay](graphics-range-reuse-results.md)
+now passes 76,608 full-byte frames at clean `6ae1d5a`, preserving fixed/count
+native commands and equal allocation budgets. Next measure these native mappings,
+add useful-scale/scope controls, and finish complete installed scene handoff.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and

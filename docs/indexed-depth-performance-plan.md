@@ -8,7 +8,8 @@ passes at `62f1ad7`. The [identity-sensitive control](graphics-draw-identity-res
 at `e6baf7b` supports the [selected range/count contract](indirect-draw-ranges.md).
 The public ABI-19 implementation and [focused migration checks](indirect-draw-range-results.md)
 are complete, followed by the [generated range handoff](draw-count-followup.md).
-**Matched scene range/replay acceptance and timing remain open**. The local
+The [small matched range/replay correctness](graphics-range-reuse-results.md)
+passes at `6ae1d5a`; **useful-scale/scope controls and timing remain open**. The local
 software counted→fixed failure is retained separately; Radeon work can continue.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 

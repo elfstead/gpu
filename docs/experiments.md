@@ -10,6 +10,13 @@ not a development queue; existing experiments remain regression and diagnostic t
 
 ## Implemented baseline
 
+The [matched range/storage/replay checkpoint](graphics-range-reuse-results.md)
+passes at clean `6ae1d5a`: 72,000 Radeon and 4,608 llvmpipe full-byte frames,
+matching allocation budgets and actual native range/count/reset/replay traces.
+Repeated public single-call binding work is measured as command counts, not
+timing or an unavoidable API cost. The separate software counted→fixed failure
+is not waived; matched timing remains open.
+
 The [generated range handoff and native regression](draw-count-followup.md) at
 clean `cd8d0e8` adds 540 passing Radeon frames and relocated supplied/regenerated
 SDK consumption. llvmpipe passes 432 unaffected frames, but its counted→fixed
