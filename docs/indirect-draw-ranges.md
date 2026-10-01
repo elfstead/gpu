@@ -144,7 +144,8 @@ implementation/validation establishes a mapping; no compute regression is allowe
 
 ## Implementation and acceptance order
 
-Checkpoint: header/runtime, modern feature enablement, native commands, retained
+The [migration checkpoint](indirect-draw-range-results.md) records clean-revision
+evidence. Header/runtime, modern feature enablement, native commands, retained
 range/count backing and in-tree call-site migration are implemented. CPU bounds
 tests and focused public replay/lifetime tests pass; the public identity scene
 matches accepted native output and allocation shapes at 1/64/512 records on RADV

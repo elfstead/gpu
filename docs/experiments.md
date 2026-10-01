@@ -1,6 +1,6 @@
 # Experiment ledger
 
-Updated 2026-09-29. This page records evidence, not API-stability promises. See
+Updated 2026-10-01. This page records evidence, not API-stability promises. See
 [the current design](design.md) for direction and [development](development.md)
 for commands. "Implemented" does not mean production-ready or performance-tuned.
 
@@ -9,6 +9,12 @@ the current two-consumer checkpoint and selected work. This ledger is evidence,
 not a development queue; existing experiments remain regression and diagnostic tools.
 
 ## Implemented baseline
+
+The [ABI-19 range/count migration](indirect-draw-range-results.md) is accepted at
+clean `2c20170`: 33 GPU tests per local Vulkan driver, 42 ordinary tests, 847 ABI
+checks and 144 public/native identity-sensitive frames pass. This implements the
+selected native strategy; compiler/installed range handoff and matched timing
+remain open. There is no Metal graphics or general performance acceptance claim.
 
 The [first native M4 indexed/depth control](graphics-scene-native-results.md) is
 accepted at clean `5da5aaf` (2026-09-29): 90 Radeon and 60 llvmpipe frames pass

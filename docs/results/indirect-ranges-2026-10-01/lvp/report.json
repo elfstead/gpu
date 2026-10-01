@@ -1,0 +1,1584 @@
+{
+  "schema": 1,
+  "abi": 19,
+  "complete": true,
+  "scope": "ABI-19 public fixed/count/identity scene against accepted native identity controls.",
+  "runs": [
+    {
+      "name": "257x193-1-single",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-1-single",
+        "1",
+        "single"
+      ],
+      "capacity": 1,
+      "strategy": "single",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 795408,
+      "files": {
+        "frame-0.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-0.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-3.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-3.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-4.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-4.geometry": "704b4a8fca2545797a788c3e0e2939d8d4fb84a19b8127b7f5b45768f168c55c",
+        "frame-5.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-5.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "c5b0e689d748fbd962021d2283f1c077cc3e386694478770c83ef953d812fc8f",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 825096,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 8,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          568,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "3fa5a01de078093de843be79bd8e021efa366016987cafe7785136448aba8629",
+        "stderr": "c7ebd5f72d81e7795504d417b1d330d0b947a729e99bfc6083ae49fbd8942859"
+      }
+    },
+    {
+      "name": "257x193-1-multi",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-1-multi",
+        "1",
+        "multi"
+      ],
+      "capacity": 1,
+      "strategy": "multi",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 795408,
+      "files": {
+        "frame-0.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-0.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-3.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-3.geometry": "9f44b4f99a6c09d0dc0160b48c2cb4d0d0a3bfb984df0c93a1970bdf6af4c612",
+        "frame-4.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-4.geometry": "704b4a8fca2545797a788c3e0e2939d8d4fb84a19b8127b7f5b45768f168c55c",
+        "frame-5.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-5.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "c5b0e689d748fbd962021d2283f1c077cc3e386694478770c83ef953d812fc8f",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 825096,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 8,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 8,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          568,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "3fa5a01de078093de843be79bd8e021efa366016987cafe7785136448aba8629",
+        "stderr": "c7ebd5f72d81e7795504d417b1d330d0b947a729e99bfc6083ae49fbd8942859"
+      }
+    },
+    {
+      "name": "257x193-1-count",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-1-count",
+        "1",
+        "count"
+      ],
+      "capacity": 1,
+      "strategy": "count",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 795408,
+      "files": {
+        "frame-0.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-0.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "5cc9c7344831eba13ab5ccc9a7c56a830208a3cef954d3d24c600c6401a2aae7",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "516cc512b16d5a509a53eca3be5f944234c81e96b15d576ea3e3492ed9e7b5c5",
+        "frame-3.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-3.geometry": "5cc9c7344831eba13ab5ccc9a7c56a830208a3cef954d3d24c600c6401a2aae7",
+        "frame-4.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-4.geometry": "704b4a8fca2545797a788c3e0e2939d8d4fb84a19b8127b7f5b45768f168c55c",
+        "frame-5.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-5.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "21a9315f3a3b0164fd0a0cb3d76a38ba45900e71bdfa78cff5adbdc77e22a232",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "66f2361af38ffd1e0acebe3bb82b01d0f4f95c9bf17cafa67536def3c90e8ebd"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 825096,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 8
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 8
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 0,
+        "counted_capacity": 8
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          152,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          568,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "3fa5a01de078093de843be79bd8e021efa366016987cafe7785136448aba8629",
+        "stderr": "d14f3a3465e734c099be632c3b2cd7f82fbc21bfd766e76cd9169d7f903b2485"
+      }
+    },
+    {
+      "name": "257x193-64-single",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-64-single",
+        "64",
+        "single"
+      ],
+      "capacity": 64,
+      "strategy": "single",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 799084,
+      "files": {
+        "frame-0.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-0.geometry": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9d463c3a6b0db4708c5bb26d9b6be91f714d19b22409b907b942cff0c787cce6",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "e48905328506bba12d5a608eb330ea2fff2adeedd1109cd670f9cce8038032e8",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "beb3c3cc8a4d20cc9ce3b7f465c07149a79d1fac5a4414d9fd6258b4182d3b0a",
+        "frame-4.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-4.geometry": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c",
+        "frame-5.images": "3729a51d1fe683ec52d3f1cd69ab3e4c2fc8f8a0698692dec45ecc5952f3bd1e",
+        "frame-5.geometry": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "6c8d9c6947d9500af0cfa6c6b57299e86606ab78a82f81a4e56e1ab5db2567f8",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "23c05c0165f28205cdb83f0f8c5688fa84be139625b5000cd93a91f96376f939"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 828772,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 512,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 512,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 512,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 512,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1828,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "ff0d048be2bfe952ef4afd2e2071f6ccd63ba679349c836a60119a0aee93b2be",
+        "stderr": "da34b70bb06b9b67f3f1ca4f5808d64f79456202af8d205ab16c2a41c0893e2b"
+      }
+    },
+    {
+      "name": "257x193-64-multi",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-64-multi",
+        "64",
+        "multi"
+      ],
+      "capacity": 64,
+      "strategy": "multi",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 799084,
+      "files": {
+        "frame-0.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-0.geometry": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "9d463c3a6b0db4708c5bb26d9b6be91f714d19b22409b907b942cff0c787cce6",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "e48905328506bba12d5a608eb330ea2fff2adeedd1109cd670f9cce8038032e8",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "beb3c3cc8a4d20cc9ce3b7f465c07149a79d1fac5a4414d9fd6258b4182d3b0a",
+        "frame-4.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-4.geometry": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c",
+        "frame-5.images": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+        "frame-5.geometry": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "6c8d9c6947d9500af0cfa6c6b57299e86606ab78a82f81a4e56e1ab5db2567f8",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "23c05c0165f28205cdb83f0f8c5688fa84be139625b5000cd93a91f96376f939"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 828772,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 512,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 512,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1828,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "ff0d048be2bfe952ef4afd2e2071f6ccd63ba679349c836a60119a0aee93b2be",
+        "stderr": "889001b2705bd347824063e6da8dca5268388912ec4b2599ecb17ae12c678948"
+      }
+    },
+    {
+      "name": "257x193-64-count",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-64-count",
+        "64",
+        "count"
+      ],
+      "capacity": 64,
+      "strategy": "count",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 799084,
+      "files": {
+        "frame-0.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-0.geometry": "e07fda55d5a2cafbb59f30caa3f61a6b26a7d95a9767db2afa88fee89b02e19f",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "1254347e662f074751760a6a7a286b746e8b8e0a680c3c3f54725956b5fc3802",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "329748f9b9552c3b8220d7a297af711ffc36e822e72dd57cad486621ce5cbb38",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "0996943f5b7ff9dce29df36d738a27e2264d75765b88378e4cf7fdb838788446",
+        "frame-4.images": "7eeebce8b92881cf3baa5e2a8ebbdfbb02b608754ce038ef458186bfcb91eebb",
+        "frame-4.geometry": "f08e80be5f9d50163cb730e7138d9bc04f94228da98b17c5d3989cf82000729c",
+        "frame-5.images": "cc93ae00d21e088d963b142104f06b2983d597c3c465ff927a3f6f2166cf01cb",
+        "frame-5.geometry": "56c2e68734db70a9d9c85d2e80d74fd9882d369cad199442c63f480bfc9fb47c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "794329d2ce6403007fa42f271a679669eb6b6e00a02862761ada91e1c8bc00bd",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "3afbb55077389ff3ac61c41a235d483016b8474d8fedd51b827bd0ffbff90f5f"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 828772,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 512
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 512
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 0,
+        "counted_capacity": 512
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1412,
+          0
+        ],
+        [
+          1828,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "ff0d048be2bfe952ef4afd2e2071f6ccd63ba679349c836a60119a0aee93b2be",
+        "stderr": "c1202922322c6362f8ef9a635b2a6de75efe401130335a4ac25523cddc04aeea"
+      }
+    },
+    {
+      "name": "257x193-512-single",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-512-single",
+        "512",
+        "single"
+      ],
+      "capacity": 512,
+      "strategy": "single",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 825964,
+      "files": {
+        "frame-0.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-0.geometry": "da835a1793cec4ffb3f65763e43536975efc28051dfba8fef8b5482aa7402017",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "95acc9373d1121247837ba673dfea4a53a900daf2335f6e800d371aa1fcbd5d3",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "8e35c2318eed6169c501db8174c612efa4b413333598ba49eb520ea41265c9c4",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "6eab1ac13b7fc625d1c68a7bf813687eb642648e3fb686ba99a9e1131b3458aa",
+        "frame-4.images": "b0aebf43b06d9c0e5ab6bdaebc4fdcf1ec22c40e44ccf9d6542c94efc1ab4f34",
+        "frame-4.geometry": "ca522dcc2d016cbebb71990655c60c1eed8d6eb82a3abc2ebfadd1df96cb0b4c",
+        "frame-5.images": "3729a51d1fe683ec52d3f1cd69ab3e4c2fc8f8a0698692dec45ecc5952f3bd1e",
+        "frame-5.geometry": "d1aa6d205f840065f4c3fc9a86845932e3e8e034cbc0f5d0ec52e8918471846c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "da690c9862cca582eae1566a190cabb3285539ffb6486e83d859161fa3f2bc24",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "50adf4bb83f7298faa86e80d8aff272b50532111cc3acebf7b4f08dc71196692"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 855652,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 8,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 4096,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 9,
+          "vkDestroyCommandPool": 9,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 4096,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 8,
+        "vkDestroyCommandPool": 8,
+        "vkResetCommandPool": 0,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 4096,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 4096,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10788,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "e75d0fdedb7682d23497d966ac3dc4f35a115a078a9dd586f4050c2f80c62834",
+        "stderr": "988240f8cf89d22ce045ffa877dee37827e5292e645e2609b4ef7d333223a71f"
+      }
+    },
+    {
+      "name": "257x193-512-multi",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-512-multi",
+        "512",
+        "multi"
+      ],
+      "capacity": 512,
+      "strategy": "multi",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 825964,
+      "files": {
+        "frame-0.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-0.geometry": "da835a1793cec4ffb3f65763e43536975efc28051dfba8fef8b5482aa7402017",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "95acc9373d1121247837ba673dfea4a53a900daf2335f6e800d371aa1fcbd5d3",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "8e35c2318eed6169c501db8174c612efa4b413333598ba49eb520ea41265c9c4",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "6eab1ac13b7fc625d1c68a7bf813687eb642648e3fb686ba99a9e1131b3458aa",
+        "frame-4.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-4.geometry": "ca522dcc2d016cbebb71990655c60c1eed8d6eb82a3abc2ebfadd1df96cb0b4c",
+        "frame-5.images": "9061342998a326c1f749161a6fe8e444d22aecf4640067e9db9a1adfecd52552",
+        "frame-5.geometry": "d1aa6d205f840065f4c3fc9a86845932e3e8e034cbc0f5d0ec52e8918471846c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "da690c9862cca582eae1566a190cabb3285539ffb6486e83d859161fa3f2bc24",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "50adf4bb83f7298faa86e80d8aff272b50532111cc3acebf7b4f08dc71196692"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 855652,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 8,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 4096,
+          "counted_capacity": 0
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 8,
+        "vkCmdDrawIndexedIndirectCount2KHR": 0,
+        "indexed_records": 4096,
+        "counted_capacity": 0
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10788,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "e75d0fdedb7682d23497d966ac3dc4f35a115a078a9dd586f4050c2f80c62834",
+        "stderr": "2afafe0501d4dbbed8cde1c6e18721ff3e0dcc21712a08d9b64e91265f9e9b37"
+      }
+    },
+    {
+      "name": "257x193-512-count",
+      "command": [
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public",
+        "257",
+        "193",
+        "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/257x193-512-count",
+        "512",
+        "count"
+      ],
+      "capacity": 512,
+      "strategy": "count",
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "requested_bytes": 825964,
+      "files": {
+        "frame-0.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-0.geometry": "da835a1793cec4ffb3f65763e43536975efc28051dfba8fef8b5482aa7402017",
+        "frame-1.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-1.geometry": "838ec773aa226d4a29d39463dd855da6c1798c2555199a30f39c3fc3a1f5af0e",
+        "frame-2.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-2.geometry": "885bd524c142299126e4e05732f16740f311ef100a86895e15111392a662cc09",
+        "frame-3.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-3.geometry": "8f6760c58d7ce4f654e239b57d05c0cf7cea479914d7f5b958508e8cf5ad0d50",
+        "frame-4.images": "7e81f4452a4d6bd11e315e62051aa54877f6dbed9f089cd1aa783eaef5aa6568",
+        "frame-4.geometry": "ca522dcc2d016cbebb71990655c60c1eed8d6eb82a3abc2ebfadd1df96cb0b4c",
+        "frame-5.images": "9061342998a326c1f749161a6fe8e444d22aecf4640067e9db9a1adfecd52552",
+        "frame-5.geometry": "d1aa6d205f840065f4c3fc9a86845932e3e8e034cbc0f5d0ec52e8918471846c",
+        "frame-6.images": "083b774b002c7f8c51ab300cb7d20d678fb5d85933b98e57642079e54b827936",
+        "frame-6.geometry": "66ad16d13be853947d50a361e562342b249b24d5bb593974dbec2ebaadf6e1ba",
+        "frame-7.images": "62ff47a0a68a6e805dc20795c8466b6a829bff414849750c93851fcec1d5c7f5",
+        "frame-7.geometry": "9b7741ce6e052568fa7af5368555d8b1001abcd3ef25d888fc56bbb93eb2a354"
+      },
+      "features": {
+        "multiDrawIndirect": true,
+        "drawIndirectCount": true,
+        "maxDrawIndirectCount": 4294967295
+      },
+      "memory": {
+        "allocations": 9,
+        "frees": 9,
+        "peak_bytes": 855652,
+        "peak_count": 9,
+        "live_bytes": 0,
+        "live_count": 0
+      },
+      "commands": [
+        {
+          "phase": 0,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 1,
+          "vkBeginCommandBuffer": 1,
+          "vkEndCommandBuffer": 1,
+          "vkQueueSubmit2": 1,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 0,
+          "vkCmdEndRendering": 0,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 0,
+          "indexed_records": 0,
+          "counted_capacity": 0
+        },
+        {
+          "phase": 1,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 0,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 4096
+        },
+        {
+          "phase": 2,
+          "vkCreateCommandPool": 1,
+          "vkDestroyCommandPool": 1,
+          "vkResetCommandPool": 9,
+          "vkBeginCommandBuffer": 9,
+          "vkEndCommandBuffer": 9,
+          "vkQueueSubmit2": 9,
+          "vkQueueWaitIdle": 0,
+          "vkCmdBeginRendering": 8,
+          "vkCmdEndRendering": 8,
+          "vkCmdDrawIndexedIndirect2KHR": 0,
+          "vkCmdDrawIndexedIndirectCount2KHR": 8,
+          "indexed_records": 0,
+          "counted_capacity": 4096
+        }
+      ],
+      "hot_commands": {
+        "vkCreateCommandPool": 0,
+        "vkDestroyCommandPool": 0,
+        "vkResetCommandPool": 8,
+        "vkBeginCommandBuffer": 8,
+        "vkEndCommandBuffer": 8,
+        "vkQueueSubmit2": 8,
+        "vkQueueWaitIdle": 0,
+        "vkCmdBeginRendering": 8,
+        "vkCmdEndRendering": 8,
+        "vkCmdDrawIndexedIndirect2KHR": 0,
+        "vkCmdDrawIndexedIndirectCount2KHR": 8,
+        "indexed_records": 0,
+        "counted_capacity": 4096
+      },
+      "allocation_shape": [
+        [
+          144,
+          0
+        ],
+        [
+          160,
+          0
+        ],
+        [
+          256,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10372,
+          0
+        ],
+        [
+          10788,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          213248,
+          0
+        ],
+        [
+          397064,
+          0
+        ]
+      ],
+      "logs": {
+        "stdout": "e75d0fdedb7682d23497d966ac3dc4f35a115a078a9dd586f4050c2f80c62834",
+        "stderr": "5203133078f4382ecaa40043378f74e5783a6e3259a973a360ec754c009d076d"
+      }
+    }
+  ],
+  "revision": "2c201703ae83be53087237d134680400263df6dd",
+  "dirty": false,
+  "cc": "clang version 21.1.8",
+  "builds": {
+    "public": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "/home/elf/dev/gpu/examples/graphics_scene/frontier_public.c",
+        "-L/home/elf/dev/gpu/target/release",
+        "-Wl,-rpath,/home/elf/dev/gpu/target/release",
+        "-logpu",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/public"
+      ],
+      "sha256": "2560fc820e5e124e7d05c4eec7c08f91692859a0c8cc9d456966e1e62b6d942a"
+    },
+    "trace.so": {
+      "command": [
+        "clang",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I/home/elf/dev/gpu/include",
+        "-shared",
+        "-fPIC",
+        "-I/home/elf/dev/gpu/vendor/Vulkan-Headers/include",
+        "/home/elf/dev/gpu/examples/graphics_scene/reuse_trace.c",
+        "-ldl",
+        "-o",
+        "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/trace.so"
+      ],
+      "sha256": "4d215a51f4b6201142236039f897a473d64916730fed37f11096fd027cfc7420"
+    }
+  },
+  "sources": {
+    "crates/ogpu/src/api_types.rs": "2a4b01bbe3b8ee2a0c0d6f1eb2eae8fcc230993da47190e5dda0e2d8e29013eb",
+    "crates/ogpu/src/batch.rs": "c3b4f8810cad2f4c32abb34e35e62cf86975db8dfcd5b55d2df6ad3c92e3c32d",
+    "crates/ogpu/src/batch_tests.rs": "8cad4fb43a677c2b3dd78ae98ebfbea5bd729320985b657a2d3f78d36f8aab53",
+    "crates/ogpu/src/boundary.rs": "5b2914392a9cf0a2d7b1cd5c4700cc88f782a166865e6539ef70d16a050bad27",
+    "crates/ogpu/src/compute.rs": "5f4635865d7405072e1326811f370090d837d6e7a851e5d27f2a95c25776fb69",
+    "crates/ogpu/src/contract.rs": "d6a8432a427899e60ebb84a2d46ad64b0cfe851c1b3446f156099ba8f9189bd4",
+    "crates/ogpu/src/dependency_tests.rs": "2ed4f4ff59498d564f64927596e5f4abdfbd7e9a11f99179d2b4ebbbe15eb446",
+    "crates/ogpu/src/dispatch_tests.rs": "f9ed35c939989fd75d95335dfc0677b11f552c11f477e82a77164496faa1f8df",
+    "crates/ogpu/src/executable_tests.rs": "790a52f336dcb998d0937bf7ede8ac3451f8bf82142236667ef74f08c799428d",
+    "crates/ogpu/src/execution_api.rs": "f74d508f90a8397f299a9c4008d524d0540e9d77ce666581e454d0755a593a2e",
+    "crates/ogpu/src/graphics.rs": "8086a3958f9ea66f3953a735025cb0cc1d824df04507b42480c10751eeef129d",
+    "crates/ogpu/src/graphics_tests.rs": "a60338476c0db438abd9040b12cb92a9c4a09c39d9ae1aa724feb14bc79ff4ae",
+    "crates/ogpu/src/heap_tests.rs": "89816cb540409fb398b46045ec450324f269350c1399858aa2189cbd6f2f2cdd",
+    "crates/ogpu/src/heaps.rs": "7b0b73e8551f7ea358af5759b4fa6255cf46f9f8d4f04d0179e3b98e1eabe803",
+    "crates/ogpu/src/host_view_tests.rs": "1adbe99829cffd9bb0b42136bd5b591ad0d69ba2f6641b55349a131b813860f3",
+    "crates/ogpu/src/image_tests.rs": "b62d56a7f7f5b3425cf5e9d7969add9778ddd3219578a166df86928e76471ea1",
+    "crates/ogpu/src/indirect_tests.rs": "14ee9374cafa9eb0bd3cf046eea2088c6fc1b13659574e0c24be6c09dbf9bed4",
+    "crates/ogpu/src/lib.rs": "576b30345a8af983589a4e325af702a11c3971e6684684efaa65432c6dc8907c",
+    "crates/ogpu/src/memory_tests.rs": "a306c4bf10e015359273969e973332bb634ad9651d542dfe2a9ff40edbc966ca",
+    "crates/ogpu/src/metal.rs": "34e2091391e8506dbf3021a0a36b228c6d1c1aecb70113cf6a05500e815dcce2",
+    "crates/ogpu/src/reduction_tests.rs": "3af3fcf7877b3fd99ae6fa54468990ee1324d57f2a00843e377e59cb29614d3e",
+    "crates/ogpu/src/rendering_failures.rs": "547631130372ee1cba2b376ee343195138377ead5bd930d28eeb4491d456b345",
+    "crates/ogpu/src/rendering_tests.rs": "46225261dbf1f04e79e1d828b7e75155cd0495bcff721c697cd28c99c84514bc",
+    "crates/ogpu/src/retirement_tests.rs": "8cdfb41b95442eb76f00e5b27f4d3d3da3e67e6646ca424db0f6c11c6e9c2cac",
+    "crates/ogpu/src/shader.rs": "e4d1774513e91926620cbf83e336a52dc8dbd6d56fb8b4b6b814611389b88356",
+    "crates/ogpu/src/specialization.rs": "47432ed5892fd8e5bc2863894780d34772fb83b46a2e2125a5e912e84dea8dff",
+    "crates/ogpu/src/storage_tests.rs": "17a21d8c8f27f7b5ca745500cbc4dca131dfa6483b3fa8e2fa9ed6499ed8815e",
+    "crates/ogpu/src/timing_tests.rs": "0c705a52fb89d2bcff94a98bb59cd75947af88ad44ffc328a6d894f1d1de7dcf",
+    "crates/ogpu/src/vulkan.rs": "737f38950cf98d96b1462c877789c4218db3b70cd33e41d170871996eec40181",
+    "crates/vulkan-sys/src/bindings.rs": "86a7ad936fea7207e926926515694d6c08dd67d20546ede82c96cbec1133caa6",
+    "examples/graphics_scene/frontier.c": "909ff3d1aed8cba8231a926eb25e3799dea7a68992a214850e82ebb1443f0c4e",
+    "examples/graphics_scene/frontier.py": "4d4d41a889cc5e22afd43978ea63be9208c53262a8c7813ac1a6a3987fa9c8d4",
+    "examples/graphics_scene/frontier_public.c": "9a0ea87b0b6ec6f1d62692dba956d23c69bc1f7ffd17e3203bcc8085999dac98",
+    "examples/graphics_scene/native.c": "7d6dcca41254709d444e9c85e486577c31d4bc1f94df4a15743ee3a1c1cac244",
+    "examples/graphics_scene/oracle.py": "19e201a2749ad50f16e0fb1e1f0d433680d4c1926c1a44806502d76302af81d0",
+    "examples/graphics_scene/public.c": "7ef6f2c8d116a514a3868bbcaacf718a6ac7e6c1369fb474a2c797fa89ba5ebc",
+    "examples/graphics_scene/ranges.py": "e611e189c3308c91865653fa4902901f26d8418b68a28c6869d69677c11d904a",
+    "examples/graphics_scene/reuse.h": "f2532f549705addc050700e6c5c8e6bcd3bf9ab00140964b44ce9e62c97fe6cf",
+    "examples/graphics_scene/reuse.py": "484fa176d309f1fa42693c5a9c005f970222a163357d44ecb6cfe0693db996b7",
+    "examples/graphics_scene/reuse_cpu_trace.h": "a7369b0f390010ded900c3259fa5b7365aac8b0fb46822df99e25f95bbe0f6d8",
+    "examples/graphics_scene/reuse_failures.py": "2be97ce24e51043ef612a175e3747328a10a5fd5e07554cbd4ce9db11a26d879",
+    "examples/graphics_scene/reuse_native.c": "d280514abe31a99c7e6081490c2f0903d36761d95b1865eeb67c6ed6b2c98d92",
+    "examples/graphics_scene/reuse_public.c": "094ad25fe010de1a1ee60694e26fd8166556492d9a00e9e74fdba931b45872ca",
+    "examples/graphics_scene/reuse_trace.c": "11722ffd98b1dcab02363ca4a803479f0e2c70550a628dce2f21e5332b31a5ab",
+    "examples/graphics_scene/reuse_write_failure.c": "3c40477543a674300df4f5346e7c3e03b261f639be224c528641240270c0630f",
+    "examples/graphics_scene/run.py": "90eb42a839e8866430b364965668c63b30b50ad3c65f8e24606c3e76b421d3b4",
+    "examples/graphics_scene/test_frontier.py": "2da2254cab5397b7b5a32a021fc2b8c5baeb2848c3c4bb8ad2657aa849de91da",
+    "examples/graphics_scene/test_oracle.py": "64e9d20ddfde1c9eb752b63ef691af7599d16a0c9c321b746d502df7848458d7",
+    "examples/graphics_scene/test_reuse.c": "6608729e9e1e28b772ff08fcc131c59ac6c30af8a4d313ab3334e884163f38fc",
+    "examples/graphics_scene/test_reuse.py": "c65e908056b020db231422897582b55105dff76290719b050634539313997f9e",
+    "examples/graphics_scene/test_runner.py": "d3632ce865a6e627b6b02d06f0c84033c3d59839681d345f1253fab5dada9d74",
+    "examples/learned_image/allocation_tracker.h": "9deb61783149f9d2aba530ed6ce41f33b563637ea0e5205299484e94b695d214",
+    "examples/learned_image/trace_memory.c": "d6bccd4afe0e5bad011e999f23cb396128dcb99cfb94aaffddb2e2199032fe8f",
+    "include/ogpu.h": "f901501f9a2fc7944996f0bbeb188dadd4e7b7220d6e6136940c47bcb968c1e4"
+  },
+  "runtime_sha256": "fbd2dd34cb11c497d1f56e055bbc06978886997e6c1f28cf7a822a11c21df865",
+  "native": {
+    "path": "/home/elf/dev/gpu/target/graphics-scene/frontier-bb9rvxa5/report.json",
+    "sha256": "574abd12c72cfd4b3e7321c6fc4ea2d5e3e537d2cfa3a1fc1ef374ee04339970",
+    "revision": "e6baf7bf5e4aed7fd5515d4fed8d23cc07b5514f"
+  },
+  "shaders": {
+    "compute": "cd92e09851375c2415f1af56df1de9d0acc1c747b80260177f01b2a55a959b90",
+    "vertex": "bc114e5b5913eb332e880cc17cf8645ff2b99dbccd12199c521730c9c7f20de6",
+    "fragment": "b88712f79486fbcbd95e52ee63ce63cd6a8c90126549a91fd454ea279c048e99"
+  },
+  "environment": {
+    "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+    "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_VALIDATE_SYNC": "1",
+    "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+    "OGPU_VULKAN_LIBRARY": "/home/elf/dev/gpu/target/graphics-scene/ranges-eezrpyop/trace.so"
+  }
+}

@@ -56,7 +56,8 @@ format, and implementation language are separate design decisions.
 
 The [modern-baseline migration](modern-baseline.md) replaces the old execution
 backend without keeping compatibility fallbacks. The current public interface is
-ABI 18, with explicit rendering scopes, indexed execution and D32 depth state,
+ABI 19, with explicit indirect ranges, GPU counts and local draw identity,
+alongside rendering scopes, indexed execution and D32 depth state,
 alongside recording-local split dependencies and explicit serial/simultaneous
 replay modes. The [migration checkpoint](indexed-depth-migration.md) is not full
 graphics/performance acceptance. On Vulkan, ordinary device creation enables compute/images/heaps; rasterization is

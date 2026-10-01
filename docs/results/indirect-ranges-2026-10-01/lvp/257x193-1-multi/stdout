@@ -1,0 +1,13 @@
+DEVICE {"vendor":65541,"device":0,"api":[1,4,354]}
+PUBLIC_SCENE {"abi":19,"index_bytes":4,"gpu_generated":true}
+FRONTIER_FEATURES {"multiDrawIndirect":true,"drawIndirectCount":true,"maxDrawIndirectCount":4294967295}
+DRAW_IDENTITY_FEATURES {"shaderDrawParameters":true}
+FRONTIER_FRAME {"frame":0,"phase":0,"active":1,"capacity":1}
+FRONTIER_FRAME {"frame":1,"phase":1,"active":0,"capacity":1}
+FRONTIER_FRAME {"frame":2,"phase":0,"active":1,"capacity":1}
+FRONTIER_FRAME {"frame":3,"phase":1,"active":0,"capacity":1}
+FRONTIER_FRAME {"frame":4,"phase":0,"active":8,"capacity":1}
+FRONTIER_FRAME {"frame":5,"phase":1,"active":1,"capacity":1}
+FRONTIER_FRAME {"frame":6,"phase":0,"active":0,"capacity":1}
+FRONTIER_FRAME {"frame":7,"phase":1,"active":1,"capacity":1}
+Public indexed frontier drained
