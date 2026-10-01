@@ -2,8 +2,14 @@
 #ifdef SCENE_CPU_TRACE
 #include "reuse_cpu_trace.h"
 #endif
+#ifdef SCENE_RANGE_REUSE
+#define FRONTIER_REUSE
+#include "frontier_public.c"
+#include "range_reuse.h"
+#else
 #include "public.c"
 #include "reuse.h"
+#endif
 
 typedef struct {
     Scene scene; /* Context objects borrowed; attachments/buffers are owned. */
@@ -23,7 +29,7 @@ static int slot_create(Slot *slot, Scene *context, Reuse *r) {
     Scene *s=&slot->scene;
     s->device=context->device;s->prepare=context->prepare;memcpy(s->raster,context->raster,sizeof(s->raster));
     s->width=r->width;s->height=r->height;s->pixels=(size_t)r->width*r->height*4;s->index_bytes=r->index_bytes;
-    NEED(scene_create_resources(s) && buffer_create(s,&slot->control,136,OGPU_MEMORY_HOST,0));
+    NEED(scene_create_resources(s) && buffer_create(s,&slot->control,REUSE_CONTROL_BYTES,OGPU_MEMORY_HOST,0));
     GPU(ogpu_recording_storage_create(s->device,&slot->storage,&s->error));
     slot->root[0]=s->root.vertices;slot->root[1]=s->root.indices;slot->root[2]=s->root.draws;
     GPU(ogpu_buffer_device_address(slot->control,&slot->root[3],&s->error));slot->root[3]+=64;
@@ -36,7 +42,7 @@ static int slot_create(Slot *slot, Scene *context, Reuse *r) {
 }
 static int slot_submit(Slot *slot, Reuse *r, unsigned frame) {
     Scene *s=&slot->scene;NEED(!s->completion);
-    unsigned char control[136];reuse_control(control,reuse_variant(frame/r->slots));
+    unsigned char control[REUSE_CONTROL_BYTES];reuse_control(control,reuse_variant(frame/r->slots));
     GPU(ogpu_buffer_write(slot->control,0,control,sizeof(control),&s->error));
     if(r->replay) GPU(ogpu_command_list_submit(slot->list,&s->completion,&s->error));
     else {
@@ -49,7 +55,7 @@ static int slot_observe(Slot *slot, Reuse *r) {
     Scene *s=&slot->scene;NEED(s->completion);
     GPU(ogpu_completion_wait(s->completion,&s->error));
     ogpu_completion_destroy(s->completion);s->completion=NULL;
-    unsigned char mesh[584],control[136];
+    unsigned char mesh[REUSE_MESH_BYTES],control[REUSE_CONTROL_BYTES];
     GPU(ogpu_buffer_read(s->readback,0,s->cpu,r->image_bytes,&s->error));
     GPU(ogpu_buffer_read(s->geometry,0,mesh,sizeof(mesh),&s->error));
     GPU(ogpu_buffer_read(slot->control,0,control,sizeof(control),&s->error));

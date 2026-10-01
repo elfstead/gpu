@@ -1,6 +1,6 @@
 # M4 matched indexed/depth scene
 
-The direct Vulkan control links only libc/libdl. Its ABI-18 public counterpart
+The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,
 allocation sizes, guarded GPU-generated data and scene modes. Existing native
 loader, allocation, shader-module and drain helpers are reused only by the native
@@ -26,7 +26,9 @@ supported; no fallback format. The index buffer explicitly has INDEX_BUFFER usag
 [address binding still requires it](https://docs.vulkan.org/refpages/latest/refpages/source/VkBindIndexBuffer3InfoKHR.html).
 The native [indexed indirect address command](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDrawIndexedIndirect2KHR.html)
 consumes GPU-written parameters without CPU readback between compute and draws.
-Each indirect call has drawCount=1; multiDrawIndirect is not newly required.
+Each original-scene indirect call has drawCount=1. The public ABI-19 graphics
+profile enables multiDrawIndirect/count/draw-parameters; the stronger controls
+below exercise those operations explicitly.
 
 Before the first run, the modes and expected outcomes are fixed:
 
@@ -70,8 +72,8 @@ For example, run `run.py --public` first, then
 `run.py --public --index16 --reference32 target/graphics-scene/matched-.../report.json`.
 Use `--scale` on both runs to include 720p.
 Select one ICD and enable Vulkan + synchronization validation. Pinned Slang
-2026.14.1 and SPIRV-Tools compile native shaders; this does not widen the installed
-compiler's vertex-root subset. Fresh report directories retain shaders, full
+2026.14.1 and SPIRV-Tools compile native shaders. The installed compiler now also
+checks the range consumer's vertex roots and draw identity. Fresh report directories retain shaders, full
 color/depth/geometry output, sources/artifact hashes and logs. Failures stay incomplete.
 
 This first control uses serialized fresh recordings and stable allocations; it is
@@ -162,9 +164,9 @@ every generated vertex/index/record/count/guard byte, and verifies actual native
 draw calls and allocation balance. It also reruns the original native ten-mode
 scene as a regression control. Reports/logs/dumps stay in a fresh target directory.
 
-Only this executable opts into `multiDrawIndirect` and `drawIndirectCount`, with
-a checked `maxDrawIndirectCount`. Ordinary native controls and the public runtime
-keep their existing profile. All three frontier strategies enable the same
+This native executable opts into `multiDrawIndirect` and `drawIndirectCount`, with
+a checked `maxDrawIndirectCount`. Ordinary native controls keep their original
+profile; ABI-19 public graphics explicitly enables these features. All three frontier strategies enable the same
 features and use equal allocation budgets. The scene has no shader-visible draw
 ID; it does not establish a general fusion mapping. This initial probe uses one
 serial slot and fresh per-frame command storage, **not the planned reset/replay
@@ -183,6 +185,27 @@ The oracle recolors the analytically checked scene coverage and retains every
 depth/guard byte. The runner also requires multi/count equality and single/multi
 inequality in full-capacity frames at N=64/512, with equality in the one-record,
 empty and partial cases. This is an intentional semantic counterexample, not a
-failed matched-output benchmark. The current public profile does not enable draw
-parameters; the probe identifies a native strategy/semantic choice to preserve,
-not a counterexample using a currently supported public shader. No timing claim.
+failed matched-output benchmark. ABI 18 did not enable draw parameters; the probe
+identified the semantic choice now exposed in ABI 19. No timing claim.
+
+### Public ranges and matched storage/replay
+
+`ranges.py --native PATH/report.json` executes the same nine identity-sensitive
+cases through ABI 19 and checks complete output/budget equality. Its one-shot
+storage is diagnostic, not a matched performance policy.
+
+`range_reuse.py --native PATH/report.json` uses the same accepted, same-driver
+257×193 identity report and unchanged native shader binaries for the next gate.
+The existing native/public slot scheduler now has a range variant: capacities
+1/64/512 × single/fixed/count × one/two slots × owned reset/serial replay × both
+backends = 72 cases. Each slot independently cycles the eight changing-count
+inputs. Checks compare every image, generated geometry/record/count and guard byte;
+traces establish native draw capacity, binding/root counts, pools, resets,
+submissions and balanced equal allocation budgets. `--preflight` uses 16 frames
+per case, `--software` 64, and the default 1,000. No timing is performed yet.
+
+The native controls bind raster/index/root once per range/group; separate public
+calls currently repeat that state. The trace preserves this implementation cost
+rather than making the native control artificially repeat public work. The
+[counted→fixed driver regression](../../docs/draw-count-followup.md) remains a
+separate strict test; these scenes do not mix count/fixed operations in one scope.

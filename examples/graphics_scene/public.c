@@ -52,7 +52,7 @@ static int read_shader(Scene *s, unsigned index, const char *directory, const ch
 done:
     if(fclose(f)) okay=0; return okay;
 }
-#if !defined(SCENE_REUSE_CONSUMER) || defined(SCENE_PUBLIC_FRONTIER)
+#if !defined(SCENE_REUSE_CONSUMER) || (defined(SCENE_PUBLIC_FRONTIER) && !defined(FRONTIER_REUSE))
 static int write_file(const char *directory, const char *name, const void *data, size_t bytes) {
     char path[4096]; NEED(path_join(path,directory,name));
     FILE *f=fopen(path,"wb"); if(!f) { perror(path); return 0; }

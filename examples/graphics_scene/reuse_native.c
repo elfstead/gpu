@@ -1,6 +1,12 @@
 #define SCENE_REUSE_CONSUMER
+#ifdef SCENE_RANGE_REUSE
+#define FRONTIER_REUSE
+#include "frontier.c"
+#include "range_reuse.h"
+#else
 #include "native.c"
 #include "reuse.h"
+#endif
 
 typedef struct {
     Scene scene; /* Borrowed context/executables, owned attachments/buffers/pool. */
@@ -31,7 +37,7 @@ static int slot_create(Slot *slot, Scene *context, Reuse *r) {
     memcpy(s->raster,context->raster,sizeof(s->raster));
     s->bind_index=context->bind_index;s->draw_indexed=context->draw_indexed;
     s->width=r->width;s->height=r->height;s->pixels=(size_t)r->width*r->height*4;s->index_bytes=r->index_bytes;
-    NEED(scene_create_resources(s) && native_buffer_create(s->n,&slot->control,136,1));
+    NEED(scene_create_resources(s) && native_buffer_create(s->n,&slot->control,REUSE_CONTROL_BYTES,1));
     slot->root[0]=s->vertices.address+64;slot->root[1]=s->indices.address+64;
     slot->root[2]=s->draws.address+64;slot->root[3]=slot->control.address+64;
     if(r->replay) NEED(slot_record(slot,r));
@@ -40,7 +46,7 @@ static int slot_create(Slot *slot, Scene *context, Reuse *r) {
 static int slot_submit(Slot *slot, Reuse *r, unsigned frame) {
     Scene *s=&slot->scene;Native *n=s->n;NativeBatch *b=&s->batch;
     NEED(!b->pending && !b->value && n->next_value<UINT64_MAX && n->next_value-n->observed_value<n->max_difference);
-    unsigned char control[136];reuse_control(control,reuse_variant(frame/r->slots));
+    unsigned char control[REUSE_CONTROL_BYTES];reuse_control(control,reuse_variant(frame/r->slots));
     NEED(native_write(n,&slot->control,0,control,sizeof(control)));
     if(!r->replay) NEED(slot_record(slot,r));
     b->value=++n->next_value;
@@ -62,7 +68,7 @@ static int slot_observe(Slot *slot, Reuse *r) {
         .pSemaphores=&n->timeline,.pValues=&b->value};
     VK_TRY(n->vkWaitSemaphores(n->device,&wait,UINT64_MAX));
     n->observed_value=b->value;b->pending=0;b->value=0;
-    unsigned char mesh[584],control[136];
+    unsigned char mesh[REUSE_MESH_BYTES],control[REUSE_CONTROL_BYTES];
     NEED(native_read(n,&s->readback,0,s->cpu,r->image_bytes) && native_read(n,&s->geometry,0,mesh,sizeof(mesh))
         && native_read(n,&slot->control,0,control,sizeof(control)));
     return reuse_check(r,slot->frame,s->cpu,mesh,control);
@@ -74,6 +80,10 @@ int main(int argc, char **argv) {
     context.index_bytes=r.index_bytes;
     if(!scene_create_context(&context,r.shaders)) goto done;
     PFN_vkGetInstanceProcAddr get=(PFN_vkGetInstanceProcAddr)dlsym(context.n->library,"vkGetInstanceProcAddr");
+#ifdef SCENE_RANGE_REUSE
+    draw_count=(PFN_vkCmdDrawIndexedIndirectCount2KHR)get(context.n->instance,"vkCmdDrawIndexedIndirectCount2KHR");
+    if(!draw_count) goto done;
+#endif
     reset_pool=(PFN_vkResetCommandPool)get(context.n->instance,"vkResetCommandPool");if(!reset_pool) goto done;
     for(unsigned i=0;i<r.slots;++i) if(!slot_create(&slots[i],&context,&r)) goto done;
     if(!reuse_mark(0)) goto done;

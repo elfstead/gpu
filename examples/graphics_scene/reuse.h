@@ -1,6 +1,8 @@
 /* Consumer-side schedule and byte oracle only; no backend/runtime calls here. */
 #ifndef SCENE_REUSE_H
 #define SCENE_REUSE_H
+#define REUSE_CONTROL_BYTES 136u
+#define REUSE_MESH_BYTES 584u
 #include <dlfcn.h>
 static int reuse_mark(unsigned phase) {
     if(!getenv("OGPU_SCENE_TRACE")) return 1;

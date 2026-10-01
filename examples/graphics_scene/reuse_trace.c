@@ -7,7 +7,8 @@
 
 #define COMMANDS(X) X(vkCreateCommandPool) X(vkDestroyCommandPool) X(vkResetCommandPool) \
     X(vkBeginCommandBuffer) X(vkEndCommandBuffer) X(vkQueueSubmit2) X(vkQueueWaitIdle) \
-    X(vkCmdBeginRendering) X(vkCmdEndRendering) X(vkCmdDrawIndexedIndirect2KHR) X(vkCmdDrawIndexedIndirectCount2KHR)
+    X(vkCmdBeginRendering) X(vkCmdEndRendering) X(vkCmdDrawIndexedIndirect2KHR) X(vkCmdDrawIndexedIndirectCount2KHR) \
+    X(vkCmdBindPipeline) X(vkCmdPushDataEXT) X(vkCmdBindIndexBuffer3KHR) X(vkCmdPipelineBarrier2)
 #define COUNT_FIELD(name) uint64_t name;
 static struct { COMMANDS(COUNT_FIELD) } counts;
 #undef COUNT_FIELD
@@ -24,6 +25,10 @@ RESULT_HOOK(vkQueueSubmit2,(VkQueue q,uint32_t n,const VkSubmitInfo2 *s,VkFence 
 RESULT_HOOK(vkQueueWaitIdle,(VkQueue q),(q))
 VOID_HOOK(vkCmdBeginRendering,(VkCommandBuffer c,const VkRenderingInfo *i),(c,i))
 VOID_HOOK(vkCmdEndRendering,(VkCommandBuffer c),(c))
+VOID_HOOK(vkCmdBindPipeline,(VkCommandBuffer c,VkPipelineBindPoint b,VkPipeline p),(c,b,p))
+VOID_HOOK(vkCmdPushDataEXT,(VkCommandBuffer c,const VkPushDataInfoEXT *i),(c,i))
+VOID_HOOK(vkCmdBindIndexBuffer3KHR,(VkCommandBuffer c,const VkBindIndexBuffer3InfoKHR *i),(c,i))
+VOID_HOOK(vkCmdPipelineBarrier2,(VkCommandBuffer c,const VkDependencyInfo *i),(c,i))
 static uint64_t indexed_records, counted_capacity;
 static PFN_vkCmdDrawIndexedIndirect2KHR real_vkCmdDrawIndexedIndirect2KHR;
 static void VKAPI_CALL traced_vkCmdDrawIndexedIndirect2KHR(VkCommandBuffer c,const VkDrawIndirect2InfoKHR *i) {

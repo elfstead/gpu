@@ -4,6 +4,7 @@ static unsigned frontier_records, frontier_strategy;
 #define SCENE_REUSE_CONSUMER
 #include "public.c"
 #include <dlfcn.h>
+#ifndef FRONTIER_REUSE
 static int mark(unsigned phase) {
     const char *path=getenv("OGPU_VULKAN_LIBRARY");NEED(path && getenv("OGPU_SCENE_TRACE"));
     void *library=dlopen(path,RTLD_NOW|RTLD_LOCAL);NEED(library);
@@ -11,6 +12,7 @@ static int mark(unsigned phase) {
     if(!snapshot) { dlclose(library);return 0; }
     snapshot(phase);dlclose(library);return 1;
 }
+#endif
 static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indices) {
     OgpuIndirectRange draws={.buffer=s->draws,.offset=64,.stride_bytes=20,.max_draw_count=frontier_records};
     if(frontier_strategy==2) { draws.count_buffer=s->draws;draws.count_offset=64+20*frontier_records; }
@@ -22,6 +24,7 @@ static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indice
     }
     return 1;
 }
+#ifndef FRONTIER_REUSE
 static int run(Scene *s,OgpuBuffer **control,const char *shaders,const char *output) {
     NEED(scene_create_context(s,shaders));
     OgpuCapabilities caps;OgpuDeviceLimits limits;
@@ -72,3 +75,4 @@ int main(int argc,char **argv) {
     ogpu_buffer_destroy(control);scene_destroy_resources(s);scene_destroy_context(s);
     if(okay) puts("Public indexed frontier drained");return !okay;
 }
+#endif

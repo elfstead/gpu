@@ -5,6 +5,7 @@ static unsigned frontier_records, frontier_strategy;
 #define SCENE_REUSE_CONSUMER
 #include "native.c"
 static PFN_vkCmdDrawIndexedIndirectCount2KHR draw_count;
+#ifndef FRONTIER_REUSE
 static int frontier_mark(unsigned phase) {
     const char *path=getenv("OGPU_VULKAN_LIBRARY");NEED(path && getenv("OGPU_SCENE_TRACE"));
     void *library=dlopen(path,RTLD_NOW|RTLD_LOCAL);NEED(library);
@@ -12,6 +13,7 @@ static int frontier_mark(unsigned phase) {
     if(!snapshot) { dlclose(library);return 0; }
     snapshot(phase);dlclose(library);return 1;
 }
+#endif
 
 static int frontier_draw(Scene *s) {
     VkDrawIndirect2InfoKHR info={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
@@ -33,6 +35,7 @@ static int frontier_draw(Scene *s) {
     }
     return 1;
 }
+#ifndef FRONTIER_REUSE
 int main(int argc,char **argv) {
     Scene s={.index_bytes=4};NativeBuffer control={0};int okay=0;
     if(argc!=7) { fprintf(stderr,"Usage: frontier width height shaders output records single|multi|count|count-fixed\n");return 1; }
@@ -79,3 +82,4 @@ done:
     }
     if(okay) puts("Native indexed frontier drained");return !okay;
 }
+#endif
