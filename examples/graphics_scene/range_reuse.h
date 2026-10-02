@@ -5,6 +5,11 @@
 #include <dlfcn.h>
 #define REUSE_CONTROL_BYTES 144u
 #define REUSE_MESH_BYTES (416u+SCENE_DRAW_BYTES)
+#ifdef SCENE_RANGE_SCOPES
+#define REUSE_PER_DRAW_SCOPES 1
+#else
+#define REUSE_PER_DRAW_SCOPES 0
+#endif
 typedef struct {
     unsigned width,height,frames,mode,slots,replay,index_bytes;
     const char *shaders,*reference;
@@ -42,6 +47,8 @@ static int reuse_config(Reuse *r,int argc,char **argv) {
     else if(!strcmp(argv[9],"multi")) frontier_strategy=1;
     else if(!strcmp(argv[9],"count")) frontier_strategy=2;
     else return 0;
+    NEED(!REUSE_PER_DRAW_SCOPES || frontier_strategy==0);
+    printf("RANGE_SCOPE_POLICY {\"per_draw\":%s}\n",REUSE_PER_DRAW_SCOPES ? "true" : "false");
     r->index_bytes=4;r->mode=0;r->shaders=argv[3];r->reference=argv[4];
     r->image_bytes=(size_t)r->width*r->height*8+256;return 1;
 }

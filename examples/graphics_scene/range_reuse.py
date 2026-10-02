@@ -14,7 +14,9 @@ ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
 
 
-def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193):
+def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193,scopes=False):
+    require(not scopes or strategy=='single','per-draw scopes preserve separate-call identity only')
+    require(f.rows(stdout,'RANGE_SCOPE_POLICY ')==[dict(per_draw=scopes)],'wrong scope policy label')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failed')
     require(backend.title()+' scene reuse drained and checked' in stdout,'missing drain marker')
     require(f.rows(stdout,'DEVICE ')==[device],'wrong device')
@@ -44,8 +46,11 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     require(all(v>=0 for v in hot.values()),'counter decreased')
     require(hot['vkQueueSubmit2']==frames and final['vkQueueWaitIdle']==0,'submission/queue-idle mismatch')
     recorded=0 if replay else frames
-    for name in ('vkBeginCommandBuffer','vkEndCommandBuffer','vkCmdBeginRendering','vkCmdEndRendering'):
-        require(hot[name]==recorded,'wrong recording/scope policy')
+    for name in ('vkBeginCommandBuffer','vkEndCommandBuffer'):
+        require(hot[name]==recorded,'wrong recording policy')
+    scope_count=capacity if scopes else 1
+    for name in ('vkCmdBeginRendering','vkCmdEndRendering'):
+        require(hot[name]==recorded*scope_count and end[name]==summary['encodes']*scope_count,'wrong scope policy')
     draws_per_record=capacity if strategy=='single' else 1
     require(hot['vkCmdDrawIndexedIndirect2KHR']==(0 if strategy=='count' else recorded*draws_per_record)
             and hot['vkCmdDrawIndexedIndirectCount2KHR']==(recorded if strategy=='count' else 0),'wrong native range command')
@@ -55,13 +60,17 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     encodes=summary['encodes']
     require(end['vkCmdDrawIndexedIndirect2KHR']==(0 if strategy=='count' else encodes*draws_per_record)
             and end['vkCmdDrawIndexedIndirectCount2KHR']==(encodes if strategy=='count' else 0),'wrong compiled native range strategy')
-    binds=1  # Consecutive identical draw state is bound once by both encoders.
+    binds=capacity if scopes and backend=='public' else 1
     for name in ('vkCmdBindPipeline','vkCmdPushDataEXT'):
         require(hot[name]==recorded*(1+binds),'wrong compute/raster binding count')
         require(end[name]==encodes*(1+binds),'wrong compiled compute/raster binding count')
     require(hot['vkCmdBindIndexBuffer3KHR']==recorded*binds,'wrong index binding count')
     require(end['vkCmdBindIndexBuffer3KHR']==encodes*binds,'wrong compiled index binding count')
-    require(hot['vkCmdPipelineBarrier2']==0 if replay else hot['vkCmdPipelineBarrier2']>=recorded,'missing/unexpected barriers')
+    for name in ('vkCmdSetViewport','vkCmdSetScissor'):
+        require(hot[name]==recorded*binds and end[name]==encodes*binds,'wrong viewport/scissor reuse')
+    barriers=(8 if backend=='public' else 6)+scope_count-1
+    require(hot['vkCmdPipelineBarrier2']==recorded*barriers and end['vkCmdPipelineBarrier2']==2*slots+encodes*barriers,
+            'wrong attachment/copy dependency count')
     require(hot['vkCreateCommandPool']==(0 if replay else slots) and hot['vkDestroyCommandPool']==0,'hot pool churn')
     require(hot['vkResetCommandPool']==(0 if replay else frames if backend=='public' else frames-slots),'wrong reset policy')
     require(final['vkCreateCommandPool']==final['vkDestroyCommandPool'],'pool leak')
@@ -88,10 +97,11 @@ def main():
     parser.add_argument('--preflight',action='store_true',help='16 frames per case, not sustained acceptance')
     parser.add_argument('--software',action='store_true',help='64 instead of 1000 frames per case')
     parser.add_argument('--scale',action='store_true',help='also 16-frame 720p count/identity cycles on Radeon')
+    parser.add_argument('--scopes',action='store_true',help='labelled per-draw CLEAR then LOAD scopes; separate-call strategy only')
     args=parser.parse_args()
     out=Path(tempfile.mkdtemp(prefix='range-reuse-',dir=ROOT/'target/graphics-scene'))
     print(f'Range reuse evidence: {out}',flush=True)
-    report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,scale=args.scale,runs=[],
+    report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,scale=args.scale,per_draw_scopes=args.scopes,runs=[],
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -102,6 +112,7 @@ def main():
         native=json.loads(args.native.read_text());directory=args.native.resolve().parent
         require(native.get('complete') and native.get('identity') and not native.get('dirty') and not native.get('build_only'),'clean identity reference required')
         extents,cases=select_cases(native,args.scale)
+        if args.scopes:cases=[c for c in cases if c['strategy']=='single']
         require(digest(Path(native['reference']['path']))==native['reference']['sha256'],'changed serial reference')
         _,refs=f.reuse.reference(Path(native['reference']['path']),32,extents)
         for case in cases:
@@ -121,6 +132,7 @@ def main():
         subprocess.run(['cargo','build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
         cc=shlex.split(os.getenv('CC','cc'));report['compiler']=subprocess.check_output([*cc,'--version'],text=True).splitlines()[0]
         common=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DSCENE_RANGE_REUSE','-I'+str(ROOT/'include')]
+        if args.scopes:common+=['-DSCENE_RANGE_SCOPES']
         report['builds']={}
         for backend in ('native','public'):
             command=common+[str(HERE/f'reuse_{backend}.c')]
@@ -133,6 +145,7 @@ def main():
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-shared','-fPIC','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),str(HERE/'reuse_trace.c'),'-ldl','-o',str(out/'trace.so')]
         subprocess.run(command,check=True);report['builds']['trace.so']=dict(command=command,sha256=digest(out/'trace.so'))
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-Wno-unused-function',str(HERE/'test_range_reuse.c'),'-ldl','-o',str(out/'test-range-reuse')]
+        if args.scopes:command+=['-DSCENE_RANGE_SCOPES']
         subprocess.run(command,check=True)
         with (out/'cpu-tests.txt').open('w') as log:subprocess.run([str(out/'test-range-reuse')],stdout=log,stderr=log,check=True)
         report['cpu_tests_sha256']=digest(out/'cpu-tests.txt')
@@ -160,7 +173,7 @@ def main():
                         with (dest/'stdout').open('w') as stdout,(dest/'stderr').open('w') as stderr:
                             execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                         require(execution.returncode==0,f'execution failed: {dest}')
-                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height)
+                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height,args.scopes)
                         results.append(checked)
                         report['runs'].append(dict(name=name,backend=backend,extent=[width,height],command=command,device=case['device'],**checked,
                                                   logs={n:digest(dest/n) for n in ('stdout','stderr')}));save()

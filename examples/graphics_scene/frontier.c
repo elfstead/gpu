@@ -15,10 +15,16 @@ static int frontier_mark(unsigned phase) {
 }
 #endif
 
-static int frontier_draw(Scene *s) {
+static int frontier_draw(Scene *s,unsigned first) {
     VkDrawIndirect2InfoKHR info={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
         .addressRange={s->draws.address+64,20*frontier_records,20},
         .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,.drawCount=frontier_records};
+#ifdef SCENE_RANGE_SCOPES
+    NEED(frontier_strategy==0 && first<frontier_records);
+    info.addressRange.address+=20*first;info.addressRange.size=20;info.drawCount=1;
+    s->draw_indexed(s->batch.command,&info);
+#else
+    (void)first;
     if(frontier_strategy>=2) {
         VkDrawIndirectCount2InfoKHR count={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_COUNT_2_INFO_KHR,
             .addressRange=info.addressRange,.addressFlags=info.addressFlags,
@@ -33,6 +39,7 @@ static int frontier_draw(Scene *s) {
         info.addressRange.address=s->draws.address+64+20*i;info.addressRange.size=20;info.drawCount=1;
         s->draw_indexed(s->batch.command,&info);
     }
+#endif
     return 1;
 }
 #ifndef FRONTIER_REUSE

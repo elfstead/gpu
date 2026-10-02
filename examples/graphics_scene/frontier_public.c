@@ -13,8 +13,14 @@ static int mark(unsigned phase) {
     snapshot(phase);dlclose(library);return 1;
 }
 #endif
-static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indices) {
+static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indices,unsigned first) {
     OgpuIndirectRange draws={.buffer=s->draws,.offset=64,.stride_bytes=20,.max_draw_count=frontier_records};
+#ifdef SCENE_RANGE_SCOPES
+    NEED(frontier_strategy==0 && first<frontier_records);
+    draws.offset+=20*first;draws.max_draw_count=1;
+    GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&draws,&s->root.vertices,8,&s->error));
+#else
+    (void)first;
     if(frontier_strategy==2) { draws.count_buffer=s->draws;draws.count_offset=64+20*frontier_records; }
     if(frontier_strategy!=0) {
         GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&draws,&s->root.vertices,8,&s->error));
@@ -22,6 +28,7 @@ static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indice
         draws.offset=64+20*i;draws.max_draw_count=1;
         GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&draws,&s->root.vertices,8,&s->error));
     }
+#endif
     return 1;
 }
 #ifndef FRONTIER_REUSE

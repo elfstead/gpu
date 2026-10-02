@@ -78,9 +78,9 @@ int main(int argc,char **argv) {
     if(!window(slots,&r,100,samples,&wall)) goto done;
     memset(samples,0,(r.frames>100 ? r.frames : 100)*sizeof(*samples));
     if(!window(slots,&r,r.frames,samples,&wall)) goto done;
-    printf("RANGE_TIMING {\"frames\":%u,\"warmups\":100,\"slots\":%u,\"capacity\":%u,\"strategy\":%u,\"replay\":%u,"
+    printf("RANGE_TIMING {\"width\":%u,\"height\":%u,\"frames\":%u,\"warmups\":100,\"slots\":%u,\"capacity\":%u,\"strategy\":%u,\"replay\":%u,"
         "\"setup_ms\":%.9f,\"wall_ms\":%.9f,\"peak_unretired\":%u,\"encodes\":%u}\n",
-        r.frames,r.slots,frontier_records,frontier_strategy,r.replay,setup,wall,r.peak,r.encodes);
+        r.width,r.height,r.frames,r.slots,frontier_records,frontier_strategy,r.replay,setup,wall,r.peak,r.encodes);
     for(unsigned i=0;i<r.frames;++i) printf("SAMPLE {\"index\":%u,\"record_submit_ms\":%.9f,\"wait_ms\":%.9f,\"retirement_ms\":%.9f}\n",
         i,samples[i].record_submit,samples[i].wait,samples[i].latency);
     okay=1;

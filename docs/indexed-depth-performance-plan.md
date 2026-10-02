@@ -139,6 +139,38 @@ timing. Small host-sensitive timings stay separate. The software driver retains
 its small control matrix; this selected scale run is Radeon-only. Labelled
 per-draw-scope and useful-scale timing remain subsequent increments.
 
+### Labelled scope control and remaining timing increment
+
+`range_reuse.py --scopes` selects only separate single-record calls: each record
+gets its own scope, the first clears, subsequent scopes LOAD both attachments,
+and explicit color/depth write→read/write dependencies connect them. All records
+still execute in order, including empty indirect records. Do not split a range
+into scopes: that would change DrawIndex and GPU-count semantics.
+
+Native state remains bound across the scope boundaries, including viewport and
+scissor. The public backend currently invalidates its draw-state key at every
+non-draw step and sets viewport/scissor on begin. Preserve and trace that cost;
+do not artificially rebind native state to match it. Per recording, expect N
+scopes, N single draw commands, N−1 extra attachment dependencies, one native
+graphics state binding and N public bindings. Grouped controls retain one scope
+and one binding set. All trace checks cover replay compilation as well as hot
+deltas. Private command-memory bytes remain unknown.
+
+Run 24 small scoped configurations at 1,000 frames on Radeon and 64 on llvmpipe;
+`--scale` adds 24 Radeon 720p configurations at 16 frames. Require the same
+full-byte output/oracles and equal allocation budgets as grouped single draws.
+Wrong scope labels, mixed strategies, missing or duplicated correctness matrix
+entries, and mismatched timing extents must fail before acceptance.
+
+Extend `range_timing.py` with matching `--scopes`/`--scale` flags. Both grouped and
+scoped timing retain 100 warmups, 1,000 measured frames and three fresh rounds per
+configuration, alternating native/public order and rotating grouped strategies.
+The clean-source gate checks the complete corresponding correctness matrix;
+720p correctness is the declared 16-frame cycle, not mislabeled 1,000-frame
+acceptance. This yields 432 grouped and 144 scoped processes across both extents.
+Compare native/public within each policy and report caller-chosen scope cost
+separately. No inference that the public API forces a scope per draw is permitted.
+
 ## Do not approve an artificially weak native frontier
 
 The shared native setup intentionally enables only the OGPU baseline. Its lack

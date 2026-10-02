@@ -21,7 +21,7 @@ typedef struct {
     unsigned char *cpu;
 } Scene;
 #ifdef SCENE_NATIVE_FRONTIER
-static int frontier_draw(Scene *s);
+static int frontier_draw(Scene *s, unsigned first);
 #define SCENE_DRAW_BYTES (132u+20u*frontier_records)
 #else
 #define SCENE_DRAW_BYTES 168u
@@ -122,6 +122,11 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     VkRenderingInfo render = {.sType=VK_STRUCTURE_TYPE_RENDERING_INFO, .renderArea=area, .layerCount=1,
         .colorAttachmentCount=1, .pColorAttachments=&color, .pDepthAttachment=&depth};
     n->vkCmdBeginRendering(b->command, &render);
+#ifdef SCENE_RANGE_SCOPES
+    // Preserve unchanged native bindings/dynamic state across scope boundaries.
+    // The public backend's conservative invalidation must not weaken this control.
+    if(first==0) {
+#endif
     n->vkCmdBindPipeline(b->command, VK_PIPELINE_BIND_POINT_GRAPHICS, p->pipeline);
     VkViewport viewport = {.width=(float)s->width, .height=(float)s->height, .maxDepth=1};
     n->vkCmdSetViewport(b->command, 0, 1, &viewport); n->vkCmdSetScissor(b->command, 0, 1, &area);
@@ -130,9 +135,12 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
         .addressRange={s->indices.address+GUARD,8*s->index_bytes}, .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
         .indexType=s->index_bytes==2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32};
     s->bind_index(b->command, &indices);
+#ifdef SCENE_RANGE_SCOPES
+    }
+#endif
 #ifdef SCENE_NATIVE_FRONTIER
-    (void)first; (void)count;
-    NEED(frontier_draw(s));
+    (void)count;
+    NEED(frontier_draw(s,first));
 #else
     for (unsigned i=0; i<count; ++i) {
         unsigned which=(first+i)%2;
@@ -154,6 +162,16 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
         VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
         VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT);
     scene_transition(s);
+#ifdef SCENE_RANGE_SCOPES
+    NEED(mode==0 && frontier_strategy==0);
+    for(unsigned i=0;i<frontier_records;++i) {
+        if(i) native_barrier(n,b->command,VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+            VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+        NEED(scene_pass(s,0,i!=0,i!=0,1,i,1));
+    }
+#else
     if (mode>=6 && mode<=8) {
         NEED(scene_pass(s,0,0,0,1,1,1));
         native_barrier(n,b->command,VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
@@ -162,6 +180,7 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
             VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         NEED(scene_pass(s,0,mode!=7,mode!=8,1,0,1));
     } else NEED(scene_pass(s,mode>=2 && mode<=4 ? mode-1 : 0,0,0,mode==5 ? 0 : 1,mode>=1 && mode<=4,2));
+#endif
     NEED(native_image_readback(n,b,&s->color,&s->readback,GUARD));
     VkDeviceMemoryImageCopyKHR region = {.sType=VK_STRUCTURE_TYPE_DEVICE_MEMORY_IMAGE_COPY_KHR,
         .addressRange={s->readback.address+s->pixels+3*GUARD,s->pixels}, .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,

@@ -8,6 +8,12 @@ static unsigned frontier_records,frontier_strategy;
 #define SCENE_DRAW_BYTES (132u+20u*frontier_records)
 #include "range_reuse.h"
 int main(void) {
+    Reuse config={0};
+    char *arguments[]={"test","1280","720","shaders","reference","16","2","replay","512","single"};
+    assert(reuse_config(&config,10,arguments) && config.width==1280 && config.height==720 && config.slots==2);
+    arguments[9]="multi";assert(reuse_config(&config,10,arguments)==!REUSE_PER_DRAW_SCOPES);
+    arguments[9]="count";assert(reuse_config(&config,10,arguments)==!REUSE_PER_DRAW_SCOPES);
+    arguments[9]="single";arguments[1]="1279";assert(!reuse_config(&config,10,arguments));
     unsigned number=42;
     const char *bad[]={"","-1","+1","1x"," 1","1001","4294967296","999999999999999999999"};
     for(unsigned i=0;i<sizeof(bad)/sizeof(bad[0]);++i) assert(!reuse_number(bad[i],0,1000,&number) && number==42);

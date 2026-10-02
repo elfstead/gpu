@@ -207,6 +207,12 @@ per case, `--software` 64, and the default 1,000. `--scale` requires a native
 72 configurations at 1280×720, while preserving the small sustained matrix.
 No timing is performed by this correctness runner.
 
+`--scopes` selects a deliberately separate single-record scope per draw: CLEAR
+once, then LOAD color/depth with explicit dependencies. It checks 24 cases per
+extent (only the single-call strategy), with identical outputs to grouped single
+draws. Native state survives scopes; the public encoder's conservative rebindings
+are counted separately. This is caller-chosen scope policy, not an API requirement.
+
 Both encoders now bind identical consecutive raster/index/root state once per
 group, without fusing native draw operations or changing identity. The trace
 checks compiled replay bindings as well as hot recording deltas. The
@@ -220,3 +226,6 @@ samples. GPU readback copies stay in every frame; full CPU byte checking happens
 after each window for all final slots. See the [metric definitions and scope](../../docs/indexed-depth-performance-plan.md#first-timing-increment-grouped-gpu-copy-complete).
 `--preflight` relaxes provenance for development and uses only 16 samples/one
 round; such a report is not timing acceptance. No software timing is claimed.
+Use matching `--scale` and/or `--scopes` on correctness and timing runs. Full
+timing always uses 1,000 samples per process, including 720p; scope and extent
+labels are validated explicitly and never pooled with grouped small controls.

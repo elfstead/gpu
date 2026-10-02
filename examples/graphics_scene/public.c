@@ -31,7 +31,7 @@ typedef struct {
     uint64_t shader_bytes[3];
 } Scene;
 #ifdef SCENE_PUBLIC_FRONTIER
-static int frontier_draw(Scene *s, unsigned pipeline, const OgpuIndexRange *indices);
+static int frontier_draw(Scene *s, unsigned pipeline, const OgpuIndexRange *indices, unsigned first);
 #define SCENE_DRAW_BYTES (132u+20u*frontier_records)
 #else
 #define SCENE_DRAW_BYTES 168u
@@ -122,7 +122,7 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     OgpuIndexRange indices={s->indices,GUARD,8*s->index_bytes,
         s->index_bytes==2 ? OGPU_INDEX_UINT16 : OGPU_INDEX_UINT32,0};
 #ifdef SCENE_PUBLIC_FRONTIER
-    (void)first;(void)count;NEED(frontier_draw(s,pipeline,&indices));
+    (void)count;NEED(frontier_draw(s,pipeline,&indices,first));
 #else
     for(unsigned i=0;i<count;++i) {
         unsigned which=(first+i)%2;
@@ -141,12 +141,21 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
        reinitialize layout on every rendering scope in the public contract. */
     GPU(ogpu_batch_discard_image(s->batch,s->color,&s->error));
     GPU(ogpu_batch_discard_image(s->batch,s->depth,&s->error));
+#ifdef SCENE_RANGE_SCOPES
+    NEED(mode==0 && frontier_strategy==0);
+    for(unsigned i=0;i<frontier_records;++i) {
+        if(i) GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_WRITE,
+            OGPU_ACCESS_COLOR_READ|OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_READ|OGPU_ACCESS_DEPTH_WRITE,&s->error));
+        NEED(scene_pass(s,0,i!=0,i!=0,1,i,1));
+    }
+#else
     if(mode>=6 && mode<=8) {
         NEED(scene_pass(s,0,0,0,1,1,1));
         GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_WRITE,
             OGPU_ACCESS_COLOR_READ|OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_READ|OGPU_ACCESS_DEPTH_WRITE,&s->error));
         NEED(scene_pass(s,0,mode!=7,mode!=8,1,0,1));
     } else NEED(scene_pass(s,mode>=2 && mode<=4 ? mode-1 : 0,0,0,mode==5 ? 0 : 1,mode>=1 && mode<=4,2));
+#endif
     GPU(ogpu_batch_copy_image_to_buffer(s->batch,s->color,s->readback,GUARD,&s->error));
     GPU(ogpu_batch_copy_image_to_buffer(s->batch,s->depth,s->readback,s->pixels+3*GUARD,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->vertices,0,s->geometry,0,256,&s->error));

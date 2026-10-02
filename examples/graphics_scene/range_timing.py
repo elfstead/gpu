@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Grouped range timings: matched reset/replay, GPU-copy-complete wall time, not general Vulkan parity."""
+"""Labelled grouped/per-draw-scope timings: matched reset/replay and GPU-copy-complete wall time, not general Vulkan parity."""
 import argparse
 import itertools
 import json
@@ -17,13 +17,15 @@ ROOT,HERE=r.ROOT,r.HERE
 require,digest=r.require,r.digest
 
 
-def parse(stdout,stderr,device,capacity,strategy,slots,replay,frames):
+def parse(stdout,stderr,device,capacity,strategy,slots,replay,frames,width=257,height=193,scopes=False):
+    require(not scopes or strategy=='single','per-draw scopes cannot stand in for a multi-record range')
+    require(r.f.rows(stdout,'RANGE_SCOPE_POLICY ')==[dict(per_draw=scopes)],'wrong scope label')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'unexpected validation error')
     require('Range timing final-slot bytes checked and all work drained' in stdout,'missing final checks/drain')
     require(r.f.rows(stdout,'DEVICE ')==[device],'wrong timing device')
     results=r.f.rows(stdout,'RANGE_TIMING ');require(len(results)==1,'missing/duplicate result')
     result=results[0]
-    wanted=dict(frames=frames,warmups=100,slots=slots,capacity=capacity,strategy=r.f.STRATEGIES.index(strategy),
+    wanted=dict(width=width,height=height,frames=frames,warmups=100,slots=slots,capacity=capacity,strategy=r.f.STRATEGIES.index(strategy),
                 replay=int(replay),peak_unretired=slots,encodes=slots if replay else frames)
     require({k:result[k] for k in wanted}==wanted,'wrong measured schedule')
     require(all(math.isfinite(result[k]) and result[k]>0 for k in ('setup_ms','wall_ms')),'invalid window duration')
@@ -41,13 +43,31 @@ def parse(stdout,stderr,device,capacity,strategy,slots,replay,frames):
     return dict(result=result,statistics=stats,wall_ms_per_frame=result['wall_ms']/frames)
 
 
+def correctness_matrix(correct,scale,scopes,preflight):
+    require(correct.get('complete') and not correct.get('software'),'complete Radeon correctness required')
+    require(bool(correct.get('scale'))==scale and bool(correct.get('per_draw_scopes'))==scopes,'wrong correctness extent/scope policy')
+    extents=[(257,193)]+([(1280,720)] if scale else [])
+    strategies=(0,) if scopes else (0,1,2)
+    expected=set(itertools.product(extents,(1,64,512),strategies,(1,2),(0,1),('native','public')))
+    found=[]
+    for case in correct['runs']:
+        summary=case['summary'];extent=tuple(case.get('extent',[257,193]))
+        found.append((extent,summary['capacity'],summary['strategy'],summary['slots'],summary['replay'],case['backend']))
+        if not preflight:
+            require(summary['frames']==(16 if extent==(1280,720) else 1000),'missing declared sustained/small or useful-scale frame cycle')
+    require(len(found)==len(expected) and set(found)==expected,'missing/duplicate correctness configuration')
+    return extents
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--correctness',required=True,type=Path,help='matched Radeon range reuse report')
     parser.add_argument('--preflight',action='store_true',help='one process/16 samples; not accepted timing')
+    parser.add_argument('--scale',action='store_true',help='include 1280x720; requires matching scale correctness')
+    parser.add_argument('--scopes',action='store_true',help='labelled per-draw scopes; requires matching scope correctness')
     args=parser.parse_args()
     out=Path(tempfile.mkdtemp(prefix='range-timing-',dir=ROOT/'target/graphics-scene'));print(f'Range timing evidence: {out}',flush=True)
-    report=dict(schema=1,complete=False,preflight=args.preflight,scope=__doc__,runs=[],
+    report=dict(schema=1,complete=False,preflight=args.preflight,scope=__doc__,scale=args.scale,per_draw_scopes=args.scopes,runs=[],
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
@@ -55,10 +75,9 @@ def main():
     try:
         require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
         correct=json.loads(args.correctness.read_text())
-        require(correct.get('complete') and not correct.get('software') and len(correct['runs'])==72,'complete Radeon correctness required')
+        extents=correctness_matrix(correct,args.scale,args.scopes,args.preflight)
         if not args.preflight:
             require(not correct['preflight'] and not correct['dirty'] and not report['dirty'],'clean sustained correctness/source required')
-            require(all(c['summary']['frames']==1000 for c in correct['runs']),'sustained matrix missing')
             for name,h in correct['sources'].items():require(digest(ROOT/name)==h,'source changed since correctness: '+name)
         report['correctness']=dict(path=str(args.correctness.resolve()),sha256=digest(args.correctness),revision=correct['revision'])
         native_path=Path(correct['native']['path']);require(digest(native_path)==correct['native']['sha256'],'changed native reference')
@@ -77,6 +96,7 @@ def main():
         subprocess.run([sys.executable,'-B',str(HERE/'test_range_timing.py')],check=True)
         for backend in ('native','public'):
             command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-I'+str(ROOT/'include'),str(HERE/'range_timing.c')]
+            if args.scopes:command+=['-DSCENE_RANGE_SCOPES']
             if backend=='native':command+=['-DRANGE_NATIVE','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
             else:command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
             command+=['-ldl','-o',str(out/backend)];subprocess.run(command,check=True)
@@ -92,20 +112,21 @@ def main():
         frames,rounds=(16,1) if args.preflight else (1000,3)
         for repeat in range(rounds):
             strategies=r.f.STRATEGIES[repeat:]+r.f.STRATEGIES[:repeat]
+            if args.scopes:strategies=('single',)
             backends=('native','public') if repeat%2==0 else ('public','native')
-            for capacity,slots,policy,strategy in itertools.product((1,64,512),(1,2),('reset','replay'),strategies):
-                reference=cases[f'257x193-{capacity}-{strategy}']
+            for (width,height),capacity,slots,policy,strategy in itertools.product(extents,(1,64,512),(1,2),('reset','replay'),strategies):
+                reference=cases[f'{width}x{height}-{capacity}-{strategy}']
                 for backend in backends:
-                    name=f'{capacity}-{strategy}-{slots}-{policy}-{backend}-{repeat}';dest=out/name;dest.mkdir()
-                    command=[str(out/backend),'257','193',str(directory),str(directory/reference['name']),str(frames),str(slots),policy,str(capacity),strategy]
+                    name=f'{width}x{height}-{capacity}-{strategy}-{slots}-{policy}-{backend}-{repeat}';dest=out/name;dest.mkdir()
+                    command=[str(out/backend),str(width),str(height),str(directory),str(directory/reference['name']),str(frames),str(slots),policy,str(capacity),strategy]
                     with (dest/'stdout').open('w') as stdout,(dest/'stderr').open('w') as stderr:
                         execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                     require(execution.returncode==0,f'timing/final verification failed: {dest}')
-                    checked=parse((dest/'stdout').read_text(),(dest/'stderr').read_text(),reference['device'],capacity,strategy,slots,policy=='replay',frames)
-                    report['runs'].append(dict(name=name,backend=backend,capacity=capacity,strategy=strategy,slots=slots,policy=policy,repeat=repeat,
+                    checked=parse((dest/'stdout').read_text(),(dest/'stderr').read_text(),reference['device'],capacity,strategy,slots,policy=='replay',frames,width,height,args.scopes)
+                    report['runs'].append(dict(name=name,backend=backend,extent=[width,height],capacity=capacity,strategy=strategy,slots=slots,policy=policy,repeat=repeat,
                         device=reference['device'],command=command,**checked,logs={n:digest(dest/n) for n in ('stdout','stderr')}));save()
                 print(name.rsplit('-',2)[0]+f' round={repeat}: measurements and final bytes PASS',flush=True)
-        report['complete']=True;save();print('Grouped range timing '+('PREFLIGHT' if args.preflight else 'COMPLETE')+'; no general performance claim')
+        report['complete']=True;save();print('Range timing '+('PREFLIGHT' if args.preflight else 'COMPLETE')+'; no general performance claim')
     except Exception as error:report['error']=str(error);save();raise
 
 
