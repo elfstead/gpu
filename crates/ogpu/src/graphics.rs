@@ -730,18 +730,21 @@ impl Raster {
         indirect: &batch::IndirectBinding,
         root: &[u8],
         indices: Option<&batch::IndexBinding>,
+        bind_state: bool,
     ) {
         let d = &self.device;
         if indirect.maximum == 0 {
             return;
         }
         unsafe {
-            (d.f.vkCmdBindPipeline.unwrap())(
-                command,
-                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
-                self.pipeline,
-            );
-            batch::push_data(d, command, root);
+            if bind_state {
+                (d.f.vkCmdBindPipeline.unwrap())(
+                    command,
+                    vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    self.pipeline,
+                );
+                batch::push_data(d, command, root);
+            }
             let draw = vk::VkDrawIndirect2InfoKHR {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
                 addressRange: vk::VkStridedDeviceAddressRangeKHR {
@@ -755,7 +758,7 @@ impl Raster {
                 drawCount: indirect.maximum,
                 ..Default::default()
             };
-            if let Some(i) = indices {
+            if let Some(i) = indices.filter(|_| bind_state) {
                 let binding = vk::VkBindIndexBuffer3InfoKHR {
                     sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR,
                     addressRange: vk::VkDeviceAddressRangeKHR {

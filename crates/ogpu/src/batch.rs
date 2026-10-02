@@ -128,6 +128,34 @@ pub(crate) struct IndirectBinding {
     pub count_offset: u64,
 }
 
+// Borrowed recording-local keys only: retained Steps keep these identities alive.
+// Root equality compares the copied bytes, never memory addressed by those bytes.
+#[derive(PartialEq, Eq)]
+struct DrawState<'a> {
+    raster: *const Raster,
+    indices: Option<(*const Buffer, u64, u64, u32)>,
+    root: &'a [u8],
+}
+
+#[derive(Default)]
+struct DrawStateCache<'a>(Option<DrawState<'a>>);
+
+impl<'a> DrawStateCache<'a> {
+    fn needs_bind(&mut self, maximum: u32, next: DrawState<'a>) -> bool {
+        if maximum == 0 {
+            // Empty ranges emit no native state or draw commands.
+            return false;
+        }
+        let changed = self.0.as_ref() != Some(&next);
+        self.0 = Some(next);
+        changed
+    }
+
+    fn invalidate(&mut self) {
+        self.0 = None;
+    }
+}
+
 enum Step {
     BeginRendering(graphics::Rendering),
     EndRendering,
@@ -1104,7 +1132,13 @@ impl Completion {
                     0,
                 );
             }
+            let mut draw_state = DrawStateCache::default();
             for step in &resources.steps {
+                if !matches!(step, Step::Draw { .. }) {
+                    // Conservatively stop at every dependency, scope, heap, copy,
+                    // or compute operation. Nothing survives this recording.
+                    draw_state.invalidate();
+                }
                 match step {
                     Step::DependencyBegin(index) | Step::DependencyEnd(index) => {
                         let scope = &resources.dependencies[*index];
@@ -1193,7 +1227,19 @@ impl Completion {
                         indirect,
                         root,
                         indices,
-                    } => raster.draw(command, indirect, root, indices.as_ref()),
+                    } => {
+                        let bind_state = draw_state.needs_bind(
+                            indirect.maximum,
+                            DrawState {
+                                raster: Rc::as_ptr(raster),
+                                indices: indices
+                                    .as_ref()
+                                    .map(|i| (Rc::as_ptr(&i.buffer), i.offset, i.size, i.format)),
+                                root,
+                            },
+                        );
+                        raster.draw(command, indirect, root, indices.as_ref(), bind_state);
+                    }
                     Step::ImageCopy {
                         image,
                         buffer,
@@ -1388,6 +1434,10 @@ pub(super) unsafe fn push_data(d: &Device, command: vk::VkCommandBuffer, root: &
 #[cfg(test)]
 #[path = "batch_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "draw_state_tests.rs"]
+mod draw_state_tests;
 
 #[cfg(test)]
 #[path = "storage_tests.rs"]

@@ -55,10 +55,12 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device):
     encodes=summary['encodes']
     require(end['vkCmdDrawIndexedIndirect2KHR']==(0 if strategy=='count' else encodes*draws_per_record)
             and end['vkCmdDrawIndexedIndirectCount2KHR']==(encodes if strategy=='count' else 0),'wrong compiled native range strategy')
-    binds=capacity if backend=='public' and strategy=='single' else 1
+    binds=1  # Consecutive identical draw state is bound once by both encoders.
     for name in ('vkCmdBindPipeline','vkCmdPushDataEXT'):
         require(hot[name]==recorded*(1+binds),'wrong compute/raster binding count')
+        require(end[name]==encodes*(1+binds),'wrong compiled compute/raster binding count')
     require(hot['vkCmdBindIndexBuffer3KHR']==recorded*binds,'wrong index binding count')
+    require(end['vkCmdBindIndexBuffer3KHR']==encodes*binds,'wrong compiled index binding count')
     require(hot['vkCmdPipelineBarrier2']==0 if replay else hot['vkCmdPipelineBarrier2']>=recorded,'missing/unexpected barriers')
     require(hot['vkCreateCommandPool']==(0 if replay else slots) and hot['vkDestroyCommandPool']==0,'hot pool churn')
     require(hot['vkResetCommandPool']==(0 if replay else frames if backend=='public' else frames-slots),'wrong reset policy')

@@ -29,9 +29,11 @@ class RangeReuseTests(unittest.TestCase):
                                         indexed_records=0 if strategy=='count' else n*capacity,
                                         counted_capacity=n*capacity if strategy=='count' else 0)
                         start.update(draw_counts(slots if replay else 0))
+                        if replay:
+                            start.update(vkCmdBindPipeline=slots*2,vkCmdPushDataEXT=slots*2,vkCmdBindIndexBuffer3KHR=slots)
                         hot=dict.fromkeys(names,0);hot['vkQueueSubmit2']=frames
                         if not replay:
-                            binds=capacity if backend=='public' and strategy=='single' else 1
+                            binds=1
                             hot.update(vkCreateCommandPool=slots,vkResetCommandPool=frames if backend=='public' else frames-slots,
                                        vkBeginCommandBuffer=frames,vkEndCommandBuffer=frames,vkCmdBeginRendering=frames,vkCmdEndRendering=frames,
                                        vkCmdBindPipeline=frames*(1+binds),vkCmdPushDataEXT=frames*(1+binds),
@@ -60,6 +62,13 @@ class RangeReuseTests(unittest.TestCase):
                             target[key]+=1
                             with self.assertRaises(ValueError):check()
                             target[key]-=1
+                        # A replay with extra compilation-time bindings must fail
+                        # even when its hot binding deltas remain exactly zero.
+                        if replay:
+                            for key in ('vkCmdBindPipeline','vkCmdPushDataEXT','vkCmdBindIndexBuffer3KHR'):
+                                for trace in (start,end,final):trace[key]+=1
+                                with self.assertRaises(ValueError):check()
+                                for trace in (start,end,final):trace[key]-=1
                         out,err=logs()
                         with self.assertRaises(ValueError):r.check(out,err+'Validation Error:',backend,capacity,strategy,slots,replay,frames,device)
 

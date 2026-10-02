@@ -58,7 +58,12 @@ every native draw operation, range/count descriptor and draw-identity boundary;
 do not fuse calls, infer pointer contents or alter dependencies. Invalidate at
 non-draw boundaries and cover empty ranges and changed bindings explicitly. Trace
 the changed native commands, repeat correctness and matched timing, and retain
-the correction only with evidence. Any remaining gap still needs classification
+the correction only with evidence. The 2026-10-02 candidate uses a recording-local
+borrowed state key (raster identity, exact index binding and copied root bytes).
+Zero-capacity ranges leave actual native state unchanged; every non-draw step
+invalidates the key. CPU mutation tests, the generated 540-frame Radeon consumer
+and traced native/public preflight pass. Fresh clean-source sustained correctness
+and timing are still required before accepting this candidate. Any remaining gap still needs classification
 as implementation cost, contract-imposed cost or unresolved behavior.
 
 Useful-scale and labelled scope-break controls, complete scene installation and
