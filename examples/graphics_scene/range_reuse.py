@@ -14,7 +14,7 @@ ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
 
 
-def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device):
+def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failed')
     require(backend.title()+' scene reuse drained and checked' in stdout,'missing drain marker')
     require(f.rows(stdout,'DEVICE ')==[device],'wrong device')
@@ -30,7 +30,7 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device):
     draws=132+20*capacity
     summary=dict(frames=frames,slots=slots,capacity=capacity,strategy=f.STRATEGIES.index(strategy),replay=int(replay),
                  encodes=slots if replay else frames,peak_unretired=slots,
-                 requested_bytes=slots*(257*193*16+1232+2*draws+max(draws,256)))
+                 requested_bytes=slots*(width*height*16+1232+2*draws+max(draws,256)))
     require(f.rows(stdout,'RANGE_SUMMARY ')==[summary],'wrong capacity/storage/slot budget')
     memory=f.rows(stderr,'MEMORY_SUMMARY ')
     require(len(memory)==1 and memory[0]['allocations']==memory[0]['frees']==memory[0]['peak_count']==9*slots
@@ -73,33 +73,44 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device):
                 allocation_shape=sorted((a['bytes'],a['type']) for a in allocations))
 
 
+def select_cases(native,scale):
+    extents=[(257,193)]+([(1280,720)] if scale else [])
+    cases=[c for c in native['runs'] if tuple(c['extent']) in extents]
+    keys=[(tuple(c['extent']),c['capacity'],c['strategy']) for c in cases]
+    expected={(extent,capacity,strategy) for extent in extents for capacity in (1,64,512) for strategy in f.STRATEGIES}
+    require(len(keys)==len(expected) and set(keys)==expected,'complete, unique native extent/capacity/strategy matrix required')
+    return extents,cases
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',required=True,type=Path)
     parser.add_argument('--preflight',action='store_true',help='16 frames per case, not sustained acceptance')
     parser.add_argument('--software',action='store_true',help='64 instead of 1000 frames per case')
+    parser.add_argument('--scale',action='store_true',help='also 16-frame 720p count/identity cycles on Radeon')
     args=parser.parse_args()
     out=Path(tempfile.mkdtemp(prefix='range-reuse-',dir=ROOT/'target/graphics-scene'))
     print(f'Range reuse evidence: {out}',flush=True)
-    report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,runs=[],
+    report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,scale=args.scale,runs=[],
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
         require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
+        require(not (args.scale and args.software),'useful-scale controls are selected for Radeon only')
         native=json.loads(args.native.read_text());directory=args.native.resolve().parent
         require(native.get('complete') and native.get('identity') and not native.get('dirty') and not native.get('build_only'),'clean identity reference required')
-        require(len(native['runs'])==9 and all(c['extent']==[257,193] for c in native['runs']),'nine small reference cases required')
+        extents,cases=select_cases(native,args.scale)
         require(digest(Path(native['reference']['path']))==native['reference']['sha256'],'changed serial reference')
-        _,refs=f.reuse.reference(Path(native['reference']['path']),32,[(257,193)])
-        serial=Path(refs[(257,193)]['directory'])
-        for case in native['runs']:
+        _,refs=f.reuse.reference(Path(native['reference']['path']),32,extents)
+        for case in cases:
+            width,height=case['extent'];serial=Path(refs[(width,height)]['directory'])
             for filename,h in {**case['files'],**case['logs']}.items():require(digest(directory/case['name']/filename)==h,'changed native reference')
             for frame in f.frames(case['capacity']):
                 i=frame['frame'];active=min(frame['active'],case['capacity'])
                 mode=9 if active==0 else 0 if case['capacity']>1 and active==case['capacity'] else 4
-                expected=f.identity_image((serial/f'mode-{mode}-frame-{frame["phase"]}.images').read_bytes(),257,193,case['capacity'],case['strategy'])
+                expected=f.identity_image((serial/f'mode-{mode}-frame-{frame["phase"]}.images').read_bytes(),width,height,case['capacity'],case['strategy'])
                 require((directory/case['name']/f'frame-{i}.images').read_bytes()==expected,'native analytic image mismatch')
                 require((directory/case['name']/f'frame-{i}.geometry').read_bytes()==f.mesh_expected(frame,case['strategy']),'native geometry/count mismatch')
         report['native']=dict(path=str(args.native.resolve()),sha256=digest(args.native),revision=native['revision'])
@@ -137,20 +148,21 @@ def main():
                 and not env.get('VK_LOADER_LAYERS_DISABLE'),'select ICD and enable validation/sync')
         env.update(OGPU_TRACE_LOADER=env.get('OGPU_VULKAN_LIBRARY','libvulkan.so.1'),OGPU_VULKAN_LIBRARY=str(out/'trace.so'),OGPU_SCENE_TRACE='1')
         report['environment']={k:env.get(k) for k in ('VK_DRIVER_FILES','VK_ICD_FILENAMES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_TRACE_LOADER')}
-        frames=16 if args.preflight else 64 if args.software else 1000
-        for case in native['runs']:
+        for case in cases:
+            width,height=case['extent']
+            frames=16 if args.preflight or width==1280 else 64 if args.software else 1000
             for slots in (1,2):
                 for policy in ('reset','replay'):
                     results=[]
                     for backend in ('native','public'):
-                        name=f'{case["capacity"]}-{case["strategy"]}-{slots}-{policy}-{backend}';dest=out/name;dest.mkdir()
-                        command=[str(out/backend),'257','193',str(directory),str(directory/case['name']),str(frames),str(slots),policy,str(case['capacity']),case['strategy']]
+                        name=f'{width}x{height}-{case["capacity"]}-{case["strategy"]}-{slots}-{policy}-{backend}';dest=out/name;dest.mkdir()
+                        command=[str(out/backend),str(width),str(height),str(directory),str(directory/case['name']),str(frames),str(slots),policy,str(case['capacity']),case['strategy']]
                         with (dest/'stdout').open('w') as stdout,(dest/'stderr').open('w') as stderr:
                             execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                         require(execution.returncode==0,f'execution failed: {dest}')
-                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'])
+                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height)
                         results.append(checked)
-                        report['runs'].append(dict(name=name,backend=backend,command=command,device=case['device'],**checked,
+                        report['runs'].append(dict(name=name,backend=backend,extent=[width,height],command=command,device=case['device'],**checked,
                                                   logs={n:digest(dest/n) for n in ('stdout','stderr')}));save()
                     require(results[0]['allocation_shape']==results[1]['allocation_shape'] and results[0]['memory']==results[1]['memory'],'matched allocation budgets differ')
                     print(name.rsplit('-',1)[0]+': matched outputs, budgets and native reset/replay PASS',flush=True)

@@ -122,6 +122,22 @@ increments. Do not compare identity-sensitive single and range programs as if
 their outputs were equivalent; native/public pairs within each strategy are the
 matched comparisons.
 
+### Useful-scale correctness increment
+
+After accepting the draw-state correction, extend `frontier.py --identity --scale`
+to the already supported 1280×720 reference, then run `range_reuse.py --scale`.
+Keep the 72 small cases at 1,000 frames and add all 72 useful-scale cases at 16
+frames each. With two slots this visits all eight count/phase inputs on each
+slot; one slot visits the cycle twice. Recheck analytic reference coverage,
+identity recoloring, complete output/geometry/control bytes, native command
+counts and equal matched allocation budgets at the actual extent. Missing or
+duplicate extent/capacity/strategy references must fail before execution.
+
+This 1,152-frame useful-scale increment is correctness, not sustained video-scale
+timing. Small host-sensitive timings stay separate. The software driver retains
+its small control matrix; this selected scale run is Radeon-only. Labelled
+per-draw-scope and useful-scale timing remain subsequent increments.
+
 ## Do not approve an artificially weak native frontier
 
 The shared native setup intentionally enables only the OGPU baseline. Its lack

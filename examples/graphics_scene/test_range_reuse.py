@@ -1,5 +1,6 @@
 """Reject wrong range command strategies, frame histories and storage budgets."""
 import json
+import itertools
 import unittest
 import range_reuse as r
 
@@ -11,11 +12,12 @@ class RangeReuseTests(unittest.TestCase):
                 for strategy in r.f.STRATEGIES:
                     for slots in (1,2):
                         capacity=64;frames=16;device={'vendor':1}
+                        width,height=(1280,720) if slots==2 else (257,193)
                         rows=[dict(frame=i,slot=i%slots,generation=i//slots,
                                    phase=(i//slots)%2,active=r.f.frames(capacity)[i//slots%8]['active']) for i in range(frames)]
                         encodes=slots if replay else frames;size=132+20*capacity
                         summary=dict(frames=frames,slots=slots,capacity=capacity,strategy=r.f.STRATEGIES.index(strategy),replay=int(replay),
-                                     encodes=encodes,peak_unretired=slots,requested_bytes=slots*(257*193*16+1232+2*size+max(size,256)))
+                                     encodes=encodes,peak_unretired=slots,requested_bytes=slots*(width*height*16+1232+2*size+max(size,256)))
                         names=('vkCreateCommandPool','vkDestroyCommandPool','vkResetCommandPool','vkBeginCommandBuffer','vkEndCommandBuffer',
                                'vkQueueSubmit2','vkQueueWaitIdle','vkCmdBeginRendering','vkCmdEndRendering',
                                'vkCmdDrawIndexedIndirect2KHR','vkCmdDrawIndexedIndirectCount2KHR','indexed_records','counted_capacity',
@@ -51,7 +53,7 @@ class RangeReuseTests(unittest.TestCase):
                             stderr='MEMORY_SUMMARY '+json.dumps(memory)+'\n'+''.join('COMMAND_COUNTS '+json.dumps(c)+'\n' for c in (start,end,final))
                             stderr+=('ALLOCATE '+json.dumps(dict(bytes=100,type=0))+'\n')*(9*slots)
                             return stdout,stderr
-                        def check():r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device)
+                        def check():r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height)
                         check()
                         for target,key in ((summary,'encodes'),(summary,'requested_bytes'),(summary,'peak_unretired'),
                             (rows[3],'active'),(rows[3],'generation'),(memory,'live_count'),
@@ -70,7 +72,15 @@ class RangeReuseTests(unittest.TestCase):
                                 with self.assertRaises(ValueError):check()
                                 for trace in (start,end,final):trace[key]-=1
                         out,err=logs()
-                        with self.assertRaises(ValueError):r.check(out,err+'Validation Error:',backend,capacity,strategy,slots,replay,frames,device)
+                        with self.assertRaises(ValueError):r.check(out,err+'Validation Error:',backend,capacity,strategy,slots,replay,frames,device,width,height)
+
+    def test_extent_selection_rejects_missing_duplicate_and_wrong_cases(self):
+        cases=[dict(extent=list(extent),capacity=n,strategy=s)
+               for extent,n,s in itertools.product(((257,193),(1280,720)),(1,64,512),r.f.STRATEGIES)]
+        self.assertEqual(len(r.select_cases(dict(runs=cases),False)[1]),9)
+        self.assertEqual(len(r.select_cases(dict(runs=cases),True)[1]),18)
+        for wrong in (cases[:-1],cases+[cases[0]],cases[:9],cases[:-1]+[dict(cases[-1],capacity=7)]):
+            with self.assertRaises(ValueError):r.select_cases(dict(runs=wrong),True)
 
 
 if __name__=='__main__':unittest.main()
