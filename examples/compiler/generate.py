@@ -97,6 +97,7 @@ def inspect(reflection, assembly, name="transform"):
         if match:
             definitions[match[1]] = match[2].split()
     check_push_indices(definitions)
+    if stage != "compute": stages.check_writes(definitions, assembly)
     heap_ids, resources = heaps.inspect(definitions, assembly, native_heaps)
     variables = [(key, value) for key, value in definitions.items()
                  if value[0] in ("OpVariable", "OpUntypedVariableKHR")]

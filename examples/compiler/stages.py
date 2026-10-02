@@ -125,6 +125,26 @@ def inspect(entry, definitions, variables, assembly, heap_ids):
     return sorted(records, key=lambda r: (r["direction"], r["location"]))
 
 
+def check_writes(definitions, assembly):
+    """Graphics storage writes/atomics are not enabled by the runtime profile.
+
+    Pointer result types also cover chains, phi nodes and function parameters;
+    only local/output destinations are admitted. This is a conservative adapter
+    boundary, not a general memory-effects analysis or runtime sandbox.
+    """
+    for line in assembly.splitlines():
+        tokens = line.split()
+        if not tokens: continue
+        op = tokens[2] if len(tokens) > 2 and tokens[1] == "=" else tokens[0]
+        require(not op.startswith("OpAtomic") and op != "OpImageWrite",
+                "graphics storage writes/atomics require an unsupported feature")
+        if op in ("OpStore", "OpCopyMemory", "OpCopyMemorySized"):
+            pointer = definitions.get(tokens[1], [])
+            typ = definitions.get(pointer[1], []) if len(pointer) > 1 else []
+            require(len(typ) == 3 and typ[0] == "OpTypePointer" and typ[1] in ("Function", "Output"),
+                    "graphics storage writes/atomics require an unsupported feature")
+
+
 def link(vertex, fragment):
     """Checked records only. Exact scalar/vector widths, no component packing.
 

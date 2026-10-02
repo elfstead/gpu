@@ -214,6 +214,12 @@ is vertex-only. Fragment output remains one location-0 float4 color. Arrays,
 matrices, component packing, nested stage structs, extra builtins, centroid/sample
 interpolation and general vertex attributes are not supported.
 
+Address-based vertex roots do not enable graphics storage writes or atomics.
+The adapter rejects physical/image stores and atomic instructions in graphics
+stages; only function-local/output stores are admitted. These implicit native
+feature requirements must not be lost merely because no additional SPIR-V
+capability word names them. Compute behavior is unchanged.
+
 Pair matching uses native locations and exact scalar/vector widths, not field or
 semantic names. Extra vertex outputs are permitted. Fragment interpolation is
 Smooth, Flat or NoPerspective; integer fragment inputs must be Flat. Slang JSON
