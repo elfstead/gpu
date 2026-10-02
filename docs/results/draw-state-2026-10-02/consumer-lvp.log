@@ -1,0 +1,62 @@
+range pixel format=0 shared=0 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=0 shared=0 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=0 shared=1 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=0 shared=1 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=0 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=0 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=1 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=1 shared=1 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=0 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=0 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=1 replay=0 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+range pixel format=2 shared=1 replay=1 mode=2 frame=0 count=0 pixel=0: 0,0,0,255 expected 2,0,255,255
+Range identity format=0 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=0 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=1 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=0 replay=1 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=3: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=0 mode=4: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=0: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=1: 9 full-image/count/guard frames PASS
+Range identity format=2 shared=1 replay=1 mode=3: 9 full-image/count/guard frames PASS
+Range iGenerated indirect range consumer FAILED: 12 configurations
+range check line 179: tested && !failed
+dentity format=2 shared=1 replay=1 mode=4: 9 full-image/count/guard frames PASS

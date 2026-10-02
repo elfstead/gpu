@@ -9,7 +9,9 @@ at `e6baf7b` supports the [selected range/count contract](indirect-draw-ranges.m
 The public ABI-19 implementation and [focused migration checks](indirect-draw-range-results.md)
 are complete, followed by the [generated range handoff](draw-count-followup.md).
 The [small matched range/replay correctness](graphics-range-reuse-results.md)
-passes at `6ae1d5a`; **useful-scale/scope controls and timing remain open**. The local
+passes at `6ae1d5a`; [first grouped timings](graphics-range-timing-results.md) and
+the [draw-state correction](graphics-draw-state-results.md) are now accepted.
+**Useful-scale/scope controls remain open**. The local
 software counted→fixed failure is retained separately; Radeon work can continue.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 
@@ -82,7 +84,8 @@ Per-draw scopes clear only the first scope and preserve subsequent ones. Keep
 fixed preparation outside hot measurements and count it separately. Report binds,
 root pushes, scopes, barriers, encodes, submissions, resets and allocations in
 validation/traced controls. The current backend repeats pipeline/index/root
-encoding per public draw; that is not itself a contract requirement.
+encoding per public draw at the original baseline; the accepted consecutive-state
+correction removes identical repeats. Neither behavior is a contract requirement.
 
 Correctness/tracing/validation runs precede timing. Use three fresh Radeon
 processes per timing configuration in rotated strategy order, 100 warmups and

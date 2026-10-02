@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-01. This page owns current status and selected work. The
+Updated 2026-10-02. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -35,7 +35,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
 | Performance | ABI-15 replay cuts repeated host work about 88% at 512 dispatches; ABI-16 host views remove forced copies and express independent ranges, with 13% less wall time at one slot/4 MiB | Bounded matched-strategy evidence, not approval of the fundamental API or equal total command-memory budgets |
-| Validation | Range migration: 33 GPU tests per Linux driver, 42 ordinary tests, 847 ABI checks and byte-identical public/native range scenes; earlier indexed/depth slot/replay and installed evidence remains revision-specific | Range performance and generated/installed handoff remain; no new Metal validation; synthetic failures are not real device-loss evidence |
+| Validation | Draw-state checkpoint: 33 GPU tests per Linux driver, 46 ordinary tests, 76,608 matched range frames; range migration also checked 847 ABI values and generated/installed consumers | Useful-scale/scope controls and complete scene handoff remain; known software counted→fixed failure retained; no new Metal or real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -287,8 +287,11 @@ now passes 76,608 full-byte frames at clean `6ae1d5a`, preserving fixed/count
 native commands and equal allocation budgets. The [first grouped timings](graphics-range-timing-results.md)
 at `cee13c9` add 216,000 samples: fixed/count wall ratios are 0.986–1.054 of matched
 native, while 512 separate calls expose avoidable-state-work candidates and a
-1.803 ratio at one-slot reset. Next isolate redundant state encoding without
-fusing draws, then add useful-scale/scope controls and complete scene handoff.
+1.803 ratio at one-slot reset. The [draw-state correction](graphics-draw-state-results.md)
+at `3df8349` preserves every draw while reducing that ratio to 1.239 and separate
+replay to 1.006. Another 76,608 correctness frames and 216,000 timing samples pass;
+the separate-reset host gap remains unresolved backend work. Next add useful-scale/
+scope controls and complete scene handoff, without inferring general API parity.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and

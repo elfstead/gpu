@@ -1,0 +1,1949 @@
+{
+  "method": "Median across three process summaries; baseline cee13c9 versus candidate 3df8349. Not a same-session randomized A/B or confidence interval.",
+  "cases": [
+    {
+      "capacity": 1,
+      "strategy": "single",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.124790437996,
+        "wall_ms_per_frame_range": [
+          0.12392040699700001,
+          0.12523724103
+        ],
+        "record_submit_us": 23.679495000000003,
+        "record_submit_p95_us": 29.060005999999998,
+        "retirement_us": 123.38900550000001
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.129292600989,
+        "wall_ms_per_frame_range": [
+          0.129088969946,
+          0.131687093019
+        ],
+        "record_submit_us": 25.9995165,
+        "record_submit_p95_us": 32.760024,
+        "retirement_us": 128.05849349999997
+      },
+      "wall_ratio": 1.036077788212782,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "single",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.124898006022,
+          "wall_ms_per_frame_range": [
+            0.124241277039,
+            0.125477476954
+          ],
+          "record_submit_us": 23.649991,
+          "record_submit_p95_us": 28.810024,
+          "retirement_us": 123.46899499999999
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.127855603993,
+          "wall_ms_per_frame_range": [
+            0.127207073987,
+            0.12983251303399998
+          ],
+          "record_submit_us": 25.860012,
+          "record_submit_p95_us": 32.429992999999996,
+          "retirement_us": 125.82400399999999
+        },
+        "wall_ratio": 1.0236801055933513
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "single",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.110708369017,
+        "wall_ms_per_frame_range": [
+          0.109365041971,
+          0.111880337
+        ],
+        "record_submit_us": 10.69501,
+        "record_submit_p95_us": 13.440013,
+        "retirement_us": 109.774023
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.112994903982,
+        "wall_ms_per_frame_range": [
+          0.110594219029,
+          0.113889487028
+        ],
+        "record_submit_us": 12.019992,
+        "record_submit_p95_us": 14.120042,
+        "retirement_us": 112.872988
+      },
+      "wall_ratio": 1.0206536776334307,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "single",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.10992919099300001,
+          "wall_ms_per_frame_range": [
+            0.109360909998,
+            0.110059489012
+          ],
+          "record_submit_us": 10.549009,
+          "record_submit_p95_us": 12.520015,
+          "retirement_us": 109.03897900000001
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.110108628988,
+          "wall_ms_per_frame_range": [
+            0.110037835002,
+            0.112899388015
+          ],
+          "record_submit_us": 10.769963,
+          "record_submit_p95_us": 12.130022,
+          "retirement_us": 109.87901699999999
+        },
+        "wall_ratio": 1.001632305244668
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "single",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.080524294972,
+        "wall_ms_per_frame_range": [
+          0.080438574016,
+          0.08057293403100001
+        ],
+        "record_submit_us": 22.789478000000003,
+        "record_submit_p95_us": 28.779984000000002,
+        "retirement_us": 160.5384945
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.081270754993,
+        "wall_ms_per_frame_range": [
+          0.081128839016,
+          0.081357014
+        ],
+        "record_submit_us": 25.7399975,
+        "record_submit_p95_us": 31.419992,
+        "retirement_us": 162.19800700000002
+      },
+      "wall_ratio": 1.009269997598359,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "single",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.08031705099299999,
+          "wall_ms_per_frame_range": [
+            0.080248964965,
+            0.080430667043
+          ],
+          "record_submit_us": 22.5645005,
+          "record_submit_p95_us": 27.930021,
+          "retirement_us": 160.484016
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.08115033400100001,
+          "wall_ms_per_frame_range": [
+            0.081145228028,
+            0.08116951102
+          ],
+          "record_submit_us": 25.784999,
+          "record_submit_p95_us": 31.509995,
+          "retirement_us": 162.028968
+        },
+        "wall_ratio": 1.0103749203649501
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "single",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.080456423998,
+        "wall_ms_per_frame_range": [
+          0.08037833595300001,
+          0.08050194400499999
+        ],
+        "record_submit_us": 11.690021,
+        "record_submit_p95_us": 13.140023000000001,
+        "retirement_us": 160.52299749999997
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.081251855969,
+        "wall_ms_per_frame_range": [
+          0.081234165013,
+          0.08130589598400001
+        ],
+        "record_submit_us": 12.024522,
+        "record_submit_p95_us": 14.030038999999999,
+        "retirement_us": 162.189007
+      },
+      "wall_ratio": 1.009886494222261,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "single",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.080318737984,
+          "wall_ms_per_frame_range": [
+            0.080292751014,
+            0.080334684014
+          ],
+          "record_submit_us": 10.699987,
+          "record_submit_p95_us": 13.049959999999999,
+          "retirement_us": 160.463512
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.081140634,
+          "wall_ms_per_frame_range": [
+            0.08111585098499999,
+            0.08114861702899999
+          ],
+          "record_submit_us": 10.949492500000002,
+          "record_submit_p95_us": 13.54903,
+          "retirement_us": 162.16900950000002
+        },
+        "wall_ratio": 1.0102329299068884
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "multi",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.123490082026,
+        "wall_ms_per_frame_range": [
+          0.123286711991,
+          0.125016014993
+        ],
+        "record_submit_us": 22.824496,
+        "record_submit_p95_us": 28.329968,
+        "retirement_us": 121.92899
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.129341467977,
+        "wall_ms_per_frame_range": [
+          0.12665208596,
+          0.130060021996
+        ],
+        "record_submit_us": 25.409997,
+        "record_submit_p95_us": 30.038953,
+        "retirement_us": 128.0685365
+      },
+      "wall_ratio": 1.0473834485733682,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "multi",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.123880380034,
+          "wall_ms_per_frame_range": [
+            0.12329199498900001,
+            0.124680568993
+          ],
+          "record_submit_us": 23.230016,
+          "record_submit_p95_us": 29.579997,
+          "retirement_us": 122.11895
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.12865033799400002,
+          "wall_ms_per_frame_range": [
+            0.126833636999,
+            0.129201398015
+          ],
+          "record_submit_us": 25.730014,
+          "record_submit_p95_us": 31.610012,
+          "retirement_us": 126.67900300000001
+        },
+        "wall_ratio": 1.0385045473600492
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "multi",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.110105176032,
+        "wall_ms_per_frame_range": [
+          0.109346741974,
+          0.112568099976
+        ],
+        "record_submit_us": 10.649502,
+        "record_submit_p95_us": 13.46004,
+        "retirement_us": 109.42351850000001
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.11192493700999999,
+        "wall_ms_per_frame_range": [
+          0.111007915974,
+          0.112763045967
+        ],
+        "record_submit_us": 11.049985999999999,
+        "record_submit_p95_us": 13.870001,
+        "retirement_us": 111.4785375
+      },
+      "wall_ratio": 1.0165274789395107,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "multi",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.111307871044,
+          "wall_ms_per_frame_range": [
+            0.109521548986,
+            0.112357791007
+          ],
+          "record_submit_us": 11.788994,
+          "record_submit_p95_us": 13.429999,
+          "retirement_us": 111.3740205
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.109996849954,
+          "wall_ms_per_frame_range": [
+            0.109983556032,
+            0.110568414986
+          ],
+          "record_submit_us": 10.820031,
+          "record_submit_p95_us": 13.359964,
+          "retirement_us": 109.57401999999999
+        },
+        "wall_ratio": 0.988221667724812
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "multi",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.080498835027,
+        "wall_ms_per_frame_range": [
+          0.080488573968,
+          0.080505813003
+        ],
+        "record_submit_us": 23.314983,
+        "record_submit_p95_us": 27.970016,
+        "retirement_us": 160.49301599999998
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.081333184004,
+        "wall_ms_per_frame_range": [
+          0.081289056003,
+          0.08133885502799999
+        ],
+        "record_submit_us": 26.759982,
+        "record_submit_p95_us": 32.880008000000004,
+        "retirement_us": 162.17851649999997
+      },
+      "wall_ratio": 1.01036473356068,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "multi",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.080352237999,
+          "wall_ms_per_frame_range": [
+            0.080201875031,
+            0.080389290035
+          ],
+          "record_submit_us": 23.230016,
+          "record_submit_p95_us": 28.549969,
+          "retirement_us": 160.41898700000002
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.08113281101,
+          "wall_ms_per_frame_range": [
+            0.08112329500900001,
+            0.082183758974
+          ],
+          "record_submit_us": 25.2645015,
+          "record_submit_p95_us": 30.938983,
+          "retirement_us": 162.068516
+        },
+        "wall_ratio": 1.0097143904194643
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "multi",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.080570852995,
+        "wall_ms_per_frame_range": [
+          0.08047843503999999,
+          0.080648081005
+        ],
+        "record_submit_us": 10.819972,
+        "record_submit_p95_us": 13.239980000000001,
+        "retirement_us": 160.69850350000002
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.08127829504,
+        "wall_ms_per_frame_range": [
+          0.081254335999,
+          0.081286237001
+        ],
+        "record_submit_us": 11.325002000000001,
+        "record_submit_p95_us": 13.619005999999999,
+        "retirement_us": 162.228495
+      },
+      "wall_ratio": 1.0087803717933073,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "multi",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.080346251011,
+          "wall_ms_per_frame_range": [
+            0.080234493971,
+            0.08037179797899999
+          ],
+          "record_submit_us": 11.979997,
+          "record_submit_p95_us": 13.46004,
+          "retirement_us": 160.498977
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.081123534977,
+          "wall_ms_per_frame_range": [
+            0.081116831005,
+            0.08112924701
+          ],
+          "record_submit_us": 12.0494665,
+          "record_submit_p95_us": 14.479995,
+          "retirement_us": 162.04300500000002
+        },
+        "wall_ratio": 1.009674178399358
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "count",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.124561939001,
+        "wall_ms_per_frame_range": [
+          0.123910299003,
+          0.12786105400300002
+        ],
+        "record_submit_us": 23.384988500000002,
+        "record_submit_p95_us": 28.779984000000002,
+        "retirement_us": 123.148978
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.129272358,
+        "wall_ms_per_frame_range": [
+          0.129197560012,
+          0.13150367701100002
+        ],
+        "record_submit_us": 26.4194905,
+        "record_submit_p95_us": 31.539023,
+        "retirement_us": 128.078997
+      },
+      "wall_ratio": 1.037815877279834,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "count",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.123490498006,
+          "wall_ms_per_frame_range": [
+            0.12305825597,
+            0.12650308001000002
+          ],
+          "record_submit_us": 23.060024,
+          "record_submit_p95_us": 28.499007,
+          "retirement_us": 122.178972
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.12865615803,
+          "wall_ms_per_frame_range": [
+            0.127836529016,
+            0.12895777899000002
+          ],
+          "record_submit_us": 26.080012,
+          "record_submit_p95_us": 31.239986000000002,
+          "retirement_us": 126.67897350000001
+        },
+        "wall_ratio": 1.041830425072454
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "count",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.110859427035,
+        "wall_ms_per_frame_range": [
+          0.110466300011,
+          0.11164755999999999
+        ],
+        "record_submit_us": 11.494994,
+        "record_submit_p95_us": 13.500035,
+        "retirement_us": 110.708505
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.111457341015,
+        "wall_ms_per_frame_range": [
+          0.11134306096999999,
+          0.11208469498200001
+        ],
+        "record_submit_us": 11.759996,
+        "record_submit_p95_us": 14.360011,
+        "retirement_us": 110.86899
+      },
+      "wall_ratio": 1.005393442813043,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "count",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.111316233993,
+          "wall_ms_per_frame_range": [
+            0.11038636797700001,
+            0.112317020953
+          ],
+          "record_submit_us": 11.789978,
+          "record_submit_p95_us": 13.369977,
+          "retirement_us": 111.30899199999999
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.111116096973,
+          "wall_ms_per_frame_range": [
+            0.110066900015,
+            0.114103176951
+          ],
+          "record_submit_us": 10.959983,
+          "record_submit_p95_us": 13.009965,
+          "retirement_us": 109.489024
+        },
+        "wall_ratio": 0.9982020859597838
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "count",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.08057543301600001,
+        "wall_ms_per_frame_range": [
+          0.080458365023,
+          0.080599682033
+        ],
+        "record_submit_us": 23.289979,
+        "record_submit_p95_us": 28.88,
+        "retirement_us": 160.70848700000002
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.08137749499100001,
+        "wall_ms_per_frame_range": [
+          0.081347073972,
+          0.08144224304
+        ],
+        "record_submit_us": 26.464492,
+        "record_submit_p95_us": 32.310009,
+        "retirement_us": 162.318021
+      },
+      "wall_ratio": 1.0099541751744696,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "count",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.08038715100299999,
+          "wall_ms_per_frame_range": [
+            0.08025960499,
+            0.080396577001
+          ],
+          "record_submit_us": 22.489488,
+          "record_submit_p95_us": 27.628957999999997,
+          "retirement_us": 160.558999
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.08124743300699999,
+          "wall_ms_per_frame_range": [
+            0.081190491021,
+            0.081274245977
+          ],
+          "record_submit_us": 26.2394845,
+          "record_submit_p95_us": 31.470000999999996,
+          "retirement_us": 162.2689965
+        },
+        "wall_ratio": 1.0107017352060144
+      }
+    },
+    {
+      "capacity": 1,
+      "strategy": "count",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.08058997303200001,
+        "wall_ms_per_frame_range": [
+          0.080455325007,
+          0.080691991031
+        ],
+        "record_submit_us": 11.739968999999999,
+        "record_submit_p95_us": 14.200032,
+        "retirement_us": 160.717994
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.08131399500400001,
+        "wall_ms_per_frame_range": [
+          0.08130182600000001,
+          0.081409224987
+        ],
+        "record_submit_us": 12.05501,
+        "record_submit_p95_us": 13.988972,
+        "retirement_us": 162.297994
+      },
+      "wall_ratio": 1.0089840205271257,
+      "baseline": {
+        "capacity": 1,
+        "strategy": "count",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.080409217,
+          "wall_ms_per_frame_range": [
+            0.080400619984,
+            0.080764571011
+          ],
+          "record_submit_us": 11.879503999999999,
+          "record_submit_p95_us": 13.610005,
+          "retirement_us": 160.6790125
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.08117774701099999,
+          "wall_ms_per_frame_range": [
+            0.081145672023,
+            0.081185754001
+          ],
+          "record_submit_us": 11.080027,
+          "record_submit_p95_us": 13.090014,
+          "retirement_us": 162.209034
+        },
+        "wall_ratio": 1.0095577352904703
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "single",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.135401995957,
+        "wall_ms_per_frame_range": [
+          0.133748688996,
+          0.135652280986
+        ],
+        "record_submit_us": 25.984496000000004,
+        "record_submit_p95_us": 28.949976,
+        "retirement_us": 134.20850049999999
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.147069666982,
+        "wall_ms_per_frame_range": [
+          0.14443439799500002,
+          0.147294445992
+        ],
+        "record_submit_us": 33.640027,
+        "record_submit_p95_us": 41.168988,
+        "retirement_us": 144.582987
+      },
+      "wall_ratio": 1.0861705984652201,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "single",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.135002425015,
+          "wall_ms_per_frame_range": [
+            0.13204573398799999,
+            0.135325527966
+          ],
+          "record_submit_us": 25.709987,
+          "record_submit_p95_us": 29.910028,
+          "retirement_us": 133.774012
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.15148861897000002,
+          "wall_ms_per_frame_range": [
+            0.15119218599800002,
+            0.15445527601200001
+          ],
+          "record_submit_us": 38.2944945,
+          "record_submit_p95_us": 47.939956,
+          "retirement_us": 148.484021
+        },
+        "wall_ratio": 1.1221177616118247
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "single",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.118311907947,
+        "wall_ms_per_frame_range": [
+          0.118146438003,
+          0.11996407097600001
+        ],
+        "record_submit_us": 11.285007,
+        "record_submit_p95_us": 14.379978,
+        "retirement_us": 117.4584925
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.118586515009,
+        "wall_ms_per_frame_range": [
+          0.11767264598600001,
+          0.118968518972
+        ],
+        "record_submit_us": 10.989994,
+        "record_submit_p95_us": 13.920009,
+        "retirement_us": 117.78399300000001
+      },
+      "wall_ratio": 1.002321043306334,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "single",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.11761413800699999,
+          "wall_ms_per_frame_range": [
+            0.117063088,
+            0.120649084032
+          ],
+          "record_submit_us": 10.624497999999999,
+          "record_submit_p95_us": 13.419986,
+          "retirement_us": 116.798997
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.120036343038,
+          "wall_ms_per_frame_range": [
+            0.119239034951,
+            0.12239854002
+          ],
+          "record_submit_us": 10.890007,
+          "record_submit_p95_us": 14.559031000000001,
+          "retirement_us": 118.89401099999999
+        },
+        "wall_ratio": 1.0205945056610102
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "single",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.087787304997,
+        "wall_ms_per_frame_range": [
+          0.087770567,
+          0.087849984944
+        ],
+        "record_submit_us": 24.805009500000004,
+        "record_submit_p95_us": 29.299974,
+        "retirement_us": 175.0985085
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.08863942498,
+        "wall_ms_per_frame_range": [
+          0.088638788044,
+          0.08873159498
+        ],
+        "record_submit_us": 31.9000185,
+        "record_submit_p95_us": 37.859975999999996,
+        "retirement_us": 176.782995
+      },
+      "wall_ratio": 1.0097066424698777,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "single",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.087692367971,
+          "wall_ms_per_frame_range": [
+            0.087653251946,
+            0.08807416200599999
+          ],
+          "record_submit_us": 25.840014,
+          "record_submit_p95_us": 30.310035,
+          "retirement_us": 175.07854099999997
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.09001801699400001,
+          "wall_ms_per_frame_range": [
+            0.08992316299700001,
+            0.09003944998999999
+          ],
+          "record_submit_us": 36.629975,
+          "record_submit_p95_us": 42.760014999999996,
+          "retirement_us": 179.597974
+        },
+        "wall_ratio": 1.0265205408042934
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "single",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.087773907006,
+        "wall_ms_per_frame_range": [
+          0.087772957027,
+          0.087823175013
+        ],
+        "record_submit_us": 10.670005999999999,
+        "record_submit_p95_us": 13.329983,
+        "retirement_us": 175.028026
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.088642005026,
+        "wall_ms_per_frame_range": [
+          0.088633756995,
+          0.088662958026
+        ],
+        "record_submit_us": 10.959983,
+        "record_submit_p95_us": 13.799965,
+        "retirement_us": 176.778018
+      },
+      "wall_ratio": 1.0098901604088406,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "single",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.087664508045,
+          "wall_ms_per_frame_range": [
+            0.087632780969,
+            0.087688603997
+          ],
+          "record_submit_us": 10.98001,
+          "record_submit_p95_us": 13.490021,
+          "retirement_us": 175.06849749999998
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.089976836026,
+          "wall_ms_per_frame_range": [
+            0.089947712958,
+            0.08997738897799999
+          ],
+          "record_submit_us": 10.870039,
+          "record_submit_p95_us": 12.279986999999998,
+          "retirement_us": 179.59850999999998
+        },
+        "wall_ratio": 1.0263770142851087
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "multi",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.13086737096300002,
+        "wall_ms_per_frame_range": [
+          0.130685455024,
+          0.131172641039
+        ],
+        "record_submit_us": 24.039984,
+        "record_submit_p95_us": 29.599011,
+        "retirement_us": 129.443973
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.134958007991,
+        "wall_ms_per_frame_range": [
+          0.13367446100699998,
+          0.135633952975
+        ],
+        "record_submit_us": 27.279973,
+        "record_submit_p95_us": 33.499002,
+        "retirement_us": 133.468509
+      },
+      "wall_ratio": 1.0312578834425925,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "multi",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.12804804098599998,
+          "wall_ms_per_frame_range": [
+            0.126989763975,
+            0.131409117997
+          ],
+          "record_submit_us": 22.920012,
+          "record_submit_p95_us": 28.340042,
+          "retirement_us": 126.7639995
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.134998260021,
+          "wall_ms_per_frame_range": [
+            0.131220075011,
+            0.135171168983
+          ],
+          "record_submit_us": 26.799977,
+          "record_submit_p95_us": 29.74999,
+          "retirement_us": 133.828998
+        },
+        "wall_ratio": 1.0542782145004461
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "multi",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.11504634398199999,
+        "wall_ms_per_frame_range": [
+          0.114442667961,
+          0.117147319973
+        ],
+        "record_submit_us": 10.6745065,
+        "record_submit_p95_us": 13.960004,
+        "retirement_us": 114.28850849999999
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.11664106404800001,
+        "wall_ms_per_frame_range": [
+          0.11601275301,
+          0.118549024999
+        ],
+        "record_submit_us": 11.799990999999999,
+        "record_submit_p95_us": 13.740003000000002,
+        "retirement_us": 115.724027
+      },
+      "wall_ratio": 1.0138615449287942,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "multi",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.116305859983,
+          "wall_ms_per_frame_range": [
+            0.114527271986,
+            0.117912380993
+          ],
+          "record_submit_us": 11.860013,
+          "record_submit_p95_us": 12.610018,
+          "retirement_us": 115.969479
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.118504525959,
+          "wall_ms_per_frame_range": [
+            0.114982010007,
+            0.118637090027
+          ],
+          "record_submit_us": 12.218982,
+          "record_submit_p95_us": 13.419986,
+          "retirement_us": 117.8895235
+        },
+        "wall_ratio": 1.018904171950763
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "multi",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.085185343027,
+        "wall_ms_per_frame_range": [
+          0.08518122500200001,
+          0.085261932969
+        ],
+        "record_submit_us": 22.740006,
+        "record_submit_p95_us": 26.870012,
+        "retirement_us": 169.783026
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.086009263992,
+        "wall_ms_per_frame_range": [
+          0.08598681694299999,
+          0.086041885018
+        ],
+        "record_submit_us": 26.560008999999997,
+        "record_submit_p95_us": 32.950044,
+        "retirement_us": 171.427995
+      },
+      "wall_ratio": 1.009672097754409,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "multi",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.085094521999,
+          "wall_ms_per_frame_range": [
+            0.085088889003,
+            0.085136964977
+          ],
+          "record_submit_us": 22.830008999999997,
+          "record_submit_p95_us": 28.259993,
+          "retirement_us": 169.758499
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.085888405979,
+          "wall_ms_per_frame_range": [
+            0.08586454302100001,
+            0.08592443799999999
+          ],
+          "record_submit_us": 25.328994,
+          "record_submit_p95_us": 29.429972,
+          "retirement_us": 171.384007
+        },
+        "wall_ratio": 1.009329436976088
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "multi",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.085253364027,
+        "wall_ms_per_frame_range": [
+          0.08521728301,
+          0.085292962968
+        ],
+        "record_submit_us": 11.739999000000001,
+        "record_submit_p95_us": 13.689995,
+        "retirement_us": 169.79297999999997
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.08604329597900001,
+        "wall_ms_per_frame_range": [
+          0.086042934,
+          0.08605281501999999
+        ],
+        "record_submit_us": 10.950029,
+        "record_submit_p95_us": 13.648987,
+        "retirement_us": 171.4334785
+      },
+      "wall_ratio": 1.0092656983218848,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "multi",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.085078108966,
+          "wall_ms_per_frame_range": [
+            0.08507485199,
+            0.085086054981
+          ],
+          "record_submit_us": 10.660052,
+          "record_submit_p95_us": 12.880027,
+          "retirement_us": 169.6985065
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.085837195992,
+          "wall_ms_per_frame_range": [
+            0.08583514201600001,
+            0.08586738902300001
+          ],
+          "record_submit_us": 10.920018,
+          "record_submit_p95_us": 13.549983999999998,
+          "retirement_us": 171.30899399999998
+        },
+        "wall_ratio": 1.0089222366978485
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "count",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.126255221009,
+        "wall_ms_per_frame_range": [
+          0.126036364019,
+          0.128023014009
+        ],
+        "record_submit_us": 22.419989,
+        "record_submit_p95_us": 27.580022999999997,
+        "retirement_us": 125.733495
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.13326550501599999,
+        "wall_ms_per_frame_range": [
+          0.133135056973,
+          0.134904779971
+        ],
+        "record_submit_us": 26.739955,
+        "record_submit_p95_us": 30.310035,
+        "retirement_us": 132.7135265
+      },
+      "wall_ratio": 1.0555247058377115,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "count",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.12903846800299998,
+          "wall_ms_per_frame_range": [
+            0.125973416984,
+            0.129038887024
+          ],
+          "record_submit_us": 23.42999,
+          "record_submit_p95_us": 26.199996,
+          "retirement_us": 128.014505
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.131860579967,
+          "wall_ms_per_frame_range": [
+            0.130241409004,
+            0.132458929956
+          ],
+          "record_submit_us": 25.349468,
+          "record_submit_p95_us": 32.019973,
+          "retirement_us": 130.9440135
+        },
+        "wall_ratio": 1.0218703151678337
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "count",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.115549457014,
+        "wall_ms_per_frame_range": [
+          0.11290915501099999,
+          0.11560972696499999
+        ],
+        "record_submit_us": 11.870027,
+        "record_submit_p95_us": 13.040006,
+        "retirement_us": 114.89900949999999
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.11588506501899999,
+        "wall_ms_per_frame_range": [
+          0.11405918198800001,
+          0.117158680022
+        ],
+        "record_submit_us": 12.109488500000001,
+        "record_submit_p95_us": 13.849974,
+        "retirement_us": 115.52900100000001
+      },
+      "wall_ratio": 1.0029044533282343,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "count",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.113206233978,
+          "wall_ms_per_frame_range": [
+            0.112669471979,
+            0.11338292104
+          ],
+          "record_submit_us": 10.580003,
+          "record_submit_p95_us": 13.449967000000001,
+          "retirement_us": 112.899989
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.113764859974,
+          "wall_ms_per_frame_range": [
+            0.113506130993,
+            0.11545525997900001
+          ],
+          "record_submit_us": 10.889947000000001,
+          "record_submit_p95_us": 13.380051,
+          "retirement_us": 113.494009
+        },
+        "wall_ratio": 1.004934586871855
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "count",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.083820330024,
+        "wall_ms_per_frame_range": [
+          0.083774847984,
+          0.083843397975
+        ],
+        "record_submit_us": 23.590028,
+        "record_submit_p95_us": 29.380023,
+        "retirement_us": 166.998029
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.084609911025,
+        "wall_ms_per_frame_range": [
+          0.08456519895799999,
+          0.084672079027
+        ],
+        "record_submit_us": 25.250018,
+        "record_submit_p95_us": 32.000005,
+        "retirement_us": 168.69351300000002
+      },
+      "wall_ratio": 1.0094199223598133,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "count",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.083717882991,
+          "wall_ms_per_frame_range": [
+            0.083683889985,
+            0.083812514961
+          ],
+          "record_submit_us": 22.855014,
+          "record_submit_p95_us": 28.479993,
+          "retirement_us": 166.983515
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.084493524015,
+          "wall_ms_per_frame_range": [
+            0.08445880699200001,
+            0.084580519021
+          ],
+          "record_submit_us": 25.130033,
+          "record_submit_p95_us": 31.509995,
+          "retirement_us": 168.66850849999997
+        },
+        "wall_ratio": 1.0092649383415893
+      }
+    },
+    {
+      "capacity": 64,
+      "strategy": "count",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.083881947994,
+        "wall_ms_per_frame_range": [
+          0.083829997003,
+          0.083927888989
+        ],
+        "record_submit_us": 10.829985,
+        "record_submit_p95_us": 13.849974,
+        "retirement_us": 167.11801300000002
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.084700159967,
+        "wall_ms_per_frame_range": [
+          0.084638291001,
+          0.084739657998
+        ],
+        "record_submit_us": 12.25999,
+        "record_submit_p95_us": 14.890015,
+        "retirement_us": 168.788016
+      },
+      "wall_ratio": 1.0097543272726395,
+      "baseline": {
+        "capacity": 64,
+        "strategy": "count",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.083695172966,
+          "wall_ms_per_frame_range": [
+            0.08368295997399999,
+            0.083711865962
+          ],
+          "record_submit_us": 10.720015,
+          "record_submit_p95_us": 13.130009,
+          "retirement_us": 166.8834985
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.084445324004,
+          "wall_ms_per_frame_range": [
+            0.084442807019,
+            0.08446962899
+          ],
+          "record_submit_us": 10.949969000000001,
+          "record_submit_p95_us": 13.779997999999999,
+          "retirement_us": 168.52349049999998
+        },
+        "wall_ratio": 1.0089628948888694
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "single",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.202391915977,
+        "wall_ms_per_frame_range": [
+          0.202058695018,
+          0.206014654994
+        ],
+        "record_submit_us": 38.17004,
+        "record_submit_p95_us": 46.389043,
+        "retirement_us": 200.897992
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.250766835988,
+        "wall_ms_per_frame_range": [
+          0.247990320981,
+          0.252901071012
+        ],
+        "record_submit_us": 73.998988,
+        "record_submit_p95_us": 83.709002,
+        "retirement_us": 246.951997
+      },
+      "wall_ratio": 1.2390160682924578,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "single",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.204915325999,
+          "wall_ms_per_frame_range": [
+            0.204450582027,
+            0.205564307988
+          ],
+          "record_submit_us": 39.37947749999999,
+          "record_submit_p95_us": 46.350002,
+          "retirement_us": 203.927994
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.36939447802299996,
+          "wall_ms_per_frame_range": [
+            0.364019657016,
+            0.370462212026
+          ],
+          "record_submit_us": 122.873992,
+          "record_submit_p95_us": 131.89899899999998,
+          "retirement_us": 366.5225205
+        },
+        "wall_ratio": 1.8026688644303874
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "single",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.175600823998,
+        "wall_ms_per_frame_range": [
+          0.17530716300000002,
+          0.175960668027
+        ],
+        "record_submit_us": 12.429982500000001,
+        "record_submit_p95_us": 14.210045,
+        "retirement_us": 175.217986
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.176653483033,
+        "wall_ms_per_frame_range": [
+          0.176442923009,
+          0.17708049398700001
+        ],
+        "record_submit_us": 12.600005,
+        "record_submit_p95_us": 15.578985,
+        "retirement_us": 176.1884985
+      },
+      "wall_ratio": 1.0059946132998328,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "single",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.17872432297500002,
+          "wall_ms_per_frame_range": [
+            0.178110396028,
+            0.178899607003
+          ],
+          "record_submit_us": 13.800025,
+          "record_submit_p95_us": 15.389979,
+          "retirement_us": 178.28401900000003
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.190507849991,
+          "wall_ms_per_frame_range": [
+            0.189747858942,
+            0.191649208009
+          ],
+          "record_submit_us": 13.860017000000001,
+          "record_submit_p95_us": 14.779985,
+          "retirement_us": 190.497994
+        },
+        "wall_ratio": 1.0659313003392845
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "single",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.144527187049,
+        "wall_ms_per_frame_range": [
+          0.144307555974,
+          0.14458066695900001
+        ],
+        "record_submit_us": 39.704472,
+        "record_submit_p95_us": 47.720015,
+        "retirement_us": 288.27697
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.145455056012,
+        "wall_ms_per_frame_range": [
+          0.145359766006,
+          0.14548107701500002
+        ],
+        "record_submit_us": 69.659978,
+        "record_submit_p95_us": 80.81901099999999,
+        "retirement_us": 289.876997
+      },
+      "wall_ratio": 1.0064200305973259,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "single",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.144300632954,
+          "wall_ms_per_frame_range": [
+            0.144218393981,
+            0.144323576987
+          ],
+          "record_submit_us": 39.770007,
+          "record_submit_p95_us": 45.210004,
+          "retirement_us": 288.217008
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.15730685401,
+          "wall_ms_per_frame_range": [
+            0.157171561003,
+            0.157860574007
+          ],
+          "record_submit_us": 112.608969,
+          "record_submit_p95_us": 123.52901700000001,
+          "retirement_us": 313.827038
+        },
+        "wall_ratio": 1.0901328066949374
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "single",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.144514025986,
+        "wall_ms_per_frame_range": [
+          0.144464129031,
+          0.144536383986
+        ],
+        "record_submit_us": 12.4344825,
+        "record_submit_p95_us": 15.109003,
+        "retirement_us": 288.2669865
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.145306817949,
+        "wall_ms_per_frame_range": [
+          0.145245909989,
+          0.145344786048
+        ],
+        "record_submit_us": 12.419998999999999,
+        "record_submit_p95_us": 15.240014,
+        "retirement_us": 289.86704299999997
+      },
+      "wall_ratio": 1.0054859170768435,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "single",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.14429490798699998,
+          "wall_ms_per_frame_range": [
+            0.14428135401,
+            0.144309751987
+          ],
+          "record_submit_us": 12.519956,
+          "record_submit_p95_us": 15.249967999999999,
+          "retirement_us": 288.228035
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.156894461989,
+          "wall_ms_per_frame_range": [
+            0.156865704,
+            0.156904036999
+          ],
+          "record_submit_us": 12.950003,
+          "record_submit_p95_us": 15.369952,
+          "retirement_us": 313.50252
+        },
+        "wall_ratio": 1.087318077801714
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "multi",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.164505210996,
+        "wall_ms_per_frame_range": [
+          0.163334752023,
+          0.164807789981
+        ],
+        "record_submit_us": 23.023993,
+        "record_submit_p95_us": 32.958983999999994,
+        "retirement_us": 163.20800799999998
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.168655795991,
+        "wall_ms_per_frame_range": [
+          0.168059243977,
+          0.168774013996
+        ],
+        "record_submit_us": 26.339978,
+        "record_submit_p95_us": 30.669987,
+        "retirement_us": 167.387992
+      },
+      "wall_ratio": 1.0252307204730489,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "multi",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.164728520036,
+          "wall_ms_per_frame_range": [
+            0.162147886992,
+            0.165254108012
+          ],
+          "record_submit_us": 22.819996,
+          "record_submit_p95_us": 28.109014000000002,
+          "retirement_us": 162.8485025
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.167388225019,
+          "wall_ms_per_frame_range": [
+            0.167219123006,
+            0.169656109989
+          ],
+          "record_submit_us": 25.659978,
+          "record_submit_p95_us": 31.890034999999997,
+          "retirement_us": 166.63402299999998
+        },
+        "wall_ratio": 1.0161459896708762
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "multi",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.153763146996,
+        "wall_ms_per_frame_range": [
+          0.149277962983,
+          0.153984266043
+        ],
+        "record_submit_us": 12.509972000000001,
+        "record_submit_p95_us": 14.310002,
+        "retirement_us": 152.857989
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.152028155029,
+        "wall_ms_per_frame_range": [
+          0.15182936900900001,
+          0.15403393203
+        ],
+        "record_submit_us": 12.539983,
+        "record_submit_p95_us": 15.079021,
+        "retirement_us": 150.913477
+      },
+      "wall_ratio": 0.9887164642445492,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "multi",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.152430869043,
+          "wall_ms_per_frame_range": [
+            0.151830263019,
+            0.15304836899
+          ],
+          "record_submit_us": 12.369990000000001,
+          "record_submit_p95_us": 14.24998,
+          "retirement_us": 151.718527
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.152070492029,
+          "wall_ms_per_frame_range": [
+            0.152023370981,
+            0.154735065997
+          ],
+          "record_submit_us": 12.549996,
+          "record_submit_p95_us": 14.720023000000001,
+          "retirement_us": 150.9734985
+        },
+        "wall_ratio": 0.9976358003056564
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "multi",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.120388024986,
+        "wall_ms_per_frame_range": [
+          0.120321137965,
+          0.12039295500500001
+        ],
+        "record_submit_us": 24.210036000000002,
+        "record_submit_p95_us": 30.210018,
+        "retirement_us": 240.0870025
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.121160326004,
+        "wall_ms_per_frame_range": [
+          0.121095510006,
+          0.121198548019
+        ],
+        "record_submit_us": 26.1495115,
+        "record_submit_p95_us": 33.508956,
+        "retirement_us": 241.632998
+      },
+      "wall_ratio": 1.0064150983296702,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "multi",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.12017606502799999,
+          "wall_ms_per_frame_range": [
+            0.12015942102699999,
+            0.12018601596400001
+          ],
+          "record_submit_us": 23.180007999999997,
+          "record_submit_p95_us": 29.049993,
+          "retirement_us": 239.9180235
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.12092337900399999,
+          "wall_ms_per_frame_range": [
+            0.120915520966,
+            0.12096973496699999
+          ],
+          "record_submit_us": 26.8699825,
+          "record_submit_p95_us": 32.660007,
+          "retirement_us": 240.95302800000002
+        },
+        "wall_ratio": 1.006218492640992
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "multi",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.120365857005,
+        "wall_ms_per_frame_range": [
+          0.12031825602099999,
+          0.120429943979
+        ],
+        "record_submit_us": 11.0000075,
+        "record_submit_p95_us": 13.418972,
+        "retirement_us": 240.2624785
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.121183098018,
+        "wall_ms_per_frame_range": [
+          0.12115285795900001,
+          0.121216975033
+        ],
+        "record_submit_us": 11.179984000000001,
+        "record_submit_p95_us": 14.390051,
+        "retirement_us": 241.84247850000003
+      },
+      "wall_ratio": 1.0067896414592559,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "multi",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.12018726497900001,
+          "wall_ms_per_frame_range": [
+            0.120159030974,
+            0.120196165979
+          ],
+          "record_submit_us": 12.099981,
+          "record_submit_p95_us": 14.650046999999999,
+          "retirement_us": 239.8780285
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.12093123799599999,
+          "wall_ms_per_frame_range": [
+            0.120928139985,
+            0.120994513988
+          ],
+          "record_submit_us": 11.020005,
+          "record_submit_p95_us": 13.790011,
+          "retirement_us": 241.563022
+        },
+        "wall_ratio": 1.006190115210043
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "count",
+      "slots": 1,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.150796269953,
+        "wall_ms_per_frame_range": [
+          0.148880778015,
+          0.15085647797600002
+        ],
+        "record_submit_us": 24.420023,
+        "record_submit_p95_us": 29.650033,
+        "retirement_us": 150.23350749999997
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.153675526023,
+        "wall_ms_per_frame_range": [
+          0.15348348999,
+          0.154995526016
+        ],
+        "record_submit_us": 27.060002,
+        "record_submit_p95_us": 32.840014000000004,
+        "retirement_us": 152.14800849999997
+      },
+      "wall_ratio": 1.0190936822966337,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "count",
+        "slots": 1,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.149262705028,
+          "wall_ms_per_frame_range": [
+            0.14719818598,
+            0.151175020039
+          ],
+          "record_submit_us": 24.300008999999996,
+          "record_submit_p95_us": 28.739989,
+          "retirement_us": 148.2190195
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.15355855,
+          "wall_ms_per_frame_range": [
+            0.152736658037,
+            0.153645874977
+          ],
+          "record_submit_us": 26.340008,
+          "record_submit_p95_us": 31.369983999999995,
+          "retirement_us": 152.038485
+        },
+        "wall_ratio": 1.028780430926762
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "count",
+      "slots": 1,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.135118928015,
+        "wall_ms_per_frame_range": [
+          0.135039040029,
+          0.13553749102399998
+        ],
+        "record_submit_us": 11.745006,
+        "record_submit_p95_us": 13.559997000000001,
+        "retirement_us": 134.6335115
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.136179937005,
+        "wall_ms_per_frame_range": [
+          0.136073466003,
+          0.13777467900499998
+        ],
+        "record_submit_us": 11.879980999999999,
+        "record_submit_p95_us": 14.918983,
+        "retirement_us": 134.9134745
+      },
+      "wall_ratio": 1.0078524082864408,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "count",
+        "slots": 1,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.137597146988,
+          "wall_ms_per_frame_range": [
+            0.135005958021,
+            0.137608743012
+          ],
+          "record_submit_us": 12.049496,
+          "record_submit_p95_us": 14.360011,
+          "retirement_us": 136.55403249999998
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.135689301968,
+          "wall_ms_per_frame_range": [
+            0.135552323043,
+            0.13803431797
+          ],
+          "record_submit_us": 11.3949775,
+          "record_submit_p95_us": 13.960004,
+          "retirement_us": 135.4390085
+        },
+        "wall_ratio": 0.9861345597509636
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "count",
+      "slots": 2,
+      "policy": "reset",
+      "native": {
+        "wall_ms_per_frame_median": 0.104787504017,
+        "wall_ms_per_frame_range": [
+          0.104778033972,
+          0.105128379047
+        ],
+        "record_submit_us": 23.919045999999998,
+        "record_submit_p95_us": 30.360043,
+        "retirement_us": 212.297499
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.105609874964,
+        "wall_ms_per_frame_range": [
+          0.105585686982,
+          0.105624884009
+        ],
+        "record_submit_us": 26.0799825,
+        "record_submit_p95_us": 31.189024,
+        "retirement_us": 213.902533
+      },
+      "wall_ratio": 1.007847986787304,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "count",
+        "slots": 2,
+        "policy": "reset",
+        "native": {
+          "wall_ms_per_frame_median": 0.104597081006,
+          "wall_ms_per_frame_range": [
+            0.104523635983,
+            0.104625549018
+          ],
+          "record_submit_us": 23.824989999999996,
+          "record_submit_p95_us": 29.170036,
+          "retirement_us": 212.26799499999998
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.105379345,
+          "wall_ms_per_frame_range": [
+            0.105377602994,
+            0.105403797984
+          ],
+          "record_submit_us": 26.759982,
+          "record_submit_p95_us": 31.679987999999998,
+          "retirement_us": 213.80302299999997
+        },
+        "wall_ratio": 1.0074788319757713
+      }
+    },
+    {
+      "capacity": 512,
+      "strategy": "count",
+      "slots": 2,
+      "policy": "replay",
+      "native": {
+        "wall_ms_per_frame_median": 0.104787194014,
+        "wall_ms_per_frame_range": [
+          0.10473239397999999,
+          0.104846152008
+        ],
+        "record_submit_us": 10.879992999999999,
+        "record_submit_p95_us": 13.350010000000001,
+        "retirement_us": 212.298006
+      },
+      "public": {
+        "wall_ms_per_frame_median": 0.10558187598,
+        "wall_ms_per_frame_range": [
+          0.105561956048,
+          0.105660242975
+        ],
+        "record_submit_us": 11.000037,
+        "record_submit_p95_us": 13.830006000000001,
+        "retirement_us": 213.99802
+      },
+      "wall_ratio": 1.0075837698821655,
+      "baseline": {
+        "capacity": 512,
+        "strategy": "count",
+        "slots": 2,
+        "policy": "replay",
+        "native": {
+          "wall_ms_per_frame_median": 0.104571978986,
+          "wall_ms_per_frame_range": [
+            0.104431662977,
+            0.104612614989
+          ],
+          "record_submit_us": 10.990024,
+          "record_submit_p95_us": 13.310015,
+          "retirement_us": 212.17849850000002
+        },
+        "public": {
+          "wall_ms_per_frame_median": 0.10539233499799999,
+          "wall_ms_per_frame_range": [
+            0.105350358009,
+            0.105960906982
+          ],
+          "record_submit_us": 12.300014,
+          "record_submit_p95_us": 14.890015,
+          "retirement_us": 213.8879595
+        },
+        "wall_ratio": 1.0078448932491735
+      }
+    }
+  ]
+}

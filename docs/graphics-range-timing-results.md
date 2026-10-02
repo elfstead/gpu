@@ -5,6 +5,9 @@ validation/traced correctness run of the same source. This is the first timing
 increment of the [predeclared brief](indexed-depth-performance-plan.md#first-timing-increment-grouped-gpu-copy-complete),
 not full M4 or general Vulkan parity.
 
+Follow-up: the [draw-state correction](graphics-draw-state-results.md) is accepted
+at `3df8349`; this page preserves the original pre-correction measurements.
+
 ## Scope and measurements
 
 RX 5700 XT / RADV, 257×193, capacities 1/64/512, separate/fixed/count draw strategies,
