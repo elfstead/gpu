@@ -11,7 +11,8 @@ are complete, followed by the [generated range handoff](draw-count-followup.md).
 The [small matched range/replay correctness](graphics-range-reuse-results.md)
 passes at `6ae1d5a`; [first grouped timings](graphics-range-timing-results.md) and
 the [draw-state correction](graphics-draw-state-results.md) are now accepted.
-**Useful-scale/scope controls remain open**. The local
+[Useful-scale correctness](graphics-range-scale-results.md) now passes at `c7fb560`;
+**labelled scope controls and useful-scale timing remain open**. The local
 software counted→fixed failure is retained separately; Radeon work can continue.
 It refines step 4 of the [slice proposal](indexed-depth-proposal.md).
 

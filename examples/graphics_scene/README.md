@@ -202,11 +202,14 @@ backends = 72 cases. Each slot independently cycles the eight changing-count
 inputs. Checks compare every image, generated geometry/record/count and guard byte;
 traces establish native draw capacity, binding/root counts, pools, resets,
 submissions and balanced equal allocation budgets. `--preflight` uses 16 frames
-per case, `--software` 64, and the default 1,000. No timing is performed yet.
+per case, `--software` 64, and the default 1,000. `--scale` requires a native
+`frontier.py --identity --scale` reference and adds 16 frames for each of the same
+72 configurations at 1280×720, while preserving the small sustained matrix.
+No timing is performed by this correctness runner.
 
-The native controls bind raster/index/root once per range/group; separate public
-calls currently repeat that state. The trace preserves this implementation cost
-rather than making the native control artificially repeat public work. The
+Both encoders now bind identical consecutive raster/index/root state once per
+group, without fusing native draw operations or changing identity. The trace
+checks compiled replay bindings as well as hot recording deltas. The
 [counted→fixed driver regression](../../docs/draw-count-followup.md) remains a
 separate strict test; these scenes do not mix count/fixed operations in one scope.
 

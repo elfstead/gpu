@@ -290,8 +290,10 @@ native, while 512 separate calls expose avoidable-state-work candidates and a
 1.803 ratio at one-slot reset. The [draw-state correction](graphics-draw-state-results.md)
 at `3df8349` preserves every draw while reducing that ratio to 1.239 and separate
 replay to 1.006. Another 76,608 correctness frames and 216,000 timing samples pass;
-the separate-reset host gap remains unresolved backend work. Next add useful-scale/
-scope controls and complete scene handoff, without inferring general API parity.
+the separate-reset host gap remains unresolved backend work. The [useful-scale
+correctness gate](graphics-range-scale-results.md) at `c7fb560` adds 1,152 720p
+frames plus a fresh sustained small matrix. Next add labelled scope controls and
+useful-scale timing, then complete scene handoff, without inferring general API parity.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and

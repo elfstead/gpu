@@ -1,0 +1,25 @@
+Frontier evidence: /home/elf/dev/gpu/target/graphics-scene/frontier-1muttfgz
+......
+----------------------------------------------------------------------
+Ran 6 tests in 0.018s
+
+OK
+257x193-1-single: eight frames, generated records/count, guards and native strategy PASS
+257x193-1-multi: eight frames, generated records/count, guards and native strategy PASS
+257x193-1-count: eight frames, generated records/count, guards and native strategy PASS
+257x193-64-single: eight frames, generated records/count, guards and native strategy PASS
+257x193-64-multi: eight frames, generated records/count, guards and native strategy PASS
+257x193-64-count: eight frames, generated records/count, guards and native strategy PASS
+257x193-512-single: eight frames, generated records/count, guards and native strategy PASS
+257x193-512-multi: eight frames, generated records/count, guards and native strategy PASS
+257x193-512-count: eight frames, generated records/count, guards and native strategy PASS
+1280x720-1-single: eight frames, generated records/count, guards and native strategy PASS
+1280x720-1-multi: eight frames, generated records/count, guards and native strategy PASS
+1280x720-1-count: eight frames, generated records/count, guards and native strategy PASS
+1280x720-64-single: eight frames, generated records/count, guards and native strategy PASS
+1280x720-64-multi: eight frames, generated records/count, guards and native strategy PASS
+1280x720-64-count: eight frames, generated records/count, guards and native strategy PASS
+1280x720-512-single: eight frames, generated records/count, guards and native strategy PASS
+1280x720-512-multi: eight frames, generated records/count, guards and native strategy PASS
+1280x720-512-count: eight frames, generated records/count, guards and native strategy PASS
+Native indexed frontier PASS; no timing/API acceptance
