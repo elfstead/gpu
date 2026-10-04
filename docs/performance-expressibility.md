@@ -37,6 +37,12 @@ This table records the initial pre-ABI-13 restrictions; accepted changes follow 
 These restrictions are real; their workload-specific performance consequences
 are not automatically proven. Alternative APIs below are candidates, not decisions.
 
+Active 2026-10-04 follow-up: [per-operation argument reuse](argument-reuse-plan.md)
+separates repeated root-snapshot obligations from backend-only collection/encoding
+costs. Whole-command replay does not by itself preserve argument reuse when
+command topology changes. The [scope/scale results](graphics-scope-scale-results.md)
+do not approve the fundamental per-call argument shape.
+
 | ID | Current contract | Potentially excluded strategy / required check | Initial disposition |
 |---|---|---|---|
 | P1 | One queue; all device/child host calls externally serialized | Independent command preparation; explicit cross-engine transfer/compute scheduling. One queue does not mean one frame in flight. Inventory queue families; test single-queue slots first, cross-queue control separately. | Unresolved; separate host and GPU concurrency questions |

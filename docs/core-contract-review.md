@@ -15,6 +15,7 @@ command fusion, scheduling or allocation policies that the contract cannot expre
 | Concern | Bounded question / proposed control | Current evidence boundary |
 |---|---|---|
 | GPU-driven work and replay | Mutable indirect ranges/counts, draw identity and changing work without CPU readback; distinguish fixed replay from changing command topology | M4 draw decision supplies its bounded result; wider device-generated commands are not thereby accepted |
+| Argument/state reuse | Hoist unchanged argument supply independently of changed command topology; compare immutable snapshots/recording-local binding with per-call value snapshots | [Active M4 follow-up](argument-reuse-plan.md), pulled forward after scope/scale timing; not deferred to stabilization |
 | Descriptor independence | Update an unused slot while another slot is in flight; compare with duplicated immutable heaps under equal budgets | Whole-heap mutation restriction remains; consumer/control brief not yet selected |
 | Allocation, placement and aliasing | Compare a selected suballocation/streaming or transient-image workload with a native placement/aliasing strategy, including backing and visibility lifetime | HOST ranges accepted for stated cases; image aliasing, broader placement and noncoherent hardware remain open |
 | Host concurrency | Independent command preparation from two host threads with explicit shared-object rules | Current host serialization is a subset restriction, not a demonstrated permanent requirement |

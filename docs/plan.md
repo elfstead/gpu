@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-02. This page owns current status and selected work. The
+Updated 2026-10-04. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -290,10 +290,15 @@ native, while 512 separate calls expose avoidable-state-work candidates and a
 1.803 ratio at one-slot reset. The [draw-state correction](graphics-draw-state-results.md)
 at `3df8349` preserves every draw while reducing that ratio to 1.239 and separate
 replay to 1.006. Another 76,608 correctness frames and 216,000 timing samples pass;
-the separate-reset host gap remains unresolved backend work. The [useful-scale
+the separate-reset host gap still needs implementation/contract classification. The [useful-scale
 correctness gate](graphics-range-scale-results.md) at `c7fb560` adds 1,152 720p
-frames plus a fresh sustained small matrix. Next add labelled scope controls and
-useful-scale timing, then complete scene handoff, without inferring general API parity.
+frames plus a fresh sustained small matrix. The [scope/scale acceptance](graphics-scope-scale-results.md)
+at `497e019` adds 103,680 correctness frames and 576,000 timing samples. It retains
+grouped/range/scoped strategy choices while confirming that large GPU work hides
+the separate-reset host gap. Next complete the installed scene handoff, then the
+[argument/state reuse probe](argument-reuse-plan.md): per-call root snapshot
+obligations must not be dismissed as backend-only work. General API parity and
+the fundamental per-operation argument shape remain unapproved.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and

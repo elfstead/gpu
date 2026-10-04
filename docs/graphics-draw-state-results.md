@@ -66,9 +66,11 @@ The command traces establish removal of redundant backend work. The timing chang
 is consistent with a substantial benefit, while the remaining separate-reset host
 gap is real evidence to keep investigating. Two-slot throughput does not erase
 that host cost. Per-call validation, copied roots, retained objects and deferred
-step encoding are candidates—not measured explanations. They do not establish an
-unavoidable API penalty: native implementations could encode equivalent commands
-directly. Preserve the API-level strategy gate independently of these timings.
+step encoding are candidates—not measured explanations. Direct encoding can avoid
+deferred-step overhead, but cannot assume unchanged caller root bytes. The
+[subsequent argument/state audit](argument-reuse-plan.md) separates that contract
+obligation from implementation cost; neither the entire gap nor its absence is
+established as inherent by this measurement.
 
 ## Next
 

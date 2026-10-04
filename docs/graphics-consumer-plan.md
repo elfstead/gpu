@@ -88,7 +88,7 @@ Stable slots, stronger native multi-record/count correctness and
 [range/count contract](indirect-draw-ranges.md) is implemented at ABI 19, with
 capability/lifetime gates, generated range handoff, [grouped timing and state
 correction](graphics-draw-state-results.md), and [useful-scale correctness](graphics-range-scale-results.md).
-Next: labelled scope controls and useful-scale timing under the
-[measurement brief](indexed-depth-performance-plan.md), then complete installed
-scene handoff before the mip/view slice. General API performance remains a gate,
-not a conclusion inferred from these bounded comparisons.
+The [scope/scale measurements](graphics-scope-scale-results.md) are now accepted.
+Next: complete installed scene handoff, then the [argument/state reuse audit](argument-reuse-plan.md)
+before the mip/view slice. General API performance remains a gate, not a conclusion
+inferred from these bounded comparisons.
