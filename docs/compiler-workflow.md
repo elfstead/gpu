@@ -280,3 +280,27 @@ possible shader correctness or resource obligations. This narrow success does
 not prove a general compiler workflow for matrices or native Metal artifacts.
 The later graphics subset is bounded, not a general vertex/fragment linker or
 graphics profile. Those limits do not keep the original experiment open.
+
+## Generated indexed/depth scene handoff
+
+`python3 examples/graphics_scene/generated.py [--check]` applies the same bounded
+adapter to the full scene's UINT16/UINT32 compute producers and vertex/fragment
+pair. Supplied headers embed the compiler's native artifacts; C code uses generated
+argument field names and compatibility checks. The ordinary raw-shader native/
+public controls remain available. The generated path is the serial scene, not the
+raw-root replay/timing harness.
+
+The SDK now ships `examples/indexed-scene` with its copied C source graph, shader
+sources, generated headers and independent analytic oracle. `tools/test-install.py
+--indexed-scene [--shader-check]` checks relocation, installed-only headers/runtime,
+missing-loader rejection, both index widths and shared-root stale/regeneration
+behavior with unchanged host code. Clean native acceptance is recorded separately
+from development runs. The optional `--shader-check` needs the pinned toolchain;
+building/running supplied artifacts does not.
+
+`examples/graphics_scene/handoff.py --prefix SDK --consumer COPIED_SCENE` compares
+successful installed runs with fresh direct Vulkan using exact original SDK
+artifact bytes, not assumed historical shader identity. It checks all pixels,
+depth, geometry and guards, including the regenerated-root output variant. A
+historical producer refactor changed compute SPIR-V without changing this scene's
+expected output; the current generated adapter does not rewrite device code.

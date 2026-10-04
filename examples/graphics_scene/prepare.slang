@@ -1,4 +1,4 @@
-// Consumer-owned native control, not an extension of the installed adapter subset.
+// Shared procedural geometry control; also compiled unchanged by the installed adapter.
 struct Root {
     float* vertices;
     uint* indices;

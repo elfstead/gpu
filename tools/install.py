@@ -138,6 +138,13 @@ def install(prefix):
     for name in ("affine.slang", "affine_math.slang", "include/arguments.slangh", "include/config.slangh",
                  "include/math.slangh", "affine.generated.h", "build.json"):
         copy(ROOT / "examples/compiler/dependencies" / name, "share/ogpu/examples/dependencies/"+name)
+    for name in ("public.c", "prepare.slang", "prepare16.slang", "scene.vert.slang", "scene.frag.slang",
+                 "scene_prepare.generated.h", "scene_prepare16.generated.h", "scene_pair.generated.h", "oracle.py"):
+        copy(ROOT / "examples/graphics_scene" / name, "share/ogpu/examples/indexed-scene/"+name)
+    copy(ROOT / "examples/graphics_scene/generated.c", "share/ogpu/examples/indexed-scene/main.c")
+    copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/indexed-scene/build.py")
+    for name in ("run.py", "README.md"):
+        copy(ROOT / "tools/sdk/indexed-scene" / name, "share/ogpu/examples/indexed-scene/"+name)
     copy(ROOT / "examples/compiler/affine.c", "share/ogpu/examples/dependencies/main.c")
     copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/dependencies/build.py")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")

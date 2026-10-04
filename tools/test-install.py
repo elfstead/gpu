@@ -43,6 +43,7 @@ def main():
     parser.add_argument("--heap-image", action="store_true", help="also build/execute generated image/sampler heap roots")
     parser.add_argument("--stage-pair", action="store_true", help="also build/execute an offline checked graphics pair")
     parser.add_argument("--draw-ranges", action="store_true", help="also check generated draw identity and GPU counts with reset/replay")
+    parser.add_argument("--indexed-scene", action="store_true", help="also check the generated UINT16/UINT32 indexed/depth scene")
     parser.add_argument("--dependencies", action="store_true", help="also check transitive shader inputs and generated outputs")
     parser.add_argument("--shader-check", action="store_true", help="also use installed compiler adapter (needs Slang/SPIRV-Tools)")
     args = parser.parse_args()
@@ -364,6 +365,62 @@ def main():
             run(pair, cwd=ranges, env=environment)
             execute_ranges()
         print("Relocated generated draw-range consumer PASS")
+    if args.indexed_scene:
+        scene = temporary / "independent indexed scene app"
+        shutil.copytree(prefix / "share/ogpu/examples/indexed-scene", scene)
+        previous = None
+        def execute_scene():
+            nonlocal previous
+            run([sys.executable, "build.py", "--output", "scene"], cwd=scene, env=environment)
+            linked = run(["ldd", "./scene"], cwd=scene, env=environment)
+            selected = next((line.split("=>", 1)[1].rsplit(" (", 1)[0].strip()
+                            for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")), None)
+            require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so", "scene runtime escaped SDK")
+            flags = shlex.split(run([pkg, "--cflags", "ogpu"], cwd=scene, env=environment))
+            dependencies = run([*shlex.split(os.getenv("CC", "cc")), "-MM", "-I.", *flags, "main.c"], cwd=scene, env=environment)
+            paths = {(scene / p).resolve() for p in shlex.split(dependencies.replace("\\\n", "").split(":", 1)[1])}
+            require(prefix / "include/ogpu.h" in paths and all(p == prefix / "include/ogpu.h" or p.is_relative_to(scene) for p in paths),
+                    "scene escaped copied source graph/installed header")
+            symbols = run(["nm", "-u", "./scene"], cwd=scene, env=environment)
+            require("ogpu_batch_draw_indexed_indirect" in symbols and not any(
+                line.split()[-1].startswith("vk") for line in symbols.splitlines() if line.split()), "scene bypassed public boundary")
+            failed = subprocess.run(["./scene", "257", "193", "-", ".", "32"], cwd=scene, env=missing, text=True, capture_output=True)
+            require(failed.returncode != 0 and "ogpu_probe_create" in failed.stderr, "scene missing loader not diagnosed")
+            if not args.no_gpu:
+                before = set(scene.glob("run-*/report.json"))
+                output = run([sys.executable, "-B", "run.py"], cwd=scene, env=environment)
+                require("Installed generated indexed/depth scene PASS" in output, "scene execution gate missing")
+                added = set(scene.glob("run-*/report.json")) - before
+                require(len(added) == 1, "missing/duplicate scene report")
+                report = json.loads(added.pop().read_text())
+                require(report["complete"] and report["revision"] == identity and report["abi"] == int(abi)
+                        and len(report["runs"]) == 2 and all(len(r["checks"]) == 30 for r in report["runs"]), "scene acceptance incomplete")
+                outputs = {r["index_bytes"]: {k: v for k, v in r["files"].items() if k.endswith((".images", ".geometry"))} for r in report["runs"]}
+                if previous is not None: require(outputs == previous, "regenerated scene outputs changed")
+                previous = outputs
+        execute_scene()
+        if args.shader_check:
+            commands = [[str(prefix / "bin/ogpu-shader"), "--stage", "compute", "--source", source,
+                         "--name", name, "--output", name+".generated.h", "--build-dir", name+"-build"]
+                        for source, name in (("prepare.slang", "scene_prepare"), ("prepare16.slang", "scene_prepare16"))]
+            pair = [str(prefix / "bin/ogpu-graphics"), "--vertex-source", "scene.vert.slang", "--fragment-source", "scene.frag.slang",
+                    "--name", "scene_pair", "--output", "scene_pair.generated.h", "--build-dir", "pair-build"]
+            for command in commands+[pair]:run([*command, "--check"], cwd=scene, env=environment)
+            host_hashes = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in (scene/"main.c", scene/"public.c")}
+            source = scene / "prepare.slang"; original = source.read_text()
+            changed = original.replace("    float* vertices;\n    uint* indices;\n    uint* draws;",
+                                       "    uint* draws;\n    float* vertices;\n    uint* indices;")
+            require(changed != original, "scene root mutation missing")
+            source.write_text(changed)
+            for command in commands:
+                stale = subprocess.run([*command, "--check"], cwd=scene, env=environment, text=True, capture_output=True)
+                require(stale.returncode != 0 and "stale generated interface" in stale.stderr, "stale/shared scene root accepted")
+                run(command, cwd=scene, env=environment)
+                run([*command, "--check"], cwd=scene, env=environment)
+            run(pair, cwd=scene, env=environment)
+            require(host_hashes == {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in (scene/"main.c", scene/"public.c")}, "scene host changed")
+            execute_scene()
+        print("Relocated generated indexed/depth scene PASS")
     print(f"External installation {'build' if args.no_gpu else 'execution'} PASS; revision={identity}, ABI={abi}; artifacts retained: {temporary}")
 
 

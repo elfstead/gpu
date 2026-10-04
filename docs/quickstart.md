@@ -60,6 +60,7 @@ share/ogpu/examples/structured/          # generated nested root and pointer blo
 share/ogpu/examples/heap-image/          # generated image/sampler heap roots
 share/ogpu/examples/stage-pair/          # checked vertex/fragment varyings
 share/ogpu/examples/draw-ranges/         # GPU counts, draw identity, reset/replay
+share/ogpu/examples/indexed-scene/       # full serial indexed/depth scene, typed roots and CPU oracle
 share/ogpu/examples/dependencies/        # nested includes/import + build receipt
 share/ogpu/examples/resource-reuse/      # two-slot arena/replay + CPU oracle/model
 share/ogpu/QUICKSTART.md
@@ -186,6 +187,13 @@ For the ABI-19 range contract, copy `examples/draw-ranges`, run
 of fixed/count ranges, local identity, indexed/non-indexed drawing and reset/replay
 using generated embedded shaders. No compiler or Vulkan headers are needed.
 This is a correctness handoff, not a benchmark or the full indexed/depth scene.
+
+For that scene, copy `examples/indexed-scene`, run `python3 build.py --output scene`
+then `python3 run.py`. Both index widths cover 30 analytic color/depth/geometry/
+guard frames each, with independent CLEAR/LOAD and A/B/A checks; `--scale` adds
+720p. Generated artifacts are supplied, so execution needs no shader compiler or
+checkout. The included README documents regeneration and explicit root-pointer
+lifetimes. This is the indexed/depth slice, not the later mip/view/blend scene.
 The strict counted→fixed case currently fails on local llvmpipe Mesa 26.2.1 and
 also fails in direct Vulkan; see the [known regression](draw-count-followup.md).
 It verifies interpolated coordinates, a flat integer and exact RGBA8 pixels/guards.

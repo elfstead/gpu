@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef SCENE_GENERATED
+#ifdef SCENE_REUSE_CONSUMER
+#error Generated scene handoff uses typed per-frame roots, not the raw-root reuse harness
+#endif
+#include "scene_prepare.generated.h"
+#include "scene_prepare16.generated.h"
+#include "scene_pair.generated.h"
+#endif
 
 #define NEED(x) do { if (!(x)) { fprintf(stderr,"Check failed line %d: %s\n",__LINE__,#x); return 0; } } while (0)
 #define GPU(x) do { OgpuResult status_=(x); if(status_!=OGPU_SUCCESS) { \
@@ -11,6 +19,8 @@
 
 enum { GUARD=64, MODES=10 };
 typedef struct { uint64_t vertices, indices, draws; uint32_t phase, empty; } SceneRoot;
+/* The raw control uses this fixed layout. The generated handoff treats it as
+ * logical host data and constructs typed shader arguments by generated field name. */
 _Static_assert(sizeof(SceneRoot)==32 && offsetof(SceneRoot,phase)==24, "compute root layout");
 _Static_assert(sizeof(OgpuDrawIndexedArguments)==20 && offsetof(OgpuDrawIndexedArguments,vertex_offset)==12, "indirect layout");
 typedef struct {
@@ -41,6 +51,7 @@ static int frontier_draw(Scene *s, unsigned pipeline, const OgpuIndexRange *indi
 static int path_join(char out[4096], const char *directory, const char *name) {
     int n=snprintf(out,4096,"%s/%s",directory,name); return n>=0 && n<4096;
 }
+#ifndef SCENE_GENERATED
 static int read_shader(Scene *s, unsigned index, const char *directory, const char *name) {
     char path[4096]; NEED(path_join(path,directory,name));
     FILE *f=fopen(path,"rb"); if(!f) { perror(path); return 0; }
@@ -52,6 +63,7 @@ static int read_shader(Scene *s, unsigned index, const char *directory, const ch
 done:
     if(fclose(f)) okay=0; return okay;
 }
+#endif
 #if !defined(SCENE_REUSE_CONSUMER) || (defined(SCENE_PUBLIC_FRONTIER) && !defined(FRONTIER_REUSE))
 static int write_file(const char *directory, const char *name, const void *data, size_t bytes) {
     char path[4096]; NEED(path_join(path,directory,name));
@@ -70,6 +82,13 @@ static int submit_wait(Scene *s) {
     GPU(ogpu_completion_wait(s->completion,&s->error));
     ogpu_completion_destroy(s->completion); s->completion=NULL; return 1;
 }
+static uint32_t scene_compute_bytes(const Scene *s) {
+#ifdef SCENE_GENERATED
+    return s->index_bytes==2 ? scene_prepare16_push_size : scene_prepare_push_size;
+#else
+    (void)s;return sizeof(SceneRoot);
+#endif
+}
 static int scene_create_context(Scene *s, const char *directory) {
     GPU(ogpu_probe_create(OGPU_ABI_VERSION,&s->probe,&s->error));
     uint32_t count=0; GPU(ogpu_probe_device_count(s->probe,&count));
@@ -80,12 +99,25 @@ static int scene_create_context(Scene *s, const char *directory) {
     printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",
         info.vendor_id,info.device_id,info.vulkan_api_major,info.vulkan_api_minor,info.vulkan_api_patch);
     printf("PUBLIC_SCENE {\"abi\":%u,\"index_bytes\":%u,\"gpu_generated\":true}\n",OGPU_ABI_VERSION,s->index_bytes);
+#ifdef SCENE_GENERATED
+    (void)directory;
+    OgpuCapabilities caps;OgpuDeviceLimits limits;
+    GPU(ogpu_device_capabilities(s->device,&caps,&s->error));GPU(ogpu_device_limits(s->device,&limits,&s->error));
+    NEED(scene_pair_vertex_compatible(&caps,&limits) && scene_pair_fragment_compatible(&caps,&limits));
+    NEED(s->index_bytes==2 ? scene_prepare16_compatible(&caps,&limits) : scene_prepare_compatible(&caps,&limits));
+    OgpuShaderDesc shaders[]={s->index_bytes==2 ? scene_prepare16_shader() : scene_prepare_shader(),
+        scene_pair_vertex_shader(),scene_pair_fragment_shader()};
+    uint32_t raster_bytes=scene_pair_push_size;
+    printf("GENERATED_SCENE {\"compute_push_bytes\":%u,\"vertex_push_bytes\":%u}\n",scene_compute_bytes(s),raster_bytes);
+#else
     NEED(read_shader(s,0,directory,"compute.spv") && read_shader(s,1,directory,"vertex.spv") && read_shader(s,2,directory,"fragment.spv"));
     OgpuShaderDesc shaders[3]={0};
     for(unsigned i=0;i<3;++i) { shaders[i].code=s->shaders[i]; shaders[i].code_size=s->shader_bytes[i]; shaders[i].format=OGPU_SHADER_SPIRV; }
-    GPU(ogpu_kernel_create(s->device,&shaders[0],sizeof(SceneRoot),&s->prepare,&s->error));
+    uint32_t raster_bytes=8;
+#endif
+    GPU(ogpu_kernel_create(s->device,&shaders[0],scene_compute_bytes(s),&s->prepare,&s->error));
     for(unsigned i=0;i<4;++i) {
-        OgpuRasterDesc desc={8,OGPU_TOPOLOGY_TRIANGLE_LIST,OGPU_FORMAT_RGBA8_UNORM,OGPU_FORMAT_D32_FLOAT,
+        OgpuRasterDesc desc={raster_bytes,OGPU_TOPOLOGY_TRIANGLE_LIST,OGPU_FORMAT_RGBA8_UNORM,OGPU_FORMAT_D32_FLOAT,
             i!=1,i!=2,i==3 ? OGPU_COMPARE_ALWAYS : OGPU_COMPARE_LESS,0};
         GPU(ogpu_raster_create(s->device,&shaders[1],&shaders[2],&desc,&s->raster[i],&s->error));
     }
@@ -124,9 +156,15 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
 #ifdef SCENE_PUBLIC_FRONTIER
     (void)count;NEED(frontier_draw(s,pipeline,&indices,first));
 #else
+#ifdef SCENE_GENERATED
+    const Scene_pair_vertexArguments arguments={.arg_vertices=s->root.vertices};
+    const void *draw_root=&arguments;uint32_t draw_bytes=sizeof(arguments);
+#else
+    const void *draw_root=&s->root.vertices;uint32_t draw_bytes=8;
+#endif
     for(unsigned i=0;i<count;++i) {
         unsigned which=(first+i)%2;
-        GPU(ogpu_batch_draw_indexed_indirect(s->batch, s->raster[pipeline], &indices, &(OgpuIndirectRange){.buffer=s->draws,.offset=GUARD+20*which,.stride_bytes=20,.max_draw_count=1}, &s->root.vertices, 8, &s->error));
+        GPU(ogpu_batch_draw_indexed_indirect(s->batch, s->raster[pipeline], &indices, &(OgpuIndirectRange){.buffer=s->draws,.offset=GUARD+20*which,.stride_bytes=20,.max_draw_count=1}, draw_root, draw_bytes, &s->error));
     }
 #endif
     GPU(ogpu_batch_end_rendering(s->batch,&s->error)); return 1;
@@ -134,7 +172,7 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
 static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COMPUTE_WRITE|OGPU_ACCESS_VERTEX_READ|OGPU_ACCESS_INDEX_READ|
         OGPU_ACCESS_INDIRECT_READ|OGPU_ACCESS_TRANSFER_READ|OGPU_ACCESS_TRANSFER_WRITE,OGPU_ACCESS_COMPUTE_WRITE,&s->error));
-    GPU(ogpu_batch_dispatch(s->batch,s->prepare,1,1,1,compute_root,sizeof(SceneRoot),&s->error));
+    GPU(ogpu_batch_dispatch(s->batch,s->prepare,1,1,1,compute_root,scene_compute_bytes(s),&s->error));
     GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_INDEX_READ|OGPU_ACCESS_VERTEX_READ|OGPU_ACCESS_INDIRECT_READ,&s->error));
     /* Match the native control's per-frame discard policy, not a requirement to
@@ -167,7 +205,19 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
 static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, const char *directory) {
     GPU(ogpu_batch_create(s->device,&s->batch,&s->error));
     s->root.phase=phase; s->root.empty=mode==9;
+#ifdef SCENE_GENERATED
+    if(s->index_bytes==2) {
+        const Scene_prepare16Arguments root={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
+            .arg_draws=s->root.draws,.arg_phase=phase,.arg_empty=mode==9};
+        NEED(scene_commands(s,mode,&root));
+    } else {
+        const Scene_prepareArguments root={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
+            .arg_draws=s->root.draws,.arg_phase=phase,.arg_empty=mode==9};
+        NEED(scene_commands(s,mode,&root));
+    }
+#else
     NEED(scene_commands(s,mode,&s->root));
+#endif
     NEED(submit_wait(s));
     GPU(ogpu_buffer_read(s->readback,0,s->cpu,2*s->pixels+4*GUARD,&s->error));
     char name[128]; snprintf(name,sizeof(name),"mode-%u-frame-%u.images",mode,frame);

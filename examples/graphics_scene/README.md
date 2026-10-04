@@ -229,3 +229,20 @@ round; such a report is not timing acceptance. No software timing is claimed.
 Use matching `--scale` and/or `--scopes` on correctness and timing runs. Full
 timing always uses 1,000 samples per process, including 720p; scope and extent
 labels are validated explicitly and never pooled with grouped small controls.
+
+### Generated installed scene
+
+`python3 examples/graphics_scene/generated.py [--check]` generates/verifies the
+UINT16/UINT32 compute headers and checked graphics pair, then builds `generated.c`.
+It selects the typed-root branch of the same public renderer. The installed
+`share/ogpu/examples/indexed-scene` directory includes everything needed for C11/
+pkg-config/Python consumption, without Slang, Vulkan headers or a checkout.
+Run its `build.py --output scene` and `run.py`; see its README for regeneration.
+
+The repository test `tools/test-install.py --prefix SDK --indexed-scene --shader-check`
+relocates the SDK, validates all 60 small frames, reorders the shared compute root,
+rejects stale headers and repeats with unchanged host code. Then use
+`handoff.py --prefix SDK --consumer COPIED_SCENE` to compare both supplied and
+regenerated outputs with direct Vulkan using the original SDK's exact artifacts.
+The latter requires a clean matching SDK/revision; `--development` explicitly
+relaxes provenance and is not acceptance. This is correctness/handoff, not timing.
