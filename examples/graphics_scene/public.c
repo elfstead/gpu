@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef SCENE_RASTER_BYTES
+#define SCENE_RASTER_BYTES 8u
+#endif
 #ifdef SCENE_GENERATED
 #ifdef SCENE_REUSE_CONSUMER
 #error Generated scene handoff uses typed per-frame roots, not the raw-root reuse harness
@@ -113,7 +116,7 @@ static int scene_create_context(Scene *s, const char *directory) {
     NEED(read_shader(s,0,directory,"compute.spv") && read_shader(s,1,directory,"vertex.spv") && read_shader(s,2,directory,"fragment.spv"));
     OgpuShaderDesc shaders[3]={0};
     for(unsigned i=0;i<3;++i) { shaders[i].code=s->shaders[i]; shaders[i].code_size=s->shader_bytes[i]; shaders[i].format=OGPU_SHADER_SPIRV; }
-    uint32_t raster_bytes=8;
+    uint32_t raster_bytes=SCENE_RASTER_BYTES;
 #endif
     GPU(ogpu_kernel_create(s->device,&shaders[0],scene_compute_bytes(s),&s->prepare,&s->error));
     for(unsigned i=0;i<4;++i) {

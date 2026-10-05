@@ -84,6 +84,20 @@ failure, not a successful skipped test. All accepted work drains before teardown
 
 ## Stable scene reuse
 
+The separate `argument_snapshot.py [--build-only]` control begins the
+[argument-reuse audit](../../docs/argument-reuse-plan.md). It compiles observable
+8/64/256-byte roots, queries limits (unsupported larger sizes are explicit), and
+checks four saved scopes with equal/equal/changed/equal roots at one host address.
+Every draw poisons caller bytes immediately afterward; public calls also reject
+wrong-sized roots before a successful retry. Pointer mutation moves the near
+quad even at eight bytes; each larger-root word contributes to output color.
+Both drivers must independently pass the interior oracle and match direct Vulkan
+byte-for-byte, including edges, depth and guards. This serialized diagnostic
+uses extra saved-output storage; it is not the planned matched-budget timing or
+native bind-once experiment. Run `test_argument_snapshot.py` without a GPU for
+oracle/log rejection tests. Select one ICD and Vulkan/synchronization validation
+for execution. No API/runtime change is introduced by the probe.
+
 `reuse.py` implements the first correctness increment from the
 [performance brief](../../docs/indexed-depth-performance-plan.md), not timing.
 It uses one shared device/queue and shared prepared executables, with one/two

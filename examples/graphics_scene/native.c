@@ -2,6 +2,9 @@
 #define main learned_image_unused_main
 #include "../learned_image/native.c"
 #undef main
+#ifndef SCENE_RASTER_BYTES
+#define SCENE_RASTER_BYTES 8u
+#endif
 
 enum { GUARD = 64, MODES = 10 };
 typedef struct { uint64_t vertices, indices, draws; uint32_t phase, empty; } SceneRoot;
@@ -40,7 +43,7 @@ done:
 }
 
 static int scene_raster(Scene *s, unsigned mode, const char *directory) {
-    Native *n = s->n; NativeProgram *p = &s->raster[mode]; p->root_size = 8;
+    Native *n = s->n; NativeProgram *p = &s->raster[mode]; p->root_size = SCENE_RASTER_BYTES;
     NEED(scene_shader(n, p, 0, directory, "vertex.spv") && scene_shader(n, p, 1, directory, "fragment.spv"));
     VkPipelineShaderStageCreateInfo stages[2] = {
         {.sType=VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .stage=VK_SHADER_STAGE_VERTEX_BIT, .module=p->modules[0], .pName="main"},
@@ -130,7 +133,9 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     n->vkCmdBindPipeline(b->command, VK_PIPELINE_BIND_POINT_GRAPHICS, p->pipeline);
     VkViewport viewport = {.width=(float)s->width, .height=(float)s->height, .maxDepth=1};
     n->vkCmdSetViewport(b->command, 0, 1, &viewport); n->vkCmdSetScissor(b->command, 0, 1, &area);
+#ifndef SCENE_ARGUMENT_ROOT
     uint64_t address=s->vertices.address+GUARD; NEED(native_push(n,b,p,&address,sizeof(address)));
+#endif
     VkBindIndexBuffer3InfoKHR indices = {.sType=VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR,
         .addressRange={s->indices.address+GUARD,8*s->index_bytes}, .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,
         .indexType=s->index_bytes==2 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32};

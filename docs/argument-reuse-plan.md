@@ -73,3 +73,20 @@ cross-device/size rejection, empty operations, boundary behavior, failed recordi
 and destruction/retirement before implementation. Keep convenience per-call
 arguments only if they are clearly layered and do not constrain the foundation.
 No current timing result authorizes general parity or API freezing.
+
+## First implementation increment
+
+`examples/graphics_scene/argument_snapshot.py` implements a diagnostic precursor,
+not the strategy/timing matrix above. It uses 8/64/256-byte roots with observable
+pointer and weighted payload fields, four saved rendering scopes, same-address
+mutation within a scope, immediate host overwrite, and wrong-size rejection with
+valid retry. Native and public use exact same-size shader artifacts, an independent
+interior color/depth oracle and complete output-byte comparison. The eight-byte
+control queries limits before larger variants; unsupported sizes remain explicit.
+The extra saved-output allocation is a correctness instrument, not a timing budget.
+
+Remaining: changing command sequences at 1/64/512 draws and one/two slots; native
+bind-once versus resupply (optionally compare/dedup); diagnostic input/native-push
+counts; public collection/encoding decomposition; candidate contract comparison.
+Passing snapshot semantics is not evidence that obligating every caller to
+resupply the bytes is the best fundamental design.
