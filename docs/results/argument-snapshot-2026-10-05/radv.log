@@ -1,0 +1,6 @@
+Argument snapshot evidence: /home/elf/dev/gpu/target/graphics-scene/argument-snapshot-dkxssf9l
+    Finished `release` profile [optimized] target(s) in 0.02s
+8-byte roots: same-address mutation, rejected-call retry, overwrite and native byte match PASS
+64-byte roots: same-address mutation, rejected-call retry, overwrite and native byte match PASS
+256-byte roots: same-address mutation, rejected-call retry, overwrite and native byte match PASS
+Argument snapshot PASS; strategy/timing audit remains open

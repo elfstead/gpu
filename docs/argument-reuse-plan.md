@@ -84,6 +84,9 @@ valid retry. Native and public use exact same-size shader artifacts, an independ
 interior color/depth oracle and complete output-byte comparison. The eight-byte
 control queries limits before larger variants; unsupported sizes remain explicit.
 The extra saved-output allocation is a correctness instrument, not a timing budget.
+[Clean acceptance](argument-snapshot-results.md) at `328282b` passes all three
+sizes on both local drivers. [Candidate alternatives](argument-reuse-alternatives.md)
+separate immutable snapshots from recording-local values; neither is selected.
 
 Remaining: changing command sequences at 1/64/512 draws and one/two slots; native
 bind-once versus resupply (optionally compare/dedup); diagnostic input/native-push

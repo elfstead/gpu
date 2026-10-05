@@ -301,6 +301,10 @@ local drivers, including root reordering with unchanged C host code. Next execut
 the [argument/state reuse probe](argument-reuse-plan.md): per-call root snapshot
 obligations must not be dismissed as backend-only work. General API parity and
 the fundamental per-operation argument shape remain unapproved.
+Its [first correctness increment](argument-snapshot-results.md) at `328282b`
+passes observable 8/64/256-byte same-address mutation, overwrite and rejected-call
+retry against direct Vulkan on both drivers. Bind-once/resupply controls, host
+cost decomposition and the argument-contract decision remain next.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and
