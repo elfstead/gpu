@@ -294,8 +294,9 @@ The SDK now ships `examples/indexed-scene` with its copied C source graph, shade
 sources, generated headers and independent analytic oracle. `tools/test-install.py
 --indexed-scene [--shader-check]` checks relocation, installed-only headers/runtime,
 missing-loader rejection, both index widths and shared-root stale/regeneration
-behavior with unchanged host code. Clean native acceptance is recorded separately
-from development runs. The optional `--shader-check` needs the pinned toolchain;
+behavior with unchanged host code. [Clean native acceptance](graphics-scene-handoff-results.md)
+at `4671f67` passes on both local Vulkan drivers, separately from development runs.
+The optional `--shader-check` needs the pinned toolchain;
 building/running supplied artifacts does not.
 
 `examples/graphics_scene/handoff.py --prefix SDK --consumer COPIED_SCENE` compares

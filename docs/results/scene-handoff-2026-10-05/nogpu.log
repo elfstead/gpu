@@ -1,0 +1,76 @@
+Installed SDK consumer test directory: /tmp/ogpu-external-hmskgfvq
+4671f67a7e34b9f920d1fbd122ca2c0c43ea336c
+19
+-I/tmp/ogpu-external-hmskgfvq/relocated\ sdk/lib/pkgconfig/../../include -L/tmp/ogpu-external-hmskgfvq/relocated\ sdk/lib/pkgconfig/../../lib -logpu
+Built /tmp/ogpu-external-hmskgfvq/independent app/transform; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x00007af22c906000)
+	libogpu.so => /tmp/ogpu-external-hmskgfvq/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x00007af22c868000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x00007af22c600000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x00007af22c83b000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x00007af22c908000)
+Missing loader rejects visibly PASS
+Built /tmp/ogpu-external-hmskgfvq/independent indexed scene app/scene; run it to check device compatibility and execute
+	linux-vdso.so.1 (0x0000754814e5b000)
+	libogpu.so => /tmp/ogpu-external-hmskgfvq/relocated sdk/lib/pkgconfig/../../lib/libogpu.so (0x0000754814dba000)
+	libc.so.6 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/libc.so.6 (0x0000754814a00000)
+	libgcc_s.so.1 => /nix/store/0vqb1mcas5j8dv6bhbrshinlgsg6bvgi-gcc-15.3.0-lib/lib/libgcc_s.so.1 (0x0000754814d8d000)
+	/nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib/ld-linux-x86-64.so.2 => /nix/store/n51dhmdbik1kfrsm62j5knavmigwrl1a-glibc-2.42-84/lib64/ld-linux-x86-64.so.2 (0x0000754814e5d000)
+-I/tmp/ogpu-external-hmskgfvq/relocated\ sdk/lib/pkgconfig/../../include
+main.o: main.c public.c \
+  /tmp/ogpu-external-hmskgfvq/relocated\ sdk/lib/pkgconfig/../../include/ogpu.h \
+  scene_prepare.generated.h scene_prepare16.generated.h \
+  scene_pair.generated.h
+                 w _ITM_deregisterTMCloneTable
+                 w _ITM_registerTMCloneTable
+                 w __cxa_finalize@GLIBC_2.2.5
+                 w __gmon_start__
+                 U __libc_start_main@GLIBC_2.34
+                 U fclose@GLIBC_2.2.5
+                 U ferror@GLIBC_2.2.5
+                 U fopen@GLIBC_2.2.5
+                 U fprintf@GLIBC_2.2.5
+                 U free@GLIBC_2.2.5
+                 U fwrite@GLIBC_2.2.5
+                 U malloc@GLIBC_2.2.5
+                 U memset@GLIBC_2.2.5
+                 U ogpu_batch_barrier
+                 U ogpu_batch_begin_rendering
+                 U ogpu_batch_copy_buffer
+                 U ogpu_batch_copy_image_to_buffer
+                 U ogpu_batch_create
+                 U ogpu_batch_destroy
+                 U ogpu_batch_discard_image
+                 U ogpu_batch_dispatch
+                 U ogpu_batch_draw_indexed_indirect
+                 U ogpu_batch_end_rendering
+                 U ogpu_batch_submit
+                 U ogpu_buffer_create
+                 U ogpu_buffer_destroy
+                 U ogpu_buffer_device_address
+                 U ogpu_buffer_read
+                 U ogpu_buffer_write
+                 U ogpu_completion_destroy
+                 U ogpu_completion_wait
+                 U ogpu_device_capabilities
+                 U ogpu_device_create_graphics
+                 U ogpu_device_destroy
+                 U ogpu_device_limits
+                 U ogpu_image_check_support
+                 U ogpu_image_create
+                 U ogpu_image_destroy
+                 U ogpu_kernel_create
+                 U ogpu_kernel_destroy
+                 U ogpu_probe_create
+                 U ogpu_probe_destroy
+                 U ogpu_probe_device_count
+                 U ogpu_probe_device_info
+                 U ogpu_raster_create
+                 U ogpu_raster_destroy
+                 U perror@GLIBC_2.2.5
+                 U printf@GLIBC_2.2.5
+                 U puts@GLIBC_2.2.5
+                 U snprintf@GLIBC_2.2.5
+                 U stderr@GLIBC_2.2.5
+                 U strcmp@GLIBC_2.2.5
+Relocated generated indexed/depth scene PASS
+External installation build PASS; revision=4671f67a7e34b9f920d1fbd122ca2c0c43ea336c, ABI=19; artifacts retained: /tmp/ogpu-external-hmskgfvq

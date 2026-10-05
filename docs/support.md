@@ -1,6 +1,6 @@
 # Current support boundary
 
-Updated 2026-10-04; experimental C ABI 19. Pin a full source revision. This table
+Updated 2026-10-05; experimental C ABI 19. Pin a full source revision. This table
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
@@ -38,8 +38,9 @@ ABI 19 adds explicit fixed/count indirect ranges and local draw identity, with
 retained record/count backing and a queried native capacity limit. The migration
 checkpoint is not full M4 acceptance. Generated draw identity and a small installed
 range consumer are implemented; [matched scope/scale timing](graphics-scope-scale-results.md)
-is accepted. The complete serial indexed/depth handoff is implemented with clean
-native acceptance pending. The [per-operation argument reuse question](argument-reuse-plan.md)
+is accepted. The [complete serial indexed/depth handoff](graphics-scene-handoff-results.md)
+passes clean installed and exact-artifact native checks on both local drivers.
+The [per-operation argument reuse question](argument-reuse-plan.md)
 remains open; bounded timings do not approve the fundamental argument shape.
 The expanded [counted→fixed regression](draw-count-followup.md) fails on local
 llvmpipe and reproduces in direct Vulkan; Radeon passes. No driver workaround or

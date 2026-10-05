@@ -2,8 +2,8 @@
 
 Selected 2026-10-04 after the [scope/scale measurements](graphics-scope-scale-results.md).
 This is an active performance-preservation question, not a decision to introduce
-a bind-state API, argument object or new ABI. Finish the selected installed-scene
-handoff, then run this bounded probe before accepting the per-operation argument
+a bind-state API, argument object or new ABI. The [installed-scene handoff](graphics-scene-handoff-results.md)
+is accepted; run this bounded probe before accepting the per-operation argument
 shape as fundamental and before expanding the next graphics slice.
 
 ## Why the existing classification is insufficient

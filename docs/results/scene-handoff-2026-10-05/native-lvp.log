@@ -1,0 +1,4 @@
+Scene handoff native evidence: /home/elf/dev/gpu/target/graphics-scene/handoff-native-od4fpo_g
+UINT32: exact SDK native artifacts, analytic checks and all installed outputs PASS
+UINT16: exact SDK native artifacts, analytic checks and all installed outputs PASS
+Scene native/installed handoff PASS

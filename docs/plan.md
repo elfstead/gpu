@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-04. This page owns current status and selected work. The
+Updated 2026-10-05. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -35,7 +35,7 @@ from one source revision. No release/tag or cross-version stability is implied.
 | libplacebo | EWA compute, nearest raster and bounded HDR-to-SDR processing match upstream; two-frame reuse and batching remain | Static scene-linear BT.2020 to sRGB conversion, not a general media backend |
 | Learned-image application | Residual CNN, resize/palette and raster share DEVICE buffers; 38 small cases on both Vulkan drivers plus six full-reference video-scale A/B/A groups through 4K/odd extents on Radeon | Tiny synthetic-trained model; no photographic quality or Metal graphics claim |
 | Performance | ABI-15 replay cuts repeated host work about 88% at 512 dispatches; ABI-16 host views remove forced copies and express independent ranges, with 13% less wall time at one slot/4 MiB | Bounded matched-strategy evidence, not approval of the fundamental API or equal total command-memory budgets |
-| Validation | Draw-state checkpoint: 33 GPU tests per Linux driver, 46 ordinary tests, 76,608 matched range frames; range migration also checked 847 ABI values and generated/installed consumers | Useful-scale/scope controls and complete scene handoff remain; known software counted→fixed failure retained; no new Metal or real device-loss evidence |
+| Validation | Draw-state checkpoint: 33 GPU tests per Linux driver, 46 ordinary tests; scope/scale adds 103,680 matched frames; clean full-scene SDK/native handoff passes | Argument-reuse audit and remaining M4 slices open; known software counted→fixed failure retained; no new Metal or real device-loss evidence |
 
 The [performance diagnosis and correction](libplacebo-diagnosis.md) are complete.
 Keep runtime image-memory preference and consumer-side batching. No allocator
@@ -295,8 +295,10 @@ correctness gate](graphics-range-scale-results.md) at `c7fb560` adds 1,152 720p
 frames plus a fresh sustained small matrix. The [scope/scale acceptance](graphics-scope-scale-results.md)
 at `497e019` adds 103,680 correctness frames and 576,000 timing samples. It retains
 grouped/range/scoped strategy choices while confirming that large GPU work hides
-the separate-reset host gap. Next complete the installed scene handoff, then the
-[argument/state reuse probe](argument-reuse-plan.md): per-call root snapshot
+the separate-reset host gap. The [full installed scene handoff](graphics-scene-handoff-results.md)
+at `4671f67` passes 240 installed and 120 exact-artifact native frames on the two
+local drivers, including root reordering with unchanged C host code. Next execute
+the [argument/state reuse probe](argument-reuse-plan.md): per-call root snapshot
 obligations must not be dismissed as backend-only work. General API parity and
 the fundamental per-operation argument shape remain unapproved.
 Diagnostic correctness is not performance acceptance.
