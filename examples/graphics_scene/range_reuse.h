@@ -48,6 +48,16 @@ static int reuse_config(Reuse *r,int argc,char **argv) {
     else if(!strcmp(argv[9],"count")) frontier_strategy=2;
     else return 0;
     NEED(!REUSE_PER_DRAW_SCOPES || frontier_strategy==0);
+#ifdef SCENE_ARGUMENT_REUSE
+    NEED(!REUSE_PER_DRAW_SCOPES && !r->replay && frontier_strategy==0 && r->width==257);
+    printf("ARGUMENT_POLICY {\"bytes\":%u,\"reverse_alternating\":true,\"resupply\":%s}\n",(unsigned)SCENE_RASTER_BYTES,
+#ifdef SCENE_ARGUMENT_RESUPPLY
+        "true"
+#else
+        "false"
+#endif
+    );
+#endif
     printf("RANGE_SCOPE_POLICY {\"per_draw\":%s}\n",REUSE_PER_DRAW_SCOPES ? "true" : "false");
     r->index_bytes=4;r->mode=0;r->shaders=argv[3];r->reference=argv[4];
     r->image_bytes=(size_t)r->width*r->height*8+256;return 1;
@@ -92,6 +102,9 @@ static void reuse_submitted(Reuse *r) {
 static int reuse_summary(Reuse *r) {
     NEED(r->submitted==r->frames && r->checked==r->frames && r->pending==0 && r->peak==r->slots);
     NEED(r->encodes==(r->replay ? r->slots : r->frames));
+#ifdef SCENE_ARGUMENT_DIAGNOSTICS
+    printf("ARGUMENT_INPUT {\"calls\":%" PRIu64 ",\"bytes\":%" PRIu64 "}\n",argument_calls,argument_bytes);
+#endif
     size_t upload=SCENE_DRAW_BYTES>256 ? SCENE_DRAW_BYTES : 256;
     printf("RANGE_SUMMARY {\"frames\":%u,\"slots\":%u,\"capacity\":%u,\"strategy\":%u,\"replay\":%u,"
         "\"encodes\":%u,\"peak_unretired\":%u,\"requested_bytes\":%zu}\n",

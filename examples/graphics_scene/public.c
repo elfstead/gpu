@@ -42,6 +42,9 @@ typedef struct {
     unsigned char *cpu;
     uint32_t *shaders[3];
     uint64_t shader_bytes[3];
+#ifdef SCENE_ARGUMENT_REUSE
+    uint64_t argument_root[SCENE_RASTER_BYTES/8];
+#endif
 } Scene;
 #ifdef SCENE_PUBLIC_FRONTIER
 static int frontier_draw(Scene *s, unsigned pipeline, const OgpuIndexRange *indices, unsigned first);

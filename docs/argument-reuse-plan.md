@@ -93,3 +93,57 @@ bind-once versus resupply (optionally compare/dedup); diagnostic input/native-pu
 counts; public collection/encoding decomposition; candidate contract comparison.
 Passing snapshot semantics is not evidence that obligating every caller to
 resupply the bytes is the best fundamental design.
+
+## Matched reuse controls and timing protocol
+
+`examples/graphics_scene/argument_reuse.py --native IDENTITY_REPORT --snapshots
+SNAPSHOT_REPORT` implements the next matrix. The clean references establish exact
+geometry/coverage, observable root artifacts and device limits; reference colors
+are independently remapped for each constant payload, without changing depth,
+edges or guards. New native/public executions must match every reference byte.
+Larger unsupported root sizes are explicit, based on the accepted same-device
+snapshot limits, and pipeline creation still validates the current device.
+
+Three paths use 8/64/256-byte roots, 1/64/512 separate draws and one/two slots.
+Each slot's root is constructed once. Re-recording alternates forward/reverse
+record offsets, including GPU-zeroed holes, while preserving local DrawIndex=0.
+There is one scope per recording, no fusion, root mutation, list replay or added
+GPU parameter indirection. Native bind-once and resupply differ only in argument
+push placement; public uses its existing consecutive-state elision. Storage,
+readback and dependency policies remain the accepted range-control policies
+(including the existing public/native barrier-count difference).
+
+Diagnostic runs count root supply calls/declared bytes at call boundaries and
+trace actual native push bytes, draw order directions, scopes and draws. These
+are not physical CPU load or cache-traffic measurements. `Batch::draw` currently
+copies the supplied bytes into each retained step; the source audit identifies
+that allocation/copy, not a new hardware counter. Every frame checks full output,
+geometry/count/control/guards, allocation size/type multisets, peak/lifetime
+budgets, native storage resets and absence of successful queue-idle. Default is
+64 frames/configuration; 16 is preflight and 992 provides complete sustained
+eight-generation cycles with two slots. The 54-case full matrix includes all
+three root sizes. No graphics argument API change is part of these controls.
+
+`argument_timing.py --correctness REPORT` requires clean matching sources,
+runtime and complete correctness. It executes 162 fresh processes: three rounds
+of the 54-case matrix, rotating path and root-size order. Each process drains 100
+warmups, measures 992 samples, then checks every final slot byte after both
+windows. Validation, command tracing and argument-supply counters are disabled.
+`--preflight` is one round/16 samples and never timing acceptance. Full GPU
+readback copies remain in the measured command sequence; no isolated GPU time
+or universal parity claim follows.
+
+The existing wall/host/wait/retirement clocks remain. Four additional monotonic
+clock reads per frame, identically placed on native/public paths, bracket:
+
+- Public: batch creation plus command collection; then batch submit, which
+  includes deferred native encoding/finalization and queue submission.
+- Native: pool reset/begin plus native recording/finalization; then submission
+  preparation and the queue call.
+
+These are deliberately different phase meanings, not interchangeable labels for
+pure driver encoding. HOST control writes and remaining bookkeeping stay outside
+the subintervals but inside whole record+submit. Clock overhead remains in wall
+measurements; do not present this as an uninstrumented cost or assign all public
+collection time to copying roots. The optional compare/dedup native control and
+candidate contract implementation remain separate decisions after this evidence.

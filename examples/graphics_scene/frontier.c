@@ -4,6 +4,9 @@ static unsigned frontier_records, frontier_strategy;
 #define SCENE_NATIVE_FRONTIER
 #define SCENE_REUSE_CONSUMER
 #include "native.c"
+#ifdef SCENE_ARGUMENT_REUSE
+#include "argument_reuse.h"
+#endif
 static PFN_vkCmdDrawIndexedIndirectCount2KHR draw_count;
 #ifndef FRONTIER_REUSE
 static int frontier_mark(unsigned phase) {
@@ -19,7 +22,22 @@ static int frontier_draw(Scene *s,unsigned first) {
     VkDrawIndirect2InfoKHR info={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
         .addressRange={s->draws.address+64,20*frontier_records,20},
         .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,.drawCount=frontier_records};
-#ifdef SCENE_RANGE_SCOPES
+#ifdef SCENE_ARGUMENT_REUSE
+    (void)first;NEED(frontier_strategy==0);
+#ifndef SCENE_ARGUMENT_RESUPPLY
+    ARGUMENT_SUPPLIED();
+    NEED(native_push(s->n,&s->batch,&s->raster[0],s->argument_root,SCENE_RASTER_BYTES));
+#endif
+    for(unsigned i=0;i<frontier_records;++i) {
+#ifdef SCENE_ARGUMENT_RESUPPLY
+        ARGUMENT_SUPPLIED();
+        NEED(native_push(s->n,&s->batch,&s->raster[0],s->argument_root,SCENE_RASTER_BYTES));
+#endif
+        info.addressRange.address=s->draws.address+64+20*argument_index(i,frontier_records);
+        info.addressRange.size=20;info.drawCount=1;
+        s->draw_indexed(s->batch.command,&info);
+    }
+#elif defined(SCENE_RANGE_SCOPES)
     NEED(frontier_strategy==0 && first<frontier_records);
     info.addressRange.address+=20*first;info.addressRange.size=20;info.drawCount=1;
     s->draw_indexed(s->batch.command,&info);

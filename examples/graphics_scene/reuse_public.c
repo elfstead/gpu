@@ -33,6 +33,9 @@ static int slot_create(Slot *slot, Scene *context, Reuse *r) {
     GPU(ogpu_recording_storage_create(s->device,&slot->storage,&s->error));
     slot->root[0]=s->root.vertices;slot->root[1]=s->root.indices;slot->root[2]=s->root.draws;
     GPU(ogpu_buffer_device_address(slot->control,&slot->root[3],&s->error));slot->root[3]+=64;
+#ifdef SCENE_ARGUMENT_REUSE
+    argument_prepare(s->argument_root,slot->root[0]);
+#endif
     if(r->replay) {
         NEED(slot_record(slot,r));
         GPU(ogpu_batch_compile(s->batch,0,&slot->list,&s->error)); /* serial */
@@ -44,9 +47,22 @@ static int slot_submit(Slot *slot, Reuse *r, unsigned frame) {
     Scene *s=&slot->scene;NEED(!s->completion);
     unsigned char control[REUSE_CONTROL_BYTES];reuse_control(control,reuse_variant(frame/r->slots));
     GPU(ogpu_buffer_write(slot->control,0,control,sizeof(control),&s->error));
+#ifdef SCENE_ARGUMENT_REUSE
+    argument_reverse=(frame/r->slots)%2;
+#endif
     if(r->replay) GPU(ogpu_command_list_submit(slot->list,&s->completion,&s->error));
     else {
-        NEED(slot_record(slot,r));GPU(ogpu_batch_submit(s->batch,&s->completion,&s->error));
+#ifdef SCENE_ARGUMENT_PROFILE
+        double record_start=argument_clock();
+#endif
+        NEED(slot_record(slot,r));
+#ifdef SCENE_ARGUMENT_PROFILE
+        argument_record_ms=argument_clock()-record_start;double submit_start=argument_clock();
+#endif
+        GPU(ogpu_batch_submit(s->batch,&s->completion,&s->error));
+#ifdef SCENE_ARGUMENT_PROFILE
+        argument_submit_ms=argument_clock()-submit_start;
+#endif
         ogpu_batch_destroy(s->batch);s->batch=NULL;
     }
     slot->frame=frame;reuse_submitted(r);return 1;

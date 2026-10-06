@@ -22,6 +22,9 @@ typedef struct {
     uint32_t width, height, index_bytes;
     size_t pixels;
     unsigned char *cpu;
+#ifdef SCENE_ARGUMENT_REUSE
+    uint64_t argument_root[SCENE_RASTER_BYTES/8];
+#endif
 } Scene;
 #ifdef SCENE_NATIVE_FRONTIER
 static int frontier_draw(Scene *s, unsigned first);

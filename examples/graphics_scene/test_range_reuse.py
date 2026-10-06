@@ -64,6 +64,14 @@ class RangeReuseTests(unittest.TestCase):
                             return stdout,stderr
                         def check():r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes)
                         check()
+                        # Argument-resupply control changes only native pushes,
+                        # not pipeline/index/viewport bindings or draw commands.
+                        for trace in (start,end,final):
+                            trace['vkCmdPushDataEXT']+=(slots if replay else 0 if trace is start else frames)*3
+                        r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes,root_pushes=binds+3)
+                        with self.assertRaises(ValueError):check()
+                        for trace in (start,end,final):
+                            trace['vkCmdPushDataEXT']-=(slots if replay else 0 if trace is start else frames)*3
                         for target,key in ((summary,'encodes'),(summary,'requested_bytes'),(summary,'peak_unretired'),
                             (rows[3],'active'),(rows[3],'generation'),(memory,'live_count'),
                             (end,'vkCmdDrawIndexedIndirect2KHR'),(end,'vkCmdDrawIndexedIndirectCount2KHR'),

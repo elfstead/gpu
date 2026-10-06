@@ -40,6 +40,9 @@ static int slot_create(Slot *slot, Scene *context, Reuse *r) {
     NEED(scene_create_resources(s) && native_buffer_create(s->n,&slot->control,REUSE_CONTROL_BYTES,1));
     slot->root[0]=s->vertices.address+64;slot->root[1]=s->indices.address+64;
     slot->root[2]=s->draws.address+64;slot->root[3]=slot->control.address+64;
+#ifdef SCENE_ARGUMENT_REUSE
+    argument_prepare(s->argument_root,slot->root[0]);
+#endif
     if(r->replay) NEED(slot_record(slot,r));
     return 1;
 }
@@ -48,7 +51,16 @@ static int slot_submit(Slot *slot, Reuse *r, unsigned frame) {
     NEED(!b->pending && !b->value && n->next_value<UINT64_MAX && n->next_value-n->observed_value<n->max_difference);
     unsigned char control[REUSE_CONTROL_BYTES];reuse_control(control,reuse_variant(frame/r->slots));
     NEED(native_write(n,&slot->control,0,control,sizeof(control)));
+#ifdef SCENE_ARGUMENT_REUSE
+    argument_reverse=(frame/r->slots)%2;
+#endif
+#ifdef SCENE_ARGUMENT_PROFILE
+    double record_start=argument_clock();
+#endif
     if(!r->replay) NEED(slot_record(slot,r));
+#ifdef SCENE_ARGUMENT_PROFILE
+    argument_record_ms=argument_clock()-record_start;double submit_start=argument_clock();
+#endif
     b->value=++n->next_value;
     VkCommandBufferSubmitInfo command={.sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,.commandBuffer=b->command};
     VkSemaphoreSubmitInfo signal={.sType=VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,.semaphore=n->timeline,
@@ -60,6 +72,9 @@ static int slot_submit(Slot *slot, Reuse *r, unsigned frame) {
         if(result!=VK_ERROR_OUT_OF_HOST_MEMORY && result!=VK_ERROR_OUT_OF_DEVICE_MEMORY && result!=VK_ERROR_DEVICE_LOST) native_drain(n);
         return vk_ok(result,"reuse submit");
     }
+#ifdef SCENE_ARGUMENT_PROFILE
+    argument_submit_ms=argument_clock()-submit_start;
+#endif
     b->pending=1;slot->frame=frame;reuse_submitted(r);return 1;
 }
 static int slot_observe(Slot *slot, Reuse *r) {

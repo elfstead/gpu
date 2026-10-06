@@ -3,6 +3,9 @@ static unsigned frontier_records, frontier_strategy;
 #define SCENE_PUBLIC_FRONTIER
 #define SCENE_REUSE_CONSUMER
 #include "public.c"
+#ifdef SCENE_ARGUMENT_REUSE
+#include "argument_reuse.h"
+#endif
 #include <dlfcn.h>
 #ifndef FRONTIER_REUSE
 static int mark(unsigned phase) {
@@ -15,7 +18,15 @@ static int mark(unsigned phase) {
 #endif
 static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indices,unsigned first) {
     OgpuIndirectRange draws={.buffer=s->draws,.offset=64,.stride_bytes=20,.max_draw_count=frontier_records};
-#ifdef SCENE_RANGE_SCOPES
+#ifdef SCENE_ARGUMENT_REUSE
+    (void)first;NEED(frontier_strategy==0);
+    for(unsigned i=0;i<frontier_records;++i) {
+        draws.offset=64+20*argument_index(i,frontier_records);draws.max_draw_count=1;
+        ARGUMENT_SUPPLIED();
+        GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&draws,
+            s->argument_root,SCENE_RASTER_BYTES,&s->error));
+    }
+#elif defined(SCENE_RANGE_SCOPES)
     NEED(frontier_strategy==0 && first<frontier_records);
     draws.offset+=20*first;draws.max_draw_count=1;
     GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&draws,&s->root.vertices,8,&s->error));

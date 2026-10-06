@@ -14,7 +14,7 @@ ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
 
 
-def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193,scopes=False):
+def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193,scopes=False,root_pushes=None):
     require(not scopes or strategy=='single','per-draw scopes preserve separate-call identity only')
     require(f.rows(stdout,'RANGE_SCOPE_POLICY ')==[dict(per_draw=scopes)],'wrong scope policy label')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failed')
@@ -61,9 +61,12 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     require(end['vkCmdDrawIndexedIndirect2KHR']==(0 if strategy=='count' else encodes*draws_per_record)
             and end['vkCmdDrawIndexedIndirectCount2KHR']==(encodes if strategy=='count' else 0),'wrong compiled native range strategy')
     binds=capacity if scopes and backend=='public' else 1
+    root_pushes=binds if root_pushes is None else root_pushes
+    require(root_pushes>=1,'invalid root push count')
     for name in ('vkCmdBindPipeline','vkCmdPushDataEXT'):
-        require(hot[name]==recorded*(1+binds),'wrong compute/raster binding count')
-        require(end[name]==encodes*(1+binds),'wrong compiled compute/raster binding count')
+        expected_binds=root_pushes if name=='vkCmdPushDataEXT' else binds
+        require(hot[name]==recorded*(1+expected_binds),'wrong compute/raster binding count')
+        require(end[name]==encodes*(1+expected_binds),'wrong compiled compute/raster binding count')
     require(hot['vkCmdBindIndexBuffer3KHR']==recorded*binds,'wrong index binding count')
     require(end['vkCmdBindIndexBuffer3KHR']==encodes*binds,'wrong compiled index binding count')
     for name in ('vkCmdSetViewport','vkCmdSetScissor'):

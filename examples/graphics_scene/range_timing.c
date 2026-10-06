@@ -10,7 +10,11 @@
 #include "reuse_public.c"
 #endif
 #include <time.h>
-typedef struct { double start,record_submit,wait,latency; } Sample;
+typedef struct { double start,record_submit,wait,latency;
+#ifdef SCENE_ARGUMENT_PROFILE
+    double record,submit;
+#endif
+} Sample;
 static double clock_ms(void) {
     struct timespec now;if(clock_gettime(CLOCK_MONOTONIC,&now)) abort();
     return now.tv_sec*1000.0+now.tv_nsec/1000000.0;
@@ -50,6 +54,9 @@ static int window(Slot slots[2],Reuse *r,unsigned frames,Sample *samples,double 
         if(f>=r->slots) NEED(timing_retire(slot,r,samples));
         samples[f].start=clock_ms();NEED(slot_submit(slot,r,f));
         samples[f].record_submit=clock_ms()-samples[f].start;
+#ifdef SCENE_ARGUMENT_PROFILE
+        samples[f].record=argument_record_ms;samples[f].submit=argument_submit_ms;
+#endif
     }
     for(unsigned f=frames-r->slots;f<frames;++f) NEED(timing_retire(&slots[f%r->slots],r,samples));
     *wall=clock_ms()-start;
@@ -83,6 +90,10 @@ int main(int argc,char **argv) {
         r.width,r.height,r.frames,r.slots,frontier_records,frontier_strategy,r.replay,setup,wall,r.peak,r.encodes);
     for(unsigned i=0;i<r.frames;++i) printf("SAMPLE {\"index\":%u,\"record_submit_ms\":%.9f,\"wait_ms\":%.9f,\"retirement_ms\":%.9f}\n",
         i,samples[i].record_submit,samples[i].wait,samples[i].latency);
+#ifdef SCENE_ARGUMENT_PROFILE
+    for(unsigned i=0;i<r.frames;++i) printf("ARGUMENT_SAMPLE {\"index\":%u,\"record_ms\":%.9f,\"submit_ms\":%.9f}\n",
+        i,samples[i].record,samples[i].submit);
+#endif
     okay=1;
 done:
 #ifdef RANGE_NATIVE

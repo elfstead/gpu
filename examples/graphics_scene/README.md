@@ -98,6 +98,18 @@ native bind-once experiment. Run `test_argument_snapshot.py` without a GPU for
 oracle/log rejection tests. Select one ICD and Vulkan/synchronization validation
 for execution. No API/runtime change is introduced by the probe.
 
+`argument_reuse.py --native IDENTITY_REPORT --snapshots SNAPSHOT_REPORT` then
+compares native bind-once, native resupply and public per-operation arguments at
+three sizes/capacities with one/two slots. Draw order changes on re-recording;
+each slot's root stays constant. Full output, memory budgets, root supply counts,
+native pushes and order traces are checked. Use `--frames 16` for preflight,
+default 64 or `--frames 992` for sustained complete cycles; `--build-only` does
+not execute a GPU. The references must be clean same-driver reports.
+`argument_timing.py --correctness REPORT [--preflight]` consumes that evidence
+and measures the three paths with host phase boundaries. See the
+[protocol and limitations](../../docs/argument-reuse-plan.md#matched-reuse-controls-and-timing-protocol).
+CPU tests are `test_argument_reuse.py` and `test_argument_timing.py`.
+
 `reuse.py` implements the first correctness increment from the
 [performance brief](../../docs/indexed-depth-performance-plan.md), not timing.
 It uses one shared device/queue and shared prepared executables, with one/two
