@@ -1,10 +1,11 @@
 # Per-operation arguments: explicit reuse audit
 
 Selected 2026-10-04 after the [scope/scale measurements](graphics-scope-scale-results.md).
-This is an active performance-preservation question, not a decision to introduce
-a bind-state API, argument object or new ABI. The [installed-scene handoff](graphics-scene-handoff-results.md)
-is accepted; run this bounded probe before accepting the per-operation argument
-shape as fundamental and before expanding the next graphics slice.
+The [installed-scene handoff](graphics-scene-handoff-results.md) and the controls
+below are now accepted. Updated 2026-10-06: [recording-local byte-range updates](recording-arguments-prototype.md)
+are selected for the next prototype, not a stable ABI. The per-operation shape
+is not accepted as fundamental; finish this bounded decision before expanding
+the next graphics slice.
 
 ## Why the existing classification is insufficient
 
@@ -173,4 +174,7 @@ use the same saved-output allocations, shaders and generated geometry. Actual
 offset/size events, draw count, memory lifetime and every saved output are checked.
 This diagnostic includes the earlier snapshot fixture's unused alternate-pointee
 buffer; it is equal across paths, not a minimum-allocation or timing claim.
-Clean acceptance is recorded separately from development tests.
+[Clean acceptance](argument-patch-results.md) at `f4405e3` passes on both local
+drivers. The [selected next prototype](recording-arguments-prototype.md) is
+recording-local byte-range updates, with lifecycle/initialization/replay rules
+declared before implementation. ABI 19 remains unchanged at this checkpoint.

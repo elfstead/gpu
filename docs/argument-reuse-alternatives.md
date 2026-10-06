@@ -1,4 +1,8 @@
-# Argument reuse: candidates, not a selected ABI
+# Argument reuse: candidate comparison
+
+Update 2026-10-06: the [partial-update evidence](argument-patch-results.md)
+selects [recording-local byte-range updates](recording-arguments-prototype.md)
+for prototyping. The discussion below records the alternatives, not a stable ABI.
 
 The [snapshot control](argument-snapshot-results.md) establishes the existing
 copy-at-call behavior. The [audit](argument-reuse-plan.md) still has to distinguish
@@ -33,12 +37,13 @@ do not infer physical memory traffic or a mandatory allocation from the contract
 | Immutable argument snapshot | Once when creating a snapshot; operations reference it | Stable object identity | Avoid mandatory per-draw content inspection; examine creation/storage costs, retention and whether an object allocation is forced where native needs none |
 | Recording-local argument value | Explicit update while recording; subsequent operations consume that value | No intervening update | Closest to native bind-once opportunity without a new public retained object; introduces ordering/state rules that must remain small and precise |
 
-The leading **prototype candidate** is recording-local argument supply, because
+The **selected prototype** is recording-local argument range updates, because
 the observed missing expression is independent payload update, not a need for a
-long-lived resource object. That is not a selection: the immutable-snapshot
-alternative may offer clearer composition or cross-recording reuse. Compare both
-against changing-command workloads and host allocation/retention budgets before
-adding a public primitive. An operation-local convenience can be layered on an
+long-lived resource object. The immutable-snapshot alternative may offer clearer
+composition or cross-recording reuse, but would need an explicit patching model
+and allocation/lifetime rules to preserve the newly exercised native strategy.
+It has not been implemented or timed, and remains a possible convenience rather
+than a prerequisite in the foundation. An operation-local convenience can be layered on an
 explicit update plus operation if semantics and failure atomicity match; do not
 make that convenience constrain the lower-level path.
 
@@ -66,10 +71,9 @@ make that convenience constrain the lower-level path.
 
 The [matched reuse measurements](argument-reuse-results.md) retain native
 bind-once as the stronger control and distinguish declared input bytes from
-native pushes. Explicit update/reuse is the direction, but the exact surface
-remains unselected. In particular, native byte-range updates must be preserved;
-compare a four-byte change inside a 64/256-byte root before choosing a
-whole-block replacement or immutable-object representation.
+native pushes. The [four-byte control](argument-patch-results.md) now passes
+inside 64/256-byte roots. Native byte-range updates must be preserved in the
+selected prototype; exact names and a stable public surface remain unapproved.
 
 A small wall-time gap on this GPU would not erase a
 structural disadvantage; a large gap would not by itself establish which

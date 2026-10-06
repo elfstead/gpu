@@ -1,0 +1,5 @@
+Argument patch evidence: /home/elf/dev/gpu/target/graphics-scene/argument-patch-_g7e98lu
+    Finished `release` profile [optimized] target(s) in 0.01s
+64-byte roots: full/4-byte partial/public output, update-range and allocation checks PASS
+256-byte roots: full/4-byte partial/public output, update-range and allocation checks PASS
+Argument partial-update PASS; not timing

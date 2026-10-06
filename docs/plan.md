@@ -297,8 +297,8 @@ at `497e019` adds 103,680 correctness frames and 576,000 timing samples. It reta
 grouped/range/scoped strategy choices while confirming that large GPU work hides
 the separate-reset host gap. The [full installed scene handoff](graphics-scene-handoff-results.md)
 at `4671f67` passes 240 installed and 120 exact-artifact native frames on the two
-local drivers, including root reordering with unchanged C host code. Next execute
-the [argument/state reuse probe](argument-reuse-plan.md): per-call root snapshot
+local drivers, including root reordering with unchanged C host code. The
+[argument/state reuse audit](argument-reuse-plan.md) follows: per-call root snapshot
 obligations must not be dismissed as backend-only work. General API parity and
 the fundamental per-operation argument shape remain unapproved.
 Its [first correctness increment](argument-snapshot-results.md) at `328282b`
@@ -306,8 +306,10 @@ passes observable 8/64/256-byte same-address mutation, overwrite and rejected-ca
 retry against direct Vulkan on both drivers. The [bind-once/resupply matrix](argument-reuse-results.md)
 at `955bdd7` adds 57,024 correctness frames and 160,704 timing samples, exposing
 root update/reuse independently of changing draw order as the better direction.
-The exact API is not selected: next cover native four-byte partial updates, then
-declare and prototype the argument contract. Do not assign the entire measured
+The [partial-update control](argument-patch-results.md) at `f4405e3` also passes
+on both drivers. Next implement the [recording-local byte-range prototype](recording-arguments-prototype.md)
+under its declared initialization, lifetime, rejection and replay rules; no new
+public ABI is implemented yet. Do not assign the entire measured
 host gap to either unavoidable API cost or backend overhead.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
