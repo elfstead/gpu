@@ -161,3 +161,16 @@ No timing claim or public API change is needed for this bounded control. Then
 settle initialization/coverage, partial replacement, compute/graphics interaction,
 scope persistence, invalid retry, zero-byte/empty operations and list ownership
 for the selected candidate before implementation.
+
+`examples/graphics_scene/argument_patch.py --snapshots SNAPSHOT_REPORT` implements
+this control using the accepted native shader bytes. The two shapes are 64/256
+bytes; only the final scalar changes in B, with no pointer or geometry change.
+Each scope follows a compute update, so native partial mode explicitly initializes
+the whole graphics value before its first draw; between draws it either keeps A
+or updates exactly the last four bytes. It does not assume separate compute and
+graphics argument banks or implicit restoration. Native full/public full controls
+use the same saved-output allocations, shaders and generated geometry. Actual
+offset/size events, draw count, memory lifetime and every saved output are checked.
+This diagnostic includes the earlier snapshot fixture's unused alternate-pointee
+buffer; it is equal across paths, not a minimum-allocation or timing claim.
+Clean acceptance is recorded separately from development tests.

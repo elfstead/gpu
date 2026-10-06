@@ -19,21 +19,23 @@ IMAGE_BYTES=WIDTH*HEIGHT*8+256
 SIZES=(8,64,256)
 
 
-def color(size,surface,changed):
+def color(size,surface,changed,single_word=False):
     require(size in SIZES and surface in (0,1) and changed in (0,1),'invalid payload case')
-    checksum=sum((i+1)*(i+1+changed) for i in range((size-8)//4))
+    count=(size-8)//4
+    checksum=sum((i+1)*(i+1+changed*(not single_word or i==count-1)) for i in range(count))
     identity=2+surface+4*checksum
     return bytes((identity&255,(identity>>8)&255,255,255))
 
 
-def check(data,size):
+def check(data,size,single_word=False):
+    require(not single_word or size in (64,256),'partial update requires a scalar payload')
     require(len(data)==4*IMAGE_BYTES,'wrong snapshot file size')
     images=[data[i*IMAGE_BYTES:(i+1)*IMAGE_BYTES] for i in range(4)]
     require(images[0]==images[1]==images[3] and images[2]!=images[0],'missing equal/equal/changed/equal snapshots')
     pixels=WIDTH*HEIGHT;checks=[]
     for snapshot,image in enumerate(images):
-        phase=int(snapshot==2);checked=0
-        colors={oracle.BLACK:oracle.BLACK,oracle.RED:color(size,0,0),oracle.GREEN:color(size,1,phase)}
+        changed=int(snapshot==2);phase=0 if single_word else changed;checked=0
+        colors={oracle.BLACK:oracle.BLACK,oracle.RED:color(size,0,0),oracle.GREEN:color(size,1,changed,single_word)}
         require(image[:64]==oracle.GUARD and image[64+pixels*4:192+pixels*4]==oracle.GUARD*2
                 and image[-64:]==oracle.GUARD,'snapshot guards changed')
         depths=struct.unpack('<'+str(pixels)+'f',image[192+pixels*4:-64])
@@ -49,7 +51,7 @@ def check(data,size):
                         f'snapshot {snapshot} payload/depth mismatch at {column},{row}')
                 checked+=1
         require(checked>pixels*.9,'insufficient analytic coverage')
-        checks.append(dict(snapshot=snapshot,checked_pixels=checked,changed=bool(phase)))
+        checks.append(dict(snapshot=snapshot,checked_pixels=checked,changed=bool(changed)))
     return checks
 
 

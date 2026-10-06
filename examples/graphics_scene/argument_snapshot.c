@@ -17,10 +17,18 @@ static unsigned snapshot;
 static uint64_t ordinary_address, alternate_address;
 static union { uint64_t aligned[32]; unsigned char bytes[256]; } arguments;
 static void set_arguments(unsigned changed) {
+#ifdef ARGUMENT_PATCH_PAYLOAD
+    uint64_t address=ordinary_address;
+#else
     uint64_t address=changed ? alternate_address : ordinary_address;
+#endif
     memcpy(arguments.bytes,&address,8);
     for(unsigned i=0;i<(SCENE_RASTER_BYTES-8)/4;++i) {
-        uint32_t value=i+1+changed;
+        uint32_t delta=changed;
+#ifdef ARGUMENT_PATCH_PAYLOAD
+        if(i!=(SCENE_RASTER_BYTES-8)/4-1) delta=0;
+#endif
+        uint32_t value=i+1+delta;
         memcpy(arguments.bytes+8+4*i,&value,4);
     }
 }
@@ -43,7 +51,18 @@ static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indice
 #endif
         set_arguments(snapshot==2 && draw==1);
 #ifdef ARGUMENT_NATIVE
+#ifdef ARGUMENT_NATIVE_PARTIAL
+        /* Compute has replaced the beginning of the bank at each scope.
+         * Initialize the whole graphics value, then update only the changed word. */
+        if(draw==0) NEED(native_push(s->n,&s->batch,&s->raster[0],arguments.bytes,SCENE_RASTER_BYTES));
+        else if(snapshot==2) {
+            VkPushDataInfoEXT update={.sType=VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+                .offset=SCENE_RASTER_BYTES-4,.data={arguments.bytes+SCENE_RASTER_BYTES-4,4}};
+            s->n->vkCmdPushDataEXT(s->batch.command,&update);
+        }
+#else
         NEED(native_push(s->n,&s->batch,&s->raster[0],arguments.bytes,SCENE_RASTER_BYTES));
+#endif
         VkDrawIndirect2InfoKHR info={.sType=VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
             .addressRange={s->draws.address+64+20*draw,20,20},
             .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,.drawCount=1};
@@ -59,6 +78,16 @@ static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indice
 }
 
 static int execute(Scene *s,const char *shaders) {
+#ifdef ARGUMENT_PATCH_PAYLOAD
+    _Static_assert(SCENE_RASTER_BYTES==64 || SCENE_RASTER_BYTES==256,"partial payload sizes");
+    printf("ARGUMENT_PATCH_POLICY {\"single_word\":true,\"native_partial\":%s}\n",
+#ifdef ARGUMENT_NATIVE_PARTIAL
+        "true"
+#else
+        "false"
+#endif
+    );
+#endif
     NEED(scene_create_context(s,shaders));
 #ifdef ARGUMENT_NATIVE
     printf("ARGUMENT_LIMIT {\"max_push_data_bytes\":%" PRIu64 "}\n",(uint64_t)s->n->max_push_data);

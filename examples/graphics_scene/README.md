@@ -110,6 +110,15 @@ and measures the three paths with host phase boundaries. See the
 [protocol and limitations](../../docs/argument-reuse-plan.md#matched-reuse-controls-and-timing-protocol).
 CPU tests are `test_argument_reuse.py` and `test_argument_timing.py`.
 
+`argument_patch.py --snapshots SNAPSHOT_REPORT [--build-only]` isolates one
+four-byte scalar update inside the observable 64/256-byte roots. Native full,
+native partial and public full paths must match all saved A/A/B/A image/depth
+and geometry bytes. A diagnostic loader checks exact update offsets/sizes,
+draw counts and matched allocation lifetimes. Each graphics scope explicitly
+initializes its root after the preceding compute update; no stage-local bank or
+implicit restoration is assumed. This is not timing. CPU gates are
+`test_argument_patch.py` and the expanded `test_argument_snapshot.py`.
+
 `reuse.py` implements the first correctness increment from the
 [performance brief](../../docs/indexed-depth-performance-plan.md), not timing.
 It uses one shared device/queue and shared prepared executables, with one/two

@@ -5,11 +5,11 @@ import argument_snapshot as a
 import oracle
 
 
-def fixture(size):
+def fixture(size,single_word=False):
     images=[]
     for snapshot in range(4):
-        phase=int(snapshot==2);pixels=bytearray();depths=bytearray()
-        colors={oracle.BLACK:oracle.BLACK,oracle.RED:a.color(size,0,0),oracle.GREEN:a.color(size,1,phase)}
+        changed=int(snapshot==2);phase=0 if single_word else changed;pixels=bytearray();depths=bytearray()
+        colors={oracle.BLACK:oracle.BLACK,oracle.RED:a.color(size,0,0),oracle.GREEN:a.color(size,1,changed,single_word)}
         for row in range(a.HEIGHT):
             for column in range(a.WIDTH):
                 color,depth=oracle.expected(2*(column+.5)/a.WIDTH-1,2*(row+.5)/a.HEIGHT-1,phase,0)
@@ -19,6 +19,16 @@ def fixture(size):
 
 
 class ArgumentSnapshots(unittest.TestCase):
+    def test_single_word_is_visible_without_geometry_change(self):
+        for size in (64,256):
+            data=fixture(size,True)
+            self.assertEqual(len(a.check(data,size,single_word=True)),4)
+            with self.assertRaises(ValueError):a.check(data,size)
+            with self.assertRaises(ValueError):a.check(fixture(size),size,single_word=True)
+            identity=2+4*(sum(i*i for i in range(1,(size-8)//4+1))+(size-8)//4)
+            self.assertEqual(a.color(size,0,1,True),bytes((identity&255,(identity>>8)&255,255,255)))
+        with self.assertRaises(ValueError):a.check(fixture(8),8,single_word=True)
+
     def test_payload_and_size(self):
         self.assertEqual(a.color(8,0,0),bytes((2,0,255,255)))
         for size in (64,256):

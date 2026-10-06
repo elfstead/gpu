@@ -15,6 +15,7 @@ jobs:
       - run: python3 -B examples/graphics_scene/test_argument_snapshot.py
       - run: python3 -B examples/graphics_scene/test_argument_reuse.py
       - run: python3 -B examples/graphics_scene/test_argument_timing.py
+      - run: python3 -B examples/graphics_scene/test_argument_patch.py
       - run: python3 tools/install.py --prefix "$RUNNER_TEMP/ogpu-sdk"
       - run: python3 tools/test-install.py --prefix "$RUNNER_TEMP/ogpu-sdk" --no-gpu --resource-reuse --draw-ranges --indexed-scene
   probe:

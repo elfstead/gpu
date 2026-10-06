@@ -39,6 +39,9 @@ VOID_HOOK(vkCmdBindPipeline,(VkCommandBuffer c,VkPipelineBindPoint b,VkPipeline 
 #ifdef SCENE_ARGUMENT_TRACE
 static PFN_vkCmdPushDataEXT real_vkCmdPushDataEXT;
 static void VKAPI_CALL traced_vkCmdPushDataEXT(VkCommandBuffer c,const VkPushDataInfoEXT *i) {
+#ifdef SCENE_ARGUMENT_PATCH_TRACE
+    fprintf(stderr,"ARGUMENT_PUSH {\"offset\":%u,\"bytes\":%" PRIu64 "}\n",i->offset,(uint64_t)i->data.size);
+#endif
     ++counts.vkCmdPushDataEXT;push_bytes+=i->data.size;real_vkCmdPushDataEXT(c,i);
 }
 #else
