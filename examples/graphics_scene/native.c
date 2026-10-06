@@ -133,6 +133,9 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     // The public backend's conservative invalidation must not weaken this control.
     if(first==0) {
 #endif
+#ifdef SCENE_ARGUMENT_PUSH_FIRST
+    NEED(native_push(n,b,p,s->argument_root,SCENE_RASTER_BYTES));
+#endif
     n->vkCmdBindPipeline(b->command, VK_PIPELINE_BIND_POINT_GRAPHICS, p->pipeline);
     VkViewport viewport = {.width=(float)s->width, .height=(float)s->height, .maxDepth=1};
     n->vkCmdSetViewport(b->command, 0, 1, &viewport); n->vkCmdSetScissor(b->command, 0, 1, &area);
@@ -165,7 +168,13 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     Native *n=s->n; NativeBatch *b=&s->batch;
     native_barrier(n,b->command,VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT,
         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,VK_ACCESS_2_SHADER_WRITE_BIT);
+#ifdef SCENE_ARGUMENT_PUSH_FIRST
+    NEED(native_push(n,b,&s->prepare,compute_root,sizeof(SceneRoot)));
+    n->vkCmdBindPipeline(b->command,VK_PIPELINE_BIND_POINT_COMPUTE,s->prepare.pipeline);
+    n->vkCmdDispatch(b->command,1,1,1);
+#else
     NEED(native_dispatch(n,b,&s->prepare,(Launch){.x=1,.y=1},compute_root,sizeof(SceneRoot)));
+#endif
     native_barrier(n,b->command,VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,VK_ACCESS_2_SHADER_WRITE_BIT,
         VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
         VK_ACCESS_2_INDEX_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT);

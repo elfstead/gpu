@@ -26,7 +26,9 @@ static int frontier_draw(Scene *s,unsigned first) {
     (void)first;NEED(frontier_strategy==0);
 #ifndef SCENE_ARGUMENT_RESUPPLY
     ARGUMENT_SUPPLIED();
+#ifndef SCENE_ARGUMENT_PUSH_FIRST
     NEED(native_push(s->n,&s->batch,&s->raster[0],s->argument_root,SCENE_RASTER_BYTES));
+#endif
 #endif
     for(unsigned i=0;i<frontier_records;++i) {
 #ifdef SCENE_ARGUMENT_RESUPPLY
