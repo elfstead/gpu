@@ -1,4 +1,4 @@
-use super::{ArgumentCache, Buffer, DrawState, DrawStateCache, Raster};
+use super::{append_arguments, Buffer, DrawState, DrawStateCache, Raster, Step};
 
 // Identity-only addresses, never dereferenced; no driver is needed for these tests.
 fn state() -> DrawState {
@@ -61,18 +61,45 @@ fn boundaries_and_new_recordings_rebind() {
 
 #[test]
 fn argument_elision_compares_range_and_copied_bytes() {
-    let mut cache = ArgumentCache::default();
-    let a = [1, 2, 3, 4];
-    let b = a;
-    assert!(cache.needs_push(0, &a));
-    assert!(!cache.needs_push(0, &b));
-    assert!(!cache.needs_push(4, &[]));
-    assert!(!cache.needs_push(0, &b));
-    assert!(cache.needs_push(4, &a));
-    assert!(cache.needs_push(0, &b));
-    assert!(cache.needs_push(0, &[1, 2, 3, 5]));
-    assert!(cache.needs_push(0, &a));
-    assert!(ArgumentCache::default().needs_push(0, &a));
+    let mut steps = Vec::new();
+    let mut last = None;
+    let mut a = [1, 2, 3, 4];
+    append_arguments(&mut steps, &mut last, 0, &a);
+    a.fill(9); // The retained snapshot is independent of caller host storage.
+    for _ in 0..512 {
+        // Force vector growth and retain the same snapshot across other commands.
+        steps.push(Step::EndRendering);
+        append_arguments(&mut steps, &mut last, 0, &[1, 2, 3, 4]);
+        append_arguments(&mut steps, &mut last, 4, &[]);
+    }
+    assert_eq!(last, Some(0));
+    assert_eq!(steps.len(), 513);
+    append_arguments(&mut steps, &mut last, 4, &a);
+    append_arguments(&mut steps, &mut last, 0, &a);
+    a[3] = 10;
+    append_arguments(&mut steps, &mut last, 0, &a);
+    append_arguments(&mut steps, &mut last, 0, &[1, 2, 3, 4]);
+    assert_eq!(steps.len(), 517);
+    let updates: Vec<_> = steps
+        .iter()
+        .filter_map(|step| match step {
+            Step::Arguments { offset, bytes } => Some((*offset, bytes.as_slice())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        updates,
+        [
+            (0, &[1, 2, 3, 4][..]),
+            (4, &[9, 9, 9, 9]),
+            (0, &[9, 9, 9, 9]),
+            (0, &[9, 9, 9, 10]),
+            (0, &[1, 2, 3, 4])
+        ]
+    );
+    let mut fresh = Vec::new();
+    append_arguments(&mut fresh, &mut None, 0, &[1, 2, 3, 4]);
+    assert_eq!(fresh.len(), 1);
 }
 
 #[test]

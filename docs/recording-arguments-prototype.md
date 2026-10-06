@@ -103,8 +103,11 @@ decision, not after an open-ended sequence of ever-larger performance studies.
 
 The Vulkan recording stores owned `Arguments { offset, bytes }` steps separately
 from argument-free draw/dispatch steps. Encoding pushes those exact ranges. The
-last identical copied update can be elided independently of pipeline/index
-binding; it is not a whole-bank shadow or a per-operation payload scan. Automatic
+last identical update is elided during recording by comparing caller bytes with
+the last owned snapshot, independently of pipeline/index binding. This preserves
+call-time value semantics without allocating/copying duplicate roots, or walking
+duplicate updates during encoding. Only calls supplying arguments inspect bytes;
+`*_current` operations perform no payload scan. This is not a whole-bank shadow. Automatic
 command-storage admission retains the old 256-operation/64-KiB argument bounds
 and separately caps update steps at 256, so expanding a convenience call does
 not halve its operation budget. Explicit recording owners remain unbounded by

@@ -154,23 +154,6 @@ impl DrawStateCache {
     }
 }
 
-// Only compare the last copied update, never GPU pointees. Other commands preserve
-// this bank. A different update conservatively forgets the earlier range, so no
-// full-bank allocation, initialization scan or per-operation root is necessary.
-#[derive(Default)]
-struct ArgumentCache<'a>(Option<(u32, &'a [u8])>);
-
-impl<'a> ArgumentCache<'a> {
-    fn needs_push(&mut self, offset: u32, bytes: &'a [u8]) -> bool {
-        let next = (offset, bytes);
-        if bytes.is_empty() || self.0 == Some(next) {
-            return false;
-        }
-        self.0 = Some(next);
-        true
-    }
-}
-
 enum Step {
     Arguments {
         offset: u32,
@@ -211,10 +194,39 @@ enum Step {
     },
 }
 
+// Updates alone inspect caller bytes, never GPU pointees. Equal bytes reuse the
+// last owned snapshot: call-time semantics need no duplicate allocation/copy.
+// Other commands preserve this bank. A different range conservatively forgets
+// the earlier one, with no full-bank shadow or per-operation initialization scan.
+fn append_arguments(steps: &mut Vec<Step>, last: &mut Option<usize>, offset: u32, bytes: &[u8]) {
+    if bytes.is_empty() {
+        return;
+    }
+    if let Some(index) = *last {
+        let Step::Arguments {
+            offset: previous,
+            bytes: owned,
+        } = &steps[index]
+        else {
+            unreachable!()
+        };
+        if *previous == offset && owned == bytes {
+            return;
+        }
+    }
+    let index = steps.len();
+    steps.push(Step::Arguments {
+        offset,
+        bytes: bytes.to_vec(),
+    });
+    *last = Some(index);
+}
+
 pub(crate) struct Batch {
     device: Rc<Device>,
     // None means a submission was attempted; even failed attempts are terminal.
     steps: Option<Vec<Step>>,
+    last_arguments: Option<usize>,
     timed: bool,
     retained: Vec<Rc<Buffer>>,
     storage: Option<StorageLease>,
@@ -310,6 +322,7 @@ impl Batch {
         Ok(Self {
             device,
             steps: Some(Vec::new()),
+            last_arguments: None,
             timed: false,
             retained: Vec::new(),
             storage: None,
@@ -409,12 +422,12 @@ impl Batch {
     // not change the bank; successful convenience calls update it even for an
     // empty indirect range. No fallible validation follows the append.
     fn append_arguments(&mut self, offset: u32, bytes: &[u8]) {
-        if !bytes.is_empty() {
-            self.steps.as_mut().unwrap().push(Step::Arguments {
-                offset,
-                bytes: bytes.to_vec(),
-            });
-        }
+        append_arguments(
+            self.steps.as_mut().unwrap(),
+            &mut self.last_arguments,
+            offset,
+            bytes,
+        );
     }
 
     pub(crate) fn dispatch_arguments(
@@ -1203,7 +1216,6 @@ impl Completion {
                 );
             }
             let mut draw_state = DrawStateCache::default();
-            let mut arguments = ArgumentCache::default();
             for step in &resources.steps {
                 if !matches!(step, Step::Draw { .. } | Step::Arguments { .. }) {
                     // Conservatively stop at every dependency, scope, heap, copy,
@@ -1212,9 +1224,7 @@ impl Completion {
                 }
                 match step {
                     Step::Arguments { offset, bytes } => {
-                        if arguments.needs_push(*offset, bytes) {
-                            push_data(d, command, *offset, bytes);
-                        }
+                        push_data(d, command, *offset, bytes);
                     }
                     Step::DependencyBegin(index) | Step::DependencyEnd(index) => {
                         let scope = &resources.dependencies[*index];

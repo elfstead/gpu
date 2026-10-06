@@ -1,0 +1,568 @@
+{
+  "schema": 1,
+  "status": "implementation checkpoint; performance acceptance remains open",
+  "reports": [
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-reuse-wpny0r9a/report.json",
+      "sha256": "3475eebbcf29c86c087a9625791a75bf5cefe614f44e0529e3957ac15b9163cb",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": 992,
+      "runs": 72
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-reuse-zmg6gjlx/report.json",
+      "sha256": "a140d3b3c77da61e04779202a004e1d87dce09eab02ffa39c47c3aff3bf42d68",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": 64,
+      "runs": 72
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-patch-cimk_d0z/report.json",
+      "sha256": "90e41e655d4c8ab200425161d68fa703d871e4231c395a938143a5d155cc89c6",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "runs": 8
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-patch-u90rqj27/report.json",
+      "sha256": "9a4be2fde8ceb3edf0b70014b5f37fbaf9ed7078488cb5ef8f924a83a54f4097",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "runs": 8
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/range-reuse-d8apm7_d/report.json",
+      "sha256": "d94230ede8ab62b6b76e7d05706a1e17b9ed514092cbdc58b5a5663b7922173a",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "runs": 72
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/range-reuse-5g_2iizu/report.json",
+      "sha256": "ed069edad4249da5cac27984c51608b5f0d28ba5262b28011a183af78e6b1cd8",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "runs": 24
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/count-followup-i5qpfgo8/report.json",
+      "sha256": "47ffde6b622ba4998c8f153668826bdbe6a24da0b319469af82fb3c7d3c53544",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "passed": true,
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": {
+        "total": 8,
+        "passed": 8
+      },
+      "runs": 0
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/count-followup-_4bfj7io/report.json",
+      "sha256": "e8a4dd3a64b661abde3c6014e434a4a8332b13c929e75caacb80102eeaa1da15",
+      "revision": "23c05086ac2649c842e88ddd031c54f0fac4468f",
+      "dirty": false,
+      "complete": true,
+      "passed": false,
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/lvp_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_VALIDATE_SYNC": "1",
+        "OGPU_TRACE_LOADER": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "device": {
+        "vendor": 65541,
+        "device": 0,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "frames": {
+        "total": 8,
+        "passed": 3
+      },
+      "runs": 0
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-timing-5ahsx6kx/report.json",
+      "sha256": "221f98a860512868c6ff557e7051c20573b0996afea5d304ea62f998a0568969",
+      "revision": "caa355533aa64d67704444f520c61aacb1125886",
+      "dirty": false,
+      "complete": true,
+      "runtime_sha256": "08eb0279d781b1f98f606c8f4a5ce4b4642c3b46bd002c1d56217f976beb1178",
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_INSTANCE_LAYERS": "",
+        "VK_LAYER_VALIDATE_SYNC": "0",
+        "VK_LOADER_LAYERS_DISABLE": "*",
+        "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1"
+      },
+      "device": {
+        "vendor": 4098,
+        "device": 29471,
+        "api": [
+          1,
+          4,
+          354
+        ]
+      },
+      "runs": 288
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-order-m6xe_tit/report.json",
+      "sha256": "29356b76d589ec8343461f54685b245c7522f6027daf070a9df033d0e0c6c2d2",
+      "revision": "caa355533aa64d67704444f520c61aacb1125886",
+      "dirty": true,
+      "complete": true,
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+        "VK_INSTANCE_LAYERS": "",
+        "VK_LAYER_VALIDATE_SYNC": "0",
+        "VK_LOADER_LAYERS_DISABLE": "*"
+      },
+      "runs": 8
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-runtime-8pveeo2n/report.json",
+      "sha256": "3dab64c5f7d605921d4bb431f68ee049aedfd0fe9745a4ef241927d1a50c95f4",
+      "revision": "caa355533aa64d67704444f520c61aacb1125886",
+      "dirty": true,
+      "complete": true,
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+        "VK_INSTANCE_LAYERS": "",
+        "VK_LAYER_VALIDATE_SYNC": "0",
+        "VK_LOADER_LAYERS_DISABLE": "*"
+      },
+      "runs": 16
+    },
+    {
+      "path": "/home/elf/dev/gpu/target/graphics-scene/argument-runtime-be750phj/report.json",
+      "sha256": "ea0c4b49478279989857a1a8eae5adca09be183daf664306476a1a845cb7210c",
+      "revision": "caa355533aa64d67704444f520c61aacb1125886",
+      "dirty": true,
+      "complete": true,
+      "environment": {
+        "VK_DRIVER_FILES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "VK_ICD_FILENAMES": "/run/opengl-driver/share/vulkan/icd.d/radeon_icd.x86_64.json",
+        "OGPU_VULKAN_LIBRARY": "/nix/store/lk4614327cn1h9z3m6cvnls95n13m1cj-vulkan-loader-1.4.357.0/lib/libvulkan.so.1",
+        "VK_INSTANCE_LAYERS": "",
+        "VK_LAYER_VALIDATE_SYNC": "0",
+        "VK_LOADER_LAYERS_DISABLE": "*"
+      },
+      "runs": 36
+    }
+  ],
+  "logs": [
+    {
+      "path": "/tmp/ogpu-arguments20-abi.log",
+      "sha256": "5c7216b8a5ceb768c658504dbab4d361c7cfd38e2671ac0ac0fd3591fc7fb278",
+      "size_bytes": 156
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-abi.log",
+      "sha256": "5c7216b8a5ceb768c658504dbab4d361c7cfd38e2671ac0ac0fd3591fc7fb278",
+      "size_bytes": 156
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-bindings.log",
+      "sha256": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+      "size_bytes": 165
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-count-lvp.log",
+      "sha256": "10a2c8938f5f7b11960930b096d0444c4a7d2cc64fbed0695b39b85c1057e529",
+      "size_bytes": 151
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-count-radv.log",
+      "sha256": "96191a113ecb862bddeb0404c5a25d46e8be3c767dff731099087e2cc08c4ea1",
+      "size_bytes": 111
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-install.log",
+      "sha256": "b93da3f525a7977738ad5b40f535f9c2603565043d6109595cd10caad07b8358",
+      "size_bytes": 267
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-lvp-tests.log",
+      "sha256": "9a5fcf267266f1816fa06949709bb4491d0d9068222a0d2e03f12e0ba78e00b6",
+      "size_bytes": 2612
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-patch-lvp.log",
+      "sha256": "f534a7e6b3d541b15d67557a3d5fb706ddb236f551c0ace789748b2623306e11",
+      "size_bytes": 373
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-patch-radv.log",
+      "sha256": "c1c8a8ea00cc05f6a64f64141aba5804105f2ea939d865b4e95d0485706da562",
+      "size_bytes": 484
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-radv-tests.log",
+      "sha256": "1b0aa18d642a1bb4975b02069d8daeec4424918fc2dfc7b42dcc67f0e65708a2",
+      "size_bytes": 2612
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-ranges-radv.log",
+      "sha256": "02517976c513ec4a88751ca52f3f9e4e6e35dcfece5dd4911101e68af257ac31",
+      "size_bytes": 3193
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-reuse-lvp.log",
+      "sha256": "bb8ec73d1cfae5d1505b2b3c7d43339a73175e5b009d60b6146d300d0d9a0e33",
+      "size_bytes": 2155
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-reuse-radv.log",
+      "sha256": "5c66f6e7ab7b7a5d56ab15b69855efedf820ecfd01fb3fa688f0ea4509de7139",
+      "size_bytes": 2155
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-scopes-radv.log",
+      "sha256": "11f15a575dd312a3a8c592b0b9e97c0405aaf4a87169ffc2abd237070bc63590",
+      "size_bytes": 1261
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-sdk-lvp-strict.log",
+      "sha256": "37021d9e2c6538fe8060eb75f3df9f1dbde1a34bcfa7f2199c73a78ad6db233b",
+      "size_bytes": 8140
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-sdk-lvp.log",
+      "sha256": "6d6a5a726c0ddffac828e5975f0ca58f38c857f915602452271254d42dc70ff9",
+      "size_bytes": 9746
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-sdk-nogpu.log",
+      "sha256": "3649d53405c229ddd3c1ff7916466de5bba1c50fa854ccab5e1e9a55317bf2f1",
+      "size_bytes": 5942
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-sdk-radv.log",
+      "sha256": "67657096423f2ceaaf3d29a251f4fbfd523ee0a2ef4072f515c27ff0a02c1ba5",
+      "size_bytes": 22353
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-clean-timing.log",
+      "sha256": "d1d8cafbb3f5af8d28e3ae42c7243c4d893f7b770a993284c50e2a4e70fa7b90",
+      "size_bytes": 5536
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-dedup-lvp.log",
+      "sha256": "7826df6cd9994b545019ab8d7e9c6903322b182218fbf14d70156038f532b576",
+      "size_bytes": 2612
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-dedup-patch-lvp.log",
+      "sha256": "54328d19e6997eb01fbfb94fa577f96119eb8c1a1b6c5cab5b80dbcb5403dc52",
+      "size_bytes": 373
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-dedup-patch.log",
+      "sha256": "8b3e53dc6300645d1564057fc8c92ad4a21f0fb3348ea877f628e3aaf67531f3",
+      "size_bytes": 430
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-dedup-radv.log",
+      "sha256": "83824aec02d6f6674c224b751d2a7b11b1a21c75328ceea2669d3e7ab087fc6e",
+      "size_bytes": 2612
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-dedup-tests.log",
+      "sha256": "ad14f3d73305cde2219799855a4c65dde6236df6f1b9d9092ec0fb07e52deba6",
+      "size_bytes": 9910
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-lvp-tests.log",
+      "sha256": "b87e5861dfd73a01f232ec63c7330b3694e276b15af742dc30f3c3e0d5382b9b",
+      "size_bytes": 2669
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-mock.log",
+      "sha256": "10967a4c7643879662ad65ac03cf42c9d1e88ff17437f080f4aa3dff59698b8d",
+      "size_bytes": 3120
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-order-dev.log",
+      "sha256": "30b3921de9bef7aa894f14241f0685cbdff4f84d3bfb381e0db29b88be40c0dd",
+      "size_bytes": 146
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-patch-lvp-dev.log",
+      "sha256": "2ae550539a9f9a6cf7a7c0ec53355331465d13c5620dc0b4081ed1d24edbf2d9",
+      "size_bytes": 430
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-patch-radv-dev.log",
+      "sha256": "08baf39d1da7047c577ddf4d4b96fa0f35636aaa3cd5afb9895c2a0fb02cf6bc",
+      "size_bytes": 430
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-python.log",
+      "sha256": "dee466962178a698fe76174d9bf6598b76aa3c2a7e3aacb93e7c7580bf5b3f1b",
+      "size_bytes": 1197
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-radv-tests.log",
+      "sha256": "913ac5cab5e04128ae3ce2c548d6b417a94922e10f4457eb057c6658bcc13a6e",
+      "size_bytes": 2669
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-reuse-lvp-dev.log",
+      "sha256": "69a3b7d239daff4c2cfd9d5a832aa18949060e40474aa651a1c2a76bc6d766a9",
+      "size_bytes": 2155
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-reuse-radv-dev.log",
+      "sha256": "f0389dde3e7949726d53b3c91acdd8b9ea3afab3030d318a267349f93e799375",
+      "size_bytes": 2155
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-runtime-builds-dev.log",
+      "sha256": "bd30cf0556929e1cbe0fdfc30c7b372ef8e21abe4ef31d701a26e00cbaca3883",
+      "size_bytes": 140
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-runtime-dev.log",
+      "sha256": "77c8221b1272e50c7cfc60310edcf12d4f635839b92a9acdb0775ce27092a4f7",
+      "size_bytes": 140
+    },
+    {
+      "path": "/tmp/ogpu-arguments20-tests.log",
+      "sha256": "0ee913acf83c62d5210b6e05c7a371013ad2d8e8b0dbf3dde259d9b7741df8ed",
+      "size_bytes": 9910
+    }
+  ],
+  "focused_timing_summaries": [
+    {
+      "report": "argument-order-m6xe_tit",
+      "policy": "after-bind",
+      "processes": 4,
+      "wall_ms_per_frame": {
+        "median": 0.20453808865221773,
+        "minimum": 0.20345242441633066,
+        "maximum": 0.2056109395715726
+      },
+      "host_total_ms_median": 0.03852722075
+    },
+    {
+      "report": "argument-order-m6xe_tit",
+      "policy": "before-bind",
+      "processes": 4,
+      "wall_ms_per_frame": {
+        "median": 0.20503806803477823,
+        "minimum": 0.20335166036088712,
+        "maximum": 0.20690090629838712
+      },
+      "host_total_ms_median": 0.038599521
+    },
+    {
+      "report": "argument-runtime-8pveeo2n",
+      "policy": "native-once",
+      "processes": 4,
+      "wall_ms_per_frame": {
+        "median": 0.20431141531250002,
+        "minimum": 0.2024187832590726,
+        "maximum": 0.20605215430241935
+      },
+      "host_total_ms_median": 0.038474798000000004
+    },
+    {
+      "report": "argument-runtime-8pveeo2n",
+      "policy": "new-current",
+      "processes": 4,
+      "wall_ms_per_frame": {
+        "median": 0.23807591536340725,
+        "minimum": 0.23529229529435483,
+        "maximum": 0.24341319958064514
+      },
+      "host_total_ms_median": 0.06700429324999999
+    },
+    {
+      "report": "argument-runtime-8pveeo2n",
+      "policy": "new-public",
+      "processes": 4,
+      "wall_ms_per_frame": {
+        "median": 0.2860189979712702,
+        "minimum": 0.2797645877207661,
+        "maximum": 0.3136531886078629
+      },
+      "host_total_ms_median": 0.0864139795
+    },
+    {
+      "report": "argument-runtime-8pveeo2n",
+      "policy": "old-public",
+      "processes": 4,
+      "wall_ms_per_frame": {
+        "median": 0.2629317721174395,
+        "minimum": 0.2614771048387097,
+        "maximum": 0.2806595080806452
+      },
+      "host_total_ms_median": 0.078374505
+    },
+    {
+      "report": "argument-runtime-be750phj",
+      "policy": "native-once",
+      "processes": 6,
+      "wall_ms_per_frame": {
+        "median": 0.20333605896572582,
+        "minimum": 0.20279987396774196,
+        "maximum": 0.20759054633870969
+      },
+      "host_total_ms_median": 0.038704514499999995
+    },
+    {
+      "report": "argument-runtime-be750phj",
+      "policy": "new-current",
+      "processes": 6,
+      "wall_ms_per_frame": {
+        "median": 0.23630319307409273,
+        "minimum": 0.23419860882661292,
+        "maximum": 0.24132524190423388
+      },
+      "host_total_ms_median": 0.065954506
+    },
+    {
+      "report": "argument-runtime-be750phj",
+      "policy": "new-public",
+      "processes": 6,
+      "wall_ms_per_frame": {
+        "median": 0.2838251643603831,
+        "minimum": 0.27386584877923387,
+        "maximum": 0.2868032963770161
+      },
+      "host_total_ms_median": 0.08628651525
+    },
+    {
+      "report": "argument-runtime-be750phj",
+      "policy": "old-public",
+      "processes": 6,
+      "wall_ms_per_frame": {
+        "median": 0.2598747646496976,
+        "minimum": 0.25440690726512094,
+        "maximum": 0.26277826414012095
+      },
+      "host_total_ms_median": 0.07744926225
+    },
+    {
+      "report": "argument-runtime-be750phj",
+      "policy": "workspace-current",
+      "processes": 6,
+      "wall_ms_per_frame": {
+        "median": 0.23782911944758064,
+        "minimum": 0.23452756553931453,
+        "maximum": 0.24610905036794353
+      },
+      "host_total_ms_median": 0.06779426325
+    },
+    {
+      "report": "argument-runtime-be750phj",
+      "policy": "workspace-public",
+      "processes": 6,
+      "wall_ms_per_frame": {
+        "median": 0.27969348436643143,
+        "minimum": 0.27148850514516126,
+        "maximum": 0.2894413739203629
+      },
+      "host_total_ms_median": 0.08498922
+    }
+  ]
+}

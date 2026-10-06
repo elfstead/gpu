@@ -315,6 +315,10 @@ lifetime, rejection and replay rules. The matched controls now include public
 bind-once and four-byte update paths; complete their acceptance and fresh
 host-sensitive timing before closing this decision. Do not assign the entire measured
 host gap to either unavoidable API cost or backend overhead.
+The [ABI-20 implementation checkpoint](recording-arguments-checkpoint.md) records
+76,032 clean correctness frames, installed-consumer success, the unresolved
+timing discrepancy, and the subsequent recording-time snapshot-reuse correction.
+Its fresh timing/acceptance remains the immediate next step; M4 is not complete.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and
