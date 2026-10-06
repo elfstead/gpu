@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Four-byte native updates versus full roots: correctness/expressibility, not timing."""
+"""Native/public four-byte updates versus full roots: correctness, not timing."""
 import argparse
 import json
 import os
@@ -12,7 +12,7 @@ sys.dont_write_bytecode=True
 import argument_snapshot as s
 ROOT,HERE=s.ROOT,s.HERE
 require,digest=s.require,s.digest
-PATHS=('native-full','native-partial','public')
+PATHS=('native-full','native-partial','public','public-partial')
 
 
 def updates(path,size):
@@ -21,7 +21,7 @@ def updates(path,size):
     for frame in range(4):
         result.extend([dict(offset=0,bytes=32),dict(offset=0,bytes=size)])
         if path=='native-full' or (path=='public' and frame==2):result.append(dict(offset=0,bytes=size))
-        elif path=='native-partial' and frame==2:result.append(dict(offset=size-4,bytes=4))
+        elif path in ('native-partial','public-partial') and frame==2:result.append(dict(offset=size-4,bytes=4))
     return result
 
 
@@ -89,13 +89,15 @@ def main():
                 folder=out/f'{size}-{path}';folder.mkdir()
                 flags=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DARGUMENT_PATCH_PAYLOAD',
                        f'-DSCENE_RASTER_BYTES={size}','-I'+str(ROOT/'include')]
-                if path!='public':flags+=['-DARGUMENT_NATIVE','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
+                if not path.startswith('public'):flags+=['-DARGUMENT_NATIVE','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
                 if path=='native-partial':flags+=['-DARGUMENT_NATIVE_PARTIAL']
+                if path=='public-partial':flags+=['-DARGUMENT_PUBLIC_PARTIAL']
                 command=flags+[str(HERE/'argument_snapshot.c'),'-ldl']
-                if path=='public':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
+                if path.startswith('public'):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
                 command+=['-o',str(folder/'probe')];subprocess.run(command,check=True);dependencies(flags,HERE/'argument_snapshot.c')
                 symbols=subprocess.check_output(['nm','-u',str(folder/'probe')],text=True)
-                require('ogpu' not in symbols.lower() if path!='public' else 'ogpu_batch_draw_indexed_indirect' in symbols,'wrong linkage')
+                require('ogpu' not in symbols.lower() if not path.startswith('public') else 'ogpu_batch_draw_indexed_indirect' in symbols,'wrong linkage')
+                if path=='public-partial':require('ogpu_batch_set_arguments' in symbols and 'ogpu_batch_draw_indexed_indirect_current' in symbols,'missing candidate linkage')
                 report['builds'][folder.name]=dict(command=command,sha256=digest(folder/'probe'))
                 if args.build_only:continue
                 command=[str(folder/'probe'),str(shaders),str(folder)]
@@ -103,8 +105,8 @@ def main():
                     result=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                 require(result.returncode==0,'partial-update execution failed: '+str(folder))
                 stdout,stderr=(folder/'stdout').read_text(),(folder/'stderr').read_text()
-                limit,device=s.check_log(stdout,stderr,'public' if path=='public' else 'native',size)
-                matches=[r for r in reference['runs'] if r['bytes']==size and r['backend']==('public' if path=='public' else 'native')]
+                limit,device=s.check_log(stdout,stderr,'public' if path.startswith('public') else 'native',size)
+                matches=[r for r in reference['runs'] if r['bytes']==size and r['backend']==('public' if path.startswith('public') else 'native')]
                 require(len(matches)==1 and matches[0]['device']==device and matches[0]['limit']==limit,'reference device/limit mismatch')
                 data=(folder/'snapshots.images').read_bytes();checks=s.check(data,size,single_word=True)
                 require((folder/'final.geometry').read_bytes()==s.oracle.geometry(0,False)+bytes([0xa5])*4,'geometry/guard mismatch')
@@ -112,7 +114,7 @@ def main():
                 report['runs'].append(dict(bytes=size,path=path,command=command,device=device,limit=limit,checks=checks,**traced,
                     files={p.name:digest(p) for p in folder.iterdir() if p.is_file()}));save()
             if not args.build_only:
-                require(results[0]==results[1]==results[2],'native full/partial/public output mismatch')
+                require(all(data==results[0] for data in results),'native/public full/partial output mismatch')
                 require(all(b['memory']==budgets[0]['memory'] and b['allocation_shape']==budgets[0]['allocation_shape'] for b in budgets),'allocation budget mismatch')
                 print(f'{size}-byte roots: full/4-byte partial/public output, update-range and allocation checks PASS',flush=True)
         for p in (Path(__file__),HERE/'argument_snapshot.py',HERE/'oracle.py'):report['sources'][str(p.resolve())]=digest(p)

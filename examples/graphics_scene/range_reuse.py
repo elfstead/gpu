@@ -21,7 +21,7 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     require(backend.title()+' scene reuse drained and checked' in stdout,'missing drain marker')
     require(f.rows(stdout,'DEVICE ')==[device],'wrong device')
     if backend=='public':
-        require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(abi=19,index_bytes=4,gpu_generated=True)],'wrong public profile')
+        require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(abi=20,index_bytes=4,gpu_generated=True)],'wrong public profile')
     else:
         require(f.rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'native identity not enabled')
     expected=[]
@@ -61,7 +61,8 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     require(end['vkCmdDrawIndexedIndirect2KHR']==(0 if strategy=='count' else encodes*draws_per_record)
             and end['vkCmdDrawIndexedIndirectCount2KHR']==(encodes if strategy=='count' else 0),'wrong compiled native range strategy')
     binds=capacity if scopes and backend=='public' else 1
-    root_pushes=binds if root_pushes is None else root_pushes
+    # Argument-bank bytes survive scope boundaries independently of raster bindings.
+    root_pushes=1 if root_pushes is None else root_pushes
     require(root_pushes>=1,'invalid root push count')
     for name in ('vkCmdBindPipeline','vkCmdPushDataEXT'):
         expected_binds=root_pushes if name=='vkCmdPushDataEXT' else binds

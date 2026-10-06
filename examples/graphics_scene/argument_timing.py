@@ -33,7 +33,7 @@ def matrix(report):
 
 
 def parse(stdout,stderr,device,path,size,capacity,slots,frames):
-    require(a.f.rows(stdout,'ARGUMENT_POLICY ')==[dict(bytes=size,reverse_alternating=True,resupply=path!='native-once')],'wrong supply/order policy')
+    require(a.f.rows(stdout,'ARGUMENT_POLICY ')==[dict(bytes=size,reverse_alternating=True,resupply=a.resupply(path))],'wrong supply/order policy')
     require(not a.f.rows(stdout,'ARGUMENT_INPUT ') and not a.f.rows(stderr,'ARGUMENT_COMMANDS '),'diagnostics present during timing')
     result=timing.parse(stdout,stderr,device,capacity,'single',slots,False,frames)
     samples=a.f.rows(stdout,'SAMPLE ');parts=a.f.rows(stdout,'ARGUMENT_SAMPLE ')
@@ -76,13 +76,13 @@ def main():
             for path in a.PATHS:
                 opts=a.flags(cc,size,path,timing=True)
                 command=opts+[str(HERE/'range_timing.c'),'-ldl']
-                if path=='public':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
+                if path.startswith('public'):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
                 command+=['-o',str(out/f'{size}-{path}')];subprocess.run(command,check=True)
                 report['builds'][f'{size}-{path}']=dict(command=command,sha256=digest(out/f'{size}-{path}'))
                 deps=subprocess.check_output([*opts,'-MM',str(HERE/'range_timing.c')],text=True)
                 for p in shlex.split(deps.replace('\\\n','').split(':',1)[1]):report['sources'][str(Path(p).resolve())]=digest(Path(p))
                 symbols=subprocess.check_output(['nm','-u',str(out/f'{size}-{path}')],text=True)
-                require('ogpu' not in symbols.lower() if path!='public' else 'ogpu_batch_submit' in symbols,'wrong timing linkage')
+                require('ogpu' not in symbols.lower() if not path.startswith('public') else 'ogpu_batch_submit' in symbols,'wrong timing linkage')
         for p in (Path(__file__),HERE/'range_timing.py',HERE/'argument_reuse.py'):report['sources'][str(p.resolve())]=digest(p)
         env=os.environ.copy()
         require(env.get('VK_DRIVER_FILES')==correct['environment']['VK_DRIVER_FILES'],'select correctness ICD')

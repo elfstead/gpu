@@ -14,7 +14,11 @@ import frontier as f
 import range_reuse as reuse
 ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
-PATHS=('native-once','native-resupply','public')
+PATHS=('native-once','native-resupply','public','public-current')
+
+
+def resupply(path):
+    return path in ('native-resupply','public')
 
 
 def recolor(data,size):
@@ -34,8 +38,9 @@ def flags(cc,size,path,diagnostic=False,timing=False):
     if not timing:result+=['-DSCENE_RANGE_REUSE']
     else:result+=['-DSCENE_ARGUMENT_PROFILE']
     if diagnostic:result+=['-DSCENE_ARGUMENT_DIAGNOSTICS']
-    if path!='native-once':result+=['-DSCENE_ARGUMENT_RESUPPLY']
-    if path!='public':
+    if resupply(path):result+=['-DSCENE_ARGUMENT_RESUPPLY']
+    if path=='public-current':result+=['-DSCENE_ARGUMENT_CURRENT']
+    if not path.startswith('public'):
         result+=['-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
         if not timing:result+=['-DNATIVE_DRAW_IDENTITY']
         if timing:result+=['-DRANGE_NATIVE']
@@ -45,8 +50,8 @@ def flags(cc,size,path,diagnostic=False,timing=False):
 def check_arguments(stdout,stderr,path,size,capacity,frames):
     require(path in PATHS and size in snapshot.SIZES and capacity in (1,64,512)
             and frames>=16 and frames%16==0,'invalid argument control')
-    require(f.rows(stdout,'ARGUMENT_POLICY ')==[dict(bytes=size,reverse_alternating=True,resupply=path!='native-once')],'wrong argument policy')
-    supplied=frames*(1 if path=='native-once' else capacity)
+    require(f.rows(stdout,'ARGUMENT_POLICY ')==[dict(bytes=size,reverse_alternating=True,resupply=resupply(path))],'wrong argument policy')
+    supplied=frames*(capacity if resupply(path) else 1)
     require(f.rows(stdout,'ARGUMENT_INPUT ')==[dict(calls=supplied,bytes=supplied*size)],'wrong supplied root accounting')
     pushes=capacity if path=='native-resupply' else 1
     trace=f.rows(stderr,'ARGUMENT_COMMANDS ')
@@ -60,7 +65,7 @@ def check_arguments(stdout,stderr,path,size,capacity,frames):
 def check(stdout,stderr,path,size,capacity,slots,frames,device):
     arguments=check_arguments(stdout,stderr,path,size,capacity,frames)
     pushes=capacity if path=='native-resupply' else 1
-    result=reuse.check(stdout,stderr,'public' if path=='public' else 'native',capacity,'single',slots,False,frames,device,root_pushes=pushes)
+    result=reuse.check(stdout,stderr,'public' if path.startswith('public') else 'native',capacity,'single',slots,False,frames,device,root_pushes=pushes)
     result.update(arguments)
     return result
 
@@ -132,14 +137,15 @@ def main():
         report['sources']={}
         for size in sizes:
             for path in PATHS:
-                opts=flags(cc,size,path,diagnostic=True);source=HERE/('reuse_public.c' if path=='public' else 'reuse_native.c')
+                opts=flags(cc,size,path,diagnostic=True);source=HERE/('reuse_public.c' if path.startswith('public') else 'reuse_native.c')
                 command=opts+[str(source),'-ldl']
-                if path=='public':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
+                if path.startswith('public'):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
                 command+=['-o',str(out/str(size)/path)];subprocess.run(command,check=True)
                 deps=subprocess.check_output([*opts,'-MM',str(source)],text=True)
                 for p in shlex.split(deps.replace('\\\n','').split(':',1)[1]):report['sources'][str(Path(p).resolve())]=digest(Path(p))
                 symbols=subprocess.check_output(['nm','-u',str(out/str(size)/path)],text=True)
-                require(('ogpu' not in symbols.lower()) if path!='public' else 'ogpu_batch_draw_indexed_indirect' in symbols,'wrong linkage')
+                require(('ogpu' not in symbols.lower()) if not path.startswith('public') else 'ogpu_batch_draw_indexed_indirect' in symbols,'wrong linkage')
+                if path=='public-current':require('ogpu_batch_set_arguments' in symbols and 'ogpu_batch_draw_indexed_indirect_current' in symbols,'missing candidate linkage')
                 report['builds'][f'{size}-{path}']=dict(command=command,sha256=digest(out/str(size)/path))
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DSCENE_ARGUMENT_TRACE','-shared','-fPIC',
             '-I'+str(ROOT/'vendor/Vulkan-Headers/include'),str(HERE/'reuse_trace.c'),'-ldl','-o',str(out/'trace.so')]

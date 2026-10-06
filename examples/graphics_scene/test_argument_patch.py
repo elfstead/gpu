@@ -9,7 +9,7 @@ class ArgumentPatchTests(unittest.TestCase):
             for path in p.PATHS:
                 updates=p.updates(path,size)
                 total=sum(r['bytes'] for r in updates)
-                self.assertEqual(total,128+(4*size+4 if path=='native-partial' else (5 if path=='public' else 8)*size))
+                self.assertEqual(total,128+(4*size+4 if path in ('native-partial','public-partial') else (5 if path=='public' else 8)*size))
                 policy=dict(single_word=True,native_partial=path=='native-partial')
                 commands=dict(phase=2,vkCmdPushDataEXT=len(updates),vkCmdDrawIndexedIndirect2KHR=8,indexed_records=8,
                     vkCmdDrawIndexedIndirectCount2KHR=0,counted_capacity=0,vkQueueWaitIdle=0,vkCmdBeginRendering=4,vkCmdEndRendering=4)

@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /* Experimental ABI. Incompatible layout/signature/behavior changes increment it. */
-#define OGPU_ABI_VERSION UINT32_C(19)
+#define OGPU_ABI_VERSION UINT32_C(20)
 
 typedef int32_t OgpuResult;
 #define OGPU_SUCCESS INT32_C(0)
@@ -369,10 +369,34 @@ void ogpu_batch_destroy(OgpuBatch *batch);
  * Allocation addresses are NOT retained: keep all reachable allocations alive from
  * recording through completion, or until the unsubmitted recording is discarded.
  * Compiled lists need valid addresses for every execution; see batch_compile.
+ * On Vulkan this is an atomic set_arguments(0, root) + dispatch_current convenience:
+ * successful calls update the shared bank, including for subsequent graphics.
  * Invalid recording arguments leave the recording unchanged. */
 OgpuResult ogpu_batch_dispatch(OgpuBatch *batch, OgpuKernel *kernel, uint32_t groups_x,
     uint32_t groups_y, uint32_t groups_z, const void *arguments,
     uint32_t argument_bytes, OgpuError *out_error);
+
+/* Experimental recording-local argument bank (currently Vulkan only; Metal
+ * returns UNSUPPORTED for these new entry points, retaining per-call compute).
+ * Copies only [offset, offset+argument_bytes), preserving all other bytes.
+ * Offset and length must be multiples of four (INVALID_ARGUMENT); their sum
+ * must fit max_push_data_bytes (OUT_OF_RANGE). NULL is legal only for zero bytes.
+ * Zero bytes is a validated no-op. Legal inside or outside rendering scopes.
+ * A new recording has NO defined argument bytes. Before a shader reads any byte,
+ * the caller must initialize it in this recording; unused holes/padding need not
+ * be initialized. No reflection, implicit zero-fill or initialization validation.
+ * Compute/graphics share this bank across scopes, barriers and executable changes;
+ * there is no implicit restore. Compatible executable prefixes can reuse bytes.
+ * Recorded updates/list replays own copied host bytes, NOT embedded GPU pointees.
+ * Pointees must remain valid and explicitly synchronized through every execution.
+ * Failures leave the recording unchanged. */
+OgpuResult ogpu_batch_set_arguments(OgpuBatch *batch, uint32_t offset,
+    const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+/* Same operation validation/retention as batch_dispatch, but consumes current
+ * arguments without a per-call copy or exact-size binding requirement. Shader
+ * accesses must fit its declared push extent. Must be outside rendering. */
+OgpuResult ogpu_batch_dispatch_current(OgpuBatch *batch, OgpuKernel *kernel,
+    uint32_t groups_x, uint32_t groups_y, uint32_t groups_z, OgpuError *out_error);
 
 /* Global dependency from earlier to later commands on this queue, including
  * earlier submissions. Each mask must be a nonzero combination of the access bits
@@ -761,6 +785,12 @@ typedef struct OgpuIndirectRange {
 OgpuResult ogpu_batch_draw_indirect(OgpuBatch *batch, OgpuRaster *raster,
     const OgpuIndirectRange *draws,
     const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+/* Same draw validation/retention, but uses current shared arguments. No per-call
+ * root copy or exact-size binding requirement. A zero-capacity draw does not
+ * consume/change arguments. The per-call convenience above atomically updates
+ * offset zero then draws, including an update on successful zero capacity. */
+OgpuResult ogpu_batch_draw_indirect_current(OgpuBatch *batch, OgpuRaster *raster,
+    const OgpuIndirectRange *draws, OgpuError *out_error);
 #define OGPU_INDEX_UINT16 0u
 #define OGPU_INDEX_UINT32 1u
 typedef struct OgpuIndexRange {
@@ -783,6 +813,10 @@ typedef struct OgpuDrawIndexedArguments {
 OgpuResult ogpu_batch_draw_indexed_indirect(OgpuBatch *batch, OgpuRaster *raster,
     const OgpuIndexRange *indices, const OgpuIndirectRange *draws,
     const void *arguments, uint32_t argument_bytes, OgpuError *out_error);
+/* Indexed counterpart of draw_indirect_current; per-call indexed convenience
+ * above likewise updates the shared bank atomically with successful recording. */
+OgpuResult ogpu_batch_draw_indexed_indirect_current(OgpuBatch *batch, OgpuRaster *raster,
+    const OgpuIndexRange *indices, const OgpuIndirectRange *draws, OgpuError *out_error);
 
 /* Caller must initialize GENERAL and write every copied texel in this or an earlier
  * successfully submitted batch. No hidden initialization or host-side layout tracker.

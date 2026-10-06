@@ -501,7 +501,7 @@ fn gpu_batches() {
                         .status,
                     INVALID_ARGUMENT
                 );
-                assert_eq!(batch.steps.as_ref().unwrap().len(), 1);
+                assert_eq!(batch.steps.as_ref().unwrap().len(), 2); // update + operation
             }
         }
         batch

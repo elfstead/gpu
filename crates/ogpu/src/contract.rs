@@ -82,6 +82,23 @@ pub(crate) fn root_size(bytes: u32, limit: u64) -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
+pub(crate) fn argument_range(offset: u32, bytes: usize, limit: u64) -> Result<(), Error> {
+    if offset % 4 != 0 || bytes % 4 != 0 {
+        return Err(Error::new(INVALID_ARGUMENT, "Unaligned argument update"));
+    }
+    if u64::from(offset)
+        .checked_add(bytes as u64)
+        .is_none_or(|end| end > limit)
+    {
+        return Err(Error::new(
+            OUT_OF_RANGE,
+            "Argument update exceeds device limit",
+        ));
+    }
+    Ok(())
+}
+
 pub(crate) fn dispatch(
     groups: [u32; 3],
     limits: [u32; 3],

@@ -728,7 +728,6 @@ impl Raster {
         &self,
         command: vk::VkCommandBuffer,
         indirect: &batch::IndirectBinding,
-        root: &[u8],
         indices: Option<&batch::IndexBinding>,
         bind_state: bool,
     ) {
@@ -743,7 +742,6 @@ impl Raster {
                     vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS,
                     self.pipeline,
                 );
-                batch::push_data(d, command, root);
             }
             let draw = vk::VkDrawIndirect2InfoKHR {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,

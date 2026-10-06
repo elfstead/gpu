@@ -21,23 +21,23 @@ class InstalledSceneTests(unittest.TestCase):
         device=dict(vendor=4098,device=29471,api=[1,4,354])
         frames=[dict(mode=m,phase=int(f==1),frame=f) for m in range(10) for f in range(3)]
         for bits in (16,32):
-            public=dict(abi=19,index_bytes=bits//8,gpu_generated=True)
+            public=dict(abi=20,index_bytes=bits//8,gpu_generated=True)
             generated=dict(compute_push_bytes=32,vertex_push_bytes=8)
             def log():
                 return ('DEVICE '+json.dumps(device)+'\nPUBLIC_SCENE '+json.dumps(public)+
                     '\nGENERATED_SCENE '+json.dumps(generated)+'\n'+''.join('SCENE_FRAME '+json.dumps(f)+'\n' for f in frames)+
                     'Public indexed/depth frames drained; CPU oracle must independently accept outputs')
-            self.assertEqual(scene.check_logs(log(),'',bits,19),(device,frames))
+            self.assertEqual(scene.check_logs(log(),'',bits,20),(device,frames))
             for target,key in ((public,'abi'),(public,'index_bytes'),(generated,'compute_push_bytes'),
                                (generated,'vertex_push_bytes'),(frames[1],'phase'),(frames[1],'frame')):
                 target[key]+=1
-                with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,19)
+                with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,20)
                 target[key]-=1
             for bad in (log().replace('GENERATED_SCENE ','HIDDEN '),log().replace('frames drained','not drained'),
                         log()+'\nDEVICE '+json.dumps(device),log().replace('SCENE_FRAME ','IGNORED ',1)):
-                with self.assertRaises(ValueError):scene.check_logs(bad,'',bits,19)
+                with self.assertRaises(ValueError):scene.check_logs(bad,'',bits,20)
             for error in ('Validation Error: injected','SYNC-HAZARD injected'):
-                with self.assertRaises(ValueError):scene.check_logs(log(),error,bits,19)
+                with self.assertRaises(ValueError):scene.check_logs(log(),error,bits,20)
 
 
 if __name__=='__main__':unittest.main()

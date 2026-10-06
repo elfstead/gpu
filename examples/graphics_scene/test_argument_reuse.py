@@ -32,9 +32,9 @@ class ArgumentReuseTests(unittest.TestCase):
         for path in a.PATHS:
             for size in a.snapshot.SIZES:
                 for capacity in (1,64,512):
-                    frames=16;calls=frames*(1 if path=='native-once' else capacity)
+                    frames=16;calls=frames*(capacity if a.resupply(path) else 1)
                     pushes=capacity if path=='native-resupply' else 1
-                    policy=dict(bytes=size,reverse_alternating=True,resupply=path!='native-once')
+                    policy=dict(bytes=size,reverse_alternating=True,resupply=a.resupply(path))
                     supplied=dict(calls=calls,bytes=calls*size)
                     traces=[dict(phase=0,push_bytes=0,forward=0,backward=0,other=0)]+[
                         dict(phase=i,push_bytes=frames*(32+pushes*size),forward=8*(capacity-1),backward=8*(capacity-1),other=0) for i in (1,2)]
@@ -53,8 +53,9 @@ class ArgumentReuseTests(unittest.TestCase):
             timed=a.flags(['cc'],64,path,timing=True)
             self.assertNotIn('-DSCENE_ARGUMENT_DIAGNOSTICS',timed)
             self.assertNotIn('-DSCENE_RANGE_REUSE',timed)
-            self.assertEqual('-DRANGE_NATIVE' in timed,path!='public')
-            self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in timed,path!='native-once')
+            self.assertEqual('-DRANGE_NATIVE' in timed,not path.startswith('public'))
+            self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in timed,a.resupply(path))
+            self.assertEqual('-DSCENE_ARGUMENT_CURRENT' in timed,path=='public-current')
             self.assertIn('-DSCENE_ARGUMENT_DIAGNOSTICS',a.flags(['cc'],64,path,diagnostic=True))
 
 

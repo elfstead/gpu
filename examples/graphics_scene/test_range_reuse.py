@@ -38,14 +38,14 @@ class RangeReuseTests(unittest.TestCase):
                         barriers=(8 if backend=='public' else 6)+scope_count-1
                         start['vkCmdPipelineBarrier2']=2*slots
                         if replay:
-                            start.update(vkCmdBindPipeline=slots*(1+binds),vkCmdPushDataEXT=slots*(1+binds),vkCmdBindIndexBuffer3KHR=slots*binds,
+                            start.update(vkCmdBindPipeline=slots*(1+binds),vkCmdPushDataEXT=slots*2,vkCmdBindIndexBuffer3KHR=slots*binds,
                                          vkCmdBeginRendering=slots*scope_count,vkCmdEndRendering=slots*scope_count,
                                          vkCmdSetViewport=slots*binds,vkCmdSetScissor=slots*binds,vkCmdPipelineBarrier2=slots*(2+barriers))
                         hot=dict.fromkeys(names,0);hot['vkQueueSubmit2']=frames
                         if not replay:
                             hot.update(vkCreateCommandPool=slots,vkResetCommandPool=frames if backend=='public' else frames-slots,
                                        vkBeginCommandBuffer=frames,vkEndCommandBuffer=frames,vkCmdBeginRendering=frames*scope_count,vkCmdEndRendering=frames*scope_count,
-                                       vkCmdBindPipeline=frames*(1+binds),vkCmdPushDataEXT=frames*(1+binds),
+                                       vkCmdBindPipeline=frames*(1+binds),vkCmdPushDataEXT=frames*2,
                                        vkCmdBindIndexBuffer3KHR=frames*binds,vkCmdPipelineBarrier2=frames*barriers,
                                        vkCmdSetViewport=frames*binds,vkCmdSetScissor=frames*binds,
                                        **draw_counts(frames))
@@ -56,7 +56,7 @@ class RangeReuseTests(unittest.TestCase):
                         def logs():
                             stdout='DEVICE '+json.dumps(device)+'\n'+''.join('RANGE_FRAME '+json.dumps(row)+'\n' for row in rows)
                             stdout+='RANGE_SCOPE_POLICY '+json.dumps(dict(per_draw=scopes))+'\n'
-                            stdout+=('PUBLIC_SCENE '+json.dumps(dict(abi=19,index_bytes=4,gpu_generated=True)) if backend=='public'
+                            stdout+=('PUBLIC_SCENE '+json.dumps(dict(abi=20,index_bytes=4,gpu_generated=True)) if backend=='public'
                                      else 'DRAW_IDENTITY_FEATURES '+json.dumps(dict(shaderDrawParameters=True)))+'\n'
                             stdout+='RANGE_SUMMARY '+json.dumps(summary)+f'\n{backend.title()} scene reuse drained and checked\n'
                             stderr='MEMORY_SUMMARY '+json.dumps(memory)+'\n'+''.join('COMMAND_COUNTS '+json.dumps(c)+'\n' for c in (start,end,final))
@@ -68,7 +68,7 @@ class RangeReuseTests(unittest.TestCase):
                         # not pipeline/index/viewport bindings or draw commands.
                         for trace in (start,end,final):
                             trace['vkCmdPushDataEXT']+=(slots if replay else 0 if trace is start else frames)*3
-                        r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes,root_pushes=binds+3)
+                        r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes,root_pushes=4)
                         with self.assertRaises(ValueError):check()
                         for trace in (start,end,final):
                             trace['vkCmdPushDataEXT']-=(slots if replay else 0 if trace is start else frames)*3

@@ -14,15 +14,17 @@ a GPU source language or a general graphics/ML platform. Breaking changes remain
 allowed when evidence exposes a better API alternative; compatibility is not a veto.
 
 The runtime is Rust over the modern Vulkan baseline, plus an experimental native
-Metal compute backend. The language-neutral C boundary is now **ABI 19**, adding
-explicit indirect ranges, GPU counts and graphics draw identity. ABI 18 added
+Metal compute backend. The language-neutral C boundary is now **ABI 20**, adding
+recording-local argument byte-range updates and argument-free current-bank
+dispatch/draw operations on Vulkan. ABI 19 added explicit indirect ranges, GPU
+counts and graphics draw identity. ABI 18 added
 scoped indexed/depth rendering and description-based buffer/raster creation.
 ABI 17 added recording-local split dependencies and explicit serial/simultaneous replay after
 ABI 16's optional borrowed HOST views and range visibility on Vulkan and ABI 15's
 immutable command lists and ABI 14's explicit recording-storage
 ownership; ABI 13 relaxed retirement to allow bounded empty command storage. The bounded macOS arm64
 compute/GGML path was verified at ABI 12; Metal remains destruction-based and is
-not natively revalidated for this revision (new owner/list/view/split calls return UNSUPPORTED).
+not natively revalidated for this revision (new owner/list/view/split/current-argument calls return UNSUPPORTED).
 The validated Metal branch is merged
 into `master`. Use matching header/library/shaders
 from one source revision. No release/tag or cross-version stability is implied.
@@ -307,9 +309,11 @@ retry against direct Vulkan on both drivers. The [bind-once/resupply matrix](arg
 at `955bdd7` adds 57,024 correctness frames and 160,704 timing samples, exposing
 root update/reuse independently of changing draw order as the better direction.
 The [partial-update control](argument-patch-results.md) at `f4405e3` also passes
-on both drivers. Next implement the [recording-local byte-range prototype](recording-arguments-prototype.md)
-under its declared initialization, lifetime, rejection and replay rules; no new
-public ABI is implemented yet. Do not assign the entire measured
+on both drivers. The [recording-local byte-range prototype](recording-arguments-prototype.md)
+is implemented experimentally at ABI 20 under its declared initialization,
+lifetime, rejection and replay rules. The matched controls now include public
+bind-once and four-byte update paths; complete their acceptance and fresh
+host-sensitive timing before closing this decision. Do not assign the entire measured
 host gap to either unavoidable API cost or backend overhead.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish

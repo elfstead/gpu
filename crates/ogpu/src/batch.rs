@@ -129,19 +129,17 @@ pub(crate) struct IndirectBinding {
 }
 
 // Borrowed recording-local keys only: retained Steps keep these identities alive.
-// Root equality compares the copied bytes, never memory addressed by those bytes.
 #[derive(PartialEq, Eq)]
-struct DrawState<'a> {
+struct DrawState {
     raster: *const Raster,
     indices: Option<(*const Buffer, u64, u64, u32)>,
-    root: &'a [u8],
 }
 
 #[derive(Default)]
-struct DrawStateCache<'a>(Option<DrawState<'a>>);
+struct DrawStateCache(Option<DrawState>);
 
-impl<'a> DrawStateCache<'a> {
-    fn needs_bind(&mut self, maximum: u32, next: DrawState<'a>) -> bool {
+impl DrawStateCache {
+    fn needs_bind(&mut self, maximum: u32, next: DrawState) -> bool {
         if maximum == 0 {
             // Empty ranges emit no native state or draw commands.
             return false;
@@ -156,7 +154,28 @@ impl<'a> DrawStateCache<'a> {
     }
 }
 
+// Only compare the last copied update, never GPU pointees. Other commands preserve
+// this bank. A different update conservatively forgets the earlier range, so no
+// full-bank allocation, initialization scan or per-operation root is necessary.
+#[derive(Default)]
+struct ArgumentCache<'a>(Option<(u32, &'a [u8])>);
+
+impl<'a> ArgumentCache<'a> {
+    fn needs_push(&mut self, offset: u32, bytes: &'a [u8]) -> bool {
+        let next = (offset, bytes);
+        if bytes.is_empty() || self.0 == Some(next) {
+            return false;
+        }
+        self.0 = Some(next);
+        true
+    }
+}
+
 enum Step {
+    Arguments {
+        offset: u32,
+        bytes: Vec<u8>,
+    },
     BeginRendering(graphics::Rendering),
     EndRendering,
     DependencyBegin(usize),
@@ -174,7 +193,6 @@ enum Step {
     Dispatch {
         kernel: Rc<Kernel>,
         groups: [u32; 3],
-        root: Vec<u8>,
     },
     Barrier {
         source: Access,
@@ -184,7 +202,6 @@ enum Step {
         raster: Rc<Raster>,
         indices: Option<IndexBinding>,
         indirect: IndirectBinding,
-        root: Vec<u8>,
     },
     ImageCopy {
         image: Rc<Image>,
@@ -378,6 +395,34 @@ impl Batch {
         groups: [u32; 3],
         root: &[u8],
     ) -> Result<(), Error> {
+        self.dispatch_arguments(kernel, groups, Some(root))
+    }
+
+    pub(crate) fn set_arguments(&mut self, offset: u32, bytes: &[u8]) -> Result<(), Error> {
+        self.recording()?;
+        contract::argument_range(offset, bytes.len(), self.device.max_push_data)?;
+        self.append_arguments(offset, bytes);
+        Ok(())
+    }
+
+    // Called only after the complete operation has validated. Empty updates do
+    // not change the bank; successful convenience calls update it even for an
+    // empty indirect range. No fallible validation follows the append.
+    fn append_arguments(&mut self, offset: u32, bytes: &[u8]) {
+        if !bytes.is_empty() {
+            self.steps.as_mut().unwrap().push(Step::Arguments {
+                offset,
+                bytes: bytes.to_vec(),
+            });
+        }
+    }
+
+    pub(crate) fn dispatch_arguments(
+        &mut self,
+        kernel: Rc<Kernel>,
+        groups: [u32; 3],
+        root: Option<&[u8]>,
+    ) -> Result<(), Error> {
         self.outside_rendering()?;
         if !Rc::ptr_eq(&self.device, &kernel.device) {
             return Err(Error::new(
@@ -388,14 +433,16 @@ impl Batch {
         contract::dispatch(
             groups,
             self.device.limits.maxComputeWorkGroupCount,
-            root.len(),
+            root.map_or(kernel.push_size as usize, <[u8]>::len),
             kernel.push_size,
         )?;
-        self.recording()?.push(Step::Dispatch {
-            kernel,
-            groups,
-            root: root.to_vec(),
-        });
+        if let Some(root) = root {
+            self.append_arguments(0, root);
+        }
+        self.steps
+            .as_mut()
+            .unwrap()
+            .push(Step::Dispatch { kernel, groups });
         Ok(())
     }
 
@@ -459,6 +506,16 @@ impl Batch {
         root: &[u8],
         indices: Option<IndexBinding>,
     ) -> Result<(), Error> {
+        self.draw_arguments(raster, indirect, Some(root), indices)
+    }
+
+    pub(crate) fn draw_arguments(
+        &mut self,
+        raster: Rc<Raster>,
+        indirect: IndirectBinding,
+        root: Option<&[u8]>,
+        indices: Option<IndexBinding>,
+    ) -> Result<(), Error> {
         self.recording()?;
         let scope = self
             .rendering
@@ -478,7 +535,8 @@ impl Batch {
                 "Draw objects belong to different devices",
             ));
         }
-        if !rendering.matches(&raster) || root.len() != raster.push_size as usize {
+        if !rendering.matches(&raster) || root.is_some_and(|r| r.len() != raster.push_size as usize)
+        {
             return Err(Error::new(
                 INVALID_ARGUMENT,
                 "Draw format or root size mismatch",
@@ -505,10 +563,12 @@ impl Batch {
             indirect.count.as_ref().map(|b| b.size),
             indirect.count_offset,
         )?;
-        self.recording()?.push(Step::Draw {
+        if let Some(root) = root {
+            self.append_arguments(0, root);
+        }
+        self.steps.as_mut().unwrap().push(Step::Draw {
             raster,
             indirect,
-            root: root.to_vec(),
             indices,
         });
         Ok(())
@@ -889,10 +949,20 @@ impl CommandStorage {
 
 impl SubmissionResources {
     fn cache_eligible(&self) -> bool {
+        let updates = self
+            .steps
+            .iter()
+            .filter(|s| matches!(s, Step::Arguments { .. }))
+            .count();
+        // Preserve the old operation limit when conveniences expand into two
+        // steps, while also bounding standalone update-only recordings.
+        if updates > MAX_CACHED_STEPS {
+            return false;
+        }
         cacheable_shape(
-            self.steps.len(),
+            self.steps.len() - updates,
             self.steps.iter().map(|step| match step {
-                Step::Dispatch { root, .. } | Step::Draw { root, .. } => root.len(),
+                Step::Arguments { bytes, .. } => bytes.len(),
                 _ => 0,
             }),
         )
@@ -1133,13 +1203,19 @@ impl Completion {
                 );
             }
             let mut draw_state = DrawStateCache::default();
+            let mut arguments = ArgumentCache::default();
             for step in &resources.steps {
-                if !matches!(step, Step::Draw { .. }) {
+                if !matches!(step, Step::Draw { .. } | Step::Arguments { .. }) {
                     // Conservatively stop at every dependency, scope, heap, copy,
                     // or compute operation. Nothing survives this recording.
                     draw_state.invalidate();
                 }
                 match step {
+                    Step::Arguments { offset, bytes } => {
+                        if arguments.needs_push(*offset, bytes) {
+                            push_data(d, command, *offset, bytes);
+                        }
+                    }
                     Step::DependencyBegin(index) | Step::DependencyEnd(index) => {
                         let scope = &resources.dependencies[*index];
                         let memory = vk::VkMemoryBarrier2 {
@@ -1198,17 +1274,12 @@ impl Completion {
                     Step::DiscardImage(target) => target.discard(command),
                     Step::BindImages(heap) => heap.bind(command),
                     Step::BindSamplers(heap) => heap.bind(command),
-                    Step::Dispatch {
-                        kernel,
-                        groups,
-                        root,
-                    } => {
+                    Step::Dispatch { kernel, groups } => {
                         (d.f.vkCmdBindPipeline.unwrap())(
                             command,
                             vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE,
                             kernel.pipeline,
                         );
-                        push_data(d, command, root);
                         (d.f.vkCmdDispatch.unwrap())(command, groups[0], groups[1], groups[2]);
                     }
                     Step::Barrier {
@@ -1225,7 +1296,6 @@ impl Completion {
                     Step::Draw {
                         raster,
                         indirect,
-                        root,
                         indices,
                     } => {
                         let bind_state = draw_state.needs_bind(
@@ -1235,10 +1305,9 @@ impl Completion {
                                 indices: indices
                                     .as_ref()
                                     .map(|i| (Rc::as_ptr(&i.buffer), i.offset, i.size, i.format)),
-                                root,
                             },
                         );
-                        raster.draw(command, indirect, root, indices.as_ref(), bind_state);
+                        raster.draw(command, indirect, indices.as_ref(), bind_state);
                     }
                     Step::ImageCopy {
                         image,
@@ -1413,12 +1482,13 @@ pub(super) unsafe fn barrier(
     }
 }
 
-pub(super) unsafe fn push_data(d: &Device, command: vk::VkCommandBuffer, root: &[u8]) {
+unsafe fn push_data(d: &Device, command: vk::VkCommandBuffer, offset: u32, root: &[u8]) {
     if root.is_empty() {
         return;
     }
     let info = vk::VkPushDataInfoEXT {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+        offset,
         data: vk::VkHostAddressRangeConstEXT {
             address: root.as_ptr().cast(),
             size: root.len(),

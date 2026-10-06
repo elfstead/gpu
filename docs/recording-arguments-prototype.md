@@ -2,8 +2,10 @@
 
 Selected 2026-10-06 from the [reuse measurements](argument-reuse-results.md) and
 [partial-update control](argument-patch-results.md). This is the next
-implementation brief, **not an implemented or stable public API**. ABI 19 remains
-current. Prefer this foundation to a compulsory immutable argument object:
+implementation brief. **Implemented experimentally at ABI 20; not stable or yet
+performance-accepted.** `ogpu_batch_set_arguments` copies a range; the dispatch,
+indirect draw and indexed indirect draw `*_current` entry points consume the
+current shared bank. Prefer this foundation to a compulsory immutable argument object:
 native update/reuse needs neither a separately allocated public object nor
 object lifetime management, and partial updates must not force full-root
 materialization. An immutable convenience can be considered later if useful.
@@ -92,7 +94,46 @@ the bank. Preserve all existing explicit buffer/index/count/executable retention
    repeat host-sensitive timings. Attribute changes to measured collection and
    encoding phases, not a promised elimination of the entire current gap.
 
-Names and exact function grouping remain implementation choices. No automatic
+Names and exact function grouping remain experimental. No automatic
 scheduler, new allocator framework, permanent parallel legacy path or API freeze
 is part of this prototype. Mip/views resume after this bounded retain/change
 decision, not after an open-ended sequence of ever-larger performance studies.
+
+## Implemented shape and typed layout use
+
+The Vulkan recording stores owned `Arguments { offset, bytes }` steps separately
+from argument-free draw/dispatch steps. Encoding pushes those exact ranges. The
+last identical copied update can be elided independently of pipeline/index
+binding; it is not a whole-bank shadow or a per-operation payload scan. Automatic
+command-storage admission retains the old 256-operation/64-KiB argument bounds
+and separately caps update steps at 256, so expanding a convenience call does
+not halve its operation budget. Explicit recording owners remain unbounded by
+that automatic-cache policy.
+
+The generated indexed-scene consumer sets its typed compute and vertex arguments,
+then uses `dispatch_current` and `draw_indexed_indirect_current`. Shader interfaces
+and artifacts are unchanged. A partial update uses generated C layout, not a
+handwritten byte offset (check every returned status as usual):
+
+```c
+Scene_prepareArguments root = { /* application values */ };
+ogpu_batch_set_arguments(batch, 0, &root, sizeof(root), &error);
+ogpu_batch_dispatch_current(batch, prepare, 1, 1, 1, &error);
+/* After the application's required dependency, update only this field. */
+root.arg_phase = 1;
+ogpu_batch_set_arguments(batch, offsetof(Scene_prepareArguments, arg_phase),
+    &root.arg_phase, sizeof(root.arg_phase), &error);
+ogpu_batch_dispatch_current(batch, prepare, 1, 1, 1, &error);
+```
+
+These generated fields have four-byte-compatible offsets/sizes. Smaller shader
+fields require an explicitly initialized aligned containing range; the API does
+not silently widen a write. A later graphics update may overwrite compute fields:
+restore any overwritten bytes before compute reads them again.
+
+The matched reuse control includes `public-current` beside the unchanged native
+once/resupply and public per-call policies. The scalar-update control includes
+`public-partial`, with the same exact-range trace requirement as native partial.
+Pre-ABI-20 result receipts remain historical evidence, not measurements of this
+implementation. Fresh clean-revision correctness, SDK and timing receipts remain
+the acceptance gate. Linux tests do not establish Metal support.

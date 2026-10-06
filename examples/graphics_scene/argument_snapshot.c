@@ -68,8 +68,15 @@ static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indice
             .addressFlags=VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR,.drawCount=1};
         s->draw_indexed(s->batch.command,&info);
 #else
+#ifdef ARGUMENT_PUBLIC_PARTIAL
+        if(draw==0) GPU(ogpu_batch_set_arguments(s->batch,0,arguments.bytes,SCENE_RASTER_BYTES,&s->error));
+        else if(snapshot==2) GPU(ogpu_batch_set_arguments(s->batch,SCENE_RASTER_BYTES-4,
+            arguments.bytes+SCENE_RASTER_BYTES-4,4,&s->error));
+        GPU(ogpu_batch_draw_indexed_indirect_current(s->batch,s->raster[pipeline],indices,&range,&s->error));
+#else
         GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&range,
             arguments.bytes,SCENE_RASTER_BYTES,&s->error));
+#endif
 #endif
         /* Same address, immediately poisoned after every successful call. */
         memset(arguments.bytes,0xa5,sizeof(arguments.bytes));

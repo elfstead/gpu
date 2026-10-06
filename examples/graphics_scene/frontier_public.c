@@ -20,11 +20,19 @@ static int frontier_draw(Scene *s,unsigned pipeline,const OgpuIndexRange *indice
     OgpuIndirectRange draws={.buffer=s->draws,.offset=64,.stride_bytes=20,.max_draw_count=frontier_records};
 #ifdef SCENE_ARGUMENT_REUSE
     (void)first;NEED(frontier_strategy==0);
+#ifdef SCENE_ARGUMENT_CURRENT
+    ARGUMENT_SUPPLIED();
+    GPU(ogpu_batch_set_arguments(s->batch,0,s->argument_root,SCENE_RASTER_BYTES,&s->error));
+#endif
     for(unsigned i=0;i<frontier_records;++i) {
         draws.offset=64+20*argument_index(i,frontier_records);draws.max_draw_count=1;
+#ifdef SCENE_ARGUMENT_CURRENT
+        GPU(ogpu_batch_draw_indexed_indirect_current(s->batch,s->raster[pipeline],indices,&draws,&s->error));
+#else
         ARGUMENT_SUPPLIED();
         GPU(ogpu_batch_draw_indexed_indirect(s->batch,s->raster[pipeline],indices,&draws,
             s->argument_root,SCENE_RASTER_BYTES,&s->error));
+#endif
     }
 #elif defined(SCENE_RANGE_SCOPES)
     NEED(frontier_strategy==0 && first<frontier_records);

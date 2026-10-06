@@ -1,6 +1,9 @@
 //! C ownership boundary for dispatch, one-shot batches and immutable command lists.
 use crate::compute::{IndexBinding, IndirectBinding};
 #[cfg(test)]
+#[path = "argument_tests.rs"]
+mod argument_tests;
+#[cfg(test)]
 #[path = "indirect_tests.rs"]
 mod indirect_tests;
 #[cfg(test)]
@@ -827,6 +830,56 @@ pub unsafe extern "C" fn ogpu_batch_dispatch(
 }
 
 /// # Safety
+/// Live serialized batch, readable bytes and independent error output. GPU
+/// addresses in the copied bytes remain the caller's lifetime/race obligation.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_set_arguments(
+    batch: *mut OgpuBatch,
+    offset: u32,
+    arguments: *const c_void,
+    argument_bytes: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            let bytes = if argument_bytes == 0 {
+                &[]
+            } else {
+                required(arguments)?;
+                std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
+            };
+            (*batch).inner.set_arguments(offset, bytes)
+        })
+    }
+}
+
+/// # Safety
+/// As batch_dispatch; initialize all argument bytes read by the kernel using
+/// preceding updates in this recording. No inherited or implicitly zeroed bytes.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dispatch_current(
+    batch: *mut OgpuBatch,
+    kernel: *mut OgpuKernel,
+    groups_x: u32,
+    groups_y: u32,
+    groups_z: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            required(batch)?;
+            required(kernel)?;
+            (*batch).inner.dispatch_arguments(
+                (*kernel).inner.clone(),
+                [groups_x, groups_y, groups_z],
+                None,
+            )
+        })
+    }
+}
+
+/// # Safety
 /// See include/ogpu.h: valid batch/error pointers and external serialization.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_batch_barrier(
@@ -1136,8 +1189,7 @@ unsafe fn record_draw(
     batch: *mut OgpuBatch,
     raster: *mut OgpuRaster,
     draws: *const OgpuIndirectRange,
-    arguments: *const c_void,
-    argument_bytes: u32,
+    arguments: Option<(*const c_void, u32)>,
     indices: Option<IndexBinding>,
 ) -> Result<(), Error> {
     unsafe {
@@ -1158,15 +1210,41 @@ unsafe fn record_draw(
             },
             count_offset: draws.count_offset,
         };
-        let root = if argument_bytes == 0 {
-            &[]
+        if let Some((arguments, argument_bytes)) = arguments {
+            let root = if argument_bytes == 0 {
+                &[]
+            } else {
+                required(arguments)?;
+                std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
+            };
+            (*batch)
+                .inner
+                .draw((*raster).inner.clone(), indirect, root, indices)
         } else {
-            required(arguments)?;
-            std::slice::from_raw_parts(arguments.cast(), argument_bytes as usize)
-        };
-        (*batch)
-            .inner
-            .draw((*raster).inner.clone(), indirect, root, indices)
+            (*batch)
+                .inner
+                .draw_arguments((*raster).inner.clone(), indirect, None, indices)
+        }
+    }
+}
+
+unsafe fn index_binding(indices: *const OgpuIndexRange) -> Result<IndexBinding, Error> {
+    unsafe {
+        required(indices)?;
+        let i = &*indices;
+        required(i.buffer)?;
+        if i.reserved != 0 {
+            return Err(Error::new(
+                INVALID_ARGUMENT,
+                "Index range reserved field must be zero",
+            ));
+        }
+        Ok(IndexBinding {
+            buffer: (*i.buffer).inner.clone(),
+            offset: i.offset,
+            size: i.size_bytes,
+            format: i.format,
+        })
     }
 }
 
@@ -1184,7 +1262,13 @@ pub unsafe extern "C" fn ogpu_batch_draw_indirect(
 ) -> OgpuResult {
     unsafe {
         call(error, || {
-            record_draw(batch, raster, draws, arguments, argument_bytes, None)
+            record_draw(
+                batch,
+                raster,
+                draws,
+                Some((arguments, argument_bytes)),
+                None,
+            )
         })
     }
 }
@@ -1204,29 +1288,45 @@ pub unsafe extern "C" fn ogpu_batch_draw_indexed_indirect(
 ) -> OgpuResult {
     unsafe {
         call(error, || {
-            required(indices)?;
-            let i = &*indices;
-            required(i.buffer)?;
-            if i.reserved != 0 {
-                return Err(Error::new(
-                    INVALID_ARGUMENT,
-                    "Index range reserved field must be zero",
-                ));
-            }
-            let binding = IndexBinding {
-                buffer: (*i.buffer).inner.clone(),
-                offset: i.offset,
-                size: i.size_bytes,
-                format: i.format,
-            };
+            let binding = index_binding(indices)?;
             record_draw(
                 batch,
                 raster,
                 draws,
-                arguments,
-                argument_bytes,
+                Some((arguments, argument_bytes)),
                 Some(binding),
             )
+        })
+    }
+}
+
+/// # Safety
+/// As draw_indirect, using initialized current recording arguments instead of
+/// copying a per-call root. Referenced GPU addresses must remain valid.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_draw_indirect_current(
+    batch: *mut OgpuBatch,
+    raster: *mut OgpuRaster,
+    draws: *const OgpuIndirectRange,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe { call(error, || record_draw(batch, raster, draws, None, None)) }
+}
+
+/// # Safety
+/// As draw_indexed_indirect, with the current-argument initialization obligation.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_draw_indexed_indirect_current(
+    batch: *mut OgpuBatch,
+    raster: *mut OgpuRaster,
+    indices: *const OgpuIndexRange,
+    draws: *const OgpuIndirectRange,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            let binding = index_binding(indices)?;
+            record_draw(batch, raster, draws, None, Some(binding))
         })
     }
 }

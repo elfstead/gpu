@@ -164,13 +164,18 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
 #else
 #ifdef SCENE_GENERATED
     const Scene_pair_vertexArguments arguments={.arg_vertices=s->root.vertices};
-    const void *draw_root=&arguments;uint32_t draw_bytes=sizeof(arguments);
+    GPU(ogpu_batch_set_arguments(s->batch,0,&arguments,sizeof(arguments),&s->error));
 #else
     const void *draw_root=&s->root.vertices;uint32_t draw_bytes=8;
 #endif
     for(unsigned i=0;i<count;++i) {
         unsigned which=(first+i)%2;
+#ifdef SCENE_GENERATED
+        GPU(ogpu_batch_draw_indexed_indirect_current(s->batch,s->raster[pipeline],&indices,
+            &(OgpuIndirectRange){.buffer=s->draws,.offset=GUARD+20*which,.stride_bytes=20,.max_draw_count=1},&s->error));
+#else
         GPU(ogpu_batch_draw_indexed_indirect(s->batch, s->raster[pipeline], &indices, &(OgpuIndirectRange){.buffer=s->draws,.offset=GUARD+20*which,.stride_bytes=20,.max_draw_count=1}, draw_root, draw_bytes, &s->error));
+#endif
     }
 #endif
     GPU(ogpu_batch_end_rendering(s->batch,&s->error)); return 1;
@@ -178,7 +183,12 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
 static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COMPUTE_WRITE|OGPU_ACCESS_VERTEX_READ|OGPU_ACCESS_INDEX_READ|
         OGPU_ACCESS_INDIRECT_READ|OGPU_ACCESS_TRANSFER_READ|OGPU_ACCESS_TRANSFER_WRITE,OGPU_ACCESS_COMPUTE_WRITE,&s->error));
+#ifdef SCENE_GENERATED
+    GPU(ogpu_batch_set_arguments(s->batch,0,compute_root,scene_compute_bytes(s),&s->error));
+    GPU(ogpu_batch_dispatch_current(s->batch,s->prepare,1,1,1,&s->error));
+#else
     GPU(ogpu_batch_dispatch(s->batch,s->prepare,1,1,1,compute_root,scene_compute_bytes(s),&s->error));
+#endif
     GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COMPUTE_WRITE,
         OGPU_ACCESS_INDEX_READ|OGPU_ACCESS_VERTEX_READ|OGPU_ACCESS_INDIRECT_READ,&s->error));
     /* Match the native control's per-frame discard policy, not a requirement to

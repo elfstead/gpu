@@ -60,7 +60,7 @@ class ArgumentSnapshots(unittest.TestCase):
             lines={'DEVICE':device,'ARGUMENT_LIMIT':limit,
                 'ARGUMENT_SNAPSHOTS':dict(bytes=64,snapshots=4,draws=8,invalid_retries=0 if backend=='native' else 8)}
             lines.update({'DRAW_IDENTITY_FEATURES':dict(shaderDrawParameters=True)} if backend=='native' else
-                         {'PUBLIC_SCENE':dict(abi=19,index_bytes=4,gpu_generated=True)})
+                         {'PUBLIC_SCENE':dict(abi=20,index_bytes=4,gpu_generated=True)})
             log='\n'.join(k+' '+json.dumps(v) for k,v in lines.items())+'\nArgument snapshot control drained'
             self.assertEqual(a.check_log(log,'',backend,64),(limit,device))
             for bad in (log.replace('control drained','unfinished'),log.replace('"snapshots": 4','"snapshots": 3'),

@@ -1224,8 +1224,51 @@ unsupported_call!(ogpu_batch_begin_rendering(batch: *mut OgpuBatch, desc: *const
 unsupported_call!(ogpu_batch_end_rendering(batch: *mut OgpuBatch));
 unsupported_call!(ogpu_batch_draw_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, draws: *const crate::OgpuIndirectRange, arguments: *const c_void, argument_bytes: u32));
 unsupported_call!(ogpu_batch_draw_indexed_indirect(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indices: *const crate::OgpuIndexRange, draws: *const crate::OgpuIndirectRange, arguments: *const c_void, argument_bytes: u32));
+unsupported_call!(ogpu_batch_draw_indirect_current(batch: *mut OgpuBatch, raster: *mut OgpuRaster, draws: *const crate::OgpuIndirectRange));
+unsupported_call!(ogpu_batch_draw_indexed_indirect_current(batch: *mut OgpuBatch, raster: *mut OgpuRaster, indices: *const crate::OgpuIndexRange, draws: *const crate::OgpuIndirectRange));
 unsupported_call!(ogpu_batch_copy_image_to_buffer(batch: *mut OgpuBatch, image: *mut OgpuImage, destination: *mut OgpuBuffer, offset: u64));
 unsupported_call!(ogpu_batch_copy_buffer_to_image(batch: *mut OgpuBatch, source: *mut OgpuBuffer, offset: u64, image: *mut OgpuImage));
+
+/// # Safety
+/// See ogpu.h: live serialized handles and independent writable error.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_set_arguments(
+    _batch: *mut OgpuBatch,
+    _offset: u32,
+    _arguments: *const c_void,
+    _argument_bytes: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            Err(Error::new(
+                UNSUPPORTED,
+                "Recording-local arguments are not implemented on Metal",
+            ))
+        })
+    }
+}
+
+/// # Safety
+/// See ogpu.h: live serialized handles and independent writable error.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_batch_dispatch_current(
+    _batch: *mut OgpuBatch,
+    _kernel: *mut OgpuKernel,
+    _groups_x: u32,
+    _groups_y: u32,
+    _groups_z: u32,
+    error: *mut OgpuError,
+) -> OgpuResult {
+    unsafe {
+        call(error, || {
+            Err(Error::new(
+                UNSUPPORTED,
+                "Recording-local arguments are not implemented on Metal",
+            ))
+        })
+    }
+}
 
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_image_heap_create(
