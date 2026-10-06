@@ -90,7 +90,9 @@ def main():
         require(env.get('OGPU_VULKAN_LIBRARY','libvulkan.so.1')==correct['environment']['OGPU_TRACE_LOADER'],'use actual correctness loader')
         env.update(VK_INSTANCE_LAYERS='',VK_LAYER_VALIDATE_SYNC='0',VK_LOADER_LAYERS_DISABLE='*')
         report['environment']={k:env.get(k) for k in ('VK_DRIVER_FILES','VK_ICD_FILENAMES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','VK_LOADER_LAYERS_DISABLE','OGPU_VULKAN_LIBRARY')}
-        frames,rounds=(16,1) if args.preflight else (992,3)
+        # One full rotation: the fourth candidate must occupy every run-order
+        # position too, rather than inheriting the old three-path round count.
+        frames,rounds=(16,1) if args.preflight else (992,len(a.PATHS))
         for repeat in range(rounds):
             order=a.PATHS[repeat:]+a.PATHS[:repeat]
             ordered_sizes=sizes[repeat:]+sizes[:repeat]
