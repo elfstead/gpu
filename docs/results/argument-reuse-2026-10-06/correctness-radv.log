@@ -1,0 +1,21 @@
+Argument reuse evidence: /home/elf/dev/gpu/target/graphics-scene/argument-reuse-lpcnj0uq
+    Finished `release` profile [optimized] target(s) in 0.03s
+8-byte / 1 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+8-byte / 1 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+8-byte / 64 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+8-byte / 64 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+8-byte / 512 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+8-byte / 512 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+64-byte / 1 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+64-byte / 1 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+64-byte / 64 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+64-byte / 64 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+64-byte / 512 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+64-byte / 512 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+256-byte / 1 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+256-byte / 1 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+256-byte / 64 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+256-byte / 64 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+256-byte / 512 draws / 1 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+256-byte / 512 draws / 2 slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS
+Argument reuse PASS; timing/contract selection remains open

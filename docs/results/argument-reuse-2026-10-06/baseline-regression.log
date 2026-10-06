@@ -1,0 +1,44 @@
+Range reuse evidence: /home/elf/dev/gpu/target/graphics-scene/range-reuse-qzek8uzh
+    Finished `release` profile [optimized] target(s) in 0.02s
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.157s
+
+OK
+257x193-1-single-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-1-single-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-1-single-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-1-single-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-1-multi-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-1-multi-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-1-multi-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-1-multi-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-1-count-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-1-count-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-1-count-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-1-count-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-64-single-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-64-single-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-64-single-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-64-single-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-64-multi-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-64-multi-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-64-multi-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-64-multi-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-64-count-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-64-count-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-64-count-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-64-count-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-512-single-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-512-single-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-512-single-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-512-single-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-512-multi-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-512-multi-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-512-multi-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-512-multi-2-replay: matched outputs, budgets and native reset/replay PASS
+257x193-512-count-1-reset: matched outputs, budgets and native reset/replay PASS
+257x193-512-count-1-replay: matched outputs, budgets and native reset/replay PASS
+257x193-512-count-2-reset: matched outputs, budgets and native reset/replay PASS
+257x193-512-count-2-replay: matched outputs, budgets and native reset/replay PASS
+Range reuse PASS; timing remains open

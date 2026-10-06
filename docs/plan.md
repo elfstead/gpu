@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-05. This page owns current status and selected work. The
+Updated 2026-10-06. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -303,8 +303,12 @@ obligations must not be dismissed as backend-only work. General API parity and
 the fundamental per-operation argument shape remain unapproved.
 Its [first correctness increment](argument-snapshot-results.md) at `328282b`
 passes observable 8/64/256-byte same-address mutation, overwrite and rejected-call
-retry against direct Vulkan on both drivers. Bind-once/resupply controls, host
-cost decomposition and the argument-contract decision remain next.
+retry against direct Vulkan on both drivers. The [bind-once/resupply matrix](argument-reuse-results.md)
+at `955bdd7` adds 57,024 correctness frames and 160,704 timing samples, exposing
+root update/reuse independently of changing draw order as the better direction.
+The exact API is not selected: next cover native four-byte partial updates, then
+declare and prototype the argument contract. Do not assign the entire measured
+host gap to either unavoidable API cost or backend overhead.
 Diagnostic correctness is not performance acceptance.
 Structural evidence may justify the decision before timing. After that, finish
 M4's mip/view/blend slices; begin M5 with explicit executable capability and

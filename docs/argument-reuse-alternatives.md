@@ -64,7 +64,13 @@ make that convenience constrain the lower-level path.
   avoid root offsets inferred from executable identity, shader rewriting,
   descriptor coupling or a compulsory scheduler.
 
-The next measurement must retain a stronger native control even if the current
-backend cannot match it. A small wall-time gap on this GPU would not erase a
+The [matched reuse measurements](argument-reuse-results.md) retain native
+bind-once as the stronger control and distinguish declared input bytes from
+native pushes. Explicit update/reuse is the direction, but the exact surface
+remains unselected. In particular, native byte-range updates must be preserved;
+compare a four-byte change inside a 64/256-byte root before choosing a
+whole-block replacement or immutable-object representation.
+
+A small wall-time gap on this GPU would not erase a
 structural disadvantage; a large gap would not by itself establish which
 candidate is best. Keep M4's mip/view expansion behind this bounded decision.

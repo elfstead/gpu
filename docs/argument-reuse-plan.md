@@ -88,9 +88,10 @@ The extra saved-output allocation is a correctness instrument, not a timing budg
 sizes on both local drivers. [Candidate alternatives](argument-reuse-alternatives.md)
 separate immutable snapshots from recording-local values; neither is selected.
 
-Remaining: changing command sequences at 1/64/512 draws and one/two slots; native
-bind-once versus resupply (optionally compare/dedup); diagnostic input/native-push
-counts; public collection/encoding decomposition; candidate contract comparison.
+The subsequent [accepted reuse matrix](argument-reuse-results.md) at `955bdd7`
+covers changing sequences, bind-once/resupply, input/native-push counts and host
+phase boundaries. Partial native updates and candidate contract selection remain;
+the optional host compare/dedup control has not been measured.
 Passing snapshot semantics is not evidence that obligating every caller to
 resupply the bytes is the best fundamental design.
 
@@ -147,3 +148,16 @@ the subintervals but inside whole record+submit. Clock overhead remains in wall
 measurements; do not present this as an uninstrumented cost or assign all public
 collection time to copying roots. The optional compare/dedup native control and
 candidate contract implementation remain separate decisions after this evidence.
+
+## Selected follow-up: partial native updates
+
+The [accepted matrix](argument-reuse-results.md) supports explicit argument
+update/reuse as the direction, not a whole-block-only final shape. Use the
+existing observable 64/256-byte shaders with one changed trailing scalar. Compare
+native full resupply, native four-byte update and current public full arguments.
+Save each A/A/B/A scope, poison host input after recording, validate all output
+and geometry bytes, and trace actual update byte ranges on both local drivers.
+No timing claim or public API change is needed for this bounded control. Then
+settle initialization/coverage, partial replacement, compute/graphics interaction,
+scope persistence, invalid retry, zero-byte/empty operations and list ownership
+for the selected candidate before implementation.
