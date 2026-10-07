@@ -4,6 +4,11 @@ Updated 2026-09-16. This is an experimental programming model with a working
 implementation, not a stable API or standard. Workload evidence should drive API
 changes. A small function count alone is not a measure of success.
 
+**Next design, 2026-10-08:** the [whole-API proposal](whole-api-design.md) drafts the
+complete foundation and a coordinated implementation tranche. It removes current
+policy restrictions rather than treating them as fundamental. This page continues
+to describe the implemented ABI-20 candidate; the draft is not installed support.
+
 The [performance-expressibility gate](performance-expressibility.md) asks whether
 a native implementation could preserve Vulkan's attainable performance, not just
 whether this backend is close to a native control constrained to the same policy.

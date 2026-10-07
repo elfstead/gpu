@@ -2,9 +2,11 @@
 
 Proposed 2026-09-18; M1 completed 2026-09-19. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
+Sequence revised 2026-10-08: the [whole-API design](whole-api-design.md) selects a
+coordinated foundation revision before completing the remaining M4/M5 consumers.
 This is a concrete plan, not authorization to publish releases, provision machines
-or coordinate native testing. Only the next milestone is ready to start; later
-milestones have bounded deliverables but need a short acceptance brief when begun.
+or coordinate native testing. The foundation can be implemented across the
+milestone boundaries below; each capability does not need its own research gate.
 
 ## Target and priorities
 
@@ -15,7 +17,9 @@ small correctness fixtures. Keep the C boundary language-neutral and the Rust
 runtime free of tensor operators or an application scheduler.
 
 Do not measure completion by matching every Vulkan/CUDA feature. Broader graphics,
-numeric profiles and concurrency must be covered by named consumers. API changes
+numeric profiles and concurrency need explicit native mappings and verification;
+named consumers exercise the integrated result but are not prerequisites to
+designing or implementing a clearly useful native strategy. API changes
 are welcome when evidence exposes a better API alternative, whether or not the
 existing API could be made to work. Do not add legacy fallback implementations.
 
@@ -32,26 +36,28 @@ compatibility are not completed by those results.
 | M1 — Useful-scale execution | Learned-image workload at video-sized extents, bounded memory, matched Vulkan measurements | Complete; Radeon measurements and smaller llvmpipe correctness controls |
 | M2 — Compiler/programming contract | Documented device-code contract; generated structured arguments and heap interfaces; explicit language-direction decision | Complete 2026-09-26; [pinned Slang + contract](language-direction.md), not a new frontend |
 | M3 — Resource and submission maturity | Sustained multi-frame reuse, measured submission costs, consumer-side allocation assistance, better diagnostics | Complete 2026-09-28; [installed handoff](resource-reuse-handoff.md) closes the bounded reuse brief |
-| M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | ABI-19 ranges, scope/scale timing, scene handoff and argument controls accepted; ABI-20 [range-update prototype](recording-arguments-prototype.md) implemented, candidate acceptance/timing next, then mip/view/blend slices |
-| M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | M2/M3; existing Radeon, no matrix-hardware prerequisite |
+| Foundation revision — Whole-API contract and implementation | Explicit lifetimes, placement, concurrency, queues/timelines, argument alternatives and coherent graphics/ML capability surface | [Design and C sketch](whole-api-design.md) drafted; concrete schemas/native mappings and coordinated implementation next |
+| M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | Existing ABI-19/20 evidence retained; finish against the foundation revision, not serial argument/mip/view/blend research gates |
+| M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Numeric/executable requirements designed with the foundation; existing Radeon, no matrix-hardware prerequisite |
 | M6 — Mixed-workload Metal parity | Same learned-image application, generated native interfaces, render/readback and common contract tests | M2; native execution conditional on an available Mac validation window |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | First [local preparation checkpoint](release-checkpoint.md) complete 2026-09-28; refresh after M4–M6; publication/adoption separate |
 
-Default local order: **M1 → M2 → M3 → M7 first checkpoint → M4 → M5**.
+Default local order: **M1 → M2 → M3 → M7 first checkpoint → foundation revision
+with M4/M5 integration → refreshed SDK checkpoint**.
 M6 can run after M2 when native validation becomes available; it does not block
 the Linux sequence or an explicitly Vulkan-scoped experimental release.
-No calendar estimates are assigned before measuring each implementation's scope.
+No calendar estimates are assigned by this document.
 Each milestone ends in a committed result and decision, not another open-ended
 list of experiments.
 
-Sequence clarification 2026-09-30: finish M4's **draw-contract decision** before
+Historical sequence clarification 2026-09-30 (ordering superseded above): finish M4's **draw-contract decision** before
 the remaining graphics slices; begin M5 with an executable-capability/numerical
 contract, not kernels alone. After the consumer milestones, complete the
 [core-contract review](core-contract-review.md) before considering stabilization.
 Experimental packaging may continue earlier. Consumer usefulness, native strategy
 preservation and stabilization are separate gates; none silently passes another.
 
-Sequence amendment 2026-09-19: the [performance-expressibility gate](performance-expressibility.md)
+Historical sequence amendment 2026-09-19: the [performance-expressibility gate](performance-expressibility.md)
 pulls the contract audit, repeated small-dispatch and streaming-slot experiments
 forward from M3 before M2 implementation. M1's matched-policy result remains
 accepted; it does not settle whether a stronger native strategy is expressible.

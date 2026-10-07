@@ -1,12 +1,15 @@
 # Core-contract review before stabilization
 
-Selected 2026-09-30. This is a bounded decision gate after the graphics/ML consumer
-milestones, not a new implementation milestone blocking M4/M5 or experimental
-packaging. It applies the [performance-preservation rule](performance-expressibility.md).
+Selected 2026-09-30; reordered 2026-10-08. The
+[whole-API design](whole-api-design.md) now addresses these concerns together,
+before completion of the remaining graphics/ML consumers. This review becomes the
+verification checklist for that coordinated implementation, not a reason to defer
+obvious structural improvements or serialize a benchmark campaign per feature.
+It applies the [performance-preservation rule](performance-expressibility.md).
 
 ## Required dispositions
 
-For each concern below, write a short acceptance brief when activated. Compare
+For each concern below, record its native mapping and remaining proof obligation. Compare
 (1) a strong native strategy, (2) the best concretely mapped public strategy and
 (3) the implementation. Include ownership, dependencies, failure/retirement,
 host work and equal storage/latency budgets. Do not infer hidden pointer analysis,
@@ -24,6 +27,8 @@ command fusion, scheduling or allocation policies that the contract cannot expre
 | Portability boundary | Map common ownership/dependency semantics and explicit optional capabilities without hidden expensive fallback | M6 needs native Mac execution; Linux checks cannot accept mixed Metal parity |
 
 These are proposed controls, not already executed or scheduled acceptance matrices.
+The table retains the implemented evidence boundary; the whole-API proposal selects
+the broader contract without claiming these controls have already passed.
 Reuse accepted evidence when it answers the question; do not rerun every historical
 experiment or demand hardware the user has not supplied. Missing hardware is
 recorded as missing evidence, never as a passing skip.

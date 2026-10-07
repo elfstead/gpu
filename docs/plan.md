@@ -1,9 +1,35 @@
 # Working status and next milestone
 
-Updated 2026-10-06. This page owns current status and selected work. The
+Updated 2026-10-08. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
+
+## Selected work: whole-foundation revision
+
+The [whole-API design](whole-api-design.md) and non-installed
+[C surface sketch](drafts/ogpu_next.h) now define the proposed direction. This is a
+design-led revision, not another serial argument-timing experiment. The native API
+comparison and fresh ngpu review select explicit memory placement, independent
+descriptor ranges, object-local concurrency, queues/timelines, caller-owned
+lifetimes, both inline/device-root arguments, and a coherent expanded graphics/ML
+surface. The runtime below is still ABI 20; none of the draft is advertised as
+implemented support.
+
+Next implement one coordinated tranche: finalize concrete core records/native
+mappings; replace resource/command ownership; add the common graphics/compute
+surface; migrate consumers and SDK; perform consolidated verification. Commit at
+dependency boundaries, without requiring a separate benchmark campaign to justify
+each structurally useful capability. Optional specialized hardware modules have
+explicit scope but still need concrete extension specifications and implementation.
+
+M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
+not prerequisites for designing it. The pending argument-timing refresh is no
+longer the next gate. Preserve existing evidence and run focused correctness checks
+continuously; measure uncertain mappings and implementation costs selectively.
+M6 native Metal validation still requires a Mac and does not block local work.
+The later historical checkpoint sections record prior decisions and evidence;
+their "next" instructions are superseded by this section where they conflict.
 
 ## Current phase
 
@@ -71,7 +97,7 @@ claim follows. Transfer/synchronization costs dominate the mode difference; GPU
 execution dominates resident latency. M3 should test sustained slot/staging reuse
 and investigate tails if material, not assume replay or a runtime allocator.
 
-## Active work: performance-preserving expressibility
+## Performance-preserving expressibility: accumulated evidence
 
 The [contract audit and acceptance brief](performance-expressibility.md) adds the
 fundamental gate: could a native implementation preserve Vulkan's attainable

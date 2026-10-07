@@ -1,0 +1,397 @@
+/*
+ * OGPU whole-surface C sketch, 2026-10-08. NOT an implemented or installed ABI.
+ * Companion semantics: ../whole-api-design.md
+ *
+ * The ogpu_next_ prefix prevents confusion with include/ogpu.h (ABI 20).
+ * Values, record layouts and extension schemas remain draft. This header is
+ * syntax-checkable, not linkable. Forward-declared capability/extension records
+ * are explicitly unfinished schemas, not evidence of implemented coverage.
+ *
+ * Foundation rules:
+ * - No implicit resource retention, host wait, staging or per-command root copy.
+ * - Destruction requires no pending/recorded future use; it does not wait.
+ * - Each mutable arena/encoder/queue is externally synchronized; independent
+ *   objects may be used concurrently. Resource lifetime changes exclude its use.
+ * - Recording preconditions are trusted; optional validation diagnoses misuse.
+ *   Allocation/encoding failure poisons the list and is reported by commands_end.
+ * - All requested strategies are capability checked, never silently emulated.
+ */
+#ifndef OGPU_NEXT_DESIGN_DRAFT_H
+#define OGPU_NEXT_DESIGN_DRAFT_H
+#include <stddef.h>
+#include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct ogpu_next_adapter ogpu_next_adapter;
+typedef struct ogpu_next_device ogpu_next_device;
+typedef struct ogpu_next_queue ogpu_next_queue;
+typedef struct ogpu_next_memory ogpu_next_memory;
+typedef struct ogpu_next_image ogpu_next_image;
+typedef struct ogpu_next_view ogpu_next_view;
+typedef struct ogpu_next_heap ogpu_next_heap;
+typedef struct ogpu_next_executable ogpu_next_executable;
+typedef struct ogpu_next_arena ogpu_next_arena;
+typedef struct ogpu_next_encoder ogpu_next_encoder;
+typedef struct ogpu_next_list ogpu_next_list;
+typedef struct ogpu_next_timeline ogpu_next_timeline;
+typedef struct ogpu_next_query_pool ogpu_next_query_pool;
+
+typedef int32_t ogpu_next_status;
+enum {
+    OGPU_NEXT_OK = 0, OGPU_NEXT_NOT_READY = 1, OGPU_NEXT_TIMEOUT = 2,
+    OGPU_NEXT_INVALID = -1, OGPU_NEXT_UNSUPPORTED = -2,
+    OGPU_NEXT_OUT_OF_MEMORY = -3, OGPU_NEXT_DEVICE_LOST = -4,
+    OGPU_NEXT_CAPACITY = -5, OGPU_NEXT_BACKEND_ERROR = -6
+};
+typedef uint64_t ogpu_next_address;
+typedef uint64_t ogpu_next_stages;
+typedef uint64_t ogpu_next_access;
+typedef uint64_t ogpu_next_features;
+typedef uint32_t ogpu_next_format;
+typedef uint32_t ogpu_next_image_state;
+typedef uint32_t ogpu_next_queue_domain;
+
+/* All extensible descriptions begin with this header. Unknown required records
+ * fail; they must not be silently ignored. IDs/versions are not assigned yet. */
+typedef struct ogpu_next_record {
+    uint32_t kind, version, byte_size, flags;
+    const struct ogpu_next_record *next;
+} ogpu_next_record;
+typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
+typedef struct ogpu_next_extent { uint32_t x, y, z; } ogpu_next_extent;
+typedef struct ogpu_next_offset { int32_t x, y, z; } ogpu_next_offset;
+typedef struct ogpu_next_span {
+    ogpu_next_memory *memory;
+    uint64_t offset, size;
+} ogpu_next_span;
+typedef struct ogpu_next_point {
+    ogpu_next_timeline *timeline;
+    uint64_t value;
+} ogpu_next_point;
+typedef struct ogpu_next_sync_point {
+    ogpu_next_point point;
+    ogpu_next_stages stages;
+} ogpu_next_sync_point;
+
+/* Discovery. Query records cover adapter identity, queue families/counts,
+ * enabled features, memory types/budgets, numeric tuples, limits and exact
+ * operation/format/state combinations. Their individual schemas are pending.
+ * Enumerate uses caller storage; insufficient capacity returns CAPACITY and
+ * writes the required count. Adapter handles live until discovery_release. */
+typedef struct ogpu_next_query ogpu_next_query;
+typedef struct ogpu_next_queue_request {
+    ogpu_next_queue_domain domain;
+    uint32_t count;
+    float priority;
+} ogpu_next_queue_request;
+typedef struct ogpu_next_device_desc {
+    ogpu_next_record header;
+    const ogpu_next_queue_request *queues;
+    uint32_t queue_request_count;
+    const ogpu_next_record *required_capabilities;
+    uint32_t validation_flags;
+} ogpu_next_device_desc;
+ogpu_next_status ogpu_next_enumerate(uint32_t *count, ogpu_next_adapter **adapters);
+void ogpu_next_discovery_release(uint32_t count, ogpu_next_adapter **adapters);
+ogpu_next_status ogpu_next_adapter_query(ogpu_next_adapter *, ogpu_next_query *);
+ogpu_next_status ogpu_next_device_create(ogpu_next_adapter *, const ogpu_next_device_desc *, ogpu_next_device **);
+ogpu_next_status ogpu_next_device_query(ogpu_next_device *, ogpu_next_query *);
+ogpu_next_queue *ogpu_next_device_queue(ogpu_next_device *, ogpu_next_queue_domain, uint32_t index);
+void ogpu_next_device_destroy(ogpu_next_device *);
+
+/* Memory. Type IDs come from capabilities, not HOST/DEVICE placement guesses.
+ * Image-only allocations need not have a linear GPU address or be mappable.
+ * Requirements carry compatible-type records rather than a fixed 32-type mask.
+ * Explicit addressability/use flags are part of the native mapping contract. */
+typedef struct ogpu_next_memory_desc {
+    ogpu_next_record header;
+    uint64_t size, alignment, usage;
+    uint32_t memory_type, flags;
+} ogpu_next_memory_desc;
+typedef struct ogpu_next_requirements {
+    uint64_t size, alignment;
+    uint32_t dedicated_required, dedicated_preferred;
+    uint32_t compatible_type_count;
+    uint32_t *compatible_types;
+} ogpu_next_requirements;
+typedef struct ogpu_next_mapping {
+    void *data;
+    uint64_t size, flush_alignment, invalidate_alignment;
+    uint32_t coherent;
+} ogpu_next_mapping;
+ogpu_next_status ogpu_next_memory_create(ogpu_next_device *, const ogpu_next_memory_desc *, ogpu_next_memory **);
+void ogpu_next_memory_destroy(ogpu_next_memory *);
+ogpu_next_status ogpu_next_memory_address(ogpu_next_span, ogpu_next_address *);
+ogpu_next_status ogpu_next_memory_map(ogpu_next_span, ogpu_next_mapping *);
+void ogpu_next_memory_unmap(ogpu_next_memory *);
+ogpu_next_status ogpu_next_memory_flush(ogpu_next_span);
+ogpu_next_status ogpu_next_memory_invalidate(ogpu_next_span);
+
+/* Images are placed interpretations of backing. A view can select compatible
+ * format/aspects/mips/layers for sampled, storage or attachment use. Native
+ * dedicated-allocation associations use explicit creation extension records. */
+typedef struct ogpu_next_image_desc {
+    ogpu_next_record header;
+    ogpu_next_format format;
+    uint32_t dimension, mip_count, layer_count, sample_count;
+    ogpu_next_extent extent;
+    uint64_t usage;
+    uint32_t flags;
+    const ogpu_next_format *view_formats;
+    uint32_t view_format_count;
+} ogpu_next_image_desc;
+typedef struct ogpu_next_subresources {
+    uint32_t aspects, first_mip, mip_count, first_layer, layer_count;
+} ogpu_next_subresources;
+typedef struct ogpu_next_view_desc {
+    ogpu_next_record header;
+    ogpu_next_format format;
+    uint32_t dimension, usage, component_mapping[4];
+    ogpu_next_subresources range;
+} ogpu_next_view_desc;
+ogpu_next_status ogpu_next_image_requirements(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_requirements *);
+ogpu_next_status ogpu_next_image_create(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_span placement, ogpu_next_image **);
+void ogpu_next_image_destroy(ogpu_next_image *);
+ogpu_next_status ogpu_next_view_create(ogpu_next_image *, const ogpu_next_view_desc *, ogpu_next_view **);
+void ogpu_next_view_destroy(ogpu_next_view *);
+
+/* Heap mutation is range-local. Caller owns slot/resource lifetimes. Sampler
+ * state is encoded into a slot, not necessarily a separately owned object. */
+typedef struct ogpu_next_sampler_desc {
+    ogpu_next_record header;
+    uint32_t min_filter, mag_filter, mip_filter, address_mode[3];
+    uint32_t compare_enable, compare_op, border_color;
+    float min_lod, max_lod, lod_bias, max_anisotropy;
+} ogpu_next_sampler_desc;
+typedef struct ogpu_next_heap_desc {
+    ogpu_next_record header;
+    uint32_t kind, capacity, flags;
+} ogpu_next_heap_desc;
+ogpu_next_status ogpu_next_heap_create(ogpu_next_device *, const ogpu_next_heap_desc *, ogpu_next_heap **);
+void ogpu_next_heap_destroy(ogpu_next_heap *);
+ogpu_next_status ogpu_next_heap_write_images(ogpu_next_heap *, uint32_t first, uint32_t count, ogpu_next_view *const *);
+ogpu_next_status ogpu_next_heap_write_samplers(ogpu_next_heap *, uint32_t first, uint32_t count, const ogpu_next_sampler_desc *);
+ogpu_next_status ogpu_next_heap_copy(ogpu_next_heap *dst, uint32_t dst_first, ogpu_next_heap *src, uint32_t src_first, uint32_t count);
+
+/* Preparation owns compilation/linking/specialization. Interface metadata
+ * defines inline bytes, device-root slots, stage visibility, numeric requirements
+ * and compatibility. Native artifacts are not forcibly translated at runtime.
+ * Full schema for generated interface, specialization and cache records pending. */
+typedef struct ogpu_next_shader {
+    uint32_t stage, format;
+    ogpu_next_bytes code;
+    const char *entry;
+    const ogpu_next_record *interface_metadata;
+    const ogpu_next_record *specialization;
+} ogpu_next_shader;
+typedef struct ogpu_next_executable_desc {
+    ogpu_next_record header;
+    uint32_t kind, shader_count;
+    const ogpu_next_shader *shaders;
+    const ogpu_next_record *static_state;
+    uint64_t dynamic_state;
+    const ogpu_next_record *requirements;
+    ogpu_next_bytes native_cache;
+} ogpu_next_executable_desc;
+ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_executable **);
+ogpu_next_status ogpu_next_executable_cache(ogpu_next_executable *, size_t *size, void *data);
+void ogpu_next_executable_destroy(ogpu_next_executable *);
+
+/* Explicit arenas. capacity/growth describe OGPU-owned storage, not a false
+ * promise to cap every driver's internal allocation. Mode: one-shot, serial
+ * replay or simultaneous replay. Support is exact, not guessed from a flag. */
+typedef struct ogpu_next_arena_desc {
+    ogpu_next_record header;
+    ogpu_next_queue_domain domain;
+    uint64_t initial_capacity, growth_limit;
+    uint32_t flags;
+} ogpu_next_arena_desc;
+typedef struct ogpu_next_recording_desc {
+    ogpu_next_record header;
+    uint32_t replay_mode, level;
+    const ogpu_next_record *inheritance;
+} ogpu_next_recording_desc;
+ogpu_next_status ogpu_next_arena_create(ogpu_next_device *, const ogpu_next_arena_desc *, ogpu_next_arena **);
+ogpu_next_status ogpu_next_arena_reserve(ogpu_next_arena *, uint64_t capacity);
+ogpu_next_status ogpu_next_arena_reset(ogpu_next_arena *);
+ogpu_next_status ogpu_next_arena_trim(ogpu_next_arena *, uint64_t retained_capacity);
+void ogpu_next_arena_destroy(ogpu_next_arena *);
+ogpu_next_status ogpu_next_commands_begin(ogpu_next_arena *, const ogpu_next_recording_desc *, ogpu_next_encoder **);
+ogpu_next_status ogpu_next_commands_end(ogpu_next_encoder *, ogpu_next_list **);
+void ogpu_next_commands_cancel(ogpu_next_encoder *);
+void ogpu_next_execute_lists(ogpu_next_encoder *, uint32_t count, ogpu_next_list *const *);
+
+typedef struct ogpu_next_submit_desc {
+    ogpu_next_record header;
+    uint32_t list_count, wait_count, signal_count;
+    ogpu_next_list *const *lists;
+    const ogpu_next_sync_point *waits, *signals;
+} ogpu_next_submit_desc;
+ogpu_next_status ogpu_next_timeline_create(ogpu_next_device *, uint64_t initial, ogpu_next_timeline **);
+void ogpu_next_timeline_destroy(ogpu_next_timeline *);
+ogpu_next_status ogpu_next_timeline_poll(ogpu_next_timeline *, uint64_t *completed);
+ogpu_next_status ogpu_next_timeline_wait(ogpu_next_point, uint64_t timeout_ns);
+ogpu_next_status ogpu_next_timeline_signal_host(ogpu_next_point);
+ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
+
+/* Barriers separate execution scopes, memory access and optional ranges/state.
+ * Zero resource ranges means a global memory dependency, not no dependency.
+ * Ownership transfer endpoints use matching release/acquire records and a queue
+ * timeline edge. Split tokens are arena-local and capability-scoped; not generic
+ * GPU-address semaphores. Exact reset/replay rules remain to be specified. */
+typedef struct ogpu_next_memory_barrier {
+    ogpu_next_span range;
+    ogpu_next_access before, after;
+    ogpu_next_queue_domain source_domain, destination_domain;
+} ogpu_next_memory_barrier;
+typedef struct ogpu_next_image_barrier {
+    ogpu_next_image *image;
+    ogpu_next_subresources range;
+    ogpu_next_access before, after;
+    ogpu_next_image_state old_state, new_state;
+    ogpu_next_queue_domain source_domain, destination_domain;
+    uint32_t discard;
+} ogpu_next_image_barrier;
+typedef struct ogpu_next_dependency {
+    ogpu_next_record header;
+    ogpu_next_stages before, after;
+    ogpu_next_access global_before, global_after;
+    uint32_t memory_count, image_count, flags;
+    const ogpu_next_memory_barrier *memory;
+    const ogpu_next_image_barrier *images;
+} ogpu_next_dependency;
+typedef struct ogpu_next_split { uint64_t value; } ogpu_next_split;
+void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
+void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_next_split *);
+void ogpu_next_split_acquire(ogpu_next_encoder *, ogpu_next_split, const ogpu_next_dependency *);
+void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu_next_dependency *);
+
+/* Ordinary commands copy immediate parameter records into command storage;
+ * resource data and device roots are never copied implicitly. */
+typedef struct ogpu_next_image_region {
+    uint32_t aspect, mip, first_layer, layer_count;
+    ogpu_next_offset offset;
+    ogpu_next_extent extent;
+} ogpu_next_image_region;
+typedef struct ogpu_next_image_copy {
+    ogpu_next_image_region region;
+    uint64_t row_pitch, slice_pitch;
+} ogpu_next_image_copy;
+typedef union ogpu_next_clear_value {
+    float f32[4]; uint32_t u32[4]; int32_t i32[4];
+    struct { float depth; uint32_t stencil; } depth_stencil;
+} ogpu_next_clear_value;
+void ogpu_next_copy_memory(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_span src);
+void ogpu_next_fill_memory(ogpu_next_encoder *, ogpu_next_span dst, uint32_t pattern);
+void ogpu_next_copy_to_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_span src, const ogpu_next_image_copy *);
+void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_image *src, const ogpu_next_image_copy *);
+void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *);
+void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, const ogpu_next_subresources *, const ogpu_next_clear_value *);
+void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *, uint32_t mode);
+
+void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
+void ogpu_next_bind_heap(ogpu_next_encoder *, uint32_t domain, ogpu_next_heap *);
+void ogpu_next_set_inline(ogpu_next_encoder *, ogpu_next_stages, uint32_t offset, uint32_t size, const void *);
+void ogpu_next_set_root(ogpu_next_encoder *, ogpu_next_stages, uint32_t slot, ogpu_next_address);
+typedef struct ogpu_next_launch {
+    ogpu_next_extent groups;
+    uint32_t dynamic_shared_bytes;
+    const ogpu_next_record *extensions;
+} ogpu_next_launch;
+void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
+void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
+
+/* Graphics. Render area is explicit, not inferred from a required attachment.
+ * Static/dynamic forms use the same versioned state record schemas. Raster,
+ * blend, depth/stencil, viewport/scissor, sample, vertex-input and tile-local
+ * state record schemas remain to be finalized; no hidden dynamic-to-PSO JIT. */
+typedef struct ogpu_next_attachment {
+    ogpu_next_view *view, *resolve_view;
+    uint32_t load_op, store_op, resolve_mode;
+    ogpu_next_clear_value clear;
+} ogpu_next_attachment;
+typedef struct ogpu_next_render_desc {
+    ogpu_next_record header;
+    int32_t x, y;
+    uint32_t width, height, layers, view_mask, samples, flags;
+    uint32_t color_count;
+    const ogpu_next_attachment *colors;
+    const ogpu_next_attachment *depth, *stencil;
+} ogpu_next_render_desc;
+typedef struct ogpu_next_draw_desc {
+    uint32_t count, instances, first, first_instance;
+    int32_t vertex_offset; /* Indexed only; non-indexed must use zero. */
+} ogpu_next_draw_desc;
+typedef struct ogpu_next_indirect {
+    ogpu_next_span arguments;
+    uint32_t stride, maximum_count;
+    ogpu_next_span count; /* Null memory means fixed maximum_count. */
+} ogpu_next_indirect;
+void ogpu_next_render_begin(ogpu_next_encoder *, const ogpu_next_render_desc *);
+void ogpu_next_render_end(ogpu_next_encoder *);
+void ogpu_next_set_graphics_state(ogpu_next_encoder *, const ogpu_next_record *state);
+void ogpu_next_bind_indices(ogpu_next_encoder *, ogpu_next_span, uint32_t index_type);
+void ogpu_next_draw(ogpu_next_encoder *, const ogpu_next_draw_desc *);
+void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
+void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
+void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+
+/* Queries resolve to application storage without an implicit CPU readback.
+ * Query type, counter widths/availability, timestamp domains/wrap and result
+ * layout are described by capabilities and pool metadata. */
+typedef struct ogpu_next_query_pool_desc {
+    ogpu_next_record header;
+    uint32_t type, count;
+    uint64_t statistics;
+} ogpu_next_query_pool_desc;
+ogpu_next_status ogpu_next_query_pool_create(ogpu_next_device *, const ogpu_next_query_pool_desc *, ogpu_next_query_pool **);
+void ogpu_next_query_pool_destroy(ogpu_next_query_pool *);
+void ogpu_next_queries_reset(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count);
+void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
+void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
+void ogpu_next_timestamp(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, ogpu_next_stages);
+void ogpu_next_queries_resolve(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count, ogpu_next_span dst, uint64_t stride, uint32_t flags);
+void ogpu_next_label_begin(ogpu_next_encoder *, const char *name);
+void ogpu_next_label_end(ogpu_next_encoder *);
+
+/* Versioned optional function tables, negotiated by exact schema/size. An
+ * unavailable table is UNSUPPORTED; its presence is not inferred from backend.
+ * Never use untyped void* as a portable C function-pointer representation. */
+ogpu_next_status ogpu_next_extension(ogpu_next_device *, uint32_t id, uint32_t version, size_t table_size, void *table);
+
+/* Planned extension tables, NOT specified or implemented in this sketch:
+ *
+ * Residency: create/update sets, commit residency, attach to queue/submission,
+ *            optional explicit eviction. No mandatory command resource walk.
+ * Virtual memory: reserve/release, backing create/free, map/unmap/access;
+ *                sparse image bindings and peer mappings with explicit ordering.
+ * Generated commands: supported tokens, executable tables, layout create,
+ *                     storage requirements, prepare, execute with GPU count.
+ * Native interop: borrow device/queue, import/export memory/images/timelines;
+ *                typed platform handles, owned/borrowed modes, initial/final
+ *                states and native encoding sections with invalidated bindings.
+ * Address-native commands: raw-address copy/index/indirect endpoints where the
+ *                          backend supports them without backing registration.
+ * Presentation: surface/swapchain create, acquire token, present dependency,
+ *               resize/format negotiation. Not part of device construction.
+ * Advanced raster: tile-local dependencies, multiview, shading rate,
+ *                  pass continuation, vertex fetch and additional stages.
+ * Accelerated compute: exact matrix/tensor descriptors and launch profiles,
+ *                      cooperative/cluster/device-enqueue operations.
+ * Ray tracing: acceleration structure requirements/build/copy/query,
+ *              ray executable/shader binding table, direct/indirect trace.
+ * Video: codec/session capabilities, plane views, parameter/reference records,
+ *        bitstream ranges, explicit decode/encode and status queries.
+ *
+ * Shader-only subgroup/atomic/numeric features use artifact requirement records;
+ * they do not need an extra host function merely to count as supported.
+ */
+
+#ifdef __cplusplus
+}
+#endif
+#endif

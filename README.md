@@ -4,6 +4,7 @@ A minimal, open GPU interface for graphics, compute, and machine learning, built
 
 Start with [the current design](docs/design.md), [working status](docs/plan.md),
 and the [development roadmap](docs/roadmap.md).
+The [whole-API proposal](docs/whole-api-design.md) describes the next foundation revision.
 To use the runtime from your own application, see the [Linux quickstart](docs/quickstart.md).
 See the [support matrix](docs/support.md) and [upgrade policy](docs/release-policy.md)
 for the experimental compatibility boundary.
