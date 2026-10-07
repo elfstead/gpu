@@ -1,11 +1,11 @@
 /*
- * OGPU whole-surface C sketch, 2026-10-08. NOT an implemented or installed ABI.
+ * OGPU whole-surface C sketch, 2026-10-08. NOT a fully implemented/installed ABI.
  * Companion semantics: ../whole-api-design.md
  *
  * The ogpu_next_ prefix prevents confusion with include/ogpu.h (ABI 20).
- * Values, record layouts and extension schemas remain draft. This header is
- * syntax-checkable, not linkable. Forward-declared capability/extension records
- * are explicitly unfinished schemas, not evidence of implemented coverage.
+ * Setup declarations now come from include/ogpu_next.h and are implemented on
+ * Linux. The declarations added HERE remain draft and are not linkable. Remaining
+ * record layouts/extension schemas are unfinished, not implemented coverage.
  *
  * Foundation rules:
  * - No implicit resource retention, host wait, staging or per-command root copy.
@@ -18,15 +18,11 @@
  */
 #ifndef OGPU_NEXT_DESIGN_DRAFT_H
 #define OGPU_NEXT_DESIGN_DRAFT_H
-#include <stddef.h>
-#include <stdint.h>
+#include "../../include/ogpu_next.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct ogpu_next_adapter ogpu_next_adapter;
-typedef struct ogpu_next_device ogpu_next_device;
-typedef struct ogpu_next_queue ogpu_next_queue;
 typedef struct ogpu_next_memory ogpu_next_memory;
 typedef struct ogpu_next_image ogpu_next_image;
 typedef struct ogpu_next_view ogpu_next_view;
@@ -35,30 +31,8 @@ typedef struct ogpu_next_executable ogpu_next_executable;
 typedef struct ogpu_next_arena ogpu_next_arena;
 typedef struct ogpu_next_encoder ogpu_next_encoder;
 typedef struct ogpu_next_list ogpu_next_list;
-typedef struct ogpu_next_timeline ogpu_next_timeline;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 
-typedef int32_t ogpu_next_status;
-enum {
-    OGPU_NEXT_OK = 0, OGPU_NEXT_NOT_READY = 1, OGPU_NEXT_TIMEOUT = 2,
-    OGPU_NEXT_INVALID = -1, OGPU_NEXT_UNSUPPORTED = -2,
-    OGPU_NEXT_OUT_OF_MEMORY = -3, OGPU_NEXT_DEVICE_LOST = -4,
-    OGPU_NEXT_CAPACITY = -5, OGPU_NEXT_BACKEND_ERROR = -6
-};
-typedef uint64_t ogpu_next_address;
-typedef uint64_t ogpu_next_stages;
-typedef uint64_t ogpu_next_access;
-typedef uint64_t ogpu_next_features;
-typedef uint32_t ogpu_next_format;
-typedef uint32_t ogpu_next_image_state;
-typedef uint32_t ogpu_next_queue_domain;
-
-/* All extensible descriptions begin with this header. Unknown required records
- * fail; they must not be silently ignored. IDs/versions are not assigned yet. */
-typedef struct ogpu_next_record {
-    uint32_t kind, version, byte_size, flags;
-    const struct ogpu_next_record *next;
-} ogpu_next_record;
 typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
 typedef struct ogpu_next_extent { uint32_t x, y, z; } ogpu_next_extent;
 typedef struct ogpu_next_offset { int32_t x, y, z; } ogpu_next_offset;
@@ -66,40 +40,14 @@ typedef struct ogpu_next_span {
     ogpu_next_memory *memory;
     uint64_t offset, size;
 } ogpu_next_span;
-typedef struct ogpu_next_point {
-    ogpu_next_timeline *timeline;
-    uint64_t value;
-} ogpu_next_point;
 typedef struct ogpu_next_sync_point {
     ogpu_next_point point;
     ogpu_next_stages stages;
 } ogpu_next_sync_point;
 
-/* Discovery. Query records cover adapter identity, queue families/counts,
- * enabled features, memory types/budgets, numeric tuples, limits and exact
- * operation/format/state combinations. Their individual schemas are pending.
- * Enumerate uses caller storage; insufficient capacity returns CAPACITY and
- * writes the required count. Adapter handles live until discovery_release. */
-typedef struct ogpu_next_query ogpu_next_query;
-typedef struct ogpu_next_queue_request {
-    ogpu_next_queue_domain domain;
-    uint32_t count;
-    float priority;
-} ogpu_next_queue_request;
-typedef struct ogpu_next_device_desc {
-    ogpu_next_record header;
-    const ogpu_next_queue_request *queues;
-    uint32_t queue_request_count;
-    const ogpu_next_record *required_capabilities;
-    uint32_t validation_flags;
-} ogpu_next_device_desc;
-ogpu_next_status ogpu_next_enumerate(uint32_t *count, ogpu_next_adapter **adapters);
-void ogpu_next_discovery_release(uint32_t count, ogpu_next_adapter **adapters);
-ogpu_next_status ogpu_next_adapter_query(ogpu_next_adapter *, ogpu_next_query *);
-ogpu_next_status ogpu_next_device_create(ogpu_next_adapter *, const ogpu_next_device_desc *, ogpu_next_device **);
-ogpu_next_status ogpu_next_device_query(ogpu_next_device *, ogpu_next_query *);
-ogpu_next_queue *ogpu_next_device_queue(ogpu_next_device *, ogpu_next_queue_domain, uint32_t index);
-void ogpu_next_device_destroy(ogpu_next_device *);
+/* Discovery, queue/memory topology, requested feature enabling and independent
+ * timeline objects: implemented header above. Budget, numerical tuples and
+ * exact executable/format/state query records remain to be defined. */
 
 /* Memory. Type IDs come from capabilities, not HOST/DEVICE placement guesses.
  * Image-only allocations need not have a linear GPU address or be mappable.
@@ -229,11 +177,6 @@ typedef struct ogpu_next_submit_desc {
     ogpu_next_list *const *lists;
     const ogpu_next_sync_point *waits, *signals;
 } ogpu_next_submit_desc;
-ogpu_next_status ogpu_next_timeline_create(ogpu_next_device *, uint64_t initial, ogpu_next_timeline **);
-void ogpu_next_timeline_destroy(ogpu_next_timeline *);
-ogpu_next_status ogpu_next_timeline_poll(ogpu_next_timeline *, uint64_t *completed);
-ogpu_next_status ogpu_next_timeline_wait(ogpu_next_point, uint64_t timeout_ns);
-ogpu_next_status ogpu_next_timeline_signal_host(ogpu_next_point);
 ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
 
 /* Barriers separate execution scopes, memory access and optional ranges/state.

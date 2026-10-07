@@ -23,6 +23,12 @@ dependency boundaries, without requiring a separate benchmark campaign to justif
 each structurally useful capability. Optional specialized hardware modules have
 explicit scope but still need concrete extension specifications and implementation.
 
+Implementation started: [foundation setup](foundation-implementation.md) now has
+concrete query records, explicit queue creation and independent timeline handles,
+validated through Rust and C on Radeon/llvmpipe. It is source-only Linux work under
+`ogpu_next_*`, not the installed ABI. Explicit memory and commands are next; the
+broader draft is not yet implemented.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

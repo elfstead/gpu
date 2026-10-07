@@ -5,6 +5,9 @@ The installed interface remains ABI 20. The companion
 [C surface sketch](drafts/ogpu_next.h) is intentionally not installed or linked.
 This document supersedes the experiment-by-experiment *design sequence*, not the
 historical results or their evidence limits. The [working plan](plan.md) owns status.
+Implementation has started at the [setup boundary](foundation-implementation.md);
+only declarations in `include/ogpu_next.h` are implemented on Linux. The combined
+sketch imports them and adds the remaining proposal; the installed ABI is unchanged.
 
 ## Decision in brief
 

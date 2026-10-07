@@ -125,7 +125,7 @@ fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
     }
 }
 
-fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
+pub(crate) fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
     if info.vulkan_api_major < 1 || (info.vulkan_api_major == 1 && info.vulkan_api_minor < 4) {
         return Err(Error::new(UNSUPPORTED, "Execution requires Vulkan 1.4"));
     }

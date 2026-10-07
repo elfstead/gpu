@@ -522,6 +522,7 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
+        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &[]),
         Some("batch") if args.len() == 1 => batch(&root),
         Some("retirement") if args.len() == 1 => c_execution(&root, "retirement", &["produce", "consume"]),
         Some("graphics") if args.len() == 1 => graphics(&root),
@@ -560,7 +561,7 @@ fn main() -> Result {
         },
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

@@ -3,6 +3,8 @@
 mod api_types;
 mod boundary;
 mod contract;
+#[cfg(target_os = "linux")]
+pub mod foundation;
 mod shader;
 pub use api_types::*;
 pub use shader::{
