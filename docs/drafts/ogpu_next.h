@@ -27,18 +27,11 @@ typedef struct ogpu_next_image ogpu_next_image;
 typedef struct ogpu_next_view ogpu_next_view;
 typedef struct ogpu_next_heap ogpu_next_heap;
 typedef struct ogpu_next_executable ogpu_next_executable;
-typedef struct ogpu_next_arena ogpu_next_arena;
-typedef struct ogpu_next_encoder ogpu_next_encoder;
-typedef struct ogpu_next_list ogpu_next_list;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 
 typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
 typedef struct ogpu_next_extent { uint32_t x, y, z; } ogpu_next_extent;
 typedef struct ogpu_next_offset { int32_t x, y, z; } ogpu_next_offset;
-typedef struct ogpu_next_sync_point {
-    ogpu_next_point point;
-    ogpu_next_stages stages;
-} ogpu_next_sync_point;
 
 /* Discovery, queue/memory topology, requested feature enabling and independent
  * timeline objects: implemented header above. Budget, numerical tuples and
@@ -117,66 +110,24 @@ ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next
 ogpu_next_status ogpu_next_executable_cache(ogpu_next_executable *, size_t *size, void *data);
 void ogpu_next_executable_destroy(ogpu_next_executable *);
 
-/* Explicit arenas. capacity/growth describe OGPU-owned storage, not a false
- * promise to cap every driver's internal allocation. Mode: one-shot, serial
- * replay or simultaneous replay. Support is exact, not guessed from a flag. */
-typedef struct ogpu_next_arena_desc {
-    ogpu_next_record header;
-    ogpu_next_queue_domain domain;
-    uint64_t initial_capacity, growth_limit;
-    uint32_t flags;
-} ogpu_next_arena_desc;
-typedef struct ogpu_next_recording_desc {
-    ogpu_next_record header;
-    uint32_t replay_mode, level;
-    const ogpu_next_record *inheritance;
-} ogpu_next_recording_desc;
-ogpu_next_status ogpu_next_arena_create(ogpu_next_device *, const ogpu_next_arena_desc *, ogpu_next_arena **);
-ogpu_next_status ogpu_next_arena_reserve(ogpu_next_arena *, uint64_t capacity);
-ogpu_next_status ogpu_next_arena_reset(ogpu_next_arena *);
-ogpu_next_status ogpu_next_arena_trim(ogpu_next_arena *, uint64_t retained_capacity);
-void ogpu_next_arena_destroy(ogpu_next_arena *);
-ogpu_next_status ogpu_next_commands_begin(ogpu_next_arena *, const ogpu_next_recording_desc *, ogpu_next_encoder **);
-ogpu_next_status ogpu_next_commands_end(ogpu_next_encoder *, ogpu_next_list **);
-void ogpu_next_commands_cancel(ogpu_next_encoder *);
+/* Primary arenas, replay, explicit host scratch, submission and memory barriers
+ * are implemented in the imported header. Nested/secondary execution follows. */
 void ogpu_next_execute_lists(ogpu_next_encoder *, uint32_t count, ogpu_next_list *const *);
-
-typedef struct ogpu_next_submit_desc {
-    ogpu_next_record header;
-    uint32_t list_count, wait_count, signal_count;
-    ogpu_next_list *const *lists;
-    const ogpu_next_sync_point *waits, *signals;
-} ogpu_next_submit_desc;
-ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
 
 /* Barriers separate execution scopes, memory access and optional ranges/state.
  * Zero resource ranges means a global memory dependency, not no dependency.
  * Ownership transfer endpoints use matching release/acquire records and a queue
  * timeline edge. Split tokens are arena-local and capability-scoped; not generic
  * GPU-address semaphores. Exact reset/replay rules remain to be specified. */
-typedef struct ogpu_next_memory_barrier {
-    ogpu_next_span range;
-    ogpu_next_access before, after;
-    ogpu_next_queue_domain source_domain, destination_domain;
-} ogpu_next_memory_barrier;
-typedef struct ogpu_next_image_barrier {
+struct ogpu_next_image_barrier {
     ogpu_next_image *image;
     ogpu_next_subresources range;
     ogpu_next_access before, after;
     ogpu_next_image_state old_state, new_state;
     ogpu_next_queue_domain source_domain, destination_domain;
     uint32_t discard;
-} ogpu_next_image_barrier;
-typedef struct ogpu_next_dependency {
-    ogpu_next_record header;
-    ogpu_next_stages before, after;
-    ogpu_next_access global_before, global_after;
-    uint32_t memory_count, image_count, flags;
-    const ogpu_next_memory_barrier *memory;
-    const ogpu_next_image_barrier *images;
-} ogpu_next_dependency;
+};
 typedef struct ogpu_next_split { uint64_t value; } ogpu_next_split;
-void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
 void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_next_split *);
 void ogpu_next_split_acquire(ogpu_next_encoder *, ogpu_next_split, const ogpu_next_dependency *);
 void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu_next_dependency *);
@@ -196,8 +147,6 @@ typedef union ogpu_next_clear_value {
     float f32[4]; uint32_t u32[4]; int32_t i32[4];
     struct { float depth; uint32_t stencil; } depth_stencil;
 } ogpu_next_clear_value;
-void ogpu_next_copy_memory(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_span src);
-void ogpu_next_fill_memory(ogpu_next_encoder *, ogpu_next_span dst, uint32_t pattern);
 void ogpu_next_copy_to_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_span src, const ogpu_next_image_copy *);
 void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_image *src, const ogpu_next_image_copy *);
 void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *);

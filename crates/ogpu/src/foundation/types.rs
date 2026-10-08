@@ -21,6 +21,10 @@ pub const MEMORY_HEAPS: u32 = 4;
 pub const FEATURES: u32 = 5;
 pub const DEVICE_DESC: u32 = 100;
 pub const MEMORY_DESC: u32 = 101;
+pub const ARENA_DESC: u32 = 102;
+pub const RECORDING_DESC: u32 = 103;
+pub const SUBMIT_DESC: u32 = 104;
+pub const DEPENDENCY: u32 = 105;
 pub const MEMORY_LIMITS: u32 = 6;
 pub const RASTER: u64 = 1;
 pub const FLOAT16: u64 = 2;
@@ -131,6 +135,67 @@ pub struct DeviceDesc {
 pub struct Point {
     pub timeline: *mut Timeline,
     pub value: u64,
+}
+
+#[repr(C)]
+pub struct ArenaDesc {
+    pub header: Record,
+    pub domain: u32,
+    pub list_capacity: u32,
+}
+#[repr(C)]
+pub struct RecordingDesc {
+    pub header: Record,
+    pub replay_mode: u32,
+    pub level: u32,
+    pub inheritance: *const Record,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HostRequirements {
+    pub size: u64,
+    pub alignment: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SyncPoint {
+    pub point: Point,
+    pub stages: u64,
+}
+#[repr(C)]
+pub struct SubmitDesc {
+    pub header: Record,
+    pub list_count: u32,
+    pub wait_count: u32,
+    pub signal_count: u32,
+    pub lists: *const *mut super::List,
+    pub waits: *const SyncPoint,
+    pub signals: *const SyncPoint,
+    pub scratch: *mut c_void,
+    pub scratch_size: u64,
+}
+#[repr(C)]
+pub struct MemoryBarrier {
+    pub range: Span,
+    pub before: u64,
+    pub after: u64,
+    pub source_domain: u32,
+    pub destination_domain: u32,
+}
+#[repr(C)]
+pub struct Dependency {
+    pub header: Record,
+    pub before: u64,
+    pub after: u64,
+    pub global_before: u64,
+    pub global_after: u64,
+    pub memory_count: u32,
+    pub image_count: u32,
+    pub flags: u32,
+    pub memory: *const MemoryBarrier,
+    pub images: *const c_void,
+    pub scratch: *mut c_void,
+    pub scratch_size: u64,
 }
 
 #[repr(C)]

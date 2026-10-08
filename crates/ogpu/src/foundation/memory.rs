@@ -20,6 +20,8 @@ pub struct Memory {
     address: u64,
     properties: u32,
     mapped: Cell<*mut u8>,
+    usage: u64,
+    domains: Vec<u32>,
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
@@ -249,6 +251,18 @@ impl Memory {
             address: 0,
             properties,
             mapped: Cell::new(ptr::null_mut()),
+            usage: desc.usage,
+            domains: if desc.concurrent_domain_count == 0 {
+                Vec::new()
+            } else {
+                unsafe {
+                    std::slice::from_raw_parts(
+                        desc.concurrent_domains,
+                        desc.concurrent_domain_count as usize,
+                    )
+                }
+                .to_vec()
+            },
         });
         if desc.kind == 1 {
             let mut buffer = ptr::null_mut();
@@ -322,6 +336,38 @@ impl Memory {
             return Err(INVALID);
         }
         self.prefix.checked_add(offset).ok_or(INVALID)
+    }
+    pub(super) fn command_range(
+        &self,
+        device: *const Device,
+        domain: u32,
+        offset: u64,
+        size: u64,
+        usage: u64,
+    ) -> Result<(vk::VkBuffer, u64, u64), Status> {
+        if self.device != device
+            || self.buffer.is_null()
+            || self.usage & usage != usage
+            || (!self.domains.is_empty() && !self.domains.contains(&domain))
+        {
+            return Err(INVALID);
+        }
+        Ok((
+            self.buffer,
+            self.range(offset, size)?,
+            self.address.checked_add(offset).ok_or(INVALID)?,
+        ))
+    }
+    pub(super) fn concurrent(&self) -> bool {
+        !self.domains.is_empty()
+    }
+    pub(super) fn address_flags(&self) -> u32 {
+        vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR
+            | if self.usage & 64 != 0 {
+                vk::VkAddressCommandFlagBitsKHR_VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR
+            } else {
+                0
+            }
     }
     pub(in crate::foundation) fn address(&self, offset: u64, size: u64) -> Result<u64, Status> {
         unsafe { &*self.device }.ready()?;

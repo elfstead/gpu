@@ -45,4 +45,5 @@ VkPipelineRenderingCreateInfo
 VkImageMemoryBarrier2
 VkAddressCommandFlagBitsKHR
 VkCommandBufferUsageFlagBits
+VkCommandPoolResetFlagBits
 VkPhysicalDeviceShaderDrawParametersFeatures

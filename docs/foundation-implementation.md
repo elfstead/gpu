@@ -38,7 +38,7 @@ Queue domain IDs map directly to Vulkan families; requests lower to separate nat
 queue-create records. This follows Vulkan's exact family/count/priority rules,
 without inventing a portable scheduler. See the
 [native queue-create contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkDeviceQueueCreateInfo.html).
-Future stage-scoped submission must preserve actual wait/signal scopes rather
+Stage-scoped submission preserves actual wait/signal scopes rather
 than treating every signaled value as whole-list completion; see
 [native semaphore submit scopes](https://docs.vulkan.org/refpages/latest/refpages/source/VkSemaphoreSubmitInfo.html).
 
@@ -68,9 +68,56 @@ The application owns synchronization of every affected byte, including neighbors
 Mapping/unmapping one allocation is externally serialized; distinct views share
 one mapping, and unmap invalidates them all.
 
+## Implemented command storage and submission
+
+Explicit per-domain arenas reserve primary list slots, not fictitious native-byte
+budgets. Begin consumes a reserved slot without growing OGPU storage. Reserve can
+grow without moving existing list handles; reset retains capacity, and trim resets,
+frees excess slots and asks the driver to release pool storage. Neither destruction
+nor cancellation waits. Failed begin/end consume their slot until reset; any reset
+attempt invalidates handles, and failed reset prevents recording until a successful
+reset. Independent arenas can record on different host threads.
+
+One-shot, serial replay and simultaneous replay map to native command-buffer modes.
+The caller owns pending-use tracking, synchronization and resource lifetimes; an
+arena retains no memory, timeline or resource list. One-shot work becomes consumed
+only on successful submission. Serial completion and simultaneous-use hazards are
+caller preconditions, not an internal completion registry. See the native
+[submission](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html)
+and [pool reset](https://docs.vulkan.org/refpages/latest/refpages/source/vkResetCommandPool.html)
+contracts.
+
+Submission borrows explicitly sized/aligned caller scratch for native array
+translation. Batched ranged memory dependencies use the same approach and lower
+to one native barrier call. Query once and reuse stack/heap storage; no OGPU heap
+allocation occurs in begin/end, command encoding or submission. Driver-internal
+allocations remain possible. This choice does **not** require per-submit allocation
+or make a native command-memory byte-budget promise. Duplicate-list/point checks
+and signal ordering are trusted preconditions: no quadratic scans or hidden sets.
+
+Copy uses device-address commands and preserves the allocation's known usage flags;
+fill writes a selected backing range. Invalid range/device/usage/scope or encoding
+errors poison end, which returns no executable list. Global/ranged barriers separate
+stage and access masks. Exclusive queue-family ownership transfers require explicit
+release/acquire records plus timeline edges; concurrent sharing remains an explicit
+allocation choice. There is no implicit current owner or queue serialization.
+
+Wait/signal stages are preserved, with no automatic completion signal. A narrow
+signal is not a blanket completion receipt. Submit OOM is retryable with one-shot
+work intact; loss is sticky. Unexpected native submission errors conservatively
+poison the device instead of pretending a retry or resource reuse is safe.
+
+This is still an unstabilized subset. Image barriers return UNSUPPORTED, secondary
+recording/inheritance and split dependencies are not implemented, and the current
+stage vocabulary includes broad transfer/vertex/depth groups. Finer graphics scopes
+must be added with the executable surface. Multiple lists and timeline edges are
+batched in one native submit record; an array of distinct submit records in one
+native call remains to implement. None is ruled out by the design. No performance
+equivalence claim follows merely from the absence of OGPU hot-path allocation.
+
 ## Verification so far
 
-- 56 ordinary Rust tests pass, including seven foundation contract, status and
+- 57 ordinary Rust tests pass, including eight foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -86,10 +133,22 @@ one mapping, and unmap invalidates them all.
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All three foundation GPU tests pass on each available driver. Pinned Vulkan
+  All four foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
-  is claimed. GPU consumption of the new allocations awaits the command path.
+  is claimed.
+- The C command path passes copy/upload, explicit local working backing, fill,
+  global/ranged dependencies, readback and three changed-input replays on both
+  drivers. It also covers stable handles across reserve, capacity failure, sticky
+  encoding failure, cancellation, one-shot rejection, two host-gated simultaneous
+  pending executions, reset and trim. Radeon additionally passes exclusive
+  ownership transfer from family 0 to family 1 with a timeline edge and readback;
+  llvmpipe reports that it has no second transfer-capable family.
+- `gpu_foundation_commands` injects allocation/begin/end/reset/submit failures on
+  real devices, checks failed-output adoption, OOM retry without one-shot
+  consumption, terminal-loss/unknown-error poisoning and no native retry after
+  loss. Four host workers independently record/reset arenas. These tests do not
+  claim a real GPU-loss event or measured concurrent GPU execution.
 
 No timing campaign, GPU queue-overlap claim, real device-loss event, Metal support,
 or new SDK support follows. Hardware execution requires sandbox-external GPU access;
@@ -97,8 +156,7 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Caller-owned command arenas/lists with submission and placed images/views.
-Integrate both argument paths,
+Placed images/views and descriptor storage, then both argument paths,
 expanded graphics/compute and consumers as the coordinated tranche proceeds.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection

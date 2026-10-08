@@ -1,4 +1,4 @@
-//! Vulkan setup only: immutable device state, externally synchronized queues,
+//! Vulkan foundation: immutable device state, externally synchronized queues,
 //! independent timelines. No implicit queue, completion counter or resource cache.
 use super::types::*;
 use super::{loader_error, Adapter, Snapshot};
@@ -7,7 +7,7 @@ use ogpu_vulkan_sys as vk;
 use std::{
     ptr,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicPtr, Ordering},
         Arc,
     },
 };
@@ -15,6 +15,10 @@ use std::{
 #[path = "memory.rs"]
 mod memory;
 pub use memory::Memory;
+#[path = "commands.rs"]
+mod commands;
+pub(super) use commands::{barrier_scratch, submit_scratch};
+pub use commands::{Arena, List};
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -54,6 +58,18 @@ functions! {
     vkFlushMappedMemoryRanges: PFN_vkFlushMappedMemoryRanges,
     vkInvalidateMappedMemoryRanges: PFN_vkInvalidateMappedMemoryRanges,
     vkGetBufferDeviceAddress: PFN_vkGetBufferDeviceAddress,
+    vkCreateCommandPool: PFN_vkCreateCommandPool,
+    vkDestroyCommandPool: PFN_vkDestroyCommandPool,
+    vkResetCommandPool: PFN_vkResetCommandPool,
+    vkTrimCommandPool: PFN_vkTrimCommandPool,
+    vkAllocateCommandBuffers: PFN_vkAllocateCommandBuffers,
+    vkFreeCommandBuffers: PFN_vkFreeCommandBuffers,
+    vkBeginCommandBuffer: PFN_vkBeginCommandBuffer,
+    vkEndCommandBuffer: PFN_vkEndCommandBuffer,
+    vkCmdCopyMemoryKHR: PFN_vkCmdCopyMemoryKHR,
+    vkCmdFillBuffer: PFN_vkCmdFillBuffer,
+    vkCmdPipelineBarrier2: PFN_vkCmdPipelineBarrier2,
+    vkQueueSubmit2: PFN_vkQueueSubmit2,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -242,14 +258,16 @@ pub struct Device {
     _instance: Arc<Instance>,
 }
 pub struct Queue {
-    _handle: vk::VkQueue,
+    handle: vk::VkQueue,
+    device: AtomicPtr<Device>,
     domain: u32,
     index: u32,
 }
 // SAFETY: device data and queue handles are immutable after construction. Native
 // independent creation/query/wait operations allow concurrent use. The only
-// mutated state is atomic loss. Per-queue access and destruction are externally
-// synchronized by the unsafe C contract, not a device-wide lock.
+// mutated state is atomic loss and atomic borrowed queue-parent binding.
+// Per-queue access and destruction are externally synchronized by the unsafe C
+// contract, not a device-wide lock.
 unsafe impl Send for Device {}
 unsafe impl Sync for Device {}
 
@@ -401,7 +419,8 @@ impl Device {
                     );
                 }
                 result.queues.push(Queue {
-                    _handle: handle,
+                    handle,
+                    device: AtomicPtr::new(ptr::null_mut()),
                     domain: r.domain,
                     index,
                 });
@@ -410,9 +429,17 @@ impl Device {
         Ok(result)
     }
     pub(super) fn queue(&self, domain: u32, index: u32) -> Option<&Queue> {
-        self.queues
+        let queue = self
+            .queues
             .iter()
-            .find(|q| q.domain == domain && q.index == index)
+            .find(|q| q.domain == domain && q.index == index)?;
+        // Bind after construction, from the stable borrowed device address.
+        // Concurrent lookup is permitted: no constructor-Box self-reference,
+        // queue allocation or device lock is needed.
+        queue
+            .device
+            .store(ptr::from_ref(self).cast_mut(), Ordering::Relaxed);
+        Some(queue)
     }
     fn ready(&self) -> Result<(), Status> {
         if self.lost.load(Ordering::Relaxed) {

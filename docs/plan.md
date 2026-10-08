@@ -23,12 +23,16 @@ dependency boundaries, without requiring a separate benchmark campaign to justif
 each structurally useful capability. Optional specialized hardware modules have
 explicit scope but still need concrete extension specifications and implementation.
 
-Implementation started: [foundation setup](foundation-implementation.md) now has
+Implementation started: [foundation implementation](foundation-implementation.md) now has
 concrete query records, explicit queue creation, independent timeline handles,
-and explicit memory backing/ranges with persistent mapping and cache visibility,
-validated through Rust and C on Radeon/llvmpipe. It is source-only Linux work under
-`ogpu_next_*`, not the installed ABI. Command arenas/submission and placement are next; the
-broader draft is not yet implemented.
+explicit memory backing/ranges with persistent mapping and cache visibility,
+and caller-owned command arenas, replay, scratch-backed submission, copy/fill and
+global/ranged ownership barriers. Rust/C checks pass on Radeon/llvmpipe; the Radeon
+also passes an explicit cross-family transfer. It is source-only Linux work under
+`ogpu_next_*`, not the installed ABI. Placed images/views and descriptor storage
+come next, then executable/argument and graphics/compute expansion. Secondary
+execution, split dependencies and native multi-submit batching remain outstanding;
+the broader draft is not yet implemented.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

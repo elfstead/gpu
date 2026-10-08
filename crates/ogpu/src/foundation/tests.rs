@@ -155,6 +155,15 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<Requirements>(), 40);
     assert_eq!(size_of::<Mapping>(), 40);
     assert_eq!(size_of::<MemoryLimits>(), 32);
+    assert_eq!(size_of::<ArenaDesc>(), 32);
+    assert_eq!(size_of::<RecordingDesc>(), 40);
+    assert_eq!(size_of::<HostRequirements>(), 16);
+    assert_eq!(size_of::<SyncPoint>(), 24);
+    assert_eq!(size_of::<SubmitDesc>(), 80);
+    assert_eq!(size_of::<MemoryBarrier>(), 48);
+    assert_eq!(size_of::<Dependency>(), 104);
+    assert_eq!(std::mem::offset_of!(SubmitDesc, scratch), 64);
+    assert_eq!(std::mem::offset_of!(Dependency, scratch), 88);
     unsafe {
         let mut discovery = ptr::dangling_mut();
         assert_eq!(

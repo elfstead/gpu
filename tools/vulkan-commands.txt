@@ -21,7 +21,7 @@ vkCmdSetEvent2
 vkCmdWaitEvents2
 vkCmdResetEvent2
 vkGetSemaphoreCounterValue
-# Test gate only; never loaded by the execution backend.
+# Host timeline signals and test gates.
 vkSignalSemaphore
 vkCreateBuffer
 vkDestroyBuffer
@@ -42,6 +42,8 @@ vkCreateCommandPool
 vkResetCommandPool
 vkDestroyCommandPool
 vkAllocateCommandBuffers
+vkFreeCommandBuffers
+vkTrimCommandPool
 vkBeginCommandBuffer
 vkEndCommandBuffer
 vkCmdBindPipeline
@@ -76,6 +78,7 @@ vkCmdDrawIndexedIndirectCount2KHR
 vkCmdCopyImageToMemoryKHR
 vkCmdCopyMemoryToImageKHR
 vkCmdCopyMemoryKHR
+vkCmdFillBuffer
 vkWriteResourceDescriptorsEXT
 vkGetPhysicalDeviceFormatProperties
 vkWriteSamplerDescriptorsEXT

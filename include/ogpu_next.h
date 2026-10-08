@@ -24,6 +24,10 @@ typedef struct ogpu_next_device ogpu_next_device;
 typedef struct ogpu_next_queue ogpu_next_queue;
 typedef struct ogpu_next_timeline ogpu_next_timeline;
 typedef struct ogpu_next_memory ogpu_next_memory;
+typedef struct ogpu_next_arena ogpu_next_arena;
+typedef struct ogpu_next_encoder ogpu_next_encoder;
+typedef struct ogpu_next_list ogpu_next_list;
+typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
 enum {
     OGPU_NEXT_OK = 0, OGPU_NEXT_NOT_READY = 1, OGPU_NEXT_TIMEOUT = 2,
@@ -47,7 +51,9 @@ enum {
     OGPU_NEXT_QUERY_INFO = 1, OGPU_NEXT_QUERY_QUEUES = 2,
     OGPU_NEXT_QUERY_MEMORY_TYPES = 3, OGPU_NEXT_QUERY_MEMORY_HEAPS = 4,
     OGPU_NEXT_QUERY_FEATURES = 5, OGPU_NEXT_QUERY_MEMORY_LIMITS = 6,
-    OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101
+    OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
+    OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
+    OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -217,6 +223,135 @@ ogpu_next_status ogpu_next_memory_map(ogpu_next_span, ogpu_next_mapping *);
 void ogpu_next_memory_unmap(ogpu_next_memory *);
 ogpu_next_status ogpu_next_memory_flush(ogpu_next_span);
 ogpu_next_status ogpu_next_memory_invalidate(ogpu_next_span);
+
+/* Arena capacity counts primary list slots, NOT native command bytes. Reserve
+ * grows explicitly; begin never grows OGPU storage. Native recording/submission
+ * can still allocate internally. All host use of a pool and its encoders is
+ * externally serialized; use distinct arenas for parallel recording. Immutable
+ * executable lists may be submitted independently of other slots' recording.
+ * Reset/trim/destroy require no pending uses and invalidate ALL list/encoder
+ * handles, even on a failed reset; failed reset requires successful reset before
+ * recording again. Reset retains slots; trim resets then frees slots above retained_count
+ * and asks the driver to release unused pool storage (no byte-budget guarantee).
+ * Cancel and failed begin/end consume their slot until reset; cancel does not
+ * wait. An encoder error is sticky and reported by end with a NULL list.
+ */
+typedef struct ogpu_next_arena_desc {
+    ogpu_next_record header;
+    ogpu_next_queue_domain domain;
+    uint32_t list_capacity;
+} ogpu_next_arena_desc;
+enum { OGPU_NEXT_ONE_SHOT = 1, OGPU_NEXT_SERIAL_REPLAY = 2, OGPU_NEXT_SIMULTANEOUS_REPLAY = 3 };
+enum { OGPU_NEXT_PRIMARY = 0 };
+typedef struct ogpu_next_recording_desc {
+    ogpu_next_record header;
+    uint32_t replay_mode, level;
+    const ogpu_next_record *inheritance;
+} ogpu_next_recording_desc;
+/* Only primary, inheritance=NULL is implemented. One-shot accepts one successful
+ * submit. Serial replay requires prior executions complete before resubmission;
+ * simultaneous replay permits pending executions but does NOT resolve hazards.
+ * The caller tracks pending use and keeps referenced resources alive, including
+ * between replays. No resource lists, pending scans or implicit timeline values.
+ */
+ogpu_next_status ogpu_next_arena_create(ogpu_next_device *, const ogpu_next_arena_desc *, ogpu_next_arena **);
+ogpu_next_status ogpu_next_arena_reserve(ogpu_next_arena *, uint32_t list_capacity);
+ogpu_next_status ogpu_next_arena_reset(ogpu_next_arena *);
+ogpu_next_status ogpu_next_arena_trim(ogpu_next_arena *, uint32_t retained_count);
+void ogpu_next_arena_destroy(ogpu_next_arena *);
+ogpu_next_status ogpu_next_commands_begin(ogpu_next_arena *, const ogpu_next_recording_desc *, ogpu_next_encoder **);
+ogpu_next_status ogpu_next_commands_end(ogpu_next_encoder *, ogpu_next_list **);
+void ogpu_next_commands_cancel(ogpu_next_encoder *);
+
+#define OGPU_NEXT_STAGE_ALL UINT64_C(1)
+/* COPY covers all native transfer operations (copy/fill/clear/resolve); VERTEX
+ * covers vertex input and vertex shader; DEPTH covers early and late tests.
+ * Finer graphics scopes and optional-stage capabilities accompany that surface. */
+#define OGPU_NEXT_STAGE_COPY UINT64_C(2)
+#define OGPU_NEXT_STAGE_COMPUTE UINT64_C(4)
+#define OGPU_NEXT_STAGE_VERTEX UINT64_C(8)
+#define OGPU_NEXT_STAGE_FRAGMENT UINT64_C(16)
+#define OGPU_NEXT_STAGE_INDIRECT UINT64_C(32)
+#define OGPU_NEXT_STAGE_COLOR UINT64_C(64)
+#define OGPU_NEXT_STAGE_DEPTH UINT64_C(128)
+#define OGPU_NEXT_STAGE_HOST UINT64_C(256)
+#define OGPU_NEXT_ACCESS_READ UINT64_C(1)
+#define OGPU_NEXT_ACCESS_WRITE UINT64_C(2)
+#define OGPU_NEXT_ACCESS_COPY_READ UINT64_C(4)
+#define OGPU_NEXT_ACCESS_COPY_WRITE UINT64_C(8)
+#define OGPU_NEXT_ACCESS_SHADER_READ UINT64_C(16)
+#define OGPU_NEXT_ACCESS_SHADER_WRITE UINT64_C(32)
+#define OGPU_NEXT_ACCESS_HOST_READ UINT64_C(64)
+#define OGPU_NEXT_ACCESS_HOST_WRITE UINT64_C(128)
+#define OGPU_NEXT_ACCESS_INDIRECT_READ UINT64_C(256)
+#define OGPU_NEXT_ACCESS_INDEX_READ UINT64_C(512)
+#define OGPU_NEXT_ACCESS_VERTEX_READ UINT64_C(1024)
+#define OGPU_NEXT_ACCESS_UNIFORM_READ UINT64_C(2048)
+#define OGPU_NEXT_ACCESS_COLOR_READ UINT64_C(4096)
+#define OGPU_NEXT_ACCESS_COLOR_WRITE UINT64_C(8192)
+#define OGPU_NEXT_ACCESS_DEPTH_READ UINT64_C(16384)
+#define OGPU_NEXT_ACCESS_DEPTH_WRITE UINT64_C(32768)
+typedef struct ogpu_next_host_requirements { uint64_t size, alignment; } ogpu_next_host_requirements;
+typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;
+typedef struct ogpu_next_submit_desc {
+    ogpu_next_record header;
+    uint32_t list_count, wait_count, signal_count;
+    ogpu_next_list *const *lists;
+    const ogpu_next_sync_point *waits, *signals;
+    void *scratch;
+    uint64_t scratch_size;
+} ogpu_next_submit_desc;
+/* Scratch is writable aligned host storage, borrowed only during the call and
+ * disjoint from all inputs/objects. Query size/alignment once and reuse it; no
+ * OGPU hot-path heap allocation. Zero-size queries return alignment=1. Too-small
+ * scratch => CAPACITY; null/misaligned nonempty storage => INVALID. Queries leave
+ * output unchanged on error. Lists/timelines must belong to the queue's device;
+ * lists must match its domain. Each queue is externally serialized. The caller
+ * guarantees duplicate lists use simultaneous mode, no duplicate wait or signal
+ * timelines, and signals exceed same-timeline waits. No quadratic duplicate scan.
+ * One-shot submission excludes every other host access to that list.
+ * Wait/signal stage masks are preserved, HOST is invalid here. Only an ALL signal
+ * after the relevant work proves whole-list completion for reuse/destruction.
+ * No automatic signal, wait or submission receipt. OOM is retryable without
+ * consuming one-shot lists; loss is terminal. Other native submission errors
+ * conservatively poison the device (return BACKEND_ERROR, then DEVICE_LOST).
+ */
+ogpu_next_status ogpu_next_submit_scratch_requirements(uint32_t lists, uint32_t waits, uint32_t signals, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
+
+#define OGPU_NEXT_DOMAIN_IGNORED UINT32_MAX
+typedef struct ogpu_next_memory_barrier {
+    ogpu_next_span range;
+    ogpu_next_access before, after;
+    ogpu_next_queue_domain source_domain, destination_domain;
+} ogpu_next_memory_barrier;
+typedef struct ogpu_next_dependency {
+    ogpu_next_record header;
+    ogpu_next_stages before, after;
+    ogpu_next_access global_before, global_after;
+    uint32_t memory_count, image_count, flags;
+    const ogpu_next_memory_barrier *memory;
+    const ogpu_next_image_barrier *images;
+    void *scratch;
+    uint64_t scratch_size;
+} ogpu_next_dependency;
+/* One native batched dependency: global scopes plus optional backing ranges.
+ * Source/destination both IGNORED => no ownership transfer. Otherwise explicit
+ * exclusive-family release/acquire endpoints require matching ranges/domains and
+ * a queue timeline edge. No implicit owner tracking. Empty memory ranges invalid.
+ * Stage NONE (0) requires access NONE; ALL includes GPU stages, not HOST.
+ * Version 1 currently requires image_count=0, images=NULL and flags=0. The image
+ * barrier schema is defined only in the draft until placed images are implemented.
+ */
+ogpu_next_status ogpu_next_barrier_scratch_requirements(uint32_t memory_count, ogpu_next_host_requirements *);
+void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
+/* Copies require equal sizes, COPY_SRC/DST usage, no overlapping byte ranges.
+ * Fill requires COPY_DST and offset/size multiples of four. Empty valid ranges
+ * are no-ops. Bounds/device/usage mistakes poison the encoder, not partial work.
+ * Commands borrow resources; they never stage, allocate, retain or wait.
+ */
+void ogpu_next_copy_memory(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_span src);
+void ogpu_next_fill_memory(ogpu_next_encoder *, ogpu_next_span dst, uint32_t pattern);
 #ifdef __cplusplus
 }
 #endif

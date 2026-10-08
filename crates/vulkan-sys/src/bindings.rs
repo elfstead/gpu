@@ -2758,6 +2758,9 @@ pub const VkAccessFlagBits_VK_ACCESS_FLAG_BITS_MAX_ENUM: VkAccessFlagBits = 2147
 pub type VkAccessFlagBits = ::std::os::raw::c_uint;
 pub type VkDependencyFlags = VkFlags;
 pub type VkCommandPoolCreateFlags = VkFlags;
+pub const VkCommandPoolResetFlagBits_VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT: VkCommandPoolResetFlagBits = 1;
+pub const VkCommandPoolResetFlagBits_VK_COMMAND_POOL_RESET_FLAG_BITS_MAX_ENUM: VkCommandPoolResetFlagBits = 2147483647;
+pub type VkCommandPoolResetFlagBits = ::std::os::raw::c_uint;
 pub type VkCommandPoolResetFlags = VkFlags;
 pub type VkQueryControlFlags = VkFlags;
 pub const VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT: VkCommandBufferUsageFlagBits = 1;
@@ -6460,6 +6463,14 @@ pub type PFN_vkAllocateCommandBuffers = ::std::option::Option<
         pCommandBuffers: *mut VkCommandBuffer,
     ) -> VkResult,
 >;
+pub type PFN_vkFreeCommandBuffers = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        commandPool: VkCommandPool,
+        commandBufferCount: u32,
+        pCommandBuffers: *const VkCommandBuffer,
+    ),
+>;
 pub type PFN_vkBeginCommandBuffer = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -6468,6 +6479,15 @@ pub type PFN_vkBeginCommandBuffer = ::std::option::Option<
 >;
 pub type PFN_vkEndCommandBuffer = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer) -> VkResult,
+>;
+pub type PFN_vkCmdFillBuffer = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        dstBuffer: VkBuffer,
+        dstOffset: VkDeviceSize,
+        size: VkDeviceSize,
+        data: u32,
+    ),
 >;
 pub type PFN_vkCmdResetQueryPool = ::std::option::Option<
     unsafe extern "C" fn(
@@ -6575,6 +6595,7 @@ pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REP
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_FLAG_BITS_MAX_ENUM: VkMemoryAllocateFlagBits = 2147483647;
 pub type VkMemoryAllocateFlagBits = ::std::os::raw::c_uint;
 pub type VkMemoryAllocateFlags = VkFlags;
+pub type VkCommandPoolTrimFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkMemoryDedicatedRequirements {
@@ -6938,6 +6959,13 @@ pub type PFN_vkGetPhysicalDeviceProperties2 = ::std::option::Option<
     unsafe extern "C" fn(
         physicalDevice: VkPhysicalDevice,
         pProperties: *mut VkPhysicalDeviceProperties2,
+    ),
+>;
+pub type PFN_vkTrimCommandPool = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        commandPool: VkCommandPool,
+        flags: VkCommandPoolTrimFlags,
     ),
 >;
 pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_BINARY: VkSemaphoreType = 0;

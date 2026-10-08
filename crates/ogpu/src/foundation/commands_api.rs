@@ -1,0 +1,189 @@
+//! C command boundary. Encoder and executable-list handles borrow arena slots.
+use super::*;
+
+unsafe fn description<'a, T>(pointer: *const T, kind: u32) -> Result<&'a T, Status> {
+    if pointer.is_null() {
+        return Err(INVALID);
+    }
+    unsafe { pointer.cast::<Record>().read() }.validate::<T>(kind)?;
+    Ok(unsafe { &*pointer })
+}
+/// # Safety
+/// Live device and description/output as documented in include/ogpu_next.h.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_arena_create(
+    device: *mut Device,
+    desc: *const ArenaDesc,
+    out: *mut *mut Arena,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let arena = Arena::create(d, unsafe { description(desc, ARENA_DESC)? })?;
+        unsafe {
+            out.write(Box::into_raw(arena));
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Exclusive arena/pool host access; existing slot handles remain borrowed.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_arena_reserve(arena: *mut Arena, count: u32) -> Status {
+    boundary(|| unsafe { arena.as_mut() }.ok_or(INVALID)?.reserve(count))
+}
+/// # Safety
+/// No pending use; excludes every list/encoder/pool access. Invalidates all handles.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_arena_reset(arena: *mut Arena) -> Status {
+    boundary(|| unsafe { arena.as_mut() }.ok_or(INVALID)?.reset(false))
+}
+/// # Safety
+/// Same exclusion/lifetime requirements as reset.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_arena_trim(arena: *mut Arena, count: u32) -> Status {
+    boundary(|| unsafe { arena.as_mut() }.ok_or(INVALID)?.trim(count))
+}
+/// # Safety
+/// No pending or host uses; live parent device. NULL permitted. Never waits.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_arena_destroy(arena: *mut Arena) {
+    if !arena.is_null() {
+        unsafe {
+            drop(Box::from_raw(arena));
+        }
+    }
+}
+/// # Safety
+/// Exclusive pool access, readable description and writable output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_commands_begin(
+    arena: *mut Arena,
+    desc: *const RecordingDesc,
+    out: *mut *mut List,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        let arena = unsafe { arena.as_mut() }.ok_or(INVALID)?;
+        let encoder = arena.begin(unsafe { description(desc, RECORDING_DESC)? })?;
+        unsafe {
+            out.write(encoder);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Live recording slot with exclusive pool access; output does not alias input.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_commands_end(encoder: *mut List, out: *mut *mut List) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        unsafe { encoder.as_ref() }.ok_or(INVALID)?.end()?;
+        unsafe {
+            out.write(encoder);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Live recording slot, exclusive pool access. NULL permitted.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_commands_cancel(encoder: *mut List) {
+    if let Some(encoder) = unsafe { encoder.as_ref() } {
+        encoder.cancel();
+    }
+}
+/// # Safety
+/// Writable requirements output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_submit_scratch_requirements(
+    lists: u32,
+    waits: u32,
+    signals: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let requirements = native::submit_scratch(lists, waits, signals)?;
+        unsafe {
+            out.write(requirements);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Writable requirements output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_barrier_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let requirements = native::barrier_scratch(count)?;
+        unsafe {
+            out.write(requirements);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// See include/ogpu_next.h: queue exclusion, scratch, resource and pending lifetimes.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_queue_submit(
+    queue: *mut Queue,
+    desc: *const SubmitDesc,
+) -> Status {
+    boundary(|| {
+        let queue = unsafe { queue.as_ref() }.ok_or(INVALID)?;
+        unsafe { queue.submit(description(desc, SUBMIT_DESC)?) }
+    })
+}
+unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>) {
+    if let Some(encoder) = unsafe { encoder.as_ref() } {
+        encoder.poison(boundary(|| f(encoder)));
+    }
+}
+/// # Safety
+/// Exclusive recording pool, live backing, and ranges as documented in header.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_copy_memory(encoder: *mut List, dst: Span, src: Span) {
+    unsafe {
+        encode(encoder, |e| e.copy(dst, src));
+    }
+}
+/// # Safety
+/// Exclusive recording pool and live destination backing.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_fill_memory(encoder: *mut List, dst: Span, pattern: u32) {
+    unsafe {
+        encode(encoder, |e| e.fill(dst, pattern));
+    }
+}
+/// # Safety
+/// Exclusive pool access; live ranges and scratch disjoint from every input/object.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_barrier(encoder: *mut List, dep: *const Dependency) {
+    unsafe {
+        encode(encoder, |e| e.barrier(description(dep, DEPENDENCY)?));
+    }
+}
