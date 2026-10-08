@@ -20,6 +20,8 @@ pub const MEMORY_TYPES: u32 = 3;
 pub const MEMORY_HEAPS: u32 = 4;
 pub const FEATURES: u32 = 5;
 pub const DEVICE_DESC: u32 = 100;
+pub const MEMORY_DESC: u32 = 101;
+pub const MEMORY_LIMITS: u32 = 6;
 pub const RASTER: u64 = 1;
 pub const FLOAT16: u64 = 2;
 pub const UNIFIED_IMAGES: u64 = 4;
@@ -129,6 +131,56 @@ pub struct DeviceDesc {
 pub struct Point {
     pub timeline: *mut Timeline,
     pub value: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct MemoryLimits {
+    pub max_buffer_size: u64,
+    pub max_allocation_size: u64,
+    pub cache_atom_size: u64,
+    pub map_alignment: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MemoryDesc {
+    pub header: Record,
+    pub size: u64,
+    pub alignment: u64,
+    pub usage: u64,
+    pub memory_type: u32,
+    pub kind: u32,
+    pub concurrent_domains: *const u32,
+    pub concurrent_domain_count: u32,
+    pub flags: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Span {
+    pub memory: *mut super::Memory,
+    pub offset: u64,
+    pub size: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct Requirements {
+    pub size: u64,
+    pub alignment: u64,
+    pub dedicated_required: u32,
+    pub dedicated_preferred: u32,
+    pub compatible_type_count: u32,
+    pub compatible_type_capacity: u32,
+    pub compatible_types: *mut u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct Mapping {
+    pub data: *mut std::ffi::c_void,
+    pub size: u64,
+    pub cache_atom_size: u64,
+    pub cache_offset: u64,
+    pub coherent: u32,
+    pub reserved: u32,
 }
 
 // Keep C opaque types reachable without exposing their internals.

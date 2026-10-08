@@ -8,6 +8,7 @@ vkEnumerateDeviceExtensionProperties
 vkGetPhysicalDeviceFeatures2
 vkGetPhysicalDeviceQueueFamilyProperties
 vkGetPhysicalDeviceMemoryProperties
+vkGetDeviceBufferMemoryRequirements
 vkCreateDevice
 vkDestroyDevice
 vkGetDeviceQueue

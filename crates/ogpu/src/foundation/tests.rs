@@ -27,6 +27,7 @@ fn fixture() -> Snapshot {
         memory_types: vec![],
         memory_heaps: vec![],
         features: FeatureInfo::default(),
+        memory_limits: MemoryLimits::default(),
     }
 }
 fn query<T>(kind: u32, values: &mut [T]) -> Query {
@@ -149,6 +150,11 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<FeatureInfo>(), 32);
     assert_eq!(size_of::<QueueRequest>(), 12);
     assert_eq!(size_of::<Point>(), 16);
+    assert_eq!(size_of::<MemoryDesc>(), 72);
+    assert_eq!(size_of::<Span>(), 24);
+    assert_eq!(size_of::<Requirements>(), 40);
+    assert_eq!(size_of::<Mapping>(), 40);
+    assert_eq!(size_of::<MemoryLimits>(), 32);
     unsafe {
         let mut discovery = ptr::dangling_mut();
         assert_eq!(

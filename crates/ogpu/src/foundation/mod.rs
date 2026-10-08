@@ -1,9 +1,12 @@
 //! Explicit foundation setup. C lifetime/threading contract: include/ogpu_next.h.
 //! No execution, allocation, completion-retention or scheduler policy is borrowed
 //! from ABI 20. Both paths currently share only the native instance/query loader.
+mod memory_api;
 mod native;
+pub use memory_api::*;
 pub mod types;
 use crate::vulkan::Instance;
+pub use native::Memory;
 pub use native::{Device, Queue, Timeline};
 use ogpu_vulkan_sys as vk;
 use std::{
@@ -19,6 +22,7 @@ struct Snapshot {
     queues: Vec<QueueInfo>,
     memory_types: Vec<MemoryTypeInfo>,
     memory_heaps: Vec<MemoryHeapInfo>,
+    memory_limits: MemoryLimits,
     features: FeatureInfo,
 }
 pub struct Adapter {
@@ -68,6 +72,7 @@ impl Snapshot {
                 MEMORY_TYPES => copy_out(query, &self.memory_types),
                 MEMORY_HEAPS => copy_out(query, &self.memory_heaps),
                 FEATURES => copy_out(query, std::slice::from_ref(&self.features)),
+                MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
                 _ => Err(UNSUPPORTED),
             }
         }

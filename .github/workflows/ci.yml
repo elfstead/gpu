@@ -33,6 +33,8 @@ jobs:
       - run: cargo test --locked
       - run: cargo xtask bindings --check
       - run: cargo xtask abi
+      - run: cc -std=c11 -Wall -Wextra -Werror -pedantic -Iinclude -fsyntax-only examples/foundation.c
+      - run: c++ -std=c++17 -Wall -Wextra -Werror -pedantic -x c++ -fsyntax-only docs/drafts/ogpu_next.h
       - run: cargo xtask mock
       - run: spirv-val --target-env vulkan1.2 examples/shaders/roundtrip.spv
       - run: spirv-val --target-env vulkan1.2 examples/shaders/produce.spv

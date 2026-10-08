@@ -23,7 +23,6 @@
 extern "C" {
 #endif
 
-typedef struct ogpu_next_memory ogpu_next_memory;
 typedef struct ogpu_next_image ogpu_next_image;
 typedef struct ogpu_next_view ogpu_next_view;
 typedef struct ogpu_next_heap ogpu_next_heap;
@@ -36,10 +35,6 @@ typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
 typedef struct ogpu_next_extent { uint32_t x, y, z; } ogpu_next_extent;
 typedef struct ogpu_next_offset { int32_t x, y, z; } ogpu_next_offset;
-typedef struct ogpu_next_span {
-    ogpu_next_memory *memory;
-    uint64_t offset, size;
-} ogpu_next_span;
 typedef struct ogpu_next_sync_point {
     ogpu_next_point point;
     ogpu_next_stages stages;
@@ -49,33 +44,8 @@ typedef struct ogpu_next_sync_point {
  * timeline objects: implemented header above. Budget, numerical tuples and
  * exact executable/format/state query records remain to be defined. */
 
-/* Memory. Type IDs come from capabilities, not HOST/DEVICE placement guesses.
- * Image-only allocations need not have a linear GPU address or be mappable.
- * Requirements carry compatible-type records rather than a fixed 32-type mask.
- * Explicit addressability/use flags are part of the native mapping contract. */
-typedef struct ogpu_next_memory_desc {
-    ogpu_next_record header;
-    uint64_t size, alignment, usage;
-    uint32_t memory_type, flags;
-} ogpu_next_memory_desc;
-typedef struct ogpu_next_requirements {
-    uint64_t size, alignment;
-    uint32_t dedicated_required, dedicated_preferred;
-    uint32_t compatible_type_count;
-    uint32_t *compatible_types;
-} ogpu_next_requirements;
-typedef struct ogpu_next_mapping {
-    void *data;
-    uint64_t size, flush_alignment, invalidate_alignment;
-    uint32_t coherent;
-} ogpu_next_mapping;
-ogpu_next_status ogpu_next_memory_create(ogpu_next_device *, const ogpu_next_memory_desc *, ogpu_next_memory **);
-void ogpu_next_memory_destroy(ogpu_next_memory *);
-ogpu_next_status ogpu_next_memory_address(ogpu_next_span, ogpu_next_address *);
-ogpu_next_status ogpu_next_memory_map(ogpu_next_span, ogpu_next_mapping *);
-void ogpu_next_memory_unmap(ogpu_next_memory *);
-ogpu_next_status ogpu_next_memory_flush(ogpu_next_span);
-ogpu_next_status ogpu_next_memory_invalidate(ogpu_next_span);
+/* Explicit linear/opaque backing, requirements, ranges, mapping and cache
+ * visibility are now in the implemented header above. Placement follows below. */
 
 /* Images are placed interpretations of backing. A view can select compatible
  * format/aspects/mips/layers for sampled, storage or attachment use. Native

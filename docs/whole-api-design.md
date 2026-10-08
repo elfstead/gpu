@@ -1,8 +1,9 @@
 # Whole-API design: an explicit foundation, not a workload runtime
 
-Selected design direction, 2026-10-08. **Proposal, not implemented support.**
+Selected design direction, 2026-10-08. **Target design, not a support declaration.**
 The installed interface remains ABI 20. The companion
-[C surface sketch](drafts/ogpu_next.h) is intentionally not installed or linked.
+[C surface sketch](drafts/ogpu_next.h) is intentionally not installed; only its
+imported source-header subset is implemented and linkable.
 This document supersedes the experiment-by-experiment *design sequence*, not the
 historical results or their evidence limits. The [working plan](plan.md) owns status.
 Implementation has started at the [setup boundary](foundation-implementation.md);

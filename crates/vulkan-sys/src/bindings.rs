@@ -6577,6 +6577,46 @@ pub type VkMemoryAllocateFlagBits = ::std::os::raw::c_uint;
 pub type VkMemoryAllocateFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkMemoryDedicatedRequirements {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub prefersDedicatedAllocation: VkBool32,
+    pub requiresDedicatedAllocation: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryDedicatedRequirements",
+    ][::std::mem::size_of::<VkMemoryDedicatedRequirements>() - 24usize];
+    [
+        "Alignment of VkMemoryDedicatedRequirements",
+    ][::std::mem::align_of::<VkMemoryDedicatedRequirements>() - 8usize];
+    [
+        "Offset of field: VkMemoryDedicatedRequirements::sType",
+    ][::std::mem::offset_of!(VkMemoryDedicatedRequirements, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryDedicatedRequirements::pNext",
+    ][::std::mem::offset_of!(VkMemoryDedicatedRequirements, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryDedicatedRequirements::prefersDedicatedAllocation",
+    ][::std::mem::offset_of!(VkMemoryDedicatedRequirements, prefersDedicatedAllocation)
+        - 16usize];
+    [
+        "Offset of field: VkMemoryDedicatedRequirements::requiresDedicatedAllocation",
+    ][::std::mem::offset_of!(VkMemoryDedicatedRequirements, requiresDedicatedAllocation)
+        - 20usize];
+};
+impl Default for VkMemoryDedicatedRequirements {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkMemoryDedicatedAllocateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -6643,6 +6683,40 @@ const _: () = {
     ][::std::mem::offset_of!(VkMemoryAllocateFlagsInfo, deviceMask) - 20usize];
 };
 impl Default for VkMemoryAllocateFlagsInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkMemoryRequirements2 {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub memoryRequirements: VkMemoryRequirements,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkMemoryRequirements2",
+    ][::std::mem::size_of::<VkMemoryRequirements2>() - 40usize];
+    [
+        "Alignment of VkMemoryRequirements2",
+    ][::std::mem::align_of::<VkMemoryRequirements2>() - 8usize];
+    [
+        "Offset of field: VkMemoryRequirements2::sType",
+    ][::std::mem::offset_of!(VkMemoryRequirements2, sType) - 0usize];
+    [
+        "Offset of field: VkMemoryRequirements2::pNext",
+    ][::std::mem::offset_of!(VkMemoryRequirements2, pNext) - 8usize];
+    [
+        "Offset of field: VkMemoryRequirements2::memoryRequirements",
+    ][::std::mem::offset_of!(VkMemoryRequirements2, memoryRequirements) - 16usize];
+};
+impl Default for VkMemoryRequirements2 {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -6763,6 +6837,48 @@ const _: () = {
         - 28usize];
 };
 impl Default for VkPhysicalDevice16BitStorageFeatures {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMaintenance3Properties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxPerSetDescriptors: u32,
+    pub maxMemoryAllocationSize: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMaintenance3Properties",
+    ][::std::mem::size_of::<VkPhysicalDeviceMaintenance3Properties>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceMaintenance3Properties",
+    ][::std::mem::align_of::<VkPhysicalDeviceMaintenance3Properties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance3Properties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMaintenance3Properties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance3Properties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMaintenance3Properties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance3Properties::maxPerSetDescriptors",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMaintenance3Properties, maxPerSetDescriptors
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance3Properties::maxMemoryAllocationSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMaintenance3Properties, maxMemoryAllocationSize
+    ) - 24usize];
+};
+impl Default for VkPhysicalDeviceMaintenance3Properties {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -8215,6 +8331,75 @@ impl Default for VkPhysicalDeviceSynchronization2Features {
     }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMaintenance4Properties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxBufferSize: VkDeviceSize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMaintenance4Properties",
+    ][::std::mem::size_of::<VkPhysicalDeviceMaintenance4Properties>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceMaintenance4Properties",
+    ][::std::mem::align_of::<VkPhysicalDeviceMaintenance4Properties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance4Properties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMaintenance4Properties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance4Properties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMaintenance4Properties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMaintenance4Properties::maxBufferSize",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMaintenance4Properties, maxBufferSize)
+        - 16usize];
+};
+impl Default for VkPhysicalDeviceMaintenance4Properties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDeviceBufferMemoryRequirements {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pCreateInfo: *const VkBufferCreateInfo,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceBufferMemoryRequirements",
+    ][::std::mem::size_of::<VkDeviceBufferMemoryRequirements>() - 24usize];
+    [
+        "Alignment of VkDeviceBufferMemoryRequirements",
+    ][::std::mem::align_of::<VkDeviceBufferMemoryRequirements>() - 8usize];
+    [
+        "Offset of field: VkDeviceBufferMemoryRequirements::sType",
+    ][::std::mem::offset_of!(VkDeviceBufferMemoryRequirements, sType) - 0usize];
+    [
+        "Offset of field: VkDeviceBufferMemoryRequirements::pNext",
+    ][::std::mem::offset_of!(VkDeviceBufferMemoryRequirements, pNext) - 8usize];
+    [
+        "Offset of field: VkDeviceBufferMemoryRequirements::pCreateInfo",
+    ][::std::mem::offset_of!(VkDeviceBufferMemoryRequirements, pCreateInfo) - 16usize];
+};
+impl Default for VkDeviceBufferMemoryRequirements {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct VkRenderingAttachmentInfo {
     pub sType: VkStructureType,
@@ -8409,6 +8594,13 @@ pub type PFN_vkQueueSubmit2 = ::std::option::Option<
         pSubmits: *const VkSubmitInfo2,
         fence: VkFence,
     ) -> VkResult,
+>;
+pub type PFN_vkGetDeviceBufferMemoryRequirements = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkDeviceBufferMemoryRequirements,
+        pMemoryRequirements: *mut VkMemoryRequirements2,
+    ),
 >;
 pub type PFN_vkCmdSetEvent2 = ::std::option::Option<
     unsafe extern "C" fn(

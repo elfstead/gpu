@@ -12,6 +12,10 @@ use std::{
     },
 };
 
+#[path = "memory.rs"]
+mod memory;
+pub use memory::Memory;
+
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
         #[allow(non_snake_case)]
@@ -42,6 +46,14 @@ functions! {
     vkWaitSemaphores: PFN_vkWaitSemaphores,
     vkGetSemaphoreCounterValue: PFN_vkGetSemaphoreCounterValue,
     vkSignalSemaphore: PFN_vkSignalSemaphore,
+    vkGetDeviceBufferMemoryRequirements: PFN_vkGetDeviceBufferMemoryRequirements,
+    vkCreateBuffer: PFN_vkCreateBuffer, vkDestroyBuffer: PFN_vkDestroyBuffer,
+    vkAllocateMemory: PFN_vkAllocateMemory, vkFreeMemory: PFN_vkFreeMemory,
+    vkBindBufferMemory: PFN_vkBindBufferMemory,
+    vkMapMemory: PFN_vkMapMemory, vkUnmapMemory: PFN_vkUnmapMemory,
+    vkFlushMappedMemoryRanges: PFN_vkFlushMappedMemoryRanges,
+    vkInvalidateMappedMemoryRanges: PFN_vkInvalidateMappedMemoryRanges,
+    vkGetBufferDeviceAddress: PFN_vkGetBufferDeviceAddress,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -87,6 +99,7 @@ pub(super) fn snapshot(
         (f.vkGetPhysicalDeviceMemoryProperties.unwrap())(physical, &mut memory);
     }
     let mut features = FeatureInfo::default();
+    let mut memory_limits = MemoryLimits::default();
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -114,7 +127,17 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()
         };
+        let mut maintenance3 = vk::VkPhysicalDeviceMaintenance3Properties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,
+            ..Default::default()
+        };
+        let mut maintenance4 = vk::VkPhysicalDeviceMaintenance4Properties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES,
+            pNext: ptr::from_mut(&mut maintenance3).cast(),
+            ..Default::default()
+        };
         let mut timeline = vk::VkPhysicalDeviceTimelineSemaphoreProperties {
+            pNext: ptr::from_mut(&mut maintenance4).cast(),
             sType:
                 vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES,
             ..Default::default()
@@ -128,7 +151,13 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
-        features.baseline_supported = u32::from(v14.maintenance5 != 0);
+        features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
+        memory_limits = MemoryLimits {
+            max_buffer_size: maintenance4.maxBufferSize,
+            max_allocation_size: maintenance3.maxMemoryAllocationSize,
+            cache_atom_size: properties.properties.limits.nonCoherentAtomSize,
+            map_alignment: properties.properties.limits.minMemoryMapAlignment as u64,
+        };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
             && caps.multi_draw_indirect != 0
@@ -200,6 +229,7 @@ pub(super) fn snapshot(
             })
             .collect(),
         features,
+        memory_limits,
     })
 }
 
@@ -301,6 +331,7 @@ impl Device {
         let mut v13 = vk::VkPhysicalDeviceVulkan13Features {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             synchronization2: 1,
+            maintenance4: 1,
             dynamicRendering: u32::from(enabled & RASTER != 0),
             pNext: ptr::from_mut(&mut v14).cast(),
             ..Default::default()
@@ -566,10 +597,11 @@ mod tests {
             assert!(t.is_null());
             assert_eq!(d.ready(), Ok(()));
             d.f.vkCreateSemaphore = create;
-            unsafe {
-                assert_eq!(ogpu_next_timeline_create(&mut *d, 0, &mut t), OK);
-            }
             d.f.vkGetSemaphoreCounterValue = Some(fail_poll);
+            let device_pointer = ptr::from_ref(&*d).cast_mut();
+            unsafe {
+                assert_eq!(ogpu_next_timeline_create(device_pointer, 0, &mut t), OK);
+            }
             POLLS.set(0);
             let mut observed = 123;
             unsafe {
@@ -585,7 +617,7 @@ mod tests {
                 assert_eq!(ogpu_next_timeline_wait(point, 0), DEVICE_LOST);
                 let mut other = ptr::dangling_mut();
                 assert_eq!(
-                    ogpu_next_timeline_create(&mut *d, 0, &mut other),
+                    ogpu_next_timeline_create(device_pointer, 0, &mut other),
                     DEVICE_LOST
                 );
                 assert!(other.is_null());

@@ -13,8 +13,8 @@ design-led revision, not another serial argument-timing experiment. The native A
 comparison and fresh ngpu review select explicit memory placement, independent
 descriptor ranges, object-local concurrency, queues/timelines, caller-owned
 lifetimes, both inline/device-root arguments, and a coherent expanded graphics/ML
-surface. The runtime below is still ABI 20; none of the draft is advertised as
-implemented support.
+surface. The installed runtime below is still ABI 20. Only the source-only next
+header subset documented below is implemented; the rest remains a proposal.
 
 Next implement one coordinated tranche: finalize concrete core records/native
 mappings; replace resource/command ownership; add the common graphics/compute
@@ -24,9 +24,10 @@ each structurally useful capability. Optional specialized hardware modules have
 explicit scope but still need concrete extension specifications and implementation.
 
 Implementation started: [foundation setup](foundation-implementation.md) now has
-concrete query records, explicit queue creation and independent timeline handles,
+concrete query records, explicit queue creation, independent timeline handles,
+and explicit memory backing/ranges with persistent mapping and cache visibility,
 validated through Rust and C on Radeon/llvmpipe. It is source-only Linux work under
-`ogpu_next_*`, not the installed ABI. Explicit memory and commands are next; the
+`ogpu_next_*`, not the installed ABI. Command arenas/submission and placement are next; the
 broader draft is not yet implemented.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

@@ -42,9 +42,36 @@ Future stage-scoped submission must preserve actual wait/signal scopes rather
 than treating every signaled value as whole-list completion; see
 [native semaphore submit scopes](https://docs.vulkan.org/refpages/latest/refpages/source/VkSemaphoreSubmitInfo.html).
 
+## Implemented backing and ranges
+
+The next header also implements explicit linear/opaque allocations, compatible
+memory-type/size/alignment requirements, non-owning 64-bit spans, GPU addresses,
+persistent mappings, and range flush/invalidate. Callers choose the exact memory
+type and explicit exclusive/concurrent queue-family sharing; there is no hidden
+HOST/DEVICE preference, staging allocator, resource retention or wait.
+
+Linear backing is one native addressable buffer/allocation which the application
+partitions freely. It does not create a native buffer per span. Ordinary alignment
+uses Vulkan's native address guarantee with no added padding. Larger requested GPU
+alignment uses bounded leading padding, included in the requirements query. Opaque
+backing allocates raw memory without a buffer; image placement and mixed-resource
+aliasing are not implemented yet. Device byte sizes remain 64-bit; host mapping
+alone checks whether an allocation fits the host pointer range.
+
+The native requirements query creates neither temporary buffers nor GPU memory.
+Vulkan maintenance4 is explicitly enabled for this path. See the
+[requirements query](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetDeviceBufferMemoryRequirements.html)
+and [address-alignment guarantee](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetBufferDeviceAddress.html).
+Noncoherent views expose both atom size and the first-byte offset within an atom;
+cache operations round outward without overflowing or exceeding the allocation.
+The application owns synchronization of every affected byte, including neighbors.
+Mapping/unmapping one allocation is externally serialized; distinct views share
+one mapping, and unmap invalidates them all.
+
 ## Verification so far
 
-- 54 ordinary Rust tests pass, including five new setup contract/layout tests.
+- 56 ordinary Rust tests pass, including seven foundation contract, status and
+  cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
   creation where available, optional features off/on, four concurrent host workers,
@@ -53,6 +80,16 @@ than treating every signaled value as whole-list completion; see
   includes C/Rust layout expectations and device survival after discovery teardown.
 - The existing C compute example still passes on Radeon; ABI-20 checks pass
   (847 layout values). Clippy and C11/C++17 combined-header syntax checks pass.
+- The public C example now also checks compatible host-visible placement, aligned
+  addresses, subrange offsets, shared mapped views, cache calls, and remapping.
+  `gpu_foundation_memory` adds invalid descriptions, requirements-capacity atomicity,
+  raw opaque backing, concurrent sharing where available, and allocation-failure
+  cleanup. Noncoherent native call parameters are also checked with injected calls
+  on real backing; this is not evidence from a new noncoherent physical GPU.
+  All three foundation GPU tests pass on each available driver. Pinned Vulkan
+  bindings reproduce exactly after adding the requirements/property records.
+- No-GPU C example/header checks are added to CI configuration; no hosted CI run
+  is claimed. GPU consumption of the new allocations awaits the command path.
 
 No timing campaign, GPU queue-overlap claim, real device-loss event, Metal support,
 or new SDK support follows. Hardware execution requires sandbox-external GPU access;
@@ -60,8 +97,8 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Explicit linear memory/ranges and cache visibility, then placed images/views and
-caller-owned command arenas/lists with submission. Integrate both argument paths,
+Caller-owned command arenas/lists with submission and placed images/views.
+Integrate both argument paths,
 expanded graphics/compute and consumers as the coordinated tranche proceeds.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
