@@ -247,6 +247,13 @@ are reset/destroyed. Local batch validation is atomic; native write failure may 
 partial, with recovery owned by the caller. See the
 [implementation contract and remaining proof](foundation-implementation.md#implemented-descriptor-encoding-and-binding).
 
+The first shader consumer now exercises sampled images, samplers, storage images
+and buffer descriptors together, including explicit LOCAL descriptor uploads and
+changed-descriptor replay. It uses a caller-chosen mixed layout without new runtime
+policy. Typed heap indices must follow the artifact's aligned descriptor strides,
+not be mistaken for a universal application slot number. Generated interface
+metadata must preserve that distinction.
+
 ### Arguments: do not replace one compulsory representation with another
 
 Retain inline constants/range updates for small control data, and add device-backed

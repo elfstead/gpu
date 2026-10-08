@@ -194,11 +194,33 @@ no whole-heap freeze or cloning. See the native
 Dedicated resource/sampler heap-read access masks express explicit copy-to-shader
 dependencies without tracking descriptor contents or current resource states.
 
-This is encoding/binding coverage, not shader-consumption evidence. Descriptor-specific
-executable metadata still needs to define matching offsets/strides and formats.
-Device-local descriptor uploads, consumption concurrent with disjoint mutation,
-and Metal lowering remain to verify with that execution surface. No descriptor
-serialization or cross-device byte compatibility is promised.
+Shader consumption now joins this path in the public C foundation fixture. Its
+Slang kernel samples a texture through a sampler descriptor, writes a storage image
+and writes a storage-buffer descriptor in the same dispatch. The caller chooses a
+mixed resource layout, explicitly uploads its encoded bytes into LOCAL heap memory
+and inserts COPY-to-resource-heap-read synchronization. Samplers use mapped heap
+storage. Only descriptor payload bytes are copied/flushed; reservations are never
+touched. LOCAL can be unified/host-visible memory: this does not assume discrete
+VRAM on every driver.
+
+An important artifact contract is explicit: this Slang lowering uses typed heap
+arrays with `OpConstantSizeOfEXT`. The shader's stride is each descriptor size
+**rounded up to its alignment**, not its raw encoded size and not an application
+slot size. The fixture converts selected byte offsets into those typed indices;
+no runtime slot registry/translation or one fixed mixed-slot layout is required.
+See [native shader descriptor sizes](https://docs.vulkan.org/spec/latest/chapters/interfaces.html#interfaces-resources-layout).
+This is a manually stated fixture ABI; generated metadata still needs to capture
+offset/stride/format/index conventions for independent consumers.
+
+Two executions of the same recorded list observe changed source pixels and a
+changed buffer descriptor destination. Readback checks both storage-image texels
+and buffer output, including untouched surrounding bytes. While each shader-using
+list is gated pending, the host updates an unused sampler slot in a separate cache
+atom, then releases the gate. This tests pending-use range independence, not
+simultaneous GPU execution and host writes or a performance comparison. Uniform/
+input-attachment consumption, broader formats, generated integration and Metal
+lowering remain to verify. No descriptor serialization or cross-device byte
+compatibility is promised. No runtime API addition was needed for this consumer.
 
 ## Implemented compute preparation and arguments
 
@@ -240,9 +262,9 @@ UNSUPPORTED, never command-time JIT specialization. Binding and launch require a
 compute-capable queue and keep no completion/resource registry. See
 [native indirect dispatch](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDispatchIndirect.html).
 
-The checked-in Slang fixture uses a non-`main` entry, two independent device roots,
-inline controls and specialization. `cargo xtask foundation-shaders --check`
-reproduces it using Slang 2026.14.1 and validates SPIR-V. This is an explicit test
+The checked-in Slang fixtures use named entries, device roots, inline controls,
+specialization and direct descriptor heaps. `cargo xtask foundation-shaders --check`
+reproduces both using Slang 2026.14.1 and validates SPIR-V. This is an explicit test
 artifact ABI, not yet integration with the generated consumer metadata workflow.
 
 ## Verification so far
@@ -281,8 +303,11 @@ artifact ABI, not yet integration with the generated consumer metadata workflow.
 - The C descriptor path passes on Radeon and llvmpipe: batched buffer/image/sampler
   encoding, guard bytes, whole-batch local rejection, scratch capacity, explicit
   host-visible placement, both heap binds, host-gated pending unused-slot writes,
-  reset-before-reservation-release and invalid-binding poisoning. No shader reads
-  are performed. `gpu_foundation_descriptors` adds four independent native host
+  reset-before-reservation-release and invalid-binding poisoning. The separate
+  heap-execution fixture adds actual sampled-image/sampler/storage-image/buffer
+  consumption, explicit LOCAL descriptor uploads, unchanged-list replay with a
+  changed descriptor destination, pending disjoint sampler writes, and guarded
+  readback on both drivers. `gpu_foundation_descriptors` adds four independent native host
   encoders and injected partial-write/OOM/sticky-loss checks; no real loss event
   or allocation-free driver implementation is claimed.
 - The C command path passes copy/upload, explicit local working backing, fill,
@@ -315,8 +340,8 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Shader consumption of the descriptor heaps, graphics preparation/rendering and
-broader compute/argument profiles, then consumers as the coordinated tranche proceeds.
+Graphics preparation/rendering and broader compute/argument profiles, then consumers
+as the coordinated tranche proceeds.
 Cache control, set/binding-to-address mappings and generated interface integration
 remain explicit work; the current compute slice does not close the whole foundation.
 The existing setup policy in ABI 20 is temporary migration weight and should be

@@ -301,39 +301,44 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
     if version.trim() != "2026.14.1" {
         return Err("Foundation shader reproduction requires Slang 2026.14.1".into());
     }
-    let binary = root.join("target/foundation-compute.comp.spv");
-    run(Command::new(compiler)
-        .arg(root.join("examples/shaders/foundation-compute.slang"))
-        .args([
-            "-target",
-            "spirv",
-            "-profile",
-            "spirv_1_5",
-            "-emit-spirv-directly",
-            "-fvk-use-entrypoint-name",
-            "-fvk-use-c-layout",
-            "-matrix-layout-row-major",
-            "-capability",
-            "spvDescriptorHeapEXT",
-            "-entry",
-            "transform",
-            "-stage",
-            "compute",
-            "-o",
-        ])
-        .arg(&binary))?;
-    run(Command::new("spirv-val")
-        .args(["--target-env", "vulkan1.4"])
-        .arg(&binary))?;
-    let checked_in = root.join("examples/shaders/foundation-compute.comp.spv");
-    if check {
-        if fs::read(binary)? != fs::read(checked_in)? {
-            return Err("Stale foundation shader".into());
+    for (name, entry) in [
+        ("foundation-compute", "transform"),
+        ("foundation-heaps", "consume"),
+    ] {
+        let binary = root.join(format!("target/{name}.comp.spv"));
+        run(Command::new(&compiler)
+            .arg(root.join(format!("examples/shaders/{name}.slang")))
+            .args([
+                "-target",
+                "spirv",
+                "-profile",
+                "spirv_1_5",
+                "-emit-spirv-directly",
+                "-fvk-use-entrypoint-name",
+                "-fvk-use-c-layout",
+                "-matrix-layout-row-major",
+                "-capability",
+                "spvDescriptorHeapEXT",
+                "-entry",
+                entry,
+                "-stage",
+                "compute",
+                "-o",
+            ])
+            .arg(&binary))?;
+        run(Command::new("spirv-val")
+            .args(["--target-env", "vulkan1.4"])
+            .arg(&binary))?;
+        let checked_in = root.join(format!("examples/shaders/{name}.comp.spv"));
+        if check {
+            if fs::read(binary)? != fs::read(checked_in)? {
+                return Err(format!("Stale foundation shader {name}").into());
+            }
+        } else {
+            fs::copy(binary, checked_in)?;
         }
-    } else {
-        fs::copy(binary, checked_in)?;
     }
-    println!("Foundation compute shader reproduces with Slang 2026.14.1 and validates.");
+    println!("Foundation shaders reproduce with Slang 2026.14.1 and validate.");
     Ok(())
 }
 
@@ -569,7 +574,7 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp"]),
+        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp"]),
         Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
         Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),

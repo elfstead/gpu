@@ -57,6 +57,7 @@ static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint3
 }
 
 static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
+#include "foundation_heap.h"
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path) {
@@ -311,7 +312,7 @@ static int descriptors(ogpu_next_device *device, ogpu_next_memory_desc host_desc
     bindings[0].reserved_offset = bindings[0].storage.size + 1;
     ogpu_next_bind_heap(encoder, &bindings[0]);
     REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
-    printf("Descriptors pass: batched buffer/image/sampler encoding, caller placement, heap binding and pending unused-slot update (no shader consumption yet).\n");
+    printf("Descriptor encoding subtest passes: batched writes, caller placement, heap binding and pending unused-slot update.\n");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr, "Pending descriptor work after failure.\n"); _Exit(EXIT_FAILURE); }
@@ -815,12 +816,13 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 2);
+    REQUIRE(argc == 3);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
     REQUIRE(compute_domain != UINT32_MAX);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1]) == EXIT_SUCCESS);
+    REQUIRE(heap_execution(device, memory_desc, compute_domain, argv[2]) == EXIT_SUCCESS);
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

@@ -399,7 +399,10 @@ typedef struct ogpu_next_host_requirements { uint64_t size, alignment; } ogpu_ne
  * mix descriptor types and sizes; shader metadata must match offsets/strides.
  * Size fields bound each encoding's output. Descriptor alignments apply to GPU
  * placement, not host output pointers. Heap base and reservation alignments are
- * separate constraints. Limits describe this device, not portable constants. */
+ * separate constraints. For native SPIR-V heap arrays using OpConstantSizeOfEXT,
+ * stride is the descriptor size rounded up to its corresponding alignment, NOT
+ * necessarily the raw encoding size or an application's mixed-slot stride.
+ * Limits describe this device, not portable constants. */
 typedef struct ogpu_next_descriptor_limits {
     uint64_t buffer_size, buffer_alignment, image_size, image_alignment;
     uint64_t sampler_size, sampler_alignment;
