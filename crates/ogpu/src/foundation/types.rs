@@ -31,6 +31,89 @@ pub const SAMPLER_DESC: u32 = 108;
 pub const HEAP_BINDING: u32 = 109;
 pub const DESCRIPTOR_LIMITS: u32 = 7;
 pub const SAMPLER_ANISOTROPY: u64 = 8;
+pub const EXECUTION_LIMITS: u32 = 8;
+pub const EXECUTABLE_DESC: u32 = 110;
+pub const ARGUMENT_INTERFACE: u32 = 111;
+pub const SHADER_REQUIREMENTS: u32 = 112;
+pub const SPECIALIZATION: u32 = 113;
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct ExecutionLimits {
+    pub max_inline_size: u64,
+    pub max_groups: [u32; 3],
+    pub max_local_size: [u32; 3],
+    pub max_local_invocations: u32,
+    pub max_shared_memory: u32,
+    pub argument_flags: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Bytes {
+    pub data: *const c_void,
+    pub size: usize,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RootSlot {
+    pub stages: u64,
+    pub offset: u32,
+    pub alignment: u32,
+}
+#[repr(C)]
+pub struct ArgumentInterface {
+    pub header: Record,
+    pub byte_size: u32,
+    pub root_count: u32,
+    pub roots: *const RootSlot,
+}
+#[repr(C)]
+pub struct ShaderRequirements {
+    pub header: Record,
+    pub features: u64,
+    pub local_size: [u32; 3],
+    pub shared_memory: u32,
+}
+#[repr(C)]
+pub struct SpecializationEntry {
+    pub id: u32,
+    pub offset: u32,
+    pub size: u64,
+}
+#[repr(C)]
+pub struct Specialization {
+    pub header: Record,
+    pub count: u32,
+    pub reserved: u32,
+    pub entries: *const SpecializationEntry,
+    pub data: Bytes,
+}
+#[repr(C)]
+pub struct Shader {
+    pub stage: u32,
+    pub format: u32,
+    pub code: Bytes,
+    pub entry: *const c_char,
+    pub interface_metadata: *const Record,
+    pub specialization: *const Record,
+}
+#[repr(C)]
+pub struct ExecutableDesc {
+    pub header: Record,
+    pub kind: u32,
+    pub shader_count: u32,
+    pub shaders: *const Shader,
+    pub static_state: *const Record,
+    pub dynamic_state: u64,
+    pub requirements: *const Record,
+    pub native_cache: Bytes,
+}
+#[repr(C)]
+pub struct Launch {
+    pub groups: Extent,
+    pub dynamic_shared_bytes: u32,
+    pub extensions: *const Record,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]

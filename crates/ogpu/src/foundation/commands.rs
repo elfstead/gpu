@@ -20,6 +20,7 @@ pub struct List {
     mode: u32,
     state: Cell<u32>, // 0 invalid, 1 recording, 2 executable, 3 consumed one-shot
     error: Cell<Status>,
+    executable: Cell<*const Executable>,
 }
 
 impl Arena {
@@ -88,6 +89,7 @@ impl Arena {
                 mode: 0,
                 state: Cell::new(0),
                 error: Cell::new(OK),
+                executable: Cell::new(ptr::null()),
             }));
         }
         let info = vk::VkCommandBufferAllocateInfo {
@@ -175,6 +177,7 @@ impl Arena {
         self.used += 1;
         slot.state.set(0);
         slot.error.set(OK);
+        slot.executable.set(ptr::null());
         slot.mode = desc.replay_mode;
         let info = vk::VkCommandBufferBeginInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -391,6 +394,123 @@ unsafe fn slice<'a, T>(pointer: *const T, count: u32) -> Result<&'a [T], Status>
 }
 
 impl List {
+    pub(in crate::foundation) fn bind_executable(
+        &self,
+        executable: &Executable,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 4, false)?;
+        if !ptr::eq(executable.device, d) {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdBindPipeline.unwrap())(
+                self.command,
+                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE,
+                executable.pipeline,
+            );
+        }
+        self.executable.set(executable);
+        Ok(())
+    }
+    fn executable(&self) -> Result<&Executable, Status> {
+        self.recording()?;
+        unsafe { self.executable.get().as_ref() }.ok_or(INVALID)
+    }
+    pub(in crate::foundation) unsafe fn inline(
+        &self,
+        scope: u64,
+        offset: u32,
+        size: u32,
+        data: *const c_void,
+    ) -> Result<(), Status> {
+        let executable = self.executable()?;
+        if scope != 4 {
+            return Err(UNSUPPORTED);
+        }
+        if offset % 4 != 0
+            || size % 4 != 0
+            || offset > executable.byte_size
+            || size > executable.byte_size - offset
+            || (size != 0 && data.is_null())
+        {
+            return Err(INVALID);
+        }
+        if size == 0 {
+            return Ok(());
+        }
+        let d = unsafe { &*self.device };
+        let info = vk::VkPushDataInfoEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+            offset,
+            data: vk::VkHostAddressRangeConstEXT {
+                address: data,
+                size: size as usize,
+            },
+            ..Default::default()
+        };
+        unsafe {
+            (d.f.vkCmdPushDataEXT.unwrap())(self.command, &info);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn root(
+        &self,
+        scope: u64,
+        slot: u32,
+        address: u64,
+    ) -> Result<(), Status> {
+        let executable = self.executable()?;
+        let root = executable.roots.get(slot as usize).ok_or(INVALID)?;
+        if root.stages != scope {
+            return Err(UNSUPPORTED);
+        }
+        if address % u64::from(root.alignment) != 0 {
+            return Err(INVALID);
+        }
+        // Only the address is copied. No pointer lookup, backing retention or pointee copy.
+        unsafe { self.inline(scope, root.offset, 8, ptr::from_ref(&address).cast()) }
+    }
+    pub(in crate::foundation) fn dispatch(&self, launch: &Launch) -> Result<(), Status> {
+        self.executable()?;
+        if launch.dynamic_shared_bytes != 0 || !launch.extensions.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        let d = unsafe { &*self.device };
+        let groups = [launch.groups.x, launch.groups.y, launch.groups.z];
+        if groups
+            .iter()
+            .zip(d.snapshot.execution_limits.max_groups)
+            .any(|(n, max)| *n > max)
+        {
+            return Err(UNSUPPORTED);
+        }
+        unsafe {
+            (d.f.vkCmdDispatch.unwrap())(self.command, groups[0], groups[1], groups[2]);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn dispatch_indirect(
+        &self,
+        args: Span,
+        dynamic_shared_bytes: u32,
+    ) -> Result<(), Status> {
+        self.executable()?;
+        if dynamic_shared_bytes != 0 {
+            return Err(UNSUPPORTED);
+        }
+        let d = unsafe { &*self.device };
+        let memory = unsafe { args.memory.as_ref() }.ok_or(INVALID)?;
+        let (buffer, offset, _) =
+            memory.command_range(d, self.domain, args.offset, args.size, 4)?;
+        if offset % 4 != 0 || args.size < 12 {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdDispatchIndirect.unwrap())(self.command, buffer, offset);
+        }
+        Ok(())
+    }
     pub(in crate::foundation) unsafe fn bind_heap(
         &self,
         binding: &HeapBinding,

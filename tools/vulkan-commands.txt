@@ -49,6 +49,7 @@ vkBeginCommandBuffer
 vkEndCommandBuffer
 vkCmdBindPipeline
 vkCmdDispatch
+vkCmdDispatchIndirect
 vkQueueWaitIdle
 vkGetPhysicalDeviceImageFormatProperties
 vkCreateImage

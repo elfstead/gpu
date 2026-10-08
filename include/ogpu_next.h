@@ -29,6 +29,7 @@ typedef struct ogpu_next_view ogpu_next_view;
 typedef struct ogpu_next_arena ogpu_next_arena;
 typedef struct ogpu_next_encoder ogpu_next_encoder;
 typedef struct ogpu_next_list ogpu_next_list;
+typedef struct ogpu_next_executable ogpu_next_executable;
 typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
 enum {
@@ -54,11 +55,14 @@ enum {
     OGPU_NEXT_QUERY_MEMORY_TYPES = 3, OGPU_NEXT_QUERY_MEMORY_HEAPS = 4,
     OGPU_NEXT_QUERY_FEATURES = 5, OGPU_NEXT_QUERY_MEMORY_LIMITS = 6,
     OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS = 7,
+    OGPU_NEXT_QUERY_EXECUTION_LIMITS = 8,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
     OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
-    OGPU_NEXT_SAMPLER_DESC = 108, OGPU_NEXT_HEAP_BINDING = 109
+    OGPU_NEXT_SAMPLER_DESC = 108, OGPU_NEXT_HEAP_BINDING = 109,
+    OGPU_NEXT_EXECUTABLE_DESC = 110, OGPU_NEXT_ARGUMENT_INTERFACE = 111,
+    OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -482,6 +486,108 @@ typedef struct ogpu_next_heap_binding {
  * dependencies remain the caller's job. Shader access must remain in bounds and
  * avoid reservations. Bind requires a graphics/compute queue domain. */
 void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
+
+/* Prepared executable state. This implementation supports one compute SPIR-V
+ * entry with native heap/pointer access. Graphics/native artifacts, descriptor
+ * set-to-heap mappings, cache import/export and launch extensions follow; these
+ * are unimplemented profiles, not excluded designs. No runtime shader translation.
+ * Preparation may allocate/compile. Binding, arguments and dispatch never allocate
+ * OGPU storage, compile, retain resources, upload pointees or insert dependencies.
+ */
+enum { OGPU_NEXT_EXECUTABLE_COMPUTE = 1, OGPU_NEXT_EXECUTABLE_GRAPHICS = 2 };
+enum { OGPU_NEXT_SHADER_SPIRV = 0 };
+enum { OGPU_NEXT_ARGUMENT_SHARED_BYTES = 1 };
+typedef struct ogpu_next_execution_limits {
+    uint64_t max_inline_size;
+    uint32_t max_groups[3], max_local_size[3], max_local_invocations;
+    uint32_t max_shared_memory, argument_flags;
+} ogpu_next_execution_limits;
+typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
+typedef struct ogpu_next_root_slot {
+    ogpu_next_stages stages;
+    uint32_t offset, alignment;
+} ogpu_next_root_slot;
+typedef struct ogpu_next_argument_interface {
+    ogpu_next_record header;
+    uint32_t byte_size, root_count;
+    const ogpu_next_root_slot *roots;
+} ogpu_next_argument_interface;
+typedef struct ogpu_next_shader_requirements {
+    ogpu_next_record header;
+    ogpu_next_features features;
+    uint32_t local_size[3], shared_memory;
+} ogpu_next_shader_requirements;
+typedef struct ogpu_next_specialization_entry { uint32_t id, offset; uint64_t size; } ogpu_next_specialization_entry;
+typedef struct ogpu_next_specialization {
+    ogpu_next_record header;
+    uint32_t count, reserved;
+    const ogpu_next_specialization_entry *entries;
+    ogpu_next_bytes data;
+} ogpu_next_specialization;
+typedef struct ogpu_next_shader {
+    uint32_t stage, format;
+    ogpu_next_bytes code;
+    const char *entry;
+    const ogpu_next_record *interface_metadata, *specialization;
+} ogpu_next_shader;
+typedef struct ogpu_next_executable_desc {
+    ogpu_next_record header;
+    uint32_t kind, shader_count;
+    const ogpu_next_shader *shaders;
+    const ogpu_next_record *static_state;
+    uint64_t dynamic_state;
+    const ogpu_next_record *requirements;
+    ogpu_next_bytes native_cache;
+} ogpu_next_executable_desc;
+/* stage=COMPUTE; kind=COMPUTE; shader_count=1; static_state=NULL, dynamic_state=0,
+ * native_cache={NULL,0}. Explicit nonempty UTF-8 entry name (not forced to main).
+ * code is aligned SPIR-V words, valid for this device and its enabled features.
+ * interface_metadata names ARGUMENT_INTERFACE; requirements names
+ * SHADER_REQUIREMENTS. Both are mandatory even when no argument bytes are used.
+ * Shader semantics and metadata agreement are trusted: callers supply the actual
+ * post-specialization local size and shared-memory use. This is not a SPIR-V
+ * validator/reflection engine. Capabilities, memory safety, uniformity promises
+ * and every reachable GPU access remain the artifact producer/caller's contract.
+ * Set/binding resource variables are not supported yet; direct heap access is.
+ * Optional SPECIALIZATION entries have unique IDs, nonempty bounded byte spans,
+ * and sizes/types matching the shader (including 4-byte native bools); reserved=0.
+ * Inputs are borrowed during creation only; argument metadata is copied. Device
+ * is borrowed through destruction; no current context or shared pipeline cache.
+ */
+ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_executable **);
+void ogpu_next_executable_destroy(ogpu_next_executable *);
+/* Bind borrows executable through all recorded future/pending use. COMPUTE only
+ * and requires a compute domain. Inline/root commands require a bound executable.
+ * byte_size is a multiple of four <= queried maximum. Root slots are array IDs,
+ * each occupying 8 bytes at an 8-aligned offset within byte_size, with nonoverlap,
+ * COMPUTE visibility and power-of-two pointee alignment. No fixed single root.
+ * SHARED_BYTES means inline and roots address one byte namespace, not separate
+ * stage banks. set_root changes only its 8 bytes; inline may intentionally change
+ * those same bytes. The caller initializes every byte read by each dispatch.
+ * Binding preserves bytes at identical offsets, even between different executables;
+ * only compatible meanings may be reused. Begin has undefined argument contents.
+ * offset/size must be multiples of four and in bounds; empty inline is a no-op.
+ * Input host bytes are copied during recording, address pointees are never copied.
+ * Null addresses can be encoded but must not be dereferenced. Address alignment,
+ * lifetime, bounds and hazards apply at execution, including every replay.
+ * Stage-isolated banks are NOT emulated with hidden copies on this profile.
+ */
+void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
+void ogpu_next_set_inline(ogpu_next_encoder *, ogpu_next_stages, uint32_t offset, uint32_t size, const void *);
+void ogpu_next_set_root(ogpu_next_encoder *, ogpu_next_stages, uint32_t slot, ogpu_next_address);
+typedef struct ogpu_next_launch {
+    ogpu_next_extent groups;
+    uint32_t dynamic_shared_bytes;
+    const ogpu_next_record *extensions;
+} ogpu_next_launch;
+/* Group counts are direct native dimensions, including zero-work dimensions.
+ * dynamic_shared_bytes=0 and extensions=NULL in this profile. Other strategies
+ * are UNSUPPORTED, never specialized/JIT-compiled at command time. Indirect uses
+ * the first three u32 dimensions at a 4-aligned INDIRECT span of >=12 bytes;
+ * the caller proves execution-time dimensions obey limits. No CPU readback/check,
+ * no hidden barrier, and no second allocation for arguments. */
+void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
+void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
 typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;
 typedef struct ogpu_next_submit_desc {
     ogpu_next_record header;

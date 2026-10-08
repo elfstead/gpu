@@ -165,6 +165,66 @@ unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>
     }
 }
 /// # Safety
+/// Recording pool exclusion and live executable through recorded/pending use.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_bind_executable(
+    encoder: *mut List,
+    executable: *mut Executable,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.bind_executable(executable.as_ref().ok_or(INVALID)?)
+        });
+    }
+}
+/// # Safety
+/// Recording pool exclusion; readable bytes borrowed only during this call.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_inline(
+    encoder: *mut List,
+    stages: u64,
+    offset: u32,
+    size: u32,
+    data: *const std::ffi::c_void,
+) {
+    unsafe {
+        encode(encoder, |e| e.inline(stages, offset, size, data));
+    }
+}
+/// # Safety
+/// Recording pool exclusion; address and reachable data valid at every execution.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_root(
+    encoder: *mut List,
+    stages: u64,
+    slot: u32,
+    address: u64,
+) {
+    unsafe {
+        encode(encoder, |e| e.root(stages, slot, address));
+    }
+}
+/// # Safety
+/// Recording pool exclusion; shader inputs, bindings and hazards satisfy header.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_dispatch(encoder: *mut List, launch: *const Launch) {
+    unsafe {
+        encode(encoder, |e| e.dispatch(launch.as_ref().ok_or(INVALID)?));
+    }
+}
+/// # Safety
+/// Same as dispatch; GPU argument dimensions obey device limits at execution.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_dispatch_indirect(
+    encoder: *mut List,
+    args: Span,
+    dynamic_shared_bytes: u32,
+) {
+    unsafe {
+        encode(encoder, |e| e.dispatch_indirect(args, dynamic_shared_bytes));
+    }
+}
+/// # Safety
 /// Exclusive recording pool, live backing, and ranges as documented in header.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_copy_memory(encoder: *mut List, dst: Span, src: Span) {

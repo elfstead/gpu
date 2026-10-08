@@ -32,7 +32,8 @@ Version 1 accepts exact record sizes and rejects record chains/flags it does not
 understand. Query buffers belong to the caller: count-only queries allocate nothing;
 insufficient capacity reports the required count without a partial array write.
 Descriptions are validated before reading the larger record. Every handle creation
-clears its output on failure. Native failure outputs are not adopted as handles.
+clears its output on failure. Unspecified native failure outputs are not adopted
+as handles; explicitly guaranteed partial pipeline outputs are cleaned up.
 
 Queue domain IDs map directly to Vulkan families; requests lower to separate native
 queue-create records. This follows Vulkan's exact family/count/priority rules,
@@ -193,15 +194,60 @@ no whole-heap freeze or cloning. See the native
 Dedicated resource/sampler heap-read access masks express explicit copy-to-shader
 dependencies without tracking descriptor contents or current resource states.
 
-This is encoding/binding coverage, not shader-consumption evidence. Executable
-metadata still needs to define matching descriptor offsets/strides and formats.
+This is encoding/binding coverage, not shader-consumption evidence. Descriptor-specific
+executable metadata still needs to define matching offsets/strides and formats.
 Device-local descriptor uploads, consumption concurrent with disjoint mutation,
 and Metal lowering remain to verify with that execution surface. No descriptor
 serialization or cross-device byte compatibility is promised.
 
+## Implemented compute preparation and arguments
+
+The source-only surface now creates native compute executables from SPIR-V with
+an explicit UTF-8 entry name, byte-typed specialization records, argument interface
+and shader requirements. The producer states the actual post-specialization local
+size, shared-memory use and optional features; OGPU checks limits/enabling but does
+not reflect or validate shader semantics. Valid device code, descriptor interfaces,
+reachable address bounds, alignment, races and uniformity remain caller contracts.
+Prepared metadata is copied; shader bytes and specialization storage are borrowed
+only during creation. Executables borrow their device and do not retain resources.
+
+Preparation creates a native compute pipeline with descriptor-heap access and no
+pipeline layout; it needs no shader-object feature or runtime translation. Shader
+modules are released immediately after preparation. Pipeline failure outputs are
+cleaned up according to Vulkan's partial-creation contract. This differs from
+unspecified failed shader-module outputs, which are never adopted. Native cache
+import/export, additional artifact formats, set/binding mappings, graphics stages
+and richer numerical/launch requirements remain unimplemented, not silently
+substituted. See [native compute preparation](https://docs.vulkan.org/refpages/latest/refpages/source/VkComputePipelineCreateInfo.html).
+
+Argument metadata names a byte footprint and any number of nonoverlapping root
+slots with explicit offsets, stages and pointee alignments. The implemented compute
+profile exposes **one shared byte namespace**, not fictitious independent native
+stage banks. Inline updates copy specified bytes during recording. Root updates
+copy only an eight-byte address into the declared slot: no pointee copy, address
+registry, implicit upload allocation, refcount or retained backing. Pointees are
+read at execution, including replay. Root updates do not touch other slots/inline
+bytes. Explicit inline writes may target the same bytes; callers own initialization
+and compatible interpretation across executable binds. Stage-isolated graphics
+domains still need an explicit mapping/profile, not hidden shadow copies. See the
+[native push-data model](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdPushDataEXT.html).
+
+Direct launch preserves group dimensions; indirect launch reads three u32 values
+from an application-selected INDIRECT span, without readback or argument staging.
+The caller synchronizes GPU-written dimensions and proves their execution-time
+bounds. Dynamic shared memory and launch-extension records currently return
+UNSUPPORTED, never command-time JIT specialization. Binding and launch require a
+compute-capable queue and keep no completion/resource registry. See
+[native indirect dispatch](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDispatchIndirect.html).
+
+The checked-in Slang fixture uses a non-`main` entry, two independent device roots,
+inline controls and specialization. `cargo xtask foundation-shaders --check`
+reproduces it using Slang 2026.14.1 and validates SPIR-V. This is an explicit test
+artifact ABI, not yet integration with the generated consumer metadata workflow.
+
 ## Verification so far
 
-- 60 ordinary Rust tests pass, including foundation contract, status and
+- 61 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -217,10 +263,21 @@ serialization or cross-device byte compatibility is promised.
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All six foundation GPU tests pass on each available driver. Pinned Vulkan
+  All seven foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.
+- The C compute path passes on both drivers: named-entry preparation, specialization,
+  released host artifact/metadata, two roots with independent rebinds, partial inline
+  updates, GPU-written indirect dimensions, and three serial replays observing
+  changed root data/counts. Results distinguish both roots and inline values;
+  untouched output tails are checked. Invalid metadata, root alignment and dispatch
+  before binding fail. The test initializes the full declared inline block before
+  partial updates (including unused padding, as current validation expects).
+- `gpu_foundation_executables` injects module and pipeline failures on real devices,
+  covering ignored unspecified failed module outputs, module cleanup, valid pipeline
+  output cleanup even when creation fails, and successful retry. These are synthetic
+  failures, not evidence of actual OOM/device loss or measured overhead.
 - The C descriptor path passes on Radeon and llvmpipe: batched buffer/image/sampler
   encoding, guard bytes, whole-batch local rejection, scratch capacity, explicit
   host-visible placement, both heap binds, host-gated pending unused-slot writes,
@@ -258,8 +315,10 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Executable preparation and both argument paths, followed by
-expanded graphics/compute and consumers as the coordinated tranche proceeds.
+Shader consumption of the descriptor heaps, graphics preparation/rendering and
+broader compute/argument profiles, then consumers as the coordinated tranche proceeds.
+Cache control, set/binding-to-address mappings and generated interface integration
+remain explicit work; the current compute slice does not close the whole foundation.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

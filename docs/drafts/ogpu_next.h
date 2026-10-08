@@ -23,10 +23,7 @@
 extern "C" {
 #endif
 
-typedef struct ogpu_next_executable ogpu_next_executable;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
-
-typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
 
 /* Discovery, queue/memory topology, requested feature enabling and independent
  * timeline objects: implemented header above. Budget, numerical tuples and
@@ -38,29 +35,10 @@ typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_byte
 /* Descriptor byte encoding and borrowed GPU heap-range binding are implemented
  * in the imported header. No owned heap object or implicit allocation policy. */
 
-/* Preparation owns compilation/linking/specialization. Interface metadata
- * defines inline bytes, device-root slots, stage visibility, numeric requirements
- * and compatibility. Native artifacts are not forcibly translated at runtime.
- * Full schema for generated interface, specialization and cache records pending. */
-typedef struct ogpu_next_shader {
-    uint32_t stage, format;
-    ogpu_next_bytes code;
-    const char *entry;
-    const ogpu_next_record *interface_metadata;
-    const ogpu_next_record *specialization;
-} ogpu_next_shader;
-typedef struct ogpu_next_executable_desc {
-    ogpu_next_record header;
-    uint32_t kind, shader_count;
-    const ogpu_next_shader *shaders;
-    const ogpu_next_record *static_state;
-    uint64_t dynamic_state;
-    const ogpu_next_record *requirements;
-    ogpu_next_bytes native_cache;
-} ogpu_next_executable_desc;
-ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_executable **);
+/* Compute preparation, inline/device-root ABI and direct/indirect launch now
+ * come from the implemented header. Graphics/native artifact profiles and cache
+ * records remain to implement; no implicit translation or command-time JIT. */
 ogpu_next_status ogpu_next_executable_cache(ogpu_next_executable *, size_t *size, void *data);
-void ogpu_next_executable_destroy(ogpu_next_executable *);
 
 /* Primary arenas, replay, explicit host scratch, submission and memory barriers
  * are implemented in the imported header. Nested/secondary execution follows. */
@@ -80,17 +58,6 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
  * resource data and device roots are never copied implicitly. */
 void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *);
 void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *, uint32_t mode);
-
-void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
-void ogpu_next_set_inline(ogpu_next_encoder *, ogpu_next_stages, uint32_t offset, uint32_t size, const void *);
-void ogpu_next_set_root(ogpu_next_encoder *, ogpu_next_stages, uint32_t slot, ogpu_next_address);
-typedef struct ogpu_next_launch {
-    ogpu_next_extent groups;
-    uint32_t dynamic_shared_bytes;
-    const ogpu_next_record *extensions;
-} ogpu_next_launch;
-void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
-void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
 
 /* Graphics. Render area is explicit, not inferred from a required attachment.
  * Static/dynamic forms use the same versioned state record schemas. Raster,

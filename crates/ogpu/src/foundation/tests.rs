@@ -29,6 +29,7 @@ fn fixture() -> Snapshot {
         features: FeatureInfo::default(),
         memory_limits: MemoryLimits::default(),
         descriptor_limits: DescriptorLimits::default(),
+        execution_limits: ExecutionLimits::default(),
     }
 }
 fn query<T>(kind: u32, values: &mut [T]) -> Query {
@@ -175,6 +176,14 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ResourceDescriptor>(), 40);
     assert_eq!(size_of::<SamplerDesc>(), 80);
     assert_eq!(size_of::<HeapBinding>(), 72);
+    assert_eq!(size_of::<ExecutionLimits>(), 48);
+    assert_eq!(size_of::<ArgumentInterface>(), 40);
+    assert_eq!(size_of::<RootSlot>(), 16);
+    assert_eq!(size_of::<ShaderRequirements>(), 48);
+    assert_eq!(size_of::<Specialization>(), 56);
+    assert_eq!(size_of::<Shader>(), 48);
+    assert_eq!(size_of::<ExecutableDesc>(), 80);
+    assert_eq!(size_of::<Launch>(), 24);
     assert_eq!(std::mem::offset_of!(ImageDesc, concurrent_domains), 88);
     unsafe {
         let mut discovery = ptr::dangling_mut();

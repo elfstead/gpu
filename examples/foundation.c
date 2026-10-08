@@ -42,6 +42,14 @@ _Static_assert(sizeof(ogpu_next_host_span) == 16, "host span ABI");
 _Static_assert(sizeof(ogpu_next_resource_descriptor) == 40, "resource descriptor ABI");
 _Static_assert(sizeof(ogpu_next_sampler_desc) == 80, "sampler ABI");
 _Static_assert(sizeof(ogpu_next_heap_binding) == 72, "heap binding ABI");
+_Static_assert(sizeof(ogpu_next_execution_limits) == 48, "execution limits ABI");
+_Static_assert(sizeof(ogpu_next_argument_interface) == 40, "argument interface ABI");
+_Static_assert(sizeof(ogpu_next_root_slot) == 16, "root slot ABI");
+_Static_assert(sizeof(ogpu_next_shader_requirements) == 48, "shader requirements ABI");
+_Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
+_Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
+_Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
+_Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
 
 static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint32_t size) {
     ogpu_next_query q = { HEADER(ogpu_next_query, kind), data, capacity, 0, size, 0 };
@@ -49,6 +57,131 @@ static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint3
 }
 
 static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
+
+static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
+                   uint32_t domain, const char *shader_path) {
+    int result = EXIT_FAILURE, pending = 0;
+    FILE *file = NULL;
+    void *code = NULL, *scratch = NULL;
+    ogpu_next_executable *executable = NULL;
+    ogpu_next_memory *memory = NULL;
+    ogpu_next_arena *arena = NULL;
+    ogpu_next_timeline *done = NULL;
+    file = fopen(shader_path, "rb"); REQUIRE(file != NULL);
+    REQUIRE(fseek(file, 0, SEEK_END) == 0);
+    long code_size = ftell(file); REQUIRE(code_size >= 20 && code_size % 4 == 0);
+    REQUIRE(fseek(file, 0, SEEK_SET) == 0);
+    code = malloc((size_t)code_size); REQUIRE(code != NULL);
+    REQUIRE(fread(code, 1, (size_t)code_size, file) == (size_t)code_size);
+    fclose(file); file = NULL;
+    ogpu_next_execution_limits limits = {0};
+    ogpu_next_query q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS, &limits, 1, sizeof(limits));
+    TRY(ogpu_next_device_query(device, &q));
+    REQUIRE(limits.max_inline_size >= 24 && limits.argument_flags == OGPU_NEXT_ARGUMENT_SHARED_BYTES);
+    ogpu_next_root_slot slots[2] = {{OGPU_NEXT_STAGE_COMPUTE, 0, 8}, {OGPU_NEXT_STAGE_COMPUTE, 8, 8}};
+    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE), 24, 2, slots};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), 0, {64, 1, 1}, 0};
+    uint32_t extra = 13;
+    ogpu_next_specialization_entry entry = {7, 0, sizeof(extra)};
+    ogpu_next_specialization spec = {HEADER(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION), 1, 0, &entry, {&extra, sizeof(extra)}};
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
+        {code, (size_t)code_size}, "transform", &abi.header, &spec.header};
+    ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
+        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, {NULL, 0}};
+    slots[1].offset = 0;
+    REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
+    slots[1].offset = 8;
+    requirements.local_size[0] = 0;
+    REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
+    requirements.local_size[0] = 64;
+    entry.size = 8;
+    REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
+    entry.size = 4;
+    TRY(ogpu_next_executable_create(device, &ed, &executable));
+    /* Preparation does not retain artifact bytes or metadata. */
+    free(code); code = NULL;
+    slots[0].offset = UINT32_MAX; extra = 99;
+    TRY(ogpu_next_memory_create(device, &desc, &memory));
+    ogpu_next_span all = {memory, 0, desc.size};
+    ogpu_next_mapping mapping = {0};
+    TRY(ogpu_next_memory_map(all, &mapping));
+    ogpu_next_address base = 0;
+    TRY(ogpu_next_memory_address(all, &base));
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 2};
+    TRY(ogpu_next_arena_create(device, &ad, &arena));
+    ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_PRIMARY, NULL};
+    ogpu_next_encoder *encoder = NULL;
+    ogpu_next_list *list = NULL;
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    ogpu_next_bind_executable(encoder, executable);
+    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, base + 1024);
+    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 1, base + 1040);
+    uint32_t multiplier = 3;
+    uint32_t control[2] = {multiplier, 0};
+    ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 16, sizeof(control), control);
+    ogpu_next_launch launch = {{2, 1, 1}, 0, NULL};
+    ogpu_next_dispatch(encoder, &launch);
+    /* Different destination root and one changed inline word; source root survives. */
+    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 1, base + 1056);
+    multiplier = 5;
+    ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 16, 4, &multiplier);
+    multiplier = 999; /* Recorded bytes, not a borrowed host argument block. */
+    ogpu_next_fill_memory(encoder, (ogpu_next_span){memory, 1536, 4}, 2);
+    ogpu_next_fill_memory(encoder, (ogpu_next_span){memory, 1540, 8}, 1);
+    ogpu_next_dependency dep = {0};
+    dep.header = (ogpu_next_record)HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY);
+    dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_INDIRECT;
+    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_INDIRECT_READ;
+    ogpu_next_barrier(encoder, &dep);
+    ogpu_next_dispatch_indirect(encoder, (ogpu_next_span){memory, 1536, 12}, 0);
+    dep.before = OGPU_NEXT_STAGE_COMPUTE; dep.after = OGPU_NEXT_STAGE_HOST;
+    dep.global_before = OGPU_NEXT_ACCESS_SHADER_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
+    ogpu_next_barrier(encoder, &dep);
+    TRY(ogpu_next_commands_end(encoder, &list));
+    TRY(ogpu_next_timeline_create(device, 0, &done));
+    ogpu_next_host_requirements scratch_req = {0};
+    TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &scratch_req));
+    REQUIRE(scratch_req.alignment <= _Alignof(max_align_t));
+    scratch = malloc((size_t)scratch_req.size); REQUIRE(scratch != NULL);
+    ogpu_next_sync_point signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
+    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
+        1, 0, 1, &list, NULL, &signal, scratch, scratch_req.size};
+    struct Root { uint64_t address; uint32_t count, add; };
+    _Static_assert(sizeof(struct Root) == 16, "device root shader layout");
+    for (uint32_t replay = 0; replay < 3; ++replay) {
+        uint32_t count = 65 - replay;
+        memset(mapping.data, 0xa5, (size_t)desc.size);
+        for (uint32_t i = 0; i < 65; ++i) ((uint32_t *)mapping.data)[i] = i + replay;
+        struct Root roots[3] = {{base, count, replay}, {base + 512, count, 7}, {base + 2048, count, 11}};
+        memcpy((unsigned char *)mapping.data + 1024, roots, sizeof(roots));
+        TRY(ogpu_next_memory_flush(all));
+        signal.point.value = replay + 1;
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+        TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
+        TRY(ogpu_next_memory_invalidate(all));
+        for (uint32_t i = 0; i < 65; ++i) {
+            REQUIRE(((uint32_t *)mapping.data)[128 + i] == (i < count ? (i + replay) * 3 + replay + 7 + 13 : UINT32_C(0xa5a5a5a5)));
+            REQUIRE(((uint32_t *)mapping.data)[512 + i] == (i < count ? (i + replay) * 5 + replay + 11 + 13 : UINT32_C(0xa5a5a5a5)));
+        }
+    }
+    TRY(ogpu_next_arena_reset(arena));
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    ogpu_next_dispatch(encoder, &launch); /* No inherited executable after reset. */
+    REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    ogpu_next_bind_executable(encoder, executable);
+    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, base + 1);
+    REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
+    printf("Compute passes: named entry, specialization, two device roots, partial inline updates, GPU-written indirect dimensions and changed-data replay.\n");
+    result = EXIT_SUCCESS;
+cleanup:
+    if (pending) { fprintf(stderr, "Pending compute work after failure.\n"); _Exit(EXIT_FAILURE); }
+    ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(executable);
+    ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
+    if (file) fclose(file);
+    free(code); free(scratch);
+    return result;
+}
 
 static int descriptors(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
                        uint32_t domain, ogpu_next_view *view) {
@@ -571,7 +704,7 @@ cleanup:
     free(scratch); free(barrier_scratch);
     return result;
 }
-int main(void) {
+int main(int argc, char **argv) {
     int result = EXIT_FAILURE;
     ogpu_next_discovery *discovery = NULL;
     ogpu_next_device *device = NULL;
@@ -630,7 +763,7 @@ int main(void) {
     uint32_t type_count = q.count;
     ogpu_next_memory_desc memory_desc = {
         HEADER(ogpu_next_memory_desc, OGPU_NEXT_MEMORY_DESC),
-        4096, 65536, OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST | OGPU_NEXT_USAGE_STORAGE,
+        4096, 65536, OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST | OGPU_NEXT_USAGE_STORAGE | OGPU_NEXT_USAGE_INDIRECT,
         0, OGPU_NEXT_MEMORY_LINEAR, NULL, 0, 0
     };
     ogpu_next_requirements requirements = {0};
@@ -682,6 +815,12 @@ int main(void) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
+    REQUIRE(argc == 2);
+    uint32_t compute_domain = UINT32_MAX;
+    for (uint32_t i = 0; i < queue_count; ++i)
+        if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
+    REQUIRE(compute_domain != UINT32_MAX);
+    REQUIRE(compute(device, memory_desc, compute_domain, argv[1]) == EXIT_SUCCESS);
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

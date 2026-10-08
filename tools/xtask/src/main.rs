@@ -290,6 +290,53 @@ fn compute(root: &Path) -> Result {
     c_execution(root, "compute", &["roundtrip"])
 }
 
+fn foundation_shaders(root: &Path, check: bool) -> Result {
+    let compiler = env::var_os("SLANGC").unwrap_or_else(|| "slangc".into());
+    let version = run(Command::new(&compiler).arg("-version"))?;
+    let version = format!(
+        "{}{}",
+        String::from_utf8_lossy(&version.stdout),
+        String::from_utf8_lossy(&version.stderr)
+    );
+    if version.trim() != "2026.14.1" {
+        return Err("Foundation shader reproduction requires Slang 2026.14.1".into());
+    }
+    let binary = root.join("target/foundation-compute.comp.spv");
+    run(Command::new(compiler)
+        .arg(root.join("examples/shaders/foundation-compute.slang"))
+        .args([
+            "-target",
+            "spirv",
+            "-profile",
+            "spirv_1_5",
+            "-emit-spirv-directly",
+            "-fvk-use-entrypoint-name",
+            "-fvk-use-c-layout",
+            "-matrix-layout-row-major",
+            "-capability",
+            "spvDescriptorHeapEXT",
+            "-entry",
+            "transform",
+            "-stage",
+            "compute",
+            "-o",
+        ])
+        .arg(&binary))?;
+    run(Command::new("spirv-val")
+        .args(["--target-env", "vulkan1.4"])
+        .arg(&binary))?;
+    let checked_in = root.join("examples/shaders/foundation-compute.comp.spv");
+    if check {
+        if fs::read(binary)? != fs::read(checked_in)? {
+            return Err("Stale foundation shader".into());
+        }
+    } else {
+        fs::copy(binary, checked_in)?;
+    }
+    println!("Foundation compute shader reproduces with Slang 2026.14.1 and validates.");
+    Ok(())
+}
+
 fn heap_shaders(root: &Path, check: bool) -> Result {
     let compiler = env::var_os("SLANGC").unwrap_or_else(|| "slangc".into());
     let version = run(Command::new(&compiler).arg("-version"))?;
@@ -522,7 +569,9 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &[]),
+        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp"]),
+        Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
+        Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),
         Some("retirement") if args.len() == 1 => c_execution(&root, "retirement", &["produce", "consume"]),
         Some("graphics") if args.len() == 1 => graphics(&root),
@@ -561,7 +610,7 @@ fn main() -> Result {
         },
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | foundation-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

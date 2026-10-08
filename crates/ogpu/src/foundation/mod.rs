@@ -3,15 +3,18 @@
 //! from ABI 20. Both paths currently share only the native instance/query loader.
 mod commands_api;
 mod descriptors_api;
+mod executables_api;
 mod images_api;
 mod memory_api;
 mod native;
 pub use commands_api::*;
 pub use descriptors_api::*;
+pub use executables_api::*;
 pub use images_api::*;
 pub use memory_api::*;
 pub mod types;
 use crate::vulkan::Instance;
+pub use native::Executable;
 pub use native::Memory;
 pub use native::{Arena, List};
 pub use native::{Device, Queue, Timeline};
@@ -32,6 +35,7 @@ struct Snapshot {
     memory_heaps: Vec<MemoryHeapInfo>,
     memory_limits: MemoryLimits,
     descriptor_limits: DescriptorLimits,
+    execution_limits: ExecutionLimits,
     features: FeatureInfo,
 }
 pub struct Adapter {
@@ -83,6 +87,7 @@ impl Snapshot {
                 FEATURES => copy_out(query, std::slice::from_ref(&self.features)),
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
                 DESCRIPTOR_LIMITS => copy_out(query, std::slice::from_ref(&self.descriptor_limits)),
+                EXECUTION_LIMITS => copy_out(query, std::slice::from_ref(&self.execution_limits)),
                 _ => Err(UNSUPPORTED),
             }
         }

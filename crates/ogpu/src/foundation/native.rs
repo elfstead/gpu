@@ -25,6 +25,10 @@ pub use images::{Image, View};
 #[path = "descriptors.rs"]
 mod descriptors;
 pub(super) use descriptors::descriptor_scratch;
+#[path = "executables.rs"]
+mod executables;
+pub(super) use executables::record as executable_record;
+pub use executables::Executable;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -89,6 +93,14 @@ functions! {
     vkWriteSamplerDescriptorsEXT: PFN_vkWriteSamplerDescriptorsEXT,
     vkCmdBindResourceHeapEXT: PFN_vkCmdBindResourceHeapEXT,
     vkCmdBindSamplerHeapEXT: PFN_vkCmdBindSamplerHeapEXT,
+    vkCreateShaderModule: PFN_vkCreateShaderModule,
+    vkDestroyShaderModule: PFN_vkDestroyShaderModule,
+    vkCreateComputePipelines: PFN_vkCreateComputePipelines,
+    vkDestroyPipeline: PFN_vkDestroyPipeline,
+    vkCmdBindPipeline: PFN_vkCmdBindPipeline,
+    vkCmdPushDataEXT: PFN_vkCmdPushDataEXT,
+    vkCmdDispatch: PFN_vkCmdDispatch,
+    vkCmdDispatchIndirect: PFN_vkCmdDispatchIndirect,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -136,6 +148,7 @@ pub(super) fn snapshot(
     let mut features = FeatureInfo::default();
     let mut memory_limits = MemoryLimits::default();
     let mut descriptor_limits = DescriptorLimits::default();
+    let mut execution_limits = ExecutionLimits::default();
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -227,6 +240,14 @@ pub(super) fn snapshot(
         if root.features.samplerAnisotropy != 0 {
             features.available |= SAMPLER_ANISOTROPY;
         }
+        execution_limits = ExecutionLimits {
+            max_inline_size: heaps.maxPushDataSize,
+            max_groups: properties.properties.limits.maxComputeWorkGroupCount,
+            max_local_size: properties.properties.limits.maxComputeWorkGroupSize,
+            max_local_invocations: properties.properties.limits.maxComputeWorkGroupInvocations,
+            max_shared_memory: properties.properties.limits.maxComputeSharedMemorySize,
+            argument_flags: 1, // One native byte namespace, not isolated stage banks.
+        };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
             && caps.multi_draw_indirect != 0
@@ -300,6 +321,7 @@ pub(super) fn snapshot(
         features,
         memory_limits,
         descriptor_limits,
+        execution_limits,
     })
 }
 

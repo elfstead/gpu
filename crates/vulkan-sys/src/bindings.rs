@@ -6600,6 +6600,13 @@ pub type PFN_vkCmdDispatch = ::std::option::Option<
         groupCountZ: u32,
     ),
 >;
+pub type PFN_vkCmdDispatchIndirect = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        buffer: VkBuffer,
+        offset: VkDeviceSize,
+    ),
+>;
 pub type PFN_vkCreateGraphicsPipelines = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,

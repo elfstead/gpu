@@ -269,6 +269,14 @@ Keep compiler artifacts capable of selecting a different representation explicit
 The shared Slang struct remains useful, but layout, address space and uniformity
 must all be described; equal field offsets alone do not prove equal code generation.
 
+The implemented Vulkan compute profile now uses declared byte offsets for any
+number of root slots plus partial inline updates. Its capabilities explicitly say
+that these share one native byte namespace; no per-stage bank isolation is implied.
+Artifact producers choose separate offsets when they need independent fields.
+Bindings preserve bytes, and callers reinitialize any incompatible interpretations.
+Other native mappings and graphics visibility remain to implement. See the
+[compute/argument contract](foundation-implementation.md#implemented-compute-preparation-and-arguments).
+
 ### Synchronization, layouts and queues
 
 A global stage/access barrier is the simple common case. Preserve ranged scopes,
