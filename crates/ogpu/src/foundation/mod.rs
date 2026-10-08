@@ -2,15 +2,18 @@
 //! No execution, allocation, completion-retention or scheduler policy is borrowed
 //! from ABI 20. Both paths currently share only the native instance/query loader.
 mod commands_api;
+mod images_api;
 mod memory_api;
 mod native;
 pub use commands_api::*;
+pub use images_api::*;
 pub use memory_api::*;
 pub mod types;
 use crate::vulkan::Instance;
 pub use native::Memory;
 pub use native::{Arena, List};
 pub use native::{Device, Queue, Timeline};
+pub use native::{Image, View};
 use ogpu_vulkan_sys as vk;
 use std::{
     panic::{catch_unwind, AssertUnwindSafe},

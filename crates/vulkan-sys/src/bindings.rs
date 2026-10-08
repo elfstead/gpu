@@ -2520,6 +2520,37 @@ pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT_K
 pub const VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_FLAG_BITS_MAX_ENUM: VkFormatFeatureFlagBits = 2147483647;
 pub type VkFormatFeatureFlagBits = ::std::os::raw::c_uint;
 pub type VkFormatFeatureFlags = VkFlags;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_BINDING_BIT: VkImageCreateFlagBits = 1;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT: VkImageCreateFlagBits = 2;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SPARSE_ALIASED_BIT: VkImageCreateFlagBits = 4;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT: VkImageCreateFlagBits = 8;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT: VkImageCreateFlagBits = 16;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_ALIAS_BIT: VkImageCreateFlagBits = 1024;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT: VkImageCreateFlagBits = 64;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT: VkImageCreateFlagBits = 32;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT: VkImageCreateFlagBits = 128;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_EXTENDED_USAGE_BIT: VkImageCreateFlagBits = 256;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_PROTECTED_BIT: VkImageCreateFlagBits = 2048;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_DISJOINT_BIT: VkImageCreateFlagBits = 512;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_CORNER_SAMPLED_BIT_NV: VkImageCreateFlagBits = 8192;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_DESCRIPTOR_HEAP_CAPTURE_REPLAY_BIT_EXT: VkImageCreateFlagBits = 65536;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT: VkImageCreateFlagBits = 4096;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT: VkImageCreateFlagBits = 16384;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT: VkImageCreateFlagBits = 262144;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT: VkImageCreateFlagBits = 131072;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_VIDEO_PROFILE_INDEPENDENT_BIT_KHR: VkImageCreateFlagBits = 1048576;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_FRAGMENT_DENSITY_MAP_OFFSET_BIT_EXT: VkImageCreateFlagBits = 32768;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_ALIAS_SINGLE_LAYER_DESCRIPTOR_BIT_KHR: VkImageCreateFlagBits = 4194304;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR: VkImageCreateFlagBits = 64;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR: VkImageCreateFlagBits = 32;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT_KHR: VkImageCreateFlagBits = 128;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR: VkImageCreateFlagBits = 256;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_DISJOINT_BIT_KHR: VkImageCreateFlagBits = 512;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_ALIAS_BIT_KHR: VkImageCreateFlagBits = 1024;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_DESCRIPTOR_BUFFER_CAPTURE_REPLAY_BIT_EXT: VkImageCreateFlagBits = 65536;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_FRAGMENT_DENSITY_MAP_OFFSET_BIT_QCOM: VkImageCreateFlagBits = 32768;
+pub const VkImageCreateFlagBits_VK_IMAGE_CREATE_FLAG_BITS_MAX_ENUM: VkImageCreateFlagBits = 2147483647;
+pub type VkImageCreateFlagBits = ::std::os::raw::c_uint;
 pub type VkImageCreateFlags = VkFlags;
 pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_1_BIT: VkSampleCountFlagBits = 1;
 pub const VkSampleCountFlagBits_VK_SAMPLE_COUNT_2_BIT: VkSampleCountFlagBits = 2;
@@ -6551,6 +6582,16 @@ pub type PFN_vkCmdBindPipeline = ::std::option::Option<
         pipeline: VkPipeline,
     ),
 >;
+pub type PFN_vkCmdClearColorImage = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        image: VkImage,
+        imageLayout: VkImageLayout,
+        pColor: *const VkClearColorValue,
+        rangeCount: u32,
+        pRanges: *const VkImageSubresourceRange,
+    ),
+>;
 pub type PFN_vkCmdDispatch = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
@@ -6583,6 +6624,16 @@ pub type PFN_vkCmdSetScissor = ::std::option::Option<
         firstScissor: u32,
         scissorCount: u32,
         pScissors: *const VkRect2D,
+    ),
+>;
+pub type PFN_vkCmdClearDepthStencilImage = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        image: VkImage,
+        imageLayout: VkImageLayout,
+        pDepthStencil: *const VkClearDepthStencilValue,
+        rangeCount: u32,
+        pRanges: *const VkImageSubresourceRange,
     ),
 >;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT: VkMemoryAllocateFlagBits = 1;
@@ -6806,6 +6857,40 @@ const _: () = {
     ][::std::mem::offset_of!(VkPhysicalDeviceProperties2, properties) - 16usize];
 };
 impl Default for VkPhysicalDeviceProperties2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageViewUsageCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub usage: VkImageUsageFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageViewUsageCreateInfo",
+    ][::std::mem::size_of::<VkImageViewUsageCreateInfo>() - 24usize];
+    [
+        "Alignment of VkImageViewUsageCreateInfo",
+    ][::std::mem::align_of::<VkImageViewUsageCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkImageViewUsageCreateInfo::sType",
+    ][::std::mem::offset_of!(VkImageViewUsageCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkImageViewUsageCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkImageViewUsageCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkImageViewUsageCreateInfo::usage",
+    ][::std::mem::offset_of!(VkImageViewUsageCreateInfo, usage) - 16usize];
+};
+impl Default for VkImageViewUsageCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -7275,6 +7360,44 @@ const _: () = {
     ) - 200usize];
 };
 impl Default for VkPhysicalDeviceVulkan12Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageFormatListCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub viewFormatCount: u32,
+    pub pViewFormats: *const VkFormat,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkImageFormatListCreateInfo",
+    ][::std::mem::size_of::<VkImageFormatListCreateInfo>() - 32usize];
+    [
+        "Alignment of VkImageFormatListCreateInfo",
+    ][::std::mem::align_of::<VkImageFormatListCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkImageFormatListCreateInfo::sType",
+    ][::std::mem::offset_of!(VkImageFormatListCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkImageFormatListCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkImageFormatListCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkImageFormatListCreateInfo::viewFormatCount",
+    ][::std::mem::offset_of!(VkImageFormatListCreateInfo, viewFormatCount) - 16usize];
+    [
+        "Offset of field: VkImageFormatListCreateInfo::pViewFormats",
+    ][::std::mem::offset_of!(VkImageFormatListCreateInfo, pViewFormats) - 24usize];
+};
+impl Default for VkImageFormatListCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -8428,6 +8551,44 @@ impl Default for VkDeviceBufferMemoryRequirements {
     }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDeviceImageMemoryRequirements {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pCreateInfo: *const VkImageCreateInfo,
+    pub planeAspect: VkImageAspectFlagBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDeviceImageMemoryRequirements",
+    ][::std::mem::size_of::<VkDeviceImageMemoryRequirements>() - 32usize];
+    [
+        "Alignment of VkDeviceImageMemoryRequirements",
+    ][::std::mem::align_of::<VkDeviceImageMemoryRequirements>() - 8usize];
+    [
+        "Offset of field: VkDeviceImageMemoryRequirements::sType",
+    ][::std::mem::offset_of!(VkDeviceImageMemoryRequirements, sType) - 0usize];
+    [
+        "Offset of field: VkDeviceImageMemoryRequirements::pNext",
+    ][::std::mem::offset_of!(VkDeviceImageMemoryRequirements, pNext) - 8usize];
+    [
+        "Offset of field: VkDeviceImageMemoryRequirements::pCreateInfo",
+    ][::std::mem::offset_of!(VkDeviceImageMemoryRequirements, pCreateInfo) - 16usize];
+    [
+        "Offset of field: VkDeviceImageMemoryRequirements::planeAspect",
+    ][::std::mem::offset_of!(VkDeviceImageMemoryRequirements, planeAspect) - 24usize];
+};
+impl Default for VkDeviceImageMemoryRequirements {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct VkRenderingAttachmentInfo {
     pub sType: VkStructureType,
@@ -8627,6 +8788,13 @@ pub type PFN_vkGetDeviceBufferMemoryRequirements = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
         pInfo: *const VkDeviceBufferMemoryRequirements,
+        pMemoryRequirements: *mut VkMemoryRequirements2,
+    ),
+>;
+pub type PFN_vkGetDeviceImageMemoryRequirements = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkDeviceImageMemoryRequirements,
         pMemoryRequirements: *mut VkMemoryRequirements2,
     ),
 >;

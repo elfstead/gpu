@@ -343,8 +343,17 @@ pub(in crate::foundation) fn submit_scratch(
         alignment: layout.align() as u64,
     })
 }
-pub(in crate::foundation) fn barrier_scratch(count: u32) -> Result<HostRequirements, Status> {
-    let layout = array_layout::<vk::VkBufferMemoryBarrier2>(count)?;
+fn barrier_layout(memory: u32, images: u32) -> Result<(Layout, usize), Status> {
+    let (layout, offset) = array_layout::<vk::VkBufferMemoryBarrier2>(memory)?
+        .extend(array_layout::<vk::VkImageMemoryBarrier2>(images)?)
+        .map_err(|_| INVALID)?;
+    Ok((layout.pad_to_align(), offset))
+}
+pub(in crate::foundation) fn barrier_scratch(
+    memory: u32,
+    images: u32,
+) -> Result<HostRequirements, Status> {
+    let (layout, _) = barrier_layout(memory, images)?;
     Ok(HostRequirements {
         size: layout.size() as u64,
         alignment: layout.align() as u64,
@@ -466,7 +475,7 @@ impl List {
     pub(in crate::foundation) unsafe fn barrier(&self, dep: &Dependency) -> Result<(), Status> {
         let d = self.recording()?;
         dep.header.validate::<Dependency>(DEPENDENCY)?;
-        if dep.image_count != 0 || !dep.images.is_null() || dep.flags != 0 {
+        if dep.flags != 0 {
             return Err(UNSUPPORTED);
         }
         let before = stages(d, self.domain, dep.before, false)?;
@@ -483,7 +492,7 @@ impl List {
         let storage = scratch(
             dep.scratch,
             dep.scratch_size,
-            barrier_scratch(dep.memory_count)?,
+            barrier_scratch(dep.memory_count, dep.image_count)?,
         )?
         .cast::<vk::VkBufferMemoryBarrier2>();
         for (i, range) in ranges.iter().enumerate() {
@@ -534,20 +543,64 @@ impl List {
                 storage.add(i).write(native);
             }
         }
+        let (_, image_offset) = barrier_layout(dep.memory_count, dep.image_count)?;
+        let image_storage = storage
+            .cast::<u8>()
+            .wrapping_add(image_offset)
+            .cast::<vk::VkImageMemoryBarrier2>();
+        for (i, b) in unsafe { slice(dep.images, dep.image_count)? }
+            .iter()
+            .enumerate()
+        {
+            let image = unsafe { b.image.as_ref() }.ok_or(INVALID)?;
+            let mut native = image.barrier(self.device, self.domain, b)?;
+            native.srcStageMask = before;
+            native.dstStageMask = after;
+            native.srcAccessMask = scoped_access(d, self.domain, b.before, dep.before)?;
+            native.dstAccessMask = scoped_access(d, self.domain, b.after, dep.after)?;
+            unsafe {
+                image_storage.add(i).write(native);
+            }
+        }
         let info = vk::VkDependencyInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
             memoryBarrierCount: u32::from(
-                dep.memory_count == 0 || dep.global_before != 0 || dep.global_after != 0,
+                (dep.memory_count == 0 && dep.image_count == 0)
+                    || dep.global_before != 0
+                    || dep.global_after != 0,
             ),
             pMemoryBarriers: &global,
             bufferMemoryBarrierCount: dep.memory_count,
             pBufferMemoryBarriers: storage,
+            imageMemoryBarrierCount: dep.image_count,
+            pImageMemoryBarriers: image_storage,
             ..Default::default()
         };
         unsafe {
             (d.f.vkCmdPipelineBarrier2.unwrap())(self.command, &info);
         }
         Ok(())
+    }
+    pub(in crate::foundation) fn clear_image(
+        &self,
+        image: &Image,
+        state: u32,
+        range: Subresources,
+        value: ClearValue,
+    ) -> Result<(), Status> {
+        self.recording()?;
+        image.record_clear(self.device, self.domain, self.command, state, range, value)
+    }
+    pub(in crate::foundation) unsafe fn copy_image_memory(
+        &self,
+        image: &Image,
+        span: Span,
+        copy: &ImageCopy,
+        to_image: bool,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 2, false)?;
+        unsafe { image.record_copy(self.device, self.domain, self.command, span, copy, to_image) }
     }
 }
 

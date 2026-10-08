@@ -6,7 +6,7 @@ The installed interface remains ABI 20. The companion
 imported source-header subset is implemented and linkable.
 This document supersedes the experiment-by-experiment *design sequence*, not the
 historical results or their evidence limits. The [working plan](plan.md) owns status.
-Implementation now covers the [setup, backing and command boundaries](foundation-implementation.md);
+Implementation now covers the [setup, backing, command and image boundaries](foundation-implementation.md);
 only declarations in `include/ogpu_next.h` are implemented on Linux. The combined
 sketch imports them and adds the remaining proposal; the installed ABI is unchanged.
 

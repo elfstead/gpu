@@ -24,6 +24,8 @@ typedef struct ogpu_next_device ogpu_next_device;
 typedef struct ogpu_next_queue ogpu_next_queue;
 typedef struct ogpu_next_timeline ogpu_next_timeline;
 typedef struct ogpu_next_memory ogpu_next_memory;
+typedef struct ogpu_next_image ogpu_next_image;
+typedef struct ogpu_next_view ogpu_next_view;
 typedef struct ogpu_next_arena ogpu_next_arena;
 typedef struct ogpu_next_encoder ogpu_next_encoder;
 typedef struct ogpu_next_list ogpu_next_list;
@@ -53,7 +55,8 @@ enum {
     OGPU_NEXT_QUERY_FEATURES = 5, OGPU_NEXT_QUERY_MEMORY_LIMITS = 6,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
-    OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105
+    OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
+    OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -224,6 +227,94 @@ void ogpu_next_memory_unmap(ogpu_next_memory *);
 ogpu_next_status ogpu_next_memory_flush(ogpu_next_span);
 ogpu_next_status ogpu_next_memory_invalidate(ogpu_next_span);
 
+/* Image format IDs are OGPU values, not backend enum passthrough. This initial
+ * table is a supported subset, not the full format/capability surface. */
+enum {
+    OGPU_NEXT_R8_UNORM = 1, OGPU_NEXT_RG8_UNORM = 2,
+    OGPU_NEXT_RGBA8_UNORM = 3, OGPU_NEXT_RGBA8_SRGB = 4,
+    OGPU_NEXT_BGRA8_UNORM = 5, OGPU_NEXT_BGRA8_SRGB = 6,
+    OGPU_NEXT_R16_FLOAT = 7, OGPU_NEXT_RG16_FLOAT = 8, OGPU_NEXT_RGBA16_FLOAT = 9,
+    OGPU_NEXT_R32_FLOAT = 10, OGPU_NEXT_R32_UINT = 11, OGPU_NEXT_RGBA32_FLOAT = 12,
+    OGPU_NEXT_D16_UNORM = 13, OGPU_NEXT_D32_FLOAT = 14,
+    OGPU_NEXT_D24_UNORM_S8_UINT = 15, OGPU_NEXT_D32_FLOAT_S8_UINT = 16
+};
+enum { OGPU_NEXT_IMAGE_1D = 1, OGPU_NEXT_IMAGE_2D = 2, OGPU_NEXT_IMAGE_3D = 3 };
+enum { OGPU_NEXT_ASPECT_COLOR = 1, OGPU_NEXT_ASPECT_DEPTH = 2, OGPU_NEXT_ASPECT_STENCIL = 4 };
+#define OGPU_NEXT_IMAGE_COPY_SRC UINT64_C(1)
+#define OGPU_NEXT_IMAGE_COPY_DST UINT64_C(2)
+#define OGPU_NEXT_IMAGE_SAMPLED UINT64_C(4)
+#define OGPU_NEXT_IMAGE_STORAGE UINT64_C(8)
+#define OGPU_NEXT_IMAGE_COLOR_ATTACHMENT UINT64_C(16)
+#define OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT UINT64_C(32)
+#define OGPU_NEXT_IMAGE_TRANSIENT UINT64_C(64)
+#define OGPU_NEXT_IMAGE_INPUT_ATTACHMENT UINT64_C(128)
+enum { OGPU_NEXT_IMAGE_MUTABLE_FORMAT = 1, OGPU_NEXT_IMAGE_CUBE_COMPATIBLE = 2, OGPU_NEXT_IMAGE_ALIAS = 4 };
+typedef struct ogpu_next_extent { uint32_t x, y, z; } ogpu_next_extent;
+typedef struct ogpu_next_image_desc {
+    ogpu_next_record header;
+    ogpu_next_format format;
+    uint32_t dimension, mip_count, layer_count, sample_count;
+    ogpu_next_extent extent;
+    uint64_t usage;
+    uint32_t flags;
+    const ogpu_next_format *view_formats;
+    uint32_t view_format_count, concurrent_domain_count;
+    const ogpu_next_queue_domain *concurrent_domains;
+} ogpu_next_image_desc;
+typedef struct ogpu_next_subresources {
+    uint32_t aspects, first_mip, mip_count, first_layer, layer_count;
+} ogpu_next_subresources;
+enum {
+    OGPU_NEXT_VIEW_1D = 1, OGPU_NEXT_VIEW_2D = 2, OGPU_NEXT_VIEW_3D = 3,
+    OGPU_NEXT_VIEW_CUBE = 4, OGPU_NEXT_VIEW_1D_ARRAY = 5, OGPU_NEXT_VIEW_2D_ARRAY = 6,
+    OGPU_NEXT_VIEW_CUBE_ARRAY = 7
+};
+enum {
+    OGPU_NEXT_COMPONENT_IDENTITY = 0, OGPU_NEXT_COMPONENT_ZERO = 1,
+    OGPU_NEXT_COMPONENT_ONE = 2, OGPU_NEXT_COMPONENT_R = 3,
+    OGPU_NEXT_COMPONENT_G = 4, OGPU_NEXT_COMPONENT_B = 5, OGPU_NEXT_COMPONENT_A = 6
+};
+typedef struct ogpu_next_view_desc {
+    ogpu_next_record header;
+    ogpu_next_format format;
+    uint32_t dimension, usage, component_mapping[4];
+    ogpu_next_subresources range;
+} ogpu_next_view_desc;
+/* Images use optimal GPU tiling and start UNDEFINED: binding never initializes
+ * texels or performs a transition. Requirements queries create no GPU object or
+ * allocation; they follow memory_requirements output/capacity rules. They check
+ * the exact format/usage/dimensions/sample/flag tuple; no silent fallback.
+ * Placement uses opaque memory of a compatible type with offset aligned to the
+ * image's native requirement and size >= required size. Multiple optimal images
+ * can occupy disjoint spans of one allocation. The caller owns nonoverlap, alias
+ * activation/hazards and resource lifetimes; ALIAS explicitly permits alias use.
+ * Concurrent domains follow memory_desc rules, independently of backing.
+ * View-format lists restrict permitted interpretations. Reinterpretation needs
+ * MUTABLE_FORMAT and a compatible format class; depth/stencil keeps its format.
+ * This revision excludes linear tiling, sparse/external/disjoint images, extended
+ * usage, cube-array views, 2D views of 3D slices and multisampled storage images.
+ * Such strategies are UNSUPPORTED, never emulated; broader profiles follow.
+ */
+ogpu_next_status ogpu_next_image_requirements(const ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_requirements *);
+ogpu_next_status ogpu_next_image_create(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_span placement, ogpu_next_image **);
+/* Explicit two-phase creation supports native dedicated-allocation association.
+ * Unbound images cannot create views or execute GPU work. Binding is one-shot.
+ * Dedicated allocation names the unbound image and exact memory type, returns
+ * a separate memory owner, and does NOT bind. It can only bind that image, at
+ * offset zero. Use this path when dedicated_required, or by caller policy.
+ * No image or view retains its backing/parents, and destruction never waits.
+ */
+ogpu_next_status ogpu_next_image_create_unbound(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_image **);
+ogpu_next_status ogpu_next_memory_create_dedicated_image(ogpu_next_image *, uint32_t memory_type, ogpu_next_memory **);
+ogpu_next_status ogpu_next_image_bind(ogpu_next_image *, ogpu_next_span placement);
+void ogpu_next_image_destroy(ogpu_next_image *);
+/* usage is an explicit nonzero subset of the image's sampled/storage/attachment
+ * usages. Dimensions/aspects/mips/layers are checked. Storage/attachment views
+ * require identity component mappings. Binding and lifetime changes exclude all
+ * uses; independent view creation on a bound image may proceed concurrently. */
+ogpu_next_status ogpu_next_view_create(ogpu_next_image *, const ogpu_next_view_desc *, ogpu_next_view **);
+void ogpu_next_view_destroy(ogpu_next_view *);
+
 /* Arena capacity counts primary list slots, NOT native command bytes. Reserve
  * grows explicitly; begin never grows OGPU storage. Native recording/submission
  * can still allocate internally. All host use of a pool and its encoders is
@@ -325,6 +416,20 @@ typedef struct ogpu_next_memory_barrier {
     ogpu_next_access before, after;
     ogpu_next_queue_domain source_domain, destination_domain;
 } ogpu_next_memory_barrier;
+enum {
+    OGPU_NEXT_STATE_UNDEFINED = 0, OGPU_NEXT_STATE_GENERAL = 1,
+    OGPU_NEXT_STATE_COPY_SRC = 2, OGPU_NEXT_STATE_COPY_DST = 3,
+    OGPU_NEXT_STATE_SHADER_READ = 4, OGPU_NEXT_STATE_COLOR_ATTACHMENT = 5,
+    OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT = 6, OGPU_NEXT_STATE_DEPTH_STENCIL_READ = 7
+};
+struct ogpu_next_image_barrier {
+    ogpu_next_image *image;
+    ogpu_next_subresources range;
+    ogpu_next_access before, after;
+    ogpu_next_image_state old_state, new_state;
+    ogpu_next_queue_domain source_domain, destination_domain;
+    uint32_t discard;
+};
 typedef struct ogpu_next_dependency {
     ogpu_next_record header;
     ogpu_next_stages before, after;
@@ -340,10 +445,13 @@ typedef struct ogpu_next_dependency {
  * exclusive-family release/acquire endpoints require matching ranges/domains and
  * a queue timeline edge. No implicit owner tracking. Empty memory ranges invalid.
  * Stage NONE (0) requires access NONE; ALL includes GPU stages, not HOST.
- * Version 1 currently requires image_count=0, images=NULL and flags=0. The image
- * barrier schema is defined only in the draft until placed images are implemented.
+ * Image states are explicit native layouts, never a tracked current state. The
+ * caller proves old_state and consistent state at execution/replay. discard=1
+ * discards contents via UNDEFINED; it does NOT remove synchronization obligations.
+ * new_state cannot be UNDEFINED. Depth/stencil combined formats currently require
+ * both aspects in transitions (separate-layout enabling follows). flags=0.
  */
-ogpu_next_status ogpu_next_barrier_scratch_requirements(uint32_t memory_count, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_barrier_scratch_requirements(uint32_t memory_count, uint32_t image_count, ogpu_next_host_requirements *);
 void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
 /* Copies require equal sizes, COPY_SRC/DST usage, no overlapping byte ranges.
  * Fill requires COPY_DST and offset/size multiples of four. Empty valid ranges
@@ -352,6 +460,37 @@ void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
  */
 void ogpu_next_copy_memory(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_span src);
 void ogpu_next_fill_memory(ogpu_next_encoder *, ogpu_next_span dst, uint32_t pattern);
+typedef struct ogpu_next_offset { int32_t x, y, z; } ogpu_next_offset;
+typedef struct ogpu_next_image_region {
+    uint32_t aspect, mip, first_layer, layer_count;
+    ogpu_next_offset offset;
+    ogpu_next_extent extent;
+} ogpu_next_image_region;
+typedef struct ogpu_next_image_copy {
+    ogpu_next_image_region region;
+    uint64_t row_pitch, slice_pitch;
+    ogpu_next_image_state state;
+    uint32_t reserved;
+} ogpu_next_image_copy;
+typedef union ogpu_next_clear_value {
+    float f32[4]; uint32_t u32[4]; int32_t i32[4];
+    struct { float depth; uint32_t stencil; } depth_stencil;
+} ogpu_next_clear_value;
+/* Commands never insert transitions or hazard barriers. Clear requires GENERAL
+ * or COPY_DST; copies require GENERAL or the corresponding COPY_SRC/COPY_DST.
+ * Single-sample copies support one aspect and explicit mip/layer/subregion bounds.
+ * Pitches are bytes: zero means tight, row is a texel multiple, slice is a row
+ * multiple. Native queue granularity and address alignment are checked. Row/slice
+ * texel counts must fit native uint32 fields; row bytes must fit INT32_MAX.
+ * reserved=0. No implicit staging.
+ * Color clear needs graphics/compute; depth/stencil clear/copy currently needs a
+ * graphics family. Select the clear-value member matching the image's numeric
+ * format (float for normalized/float, uint for unsigned, depth_stencil for depth).
+ * Depth clear values must be finite and in [0,1], including stencil-only clears.
+ */
+void ogpu_next_copy_to_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_span src, const ogpu_next_image_copy *);
+void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_image *src, const ogpu_next_image_copy *);
+void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_image_state, const ogpu_next_subresources *, const ogpu_next_clear_value *);
 #ifdef __cplusplus
 }
 #endif

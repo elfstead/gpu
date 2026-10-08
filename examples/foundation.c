@@ -31,10 +31,209 @@ _Static_assert(sizeof(ogpu_next_memory_barrier) == 48, "memory barrier ABI");
 _Static_assert(sizeof(ogpu_next_sync_point) == 24, "sync point ABI");
 _Static_assert(offsetof(ogpu_next_submit_desc, scratch) == 64, "submit scratch ABI");
 _Static_assert(offsetof(ogpu_next_dependency, scratch) == 88, "barrier scratch ABI");
+_Static_assert(sizeof(ogpu_next_image_desc) == 96, "image description ABI");
+_Static_assert(sizeof(ogpu_next_view_desc) == 72, "view description ABI");
+_Static_assert(sizeof(ogpu_next_image_barrier) == 72, "image barrier ABI");
+_Static_assert(sizeof(ogpu_next_image_copy) == 64, "image copy ABI");
+_Static_assert(offsetof(ogpu_next_image_desc, concurrent_domains) == 88, "image domains ABI");
 
 static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint32_t size) {
     ogpu_next_query q = { HEADER(ogpu_next_query, kind), data, capacity, 0, size, 0 };
     return q;
+}
+
+static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
+                  const ogpu_next_queue_info *queues, uint32_t queue_count) {
+    int result = EXIT_FAILURE, pending = 0;
+    ogpu_next_image *image[4] = {NULL, NULL, NULL, NULL};
+    ogpu_next_memory *backing = NULL, *dedicated = NULL, *depth_memory = NULL, *host = NULL;
+    ogpu_next_view *view = NULL;
+    ogpu_next_arena *arena = NULL;
+    ogpu_next_timeline *done = NULL;
+    void *scratch = NULL, *barrier_scratch = NULL;
+    uint32_t formats[] = {OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_RGBA8_SRGB};
+    ogpu_next_image_desc desc = {
+        HEADER(ogpu_next_image_desc, OGPU_NEXT_IMAGE_DESC),
+        OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_IMAGE_2D, 3, 2, 1, {16, 8, 1},
+        OGPU_NEXT_IMAGE_COPY_SRC | OGPU_NEXT_IMAGE_COPY_DST | OGPU_NEXT_IMAGE_SAMPLED,
+        OGPU_NEXT_IMAGE_MUTABLE_FORMAT, formats, 2, 0, NULL
+    };
+    uint32_t types[32];
+    ogpu_next_requirements req = {0};
+    req.compatible_type_capacity = 32; req.compatible_types = types;
+    TRY(ogpu_next_image_requirements(device, &desc, &req));
+    REQUIRE(req.compatible_type_count > 0 && req.size > 0 && req.alignment > 0);
+    /* This fixture deliberately tests subplacement, not a fallback allocator. */
+    REQUIRE(!req.dedicated_required);
+    uint64_t stride = (req.size + req.alignment - 1) / req.alignment * req.alignment;
+    ogpu_next_memory_desc md = {
+        HEADER(ogpu_next_memory_desc, OGPU_NEXT_MEMORY_DESC),
+        req.alignment + stride + req.size, 1, 0, types[0], OGPU_NEXT_MEMORY_OPAQUE, NULL, 0, 0
+    };
+    TRY(ogpu_next_memory_create(device, &md, &backing));
+    ogpu_next_span placement = {backing, req.alignment, req.size};
+    TRY(ogpu_next_image_create(device, &desc, placement, &image[0]));
+    placement.offset += stride;
+    TRY(ogpu_next_image_create(device, &desc, placement, &image[1]));
+    ogpu_next_image *bad = NULL;
+    placement.size = req.size - 1;
+    REQUIRE(ogpu_next_image_create(device, &desc, placement, &bad) == OGPU_NEXT_INVALID && bad == NULL);
+    placement.size = req.size;
+    if (req.alignment > 1) {
+        placement.offset = 1;
+        REQUIRE(ogpu_next_image_create(device, &desc, placement, &bad) == OGPU_NEXT_INVALID && bad == NULL);
+    }
+    TRY(ogpu_next_image_create_unbound(device, &desc, &image[2]));
+    ogpu_next_view_desc vd = {
+        HEADER(ogpu_next_view_desc, OGPU_NEXT_VIEW_DESC),
+        OGPU_NEXT_RGBA8_SRGB, OGPU_NEXT_VIEW_2D, (uint32_t)OGPU_NEXT_IMAGE_SAMPLED,
+        {0, 0, 0, 0}, {OGPU_NEXT_ASPECT_COLOR, 1, 1, 1, 1}
+    };
+    REQUIRE(ogpu_next_view_create(image[2], &vd, &view) == OGPU_NEXT_INVALID && view == NULL);
+    TRY(ogpu_next_memory_create_dedicated_image(image[2], types[0], &dedicated));
+    placement = (ogpu_next_span){dedicated, 0, req.size};
+    TRY(ogpu_next_image_bind(image[2], placement));
+    REQUIRE(ogpu_next_image_bind(image[2], placement) == OGPU_NEXT_INVALID);
+    TRY(ogpu_next_view_create(image[0], &vd, &view));
+    ogpu_next_image_desc depth_desc = desc;
+    depth_desc.format = OGPU_NEXT_D32_FLOAT;
+    depth_desc.mip_count = 1; depth_desc.layer_count = 1; depth_desc.flags = 0;
+    depth_desc.view_formats = NULL; depth_desc.view_format_count = 0;
+    depth_desc.usage = OGPU_NEXT_IMAGE_COPY_SRC | OGPU_NEXT_IMAGE_COPY_DST | OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT;
+    ogpu_next_requirements depth_req = {0};
+    depth_req.compatible_type_capacity = 32; depth_req.compatible_types = types;
+    TRY(ogpu_next_image_requirements(device, &depth_desc, &depth_req));
+    TRY(ogpu_next_image_create_unbound(device, &depth_desc, &image[3]));
+    TRY(ogpu_next_memory_create_dedicated_image(image[3], types[0], &depth_memory));
+    TRY(ogpu_next_image_bind(image[3], (ogpu_next_span){depth_memory, 0, depth_req.size}));
+    ogpu_next_view_destroy(view); view = NULL;
+    vd.range.first_mip = 3;
+    REQUIRE(ogpu_next_view_create(image[0], &vd, &view) == OGPU_NEXT_INVALID && view == NULL);
+    vd.range.first_mip = 0; vd.range.mip_count = 3;
+    vd.range.first_layer = 0; vd.range.layer_count = 2; vd.dimension = OGPU_NEXT_VIEW_2D_ARRAY;
+    TRY(ogpu_next_view_create(image[0], &vd, &view));
+    TRY(ogpu_next_memory_create(device, &host_desc, &host));
+    ogpu_next_span all = {host, 0, host_desc.size};
+    ogpu_next_mapping map = {0};
+    TRY(ogpu_next_memory_map(all, &map));
+    for (uint32_t i = 0; i < all.size; ++i) ((unsigned char *)map.data)[i] = 0xa5;
+    /* Non-tight rows and array-layer slices, with untouched guard bytes. */
+    for (uint32_t layer = 0; layer < 2; ++layer)
+        for (uint32_t y = 0; y < 2; ++y)
+            for (uint32_t x = 0; x < 3; ++x)
+                ((uint32_t *)map.data)[(layer * 80 + y * 20) / 4 + x] = UINT32_C(0xff000000) | (layer << 16) | (y << 8) | x;
+    TRY(ogpu_next_memory_flush(all));
+    uint32_t domain = UINT32_MAX;
+    for (uint32_t i = 0; i < queue_count; ++i)
+        if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { domain = queues[i].domain; break; }
+    REQUIRE(domain != UINT32_MAX);
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
+    TRY(ogpu_next_arena_create(device, &ad, &arena));
+    TRY(ogpu_next_timeline_create(device, 0, &done));
+    ogpu_next_host_requirements hr = {0}, br = {0};
+    TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &hr));
+    TRY(ogpu_next_barrier_scratch_requirements(0, 4, &br));
+    REQUIRE(hr.alignment <= _Alignof(max_align_t) && br.alignment <= _Alignof(max_align_t));
+    scratch = malloc((size_t)hr.size); barrier_scratch = malloc((size_t)br.size);
+    REQUIRE(scratch && barrier_scratch);
+    ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_ONE_SHOT, OGPU_NEXT_PRIMARY, NULL};
+    ogpu_next_encoder *encoder = NULL;
+    ogpu_next_list *list = NULL;
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    ogpu_next_subresources full = {OGPU_NEXT_ASPECT_COLOR, 0, 3, 0, 2};
+    ogpu_next_image_barrier barriers[4];
+    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){
+        image[i], full, 0, OGPU_NEXT_ACCESS_COPY_WRITE,
+        OGPU_NEXT_STATE_UNDEFINED, OGPU_NEXT_STATE_COPY_DST, OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 0
+    };
+    ogpu_next_subresources depth_range = {OGPU_NEXT_ASPECT_DEPTH, 0, 1, 0, 1};
+    barriers[3] = (ogpu_next_image_barrier){image[3], depth_range, 0, OGPU_NEXT_ACCESS_COPY_WRITE,
+        OGPU_NEXT_STATE_UNDEFINED, OGPU_NEXT_STATE_COPY_DST, OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 0};
+    ogpu_next_dependency dep = {
+        HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY), 0, OGPU_NEXT_STAGE_COPY, 0, 0,
+        0, 4, 0, NULL, barriers, barrier_scratch, br.size
+    };
+    ogpu_next_barrier(encoder, &dep);
+    for (uint32_t i = 0; i < 3; ++i) {
+        ogpu_next_clear_value clear = {.f32 = {i == 0 ? 1.f : 0.f, i == 2 ? 1.f : 0.f, i == 1 ? 1.f : 0.f, 1.f}};
+        ogpu_next_clear_image(encoder, image[i], OGPU_NEXT_STATE_COPY_DST, &full, &clear);
+        barriers[i].before = OGPU_NEXT_ACCESS_COPY_WRITE;
+        barriers[i].old_state = OGPU_NEXT_STATE_COPY_DST;
+    }
+    ogpu_next_clear_value depth_clear = {.depth_stencil = {0.25f, 0}};
+    ogpu_next_clear_image(encoder, image[3], OGPU_NEXT_STATE_COPY_DST, &depth_range, &depth_clear);
+    barriers[3].before = OGPU_NEXT_ACCESS_COPY_WRITE;
+    barriers[3].old_state = OGPU_NEXT_STATE_COPY_DST;
+    dep.before = OGPU_NEXT_STAGE_COPY;
+    ogpu_next_barrier(encoder, &dep);
+    ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR, 1, 0, 2, {2, 1, 0}, {3, 2, 1}}, 20, 80, OGPU_NEXT_STATE_COPY_DST, 0};
+    ogpu_next_copy_to_image(encoder, image[0], (ogpu_next_span){host, 0, 112}, &copy);
+    for (uint32_t i = 0; i < 4; ++i) { barriers[i].after = OGPU_NEXT_ACCESS_COPY_READ; barriers[i].new_state = OGPU_NEXT_STATE_COPY_SRC; }
+    ogpu_next_barrier(encoder, &dep);
+    copy = (ogpu_next_image_copy){{OGPU_NEXT_ASPECT_COLOR, 1, 0, 2, {0, 0, 0}, {8, 4, 1}}, 40, 200, OGPU_NEXT_STATE_COPY_SRC, 0};
+    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host, 1024, 352}, image[0], &copy);
+    copy = (ogpu_next_image_copy){{OGPU_NEXT_ASPECT_COLOR, 0, 0, 1, {0, 0, 0}, {16, 8, 1}}, 0, 0, OGPU_NEXT_STATE_COPY_SRC, 0};
+    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host, 2048, 512}, image[1], &copy);
+    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host, 3072, 512}, image[2], &copy);
+    copy.region.aspect = OGPU_NEXT_ASPECT_DEPTH;
+    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host, 3584, 512}, image[3], &copy);
+    dep.image_count = 0; dep.images = NULL;
+    dep.after = OGPU_NEXT_STAGE_HOST;
+    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
+    ogpu_next_barrier(encoder, &dep);
+    TRY(ogpu_next_commands_end(encoder, &list));
+    ogpu_next_sync_point signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
+    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC), 1, 0, 1, &list, NULL, &signal, scratch, hr.size};
+    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+    TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
+    TRY(ogpu_next_memory_invalidate(all));
+    for (uint32_t layer = 0; layer < 2; ++layer)
+        for (uint32_t y = 0; y < 4; ++y)
+            for (uint32_t x = 0; x < 8; ++x) {
+                uint32_t expected = UINT32_C(0xff0000ff);
+                if (x >= 2 && x < 5 && y >= 1 && y < 3)
+                    expected = UINT32_C(0xff000000) | (layer << 16) | ((y - 1) << 8) | (x - 2);
+                REQUIRE(((uint32_t *)map.data)[(1024 + layer * 200 + y * 40) / 4 + x] == expected);
+            }
+    for (uint32_t i = 0; i < 128; ++i) {
+        REQUIRE(((uint32_t *)map.data)[2048 / 4 + i] == UINT32_C(0xffff0000));
+        REQUIRE(((uint32_t *)map.data)[3072 / 4 + i] == UINT32_C(0xff00ff00));
+        REQUIRE(((float *)map.data)[3584 / 4 + i] == 0.25f);
+    }
+    /* All output row/slice padding and the unused allocations' host guards stay intact. */
+    for (uint32_t i = 112; i < all.size; ++i) {
+        int written = (i >= 2048 && i < 2560) || (i >= 3072 && i < 4096);
+        for (uint32_t layer = 0; layer < 2; ++layer)
+            for (uint32_t y = 0; y < 4; ++y) {
+                uint32_t start = 1024 + layer * 200 + y * 40;
+                written |= i >= start && i < start + 32;
+            }
+        if (!written) REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
+    }
+    TRY(ogpu_next_arena_reset(arena));
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    copy.region.aspect = OGPU_NEXT_ASPECT_COLOR; copy.row_pitch = 1;
+    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host, 1024, 512}, image[0], &copy);
+    REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
+    TRY(ogpu_next_arena_reset(arena));
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    barriers[0].new_state = OGPU_NEXT_STATE_UNDEFINED;
+    dep.image_count = 1; dep.images = barriers;
+    dep.after = OGPU_NEXT_STAGE_COPY;
+    dep.global_before = 0; dep.global_after = 0;
+    ogpu_next_barrier(encoder, &dep);
+    REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
+    printf("Image path passes: subplaced/dedicated images, mip/layer sRGB views, explicit transitions, color/depth clear and pitched copies.\n");
+    result = EXIT_SUCCESS;
+cleanup:
+    if (pending) { fprintf(stderr, "Pending image work after failure; avoiding unsafe teardown.\n"); _Exit(EXIT_FAILURE); }
+    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
+    ogpu_next_view_destroy(view);
+    for (uint32_t i = 0; i < 4; ++i) ogpu_next_image_destroy(image[i]);
+    ogpu_next_memory_destroy(backing); ogpu_next_memory_destroy(dedicated); ogpu_next_memory_destroy(host);
+    ogpu_next_memory_destroy(depth_memory);
+    free(scratch); free(barrier_scratch);
+    return result;
 }
 
 static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
@@ -79,7 +278,7 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
     TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &req));
     REQUIRE(req.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)req.size); REQUIRE(scratch != NULL);
-    TRY(ogpu_next_barrier_scratch_requirements(1, &barrier_req));
+    TRY(ogpu_next_barrier_scratch_requirements(1, 0, &barrier_req));
     REQUIRE(barrier_req.alignment <= _Alignof(max_align_t));
     barrier_scratch = malloc((size_t)barrier_req.size); REQUIRE(barrier_scratch != NULL);
     ogpu_next_recording_desc rd = { HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_PRIMARY, NULL };
@@ -334,6 +533,7 @@ int main(void) {
     TRY(ogpu_next_timeline_wait(point, UINT64_C(1000000000)));
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
+    REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

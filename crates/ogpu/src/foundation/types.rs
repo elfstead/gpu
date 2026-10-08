@@ -25,6 +25,103 @@ pub const ARENA_DESC: u32 = 102;
 pub const RECORDING_DESC: u32 = 103;
 pub const SUBMIT_DESC: u32 = 104;
 pub const DEPENDENCY: u32 = 105;
+pub const IMAGE_DESC: u32 = 106;
+pub const VIEW_DESC: u32 = 107;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Extent {
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ImageDesc {
+    pub header: Record,
+    pub format: u32,
+    pub dimension: u32,
+    pub mip_count: u32,
+    pub layer_count: u32,
+    pub sample_count: u32,
+    pub extent: Extent,
+    pub usage: u64,
+    pub flags: u32,
+    pub view_formats: *const u32,
+    pub view_format_count: u32,
+    pub concurrent_domain_count: u32,
+    pub concurrent_domains: *const u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Subresources {
+    pub aspects: u32,
+    pub first_mip: u32,
+    pub mip_count: u32,
+    pub first_layer: u32,
+    pub layer_count: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ViewDesc {
+    pub header: Record,
+    pub format: u32,
+    pub dimension: u32,
+    pub usage: u32,
+    pub component_mapping: [u32; 4],
+    pub range: Subresources,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Offset {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ImageRegion {
+    pub aspect: u32,
+    pub mip: u32,
+    pub first_layer: u32,
+    pub layer_count: u32,
+    pub offset: Offset,
+    pub extent: Extent,
+}
+#[repr(C)]
+pub struct ImageCopy {
+    pub region: ImageRegion,
+    pub row_pitch: u64,
+    pub slice_pitch: u64,
+    pub state: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DepthStencil {
+    pub depth: f32,
+    pub stencil: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union ClearValue {
+    pub f32: [f32; 4],
+    pub u32: [u32; 4],
+    pub i32: [i32; 4],
+    pub depth_stencil: DepthStencil,
+}
+#[repr(C)]
+pub struct ImageBarrier {
+    pub image: *mut super::Image,
+    pub range: Subresources,
+    pub before: u64,
+    pub after: u64,
+    pub old_state: u32,
+    pub new_state: u32,
+    pub source_domain: u32,
+    pub destination_domain: u32,
+    pub discard: u32,
+}
 pub const MEMORY_LIMITS: u32 = 6;
 pub const RASTER: u64 = 1;
 pub const FLOAT16: u64 = 2;
@@ -193,7 +290,7 @@ pub struct Dependency {
     pub image_count: u32,
     pub flags: u32,
     pub memory: *const MemoryBarrier,
-    pub images: *const c_void,
+    pub images: *const ImageBarrier,
     pub scratch: *mut c_void,
     pub scratch_size: u64,
 }

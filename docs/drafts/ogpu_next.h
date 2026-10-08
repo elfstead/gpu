@@ -23,50 +23,18 @@
 extern "C" {
 #endif
 
-typedef struct ogpu_next_image ogpu_next_image;
-typedef struct ogpu_next_view ogpu_next_view;
 typedef struct ogpu_next_heap ogpu_next_heap;
 typedef struct ogpu_next_executable ogpu_next_executable;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 
 typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
-typedef struct ogpu_next_extent { uint32_t x, y, z; } ogpu_next_extent;
-typedef struct ogpu_next_offset { int32_t x, y, z; } ogpu_next_offset;
 
 /* Discovery, queue/memory topology, requested feature enabling and independent
  * timeline objects: implemented header above. Budget, numerical tuples and
  * exact executable/format/state query records remain to be defined. */
 
-/* Explicit linear/opaque backing, requirements, ranges, mapping and cache
- * visibility are now in the implemented header above. Placement follows below. */
-
-/* Images are placed interpretations of backing. A view can select compatible
- * format/aspects/mips/layers for sampled, storage or attachment use. Native
- * dedicated-allocation associations use explicit creation extension records. */
-typedef struct ogpu_next_image_desc {
-    ogpu_next_record header;
-    ogpu_next_format format;
-    uint32_t dimension, mip_count, layer_count, sample_count;
-    ogpu_next_extent extent;
-    uint64_t usage;
-    uint32_t flags;
-    const ogpu_next_format *view_formats;
-    uint32_t view_format_count;
-} ogpu_next_image_desc;
-typedef struct ogpu_next_subresources {
-    uint32_t aspects, first_mip, mip_count, first_layer, layer_count;
-} ogpu_next_subresources;
-typedef struct ogpu_next_view_desc {
-    ogpu_next_record header;
-    ogpu_next_format format;
-    uint32_t dimension, usage, component_mapping[4];
-    ogpu_next_subresources range;
-} ogpu_next_view_desc;
-ogpu_next_status ogpu_next_image_requirements(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_requirements *);
-ogpu_next_status ogpu_next_image_create(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_span placement, ogpu_next_image **);
-void ogpu_next_image_destroy(ogpu_next_image *);
-ogpu_next_status ogpu_next_view_create(ogpu_next_image *, const ogpu_next_view_desc *, ogpu_next_view **);
-void ogpu_next_view_destroy(ogpu_next_view *);
+/* Backing, placed/dedicated images, views and explicit image transitions/copies
+ * are now in the implemented header above. Broader format/feature profiles follow. */
 
 /* Heap mutation is range-local. Caller owns slot/resource lifetimes. Sampler
  * state is encoded into a slot, not necessarily a separately owned object. */
@@ -119,14 +87,6 @@ void ogpu_next_execute_lists(ogpu_next_encoder *, uint32_t count, ogpu_next_list
  * Ownership transfer endpoints use matching release/acquire records and a queue
  * timeline edge. Split tokens are arena-local and capability-scoped; not generic
  * GPU-address semaphores. Exact reset/replay rules remain to be specified. */
-struct ogpu_next_image_barrier {
-    ogpu_next_image *image;
-    ogpu_next_subresources range;
-    ogpu_next_access before, after;
-    ogpu_next_image_state old_state, new_state;
-    ogpu_next_queue_domain source_domain, destination_domain;
-    uint32_t discard;
-};
 typedef struct ogpu_next_split { uint64_t value; } ogpu_next_split;
 void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_next_split *);
 void ogpu_next_split_acquire(ogpu_next_encoder *, ogpu_next_split, const ogpu_next_dependency *);
@@ -134,23 +94,7 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
 
 /* Ordinary commands copy immediate parameter records into command storage;
  * resource data and device roots are never copied implicitly. */
-typedef struct ogpu_next_image_region {
-    uint32_t aspect, mip, first_layer, layer_count;
-    ogpu_next_offset offset;
-    ogpu_next_extent extent;
-} ogpu_next_image_region;
-typedef struct ogpu_next_image_copy {
-    ogpu_next_image_region region;
-    uint64_t row_pitch, slice_pitch;
-} ogpu_next_image_copy;
-typedef union ogpu_next_clear_value {
-    float f32[4]; uint32_t u32[4]; int32_t i32[4];
-    struct { float depth; uint32_t stencil; } depth_stencil;
-} ogpu_next_clear_value;
-void ogpu_next_copy_to_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_span src, const ogpu_next_image_copy *);
-void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_image *src, const ogpu_next_image_copy *);
 void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *);
-void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, const ogpu_next_subresources *, const ogpu_next_clear_value *);
 void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *, uint32_t mode);
 
 void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);

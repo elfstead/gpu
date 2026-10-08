@@ -46,4 +46,7 @@ VkImageMemoryBarrier2
 VkAddressCommandFlagBitsKHR
 VkCommandBufferUsageFlagBits
 VkCommandPoolResetFlagBits
+VkImageCreateFlagBits
+VkImageFormatListCreateInfo
+VkImageViewUsageCreateInfo
 VkPhysicalDeviceShaderDrawParametersFeatures

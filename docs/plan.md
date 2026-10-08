@@ -27,10 +27,11 @@ Implementation started: [foundation implementation](foundation-implementation.md
 concrete query records, explicit queue creation, independent timeline handles,
 explicit memory backing/ranges with persistent mapping and cache visibility,
 and caller-owned command arenas, replay, scratch-backed submission, copy/fill and
-global/ranged ownership barriers. Rust/C checks pass on Radeon/llvmpipe; the Radeon
+global/ranged ownership barriers, placed/dedicated images, independent views and
+explicit image transitions/clears/pitched transfers. Rust/C checks pass on Radeon/llvmpipe; the Radeon
 also passes an explicit cross-family transfer. It is source-only Linux work under
-`ogpu_next_*`, not the installed ABI. Placed images/views and descriptor storage
-come next, then executable/argument and graphics/compute expansion. Secondary
+`ogpu_next_*`, not the installed ABI. Descriptor storage/binding comes next,
+then executable/argument and graphics/compute expansion. Secondary
 execution, split dependencies and native multi-submit batching remain outstanding;
 the broader draft is not yet implemented.
 

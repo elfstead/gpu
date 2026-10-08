@@ -9,6 +9,7 @@ vkGetPhysicalDeviceFeatures2
 vkGetPhysicalDeviceQueueFamilyProperties
 vkGetPhysicalDeviceMemoryProperties
 vkGetDeviceBufferMemoryRequirements
+vkGetDeviceImageMemoryRequirements
 vkCreateDevice
 vkDestroyDevice
 vkGetDeviceQueue
@@ -79,6 +80,8 @@ vkCmdCopyImageToMemoryKHR
 vkCmdCopyMemoryToImageKHR
 vkCmdCopyMemoryKHR
 vkCmdFillBuffer
+vkCmdClearColorImage
+vkCmdClearDepthStencilImage
 vkWriteResourceDescriptorsEXT
 vkGetPhysicalDeviceFormatProperties
 vkWriteSamplerDescriptorsEXT

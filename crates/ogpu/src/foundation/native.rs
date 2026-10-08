@@ -19,6 +19,9 @@ pub use memory::Memory;
 mod commands;
 pub(super) use commands::{barrier_scratch, submit_scratch};
 pub use commands::{Arena, List};
+#[path = "images.rs"]
+mod images;
+pub use images::{Image, View};
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -70,6 +73,15 @@ functions! {
     vkCmdFillBuffer: PFN_vkCmdFillBuffer,
     vkCmdPipelineBarrier2: PFN_vkCmdPipelineBarrier2,
     vkQueueSubmit2: PFN_vkQueueSubmit2,
+    vkGetPhysicalDeviceImageFormatProperties: PFN_vkGetPhysicalDeviceImageFormatProperties,
+    vkGetDeviceImageMemoryRequirements: PFN_vkGetDeviceImageMemoryRequirements,
+    vkCreateImage: PFN_vkCreateImage, vkDestroyImage: PFN_vkDestroyImage,
+    vkBindImageMemory: PFN_vkBindImageMemory,
+    vkCreateImageView: PFN_vkCreateImageView, vkDestroyImageView: PFN_vkDestroyImageView,
+    vkCmdCopyImageToMemoryKHR: PFN_vkCmdCopyImageToMemoryKHR,
+    vkCmdCopyMemoryToImageKHR: PFN_vkCmdCopyMemoryToImageKHR,
+    vkCmdClearColorImage: PFN_vkCmdClearColorImage,
+    vkCmdClearDepthStencilImage: PFN_vkCmdClearDepthStencilImage,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -80,9 +92,9 @@ fn status(result: vk::VkResult) -> Result<(), Status> {
             Err(OUT_OF_MEMORY)
         }
         vk::VkResult_VK_ERROR_DEVICE_LOST => Err(DEVICE_LOST),
-        vk::VkResult_VK_ERROR_FEATURE_NOT_PRESENT | vk::VkResult_VK_ERROR_EXTENSION_NOT_PRESENT => {
-            Err(UNSUPPORTED)
-        }
+        vk::VkResult_VK_ERROR_FEATURE_NOT_PRESENT
+        | vk::VkResult_VK_ERROR_EXTENSION_NOT_PRESENT
+        | vk::VkResult_VK_ERROR_FORMAT_NOT_SUPPORTED => Err(UNSUPPORTED),
         _ => Err(BACKEND_ERROR),
     }
 }
@@ -250,6 +262,7 @@ pub(super) fn snapshot(
 }
 
 pub struct Device {
+    physical: vk::VkPhysicalDevice,
     handle: vk::VkDevice,
     f: Functions,
     pub(super) snapshot: Snapshot,
@@ -298,6 +311,7 @@ impl Device {
                 .map_or(0, |r| r.count);
         }
         let mut result = Box::new(Self {
+            physical: adapter.physical,
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
             snapshot,

@@ -54,8 +54,8 @@ Linear backing is one native addressable buffer/allocation which the application
 partitions freely. It does not create a native buffer per span. Ordinary alignment
 uses Vulkan's native address guarantee with no added padding. Larger requested GPU
 alignment uses bounded leading padding, included in the requirements query. Opaque
-backing allocates raw memory without a buffer; image placement and mixed-resource
-aliasing are not implemented yet. Device byte sizes remain 64-bit; host mapping
+backing allocates raw memory without a buffer; optimal images can now be placed
+in it. Mixed buffer/image placement is not implemented yet. Device byte sizes remain 64-bit; host mapping
 alone checks whether an allocation fits the host pointer range.
 
 The native requirements query creates neither temporary buffers nor GPU memory.
@@ -107,17 +107,62 @@ signal is not a blanket completion receipt. Submit OOM is retryable with one-sho
 work intact; loss is sticky. Unexpected native submission errors conservatively
 poison the device instead of pretending a retry or resource reuse is safe.
 
-This is still an unstabilized subset. Image barriers return UNSUPPORTED, secondary
-recording/inheritance and split dependencies are not implemented, and the current
+This is still an unstabilized subset. Secondary recording/inheritance and split
+dependencies are not implemented, and the current
 stage vocabulary includes broad transfer/vertex/depth groups. Finer graphics scopes
 must be added with the executable surface. Multiple lists and timeline edges are
 batched in one native submit record; an array of distinct submit records in one
 native call remains to implement. None is ruled out by the design. No performance
 equivalence claim follows merely from the absence of OGPU hot-path allocation.
 
+## Implemented images and views
+
+Images interpret caller-selected opaque backing spans: format, dimensionality,
+mips, layers, samples, uses, mutable-format list, alias permission and concurrent
+queue families are explicit. Requirements query the exact native tuple without
+creating a GPU object or allocating GPU storage. Compatible types, size/alignment
+and dedicated-required/preferred metadata follow the existing capacity protocol.
+Two disjoint optimal images may share an allocation, including at nonzero offsets;
+no runtime allocator chooses placement or tracks aliases. Linear-buffer backing
+remains a dedicated buffer; mixed buffer/image placement needs a later raw-backing
+buffer interpretation, not an implicit alias behind that object.
+
+There are two creation paths: create into an existing span, or explicitly create
+an unbound image, allocate memory dedicated to that image, then bind. The latter
+handles the native requirement that dedicated allocation names an existing image.
+It does not allocate implicitly or combine image and memory ownership. Binding is
+one-shot. No view or GPU command accepts an unbound image. See the native
+[allocation-free requirements query](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetDeviceImageMemoryRequirements.html)
+and [dedicated-image association](https://docs.vulkan.org/refpages/latest/refpages/source/VkMemoryDedicatedAllocateInfo.html).
+
+Independent views select compatible formats, dimensions, mip/layer/aspect ranges,
+usage subsets and component mappings. The initial table covers sixteen common
+uncompressed color/depth/stencil formats. 1D/2D/3D and array/cube views and ordinary
+multisample images are implemented subject to exact native support. Optional
+cube arrays, 2D views of 3D slices, multisampled storage, extended usage, compressed
+and multi-planar formats, linear tiling, sparse/external/disjoint images and
+separate depth/stencil layout enabling remain outside this implemented profile.
+They are not ruled out by the design and are never silently substituted.
+
+Image transitions join buffer/global dependencies in one scratch-backed native
+barrier. Native-compatible GENERAL, transfer, shader-read and attachment states
+are explicit, with no current-layout tracker or automatic initialization. Discard
+only discards contents; it does not remove hazard synchronization. Color and depth/
+stencil clears and address-based memory/image copies preserve caller-specified
+states. Copies expose mip/layer/subregions and byte row/slice pitches; checked
+size arithmetic, queue granularity, texel alignment and native pitch limits prevent
+invalid encoding. There is no staging allocation, hidden transfer or resource
+retention. See the native [copy-region constraints](https://docs.vulkan.org/refpages/latest/refpages/source/VkCopyDeviceMemoryImageInfoKHR.html).
+
+The source-only barrier-scratch query now takes both memory and image counts.
+The combined draft imports these declarations; installed ABI 20 is unchanged.
+Descriptor encoding/binding, image-to-image copies, resolves, image ownership/
+alias execution coverage, and shader sampling/rendering of these new views remain
+to integrate. Creation support is not a claim of full shader-consumer verification.
+
 ## Verification so far
 
-- 57 ordinary Rust tests pass, including eight foundation contract, status and
+- 59 ordinary Rust tests pass, including ten foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -133,7 +178,7 @@ equivalence claim follows merely from the absence of OGPU hot-path allocation.
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All four foundation GPU tests pass on each available driver. Pinned Vulkan
+  All five foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.
@@ -149,6 +194,17 @@ equivalence claim follows merely from the absence of OGPU hot-path allocation.
   consumption, terminal-loss/unknown-error poisoning and no native retry after
   loss. Four host workers independently record/reset arenas. These tests do not
   claim a real GPU-loss event or measured concurrent GPU execution.
+- The C image path passes on both drivers: two nonzero-offset images in one
+  allocation, independently dedicated color/depth images, mip/layer sRGB views,
+  explicit batched transitions, color/D32 clear/readback, pitched two-layer partial
+  upload and readback, and untouched padding/guard bytes. Invalid placement,
+  unbound views, rebinds, mip ranges, pitches and undefined destination states fail.
+- `gpu_foundation_images` checks that requirements create/allocate no GPU objects,
+  capacity failure preserves output arrays, and failed image/view/allocation
+  outputs are not adopted. It covers bind failure/retry and dedicated-association
+  mismatch. Native creation/view checks cover 1D arrays, 3D, cubes, multisample
+  arrays and depth/stencil tuples. D24S8's tested tuple is reported UNSUPPORTED on
+  Radeon and supported on llvmpipe; no fallback format is substituted.
 
 No timing campaign, GPU queue-overlap claim, real device-loss event, Metal support,
 or new SDK support follows. Hardware execution requires sandbox-external GPU access;
@@ -156,7 +212,7 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Placed images/views and descriptor storage, then both argument paths,
+Descriptor storage and binding, then both argument paths,
 expanded graphics/compute and consumers as the coordinated tranche proceeds.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection

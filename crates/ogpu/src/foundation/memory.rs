@@ -22,6 +22,8 @@ pub struct Memory {
     mapped: Cell<*mut u8>,
     usage: u64,
     domains: Vec<u32>,
+    memory_type: u32,
+    dedicated_image: vk::VkImage,
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
@@ -252,6 +254,8 @@ impl Memory {
             properties,
             mapped: Cell::new(ptr::null_mut()),
             usage: desc.usage,
+            memory_type: desc.memory_type,
+            dedicated_image: ptr::null_mut(),
             domains: if desc.concurrent_domain_count == 0 {
                 Vec::new()
             } else {
@@ -336,6 +340,84 @@ impl Memory {
             return Err(INVALID);
         }
         self.prefix.checked_add(offset).ok_or(INVALID)
+    }
+    pub(super) fn image_placement(
+        &self,
+        device: *const Device,
+        image: vk::VkImage,
+        requirements: vk::VkMemoryRequirements,
+        dedicated_required: bool,
+        offset: u64,
+        size: u64,
+    ) -> Result<vk::VkDeviceMemory, Status> {
+        if self.device != device || !self.buffer.is_null() {
+            return Err(INVALID);
+        }
+        self.range(offset, size)?;
+        if size < requirements.size || offset % requirements.alignment != 0 {
+            return Err(INVALID);
+        }
+        if requirements.memoryTypeBits & (1u32 << self.memory_type) == 0 {
+            return Err(UNSUPPORTED);
+        }
+        if (!self.dedicated_image.is_null() && (self.dedicated_image != image || offset != 0))
+            || (dedicated_required && self.dedicated_image != image)
+        {
+            return Err(INVALID);
+        }
+        Ok(self.memory)
+    }
+    pub(super) fn dedicated_image(
+        d: &Device,
+        image: vk::VkImage,
+        size: u64,
+        memory_type: u32,
+    ) -> Result<Box<Self>, Status> {
+        d.ready()?;
+        let properties = d
+            .snapshot
+            .memory_types
+            .iter()
+            .find(|m| m.id == memory_type && m.properties & (32 | 64 | 128) == 0)
+            .ok_or(UNSUPPORTED)?
+            .properties;
+        let mut result = Box::new(Self {
+            device: d,
+            buffer: ptr::null_mut(),
+            memory: ptr::null_mut(),
+            size,
+            allocated: size,
+            prefix: 0,
+            address: 0,
+            properties,
+            mapped: Cell::new(ptr::null_mut()),
+            usage: 0,
+            domains: Vec::new(),
+            memory_type,
+            dedicated_image: image,
+        });
+        let dedicated = vk::VkMemoryDedicatedAllocateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+            image,
+            ..Default::default()
+        };
+        let info = vk::VkMemoryAllocateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            pNext: ptr::from_ref(&dedicated).cast(),
+            allocationSize: size,
+            memoryTypeIndex: memory_type,
+        };
+        let mut memory = ptr::null_mut();
+        unsafe {
+            d.result((d.f.vkAllocateMemory.unwrap())(
+                d.handle,
+                &info,
+                ptr::null(),
+                &mut memory,
+            ))?;
+        }
+        result.memory = memory;
+        Ok(result)
     }
     pub(super) fn command_range(
         &self,

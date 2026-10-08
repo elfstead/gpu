@@ -132,14 +132,15 @@ pub unsafe extern "C" fn ogpu_next_submit_scratch_requirements(
 /// Writable requirements output.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_barrier_scratch_requirements(
-    count: u32,
+    memory_count: u32,
+    image_count: u32,
     out: *mut HostRequirements,
 ) -> Status {
     boundary(|| {
         if out.is_null() {
             return Err(INVALID);
         }
-        let requirements = native::barrier_scratch(count)?;
+        let requirements = native::barrier_scratch(memory_count, image_count)?;
         unsafe {
             out.write(requirements);
         }
@@ -185,5 +186,66 @@ pub unsafe extern "C" fn ogpu_next_fill_memory(encoder: *mut List, dst: Span, pa
 pub unsafe extern "C" fn ogpu_next_barrier(encoder: *mut List, dep: *const Dependency) {
     unsafe {
         encode(encoder, |e| e.barrier(description(dep, DEPENDENCY)?));
+    }
+}
+/// # Safety
+/// Exclusive encoder/pool, live bound image/range/value; caller proves image state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_clear_image(
+    encoder: *mut List,
+    image: *mut Image,
+    state: u32,
+    range: *const Subresources,
+    value: *const ClearValue,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.clear_image(
+                image.as_ref().ok_or(INVALID)?,
+                state,
+                *range.as_ref().ok_or(INVALID)?,
+                *value.as_ref().ok_or(INVALID)?,
+            )
+        });
+    }
+}
+/// # Safety
+/// Exclusive encoder/pool, live source/destination, valid region, explicit hazards/state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_copy_to_image(
+    encoder: *mut List,
+    image: *mut Image,
+    src: Span,
+    copy: *const ImageCopy,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.copy_image_memory(
+                image.as_ref().ok_or(INVALID)?,
+                src,
+                copy.as_ref().ok_or(INVALID)?,
+                true,
+            )
+        });
+    }
+}
+/// # Safety
+/// Exclusive encoder/pool, live source/destination, valid region, explicit hazards/state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_copy_from_image(
+    encoder: *mut List,
+    dst: Span,
+    image: *mut Image,
+    copy: *const ImageCopy,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.copy_image_memory(
+                image.as_ref().ok_or(INVALID)?,
+                dst,
+                copy.as_ref().ok_or(INVALID)?,
+                false,
+            )
+        });
     }
 }
