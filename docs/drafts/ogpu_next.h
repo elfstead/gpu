@@ -23,7 +23,6 @@
 extern "C" {
 #endif
 
-typedef struct ogpu_next_heap ogpu_next_heap;
 typedef struct ogpu_next_executable ogpu_next_executable;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 
@@ -36,23 +35,8 @@ typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_byte
 /* Backing, placed/dedicated images, views and explicit image transitions/copies
  * are now in the implemented header above. Broader format/feature profiles follow. */
 
-/* Heap mutation is range-local. Caller owns slot/resource lifetimes. Sampler
- * state is encoded into a slot, not necessarily a separately owned object. */
-typedef struct ogpu_next_sampler_desc {
-    ogpu_next_record header;
-    uint32_t min_filter, mag_filter, mip_filter, address_mode[3];
-    uint32_t compare_enable, compare_op, border_color;
-    float min_lod, max_lod, lod_bias, max_anisotropy;
-} ogpu_next_sampler_desc;
-typedef struct ogpu_next_heap_desc {
-    ogpu_next_record header;
-    uint32_t kind, capacity, flags;
-} ogpu_next_heap_desc;
-ogpu_next_status ogpu_next_heap_create(ogpu_next_device *, const ogpu_next_heap_desc *, ogpu_next_heap **);
-void ogpu_next_heap_destroy(ogpu_next_heap *);
-ogpu_next_status ogpu_next_heap_write_images(ogpu_next_heap *, uint32_t first, uint32_t count, ogpu_next_view *const *);
-ogpu_next_status ogpu_next_heap_write_samplers(ogpu_next_heap *, uint32_t first, uint32_t count, const ogpu_next_sampler_desc *);
-ogpu_next_status ogpu_next_heap_copy(ogpu_next_heap *dst, uint32_t dst_first, ogpu_next_heap *src, uint32_t src_first, uint32_t count);
+/* Descriptor byte encoding and borrowed GPU heap-range binding are implemented
+ * in the imported header. No owned heap object or implicit allocation policy. */
 
 /* Preparation owns compilation/linking/specialization. Interface metadata
  * defines inline bytes, device-root slots, stage visibility, numeric requirements
@@ -98,7 +82,6 @@ void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_
 void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *, uint32_t mode);
 
 void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
-void ogpu_next_bind_heap(ogpu_next_encoder *, uint32_t domain, ogpu_next_heap *);
 void ogpu_next_set_inline(ogpu_next_encoder *, ogpu_next_stages, uint32_t offset, uint32_t size, const void *);
 void ogpu_next_set_root(ogpu_next_encoder *, ogpu_next_stages, uint32_t slot, ogpu_next_address);
 typedef struct ogpu_next_launch {

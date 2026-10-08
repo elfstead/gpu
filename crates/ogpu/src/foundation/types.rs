@@ -27,6 +27,74 @@ pub const SUBMIT_DESC: u32 = 104;
 pub const DEPENDENCY: u32 = 105;
 pub const IMAGE_DESC: u32 = 106;
 pub const VIEW_DESC: u32 = 107;
+pub const SAMPLER_DESC: u32 = 108;
+pub const HEAP_BINDING: u32 = 109;
+pub const DESCRIPTOR_LIMITS: u32 = 7;
+pub const SAMPLER_ANISOTROPY: u64 = 8;
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct DescriptorLimits {
+    pub buffer_size: u64,
+    pub buffer_alignment: u64,
+    pub image_size: u64,
+    pub image_alignment: u64,
+    pub sampler_size: u64,
+    pub sampler_alignment: u64,
+    pub resource_heap_alignment: u64,
+    pub resource_heap_max_size: u64,
+    pub resource_reserved_size: u64,
+    pub resource_reserved_alignment: u64,
+    pub sampler_heap_alignment: u64,
+    pub sampler_heap_max_size: u64,
+    pub sampler_reserved_size: u64,
+    pub sampler_reserved_alignment: u64,
+    pub uniform_address_alignment: u64,
+    pub storage_address_alignment: u64,
+    pub max_uniform_range: u64,
+    pub max_storage_range: u64,
+    pub max_sampler_lod_bias: f32,
+    pub max_sampler_anisotropy: f32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HostSpan {
+    pub data: *mut c_void,
+    pub size: u64,
+}
+#[repr(C)]
+pub struct ResourceDescriptor {
+    pub kind: u32,
+    pub image_state: u32,
+    pub view: *mut super::View,
+    pub buffer: Span,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SamplerDesc {
+    pub header: Record,
+    pub min_filter: u32,
+    pub mag_filter: u32,
+    pub mip_filter: u32,
+    pub address_mode: [u32; 3],
+    pub compare_enable: u32,
+    pub compare_op: u32,
+    pub border_color: u32,
+    pub unnormalized_coordinates: u32,
+    pub min_lod: f32,
+    pub max_lod: f32,
+    pub lod_bias: f32,
+    pub max_anisotropy: f32,
+}
+#[repr(C)]
+pub struct HeapBinding {
+    pub header: Record,
+    pub kind: u32,
+    pub flags: u32,
+    pub storage: Span,
+    pub reserved_offset: u64,
+    pub reserved_size: u64,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy)]

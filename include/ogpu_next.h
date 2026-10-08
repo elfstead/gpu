@@ -53,10 +53,12 @@ enum {
     OGPU_NEXT_QUERY_INFO = 1, OGPU_NEXT_QUERY_QUEUES = 2,
     OGPU_NEXT_QUERY_MEMORY_TYPES = 3, OGPU_NEXT_QUERY_MEMORY_HEAPS = 4,
     OGPU_NEXT_QUERY_FEATURES = 5, OGPU_NEXT_QUERY_MEMORY_LIMITS = 6,
+    OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS = 7,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
-    OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107
+    OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
+    OGPU_NEXT_SAMPLER_DESC = 108, OGPU_NEXT_HEAP_BINDING = 109
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -102,6 +104,7 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_RASTER UINT64_C(1)
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT64_C(2)
 #define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT64_C(4)
+#define OGPU_NEXT_FEATURE_SAMPLER_ANISOTROPY UINT64_C(8)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -173,6 +176,7 @@ enum { OGPU_NEXT_MEMORY_LINEAR = 1, OGPU_NEXT_MEMORY_OPAQUE = 2 };
 #define OGPU_NEXT_USAGE_VERTEX UINT64_C(16)
 #define OGPU_NEXT_USAGE_UNIFORM UINT64_C(32)
 #define OGPU_NEXT_USAGE_STORAGE UINT64_C(64)
+#define OGPU_NEXT_USAGE_DESCRIPTOR_HEAP UINT64_C(128)
 typedef struct ogpu_next_memory_desc {
     ogpu_next_record header;
     uint64_t size, alignment, usage;
@@ -382,7 +386,102 @@ void ogpu_next_commands_cancel(ogpu_next_encoder *);
 #define OGPU_NEXT_ACCESS_COLOR_WRITE UINT64_C(8192)
 #define OGPU_NEXT_ACCESS_DEPTH_READ UINT64_C(16384)
 #define OGPU_NEXT_ACCESS_DEPTH_WRITE UINT64_C(32768)
+#define OGPU_NEXT_ACCESS_RESOURCE_HEAP_READ UINT64_C(65536)
+#define OGPU_NEXT_ACCESS_SAMPLER_HEAP_READ UINT64_C(131072)
 typedef struct ogpu_next_host_requirements { uint64_t size, alignment; } ogpu_next_host_requirements;
+/* Descriptor bytes are opaque and device-specific, not a serializable ABI.
+ * No owned heap/slot table: encode into host storage, place/copy into linear
+ * DESCRIPTOR_HEAP memory, and bind a caller-selected range. Resource heaps may
+ * mix descriptor types and sizes; shader metadata must match offsets/strides.
+ * Size fields bound each encoding's output. Descriptor alignments apply to GPU
+ * placement, not host output pointers. Heap base and reservation alignments are
+ * separate constraints. Limits describe this device, not portable constants. */
+typedef struct ogpu_next_descriptor_limits {
+    uint64_t buffer_size, buffer_alignment, image_size, image_alignment;
+    uint64_t sampler_size, sampler_alignment;
+    uint64_t resource_heap_alignment, resource_heap_max_size;
+    uint64_t resource_reserved_size, resource_reserved_alignment;
+    uint64_t sampler_heap_alignment, sampler_heap_max_size;
+    uint64_t sampler_reserved_size, sampler_reserved_alignment;
+    uint64_t uniform_address_alignment, storage_address_alignment;
+    uint64_t max_uniform_range, max_storage_range;
+    float max_sampler_lod_bias, max_sampler_anisotropy;
+} ogpu_next_descriptor_limits;
+typedef struct ogpu_next_host_span { void *data; uint64_t size; } ogpu_next_host_span;
+enum { OGPU_NEXT_HEAP_RESOURCE = 1, OGPU_NEXT_HEAP_SAMPLER = 2 };
+enum {
+    OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE = 1, OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE = 2,
+    OGPU_NEXT_DESCRIPTOR_STORAGE_BUFFER = 3, OGPU_NEXT_DESCRIPTOR_UNIFORM_BUFFER = 4,
+    OGPU_NEXT_DESCRIPTOR_INPUT_ATTACHMENT = 5
+};
+typedef struct ogpu_next_resource_descriptor {
+    uint32_t kind;
+    ogpu_next_image_state image_state;
+    ogpu_next_view *view;
+    ogpu_next_span buffer;
+} ogpu_next_resource_descriptor;
+enum { OGPU_NEXT_FILTER_NEAREST = 0, OGPU_NEXT_FILTER_LINEAR = 1 };
+enum {
+    OGPU_NEXT_ADDRESS_REPEAT = 0, OGPU_NEXT_ADDRESS_MIRRORED_REPEAT = 1,
+    OGPU_NEXT_ADDRESS_CLAMP_EDGE = 2, OGPU_NEXT_ADDRESS_CLAMP_BORDER = 3
+};
+enum {
+    OGPU_NEXT_COMPARE_NEVER = 0, OGPU_NEXT_COMPARE_LESS = 1,
+    OGPU_NEXT_COMPARE_EQUAL = 2, OGPU_NEXT_COMPARE_LESS_EQUAL = 3,
+    OGPU_NEXT_COMPARE_GREATER = 4, OGPU_NEXT_COMPARE_NOT_EQUAL = 5,
+    OGPU_NEXT_COMPARE_GREATER_EQUAL = 6, OGPU_NEXT_COMPARE_ALWAYS = 7
+};
+enum {
+    OGPU_NEXT_BORDER_FLOAT_TRANSPARENT_BLACK = 0, OGPU_NEXT_BORDER_INT_TRANSPARENT_BLACK = 1,
+    OGPU_NEXT_BORDER_FLOAT_OPAQUE_BLACK = 2, OGPU_NEXT_BORDER_INT_OPAQUE_BLACK = 3,
+    OGPU_NEXT_BORDER_FLOAT_OPAQUE_WHITE = 4, OGPU_NEXT_BORDER_INT_OPAQUE_WHITE = 5
+};
+typedef struct ogpu_next_sampler_desc {
+    ogpu_next_record header;
+    uint32_t min_filter, mag_filter, mip_filter, address_mode[3];
+    uint32_t compare_enable, compare_op, border_color, unnormalized_coordinates;
+    float min_lod, max_lod, lod_bias, max_anisotropy;
+} ogpu_next_sampler_desc;
+/* Resource descriptors: image kinds require buffer={NULL,0,0}; buffer kinds
+ * require view=NULL, image_state=0 and a nonempty UNIFORM/STORAGE span. Image
+ * views require matching usage and one aspect. Storage uses GENERAL; sampled/
+ * input uses GENERAL, SHADER_READ or DEPTH_STENCIL_READ. Encoding does not
+ * transition images. Input-attachment execution/local reads remain unimplemented.
+ * Samplers: booleans are 0/1, all floats finite, min_lod<=max_lod, anisotropy=1
+ * disables it; >1 needs explicitly enabled SAMPLER_ANISOTROPY. Unnormalized
+ * requires equal min/mag filters, nearest mip, LODs=0, compare off, anisotropy=1,
+ * and U/V clamp-edge or clamp-border. Unsupported modes never fall back.
+ *
+ * Writers preflight the whole batch before one native call. Local errors leave
+ * destinations unchanged; native failure may partially write them. Scratch is
+ * unspecified on failure. Outputs and scratch are mutually disjoint and disjoint
+ * from all inputs. Scratch is caller-owned, aligned per query, borrowed only for
+ * this call. count=0 permits NULL arrays and empty scratch. No OGPU allocation,
+ * flush, copy, resource retention or implicit synchronization. Concurrent writes
+ * to disjoint host ranges are allowed. Padding bytes need not be deterministic.
+ * Ordinary host/GPU copies may relocate bytes within the same live device;
+ * referenced resources must remain valid through all descriptor consumption.
+ */
+ogpu_next_status ogpu_next_descriptor_scratch_requirements(uint32_t kind, uint32_t count, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_write_resource_descriptors(const ogpu_next_device *, uint32_t count, const ogpu_next_resource_descriptor *, const ogpu_next_host_span *outputs, ogpu_next_host_span scratch);
+ogpu_next_status ogpu_next_write_sampler_descriptors(const ogpu_next_device *, uint32_t count, const ogpu_next_sampler_desc *, const ogpu_next_host_span *outputs, ogpu_next_host_span scratch);
+typedef struct ogpu_next_heap_binding {
+    ogpu_next_record header;
+    uint32_t kind, flags;
+    ogpu_next_span storage;
+    uint64_t reserved_offset, reserved_size;
+} ogpu_next_heap_binding;
+/* Bind a GPU range without allocating, copying or retaining anything. flags=0.
+ * Reservation is relative to storage, inside it, and at least the queried size.
+ * Do not access reserved bytes from recording until ALL referencing command
+ * buffers are reset/destroyed, even after GPU completion. Reservations must not
+ * overlap unless exactly identical and of the same heap kind. Caller proves
+ * these rules; no global registry or heap-wide lock. Nonreserved descriptors
+ * can be updated range-locally, with correct host/GPU hazards and cache-atom
+ * isolation from reserved/in-use bytes. Explicit flush and COPY->heap-read
+ * dependencies remain the caller's job. Shader access must remain in bounds and
+ * avoid reservations. Bind requires a graphics/compute queue domain. */
+void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
 typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;
 typedef struct ogpu_next_submit_desc {
     ogpu_next_record header;

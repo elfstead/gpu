@@ -28,6 +28,7 @@ fn fixture() -> Snapshot {
         memory_heaps: vec![],
         features: FeatureInfo::default(),
         memory_limits: MemoryLimits::default(),
+        descriptor_limits: DescriptorLimits::default(),
     }
 }
 fn query<T>(kind: u32, values: &mut [T]) -> Query {
@@ -169,6 +170,11 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ImageBarrier>(), 72);
     assert_eq!(size_of::<ImageCopy>(), 64);
     assert_eq!(size_of::<ClearValue>(), 16);
+    assert_eq!(size_of::<DescriptorLimits>(), 152);
+    assert_eq!(size_of::<HostSpan>(), 16);
+    assert_eq!(size_of::<ResourceDescriptor>(), 40);
+    assert_eq!(size_of::<SamplerDesc>(), 80);
+    assert_eq!(size_of::<HeapBinding>(), 72);
     assert_eq!(std::mem::offset_of!(ImageDesc, concurrent_domains), 88);
     unsafe {
         let mut discovery = ptr::dangling_mut();

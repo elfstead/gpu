@@ -22,7 +22,7 @@ working examples/consumers. This is a migration boundary, not two permanent runt
   immutable device data; terminal loss is atomic, not a device-wide mutex.
 
 The baseline remains modern Vulkan with descriptor heaps, untyped pointers and
-address commands. Raster feature enabling, FP16 and unified image layouts are
+address commands. Raster feature enabling, FP16, sampler anisotropy and unified image layouts are
 explicit optional bits, not silently enabled merely because hardware supports them.
 These bits describe native enabling, **not implemented new draw/dispatch commands**.
 Sparse/protected queue flags and memory properties describe physical facilities;
@@ -156,13 +156,52 @@ retention. See the native [copy-region constraints](https://docs.vulkan.org/refp
 
 The source-only barrier-scratch query now takes both memory and image counts.
 The combined draft imports these declarations; installed ABI 20 is unchanged.
-Descriptor encoding/binding, image-to-image copies, resolves, image ownership/
+Image-to-image copies, resolves, image ownership/
 alias execution coverage, and shader sampling/rendering of these new views remain
 to integrate. Creation support is not a claim of full shader-consumer verification.
 
+## Implemented descriptor encoding and binding
+
+The earlier owned `heap_create(capacity)` draft is replaced with host-byte encoding
+and borrowed GPU-range binding. Capacity, placement, mixed descriptor layout,
+slot allocation, upload strategy and resource lifetimes belong to the caller.
+The device exposes descriptor sizes/alignments, heap limits and reserved ranges.
+Resource writers encode sampled/storage images, storage/uniform buffer spans and
+input attachments; sampler writers encode ordinary filtering/address/compare/LOD
+state with explicitly enabled optional anisotropy. Input-attachment execution is
+not integrated yet. Null, texel-buffer, acceleration-structure, tensor, YCbCr and
+combined descriptors and extended sampler modes remain unimplemented profiles.
+
+Each writer validates the entire batch, builds native records in caller scratch,
+then makes one native encoding call. There is no OGPU allocation, slot table,
+retained resource, implicit flush, staging copy or heap lock. Local rejection
+leaves outputs unchanged; native failure may partially write destinations. The
+caller chooses recovery rather than paying for rollback staging or heap-wide
+poisoning. Independent host ranges can be encoded concurrently. See native
+[resource encoding](https://docs.vulkan.org/refpages/latest/refpages/source/vkWriteResourceDescriptorsEXT.html)
+and [sampler encoding](https://docs.vulkan.org/refpages/latest/refpages/source/vkWriteSamplerDescriptorsEXT.html).
+
+Opaque device-specific bytes can be written directly into mapped heap storage or
+copied there explicitly. Binding names a linear-memory span with DESCRIPTOR_HEAP
+usage and an implementation-reserved subrange. Reserved bytes remain inaccessible
+from recording until **all referencing command buffers are reset or destroyed**,
+not just GPU completion. Partially overlapping reservations are forbidden; exact
+same-kind reservations may be shared. The caller owns that proof and cache-atom
+isolation. Nonreserved slots remain independently mutable subject to hazards;
+no whole-heap freeze or cloning. See the native
+[resource-heap reservation contract](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBindResourceHeapEXT.html).
+Dedicated resource/sampler heap-read access masks express explicit copy-to-shader
+dependencies without tracking descriptor contents or current resource states.
+
+This is encoding/binding coverage, not shader-consumption evidence. Executable
+metadata still needs to define matching descriptor offsets/strides and formats.
+Device-local descriptor uploads, consumption concurrent with disjoint mutation,
+and Metal lowering remain to verify with that execution surface. No descriptor
+serialization or cross-device byte compatibility is promised.
+
 ## Verification so far
 
-- 59 ordinary Rust tests pass, including ten foundation contract, status and
+- 60 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -178,10 +217,17 @@ to integrate. Creation support is not a claim of full shader-consumer verificati
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All five foundation GPU tests pass on each available driver. Pinned Vulkan
+  All six foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.
+- The C descriptor path passes on Radeon and llvmpipe: batched buffer/image/sampler
+  encoding, guard bytes, whole-batch local rejection, scratch capacity, explicit
+  host-visible placement, both heap binds, host-gated pending unused-slot writes,
+  reset-before-reservation-release and invalid-binding poisoning. No shader reads
+  are performed. `gpu_foundation_descriptors` adds four independent native host
+  encoders and injected partial-write/OOM/sticky-loss checks; no real loss event
+  or allocation-free driver implementation is claimed.
 - The C command path passes copy/upload, explicit local working backing, fill,
   global/ranged dependencies, readback and three changed-input replays on both
   drivers. It also covers stable handles across reserve, capacity failure, sticky
@@ -212,7 +258,7 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Descriptor storage and binding, then both argument paths,
+Executable preparation and both argument paths, followed by
 expanded graphics/compute and consumers as the coordinated tranche proceeds.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection

@@ -2,6 +2,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define REQUIRE(c) do { if (!(c)) { fprintf(stderr, "line %d: %s\n", __LINE__, #c); goto cleanup; } } while (0)
 #define TRY(call) do { ogpu_next_status s_ = (call); if (s_ != OGPU_NEXT_OK) { fprintf(stderr, "%s: %" PRId32 "\n", #call, s_); goto cleanup; } } while (0)
@@ -36,10 +37,156 @@ _Static_assert(sizeof(ogpu_next_view_desc) == 72, "view description ABI");
 _Static_assert(sizeof(ogpu_next_image_barrier) == 72, "image barrier ABI");
 _Static_assert(sizeof(ogpu_next_image_copy) == 64, "image copy ABI");
 _Static_assert(offsetof(ogpu_next_image_desc, concurrent_domains) == 88, "image domains ABI");
+_Static_assert(sizeof(ogpu_next_descriptor_limits) == 152, "descriptor limits ABI");
+_Static_assert(sizeof(ogpu_next_host_span) == 16, "host span ABI");
+_Static_assert(sizeof(ogpu_next_resource_descriptor) == 40, "resource descriptor ABI");
+_Static_assert(sizeof(ogpu_next_sampler_desc) == 80, "sampler ABI");
+_Static_assert(sizeof(ogpu_next_heap_binding) == 72, "heap binding ABI");
 
 static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint32_t size) {
     ogpu_next_query q = { HEADER(ogpu_next_query, kind), data, capacity, 0, size, 0 };
     return q;
+}
+
+static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
+
+static int descriptors(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
+                       uint32_t domain, ogpu_next_view *view) {
+    int result = EXIT_FAILURE, pending = 0;
+    ogpu_next_memory *data = NULL, *heaps[2] = {NULL, NULL};
+    ogpu_next_arena *arena = NULL;
+    ogpu_next_timeline *done = NULL, *gate = NULL;
+    void *temporary = NULL, *submit_scratch = NULL;
+    unsigned char *encoded = NULL;
+    ogpu_next_descriptor_limits limits = {0};
+    ogpu_next_query q = query(OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS, &limits, 1, sizeof(limits));
+    TRY(ogpu_next_device_query(device, &q));
+    REQUIRE(q.count == 1 && limits.buffer_size && limits.image_size && limits.sampler_size);
+    ogpu_next_host_requirements r = {0}, s = {0};
+    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_RESOURCE, 2, &r));
+    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_SAMPLER, 2, &s));
+    REQUIRE(r.alignment <= _Alignof(max_align_t) && s.alignment <= _Alignof(max_align_t));
+    uint64_t temporary_size = r.size > s.size ? r.size : s.size;
+    temporary = malloc((size_t)temporary_size); REQUIRE(temporary != NULL);
+    ogpu_next_host_span scratch = {temporary, temporary_size};
+    uint64_t stride = limits.buffer_size > limits.image_size ? limits.buffer_size : limits.image_size;
+    if (stride < limits.sampler_size) stride = limits.sampler_size;
+    stride += 16; /* Host outputs need no GPU slot alignment. */
+    encoded = malloc((size_t)(stride * 2)); REQUIRE(encoded != NULL);
+    memset(encoded, 0xa5, (size_t)(stride * 2));
+    ogpu_next_host_span outputs[2] = {{encoded, stride}, {encoded + stride, stride}};
+    TRY(ogpu_next_memory_create(device, &host_desc, &data));
+    ogpu_next_resource_descriptor resources[2] = {
+        {OGPU_NEXT_DESCRIPTOR_STORAGE_BUFFER, 0, NULL, {data, 0, 256}},
+        {OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE, OGPU_NEXT_STATE_SHADER_READ, view, {NULL, 0, 0}}
+    };
+    resources[1].kind = UINT32_MAX;
+    REQUIRE(ogpu_next_write_resource_descriptors(device, 2, resources, outputs, scratch) == OGPU_NEXT_UNSUPPORTED);
+    for (uint64_t i = 0; i < stride * 2; ++i) REQUIRE(encoded[i] == 0xa5);
+    resources[1].kind = OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE;
+    REQUIRE(ogpu_next_write_resource_descriptors(device, 2, resources, outputs, (ogpu_next_host_span){temporary, r.size - 1}) == OGPU_NEXT_CAPACITY);
+    TRY(ogpu_next_write_resource_descriptors(device, 2, resources, outputs, scratch));
+    for (uint64_t i = limits.buffer_size; i < stride; ++i) REQUIRE(encoded[i] == 0xa5);
+    for (uint64_t i = limits.image_size; i < stride; ++i) REQUIRE(encoded[stride + i] == 0xa5);
+    TRY(ogpu_next_write_resource_descriptors(device, 0, NULL, NULL, (ogpu_next_host_span){NULL, 0}));
+    ogpu_next_sampler_desc samplers[2] = {
+        {HEADER(ogpu_next_sampler_desc, OGPU_NEXT_SAMPLER_DESC), 0, 0, 0, {2, 2, 2}, 0, 0, 0, 0, 0, 0, 0, 1},
+        {HEADER(ogpu_next_sampler_desc, OGPU_NEXT_SAMPLER_DESC), 1, 1, 1, {0, 0, 0}, 0, 0, 0, 0, 0, 8, 0, 1}
+    };
+    ogpu_next_memory_limits memory_limits = {0};
+    q = query(OGPU_NEXT_QUERY_MEMORY_LIMITS, &memory_limits, 1, sizeof(memory_limits));
+    TRY(ogpu_next_device_query(device, &q));
+    ogpu_next_memory_type_info types[32];
+    q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, types, 32, sizeof(types[0]));
+    TRY(ogpu_next_device_query(device, &q));
+    uint32_t type_count = q.count;
+    ogpu_next_heap_binding bindings[2];
+    ogpu_next_mapping mappings[2];
+    uint64_t slot_sizes[2];
+    for (uint32_t i = 0; i < 2; ++i) {
+        uint64_t alignment = i ? limits.sampler_heap_alignment : limits.resource_heap_alignment;
+        uint64_t reservation_align = i ? limits.sampler_reserved_alignment : limits.resource_reserved_alignment;
+        uint64_t reservation_size = i ? limits.sampler_reserved_size : limits.resource_reserved_size;
+        uint64_t slot_align = i ? limits.sampler_alignment : limits.buffer_alignment;
+        if (!i && slot_align < limits.image_alignment) slot_align = limits.image_alignment;
+        if (reservation_align < memory_limits.cache_atom_size) reservation_align = memory_limits.cache_atom_size;
+        slot_sizes[i] = aligned(stride, slot_align);
+        uint64_t reservation_offset = aligned(slot_sizes[i] * 3, reservation_align);
+        ogpu_next_memory_desc md = {
+            HEADER(ogpu_next_memory_desc, OGPU_NEXT_MEMORY_DESC),
+            reservation_offset + reservation_size, alignment, OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,
+            UINT32_MAX, OGPU_NEXT_MEMORY_LINEAR, NULL, 0, 0
+        };
+        /* Align native backing prefix as well: flushes cannot touch reserved bytes. */
+        if (md.alignment < memory_limits.cache_atom_size) md.alignment = memory_limits.cache_atom_size;
+        uint32_t compatible[32];
+        ogpu_next_requirements req = {0};
+        req.compatible_type_capacity = 32; req.compatible_types = compatible;
+        TRY(ogpu_next_memory_requirements(device, &md, &req));
+        for (uint32_t j = 0; j < req.compatible_type_count && md.memory_type == UINT32_MAX; ++j)
+            for (uint32_t k = 0; k < type_count; ++k)
+                if (types[k].id == compatible[j] && (types[k].properties & OGPU_NEXT_MEMORY_HOST_VISIBLE)) { md.memory_type = types[k].id; break; }
+        REQUIRE(md.memory_type != UINT32_MAX);
+        TRY(ogpu_next_memory_create(device, &md, &heaps[i]));
+        TRY(ogpu_next_memory_map((ogpu_next_span){heaps[i], 0, md.size}, &mappings[i]));
+        bindings[i] = (ogpu_next_heap_binding){HEADER(ogpu_next_heap_binding, OGPU_NEXT_HEAP_BINDING),
+            i + 1, 0, {heaps[i], 0, md.size}, reservation_offset, reservation_size};
+        if (i) {
+            memset(encoded, 0xa5, (size_t)(stride * 2));
+            samplers[1].header.version = UINT32_MAX;
+            REQUIRE(ogpu_next_write_sampler_descriptors(device, 2, samplers, outputs, scratch) == OGPU_NEXT_UNSUPPORTED);
+            for (uint64_t j = 0; j < stride * 2; ++j) REQUIRE(encoded[j] == 0xa5);
+            samplers[1].header.version = OGPU_NEXT_VERSION;
+            TRY(ogpu_next_write_sampler_descriptors(device, 2, samplers, outputs, scratch));
+            for (uint64_t j = limits.sampler_size; j < stride; ++j)
+                REQUIRE(encoded[j] == 0xa5 && encoded[stride + j] == 0xa5);
+        }
+        memcpy(mappings[i].data, encoded, (size_t)(i ? limits.sampler_size : limits.buffer_size));
+        memcpy((unsigned char *)mappings[i].data + slot_sizes[i], encoded + stride, (size_t)(i ? limits.sampler_size : limits.image_size));
+        TRY(ogpu_next_memory_flush((ogpu_next_span){heaps[i], 0, slot_sizes[i] * 2}));
+    }
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
+    TRY(ogpu_next_arena_create(device, &ad, &arena));
+    ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_ONE_SHOT, OGPU_NEXT_PRIMARY, NULL};
+    ogpu_next_encoder *encoder = NULL;
+    ogpu_next_list *list = NULL;
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    ogpu_next_bind_heap(encoder, &bindings[0]); ogpu_next_bind_heap(encoder, &bindings[1]);
+    TRY(ogpu_next_commands_end(encoder, &list));
+    TRY(ogpu_next_timeline_create(device, 0, &done));
+    TRY(ogpu_next_timeline_create(device, 0, &gate));
+    ogpu_next_host_requirements submit_req = {0};
+    TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &submit_req));
+    REQUIRE(submit_req.alignment <= _Alignof(max_align_t));
+    submit_scratch = malloc((size_t)submit_req.size); REQUIRE(submit_scratch != NULL);
+    ogpu_next_sync_point wait = {{gate, 1}, OGPU_NEXT_STAGE_ALL}, signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
+    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
+        1, 1, 1, &list, &wait, &signal, submit_scratch, submit_req.size};
+    pending = 1;
+    TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+    REQUIRE(ogpu_next_timeline_wait(signal.point, 0) == OGPU_NEXT_TIMEOUT);
+    /* Binding is not whole-heap immutability. An unused slot can be updated while
+     * this list is pending; reserved bytes remain untouched until reset. */
+    ogpu_next_host_span direct = {(unsigned char *)mappings[1].data + slot_sizes[1] * 2, limits.sampler_size};
+    TRY(ogpu_next_write_sampler_descriptors(device, 1, samplers, &direct, scratch));
+    TRY(ogpu_next_memory_flush((ogpu_next_span){heaps[1], slot_sizes[1] * 2, limits.sampler_size}));
+    TRY(ogpu_next_timeline_signal_host(wait.point));
+    TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
+    TRY(ogpu_next_arena_reset(arena));
+    /* Bad bindings poison end without issuing a malformed native command. */
+    TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    bindings[0].reserved_offset = bindings[0].storage.size + 1;
+    ogpu_next_bind_heap(encoder, &bindings[0]);
+    REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
+    printf("Descriptors pass: batched buffer/image/sampler encoding, caller placement, heap binding and pending unused-slot update (no shader consumption yet).\n");
+    result = EXIT_SUCCESS;
+cleanup:
+    if (pending) { fprintf(stderr, "Pending descriptor work after failure.\n"); _Exit(EXIT_FAILURE); }
+    ogpu_next_arena_destroy(arena);
+    ogpu_next_timeline_destroy(gate); ogpu_next_timeline_destroy(done);
+    ogpu_next_memory_destroy(heaps[0]); ogpu_next_memory_destroy(heaps[1]); ogpu_next_memory_destroy(data);
+    free(temporary); free(submit_scratch); free(encoded);
+    return result;
 }
 
 static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
@@ -127,6 +274,7 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { domain = queues[i].domain; break; }
     REQUIRE(domain != UINT32_MAX);
+    REQUIRE(descriptors(device, host_desc, domain, view) == EXIT_SUCCESS);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     TRY(ogpu_next_timeline_create(device, 0, &done));

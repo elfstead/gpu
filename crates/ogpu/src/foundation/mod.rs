@@ -2,10 +2,12 @@
 //! No execution, allocation, completion-retention or scheduler policy is borrowed
 //! from ABI 20. Both paths currently share only the native instance/query loader.
 mod commands_api;
+mod descriptors_api;
 mod images_api;
 mod memory_api;
 mod native;
 pub use commands_api::*;
+pub use descriptors_api::*;
 pub use images_api::*;
 pub use memory_api::*;
 pub mod types;
@@ -29,6 +31,7 @@ struct Snapshot {
     memory_types: Vec<MemoryTypeInfo>,
     memory_heaps: Vec<MemoryHeapInfo>,
     memory_limits: MemoryLimits,
+    descriptor_limits: DescriptorLimits,
     features: FeatureInfo,
 }
 pub struct Adapter {
@@ -79,6 +82,7 @@ impl Snapshot {
                 MEMORY_HEAPS => copy_out(query, &self.memory_heaps),
                 FEATURES => copy_out(query, std::slice::from_ref(&self.features)),
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
+                DESCRIPTOR_LIMITS => copy_out(query, std::slice::from_ref(&self.descriptor_limits)),
                 _ => Err(UNSUPPORTED),
             }
         }

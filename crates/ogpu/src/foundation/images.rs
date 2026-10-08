@@ -150,6 +150,9 @@ pub struct Image {
 pub struct View {
     device: *const Device,
     handle: vk::VkImageView,
+    image: *const Image,
+    info: vk::VkImageViewCreateInfo,
+    usage: vk::VkImageViewUsageCreateInfo,
 }
 
 impl Device {
@@ -831,7 +834,45 @@ impl View {
         Ok(Box::new(Self {
             device: image.device,
             handle,
+            image,
+            info: vk::VkImageViewCreateInfo {
+                pNext: ptr::null(),
+                ..info
+            },
+            usage: view_usage,
         }))
+    }
+    pub(super) fn descriptor(
+        &self,
+        device: *const Device,
+        kind: u32,
+        state: u32,
+    ) -> Result<(vk::VkImageViewCreateInfo, vk::VkImageLayout), Status> {
+        if self.device != device {
+            return Err(INVALID);
+        }
+        let required = match kind {
+            1 => 4,
+            2 => 8,
+            5 => 128,
+            _ => return Err(INVALID),
+        };
+        if self.usage.usage & required == 0
+            || !self.info.subresourceRange.aspectMask.is_power_of_two()
+            || (kind == 2 && state != 1)
+            || (kind != 2 && !matches!(state, 1 | 4 | 7))
+        {
+            return Err(INVALID);
+        }
+        if kind == 5 && self.info.viewType == vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_3D {
+            return Err(INVALID);
+        }
+        let image = unsafe { &*self.image };
+        let info = vk::VkImageViewCreateInfo {
+            pNext: ptr::from_ref(&self.usage).cast(),
+            ..self.info
+        };
+        Ok((info, image.layout(state)?))
     }
 }
 impl Drop for View {

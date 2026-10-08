@@ -239,7 +239,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     }))
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !65535 != 0 {
+    if mask & !262143 != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -260,6 +260,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         1 | 64,
         1 | 128,
         1 | 128,
+        1 | 4 | 8 | 16,
+        1 | 4 | 8 | 16,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -278,6 +280,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
         vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
         vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT,
+        vk::VK_ACCESS_2_SAMPLER_HEAP_READ_BIT_EXT,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -387,6 +391,13 @@ unsafe fn slice<'a, T>(pointer: *const T, count: u32) -> Result<&'a [T], Status>
 }
 
 impl List {
+    pub(in crate::foundation) unsafe fn bind_heap(
+        &self,
+        binding: &HeapBinding,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        unsafe { d.bind_heap(self.command, self.domain, binding) }
+    }
     fn recording(&self) -> Result<&Device, Status> {
         if self.state.get() != 1 {
             return Err(INVALID);
@@ -949,7 +960,17 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 16, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 18, 1), Err(UNSUPPORTED));
+        assert_eq!(
+            access(1 << 16, 4),
+            Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)
+        );
+        assert_eq!(
+            access(1 << 17, 16),
+            Ok(vk::VK_ACCESS_2_SAMPLER_HEAP_READ_BIT_EXT)
+        );
+        assert_eq!(access(1 << 16, 2), Err(INVALID));
+        assert_eq!(access(1 << 17, 256), Err(INVALID));
         let req = submit_scratch(1, 0, 0).unwrap();
         assert_eq!(scratch(ptr::null_mut(), 0, req), Err(CAPACITY));
         assert_eq!(scratch(ptr::null_mut(), req.size, req), Err(INVALID));

@@ -155,7 +155,7 @@ Three layers, with only the first fundamental:
 | Memory | Explicit backing allocation | Every pointer or descriptor that refers into it |
 | Span / GPU address | Nothing: backing+offset+size / shader-visible address | Lifetime, bounds checks in shaders or an allocation policy |
 | Image / view | Native typed storage interpretation / selected subresources | Backing allocation unless an explicit dedicated-creation helper is used |
-| Descriptor heap | Descriptor storage and slot namespace | Referenced images, views or samplers |
+| Descriptor heap binding | Nothing: borrowed backing range and reserved subrange | Backing and referenced resources |
 | Executable | Prepared native code and required state | Memory reachable through its arguments |
 | Command arena / list | Recording storage / encoded work using that storage | Referenced application resources |
 | Timeline point | Nothing: semaphore handle and value | A heap-allocated completion receipt or deferred deletion queue |
@@ -187,7 +187,7 @@ first implementation tranche.
 | Memory | Query compatible types/budgets/requirements; allocate/free; address; persistent map/unmap; flush/invalidate; explicit placement and alias reuse |
 | Virtual memory profile | Reserve/free address space; create backing; map/unmap ranges; access permissions and sparse bindings ordered explicitly; no mandatory relocating allocator |
 | Images/views | Dimensions, mip/layer/sample counts, format/aspects/usage; placed creation; compatible reinterpretation and sampling/render/storage views; exact support queries |
-| Descriptors | Explicit heap capacity; slot/range write/copy; independent image/sampler binding; range ownership; optional native descriptor export/encoding when supported |
+| Descriptors | Caller-owned encoded bytes and GPU backing ranges; independent resource/sampler binding; explicit reservation and range ownership; ordinary host/GPU copies |
 | Executables | Load native artifact, validate interface/requirements; specialize/link/prepare outside recording; compute and graphics programs; explicit cache import/export |
 | Arguments | Recording-local inline range updates and device-root binding; generated layouts/stage visibility; no arguments copied again by current-state draws/dispatches |
 | Commands | Caller-owned arenas; reserve/reset/trim; begin/end; one-shot or replay; explicit simultaneous-use support; secondary/bundle execution where supported |
@@ -237,6 +237,15 @@ those same slots and retains the referenced resources. If native descriptor
 granularity prevents a promised independent update, report that constraint; do
 not add invisible heap cloning. GPU-writable descriptor bytes are a distinct
 capability, not implied by GPU-writable indices.
+
+The implemented foundation refines the initial owned-heap sketch: encode opaque
+descriptors into caller host bytes, then bind a selected GPU span. No heap object
+chooses allocation, slot stride or upload policy. Mixed resource descriptor layouts
+are possible; shader metadata and GPU placement must obey queried sizes/alignments.
+Native reserved bytes are explicit and protected until referencing command buffers
+are reset/destroyed. Local batch validation is atomic; native write failure may be
+partial, with recovery owned by the caller. See the
+[implementation contract and remaining proof](foundation-implementation.md#implemented-descriptor-encoding-and-binding).
 
 ### Arguments: do not replace one compulsory representation with another
 

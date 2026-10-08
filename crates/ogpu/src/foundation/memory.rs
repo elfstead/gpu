@@ -27,7 +27,7 @@ pub struct Memory {
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
-    if usage & !127 != 0 {
+    if usage & !255 != 0 {
         return Err(UNSUPPORTED);
     }
     let bits = [
@@ -38,6 +38,7 @@ fn buffer_usage(usage: u64) -> Result<u32, Status> {
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -427,11 +428,19 @@ impl Memory {
         size: u64,
         usage: u64,
     ) -> Result<(vk::VkBuffer, u64, u64), Status> {
-        if self.device != device
-            || self.buffer.is_null()
-            || self.usage & usage != usage
-            || (!self.domains.is_empty() && !self.domains.contains(&domain))
-        {
+        if !self.domains.is_empty() && !self.domains.contains(&domain) {
+            return Err(INVALID);
+        }
+        self.descriptor_range(device, offset, size, usage)
+    }
+    pub(super) fn descriptor_range(
+        &self,
+        device: *const Device,
+        offset: u64,
+        size: u64,
+        usage: u64,
+    ) -> Result<(vk::VkBuffer, u64, u64), Status> {
+        if self.device != device || self.buffer.is_null() || self.usage & usage != usage {
             return Err(INVALID);
         }
         Ok((
@@ -817,7 +826,7 @@ mod tests {
     }
     #[test]
     fn buffer_usage_never_silently_drops_bits() {
-        assert_eq!(buffer_usage(128), Err(UNSUPPORTED));
+        assert_eq!(buffer_usage(256), Err(UNSUPPORTED));
         assert_eq!(
             buffer_usage(0),
             Ok(vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)

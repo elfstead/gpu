@@ -22,6 +22,9 @@ pub use commands::{Arena, List};
 #[path = "images.rs"]
 mod images;
 pub use images::{Image, View};
+#[path = "descriptors.rs"]
+mod descriptors;
+pub(super) use descriptors::descriptor_scratch;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -82,6 +85,10 @@ functions! {
     vkCmdCopyMemoryToImageKHR: PFN_vkCmdCopyMemoryToImageKHR,
     vkCmdClearColorImage: PFN_vkCmdClearColorImage,
     vkCmdClearDepthStencilImage: PFN_vkCmdClearDepthStencilImage,
+    vkWriteResourceDescriptorsEXT: PFN_vkWriteResourceDescriptorsEXT,
+    vkWriteSamplerDescriptorsEXT: PFN_vkWriteSamplerDescriptorsEXT,
+    vkCmdBindResourceHeapEXT: PFN_vkCmdBindResourceHeapEXT,
+    vkCmdBindSamplerHeapEXT: PFN_vkCmdBindSamplerHeapEXT,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -128,6 +135,7 @@ pub(super) fn snapshot(
     }
     let mut features = FeatureInfo::default();
     let mut memory_limits = MemoryLimits::default();
+    let mut descriptor_limits = DescriptorLimits::default();
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -155,8 +163,14 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()
         };
+        let mut heaps = vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT {
+            sType:
+                vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT,
+            ..Default::default()
+        };
         let mut maintenance3 = vk::VkPhysicalDeviceMaintenance3Properties {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES,
+            pNext: ptr::from_mut(&mut heaps).cast(),
             ..Default::default()
         };
         let mut maintenance4 = vk::VkPhysicalDeviceMaintenance4Properties {
@@ -186,6 +200,33 @@ pub(super) fn snapshot(
             cache_atom_size: properties.properties.limits.nonCoherentAtomSize,
             map_alignment: properties.properties.limits.minMemoryMapAlignment as u64,
         };
+        descriptor_limits = DescriptorLimits {
+            buffer_size: heaps.bufferDescriptorSize,
+            buffer_alignment: heaps.bufferDescriptorAlignment,
+            image_size: heaps.imageDescriptorSize,
+            image_alignment: heaps.imageDescriptorAlignment,
+            sampler_size: heaps.samplerDescriptorSize,
+            sampler_alignment: heaps.samplerDescriptorAlignment,
+            resource_heap_alignment: heaps.resourceHeapAlignment,
+            resource_heap_max_size: heaps.maxResourceHeapSize,
+            resource_reserved_size: heaps.minResourceHeapReservedRange,
+            resource_reserved_alignment: heaps
+                .imageDescriptorAlignment
+                .max(heaps.bufferDescriptorAlignment),
+            sampler_heap_alignment: heaps.samplerHeapAlignment,
+            sampler_heap_max_size: heaps.maxSamplerHeapSize,
+            sampler_reserved_size: heaps.minSamplerHeapReservedRange,
+            sampler_reserved_alignment: heaps.samplerDescriptorAlignment,
+            uniform_address_alignment: properties.properties.limits.minUniformBufferOffsetAlignment,
+            storage_address_alignment: properties.properties.limits.minStorageBufferOffsetAlignment,
+            max_uniform_range: u64::from(properties.properties.limits.maxUniformBufferRange),
+            max_storage_range: u64::from(properties.properties.limits.maxStorageBufferRange),
+            max_sampler_lod_bias: properties.properties.limits.maxSamplerLodBias,
+            max_sampler_anisotropy: properties.properties.limits.maxSamplerAnisotropy,
+        };
+        if root.features.samplerAnisotropy != 0 {
+            features.available |= SAMPLER_ANISOTROPY;
+        }
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
             && caps.multi_draw_indirect != 0
@@ -258,6 +299,7 @@ pub(super) fn snapshot(
             .collect(),
         features,
         memory_limits,
+        descriptor_limits,
     })
 }
 
@@ -389,6 +431,7 @@ impl Device {
         };
         let features = vk::VkPhysicalDeviceFeatures {
             multiDrawIndirect: u32::from(enabled & RASTER != 0),
+            samplerAnisotropy: u32::from(enabled & SAMPLER_ANISOTROPY != 0),
             ..Default::default()
         };
         let mut extensions = vec![
