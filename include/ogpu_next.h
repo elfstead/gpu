@@ -117,6 +117,11 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT64_C(4)
 #define OGPU_NEXT_FEATURE_SAMPLER_ANISOTROPY UINT64_C(8)
 #define OGPU_NEXT_FEATURE_CACHE_CONTROL UINT64_C(16)
+#define OGPU_NEXT_FEATURE_INT8 UINT64_C(32)
+#define OGPU_NEXT_FEATURE_INT16 UINT64_C(64)
+#define OGPU_NEXT_FEATURE_INT64 UINT64_C(128)
+#define OGPU_NEXT_FEATURE_FLOAT64 UINT64_C(256)
+#define OGPU_NEXT_FEATURE_STORAGE8 UINT64_C(512)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -126,6 +131,13 @@ typedef struct ogpu_next_feature_info {
  * queries: only explicitly requested optional bits enabled, device_scope=1.
  * Queue flags and memory properties describe physical facilities, not enabled
  * sparse/protected functionality. Domain/type IDs belong to this adapter only.
+ * FLOAT16/INT8/INT16/INT64/FLOAT64 enable the corresponding shader arithmetic
+ * types. STORAGE8 independently enables 8-bit storage-buffer access (including
+ * physical-address storage); 16-bit storage-buffer access is baseline. Arithmetic
+ * enabling does not imply uniform-buffer/push-byte narrow storage, atomics, matrix
+ * instructions, subgroup operations, fast native throughput or particular floating
+ * point rounding/denormal modes. The compiler describes actual artifact requirements;
+ * no widening, precision conversion or software fallback is performed by OGPU.
  */
 typedef struct ogpu_next_queue_request {
     ogpu_next_queue_domain domain;

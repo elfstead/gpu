@@ -247,6 +247,96 @@ mod tests {
     use std::cell::Cell;
 
     #[test]
+    #[ignore = "requires modern Vulkan; independent scalar feature enabling and artifact requirement rejection"]
+    fn gpu_foundation_numerical_profiles() {
+        let instance = Arc::new(Instance::new().unwrap());
+        let all = FLOAT16 | INT8 | INT16 | INT64 | FLOAT64 | STORAGE8;
+        let code: Vec<u32> =
+            include_bytes!("../../../../examples/shaders/foundation-numerics.comp.spv")
+                .chunks_exact(4)
+                .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+                .collect();
+        let root = RootSlot {
+            stages: 4,
+            offset: 0,
+            alignment: 8,
+        };
+        let abi = ArgumentInterface {
+            header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+            byte_size: 8,
+            root_count: 1,
+            roots: &root,
+        };
+        let requirements = ShaderRequirements {
+            header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+            features: all,
+            local_size: [64, 1, 1],
+            shared_memory: 0,
+        };
+        let shader = Shader {
+            stage: 4,
+            format: 0,
+            code: Bytes {
+                data: code.as_ptr().cast(),
+                size: size_of_val(code.as_slice()),
+            },
+            entry: c"numericMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+        };
+        let desc = ExecutableDesc {
+            header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+            kind: 1,
+            shader_count: 1,
+            shaders: &shader,
+            static_state: ptr::null(),
+            dynamic_state: 0,
+            requirements: &requirements.header,
+            cache: ptr::null_mut(),
+        };
+        let mut tested = 0;
+        for physical in instance.physical_devices().unwrap() {
+            let snapshot = snapshot(&instance, physical).unwrap();
+            if snapshot.features.baseline_supported == 0 {
+                continue;
+            }
+            let Some(q) = snapshot
+                .queues
+                .iter()
+                .find(|q| q.count > 0 && q.flags & COMPUTE != 0)
+            else {
+                continue;
+            };
+            let request = [QueueRequest {
+                domain: q.domain,
+                count: 1,
+                priority: 0.5,
+            }];
+            let available = snapshot.features.available;
+            let adapter = Adapter {
+                instance: instance.clone(),
+                physical,
+                snapshot,
+            };
+            for enabled in [0, FLOAT16, INT8, INT16, INT64, FLOAT64, STORAGE8, all] {
+                if enabled & !available != 0 {
+                    continue;
+                }
+                let device = Device::create(&adapter, &request, enabled).unwrap();
+                assert_eq!(device.snapshot.features.enabled, enabled);
+                let executable = unsafe { Executable::create(&device, &desc) };
+                if enabled == all {
+                    assert!(executable.is_ok());
+                } else {
+                    assert!(matches!(executable, Err(UNSUPPORTED)));
+                }
+            }
+            tested += 1;
+        }
+        assert!(tested > 0, "No suitable device; not a passing skip");
+    }
+
+    #[test]
     fn argument_abi_limits_and_root_layout() {
         let limits = ExecutionLimits {
             max_inline_size: 64,

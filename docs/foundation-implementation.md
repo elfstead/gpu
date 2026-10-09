@@ -402,6 +402,33 @@ RG32 float fetch and divisor-one instancing; other formats, zero-stride executio
 dynamic input state and nontrivial divisors still need their own coverage/profiles.
 The source-only graphics limits/state records grow to 72/160 bytes; ABI 20 is unchanged.
 
+## Implemented scalar numerical profiles
+
+Alongside existing FP16, devices now advertise and explicitly enable `INT8`, `INT16`,
+`INT64`, `FLOAT64` and independent `STORAGE8`. Each maps to its native shader arithmetic
+or storage feature; 16-bit storage-buffer access remains part of the modern baseline.
+An application can request 8-bit storage without 8-bit arithmetic, or vice versa.
+Executable requirements must be a subset of enabled features. Neither preparation
+nor dispatch converts precision, inserts packing kernels or emulates unavailable
+types. See [Vulkan scalar/storage enabling](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceVulkan12Features.html)
+and [core shader types](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceFeatures.html).
+
+The C numerical kernel consumes caller-addressed 8/16/64-bit integer, FP16 and FP64
+arrays through one root. Its SPIR-V contains 8-bit add, 16-bit multiply/add, 64-bit
+bit operations and FP16/FP64 multiply/add. Both local drivers pass exact wraparound,
+high-word, half-bit-pattern and double checks over two changed-input replays, with
+root and surrounding guard bytes unchanged. Double inputs exceed FP32's exact integer
+range, so accidental narrowing would be visible. Rust tests create devices with each
+available scalar feature independently and reject the combined artifact until all its
+declared requirements are enabled. A driver lacking that combined profile is reported
+as not exercising the C numerical subtest, not as passing those arithmetic checks.
+
+These are scalar capabilities, not a completed ML profile or throughput guarantees.
+Subgroup/atomic/matrix tuples, floating-point controls, uniform/push narrow storage,
+quantized consumer kernels and compiler-generated requirement metadata remain work.
+This fixture does not prove signed arithmetic, exceptional values, denormal behavior,
+all rounding modes or compiler/backend optimization quality. No timing gate is added.
+
 ## Implemented explicit executable caches
 
 Preparation can borrow an independent cache, shared across compute and graphics.

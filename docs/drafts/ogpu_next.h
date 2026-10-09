@@ -24,7 +24,8 @@ extern "C" {
 #endif
 
 /* Discovery, queue/memory topology, requested feature enabling and independent
- * timeline objects: implemented header above. Budget, numerical tuples and
+ * timeline objects and scalar arithmetic/storage enabling: implemented header above.
+ * Budget, subgroup/atomic/matrix numerical tuples and
  * exact executable/format/state query records remain to be defined. */
 
 /* Backing, placed/dedicated images, views and explicit image transitions/copies

@@ -48,6 +48,10 @@ Native vertex fetch now complements shader pulling: explicit prepared layouts,
 vertex/instance rates and batched address-span binding with caller scratch. The C
 consumer checks padded/sparse layouts, instancing, all draw variants and changed-data
 replay; no repacking, upload or per-draw binding scan is added.
+Scalar capabilities now include independent INT8/INT16/INT64/FP64 and 8-bit buffer
+storage, alongside FP16. Exact typed arithmetic, changed-input replay and guard checks
+pass on both local drivers; enabling does not promise throughput or a completed ML
+profile. Subgroup/atomic/matrix and floating-point-control profiles remain separate.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
 Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe caveat above).

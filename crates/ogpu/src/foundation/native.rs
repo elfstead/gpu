@@ -211,9 +211,14 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v14).cast(),
             ..Default::default()
         };
+        let mut v12 = vk::VkPhysicalDeviceVulkan12Features {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+            pNext: ptr::from_mut(&mut v13).cast(),
+            ..Default::default()
+        };
         let mut root = vk::VkPhysicalDeviceFeatures2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-            pNext: ptr::from_mut(&mut v13).cast(),
+            pNext: ptr::from_mut(&mut v12).cast(),
             ..Default::default()
         };
         let mut v12_properties = vk::VkPhysicalDeviceVulkan12Properties {
@@ -325,6 +330,17 @@ pub(super) fn snapshot(
         }
         if caps.shader_float16 != 0 {
             features.available |= FLOAT16;
+        }
+        for (supported, bit) in [
+            (v12.shaderInt8, INT8),
+            (root.features.shaderInt16, INT16),
+            (root.features.shaderInt64, INT64),
+            (root.features.shaderFloat64, FLOAT64),
+            (v12.storageBuffer8BitAccess, STORAGE8),
+        ] {
+            if supported != 0 {
+                features.available |= bit;
+            }
         }
         if has_unified && unified.unifiedImageLayouts != 0 {
             features.available |= UNIFIED_IMAGES;
@@ -507,6 +523,8 @@ impl Device {
             bufferDeviceAddress: 1,
             timelineSemaphore: 1,
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
+            shaderInt8: u32::from(enabled & INT8 != 0),
+            storageBuffer8BitAccess: u32::from(enabled & STORAGE8 != 0),
             drawIndirectCount: u32::from(enabled & RASTER != 0),
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()
@@ -524,6 +542,9 @@ impl Device {
         let features = vk::VkPhysicalDeviceFeatures {
             multiDrawIndirect: u32::from(enabled & RASTER != 0),
             samplerAnisotropy: u32::from(enabled & SAMPLER_ANISOTROPY != 0),
+            shaderInt16: u32::from(enabled & INT16 != 0),
+            shaderInt64: u32::from(enabled & INT64 != 0),
+            shaderFloat64: u32::from(enabled & FLOAT64 != 0),
             ..Default::default()
         };
         let mut extensions = vec![

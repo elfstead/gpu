@@ -45,6 +45,11 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub const CACHE_CONTROL: u64 = 16;
+pub const INT8: u64 = 32;
+pub const INT16: u64 = 64;
+pub const INT64: u64 = 128;
+pub const FLOAT64: u64 = 256;
+pub const STORAGE8: u64 = 512;
 #[repr(C)]
 pub struct ExecutableCacheDesc {
     pub header: Record,
