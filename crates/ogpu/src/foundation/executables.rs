@@ -249,13 +249,29 @@ mod tests {
     #[test]
     #[ignore = "requires modern Vulkan; independent scalar feature enabling and artifact requirement rejection"]
     fn gpu_foundation_numerical_profiles() {
+        check_numerical_profile(
+            include_bytes!("../../../../examples/shaders/foundation-numerics.comp.spv"),
+            c"numericMain",
+            FLOAT16 | INT8 | INT16 | INT64 | FLOAT64 | STORAGE8,
+            0,
+        );
+    }
+    #[test]
+    #[ignore = "requires modern Vulkan; independent buffer/shared atomic enabling and missing-domain rejection"]
+    fn gpu_foundation_atomic_profiles() {
+        check_numerical_profile(
+            include_bytes!("../../../../examples/shaders/foundation-atomics.comp.spv"),
+            c"atomicMain",
+            INT64 | BUFFER_ATOMIC64 | SHARED_ATOMIC64,
+            8,
+        );
+    }
+    fn check_numerical_profile(bytes: &[u8], entry: &CStr, all: u64, shared_memory: u32) {
         let instance = Arc::new(Instance::new().unwrap());
-        let all = FLOAT16 | INT8 | INT16 | INT64 | FLOAT64 | STORAGE8;
-        let code: Vec<u32> =
-            include_bytes!("../../../../examples/shaders/foundation-numerics.comp.spv")
-                .chunks_exact(4)
-                .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
-                .collect();
+        let code: Vec<u32> = bytes
+            .chunks_exact(4)
+            .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
+            .collect();
         let root = RootSlot {
             stages: 4,
             offset: 0,
@@ -271,7 +287,7 @@ mod tests {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
             features: all,
             local_size: [64, 1, 1],
-            shared_memory: 0,
+            shared_memory,
         };
         let shader = Shader {
             stage: 4,
@@ -280,7 +296,7 @@ mod tests {
                 data: code.as_ptr().cast(),
                 size: size_of_val(code.as_slice()),
             },
-            entry: c"numericMain".as_ptr(),
+            entry: entry.as_ptr(),
             interface_metadata: &abi.header,
             specialization: ptr::null(),
         };
@@ -318,7 +334,15 @@ mod tests {
                 physical,
                 snapshot,
             };
-            for enabled in [0, FLOAT16, INT8, INT16, INT64, FLOAT64, STORAGE8, all] {
+            // Exercise each independent bit and each otherwise-complete profile
+            // missing one required bit, not merely a device with everything disabled.
+            let profiles = [0, all].into_iter().chain(
+                (0..64)
+                    .map(|n| 1u64 << n)
+                    .filter(|bit| all & bit != 0)
+                    .flat_map(|bit| [bit, all & !bit]),
+            );
+            for enabled in profiles {
                 if enabled & !available != 0 {
                     continue;
                 }

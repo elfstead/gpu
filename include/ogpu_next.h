@@ -122,6 +122,8 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_INT64 UINT64_C(128)
 #define OGPU_NEXT_FEATURE_FLOAT64 UINT64_C(256)
 #define OGPU_NEXT_FEATURE_STORAGE8 UINT64_C(512)
+#define OGPU_NEXT_FEATURE_BUFFER_ATOMIC64 UINT64_C(1024)
+#define OGPU_NEXT_FEATURE_SHARED_ATOMIC64 UINT64_C(2048)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -138,6 +140,12 @@ typedef struct ogpu_next_feature_info {
  * instructions, subgroup operations, fast native throughput or particular floating
  * point rounding/denormal modes. The compiler describes actual artifact requirements;
  * no widening, precision conversion or software fallback is performed by OGPU.
+ * BUFFER_ATOMIC64 and SHARED_ATOMIC64 independently enable 64-bit integer atomics
+ * on buffers/physical-address storage and workgroup memory, respectively. Their
+ * shaders also require INT64; enabling an atomic domain does not enable another.
+ * Atomicity does not imply ordering of unrelated accesses or a global execution
+ * barrier. Shader memory scopes/semantics, convergence and inter-dispatch hazards
+ * are caller/compiler contracts. Floating-point atomics are a separate profile.
  */
 typedef struct ogpu_next_queue_request {
     ogpu_next_queue_domain domain;

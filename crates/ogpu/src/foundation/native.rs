@@ -337,6 +337,8 @@ pub(super) fn snapshot(
             (root.features.shaderInt64, INT64),
             (root.features.shaderFloat64, FLOAT64),
             (v12.storageBuffer8BitAccess, STORAGE8),
+            (v12.shaderBufferInt64Atomics, BUFFER_ATOMIC64),
+            (v12.shaderSharedInt64Atomics, SHARED_ATOMIC64),
         ] {
             if supported != 0 {
                 features.available |= bit;
@@ -525,6 +527,8 @@ impl Device {
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
             shaderInt8: u32::from(enabled & INT8 != 0),
             storageBuffer8BitAccess: u32::from(enabled & STORAGE8 != 0),
+            shaderBufferInt64Atomics: u32::from(enabled & BUFFER_ATOMIC64 != 0),
+            shaderSharedInt64Atomics: u32::from(enabled & SHARED_ATOMIC64 != 0),
             drawIndirectCount: u32::from(enabled & RASTER != 0),
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()

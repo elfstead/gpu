@@ -50,6 +50,8 @@ pub const INT16: u64 = 64;
 pub const INT64: u64 = 128;
 pub const FLOAT64: u64 = 256;
 pub const STORAGE8: u64 = 512;
+pub const BUFFER_ATOMIC64: u64 = 1024;
+pub const SHARED_ATOMIC64: u64 = 2048;
 #[repr(C)]
 pub struct ExecutableCacheDesc {
     pub header: Record,

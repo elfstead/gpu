@@ -51,7 +51,9 @@ replay; no repacking, upload or per-draw binding scan is added.
 Scalar capabilities now include independent INT8/INT16/INT64/FP64 and 8-bit buffer
 storage, alongside FP16. Exact typed arithmetic, changed-input replay and guard checks
 pass on both local drivers; enabling does not promise throughput or a completed ML
-profile. Subgroup/atomic/matrix and floating-point-control profiles remain separate.
+profile. Buffer/workgroup 64-bit integer atomics are independently enabled and tested
+with cross-workgroup accumulation and shared-memory reductions. Subgroup/matrix,
+wider atomic and floating-point-control profiles remain separate.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
 Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe caveat above).

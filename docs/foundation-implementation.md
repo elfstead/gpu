@@ -424,10 +424,23 @@ declared requirements are enabled. A driver lacking that combined profile is rep
 as not exercising the C numerical subtest, not as passing those arithmetic checks.
 
 These are scalar capabilities, not a completed ML profile or throughput guarantees.
-Subgroup/atomic/matrix tuples, floating-point controls, uniform/push narrow storage,
+Subgroup/matrix tuples, wider atomic profiles, floating-point controls, uniform/push narrow storage,
 quantized consumer kernels and compiler-generated requirement metadata remain work.
 This fixture does not prove signed arithmetic, exceptional values, denormal behavior,
 all rounding modes or compiler/backend optimization quality. No timing gate is added.
+
+64-bit integer atomics are now independently enabled for address-backed buffers and
+workgroup memory (`BUFFER_ATOMIC64`, `SHARED_ATOMIC64`), alongside the artifact's
+`INT64` requirement. The runtime does not add barriers or infer memory ordering.
+A second compute kernel accumulates high-word values from two workgroups into one
+buffer counter while independently reducing each workgroup through a shared 64-bit
+counter and explicit shader barriers. Exact global/partial results, changed-seed
+replay and untouched data/guards pass on both local drivers. SPIR-V inspection
+confirms 64-bit atomic adds and workgroup control barriers, not a host reduction.
+Device/artifact tests cover each atomic domain independently and reject a combined
+artifact with either domain or INT64 missing. This does not establish all atomic
+operations, signed/floating-point atomics, device-wide synchronization algorithms,
+forward-progress properties or contention throughput.
 
 ## Implemented explicit executable caches
 

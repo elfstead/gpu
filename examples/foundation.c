@@ -857,7 +857,7 @@ int main(int argc, char **argv) {
         }
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
-            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES)) };
+            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES)) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         for (uint32_t j = 0; j < count; ++j) {
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 0) != NULL);
@@ -870,7 +870,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES))));
+    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES))));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);
@@ -931,7 +931,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 7);
+    REQUIRE(argc == 8);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -946,7 +946,8 @@ int main(int argc, char **argv) {
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 0, 1) == EXIT_SUCCESS);
-    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6]) == EXIT_SUCCESS);
+    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0) == EXIT_SUCCESS);
+    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[7], 1) == EXIT_SUCCESS);
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

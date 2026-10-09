@@ -1,6 +1,7 @@
 #define NUMERIC_FEATURES (OGPU_NEXT_FEATURE_FLOAT16 | OGPU_NEXT_FEATURE_INT8 | OGPU_NEXT_FEATURE_INT16 | OGPU_NEXT_FEATURE_INT64 | OGPU_NEXT_FEATURE_FLOAT64 | OGPU_NEXT_FEATURE_STORAGE8)
+#define ATOMIC_FEATURES (OGPU_NEXT_FEATURE_INT64 | OGPU_NEXT_FEATURE_BUFFER_ATOMIC64 | OGPU_NEXT_FEATURE_SHARED_ATOMIC64)
 /* Scalar-width proof, not a tensor runtime or a numerical-throughput benchmark. */
-static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc desc, uint32_t domain, const char *path) {
+static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc desc, uint32_t domain, const char *path, uint32_t atomics) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL;
@@ -11,8 +12,9 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features));
     TRY(ogpu_next_device_query(device,&q));
-    if ((features.enabled & NUMERIC_FEATURES) != NUMERIC_FEATURES) {
-        printf("Combined numerical fixture NOT exercised: missing feature mask 0x%llx.\n",(unsigned long long)(NUMERIC_FEATURES & ~features.enabled));
+    uint64_t required = atomics ? ATOMIC_FEATURES : NUMERIC_FEATURES;
+    if ((features.enabled & required) != required) {
+        printf("%s fixture NOT exercised: missing feature mask 0x%llx.\n",atomics ? "Atomic" : "Combined numerical",(unsigned long long)(required & ~features.enabled));
         return EXIT_SUCCESS;
     }
     file = fopen(path,"rb"); REQUIRE(file != NULL);
@@ -24,8 +26,8 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     fclose(file); file = NULL;
     ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_COMPUTE,0,8};
     ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,1,&slot};
-    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),NUMERIC_FEATURES,{64,1,1},0};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"numericMain",&abi.header,NULL};
+    ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{64,1,1},atomics ? 8u : 0u};
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},atomics ? "atomicMain" : "numericMain",&abi.header,NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL};
     TRY(ogpu_next_executable_create(device,&ed,&executable));
     free(code); code = NULL;
@@ -41,7 +43,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_bind_executable(encoder,executable);
     ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_COMPUTE,0,address);
-    ogpu_next_launch launch = {{1,1,1},0,NULL};
+    ogpu_next_launch launch = {{atomics ? 2u : 1u,1,1},0,NULL};
     ogpu_next_dispatch(encoder,&launch);
     ogpu_next_dependency dependency = {0};
     dependency.header = (ogpu_next_record)HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY);
@@ -63,7 +65,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     double *doubles = (double *)(raw+2048);
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(map.data,0xa5,(size_t)desc.size);
-        const uint64_t root[5] = {address+256,address+512,address+1024,address+2048,address+768};
+        const uint64_t root[5] = {address+(atomics ? 1024 : 256),address+512,address+1024,address+2048,address+768};
         memcpy(map.data,root,sizeof(root));
         for (uint32_t i = 0; i < 64; ++i) {
             bytes[i] = (uint8_t)(200+5*i+replay);
@@ -72,13 +74,28 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
             doubles[i] = 16777216.0+i+replay*0.125;
             halves[i] = replay ? 0x4000 : 0x3c00;
         }
+        if (atomics) { longs[0] = longs[1] = longs[2] = 0; longs[3] = replay; }
         TRY(ogpu_next_memory_flush(all));
         signal.point.value = replay+1;
         pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(all));
+        if (atomics) {
+            REQUIRE(longs[0] == ((UINT64_C(8256)+128*replay)<<32)+384);
+            REQUIRE(longs[1] == ((UINT64_C(2080)+64*replay)<<32)+192);
+            REQUIRE(longs[2] == ((UINT64_C(6176)+64*replay)<<32)+192);
+            REQUIRE(longs[3] == replay);
+        }
         for (uint32_t i = 0; i < 64; ++i) {
             uint64_t x = UINT64_C(0xffffffff)+i+replay;
+            if (atomics) {
+                REQUIRE(bytes[i] == (uint8_t)(200+5*i+replay));
+                REQUIRE(shorts[i] == (uint16_t)(65000+17*i+replay));
+                if (i >= 4) REQUIRE(longs[i] == x);
+                REQUIRE(doubles[i] == 16777216.0+i+replay*0.125);
+                REQUIRE(halves[i] == (replay ? 0x4000 : 0x3c00));
+                continue;
+            }
             REQUIRE(bytes[i] == (uint8_t)(207+5*i+replay));
             REQUIRE(shorts[i] == (uint16_t)((65000+17*i+replay)*3+7));
             REQUIRE(longs[i] == ((x<<17) ^ (x>>7) ^ UINT64_C(0x123456789abcdef0)));
@@ -90,7 +107,8 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
             if (!((i >= 256 && i < 320) || (i >= 512 && i < 640) || (i >= 768 && i < 896)
                 || (i >= 1024 && i < 1536) || (i >= 2048 && i < 2560))) REQUIRE(raw[i] == 0xa5);
     }
-    printf("Numerics pass: native typed 8/16/64-bit integer storage, wraparound/high-word arithmetic, FP16/FP64 arithmetic, address roots, changed-input replay and guards.\n");
+    if (atomics) printf("Atomics pass: 64-bit address-buffer accumulation across workgroups, workgroup-shared reduction, explicit shader barriers, changed-seed replay and guards.\n");
+    else printf("Numerics pass: native typed 8/16/64-bit integer storage, wraparound/high-word arithmetic, FP16/FP64 arithmetic, address roots, changed-input replay and guards.\n");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending numerical work after failure.\n"); _Exit(EXIT_FAILURE); }
