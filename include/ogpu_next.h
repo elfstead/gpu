@@ -30,6 +30,7 @@ typedef struct ogpu_next_arena ogpu_next_arena;
 typedef struct ogpu_next_encoder ogpu_next_encoder;
 typedef struct ogpu_next_list ogpu_next_list;
 typedef struct ogpu_next_executable ogpu_next_executable;
+typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
 enum {
@@ -57,6 +58,7 @@ enum {
     OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS = 7,
     OGPU_NEXT_QUERY_EXECUTION_LIMITS = 8,
     OGPU_NEXT_QUERY_GRAPHICS_LIMITS = 9,
+    OGPU_NEXT_QUERY_LIMITS = 10,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -65,7 +67,7 @@ enum {
     OGPU_NEXT_EXECUTABLE_DESC = 110, OGPU_NEXT_ARGUMENT_INTERFACE = 111,
     OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
-    OGPU_NEXT_VIEWPORT_STATE = 116
+    OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -603,6 +605,10 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t max_viewport[2]; float viewport_bounds[2];
     uint32_t color_samples, depth_samples, no_attachment_samples, max_indirect_count;
 } ogpu_next_graphics_limits;
+typedef struct ogpu_next_query_limits {
+    float timestamp_period_ns;
+    uint32_t timestamp_compute_graphics;
+} ogpu_next_query_limits;
 enum { OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR = 1 };
 enum {
     OGPU_NEXT_POINTS = 0, OGPU_NEXT_LINES = 1, OGPU_NEXT_LINE_STRIP = 2,
@@ -742,6 +748,59 @@ void ogpu_next_bind_indices(ogpu_next_encoder *, ogpu_next_span, uint32_t index_
 void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
 void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+enum { OGPU_NEXT_QUERY_TIMESTAMP = 1, OGPU_NEXT_QUERY_OCCLUSION = 2 };
+enum {
+    OGPU_NEXT_QUERY_RESULT_64 = 1, OGPU_NEXT_QUERY_RESULT_AVAILABILITY = 2,
+    OGPU_NEXT_QUERY_RESULT_WAIT = 4, OGPU_NEXT_QUERY_RESULT_PARTIAL = 8
+};
+typedef struct ogpu_next_query_pool_desc {
+    ogpu_next_record header;
+    uint32_t type, count;
+    uint64_t statistics;
+} ogpu_next_query_pool_desc;
+/* Pools explicitly allocate native query storage, borrow their device and are
+ * UNINITIALIZED until a recorded reset executes. count>0; statistics=0 in this
+ * timestamp/occlusion profile. No implicit creation/reset/recycling, CPU readback,
+ * retained list reference or wait-on-destroy. Caller owns reset/use/resolve order
+ * and all recorded/pending lifetimes, including independent or simultaneous lists.
+ * Replaying a reset/write list concurrently against the same slots is invalid;
+ * independent pools/ranges remain usable independently. Host recording is local
+ * to command arenas; there is no device-wide or query-pool recording mutex.
+ *
+ * Occlusion requires RASTER. One query may be active per list; begin/end must
+ * match pool/index and render scope. An outside-scope query may enclose complete
+ * scopes. An inside-scope query must end before render_end. No precise-count flag
+ * yet: zero/nonzero visibility is meaningful, exact sample count is not promised.
+ * Timestamp requires nonzero queue_info.timestamp_bits and one native stage bit:
+ * ALL, COPY, COMPUTE, FRAGMENT, INDIRECT or COLOR in this profile; combined masks,
+ * HOST and broad VERTEX/DEPTH groups are rejected. The requested stage can measure
+ * a later native stage; it is not a whole-list completion or calibrated host clock.
+ * Timestamp period is nanoseconds per tick. Mask to the queue's valid low bits and
+ * account for wrap; compare only within a known compatible device/queue clock
+ * domain. timestamp_compute_graphics is native timestampComputeAndGraphics, not
+ * an extra clock-synchronization guarantee. No CPU/GPU clock calibration API yet.
+ *
+ * Reset/resolve are outside rendering on graphics/compute queues; first/count
+ * names a nonempty in-bounds range with no active overlapping query. Resolve
+ * writes COPY_DST memory: one unsigned 32-bit result, or 64-bit with RESULT_64;
+ * optional availability follows at the same width (0 unavailable, nonzero ready).
+ * Stride is bytes between records; when count>1, nonzero and aligned to result
+ * width. Destination must fit every record and be width-aligned; overlapping
+ * records are not repacked or given an OGPU write-order guarantee. WAIT is
+ * an EXPLICIT GPU-side wait, never a host wait. Without WAIT, result data must not
+ * be interpreted before available; PARTIAL permits interim occlusion values only.
+ * Queried slots must have been reset and issued by prior execution; do not resolve
+ * never-issued slots. Timestamp PARTIAL is invalid. Writes need a subsequent
+ * COPY/WRITE dependency before host/shader use. Completion and cache invalidation
+ * remain explicit; result availability does not prove unrelated work complete.
+ */
+ogpu_next_status ogpu_next_query_pool_create(ogpu_next_device *, const ogpu_next_query_pool_desc *, ogpu_next_query_pool **);
+void ogpu_next_query_pool_destroy(ogpu_next_query_pool *);
+void ogpu_next_queries_reset(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count);
+void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
+void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
+void ogpu_next_timestamp(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, ogpu_next_stages);
+void ogpu_next_queries_resolve(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count, ogpu_next_span dst, uint64_t stride, uint32_t flags);
 typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;
 typedef struct ogpu_next_submit_desc {
     ogpu_next_record header;

@@ -32,9 +32,11 @@ explicit image transitions/clears/pitched transfers, caller-owned descriptor enc
 and mixed-heap shader consumption, prepared compute/graphics executables, inline/root
 arguments, dispatch and direct/indexed/indirect/count draws. Offscreen rendering has
 explicit viewport/scissor, attachment LOAD/STORE, color blending and depth testing.
+Timestamp/occlusion pools now provide explicit reset/use and GPU result copies with
+caller-selected widths, strides, availability and wait policy.
 Rust/C checks pass on Radeon/llvmpipe; Radeon also passes an explicit cross-family
 transfer. It is source-only Linux work under `ogpu_next_*`, not the installed ABI.
-Broader graphics/numerical profiles, queries, compiler metadata and consumer migration
+Broader graphics/numerical/query profiles, compiler metadata and consumer migration
 remain. Secondary
 execution, split dependencies and native multi-submit batching remain outstanding;
 the broader draft is not yet implemented.

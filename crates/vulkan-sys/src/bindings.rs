@@ -6520,12 +6520,39 @@ pub type PFN_vkCmdFillBuffer = ::std::option::Option<
         data: u32,
     ),
 >;
+pub type PFN_vkCmdBeginQuery = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        queryPool: VkQueryPool,
+        query: u32,
+        flags: VkQueryControlFlags,
+    ),
+>;
+pub type PFN_vkCmdEndQuery = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        queryPool: VkQueryPool,
+        query: u32,
+    ),
+>;
 pub type PFN_vkCmdResetQueryPool = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         queryPool: VkQueryPool,
         firstQuery: u32,
         queryCount: u32,
+    ),
+>;
+pub type PFN_vkCmdCopyQueryPoolResults = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        queryPool: VkQueryPool,
+        firstQuery: u32,
+        queryCount: u32,
+        dstBuffer: VkBuffer,
+        dstOffset: VkDeviceSize,
+        stride: VkDeviceSize,
+        flags: VkQueryResultFlags,
     ),
 >;
 pub type PFN_vkCreateEvent = ::std::option::Option<

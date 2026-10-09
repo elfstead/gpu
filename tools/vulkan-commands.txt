@@ -66,6 +66,9 @@ vkCmdDrawIndexed
 vkCreateQueryPool
 vkDestroyQueryPool
 vkCmdResetQueryPool
+vkCmdBeginQuery
+vkCmdEndQuery
+vkCmdCopyQueryPoolResults
 vkGetQueryPoolResults
 vkGetPhysicalDeviceProperties2
 vkCmdPushDataEXT

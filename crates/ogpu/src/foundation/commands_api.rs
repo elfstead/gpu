@@ -165,6 +165,119 @@ unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>
     }
 }
 /// # Safety
+/// Live device and readable description; disjoint output. Device outlives the pool.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_query_pool_create(
+    device: *mut Device,
+    desc: *const QueryPoolDesc,
+    out: *mut *mut QueryPool,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        let pool = QueryPool::create(unsafe { device.as_ref() }.ok_or(INVALID)?, unsafe {
+            description(desc, QUERY_POOL_DESC)?
+        })?;
+        unsafe {
+            out.write(Box::into_raw(pool));
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// No recorded future/pending/host use and live device. NULL allowed. Never waits.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_query_pool_destroy(pool: *mut QueryPool) {
+    if !pool.is_null() {
+        unsafe {
+            drop(Box::from_raw(pool));
+        }
+    }
+}
+/// # Safety
+/// Live pool/encoder, exclusive pool recording; caller synchronizes query reuse.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_queries_reset(
+    encoder: *mut List,
+    pool: *mut QueryPool,
+    first: u32,
+    count: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.queries_reset(pool.as_ref().ok_or(INVALID)?, first, count)
+        });
+    }
+}
+/// # Safety
+/// Live occlusion pool, unavailable query at execution and exclusive recording.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_query_begin(
+    encoder: *mut List,
+    pool: *mut QueryPool,
+    index: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.query(pool.as_ref().ok_or(INVALID)?, index, true)
+        });
+    }
+}
+/// # Safety
+/// Matching active query in this encoder and rendering scope.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_query_end(encoder: *mut List, pool: *mut QueryPool, index: u32) {
+    unsafe {
+        encode(encoder, |e| {
+            e.query(pool.as_ref().ok_or(INVALID)?, index, false)
+        });
+    }
+}
+/// # Safety
+/// Live timestamp pool, query reset before execution, valid scope and exclusive recording.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_timestamp(
+    encoder: *mut List,
+    pool: *mut QueryPool,
+    index: u32,
+    scope: u64,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.timestamp(pool.as_ref().ok_or(INVALID)?, index, scope)
+        });
+    }
+}
+/// # Safety
+/// Live pool/destination, valid initialized query lifecycle and synchronized output uses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_queries_resolve(
+    encoder: *mut List,
+    pool: *mut QueryPool,
+    first: u32,
+    count: u32,
+    dst: Span,
+    stride: u64,
+    flags: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.queries_resolve(
+                pool.as_ref().ok_or(INVALID)?,
+                first,
+                count,
+                dst,
+                stride,
+                flags,
+            )
+        });
+    }
+}
+/// # Safety
 /// Writable disjoint output.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_render_scratch_requirements(

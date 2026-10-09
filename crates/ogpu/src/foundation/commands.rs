@@ -25,6 +25,7 @@ pub struct List {
     rendering: Cell<bool>,
     viewport_set: Cell<bool>,
     index_count: Cell<Option<u64>>,
+    active_query: Cell<Option<(*const QueryPool, u32, bool)>>,
 }
 
 impl Arena {
@@ -98,6 +99,7 @@ impl Arena {
                 rendering: Cell::new(false),
                 viewport_set: Cell::new(false),
                 index_count: Cell::new(None),
+                active_query: Cell::new(None),
             }));
         }
         let info = vk::VkCommandBufferAllocateInfo {
@@ -190,6 +192,7 @@ impl Arena {
         slot.rendering.set(false);
         slot.viewport_set.set(false);
         slot.index_count.set(None);
+        slot.active_query.set(None);
         slot.mode = desc.replay_mode;
         let info = vk::VkCommandBufferBeginInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -559,9 +562,12 @@ impl List {
         }
     }
     pub(in crate::foundation) fn end(&self) -> Result<(), Status> {
-        let result = self
-            .outside_render()
-            .and_then(|d| unsafe { d.result((d.f.vkEndCommandBuffer.unwrap())(self.command)) });
+        let result = self.outside_render().and_then(|d| {
+            if self.active_query.get().is_some() {
+                return Err(INVALID);
+            }
+            unsafe { d.result((d.f.vkEndCommandBuffer.unwrap())(self.command)) }
+        });
         self.state.set(if result.is_ok() { 2 } else { 0 });
         result
     }
@@ -778,7 +784,7 @@ impl List {
     }
     pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
         let d = self.recording()?;
-        if !self.rendering.get() {
+        if !self.rendering.get() || self.active_query.get().is_some_and(|(_, _, inside)| inside) {
             return Err(INVALID);
         }
         unsafe {
@@ -792,6 +798,130 @@ impl List {
         stages(d, self.domain, 24, false)?;
         d.viewport(self.command, state)?;
         self.viewport_set.set(true);
+        Ok(())
+    }
+    pub(in crate::foundation) fn queries_reset(
+        &self,
+        pool: &QueryPool,
+        first: u32,
+        count: u32,
+    ) -> Result<(), Status> {
+        let d = self.outside_render()?;
+        stages(d, self.domain, 32, false)?; // Native reset/copy requires graphics or compute, not transfer-only.
+        pool.range(d, first, count)?;
+        if self
+            .active_query
+            .get()
+            .is_some_and(|(p, i, _)| ptr::eq(p, pool) && i >= first && i - first < count)
+        {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdResetQueryPool.unwrap())(self.command, pool.handle, first, count);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn query(
+        &self,
+        pool: &QueryPool,
+        index: u32,
+        begin: bool,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        pool.range(d, index, 1)?;
+        if pool.kind != 2 {
+            return Err(INVALID);
+        }
+        if begin {
+            if self.active_query.get().is_some() {
+                return Err(INVALID);
+            }
+            unsafe {
+                (d.f.vkCmdBeginQuery.unwrap())(self.command, pool.handle, index, 0);
+            }
+            self.active_query
+                .set(Some((pool, index, self.rendering.get())));
+        } else {
+            let (p, i, inside) = self.active_query.get().ok_or(INVALID)?;
+            if !ptr::eq(p, pool) || i != index || inside != self.rendering.get() {
+                return Err(INVALID);
+            }
+            unsafe {
+                (d.f.vkCmdEndQuery.unwrap())(self.command, pool.handle, index);
+            }
+            self.active_query.set(None);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) fn timestamp(
+        &self,
+        pool: &QueryPool,
+        index: u32,
+        scope: u64,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        pool.range(d, index, 1)?;
+        let native = stages(d, self.domain, scope, true)?;
+        if pool.kind != 1 || native.count_ones() != 1 {
+            return Err(INVALID);
+        }
+        if d.snapshot
+            .queues
+            .iter()
+            .find(|q| q.domain == self.domain)
+            .ok_or(INVALID)?
+            .timestamp_bits
+            == 0
+        {
+            return Err(UNSUPPORTED);
+        }
+        unsafe {
+            (d.f.vkCmdWriteTimestamp2.unwrap())(self.command, native, pool.handle, index);
+        }
+        Ok(())
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::foundation) unsafe fn queries_resolve(
+        &self,
+        pool: &QueryPool,
+        first: u32,
+        count: u32,
+        dst: Span,
+        stride: u64,
+        flags: u32,
+    ) -> Result<(), Status> {
+        let d = self.outside_render()?;
+        stages(d, self.domain, 32, false)?;
+        pool.range(d, first, count)?;
+        if self
+            .active_query
+            .get()
+            .is_some_and(|(p, i, _)| ptr::eq(p, pool) && i >= first && i - first < count)
+        {
+            return Err(INVALID);
+        }
+        let (size, align, native) = queries::result_layout(pool.kind, count, stride, flags)?;
+        if dst.size < size {
+            return Err(INVALID);
+        }
+        let memory = unsafe { dst.memory.as_ref() }.ok_or(INVALID)?;
+        let (buffer, offset, _) = memory.command_range(d, self.domain, dst.offset, dst.size, 2)?;
+        if offset % align != 0 {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdCopyQueryPoolResults.unwrap())(
+                self.command,
+                pool.handle,
+                first,
+                count,
+                buffer,
+                offset,
+                stride,
+                native,
+            );
+        }
         Ok(())
     }
     fn drawing(&self, indexed: bool) -> Result<&Device, Status> {

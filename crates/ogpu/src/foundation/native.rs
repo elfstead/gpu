@@ -32,6 +32,9 @@ pub(super) use executables::record as executable_record;
 mod rendering;
 pub use executables::Executable;
 pub(super) use rendering::render_scratch;
+#[path = "queries.rs"]
+mod queries;
+pub use queries::QueryPool;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -117,6 +120,13 @@ functions! {
     vkCmdDrawIndirectCount2KHR: PFN_vkCmdDrawIndirectCount2KHR,
     vkCmdDrawIndexedIndirectCount2KHR: PFN_vkCmdDrawIndexedIndirectCount2KHR,
     vkGetPhysicalDeviceFormatProperties: PFN_vkGetPhysicalDeviceFormatProperties,
+    vkCreateQueryPool: PFN_vkCreateQueryPool,
+    vkDestroyQueryPool: PFN_vkDestroyQueryPool,
+    vkCmdResetQueryPool: PFN_vkCmdResetQueryPool,
+    vkCmdBeginQuery: PFN_vkCmdBeginQuery,
+    vkCmdEndQuery: PFN_vkCmdEndQuery,
+    vkCmdWriteTimestamp2: PFN_vkCmdWriteTimestamp2,
+    vkCmdCopyQueryPoolResults: PFN_vkCmdCopyQueryPoolResults,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -166,6 +176,7 @@ pub(super) fn snapshot(
     let mut descriptor_limits = DescriptorLimits::default();
     let mut execution_limits = ExecutionLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
+    let mut query_limits = QueryLimits::default();
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -266,6 +277,10 @@ pub(super) fn snapshot(
             argument_flags: 1, // One native byte namespace, not isolated stage banks.
         };
         let p = &properties.properties.limits;
+        query_limits = QueryLimits {
+            timestamp_period_ns: p.timestampPeriod,
+            timestamp_compute_graphics: p.timestampComputeAndGraphics,
+        };
         graphics_limits = GraphicsLimits {
             max_colors: p.maxColorAttachments,
             max_width: p.maxFramebufferWidth,
@@ -353,6 +368,7 @@ pub(super) fn snapshot(
         descriptor_limits,
         execution_limits,
         graphics_limits,
+        query_limits,
     })
 }
 

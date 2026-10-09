@@ -40,6 +40,21 @@ pub const GRAPHICS_STATE: u32 = 114;
 pub const RENDER_DESC: u32 = 115;
 pub const VIEWPORT_STATE: u32 = 116;
 pub const GRAPHICS_LIMITS: u32 = 9;
+pub const QUERY_LIMITS: u32 = 10;
+pub const QUERY_POOL_DESC: u32 = 117;
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct QueryLimits {
+    pub timestamp_period_ns: f32,
+    pub timestamp_compute_graphics: u32,
+}
+#[repr(C)]
+pub struct QueryPoolDesc {
+    pub header: Record,
+    pub kind: u32,
+    pub count: u32,
+    pub statistics: u64,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]

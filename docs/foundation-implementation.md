@@ -317,9 +317,34 @@ uses `SV_VulkanVertexID` to test native offset semantics. This distinction belon
 future generated graphics metadata, not a runtime draw rewrite. See
 [Slang's SPIR-V semantics](https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html).
 
+## Implemented explicit queries
+
+Independent timestamp and occlusion pools now own only their native query storage
+and borrow the device. Reset, timestamp, begin/end and result-copy commands operate
+on explicit slots; no automatic timer, completion object, host polling, CPU result
+cache or resource-retention registry is created. Occlusion queries may live inside
+one rendering scope or surround complete scopes; exact sample counts are not yet
+enabled. Timestamp period and per-queue valid bits are explicit metadata, not a
+calibrated host clock or a guarantee of comparable clocks across arbitrary queues.
+
+Results copy into caller COPY_DST spans with chosen 32/64-bit width, byte stride,
+availability and optional explicit **GPU** wait. Timestamp partial results are
+rejected. Reset/use/replay synchronization remains the caller's responsibility;
+the same query slots cannot be reused concurrently without satisfying native rules.
+One small encoder-local active-query record checks matching begin/end and scopes,
+without retaining the pool or tracking every query's global execution state.
+Output memory visibility, host wait and invalidation are explicit just as for other
+GPU writes. See [native query result copies](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdCopyQueryPoolResults.html).
+
+The C consumer now also checks padded 64-bit timestamp/availability records and
+32-bit visible/empty occlusion records, serial replay/reset, enclosing and in-scope
+queries, and guard bytes. It does not infer a performance comparison from timestamps.
+Pipeline statistics, precise occlusion, performance-counter profiles, finer timestamp
+stage vocabulary and calibrated clocks remain explicit follow-up work.
+
 ## Verification so far
 
-- 63 ordinary Rust tests pass, including foundation contract, status and
+- 64 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -335,7 +360,7 @@ future generated graphics metadata, not a runtime draw rewrite. See
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All eight foundation GPU tests pass on each available driver. Pinned Vulkan
+  All nine foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.
@@ -389,6 +414,10 @@ future generated graphics metadata, not a runtime draw rewrite. See
   stride and count ranges are diagnosed before native draws. The native graphics
   preparation test injects first/second-module failure and null/partial pipeline
   failure, checks exact cleanup and cleared outputs, then succeeds on the same device.
+- Query result readback and negative range/type/stage/scope checks pass on both
+  drivers. `gpu_foundation_queries` checks invalid descriptions, failed native-output
+  adoption, successful destruction and sticky injected device loss. These are
+  controlled failure checks, not a claim of actual device loss or hosted CI execution.
 
 No timing campaign, GPU queue-overlap claim, real device-loss event, Metal support,
 or new SDK support follows. Hardware execution requires sandbox-external GPU access;
@@ -396,7 +425,7 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Broader graphics and compute/argument profiles, query/readback facilities and consumer
+Broader graphics and compute/argument profiles, richer query facilities and consumer
 cutover as the coordinated tranche proceeds. Graphics is usable offscreen, not a
 complete graphics contract or a completed M4 consumer. Presentation remains separate.
 Cache control, set/binding-to-address mappings and generated interface integration

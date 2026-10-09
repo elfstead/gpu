@@ -23,8 +23,6 @@
 extern "C" {
 #endif
 
-typedef struct ogpu_next_query_pool ogpu_next_query_pool;
-
 /* Discovery, queue/memory topology, requested feature enabling and independent
  * timeline objects: implemented header above. Budget, numerical tuples and
  * exact executable/format/state query records remain to be defined. */
@@ -65,21 +63,8 @@ void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const og
 void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
 void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 
-/* Queries resolve to application storage without an implicit CPU readback.
- * Query type, counter widths/availability, timestamp domains/wrap and result
- * layout are described by capabilities and pool metadata. */
-typedef struct ogpu_next_query_pool_desc {
-    ogpu_next_record header;
-    uint32_t type, count;
-    uint64_t statistics;
-} ogpu_next_query_pool_desc;
-ogpu_next_status ogpu_next_query_pool_create(ogpu_next_device *, const ogpu_next_query_pool_desc *, ogpu_next_query_pool **);
-void ogpu_next_query_pool_destroy(ogpu_next_query_pool *);
-void ogpu_next_queries_reset(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count);
-void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
-void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
-void ogpu_next_timestamp(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, ogpu_next_stages);
-void ogpu_next_queries_resolve(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count, ogpu_next_span dst, uint64_t stride, uint32_t flags);
+/* Timestamp/occlusion pools and explicit GPU result copies are imported above.
+ * Pipeline statistics, precise occlusion and performance-counter profiles follow. */
 void ogpu_next_label_begin(ogpu_next_encoder *, const char *name);
 void ogpu_next_label_end(ogpu_next_encoder *);
 

@@ -16,6 +16,7 @@ pub mod types;
 use crate::vulkan::Instance;
 pub use native::Executable;
 pub use native::Memory;
+pub use native::QueryPool;
 pub use native::{Arena, List};
 pub use native::{Device, Queue, Timeline};
 pub use native::{Image, View};
@@ -37,6 +38,7 @@ struct Snapshot {
     descriptor_limits: DescriptorLimits,
     execution_limits: ExecutionLimits,
     graphics_limits: GraphicsLimits,
+    query_limits: QueryLimits,
     features: FeatureInfo,
 }
 pub struct Adapter {
@@ -90,6 +92,7 @@ impl Snapshot {
                 DESCRIPTOR_LIMITS => copy_out(query, std::slice::from_ref(&self.descriptor_limits)),
                 EXECUTION_LIMITS => copy_out(query, std::slice::from_ref(&self.execution_limits)),
                 GRAPHICS_LIMITS => copy_out(query, std::slice::from_ref(&self.graphics_limits)),
+                QUERY_LIMITS => copy_out(query, std::slice::from_ref(&self.query_limits)),
                 _ => Err(UNSUPPORTED),
             }
         }
