@@ -30,6 +30,7 @@ typedef struct ogpu_next_arena ogpu_next_arena;
 typedef struct ogpu_next_encoder ogpu_next_encoder;
 typedef struct ogpu_next_list ogpu_next_list;
 typedef struct ogpu_next_executable ogpu_next_executable;
+typedef struct ogpu_next_executable_cache ogpu_next_executable_cache;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
@@ -67,7 +68,8 @@ enum {
     OGPU_NEXT_EXECUTABLE_DESC = 110, OGPU_NEXT_ARGUMENT_INTERFACE = 111,
     OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
-    OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117
+    OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
+    OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -114,6 +116,7 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT64_C(2)
 #define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT64_C(4)
 #define OGPU_NEXT_FEATURE_SAMPLER_ANISOTROPY UINT64_C(8)
+#define OGPU_NEXT_FEATURE_CACHE_CONTROL UINT64_C(16)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -545,10 +548,43 @@ typedef struct ogpu_next_executable_desc {
     const ogpu_next_record *static_state;
     uint64_t dynamic_state;
     const ogpu_next_record *requirements;
-    ogpu_next_bytes native_cache;
+    ogpu_next_executable_cache *cache;
 } ogpu_next_executable_desc;
+enum { OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION = 0, OGPU_NEXT_CACHE_CALLER_SYNCHRONIZATION = 1 };
+typedef struct ogpu_next_executable_cache_desc {
+    ogpu_next_record header;
+    uint32_t synchronization, reserved;
+    ogpu_next_bytes initial;
+} ogpu_next_executable_cache_desc;
+/* Optional preparation-only storage, shared across compute/graphics executables
+ * on the same device. No default/global cache, disk I/O, hidden lookup or retention.
+ * initial={NULL,0} creates an empty cache. Nonempty data MUST be unchanged native
+ * bytes previously exported, with the returned size. Header size/version, vendor,
+ * device and cache UUID are checked; identity mismatch is UNSUPPORTED, never silently
+ * retried as an empty cache. The opaque payload remains trusted, not validated.
+ * Bytes are borrowed during creation only. The cache borrows its device. reserved=0.
+ * NATIVE_SYNCHRONIZATION permits concurrent preparations sharing this cache via
+ * native synchronization. CALLER_SYNCHRONIZATION requires enabled CACHE_CONTROL
+ * and exclusive access to this cache during preparation; native cache locking is
+ * disabled. Independent caches may always be prepared concurrently. Export excludes
+ * all mutation in either mode; destruction excludes every cache use. Prepared
+ * executables do not retain the cache and may outlive it. No GPU wait is needed.
+ * data=NULL queries maximum export size. Otherwise *size is input capacity and
+ * output bytes written: CAPACITY may write a valid partial native cache, unlike
+ * atomic array queries. Query size again to request a full export. All output bytes
+ * and size storage are disjoint. Native caching is advisory, not a hit/latency promise.
+ */
+ogpu_next_status ogpu_next_executable_cache_create(ogpu_next_device *, const ogpu_next_executable_cache_desc *, ogpu_next_executable_cache **);
+ogpu_next_status ogpu_next_executable_cache_data(ogpu_next_executable_cache *, size_t *size, void *data);
+/* Merge preserves destination contents and borrows sources only during this call.
+ * All caches belong to the same device; destination must not be a source. The
+ * caller excludes all other destination access and source mutation/destruction.
+ * count=0 is a no-op. Cold translation may allocate; no recording-path work.
+ * On native failure no rollback of advisory cache contents is promised. */
+ogpu_next_status ogpu_next_executable_cache_merge(ogpu_next_executable_cache *destination, uint32_t count, ogpu_next_executable_cache *const *sources);
+void ogpu_next_executable_cache_destroy(ogpu_next_executable_cache *);
 /* stage=COMPUTE; kind=COMPUTE; shader_count=1; static_state=NULL, dynamic_state=0,
- * native_cache={NULL,0}. Explicit nonempty UTF-8 entry name (not forced to main).
+ * cache=NULL or an explicit cache above. Explicit nonempty UTF-8 entry name (not forced to main).
  * code is aligned SPIR-V words, valid for this device and its enabled features.
  * interface_metadata names ARGUMENT_INTERFACE; requirements names
  * SHADER_REQUIREMENTS. Both are mandatory even when no argument bytes are used.
@@ -560,7 +596,7 @@ typedef struct ogpu_next_executable_desc {
  * Optional SPECIALIZATION entries have unique IDs, nonempty bounded byte spans,
  * and sizes/types matching the shader (including 4-byte native bools); reserved=0.
  * Inputs are borrowed during creation only; argument metadata is copied. Device
- * is borrowed through destruction; no current context or shared pipeline cache.
+ * is borrowed through destruction; no current context or implicit shared cache.
  */
 ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_executable **);
 void ogpu_next_executable_destroy(ogpu_next_executable *);

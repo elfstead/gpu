@@ -1,5 +1,5 @@
 //! Prepared native compute state. Borrowed device, explicit artifact ABI, no
-//! resource retention, command-time compilation, argument upload or shared cache.
+//! resource retention, command-time compilation, argument upload or implicit cache.
 use super::*;
 use std::ffi::CStr;
 #[path = "graphics_pipeline.rs"]
@@ -109,11 +109,10 @@ impl Executable {
             || desc.shader_count != 1
             || !desc.static_state.is_null()
             || desc.dynamic_state != 0
-            || desc.native_cache.size != 0
-            || !desc.native_cache.data.is_null()
         {
             return Err(UNSUPPORTED);
         }
+        let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
         let shader = unsafe { array(desc.shaders, 1)? }.first().unwrap();
         if shader.stage != 4 || shader.format != 0 {
             return Err(UNSUPPORTED);
@@ -229,7 +228,7 @@ impl Executable {
             // including failure. Adopt for cleanup; unlike unspecified module output.
             let status = (d.f.vkCreateComputePipelines.unwrap())(
                 d.handle,
-                ptr::null_mut(),
+                cache,
                 1,
                 &info,
                 ptr::null(),
@@ -492,10 +491,7 @@ mod tests {
                 static_state: &state.header,
                 dynamic_state: 1,
                 requirements: &req.header,
-                native_cache: Bytes {
-                    data: ptr::null(),
-                    size: 0,
-                },
+                cache: ptr::null_mut(),
             };
             for (mode, modules, pipelines) in
                 [(1, 0, 0), (4, 1, 0), (2, 2, 0), (3, 2, 1), (0, 2, 1)]
@@ -611,10 +607,7 @@ mod tests {
                 static_state: ptr::null(),
                 dynamic_state: 0,
                 requirements: &req.header,
-                native_cache: Bytes {
-                    data: ptr::null(),
-                    size: 0,
-                },
+                cache: ptr::null_mut(),
             };
             for (mode, modules, pipelines) in [(1, 0, 0), (2, 1, 0), (3, 1, 1), (0, 1, 1)] {
                 FAILURE.set(mode);

@@ -15,6 +15,7 @@ pub use memory_api::*;
 pub mod types;
 use crate::vulkan::Instance;
 pub use native::Executable;
+pub use native::ExecutableCache;
 pub use native::Memory;
 pub use native::QueryPool;
 pub use native::{Arena, List};
@@ -30,6 +31,7 @@ use types::*;
 
 #[derive(Clone)]
 struct Snapshot {
+    cache_uuid: [u8; 16],
     info: AdapterInfo,
     queues: Vec<QueueInfo>,
     memory_types: Vec<MemoryTypeInfo>,

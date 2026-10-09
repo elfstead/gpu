@@ -51,3 +51,5 @@ VkImageFormatListCreateInfo
 VkImageViewUsageCreateInfo
 VkPhysicalDeviceShaderDrawParametersFeatures
 VkPhysicalDeviceVulkan12Properties
+VkPipelineCacheCreateInfo
+VkPipelineCacheCreateFlagBits

@@ -95,3 +95,7 @@ vkGetPhysicalDeviceFormatProperties
 vkWriteSamplerDescriptorsEXT
 vkCmdBindResourceHeapEXT
 vkCmdBindSamplerHeapEXT
+vkCreatePipelineCache
+vkDestroyPipelineCache
+vkGetPipelineCacheData
+vkMergePipelineCaches

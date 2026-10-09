@@ -48,7 +48,8 @@ _Static_assert(sizeof(ogpu_next_root_slot) == 16, "root slot ABI");
 _Static_assert(sizeof(ogpu_next_shader_requirements) == 48, "shader requirements ABI");
 _Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
 _Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
-_Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
+_Static_assert(sizeof(ogpu_next_executable_desc) == 72, "executable ABI");
+_Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
 _Static_assert(sizeof(ogpu_next_graphics_limits) == 56, "graphics limits ABI");
 _Static_assert(sizeof(ogpu_next_graphics_state) == 152, "graphics state ABI");
@@ -66,6 +67,7 @@ static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint3
 
 static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_heap.h"
+#include "foundation_cache.h"
 #include "foundation_graphics.h"
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
@@ -74,6 +76,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL;
     ogpu_next_executable *executable = NULL;
+    ogpu_next_executable_cache *cache = NULL;
     ogpu_next_memory *memory = NULL;
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *done = NULL;
@@ -97,7 +100,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
         {code, (size_t)code_size}, "transform", &abi.header, &spec.header};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
-        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, {NULL, 0}};
+        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL};
     slots[1].offset = 0;
     REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
     slots[1].offset = 8;
@@ -107,7 +110,14 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     entry.size = 8;
     REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
     entry.size = 4;
+    ogpu_next_executable_cache_desc cache_desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC),
+        OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION, 0, {NULL, 0}};
+    TRY(ogpu_next_executable_cache_create(device, &cache_desc, &cache)); ed.cache = cache;
     TRY(ogpu_next_executable_create(device, &ed, &executable));
+    REQUIRE(cache_roundtrip(device, &cache, cache_desc.synchronization) == EXIT_SUCCESS);
+    ogpu_next_executable_destroy(executable); executable = NULL; ed.cache = cache;
+    TRY(ogpu_next_executable_create(device, &ed, &executable));
+    ogpu_next_executable_cache_destroy(cache); cache = NULL; ed.cache = NULL;
     /* Preparation does not retain artifact bytes or metadata. */
     free(code); code = NULL;
     slots[0].offset = UINT32_MAX; extra = 99;
@@ -187,6 +197,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
 cleanup:
     if (pending) { fprintf(stderr, "Pending compute work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(executable);
+    ogpu_next_executable_cache_destroy(cache);
     ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
     free(code); free(scratch);
@@ -841,7 +852,8 @@ int main(int argc, char **argv) {
             requests[count++] = (ogpu_next_queue_request){queues[j].domain, 1, 0.5f};
         }
         /* One real queue from every available domain, no implicit substitution. */
-        ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0, OGPU_NEXT_FEATURE_RASTER };
+        ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
+            OGPU_NEXT_FEATURE_RASTER | (features.available & OGPU_NEXT_FEATURE_CACHE_CONTROL) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         for (uint32_t j = 0; j < count; ++j) {
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 0) != NULL);
@@ -854,7 +866,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == OGPU_NEXT_FEATURE_RASTER);
+    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & OGPU_NEXT_FEATURE_CACHE_CONTROL)));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);

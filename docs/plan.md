@@ -40,6 +40,10 @@ llvmpipe passes stencil raster in explicit diagnostic isolation, but full combin
 readback fails (documented in the implementation status, not hidden by a fallback).
 Timestamp/occlusion pools now provide explicit reset/use and GPU result copies with
 caller-selected widths, strides, availability and wait policy.
+Independent executable caches now support compute/graphics preparation, native or
+caller synchronization, identity-checked import, export and explicit merge. C tests
+rebuild pipelines from exported caches and destroy caches before GPU execution;
+Rust tests exercise concurrent preparation and allocation/export failure ownership.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
 Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe caveat above).

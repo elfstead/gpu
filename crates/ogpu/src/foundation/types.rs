@@ -42,6 +42,15 @@ pub const VIEWPORT_STATE: u32 = 116;
 pub const GRAPHICS_LIMITS: u32 = 9;
 pub const QUERY_LIMITS: u32 = 10;
 pub const QUERY_POOL_DESC: u32 = 117;
+pub const EXECUTABLE_CACHE_DESC: u32 = 118;
+pub const CACHE_CONTROL: u64 = 16;
+#[repr(C)]
+pub struct ExecutableCacheDesc {
+    pub header: Record,
+    pub synchronization: u32,
+    pub reserved: u32,
+    pub initial: Bytes,
+}
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct QueryLimits {
@@ -241,7 +250,7 @@ pub struct ExecutableDesc {
     pub static_state: *const Record,
     pub dynamic_state: u64,
     pub requirements: *const Record,
-    pub native_cache: Bytes,
+    pub cache: *mut super::ExecutableCache,
 }
 #[repr(C)]
 pub struct Launch {

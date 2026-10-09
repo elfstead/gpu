@@ -2802,6 +2802,12 @@ pub type VkCommandBufferUsageFlagBits = ::std::os::raw::c_uint;
 pub type VkCommandBufferUsageFlags = VkFlags;
 pub type VkEventCreateFlags = VkFlags;
 pub type VkShaderModuleCreateFlags = VkFlags;
+pub const VkPipelineCacheCreateFlagBits_VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT: VkPipelineCacheCreateFlagBits = 1;
+pub const VkPipelineCacheCreateFlagBits_VK_PIPELINE_CACHE_CREATE_INTERNALLY_SYNCHRONIZED_MERGE_BIT_KHR: VkPipelineCacheCreateFlagBits = 8;
+pub const VkPipelineCacheCreateFlagBits_VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT: VkPipelineCacheCreateFlagBits = 1;
+pub const VkPipelineCacheCreateFlagBits_VK_PIPELINE_CACHE_CREATE_FLAG_BITS_MAX_ENUM: VkPipelineCacheCreateFlagBits = 2147483647;
+pub type VkPipelineCacheCreateFlagBits = ::std::os::raw::c_uint;
+pub type VkPipelineCacheCreateFlags = VkFlags;
 pub type VkPipelineCreateFlags = VkFlags;
 pub type VkPipelineShaderStageCreateFlags = VkFlags;
 pub type VkSamplerCreateFlags = VkFlags;
@@ -4980,6 +4986,48 @@ impl Default for VkShaderModuleCreateInfo {
     }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineCacheCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineCacheCreateFlags,
+    pub initialDataSize: usize,
+    pub pInitialData: *const ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineCacheCreateInfo",
+    ][::std::mem::size_of::<VkPipelineCacheCreateInfo>() - 40usize];
+    [
+        "Alignment of VkPipelineCacheCreateInfo",
+    ][::std::mem::align_of::<VkPipelineCacheCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineCacheCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineCacheCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkPipelineCacheCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineCacheCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkPipelineCacheCreateInfo::flags",
+    ][::std::mem::offset_of!(VkPipelineCacheCreateInfo, flags) - 16usize];
+    [
+        "Offset of field: VkPipelineCacheCreateInfo::initialDataSize",
+    ][::std::mem::offset_of!(VkPipelineCacheCreateInfo, initialDataSize) - 24usize];
+    [
+        "Offset of field: VkPipelineCacheCreateInfo::pInitialData",
+    ][::std::mem::offset_of!(VkPipelineCacheCreateInfo, pInitialData) - 32usize];
+};
+impl Default for VkPipelineCacheCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkSpecializationMapEntry {
     pub constantID: u32,
@@ -6584,6 +6632,37 @@ pub type PFN_vkDestroyShaderModule = ::std::option::Option<
         shaderModule: VkShaderModule,
         pAllocator: *const VkAllocationCallbacks,
     ),
+>;
+pub type PFN_vkCreatePipelineCache = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkPipelineCacheCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pPipelineCache: *mut VkPipelineCache,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyPipelineCache = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipelineCache: VkPipelineCache,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkGetPipelineCacheData = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pipelineCache: VkPipelineCache,
+        pDataSize: *mut usize,
+        pData: *mut ::std::os::raw::c_void,
+    ) -> VkResult,
+>;
+pub type PFN_vkMergePipelineCaches = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        dstCache: VkPipelineCache,
+        srcCacheCount: u32,
+        pSrcCaches: *const VkPipelineCache,
+    ) -> VkResult,
 >;
 pub type PFN_vkCreateComputePipelines = ::std::option::Option<
     unsafe extern "C" fn(

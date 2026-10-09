@@ -31,6 +31,9 @@ pub(super) use executables::record as executable_record;
 #[path = "rendering.rs"]
 mod rendering;
 pub use executables::Executable;
+#[path = "executable_cache.rs"]
+mod executable_cache;
+pub use executable_cache::ExecutableCache;
 pub(super) use rendering::render_scratch;
 use rendering::samples;
 #[path = "queries.rs"]
@@ -103,6 +106,10 @@ functions! {
     vkCreateShaderModule: PFN_vkCreateShaderModule,
     vkDestroyShaderModule: PFN_vkDestroyShaderModule,
     vkCreateComputePipelines: PFN_vkCreateComputePipelines,
+    vkCreatePipelineCache: PFN_vkCreatePipelineCache,
+    vkDestroyPipelineCache: PFN_vkDestroyPipelineCache,
+    vkGetPipelineCacheData: PFN_vkGetPipelineCacheData,
+    vkMergePipelineCaches: PFN_vkMergePipelineCaches,
     vkDestroyPipeline: PFN_vkDestroyPipeline,
     vkCmdBindPipeline: PFN_vkCmdBindPipeline,
     vkCmdPushDataEXT: PFN_vkCmdPushDataEXT,
@@ -180,6 +187,7 @@ pub(super) fn snapshot(
     let mut execution_limits = ExecutionLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
+    let mut cache_uuid = [0; 16];
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -237,6 +245,10 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
+        cache_uuid = properties.properties.pipelineCacheUUID;
+        if v13.pipelineCreationCacheControl != 0 {
+            features.available |= CACHE_CONTROL;
+        }
         memory_limits = MemoryLimits {
             max_buffer_size: maintenance4.maxBufferSize,
             max_allocation_size: maintenance3.maxMemoryAllocationSize,
@@ -315,6 +327,7 @@ pub(super) fn snapshot(
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
     Ok(Snapshot {
+        cache_uuid,
         info: AdapterInfo {
             name: info.name,
             backend: crate::BACKEND_VULKAN,
@@ -480,6 +493,7 @@ impl Device {
             synchronization2: 1,
             maintenance4: 1,
             dynamicRendering: u32::from(enabled & RASTER != 0),
+            pipelineCreationCacheControl: u32::from(enabled & CACHE_CONTROL != 0),
             pNext: ptr::from_mut(&mut v14).cast(),
             ..Default::default()
         };

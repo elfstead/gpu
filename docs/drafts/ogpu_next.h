@@ -34,9 +34,9 @@ extern "C" {
  * in the imported header. No owned heap object or implicit allocation policy. */
 
 /* Compute/graphics preparation, inline/device-root ABI and direct/indirect launch
- * come from the implemented header. Wider graphics/native artifact profiles and cache
- * records remain to implement; no implicit translation or command-time JIT. */
-ogpu_next_status ogpu_next_executable_cache(ogpu_next_executable *, size_t *size, void *data);
+ * come from the implemented header, together with independent preparation caches,
+ * import/export and merge. Wider graphics/native artifact profiles remain to
+ * implement; no implicit translation or command-time JIT. */
 
 /* Primary arenas, replay, explicit host scratch, submission and memory barriers
  * are implemented in the imported header. Nested/secondary execution follows. */

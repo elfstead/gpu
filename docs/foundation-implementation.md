@@ -258,8 +258,8 @@ Preparation creates a native compute pipeline with descriptor-heap access and no
 pipeline layout; it needs no shader-object feature or runtime translation. Shader
 modules are released immediately after preparation. Pipeline failure outputs are
 cleaned up according to Vulkan's partial-creation contract. This differs from
-unspecified failed shader-module outputs, which are never adopted. Native cache
-import/export, additional artifact formats, set/binding mappings, additional shader stages
+unspecified failed shader-module outputs, which are never adopted. Additional
+artifact formats, set/binding mappings, additional shader stages
 and richer numerical/launch requirements remain unimplemented, not silently
 substituted. See [native compute preparation](https://docs.vulkan.org/refpages/latest/refpages/source/VkComputePipelineCreateInfo.html).
 
@@ -379,6 +379,44 @@ then pass on llvmpipe. This is diagnostic isolation, not a full llvmpipe pass or
 runtime workaround. Default testing keeps the failure visible. D24S8 execution and
 combined depth/stencil multisampling remain unverified.
 
+## Implemented explicit executable caches
+
+Preparation can borrow an independent cache, shared across compute and graphics.
+The cache is neither an executable owner nor a device-global lookup table: callers
+choose its lifetime, partitioning and persistence. Executables may outlive it; no
+cache is touched during binding, recording, submission or execution. Native cache
+contents are advisory, not a promise of a hit, bounded compilation time or a fully
+portable executable. No OGPU disk I/O, eviction or implicit empty-cache retry exists.
+
+Two synchronization strategies are explicit. Native synchronization permits concurrent
+preparation against one cache. Caller synchronization requires enabled `CACHE_CONTROL`
+and maps to Vulkan's externally synchronized cache bit, avoiding native cache locking.
+Independent caches may be prepared concurrently. Export excludes mutation; merge
+requires exclusive destination access and no source mutation. Merge may allocate a
+temporary native-handle array on this cold path. Cache destruction excludes all use,
+but needs no GPU wait. See [native cache creation](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineCacheCreateInfo.html)
+and [merging](https://docs.vulkan.org/refpages/latest/refpages/source/vkMergePipelineCaches.html).
+
+Import checks the little-endian native header's size/version, vendor/device IDs and
+cache UUID before entering the driver. The remaining payload must still be intact
+previously exported bytes; this is not a validator for arbitrary untrusted binaries.
+Export writes directly into caller storage. Insufficient capacity returns `CAPACITY`
+and the bytes actually written, potentially a valid partial cache; unlike array
+queries it is not atomic and does not report the required capacity. A null-data
+query obtains the maximum size again. This preserves [native export semantics](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetPipelineCacheData.html)
+without allocating or copying an intermediate blob.
+
+C consumers exercise native-synchronized compute caches and caller-synchronized
+graphics caches where enabled: export/import/merge, short-output guards, incompatible
+identity rejection, pipeline reconstruction and destroying caches before executing
+the reconstructed pipelines. Rust tests additionally cover concurrent shared/independent
+preparation, disabled-feature rejection, cross-device rejection, invalid native failure
+outputs, retry after allocation/export failure and sticky synthetic device loss.
+No cache-hit, persistent-driver-cache independence or compile-time performance claim
+is made. Compile-required controls, pipeline binaries and non-Vulkan artifacts remain
+separate work. The source-only executable record changes from 80 to 72 bytes; installed
+ABI 20 is unchanged.
+
 ## Implemented explicit queries
 
 Independent timestamp and occlusion pools now own only their native query storage
@@ -490,7 +528,7 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 Broader graphics and compute/argument profiles, richer query facilities and consumer
 cutover as the coordinated tranche proceeds. Graphics is usable offscreen, not a
 complete graphics contract or a completed M4 consumer. Presentation remains separate.
-Cache control, set/binding-to-address mappings and generated interface integration
+Compile-required controls/pipeline binaries, set/binding-to-address mappings and generated interface integration
 remain explicit work; the current compute slice does not close the whole foundation.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection

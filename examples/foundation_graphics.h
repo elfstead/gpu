@@ -13,6 +13,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     uint32_t read_planes = !stencil_enabled || !(raster_only && strcmp(raster_only, "1") == 0);
     if (!read_planes) fprintf(stderr, "Explicit diagnostic mode: combined depth/stencil plane copies and their readback checks are NOT exercised.\n");
     ogpu_next_executable *pipelines[3] = {NULL};
+    ogpu_next_executable_cache *cache = NULL;
     uint32_t depth_aspects = OGPU_NEXT_ASPECT_DEPTH | (stencil_enabled ? OGPU_NEXT_ASPECT_STENCIL : 0);
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *done = NULL;
@@ -20,6 +21,12 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_graphics_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS, &limits, 1, sizeof(limits));
     TRY(ogpu_next_device_query(device, &q)); REQUIRE(limits.max_colors > 0);
+    ogpu_next_feature_info features = {0};
+    q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
+    TRY(ogpu_next_device_query(device, &q));
+    uint32_t synchronization = features.enabled & OGPU_NEXT_FEATURE_CACHE_CONTROL ? OGPU_NEXT_CACHE_CALLER_SYNCHRONIZATION : OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION;
+    ogpu_next_executable_cache_desc cache_desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC), synchronization, 0, {NULL, 0}};
+    TRY(ogpu_next_executable_cache_create(device, &cache_desc, &cache));
     ogpu_next_query_limits ql = {0};
     q = query(OGPU_NEXT_QUERY_LIMITS, &ql, 1, sizeof(ql));
     TRY(ogpu_next_device_query(device, &q)); REQUIRE(ql.timestamp_period_ns > 0);
@@ -50,7 +57,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         OGPU_NEXT_D32_FLOAT, 1, 1, OGPU_NEXT_COMPARE_LESS, {0, 0, 0, 0}, 0, {0}, {0}};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
-        OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, {NULL, 0}};
+        OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, cache};
     gs.samples = 3;
     REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
     gs.samples = samples;
@@ -67,6 +74,9 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         gs.stencil_back.fail = OGPU_NEXT_STENCIL_KEEP;
     }
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[0]));
+    REQUIRE(cache_roundtrip(device, &cache, synchronization) == EXIT_SUCCESS);
+    ogpu_next_executable_destroy(pipelines[0]); pipelines[0] = NULL; ed.cache = cache;
+    TRY(ogpu_next_executable_create(device, &ed, &pipelines[0]));
     if (stencil_enabled) {
         gs.stencil_front.reference = gs.stencil_back.reference = 2;
         TRY(ogpu_next_executable_create(device, &ed, &pipelines[2]));
@@ -77,6 +87,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     color.blend = 1; color.dst_color = 1; color.src_alpha = 0; color.dst_alpha = 1;
     gs.depth_write = 0;
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[1]));
+    ogpu_next_executable_cache_destroy(cache); cache = NULL; ed.cache = NULL;
     free(code[0]); code[0] = NULL; free(code[1]); code[1] = NULL;
     ogpu_next_subresources range = {OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1};
     for (uint32_t i = 0; i < image_count; ++i) {
@@ -362,6 +373,7 @@ cleanup:
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
     ogpu_next_query_pool_destroy(timestamps); ogpu_next_query_pool_destroy(occlusion);
     for (uint32_t i = 0; i < 3; ++i) ogpu_next_executable_destroy(pipelines[i]);
+    ogpu_next_executable_cache_destroy(cache);
     for (uint32_t i = 0; i < image_count; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     ogpu_next_memory_destroy(host);
     if (file) fclose(file);

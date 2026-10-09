@@ -30,11 +30,10 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     if d.snapshot.features.enabled & RASTER == 0
         || desc.shader_count != 2
         || desc.dynamic_state != 1
-        || desc.native_cache.size != 0
-        || !desc.native_cache.data.is_null()
     {
         return Err(UNSUPPORTED);
     }
+    let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
     let state = unsafe { record::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
     let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
     if req.features & !d.snapshot.features.enabled != 0 {
@@ -387,7 +386,7 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(
             d.handle,
-            ptr::null_mut(),
+            cache,
             1,
             &info,
             ptr::null(),

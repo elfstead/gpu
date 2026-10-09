@@ -135,7 +135,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
         {code, (size_t)code_size}, "consume", &abi.header, NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
-        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, {NULL, 0}};
+        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL};
     TRY(ogpu_next_executable_create(device, &ed, &executable));
     free(code); code = NULL;
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
