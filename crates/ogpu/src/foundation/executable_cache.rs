@@ -287,6 +287,8 @@ mod tests {
                         cache: local.as_ref().map_or(shared as *mut ExecutableCache, |c| {
                             ptr::from_ref(&**c).cast_mut()
                         }),
+                        compile_flags: 0,
+                        reserved: 0,
                     };
                     let executable = unsafe { Executable::create(d, &desc).unwrap() };
                     drop(local); // Executable does not retain even the local cache.

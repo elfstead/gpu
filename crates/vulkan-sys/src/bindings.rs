@@ -9756,6 +9756,7 @@ pub type PFN_vkCmdEndRendering = ::std::option::Option<
 >;
 pub type VkPipelineCreateFlags2 = VkFlags64;
 pub type VkPipelineCreateFlagBits2 = VkFlags64;
+pub const VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT: VkPipelineCreateFlagBits2 = 256;
 pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits2 = 68719476736;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

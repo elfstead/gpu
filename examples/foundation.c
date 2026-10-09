@@ -50,7 +50,7 @@ _Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
 _Static_assert(sizeof(ogpu_next_shader) == 56, "shader ABI");
 _Static_assert(sizeof(ogpu_next_subgroup_limits) == 40, "subgroup limits ABI");
 _Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
-_Static_assert(sizeof(ogpu_next_executable_desc) == 72, "executable ABI");
+_Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
 _Static_assert(sizeof(ogpu_next_graphics_limits) == 72, "graphics limits ABI");
@@ -106,7 +106,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
         {code, (size_t)code_size}, "transform", &abi.header, &spec.header, NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
-        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL};
+        OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL, 0, 0};
     slots[1].offset = 0;
     REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
     slots[1].offset = 8;
@@ -116,13 +116,15 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     entry.size = 8;
     REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
     entry.size = 4;
+    REQUIRE(prepare_with_compile_policy(device, &ed, &executable) == EXIT_SUCCESS);
+    ogpu_next_executable_destroy(executable); executable = NULL;
     ogpu_next_executable_cache_desc cache_desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC),
         OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION, 0, {NULL, 0}};
     TRY(ogpu_next_executable_cache_create(device, &cache_desc, &cache)); ed.cache = cache;
-    TRY(ogpu_next_executable_create(device, &ed, &executable));
+    REQUIRE(prepare_with_compile_policy(device, &ed, &executable) == EXIT_SUCCESS);
     REQUIRE(cache_roundtrip(device, &cache, cache_desc.synchronization) == EXIT_SUCCESS);
     ogpu_next_executable_destroy(executable); executable = NULL; ed.cache = cache;
-    TRY(ogpu_next_executable_create(device, &ed, &executable));
+    REQUIRE(prepare_with_compile_policy(device, &ed, &executable) == EXIT_SUCCESS);
     ogpu_next_executable_cache_destroy(cache); cache = NULL; ed.cache = NULL;
     /* Preparation does not retain artifact bytes or metadata. */
     free(code); code = NULL;

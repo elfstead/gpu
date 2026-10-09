@@ -38,7 +38,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_subgroup_state subgroup = {HEADER(ogpu_next_subgroup_state,OGPU_NEXT_SUBGROUP_STATE),
         OGPU_NEXT_SUBGROUP_BASIC | OGPU_NEXT_SUBGROUP_ARITHMETIC | OGPU_NEXT_SUBGROUP_BALLOT,subgroup_size,subgroup_flags,0};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},subgroups ? "subgroupMain" : atomics ? "atomicMain" : "numericMain",&abi.header,NULL,subgroups ? &subgroup.header : NULL};
-    ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL};
+    ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
     if (subgroups) {
         subgroup.required_size = 3;
         REQUIRE(ogpu_next_executable_create(device,&ed,&executable) == OGPU_NEXT_INVALID && executable == NULL);

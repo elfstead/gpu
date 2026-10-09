@@ -36,6 +36,7 @@ typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
 enum {
     OGPU_NEXT_OK = 0, OGPU_NEXT_NOT_READY = 1, OGPU_NEXT_TIMEOUT = 2,
+    OGPU_NEXT_COMPILE_REQUIRED = 3,
     OGPU_NEXT_INVALID = -1, OGPU_NEXT_UNSUPPORTED = -2,
     OGPU_NEXT_OUT_OF_MEMORY = -3, OGPU_NEXT_DEVICE_LOST = -4,
     OGPU_NEXT_CAPACITY = -5, OGPU_NEXT_BACKEND_ERROR = -6,
@@ -609,7 +610,9 @@ typedef struct ogpu_next_executable_desc {
     uint64_t dynamic_state;
     const ogpu_next_record *requirements;
     ogpu_next_executable_cache *cache;
+    uint32_t compile_flags, reserved;
 } ogpu_next_executable_desc;
+enum { OGPU_NEXT_COMPILE_FAIL_IF_REQUIRED = 1 };
 enum { OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION = 0, OGPU_NEXT_CACHE_CALLER_SYNCHRONIZATION = 1 };
 typedef struct ogpu_next_executable_cache_desc {
     ogpu_next_record header;
@@ -657,6 +660,13 @@ void ogpu_next_executable_cache_destroy(ogpu_next_executable_cache *);
  * and sizes/types matching the shader (including 4-byte native bools); reserved=0.
  * Inputs are borrowed during creation only; argument metadata is copied. Device
  * is borrowed through destruction; no current context or implicit shared cache.
+ * compile_flags=0 permits native compilation. FAIL_IF_REQUIRED requires enabled
+ * CACHE_CONTROL and applies to compute and graphics, with or without a cache.
+ * If native compilation is needed, returns COMPILE_REQUIRED and a NULL executable;
+ * no automatic retry, background work, or deferred compilation is scheduled.
+ * Caller may retry explicitly with flags=0. This is not an allocation-free or
+ * bounded-latency guarantee, nor a cache-hit guarantee, even after an earlier
+ * successful preparation or cache import. reserved=0; unknown flags are rejected.
  */
 ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_executable **);
 void ogpu_next_executable_destroy(ogpu_next_executable *);

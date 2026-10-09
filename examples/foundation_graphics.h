@@ -62,7 +62,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     gs.vertex_input = vertex_fetch ? &input.header : NULL;
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
-        OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, cache};
+        OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, cache, 0, 0};
     gs.samples = 3;
     REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
     gs.samples = samples;
@@ -85,10 +85,10 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
         gs.stencil_back.fail = OGPU_NEXT_STENCIL_KEEP;
     }
-    TRY(ogpu_next_executable_create(device, &ed, &pipelines[0]));
+    REQUIRE(prepare_with_compile_policy(device, &ed, &pipelines[0]) == EXIT_SUCCESS);
     REQUIRE(cache_roundtrip(device, &cache, synchronization) == EXIT_SUCCESS);
     ogpu_next_executable_destroy(pipelines[0]); pipelines[0] = NULL; ed.cache = cache;
-    TRY(ogpu_next_executable_create(device, &ed, &pipelines[0]));
+    REQUIRE(prepare_with_compile_policy(device, &ed, &pipelines[0]) == EXIT_SUCCESS);
     if (stencil_enabled) {
         gs.stencil_front.reference = gs.stencil_back.reference = 2;
         TRY(ogpu_next_executable_create(device, &ed, &pipelines[2]));

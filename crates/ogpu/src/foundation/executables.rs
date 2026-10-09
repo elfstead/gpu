@@ -97,6 +97,17 @@ fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Status> {
     }
     Ok(())
 }
+fn compile_flags(enabled: u64, flags: u32, reserved: u32) -> Result<u64, Status> {
+    if flags & !1 != 0 || reserved != 0 || (flags != 0 && enabled & CACHE_CONTROL == 0) {
+        return Err(UNSUPPORTED);
+    }
+    Ok(vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+        | if flags & 1 != 0 {
+            vk::VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT
+        } else {
+            0
+        })
+}
 impl Executable {
     pub(in crate::foundation) unsafe fn create(
         d: &Device,
@@ -104,8 +115,13 @@ impl Executable {
     ) -> Result<Box<Self>, Status> {
         d.ready()?;
         desc.header.validate::<ExecutableDesc>(EXECUTABLE_DESC)?;
+        let pipeline_flags = compile_flags(
+            d.snapshot.features.enabled,
+            desc.compile_flags,
+            desc.reserved,
+        )?;
         if desc.kind == 2 {
-            return unsafe { graphics_pipeline::prepare(d, desc) };
+            return unsafe { graphics_pipeline::prepare(d, desc, pipeline_flags) };
         }
         if desc.kind != 1
             || desc.shader_count != 1
@@ -209,7 +225,7 @@ impl Executable {
         }
         let flags = vk::VkPipelineCreateFlags2CreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
-            flags: vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+            flags: pipeline_flags,
             ..Default::default()
         };
         let info = vk::VkComputePipelineCreateInfo {
@@ -252,6 +268,18 @@ impl Executable {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn compilation_policy_is_explicit() {
+        let base = vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
+        assert_eq!(compile_flags(0, 0, 0), Ok(base));
+        assert_eq!(compile_flags(0, 1, 0), Err(UNSUPPORTED));
+        assert_eq!(compile_flags(CACHE_CONTROL, 2, 0), Err(UNSUPPORTED));
+        assert_eq!(compile_flags(CACHE_CONTROL, 0, 1), Err(UNSUPPORTED));
+        assert_eq!(
+            compile_flags(CACHE_CONTROL, 1, 0),
+            Ok(base | vk::VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)
+        );
+    }
     use std::cell::Cell;
 
     #[test]
@@ -318,6 +346,8 @@ mod tests {
             dynamic_state: 0,
             requirements: &requirements.header,
             cache: ptr::null_mut(),
+            compile_flags: 0,
+            reserved: 0,
         };
         let mut tested = 0;
         for physical in instance.physical_devices().unwrap() {
@@ -451,6 +481,17 @@ mod tests {
             }
             return vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY;
         }
+        if FAILURE.get() == 5 {
+            let flags = unsafe { &*(*info).pNext.cast::<vk::VkPipelineCreateFlags2CreateInfo>() };
+            assert_ne!(
+                flags.flags & vk::VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT,
+                0
+            );
+            unsafe {
+                out.write(ptr::null_mut());
+            }
+            return vk::VkResult_VK_PIPELINE_COMPILE_REQUIRED;
+        }
         let status = unsafe { CREATE_PIPELINE.get().unwrap()(d, cache, count, info, a, out) };
         if FAILURE.get() == 3 && status == vk::VkResult_VK_SUCCESS {
             // Vulkan permits successfully created outputs on a failed pipeline call.
@@ -481,6 +522,23 @@ mod tests {
                 out.write(ptr::null_mut());
             }
             return vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        }
+        if FAILURE.get() == 5 {
+            // Graphics chains rendering info before the flags record.
+            let rendering = unsafe { &*(*info).pNext.cast::<vk::VkPipelineRenderingCreateInfo>() };
+            let flags = unsafe {
+                &*rendering
+                    .pNext
+                    .cast::<vk::VkPipelineCreateFlags2CreateInfo>()
+            };
+            assert_ne!(
+                flags.flags & vk::VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT,
+                0
+            );
+            unsafe {
+                out.write(ptr::null_mut());
+            }
+            return vk::VkResult_VK_PIPELINE_COMPILE_REQUIRED;
         }
         let status = unsafe { CREATE_GRAPHICS.get().unwrap()(d, cache, count, info, a, out) };
         if FAILURE.get() == 3 && status == vk::VkResult_VK_SUCCESS {
@@ -519,7 +577,7 @@ mod tests {
                     count: 1,
                     priority: 0.5,
                 }],
-                RASTER,
+                RASTER | (adapter.snapshot.features.available & CACHE_CONTROL),
             )
             .unwrap();
             // Install instrumentation before creating any borrowed children.
@@ -608,7 +666,7 @@ mod tests {
                 local_size: [0; 3],
                 shared_memory: 0,
             };
-            let desc = ExecutableDesc {
+            let mut desc = ExecutableDesc {
                 header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
                 kind: 2,
                 shader_count: 2,
@@ -617,17 +675,35 @@ mod tests {
                 dynamic_state: 1,
                 requirements: &req.header,
                 cache: ptr::null_mut(),
+                compile_flags: 0,
+                reserved: 0,
             };
-            for (mode, modules, pipelines) in
-                [(1, 0, 0), (4, 1, 0), (2, 2, 0), (3, 2, 1), (0, 2, 1)]
-            {
+            for (mode, modules, pipelines) in [
+                (1, 0, 0),
+                (4, 1, 0),
+                (2, 2, 0),
+                (3, 2, 1),
+                (5, 2, 0),
+                (0, 2, 1),
+            ] {
+                if mode == 5 && device.snapshot.features.enabled & CACHE_CONTROL == 0 {
+                    continue;
+                }
+                desc.compile_flags = u32::from(mode == 5);
                 FAILURE.set(mode);
                 MODULE_CALLS.set(0);
                 MODULE_DROPS.set(0);
                 PIPELINE_DROPS.set(0);
                 let mut out = ptr::dangling_mut();
                 let status = unsafe { ogpu_next_executable_create(d, &desc, &mut out) };
-                assert_eq!(status, if mode == 0 { OK } else { OUT_OF_MEMORY });
+                assert_eq!(
+                    status,
+                    match mode {
+                        0 => OK,
+                        5 => COMPILE_REQUIRED,
+                        _ => OUT_OF_MEMORY,
+                    }
+                );
                 assert_eq!(out.is_null(), mode != 0);
                 unsafe {
                     ogpu_next_executable_destroy(out);
@@ -679,7 +755,7 @@ mod tests {
                     count: 1,
                     priority: 0.5,
                 }],
-                0,
+                adapter.snapshot.features.available & CACHE_CONTROL,
             )
             .unwrap();
             CREATE_MODULE.set(device.f.vkCreateShaderModule);
@@ -725,7 +801,7 @@ mod tests {
                 specialization: ptr::null(),
                 subgroup: ptr::null(),
             };
-            let desc = ExecutableDesc {
+            let mut desc = ExecutableDesc {
                 header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
                 kind: 1,
                 shader_count: 1,
@@ -734,14 +810,29 @@ mod tests {
                 dynamic_state: 0,
                 requirements: &req.header,
                 cache: ptr::null_mut(),
+                compile_flags: 0,
+                reserved: 0,
             };
-            for (mode, modules, pipelines) in [(1, 0, 0), (2, 1, 0), (3, 1, 1), (0, 1, 1)] {
+            for (mode, modules, pipelines) in
+                [(1, 0, 0), (2, 1, 0), (3, 1, 1), (5, 1, 0), (0, 1, 1)]
+            {
+                if mode == 5 && device.snapshot.features.enabled & CACHE_CONTROL == 0 {
+                    continue;
+                }
+                desc.compile_flags = u32::from(mode == 5);
                 FAILURE.set(mode);
                 MODULE_DROPS.set(0);
                 PIPELINE_DROPS.set(0);
                 let mut out = ptr::dangling_mut();
                 let status = unsafe { ogpu_next_executable_create(d, &desc, &mut out) };
-                assert_eq!(status, if mode == 0 { OK } else { OUT_OF_MEMORY });
+                assert_eq!(
+                    status,
+                    match mode {
+                        0 => OK,
+                        5 => COMPILE_REQUIRED,
+                        _ => OUT_OF_MEMORY,
+                    }
+                );
                 if mode != 0 {
                     assert!(out.is_null());
                 }

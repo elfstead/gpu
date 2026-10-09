@@ -6,6 +6,7 @@ pub const VERSION: u32 = 1;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const TIMEOUT: Status = 2;
+pub const COMPILE_REQUIRED: Status = 3;
 pub const INVALID: Status = -1;
 pub const UNSUPPORTED: Status = -2;
 pub const OUT_OF_MEMORY: Status = -3;
@@ -313,6 +314,8 @@ pub struct ExecutableDesc {
     pub dynamic_state: u64,
     pub requirements: *const Record,
     pub cache: *mut super::ExecutableCache,
+    pub compile_flags: u32,
+    pub reserved: u32,
 }
 #[repr(C)]
 pub struct Launch {

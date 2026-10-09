@@ -26,7 +26,11 @@ impl Drop for Module<'_> {
         }
     }
 }
-pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Executable>, Status> {
+pub(super) unsafe fn prepare(
+    d: &Device,
+    desc: &ExecutableDesc,
+    pipeline_flags: u64,
+) -> Result<Box<Executable>, Status> {
     if d.snapshot.features.enabled & RASTER == 0
         || desc.shader_count != 2
         || desc.dynamic_state != 1
@@ -417,7 +421,7 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     };
     let flags = vk::VkPipelineCreateFlags2CreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
-        flags: vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+        flags: pipeline_flags,
         ..Default::default()
     };
     let rendering = vk::VkPipelineRenderingCreateInfo {

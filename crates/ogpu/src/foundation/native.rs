@@ -144,6 +144,7 @@ fn status(result: vk::VkResult) -> Result<(), Status> {
     match result {
         vk::VkResult_VK_SUCCESS => Ok(()),
         vk::VkResult_VK_TIMEOUT => Err(TIMEOUT),
+        vk::VkResult_VK_PIPELINE_COMPILE_REQUIRED => Err(COMPILE_REQUIRED),
         vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY | vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY => {
             Err(OUT_OF_MEMORY)
         }
@@ -791,6 +792,10 @@ mod tests {
     #[test]
     fn native_statuses_are_distinct() {
         assert_eq!(status(vk::VkResult_VK_TIMEOUT), Err(TIMEOUT));
+        assert_eq!(
+            status(vk::VkResult_VK_PIPELINE_COMPILE_REQUIRED),
+            Err(COMPILE_REQUIRED)
+        );
         assert_eq!(
             status(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY),
             Err(OUT_OF_MEMORY)

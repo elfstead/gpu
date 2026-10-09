@@ -510,10 +510,23 @@ identity rejection, pipeline reconstruction and destroying caches before executi
 the reconstructed pipelines. Rust tests additionally cover concurrent shared/independent
 preparation, disabled-feature rejection, cross-device rejection, invalid native failure
 outputs, retry after allocation/export failure and sticky synthetic device loss.
+Preparation also accepts an explicit `COMPILE_FAIL_IF_REQUIRED` flag, requiring
+enabled `CACHE_CONTROL`. It maps directly to the [native creation flag](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineCreateFlagBits2.html)
+for compute and graphics, with or without an explicit cache. A native compilation
+miss returns `COMPILE_REQUIRED` and no executable; it does not poison the device,
+retry, schedule background compilation or defer compilation to recording. The
+caller decides whether/when to retry with compilation allowed. Preparation can
+still allocate, validate and synchronize; this is not a bounded-latency promise.
+Unknown flags/reserved fields and disabled capability requests are rejected.
+
+C consumers attempt the no-compile path before/after cache export/import and
+explicitly retry only as application policy. They accept either native outcome;
+an earlier preparation or imported cache does not guarantee reuse. Deterministic
+Rust injection tests check native flag delivery, `COMPILE_REQUIRED` propagation,
+null outputs, shader-module cleanup and successful subsequent ordinary preparation.
 No cache-hit, persistent-driver-cache independence or compile-time performance claim
-is made. Compile-required controls, pipeline binaries and non-Vulkan artifacts remain
-separate work. The source-only executable record changes from 80 to 72 bytes; installed
-ABI 20 is unchanged.
+is made. Pipeline binaries and non-Vulkan artifacts remain separate work. The
+source-only executable record is now 80 bytes; installed ABI 20 is unchanged.
 
 ## Implemented explicit queries
 
