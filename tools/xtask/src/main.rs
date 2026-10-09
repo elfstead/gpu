@@ -301,11 +301,13 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
     if version.trim() != "2026.14.1" {
         return Err("Foundation shader reproduction requires Slang 2026.14.1".into());
     }
-    for (name, entry) in [
-        ("foundation-compute", "transform"),
-        ("foundation-heaps", "consume"),
+    for (name, entry, stage, suffix) in [
+        ("foundation-compute", "transform", "compute", "comp"),
+        ("foundation-heaps", "consume", "compute", "comp"),
+        ("foundation-graphics", "vertexMain", "vertex", "vert"),
+        ("foundation-graphics", "fragmentMain", "fragment", "frag"),
     ] {
-        let binary = root.join(format!("target/{name}.comp.spv"));
+        let binary = root.join(format!("target/{name}.{suffix}.spv"));
         run(Command::new(&compiler)
             .arg(root.join(format!("examples/shaders/{name}.slang")))
             .args([
@@ -322,14 +324,14 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
                 "-entry",
                 entry,
                 "-stage",
-                "compute",
+                stage,
                 "-o",
             ])
             .arg(&binary))?;
         run(Command::new("spirv-val")
             .args(["--target-env", "vulkan1.4"])
             .arg(&binary))?;
-        let checked_in = root.join(format!("examples/shaders/{name}.comp.spv"));
+        let checked_in = root.join(format!("examples/shaders/{name}.{suffix}.spv"));
         if check {
             if fs::read(binary)? != fs::read(checked_in)? {
                 return Err(format!("Stale foundation shader {name}").into());
@@ -574,7 +576,7 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp"]),
+        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag"]),
         Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
         Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),

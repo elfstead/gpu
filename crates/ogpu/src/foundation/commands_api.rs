@@ -165,6 +165,96 @@ unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>
     }
 }
 /// # Safety
+/// Writable disjoint output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_render_scratch_requirements(
+    colors: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        unsafe {
+            out.write(native::render_scratch(colors)?);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// See header: live attachments, declared layouts, compatible draw state and scratch.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_render_begin(encoder: *mut List, desc: *const RenderDesc) {
+    unsafe {
+        encode(encoder, |e| e.render_begin(description(desc, RENDER_DESC)?));
+    }
+}
+/// # Safety
+/// Exclusive recording pool, active rendering scope.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_render_end(encoder: *mut List) {
+    unsafe {
+        encode(encoder, |e| e.render_end());
+    }
+}
+/// # Safety
+/// Exclusive recording pool and readable versioned viewport/scissor state.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_graphics_state(encoder: *mut List, state: *const Record) {
+    unsafe {
+        encode(encoder, |e| {
+            e.viewport(description(state.cast(), VIEWPORT_STATE)?)
+        });
+    }
+}
+/// # Safety
+/// See header: compatible executable/attachments and all shader accesses valid.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_draw(encoder: *mut List, draw: *const DrawDesc) {
+    unsafe {
+        encode(encoder, |e| e.draw(draw.as_ref().ok_or(INVALID)?, false));
+    }
+}
+/// # Safety
+/// Live index span through recorded/pending use; exclusive pool access.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_bind_indices(encoder: *mut List, span: Span, kind: u32) {
+    unsafe {
+        encode(encoder, |e| e.bind_indices(span, kind));
+    }
+}
+/// # Safety
+/// Same requirements as draw plus valid bound indices and resulting shader accesses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_draw_indexed(encoder: *mut List, draw: *const DrawDesc) {
+    unsafe {
+        encode(encoder, |e| e.draw(draw.as_ref().ok_or(INVALID)?, true));
+    }
+}
+/// # Safety
+/// Readable description, valid GPU argument contents and synchronized spans at execution.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_draw_indirect(encoder: *mut List, desc: *const Indirect) {
+    unsafe {
+        encode(encoder, |e| {
+            e.draw_indirect(desc.as_ref().ok_or(INVALID)?, false)
+        });
+    }
+}
+/// # Safety
+/// Same as indirect draw plus valid bound indices and resulting shader accesses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_draw_indexed_indirect(
+    encoder: *mut List,
+    desc: *const Indirect,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.draw_indirect(desc.as_ref().ok_or(INVALID)?, true)
+        });
+    }
+}
+/// # Safety
 /// Recording pool exclusion and live executable through recorded/pending use.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_bind_executable(

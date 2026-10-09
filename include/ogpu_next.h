@@ -56,13 +56,16 @@ enum {
     OGPU_NEXT_QUERY_FEATURES = 5, OGPU_NEXT_QUERY_MEMORY_LIMITS = 6,
     OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS = 7,
     OGPU_NEXT_QUERY_EXECUTION_LIMITS = 8,
+    OGPU_NEXT_QUERY_GRAPHICS_LIMITS = 9,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
     OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
     OGPU_NEXT_SAMPLER_DESC = 108, OGPU_NEXT_HEAP_BINDING = 109,
     OGPU_NEXT_EXECUTABLE_DESC = 110, OGPU_NEXT_ARGUMENT_INTERFACE = 111,
-    OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113
+    OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
+    OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
+    OGPU_NEXT_VIEWPORT_STATE = 116
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -490,8 +493,8 @@ typedef struct ogpu_next_heap_binding {
  * avoid reservations. Bind requires a graphics/compute queue domain. */
 void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
 
-/* Prepared executable state. This implementation supports one compute SPIR-V
- * entry with native heap/pointer access. Graphics/native artifacts, descriptor
+/* Prepared executable state. This implementation supports compute or paired
+ * vertex/fragment SPIR-V with native heap/pointer access. Native artifacts, descriptor
  * set-to-heap mappings, cache import/export and launch extensions follow; these
  * are unimplemented profiles, not excluded designs. No runtime shader translation.
  * Preparation may allocate/compile. Binding, arguments and dispatch never allocate
@@ -574,6 +577,9 @@ void ogpu_next_executable_destroy(ogpu_next_executable *);
  * Null addresses can be encoded but must not be dereferenced. Address alignment,
  * lifetime, bounds and hazards apply at execution, including every replay.
  * Stage-isolated banks are NOT emulated with hidden copies on this profile.
+ * Graphics extends this below: VERTEX/FRAGMENT share the same native bytes,
+ * including with compute. A stage mask does not isolate an update from other
+ * stages reading the same offsets. Use distinct offsets for independent values.
  */
 void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
 void ogpu_next_set_inline(ogpu_next_encoder *, ogpu_next_stages, uint32_t offset, uint32_t size, const void *);
@@ -591,6 +597,151 @@ typedef struct ogpu_next_launch {
  * no hidden barrier, and no second allocation for arguments. */
 void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
 void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
+
+typedef struct ogpu_next_graphics_limits {
+    uint32_t max_colors, max_width, max_height, max_layers;
+    uint32_t max_viewport[2]; float viewport_bounds[2];
+    uint32_t color_samples, depth_samples, no_attachment_samples, max_indirect_count;
+} ogpu_next_graphics_limits;
+enum { OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR = 1 };
+enum {
+    OGPU_NEXT_POINTS = 0, OGPU_NEXT_LINES = 1, OGPU_NEXT_LINE_STRIP = 2,
+    OGPU_NEXT_TRIANGLES = 3, OGPU_NEXT_TRIANGLE_STRIP = 4
+};
+enum { OGPU_NEXT_CULL_NONE = 0, OGPU_NEXT_CULL_FRONT = 1, OGPU_NEXT_CULL_BACK = 2, OGPU_NEXT_CULL_BOTH = 3 };
+enum { OGPU_NEXT_FRONT_CCW = 0, OGPU_NEXT_FRONT_CW = 1 };
+enum {
+    OGPU_NEXT_BLEND_ZERO = 0, OGPU_NEXT_BLEND_ONE = 1,
+    OGPU_NEXT_BLEND_SRC_COLOR = 2, OGPU_NEXT_BLEND_ONE_MINUS_SRC_COLOR = 3,
+    OGPU_NEXT_BLEND_DST_COLOR = 4, OGPU_NEXT_BLEND_ONE_MINUS_DST_COLOR = 5,
+    OGPU_NEXT_BLEND_SRC_ALPHA = 6, OGPU_NEXT_BLEND_ONE_MINUS_SRC_ALPHA = 7,
+    OGPU_NEXT_BLEND_DST_ALPHA = 8, OGPU_NEXT_BLEND_ONE_MINUS_DST_ALPHA = 9,
+    OGPU_NEXT_BLEND_CONSTANT_COLOR = 10, OGPU_NEXT_BLEND_ONE_MINUS_CONSTANT_COLOR = 11,
+    OGPU_NEXT_BLEND_CONSTANT_ALPHA = 12, OGPU_NEXT_BLEND_ONE_MINUS_CONSTANT_ALPHA = 13,
+    OGPU_NEXT_BLEND_SRC_ALPHA_SATURATE = 14
+};
+enum { OGPU_NEXT_BLEND_ADD = 0, OGPU_NEXT_BLEND_SUBTRACT = 1, OGPU_NEXT_BLEND_REVERSE_SUBTRACT = 2, OGPU_NEXT_BLEND_MIN = 3, OGPU_NEXT_BLEND_MAX = 4 };
+typedef struct ogpu_next_color_state {
+    ogpu_next_format format;
+    uint32_t write_mask, blend;
+    uint32_t src_color, dst_color, color_op, src_alpha, dst_alpha, alpha_op;
+} ogpu_next_color_state;
+typedef struct ogpu_next_graphics_state {
+    ogpu_next_record header;
+    uint32_t topology, cull, front_face, samples, color_count;
+    const ogpu_next_color_state *colors;
+    ogpu_next_format depth_format;
+    uint32_t depth_test, depth_write, depth_compare;
+    float blend_constants[4];
+} ogpu_next_graphics_state;
+/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, exactly two
+ * shaders ordered VERTEX then FRAGMENT, static_state=GRAPHICS_STATE,
+ * dynamic_state=DYNAMIC_VIEWPORT_SCISSOR. requirements local_size/shared_memory=0.
+ * Both shaders provide identical full argument interfaces; root visibility is
+ * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
+ * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
+ * Format count may be zero or up to max_colors; format=0 means no depth, otherwise
+ * D16/D32. samples=1; sample bitmasks describe hardware, not enabled profile breadth.
+ * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
+ * All color entries need identical blend/write state (independentBlend not enabled).
+ * Fixed profile: fill, depth clip on, no depth bias/bounds/stencil/primitive restart,
+ * no sample shading, logic op or fixed-function vertex bindings. Vertex pulling
+ * remains available. Points require shader PointSize=1; vertex/fragment storage
+ * writes need future feature enabling. Missing profiles are UNSUPPORTED, not emulated.
+ */
+enum { OGPU_NEXT_LOAD = 0, OGPU_NEXT_CLEAR = 1, OGPU_NEXT_DONT_CARE = 2 };
+enum { OGPU_NEXT_STORE = 0, OGPU_NEXT_DISCARD = 1 };
+typedef union ogpu_next_clear_value {
+    float f32[4]; uint32_t u32[4]; int32_t i32[4];
+    struct { float depth; uint32_t stencil; } depth_stencil;
+} ogpu_next_clear_value;
+typedef struct ogpu_next_attachment {
+    ogpu_next_view *view, *resolve_view;
+    ogpu_next_image_state state, resolve_state;
+    uint32_t load_op, store_op, resolve_mode;
+    ogpu_next_clear_value clear;
+} ogpu_next_attachment;
+typedef struct ogpu_next_render_desc {
+    ogpu_next_record header;
+    int32_t x, y;
+    uint32_t width, height, layers, view_mask, samples, flags, color_count;
+    const ogpu_next_attachment *colors;
+    const ogpu_next_attachment *depth, *stencil;
+    ogpu_next_host_span scratch;
+} ogpu_next_render_desc;
+typedef struct ogpu_next_viewport_state {
+    ogpu_next_record header;
+    float x, y, width, height, min_depth, max_depth;
+    int32_t scissor_x, scissor_y;
+    uint32_t scissor_width, scissor_height;
+} ogpu_next_viewport_state;
+typedef struct ogpu_next_draw_desc {
+    uint32_t count, instances, first, first_instance;
+    int32_t vertex_offset;
+} ogpu_next_draw_desc;
+/* Render begin does not need an executable and permits clear-only or attachmentless
+ * scopes. Area is explicit and nonempty; layers>0; view_mask=flags=0, samples=1,
+ * stencil=NULL, resolve_view=NULL, resolve_state=resolve_mode=0. Views are 2D/array,
+ * one mip, with sufficient extent/layers and attachment usage. Null color/depth
+ * views (state=UNDEFINED) are unused; null color slots require matching undefined
+ * output format at draw, which the current executable profile does not yet expose.
+ * Color states GENERAL/COLOR_ATTACHMENT; depth GENERAL/DEPTH_STENCIL_ATTACHMENT/
+ * DEPTH_STENCIL_READ. Read-only depth forbids CLEAR and depth writes. Clear union
+ * member matches the format; depth clear is finite [0,1]. No inferred transition,
+ * content-preservation tracking, initialization or implicit viewport/scissor.
+ * Scratch is sized per color count, aligned, disjoint and borrowed only during
+ * begin. Attachments are borrowed through every recorded future/pending use.
+ * All local attachment validation precedes the native begin call.
+ *
+ * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and depth
+ * write permission; shader output types and accesses must match. No per-draw
+ * attachment scan/resource registry. Begin/end nesting, missing pipeline/viewport
+ * and invalid command scope poison the list. Transfers, dispatch and generic
+ * barriers are outside rendering only in this profile; local dependencies follow.
+ * Graphics/compute bind points are independent. Viewport/scissor and byte state
+ * persist across compatible binds/scopes, reset to undefined by command begin.
+ * Dynamic viewport allows negative height and reversed depth endpoints within
+ * [0,1]. set_graphics_state currently accepts VIEWPORT_STATE only. Draw requires
+ * vertex_offset=0 and passes all count/first/instance values directly to native.
+ */
+ogpu_next_status ogpu_next_render_scratch_requirements(uint32_t color_count, ogpu_next_host_requirements *);
+void ogpu_next_render_begin(ogpu_next_encoder *, const ogpu_next_render_desc *);
+void ogpu_next_render_end(ogpu_next_encoder *);
+void ogpu_next_set_graphics_state(ogpu_next_encoder *, const ogpu_next_record *);
+void ogpu_next_draw(ogpu_next_encoder *, const ogpu_next_draw_desc *);
+enum { OGPU_NEXT_INDEX_U16 = 16, OGPU_NEXT_INDEX_U32 = 32 };
+typedef struct ogpu_next_indirect {
+    ogpu_next_span arguments;
+    uint32_t stride, maximum_count;
+    ogpu_next_span count; /* Null memory with offset=size=0 means fixed maximum_count. */
+} ogpu_next_indirect;
+/* GPU wire records, NOT ogpu_next_draw_desc (indexed field order differs). */
+typedef struct ogpu_next_draw_arguments {
+    uint32_t count, instances, first, first_instance;
+} ogpu_next_draw_arguments;
+typedef struct ogpu_next_draw_indexed_arguments {
+    uint32_t count, instances, first;
+    int32_t vertex_offset;
+    uint32_t first_instance;
+} ogpu_next_draw_indexed_arguments;
+/* Index binding borrows INDEX memory, aligned to its element width; persists
+ * across render scopes/binds, undefined after command begin. Direct indexed draw
+ * validates first+count against the bound span and preserves signed vertex_offset.
+ * Indirect arguments/count borrow INDIRECT memory, addresses aligned to 4 bytes.
+ * Stride is zero for at most one draw, or a multiple of 4 >= wire record size.
+ * arguments covers (maximum_count-1)*stride + record size when count>0; no scan,
+ * repack or CPU readback. maximum_count <= graphics_limits.max_indirect_count.
+ * GPU count reads one uint32_t; draws min(count,maximum_count). GPU count itself
+ * must also be <= max_indirect_count. GPU first_instance must be zero in this
+ * profile (drawIndirectFirstInstance not enabled). Other GPU draw fields/index
+ * bounds and resulting shader accesses are TRUSTED valid at every execution.
+ * Index/argument/count memory requires caller synchronization and recorded/pending
+ * lifetime. No resource retention, hidden allocation or implicit barrier.
+ */
+void ogpu_next_bind_indices(ogpu_next_encoder *, ogpu_next_span, uint32_t index_type);
+void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
+void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;
 typedef struct ogpu_next_submit_desc {
     ogpu_next_record header;
@@ -680,10 +831,6 @@ typedef struct ogpu_next_image_copy {
     ogpu_next_image_state state;
     uint32_t reserved;
 } ogpu_next_image_copy;
-typedef union ogpu_next_clear_value {
-    float f32[4]; uint32_t u32[4]; int32_t i32[4];
-    struct { float depth; uint32_t stencil; } depth_stencil;
-} ogpu_next_clear_value;
 /* Commands never insert transitions or hazard barriers. Clear requires GENERAL
  * or COPY_DST; copies require GENERAL or the corresponding COPY_SRC/COPY_DST.
  * Single-sample copies support one aspect and explicit mip/layer/subregion bounds.

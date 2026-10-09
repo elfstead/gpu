@@ -6633,6 +6633,25 @@ pub type PFN_vkCmdSetScissor = ::std::option::Option<
         pScissors: *const VkRect2D,
     ),
 >;
+pub type PFN_vkCmdDraw = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        vertexCount: u32,
+        instanceCount: u32,
+        firstVertex: u32,
+        firstInstance: u32,
+    ),
+>;
+pub type PFN_vkCmdDrawIndexed = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        indexCount: u32,
+        instanceCount: u32,
+        firstIndex: u32,
+        vertexOffset: i32,
+        firstInstance: u32,
+    ),
+>;
 pub type PFN_vkCmdClearDepthStencilImage = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,

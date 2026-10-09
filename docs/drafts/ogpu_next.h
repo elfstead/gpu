@@ -35,8 +35,8 @@ typedef struct ogpu_next_query_pool ogpu_next_query_pool;
 /* Descriptor byte encoding and borrowed GPU heap-range binding are implemented
  * in the imported header. No owned heap object or implicit allocation policy. */
 
-/* Compute preparation, inline/device-root ABI and direct/indirect launch now
- * come from the implemented header. Graphics/native artifact profiles and cache
+/* Compute/graphics preparation, inline/device-root ABI and direct/indirect launch
+ * come from the implemented header. Wider graphics/native artifact profiles and cache
  * records remain to implement; no implicit translation or command-time JIT. */
 ogpu_next_status ogpu_next_executable_cache(ogpu_next_executable *, size_t *size, void *data);
 
@@ -59,40 +59,9 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
 void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *);
 void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *, uint32_t mode);
 
-/* Graphics. Render area is explicit, not inferred from a required attachment.
- * Static/dynamic forms use the same versioned state record schemas. Raster,
- * blend, depth/stencil, viewport/scissor, sample, vertex-input and tile-local
- * state record schemas remain to be finalized; no hidden dynamic-to-PSO JIT. */
-typedef struct ogpu_next_attachment {
-    ogpu_next_view *view, *resolve_view;
-    uint32_t load_op, store_op, resolve_mode;
-    ogpu_next_clear_value clear;
-} ogpu_next_attachment;
-typedef struct ogpu_next_render_desc {
-    ogpu_next_record header;
-    int32_t x, y;
-    uint32_t width, height, layers, view_mask, samples, flags;
-    uint32_t color_count;
-    const ogpu_next_attachment *colors;
-    const ogpu_next_attachment *depth, *stencil;
-} ogpu_next_render_desc;
-typedef struct ogpu_next_draw_desc {
-    uint32_t count, instances, first, first_instance;
-    int32_t vertex_offset; /* Indexed only; non-indexed must use zero. */
-} ogpu_next_draw_desc;
-typedef struct ogpu_next_indirect {
-    ogpu_next_span arguments;
-    uint32_t stride, maximum_count;
-    ogpu_next_span count; /* Null memory means fixed maximum_count. */
-} ogpu_next_indirect;
-void ogpu_next_render_begin(ogpu_next_encoder *, const ogpu_next_render_desc *);
-void ogpu_next_render_end(ogpu_next_encoder *);
-void ogpu_next_set_graphics_state(ogpu_next_encoder *, const ogpu_next_record *state);
-void ogpu_next_bind_indices(ogpu_next_encoder *, ogpu_next_span, uint32_t index_type);
-void ogpu_next_draw(ogpu_next_encoder *, const ogpu_next_draw_desc *);
-void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
-void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
-void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+/* Graphics preparation, attachment scopes, explicit viewport/scissor and direct/
+ * indexed/indirect/count draws are imported above. Broader sample/stencil/vertex-fetch/tile-local and
+ * dynamic-state profiles remain to implement; no hidden dynamic-to-PSO JIT. */
 void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
 void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 

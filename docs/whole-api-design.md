@@ -6,7 +6,7 @@ The installed interface remains ABI 20. The companion
 imported source-header subset is implemented and linkable.
 This document supersedes the experiment-by-experiment *design sequence*, not the
 historical results or their evidence limits. The [working plan](plan.md) owns status.
-Implementation now covers the [setup, backing, command and image boundaries](foundation-implementation.md);
+Implementation now covers the [setup, backing, commands, images, descriptors, compute and offscreen raster boundaries](foundation-implementation.md);
 only declarations in `include/ogpu_next.h` are implemented on Linux. The combined
 sketch imports them and adds the remaining proposal; the installed ABI is unchanged.
 
@@ -281,7 +281,8 @@ number of root slots plus partial inline updates. Its capabilities explicitly sa
 that these share one native byte namespace; no per-stage bank isolation is implied.
 Artifact producers choose separate offsets when they need independent fields.
 Bindings preserve bytes, and callers reinitialize any incompatible interpretations.
-Other native mappings and graphics visibility remain to implement. See the
+Vertex/fragment now uses the same shared namespace with explicit root visibility;
+other native mappings remain to implement. See the
 [compute/argument contract](foundation-implementation.md#implemented-compute-preparation-and-arguments).
 
 ### Synchronization, layouts and queues

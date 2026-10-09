@@ -4,12 +4,12 @@ use super::*;
 use std::cell::Cell;
 
 #[derive(Clone, Copy)]
-struct Format {
-    native: vk::VkFormat,
-    aspects: u32,
+pub(super) struct Format {
+    pub(super) native: vk::VkFormat,
+    pub(super) aspects: u32,
     class: u32,
 }
-fn format(id: u32) -> Result<Format, Status> {
+pub(super) fn format(id: u32) -> Result<Format, Status> {
     let (native, aspects, class) = match id {
         1 => (vk::VkFormat_VK_FORMAT_R8_UNORM, 1, 8),
         2 => (vk::VkFormat_VK_FORMAT_R8G8_UNORM, 1, 16),
@@ -749,6 +749,50 @@ impl Drop for Image {
     }
 }
 impl View {
+    pub(super) fn attachment(
+        &self,
+        device: *const Device,
+        domain: u32,
+        desc: &RenderDesc,
+        a: &Attachment,
+        depth: bool,
+    ) -> Result<vk::VkImageView, Status> {
+        if self.device != device {
+            return Err(INVALID);
+        }
+        let image = unsafe { &*self.image };
+        let required = if depth { 32 } else { 16 };
+        image.command_handle(device, domain, required)?;
+        let p = &image.prepared.desc;
+        let r = self.info.subresourceRange;
+        if self.usage.usage & required as u32 == 0
+            || r.levelCount != 1
+            || r.layerCount < desc.layers
+            || !matches!(
+                self.info.viewType,
+                vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D
+                    | vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D_ARRAY
+            )
+            || (p.extent.x >> r.baseMipLevel).max(1) < desc.x as u32 + desc.width
+            || (p.extent.y >> r.baseMipLevel).max(1) < desc.y as u32 + desc.height
+            || p.sample_count != desc.samples
+        {
+            return Err(INVALID);
+        }
+        if depth {
+            if !matches!(
+                self.info.format,
+                vk::VkFormat_VK_FORMAT_D16_UNORM | vk::VkFormat_VK_FORMAT_D32_SFLOAT
+            ) || !matches!(a.state, 1 | 6 | 7)
+                || (a.state == 7 && a.load_op == 1)
+            {
+                return Err(INVALID);
+            }
+        } else if r.aspectMask != 1 || !matches!(a.state, 1 | 5) {
+            return Err(INVALID);
+        }
+        Ok(self.handle)
+    }
     pub(in crate::foundation) fn create(
         image: &Image,
         desc: &ViewDesc,

@@ -36,6 +36,110 @@ pub const EXECUTABLE_DESC: u32 = 110;
 pub const ARGUMENT_INTERFACE: u32 = 111;
 pub const SHADER_REQUIREMENTS: u32 = 112;
 pub const SPECIALIZATION: u32 = 113;
+pub const GRAPHICS_STATE: u32 = 114;
+pub const RENDER_DESC: u32 = 115;
+pub const VIEWPORT_STATE: u32 = 116;
+pub const GRAPHICS_LIMITS: u32 = 9;
+
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct GraphicsLimits {
+    pub max_colors: u32,
+    pub max_width: u32,
+    pub max_height: u32,
+    pub max_layers: u32,
+    pub max_viewport: [u32; 2],
+    pub viewport_bounds: [f32; 2],
+    pub color_samples: u32,
+    pub depth_samples: u32,
+    pub no_attachment_samples: u32,
+    pub max_indirect_count: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq)]
+pub struct ColorState {
+    pub format: u32,
+    pub write_mask: u32,
+    pub blend: u32,
+    pub src_color: u32,
+    pub dst_color: u32,
+    pub color_op: u32,
+    pub src_alpha: u32,
+    pub dst_alpha: u32,
+    pub alpha_op: u32,
+}
+#[repr(C)]
+pub struct GraphicsState {
+    pub header: Record,
+    pub topology: u32,
+    pub cull: u32,
+    pub front_face: u32,
+    pub samples: u32,
+    pub color_count: u32,
+    pub colors: *const ColorState,
+    pub depth_format: u32,
+    pub depth_test: u32,
+    pub depth_write: u32,
+    pub depth_compare: u32,
+    pub blend_constants: [f32; 4],
+}
+#[repr(C)]
+pub struct Attachment {
+    pub view: *mut super::View,
+    pub resolve_view: *mut super::View,
+    pub state: u32,
+    pub resolve_state: u32,
+    pub load_op: u32,
+    pub store_op: u32,
+    pub resolve_mode: u32,
+    pub clear: ClearValue,
+}
+#[repr(C)]
+pub struct RenderDesc {
+    pub header: Record,
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+    pub layers: u32,
+    pub view_mask: u32,
+    pub samples: u32,
+    pub flags: u32,
+    pub color_count: u32,
+    pub colors: *const Attachment,
+    pub depth: *const Attachment,
+    pub stencil: *const Attachment,
+    pub scratch: HostSpan,
+}
+#[repr(C)]
+pub struct ViewportState {
+    pub header: Record,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub min_depth: f32,
+    pub max_depth: f32,
+    pub scissor_x: i32,
+    pub scissor_y: i32,
+    pub scissor_width: u32,
+    pub scissor_height: u32,
+}
+#[repr(C)]
+pub struct DrawDesc {
+    pub count: u32,
+    pub instances: u32,
+    pub first: u32,
+    pub first_instance: u32,
+    pub vertex_offset: i32,
+}
+#[repr(C)]
+pub struct Indirect {
+    pub arguments: Span,
+    pub stride: u32,
+    pub maximum_count: u32,
+    pub count: Span,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]

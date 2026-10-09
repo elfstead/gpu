@@ -36,6 +36,7 @@ struct Snapshot {
     memory_limits: MemoryLimits,
     descriptor_limits: DescriptorLimits,
     execution_limits: ExecutionLimits,
+    graphics_limits: GraphicsLimits,
     features: FeatureInfo,
 }
 pub struct Adapter {
@@ -88,6 +89,7 @@ impl Snapshot {
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
                 DESCRIPTOR_LIMITS => copy_out(query, std::slice::from_ref(&self.descriptor_limits)),
                 EXECUTION_LIMITS => copy_out(query, std::slice::from_ref(&self.execution_limits)),
+                GRAPHICS_LIMITS => copy_out(query, std::slice::from_ref(&self.graphics_limits)),
                 _ => Err(UNSUPPORTED),
             }
         }

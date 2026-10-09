@@ -24,7 +24,8 @@ working examples/consumers. This is a migration boundary, not two permanent runt
 The baseline remains modern Vulkan with descriptor heaps, untyped pointers and
 address commands. Raster feature enabling, FP16, sampler anisotropy and unified image layouts are
 explicit optional bits, not silently enabled merely because hardware supports them.
-These bits describe native enabling, **not implemented new draw/dispatch commands**.
+These bits describe native enabling, not a promise that every corresponding
+graphics/numerical profile is implemented. Compute and raster commands are described below.
 Sparse/protected queue flags and memory properties describe physical facilities;
 their execution features are not implicitly enabled.
 
@@ -238,13 +239,13 @@ pipeline layout; it needs no shader-object feature or runtime translation. Shade
 modules are released immediately after preparation. Pipeline failure outputs are
 cleaned up according to Vulkan's partial-creation contract. This differs from
 unspecified failed shader-module outputs, which are never adopted. Native cache
-import/export, additional artifact formats, set/binding mappings, graphics stages
+import/export, additional artifact formats, set/binding mappings, additional shader stages
 and richer numerical/launch requirements remain unimplemented, not silently
 substituted. See [native compute preparation](https://docs.vulkan.org/refpages/latest/refpages/source/VkComputePipelineCreateInfo.html).
 
 Argument metadata names a byte footprint and any number of nonoverlapping root
 slots with explicit offsets, stages and pointee alignments. The implemented compute
-profile exposes **one shared byte namespace**, not fictitious independent native
+and graphics profiles expose **one shared byte namespace**, not fictitious independent native
 stage banks. Inline updates copy specified bytes during recording. Root updates
 copy only an eight-byte address into the declared slot: no pointee copy, address
 registry, implicit upload allocation, refcount or retained backing. Pointees are
@@ -264,12 +265,61 @@ compute-capable queue and keep no completion/resource registry. See
 
 The checked-in Slang fixtures use named entries, device roots, inline controls,
 specialization and direct descriptor heaps. `cargo xtask foundation-shaders --check`
-reproduces both using Slang 2026.14.1 and validates SPIR-V. This is an explicit test
+reproduces all four artifacts using Slang 2026.14.1 and validates SPIR-V. This is an explicit test
 artifact ABI, not yet integration with the generated consumer metadata workflow.
+
+## Implemented graphics preparation and recording
+
+Vertex/fragment SPIR-V preparation now shares the executable and argument model.
+Static state states topology, culling, front face, color formats/write masks/blend,
+depth format/test/write/compare and blend constants. Viewport/scissor is explicitly
+dynamic; no state is inferred from an attachment and no draw compiles a pipeline.
+Vertex and fragment interfaces describe the same byte namespace, with root slots
+visible to either or both stages. Compute and graphics pipeline binds are independent,
+but push bytes are shared even across those bind points: callers own compatible
+interpretation and initialization, not hidden per-stage state restoration.
+
+Rendering scopes borrow views in declared layouts and explicit load/store state,
+area/layers and caller-owned translation scratch. Clear-only and attachmentless
+scopes need no executable. Local attachment checks finish before the native begin;
+there is no attachment retention or fixed internal color-array capacity. Draw-time
+pipeline/attachment compatibility and shader accesses are trusted caller contracts,
+not per-draw scans. Transfers, dispatch and generic barriers currently occur outside
+scopes; inter-scope preservation and hazards require explicit LOAD and dependencies.
+See the native [rendering contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkRenderingInfo.html).
+
+Direct/indexed draws preserve count, instance, first and signed base-vertex values.
+16/32-bit indices bind an explicit INDEX span using native address commands.
+Indirect and GPU-counted variants consume caller-defined strided INDIRECT spans
+directly, with separate native-layout wire records for indexed/nonindexed arguments.
+GPU count remains on the GPU; no scan, repack, allocation, retained memory owner,
+implicit barrier or host wait is added. Host-visible range/stride checks do not prove
+GPU-written contents: callers guarantee index bounds, valid execution-time fields
+and synchronization. The [native counted-draw contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkDrawIndirectCount2InfoKHR.html)
+also constrains the GPU count itself, not only the application's maximum.
+
+The implemented profile is deliberately stated, not a fundamental restriction:
+single-sample vertex/fragment, optional D16/D32 depth, fill/depth clipping, vertex
+pulling, one viewport/scissor and matching per-color blend state. Stencil, resolves,
+multisample rendering, independent blend, fixed-function vertex fetch, additional
+stages, restart, wide lines, richer dynamic state, tile-local dependencies and
+nonzero indirect first-instance enabling remain work. Unsupported requested state
+is rejected, never emulated with a hidden state cache or fallback. The existing
+broader native sample masks are hardware metadata, not a support claim for this
+preparation profile.
+
+The public C offscreen consumer checks opaque and additive pipelines, depth rejection,
+LOAD across scopes, negative base vertex, direct/indexed and all four indirect
+variants in disjoint pixel regions, and replay with changed roots and GPU-resident
+count. Every output pixel/depth and surrounding guards is checked. A shader detail
+caught by this test: Slang's `SV_VertexID` subtracts base vertex; the fixture explicitly
+uses `SV_VulkanVertexID` to test native offset semantics. This distinction belongs in
+future generated graphics metadata, not a runtime draw rewrite. See
+[Slang's SPIR-V semantics](https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html).
 
 ## Verification so far
 
-- 61 ordinary Rust tests pass, including foundation contract, status and
+- 63 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -285,7 +335,7 @@ artifact ABI, not yet integration with the generated consumer metadata workflow.
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All seven foundation GPU tests pass on each available driver. Pinned Vulkan
+  All eight foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.
@@ -333,6 +383,12 @@ artifact ABI, not yet integration with the generated consumer metadata workflow.
   mismatch. Native creation/view checks cover 1D arrays, 3D, cubes, multisample
   arrays and depth/stencil tuples. D24S8's tested tuple is reported UNSUPPORTED on
   Radeon and supported on llvmpipe; no fallback format is substituted.
+- The C graphics path passes on Radeon and llvmpipe with synchronization validation:
+  color/depth readback, all draw variants and changed-root/count replay. Invalid
+  scope, extent, missing viewport/pipeline/index binding, index bounds, indirect
+  stride and count ranges are diagnosed before native draws. The native graphics
+  preparation test injects first/second-module failure and null/partial pipeline
+  failure, checks exact cleanup and cleared outputs, then succeeds on the same device.
 
 No timing campaign, GPU queue-overlap claim, real device-loss event, Metal support,
 or new SDK support follows. Hardware execution requires sandbox-external GPU access;
@@ -340,8 +396,9 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 
 ## Next implementation work
 
-Graphics preparation/rendering and broader compute/argument profiles, then consumers
-as the coordinated tranche proceeds.
+Broader graphics and compute/argument profiles, query/readback facilities and consumer
+cutover as the coordinated tranche proceeds. Graphics is usable offscreen, not a
+complete graphics contract or a completed M4 consumer. Presentation remains separate.
 Cache control, set/binding-to-address mappings and generated interface integration
 remain explicit work; the current compute slice does not close the whole foundation.
 The existing setup policy in ABI 20 is temporary migration weight and should be

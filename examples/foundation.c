@@ -50,6 +50,13 @@ _Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
 _Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
+_Static_assert(sizeof(ogpu_next_graphics_limits) == 48, "graphics limits ABI");
+_Static_assert(sizeof(ogpu_next_graphics_state) == 88, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_color_state) == 36, "color state ABI");
+_Static_assert(sizeof(ogpu_next_attachment) == 56, "attachment ABI");
+_Static_assert(sizeof(ogpu_next_render_desc) == 104, "render ABI");
+_Static_assert(sizeof(ogpu_next_viewport_state) == 64, "viewport ABI");
+_Static_assert(sizeof(ogpu_next_draw_desc) == 20, "draw ABI");
 
 static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint32_t size) {
     ogpu_next_query q = { HEADER(ogpu_next_query, kind), data, capacity, 0, size, 0 };
@@ -58,6 +65,7 @@ static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint3
 
 static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_heap.h"
+#include "foundation_graphics.h"
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path) {
@@ -724,7 +732,7 @@ int main(int argc, char **argv) {
         ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
         TRY(ogpu_next_adapter_query(adapter, &q));
         REQUIRE(features.enabled == 0 && features.device_scope == 0);
-        if (!features.baseline_supported) continue;
+        if (!features.baseline_supported || !(features.available & OGPU_NEXT_FEATURE_RASTER)) continue;
         q = query(OGPU_NEXT_QUERY_INFO, &info, 1, sizeof(info));
         TRY(ogpu_next_adapter_query(adapter, &q));
         q = query(OGPU_NEXT_QUERY_QUEUES, NULL, 0, sizeof(*queues));
@@ -742,7 +750,7 @@ int main(int argc, char **argv) {
             requests[count++] = (ogpu_next_queue_request){queues[j].domain, 1, 0.5f};
         }
         /* One real queue from every available domain, no implicit substitution. */
-        ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0, 0 };
+        ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0, OGPU_NEXT_FEATURE_RASTER };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         for (uint32_t j = 0; j < count; ++j) {
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 0) != NULL);
@@ -755,7 +763,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == 0);
+    REQUIRE(features.device_scope == 1 && features.enabled == OGPU_NEXT_FEATURE_RASTER);
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);
@@ -764,7 +772,7 @@ int main(int argc, char **argv) {
     uint32_t type_count = q.count;
     ogpu_next_memory_desc memory_desc = {
         HEADER(ogpu_next_memory_desc, OGPU_NEXT_MEMORY_DESC),
-        4096, 65536, OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST | OGPU_NEXT_USAGE_STORAGE | OGPU_NEXT_USAGE_INDIRECT,
+        4096, 65536, OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST | OGPU_NEXT_USAGE_STORAGE | OGPU_NEXT_USAGE_INDIRECT | OGPU_NEXT_USAGE_INDEX,
         0, OGPU_NEXT_MEMORY_LINEAR, NULL, 0, 0
     };
     ogpu_next_requirements requirements = {0};
@@ -816,13 +824,18 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 3);
+    REQUIRE(argc == 5);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
     REQUIRE(compute_domain != UINT32_MAX);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1]) == EXIT_SUCCESS);
     REQUIRE(heap_execution(device, memory_desc, compute_domain, argv[2]) == EXIT_SUCCESS);
+    uint32_t graphics_domain = UINT32_MAX;
+    for (uint32_t i = 0; i < queue_count; ++i)
+        if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { graphics_domain = queues[i].domain; break; }
+    REQUIRE(graphics_domain != UINT32_MAX);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4]) == EXIT_SUCCESS);
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

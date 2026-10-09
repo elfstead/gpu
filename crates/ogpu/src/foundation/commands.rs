@@ -21,6 +21,10 @@ pub struct List {
     state: Cell<u32>, // 0 invalid, 1 recording, 2 executable, 3 consumed one-shot
     error: Cell<Status>,
     executable: Cell<*const Executable>,
+    graphics: Cell<*const Executable>,
+    rendering: Cell<bool>,
+    viewport_set: Cell<bool>,
+    index_count: Cell<Option<u64>>,
 }
 
 impl Arena {
@@ -90,6 +94,10 @@ impl Arena {
                 state: Cell::new(0),
                 error: Cell::new(OK),
                 executable: Cell::new(ptr::null()),
+                graphics: Cell::new(ptr::null()),
+                rendering: Cell::new(false),
+                viewport_set: Cell::new(false),
+                index_count: Cell::new(None),
             }));
         }
         let info = vk::VkCommandBufferAllocateInfo {
@@ -178,6 +186,10 @@ impl Arena {
         slot.state.set(0);
         slot.error.set(OK);
         slot.executable.set(ptr::null());
+        slot.graphics.set(ptr::null());
+        slot.rendering.set(false);
+        slot.viewport_set.set(false);
+        slot.index_count.set(None);
         slot.mode = desc.replay_mode;
         let info = vk::VkCommandBufferBeginInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -399,23 +411,36 @@ impl List {
         executable: &Executable,
     ) -> Result<(), Status> {
         let d = self.recording()?;
-        stages(d, self.domain, 4, false)?;
+        stages(d, self.domain, executable.stages, false)?;
         if !ptr::eq(executable.device, d) {
             return Err(INVALID);
         }
         unsafe {
             (d.f.vkCmdBindPipeline.unwrap())(
                 self.command,
-                vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE,
+                if executable.stages == 4 {
+                    vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_COMPUTE
+                } else {
+                    vk::VkPipelineBindPoint_VK_PIPELINE_BIND_POINT_GRAPHICS
+                },
                 executable.pipeline,
             );
         }
-        self.executable.set(executable);
+        if executable.stages == 4 {
+            self.executable.set(executable);
+        } else {
+            self.graphics.set(executable);
+        }
         Ok(())
     }
-    fn executable(&self) -> Result<&Executable, Status> {
+    fn executable(&self, scope: u64) -> Result<&Executable, Status> {
         self.recording()?;
-        unsafe { self.executable.get().as_ref() }.ok_or(INVALID)
+        let p = match scope {
+            4 => self.executable.get(),
+            8 | 16 | 24 => self.graphics.get(),
+            _ => return Err(UNSUPPORTED),
+        };
+        unsafe { p.as_ref() }.ok_or(INVALID)
     }
     pub(in crate::foundation) unsafe fn inline(
         &self,
@@ -424,10 +449,7 @@ impl List {
         size: u32,
         data: *const c_void,
     ) -> Result<(), Status> {
-        let executable = self.executable()?;
-        if scope != 4 {
-            return Err(UNSUPPORTED);
-        }
+        let executable = self.executable(scope)?;
         if offset % 4 != 0
             || size % 4 != 0
             || offset > executable.byte_size
@@ -460,7 +482,7 @@ impl List {
         slot: u32,
         address: u64,
     ) -> Result<(), Status> {
-        let executable = self.executable()?;
+        let executable = self.executable(scope)?;
         let root = executable.roots.get(slot as usize).ok_or(INVALID)?;
         if root.stages != scope {
             return Err(UNSUPPORTED);
@@ -472,7 +494,8 @@ impl List {
         unsafe { self.inline(scope, root.offset, 8, ptr::from_ref(&address).cast()) }
     }
     pub(in crate::foundation) fn dispatch(&self, launch: &Launch) -> Result<(), Status> {
-        self.executable()?;
+        self.executable(4)?;
+        self.outside_render()?;
         if launch.dynamic_shared_bytes != 0 || !launch.extensions.is_null() {
             return Err(UNSUPPORTED);
         }
@@ -495,7 +518,8 @@ impl List {
         args: Span,
         dynamic_shared_bytes: u32,
     ) -> Result<(), Status> {
-        self.executable()?;
+        self.executable(4)?;
+        self.outside_render()?;
         if dynamic_shared_bytes != 0 {
             return Err(UNSUPPORTED);
         }
@@ -536,7 +560,7 @@ impl List {
     }
     pub(in crate::foundation) fn end(&self) -> Result<(), Status> {
         let result = self
-            .recording()
+            .outside_render()
             .and_then(|d| unsafe { d.result((d.f.vkEndCommandBuffer.unwrap())(self.command)) });
         self.state.set(if result.is_ok() { 2 } else { 0 });
         result
@@ -545,7 +569,7 @@ impl List {
         self.state.set(0);
     }
     pub(in crate::foundation) unsafe fn copy(&self, dst: Span, src: Span) -> Result<(), Status> {
-        let d = self.recording()?;
+        let d = self.outside_render()?;
         stages(d, self.domain, 2, false)?;
         if src.size != dst.size {
             return Err(INVALID);
@@ -588,7 +612,7 @@ impl List {
         Ok(())
     }
     pub(in crate::foundation) unsafe fn fill(&self, dst: Span, pattern: u32) -> Result<(), Status> {
-        let d = self.recording()?;
+        let d = self.outside_render()?;
         stages(d, self.domain, 2, false)?;
         let target = unsafe { dst.memory.as_ref() }.ok_or(INVALID)?;
         let (buffer, offset, _) =
@@ -604,7 +628,7 @@ impl List {
         Ok(())
     }
     pub(in crate::foundation) unsafe fn barrier(&self, dep: &Dependency) -> Result<(), Status> {
-        let d = self.recording()?;
+        let d = self.outside_render()?;
         dep.header.validate::<Dependency>(DEPENDENCY)?;
         if dep.flags != 0 {
             return Err(UNSUPPORTED);
@@ -719,7 +743,7 @@ impl List {
         range: Subresources,
         value: ClearValue,
     ) -> Result<(), Status> {
-        self.recording()?;
+        self.outside_render()?;
         image.record_clear(self.device, self.domain, self.command, state, range, value)
     }
     pub(in crate::foundation) unsafe fn copy_image_memory(
@@ -729,10 +753,213 @@ impl List {
         copy: &ImageCopy,
         to_image: bool,
     ) -> Result<(), Status> {
-        let d = self.recording()?;
+        let d = self.outside_render()?;
         stages(d, self.domain, 2, false)?;
         unsafe { image.record_copy(self.device, self.domain, self.command, span, copy, to_image) }
     }
+    fn outside_render(&self) -> Result<&Device, Status> {
+        let d = self.recording()?;
+        if self.rendering.get() {
+            return Err(INVALID);
+        }
+        Ok(d)
+    }
+    pub(in crate::foundation) unsafe fn render_begin(
+        &self,
+        desc: &RenderDesc,
+    ) -> Result<(), Status> {
+        let d = self.outside_render()?;
+        stages(d, self.domain, 24, false)?;
+        unsafe {
+            d.begin_render(self.command, self.domain, desc)?;
+        }
+        self.rendering.set(true);
+        Ok(())
+    }
+    pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
+        let d = self.recording()?;
+        if !self.rendering.get() {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdEndRendering.unwrap())(self.command);
+        }
+        self.rendering.set(false);
+        Ok(())
+    }
+    pub(in crate::foundation) fn viewport(&self, state: &ViewportState) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        d.viewport(self.command, state)?;
+        self.viewport_set.set(true);
+        Ok(())
+    }
+    fn drawing(&self, indexed: bool) -> Result<&Device, Status> {
+        self.executable(24)?;
+        if !self.rendering.get()
+            || !self.viewport_set.get()
+            || (indexed && self.index_count.get().is_none())
+        {
+            return Err(INVALID);
+        }
+        Ok(unsafe { &*self.device })
+    }
+    pub(in crate::foundation) fn draw(&self, draw: &DrawDesc, indexed: bool) -> Result<(), Status> {
+        let d = self.drawing(indexed)?;
+        if indexed {
+            if u64::from(draw.first) + u64::from(draw.count) > self.index_count.get().unwrap() {
+                return Err(INVALID);
+            }
+            unsafe {
+                (d.f.vkCmdDrawIndexed.unwrap())(
+                    self.command,
+                    draw.count,
+                    draw.instances,
+                    draw.first,
+                    draw.vertex_offset,
+                    draw.first_instance,
+                );
+            }
+            return Ok(());
+        }
+        if draw.vertex_offset != 0 {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdDraw.unwrap())(
+                self.command,
+                draw.count,
+                draw.instances,
+                draw.first,
+                draw.first_instance,
+            );
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn bind_indices(
+        &self,
+        span: Span,
+        kind: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let (size, native) = match kind {
+            16 => (2, vk::VkIndexType_VK_INDEX_TYPE_UINT16),
+            32 => (4, vk::VkIndexType_VK_INDEX_TYPE_UINT32),
+            _ => return Err(UNSUPPORTED),
+        };
+        let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
+        let (_, _, address) = memory.command_range(d, self.domain, span.offset, span.size, 8)?;
+        if address % size != 0 || span.size % size != 0 {
+            return Err(INVALID);
+        }
+        let info = vk::VkBindIndexBuffer3InfoKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR,
+            addressRange: vk::VkDeviceAddressRangeKHR {
+                address,
+                size: span.size,
+            },
+            addressFlags: memory.address_flags(),
+            indexType: native,
+            ..Default::default()
+        };
+        unsafe {
+            (d.f.vkCmdBindIndexBuffer3KHR.unwrap())(self.command, &info);
+        }
+        self.index_count.set(Some(span.size / size));
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn draw_indirect(
+        &self,
+        desc: &Indirect,
+        indexed: bool,
+    ) -> Result<(), Status> {
+        let d = self.drawing(indexed)?;
+        if desc.maximum_count > d.snapshot.graphics_limits.max_indirect_count {
+            return Err(INVALID);
+        }
+        let needed = indirect_size(desc.stride, desc.maximum_count, indexed)?;
+        if desc.arguments.size < needed {
+            return Err(INVALID);
+        }
+        let memory = unsafe { desc.arguments.memory.as_ref() }.ok_or(INVALID)?;
+        let (_, _, address) = memory.command_range(
+            d,
+            self.domain,
+            desc.arguments.offset,
+            desc.arguments.size,
+            4,
+        )?;
+        if address % 4 != 0 {
+            return Err(INVALID);
+        }
+        let range = vk::VkStridedDeviceAddressRangeKHR {
+            address,
+            size: desc.arguments.size,
+            stride: u64::from(desc.stride),
+        };
+        if desc.count.memory.is_null() {
+            if desc.count.offset != 0 || desc.count.size != 0 {
+                return Err(INVALID);
+            }
+            let info = vk::VkDrawIndirect2InfoKHR {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR,
+                addressRange: range,
+                addressFlags: memory.address_flags(),
+                drawCount: desc.maximum_count,
+                ..Default::default()
+            };
+            unsafe {
+                if indexed {
+                    (d.f.vkCmdDrawIndexedIndirect2KHR.unwrap())(self.command, &info);
+                } else {
+                    (d.f.vkCmdDrawIndirect2KHR.unwrap())(self.command, &info);
+                }
+            }
+        } else {
+            let count = unsafe { &*desc.count.memory };
+            if desc.count.size < 4 {
+                return Err(INVALID);
+            }
+            let (_, _, count_address) =
+                count.command_range(d, self.domain, desc.count.offset, desc.count.size, 4)?;
+            if count_address % 4 != 0 {
+                return Err(INVALID);
+            }
+            let info = vk::VkDrawIndirectCount2InfoKHR {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DRAW_INDIRECT_COUNT_2_INFO_KHR,
+                addressRange: range,
+                addressFlags: memory.address_flags(),
+                countAddressRange: vk::VkDeviceAddressRangeKHR {
+                    address: count_address,
+                    size: desc.count.size,
+                },
+                countAddressFlags: count.address_flags(),
+                maxDrawCount: desc.maximum_count,
+                ..Default::default()
+            };
+            unsafe {
+                if indexed {
+                    (d.f.vkCmdDrawIndexedIndirectCount2KHR.unwrap())(self.command, &info);
+                } else {
+                    (d.f.vkCmdDrawIndirectCount2KHR.unwrap())(self.command, &info);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn indirect_size(stride: u32, count: u32, indexed: bool) -> Result<u64, Status> {
+    let record = if indexed { 20 } else { 16 };
+    if (stride != 0 && (stride < record || stride % 4 != 0)) || (stride == 0 && count > 1) {
+        return Err(INVALID);
+    }
+    Ok(if count == 0 {
+        0
+    } else {
+        u64::from(count - 1) * u64::from(stride) + u64::from(record)
+    })
 }
 
 impl Queue {
@@ -830,6 +1057,22 @@ impl Queue {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn indirect_ranges_preserve_native_stride_rules() {
+        use super::*;
+        assert_eq!(indirect_size(0, 0, false), Ok(0));
+        assert_eq!(indirect_size(0, 1, false), Ok(16));
+        assert_eq!(indirect_size(0, 1, true), Ok(20));
+        assert_eq!(indirect_size(0, 2, false), Err(INVALID));
+        assert_eq!(indirect_size(4, 1, false), Err(INVALID));
+        assert_eq!(indirect_size(18, 1, false), Err(INVALID));
+        assert_eq!(indirect_size(16, 2, true), Err(INVALID));
+        assert_eq!(indirect_size(32, 3, true), Ok(84));
+        assert_eq!(
+            indirect_size(u32::MAX - 3, u32::MAX, true),
+            Ok(u64::from(u32::MAX - 1) * u64::from(u32::MAX - 3) + 20)
+        );
+    }
     use super::*;
     thread_local! {
         static FAILURE: Cell<u32> = const { Cell::new(0) };

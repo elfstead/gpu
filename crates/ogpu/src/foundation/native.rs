@@ -28,7 +28,10 @@ pub(super) use descriptors::descriptor_scratch;
 #[path = "executables.rs"]
 mod executables;
 pub(super) use executables::record as executable_record;
+#[path = "rendering.rs"]
+mod rendering;
 pub use executables::Executable;
+pub(super) use rendering::render_scratch;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -101,6 +104,19 @@ functions! {
     vkCmdPushDataEXT: PFN_vkCmdPushDataEXT,
     vkCmdDispatch: PFN_vkCmdDispatch,
     vkCmdDispatchIndirect: PFN_vkCmdDispatchIndirect,
+    vkCreateGraphicsPipelines: PFN_vkCreateGraphicsPipelines,
+    vkCmdBeginRendering: PFN_vkCmdBeginRendering,
+    vkCmdEndRendering: PFN_vkCmdEndRendering,
+    vkCmdSetViewport: PFN_vkCmdSetViewport,
+    vkCmdSetScissor: PFN_vkCmdSetScissor,
+    vkCmdDraw: PFN_vkCmdDraw,
+    vkCmdDrawIndexed: PFN_vkCmdDrawIndexed,
+    vkCmdBindIndexBuffer3KHR: PFN_vkCmdBindIndexBuffer3KHR,
+    vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
+    vkCmdDrawIndexedIndirect2KHR: PFN_vkCmdDrawIndexedIndirect2KHR,
+    vkCmdDrawIndirectCount2KHR: PFN_vkCmdDrawIndirectCount2KHR,
+    vkCmdDrawIndexedIndirectCount2KHR: PFN_vkCmdDrawIndexedIndirectCount2KHR,
+    vkGetPhysicalDeviceFormatProperties: PFN_vkGetPhysicalDeviceFormatProperties,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -149,6 +165,7 @@ pub(super) fn snapshot(
     let mut memory_limits = MemoryLimits::default();
     let mut descriptor_limits = DescriptorLimits::default();
     let mut execution_limits = ExecutionLimits::default();
+    let mut graphics_limits = GraphicsLimits::default();
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -248,6 +265,19 @@ pub(super) fn snapshot(
             max_shared_memory: properties.properties.limits.maxComputeSharedMemorySize,
             argument_flags: 1, // One native byte namespace, not isolated stage banks.
         };
+        let p = &properties.properties.limits;
+        graphics_limits = GraphicsLimits {
+            max_colors: p.maxColorAttachments,
+            max_width: p.maxFramebufferWidth,
+            max_height: p.maxFramebufferHeight,
+            max_layers: p.maxFramebufferLayers,
+            max_viewport: p.maxViewportDimensions,
+            viewport_bounds: p.viewportBoundsRange,
+            color_samples: p.framebufferColorSampleCounts,
+            depth_samples: p.framebufferDepthSampleCounts,
+            no_attachment_samples: p.framebufferNoAttachmentsSampleCounts,
+            max_indirect_count: p.maxDrawIndirectCount,
+        };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
             && caps.multi_draw_indirect != 0
@@ -322,6 +352,7 @@ pub(super) fn snapshot(
         memory_limits,
         descriptor_limits,
         execution_limits,
+        graphics_limits,
     })
 }
 

@@ -61,6 +61,8 @@ vkDestroyImageView
 vkCreateGraphicsPipelines
 vkCmdSetViewport
 vkCmdSetScissor
+vkCmdDraw
+vkCmdDrawIndexed
 vkCreateQueryPool
 vkDestroyQueryPool
 vkCmdResetQueryPool
