@@ -17,7 +17,7 @@ mod memory;
 pub use memory::Memory;
 #[path = "commands.rs"]
 mod commands;
-pub(super) use commands::{barrier_scratch, submit_scratch, vertex_scratch};
+pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch, vertex_scratch};
 pub use commands::{Arena, List};
 #[path = "images.rs"]
 mod images;

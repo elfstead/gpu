@@ -377,6 +377,13 @@ fn submit_layout(lists: u32, waits: u32, signals: u32) -> Result<(Layout, usize,
         .map_err(|_| INVALID)?;
     Ok((layout.pad_to_align(), wait_offset, signal_offset))
 }
+pub(in crate::foundation) fn submit_batch_scratch(count: u32) -> Result<HostRequirements, Status> {
+    let layout = array_layout::<vk::VkSubmitInfo2>(count)?;
+    Ok(HostRequirements {
+        size: layout.size() as u64,
+        alignment: layout.align() as u64,
+    })
+}
 pub(in crate::foundation) fn submit_scratch(
     lists: u32,
     waits: u32,
@@ -1210,6 +1217,50 @@ impl Queue {
         let device = self.device.load(Ordering::Relaxed).cast_const();
         let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
         d.ready()?;
+        let info = unsafe { self.translate_submit(d, desc)? };
+        unsafe {
+            self.submit_native(d, 1, &info)?;
+            consume_submit(desc);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn submit_batch(
+        &self,
+        count: u32,
+        descs: *const SubmitDesc,
+        storage: HostSpan,
+    ) -> Result<(), Status> {
+        let device = self.device.load(Ordering::Relaxed).cast_const();
+        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        d.ready()?;
+        if count == 0 {
+            return Ok(());
+        }
+        let descs = unsafe { slice(descs, count)? };
+        let native = scratch(storage.data, storage.size, submit_batch_scratch(count)?)?
+            .cast::<vk::VkSubmitInfo2>();
+        for (i, desc) in descs.iter().enumerate() {
+            // All native pointees live in distinct caller-owned scratch regions.
+            unsafe {
+                native.add(i).write(self.translate_submit(d, desc)?);
+            }
+        }
+        unsafe {
+            self.submit_native(d, count, native)?;
+        }
+        for desc in descs {
+            unsafe {
+                consume_submit(desc);
+            }
+        }
+        Ok(())
+    }
+    unsafe fn translate_submit(
+        &self,
+        d: &Device,
+        desc: &SubmitDesc,
+    ) -> Result<vk::VkSubmitInfo2, Status> {
+        let device = ptr::from_ref(d);
         desc.header.validate::<SubmitDesc>(SUBMIT_DESC)?;
         let lists = unsafe { slice(desc.lists, desc.list_count)? };
         let waits = unsafe { slice(desc.waits, desc.wait_count)? };
@@ -1262,7 +1313,7 @@ impl Queue {
                 }
             }
         }
-        let info = vk::VkSubmitInfo2 {
+        Ok(vk::VkSubmitInfo2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
             commandBufferInfoCount: desc.list_count,
             pCommandBufferInfos: commands,
@@ -1271,14 +1322,21 @@ impl Queue {
             signalSemaphoreInfoCount: desc.signal_count,
             pSignalSemaphoreInfos: native_signals,
             ..Default::default()
-        };
+        })
+    }
+    unsafe fn submit_native(
+        &self,
+        d: &Device,
+        count: u32,
+        infos: *const vk::VkSubmitInfo2,
+    ) -> Result<(), Status> {
         // SAFETY: validated records; caller owns queue exclusion, pending/lifetime
         // rules, timeline order and scratch. No allocation or wait in this path.
         let result = unsafe {
             d.result((d.f.vkQueueSubmit2.unwrap())(
                 self.handle,
-                1,
-                &info,
+                count,
+                infos,
                 ptr::null_mut(),
             ))
         };
@@ -1288,13 +1346,16 @@ impl Queue {
             }
             return Err(error);
         }
-        for pointer in lists {
-            let list = unsafe { &**pointer };
-            if list.mode == 1 {
-                list.state.set(3);
-            }
-        }
         Ok(())
+    }
+}
+unsafe fn consume_submit(desc: &SubmitDesc) {
+    // Only called after translation validated every list and native submission succeeded.
+    for i in 0..desc.list_count as usize {
+        let list = unsafe { &**desc.lists.add(i) };
+        if list.mode == 1 {
+            list.state.set(3);
+        }
     }
 }
 
@@ -1320,6 +1381,7 @@ mod tests {
     thread_local! {
         static FAILURE: Cell<u32> = const { Cell::new(0) };
         static SUBMITS: Cell<u32> = const { Cell::new(0) };
+        static BATCH_COUNT: Cell<u32> = const { Cell::new(0) };
         static BEGIN: Cell<vk::PFN_vkBeginCommandBuffer> = const { Cell::new(None) };
         static END: Cell<vk::PFN_vkEndCommandBuffer> = const { Cell::new(None) };
         static RESET: Cell<vk::PFN_vkResetCommandPool> = const { Cell::new(None) };
@@ -1372,6 +1434,7 @@ mod tests {
         fence: vk::VkFence,
     ) -> vk::VkResult {
         SUBMITS.set(SUBMITS.get() + 1);
+        BATCH_COUNT.set(count);
         match FAILURE.get() {
             3 => vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY,
             4 => vk::VkResult_VK_ERROR_DEVICE_LOST,
@@ -1473,6 +1536,56 @@ mod tests {
                     scratch_size: requirements.size,
                 };
                 let queue = d.queue(domain, 0).unwrap();
+                let batch_requirements = submit_batch_scratch(2).unwrap();
+                assert!(batch_requirements.alignment <= align_of::<u64>() as u64);
+                let mut batch_storage = vec![0u64; batch_requirements.size.div_ceil(8) as usize];
+                let storage = HostSpan {
+                    data: batch_storage.as_mut_ptr().cast(),
+                    size: batch_requirements.size,
+                };
+                let mut batches = [
+                    SubmitDesc { ..desc },
+                    SubmitDesc {
+                        header: Record::new::<SubmitDesc>(SUBMIT_DESC),
+                        list_count: 0,
+                        wait_count: 0,
+                        signal_count: 0,
+                        lists: ptr::null(),
+                        waits: ptr::null(),
+                        signals: ptr::null(),
+                        scratch: ptr::null_mut(),
+                        scratch_size: 0,
+                    },
+                ];
+                SUBMITS.set(0);
+                unsafe {
+                    queue.submit_batch(
+                        0,
+                        ptr::null(),
+                        HostSpan {
+                            data: ptr::null_mut(),
+                            size: 0,
+                        },
+                    )
+                }
+                .unwrap();
+                batches[1].header.version = 0;
+                assert_eq!(
+                    unsafe { queue.submit_batch(2, batches.as_ptr(), storage) },
+                    Err(UNSUPPORTED)
+                );
+                assert_eq!(SUBMITS.get(), 0);
+                assert_eq!(unsafe { &*list }.state.get(), 2);
+                batches[1].header.version = VERSION;
+                FAILURE.set(3);
+                assert_eq!(
+                    unsafe { queue.submit_batch(2, batches.as_ptr(), storage) },
+                    Err(OUT_OF_MEMORY)
+                );
+                assert_eq!(SUBMITS.get(), 1);
+                assert_eq!(BATCH_COUNT.get(), 2);
+                assert_eq!(unsafe { &*list }.state.get(), 2);
+                assert_eq!(d.ready(), Ok(()));
                 SUBMITS.set(0);
                 FAILURE.set(3);
                 assert_eq!(unsafe { queue.submit(&desc) }, Err(OUT_OF_MEMORY));
@@ -1483,7 +1596,8 @@ mod tests {
                 assert_eq!(SUBMITS.get(), 1);
                 desc.scratch_size = requirements.size;
                 FAILURE.set(0);
-                unsafe { queue.submit(&desc) }.unwrap();
+                unsafe { queue.submit_batch(2, batches.as_ptr(), storage) }.unwrap();
+                assert_eq!(BATCH_COUNT.get(), 2);
                 timeline.wait(1, 10_000_000_000).unwrap();
                 assert_eq!(unsafe { queue.submit(&desc) }, Err(INVALID));
                 assert_eq!(SUBMITS.get(), 2);
@@ -1500,7 +1614,7 @@ mod tests {
                 desc.signal_count = 0;
                 FAILURE.set(terminal);
                 assert_eq!(
-                    unsafe { queue.submit(&desc) },
+                    unsafe { queue.submit_batch(1, &desc, storage) },
                     Err(if terminal == 4 {
                         DEVICE_LOST
                     } else {
@@ -1508,6 +1622,10 @@ mod tests {
                     })
                 );
                 assert_eq!(unsafe { queue.submit(&desc) }, Err(DEVICE_LOST));
+                assert_eq!(
+                    unsafe { queue.submit_batch(0, ptr::null(), storage) },
+                    Err(DEVICE_LOST)
+                );
                 assert_eq!(SUBMITS.get(), 3);
                 assert_eq!(arena.begin(&rd), Err(DEVICE_LOST));
                 // The injected loss did not submit native work; real device is idle.

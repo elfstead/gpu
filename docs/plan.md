@@ -67,8 +67,9 @@ Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe cave
 Radeon also passes an explicit cross-family
 transfer. It is source-only Linux work under `ogpu_next_*`, not the installed ABI.
 Broader graphics/numerical/query profiles, compiler metadata and consumer migration
-remain. Secondary
-execution, split dependencies and native multi-submit batching remain outstanding;
+remain. Native multi-submit now preserves separate wait/work/signal records in
+one driver call using caller scratch, with whole-call local rejection and OOM retry.
+Secondary execution and split dependencies remain outstanding;
 the broader draft is not yet implemented.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

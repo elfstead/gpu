@@ -1022,6 +1022,23 @@ typedef struct ogpu_next_submit_desc {
  */
 ogpu_next_status ogpu_next_submit_scratch_requirements(uint32_t lists, uint32_t waits, uint32_t signals, ogpu_next_host_requirements *);
 ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
+/* One native submission call for count ordered batches. Each retains its own
+ * list/wait/signal boundary; batches are not flattened or submitted separately.
+ * Each descriptor supplies its usual submit scratch. Additional batch scratch
+ * stores only translated native batch headers. ALL scratch regions must be
+ * mutually disjoint and disjoint from input records, borrowed for this call only.
+ * Every batch is validated before native submission; on local failure no batch
+ * is submitted and no one-shot is consumed (scratch may have been written).
+ * Native OOM leaves ALL batches retryable. Other native failures follow submit's
+ * terminal policy. On success all one-shot lists are consumed. Caller guarantees
+ * duplicate-list legality across the entire call, and all native timeline ordering
+ * and pending rules. Duplicate wait/signal restrictions apply within each batch;
+ * a later batch may wait for an earlier batch's signal. count=0 is a no-op on a
+ * live, non-lost device, accepts descs=NULL and requires no scratch. No allocation,
+ * retained submission object, automatic timeline or host wait is added.
+ */
+ogpu_next_status ogpu_next_submit_batch_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_queue_submit_batch(ogpu_next_queue *, uint32_t count, const ogpu_next_submit_desc *descs, ogpu_next_host_span scratch);
 
 #define OGPU_NEXT_DOMAIN_IGNORED UINT32_MAX
 typedef struct ogpu_next_memory_barrier {

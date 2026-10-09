@@ -159,6 +159,39 @@ pub unsafe extern "C" fn ogpu_next_queue_submit(
         unsafe { queue.submit(description(desc, SUBMIT_DESC)?) }
     })
 }
+/// # Safety
+/// Writable requirements output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_submit_batch_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let requirements = native::submit_batch_scratch(count)?;
+        unsafe {
+            out.write(requirements);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Live queue, readable descriptor array and mutually disjoint scratch. Caller
+/// excludes queue access and satisfies all pending/list/timeline lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_queue_submit_batch(
+    queue: *mut Queue,
+    count: u32,
+    descs: *const SubmitDesc,
+    scratch: HostSpan,
+) -> Status {
+    boundary(|| {
+        let queue = unsafe { queue.as_ref() }.ok_or(INVALID)?;
+        unsafe { queue.submit_batch(count, descs, scratch) }
+    })
+}
 unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>) {
     if let Some(encoder) = unsafe { encoder.as_ref() } {
         encoder.poison(boundary(|| f(encoder)));

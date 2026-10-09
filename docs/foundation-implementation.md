@@ -113,8 +113,23 @@ This is still an unstabilized subset. Secondary recording/inheritance and split
 dependencies are not implemented, and the current
 stage vocabulary includes broad transfer/vertex/depth groups. Finer graphics scopes
 must be added with the executable surface. Multiple lists and timeline edges are
-batched in one native submit record; an array of distinct submit records in one
-native call remains to implement. None is ruled out by the design. No performance
+batched in one native submit record, or an ordered array of distinct wait/work/signal
+records can be submitted in one native call. None is flattened or silently split.
+The batch API adds caller scratch for native headers, in addition to each record's
+existing list/semaphore scratch; all regions must be mutually disjoint. Scratch
+can be reused immediately after the call. A zero-count batch call is a no-op on a
+live device. All records are translated/validated before touching the queue;
+local failure submits nothing and consumes no one-shots. Native OOM also leaves
+the entire call retryable, following [Vulkan submission failure rules](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html).
+Only successful native submission consumes one-shot lists. Caller-owned timeline
+ordering and simultaneous-list requirements apply across the whole batch array.
+
+The C fixture checks producer/empty/consumer records, an inter-record timeline
+edge and a host gate, GPU copy/readback, immediate scratch overwrite while pending,
+local rejection in the last record, one-shot consumption and separate serial replay.
+Rust injection checks one native call with the full batch count, no native call on
+local rejection, OOM retry, successful one-shot consumption and terminal loss.
+No performance
 equivalence claim follows merely from the absence of OGPU hot-path allocation.
 
 ## Implemented images and views

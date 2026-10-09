@@ -75,6 +75,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_cache.h"
 #include "foundation_graphics.h"
 #include "foundation_numerics.h"
+#include "foundation_submission.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
@@ -969,6 +970,7 @@ int main(int argc, char **argv) {
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
     REQUIRE(compute_domain != UINT32_MAX);
+    REQUIRE(submission_batches(device, memory_desc, compute_domain) == EXIT_SUCCESS);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1]) == EXIT_SUCCESS);
     REQUIRE(heap_execution(device, memory_desc, compute_domain, argv[2]) == EXIT_SUCCESS);
     uint32_t graphics_domain = UINT32_MAX;

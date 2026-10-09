@@ -41,7 +41,7 @@ extern "C" {
  * Wider graphics/native artifact profiles remain to
  * implement; no implicit translation or command-time JIT. */
 
-/* Primary arenas, replay, explicit host scratch, submission and memory barriers
+/* Primary arenas, replay, explicit host scratch, single/batched submission and memory barriers
  * are implemented in the imported header. Nested/secondary execution follows. */
 void ogpu_next_execute_lists(ogpu_next_encoder *, uint32_t count, ogpu_next_list *const *);
 
