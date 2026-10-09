@@ -40,6 +40,9 @@ llvmpipe passes stencil raster in explicit diagnostic isolation, but full combin
 readback fails (documented in the implementation status, not hidden by a fallback).
 Timestamp/occlusion pools now provide explicit reset/use and GPU result copies with
 caller-selected widths, strides, availability and wait policy.
+Pipeline statistics and precise occlusion are independently enabled. Compute
+invocation and ordered graphics-counter readback, empty queries, overlapping
+occlusion/statistics scopes and exact one/four-sample counts pass locally.
 Independent executable caches now support compute/graphics preparation, native or
 caller synchronization, identity-checked import, export and explicit merge. C tests
 rebuild pipelines from exported caches and destroy caches before GPU execution;

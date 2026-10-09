@@ -75,6 +75,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_cache.h"
 #include "foundation_graphics.h"
 #include "foundation_numerics.h"
+#define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path) {
@@ -83,6 +84,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     void *code = NULL, *scratch = NULL;
     ogpu_next_executable *executable = NULL;
     ogpu_next_executable_cache *cache = NULL;
+    ogpu_next_query_pool *statistics = NULL;
     ogpu_next_memory *memory = NULL;
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *done = NULL;
@@ -140,7 +142,19 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_PRIMARY, NULL};
     ogpu_next_encoder *encoder = NULL;
     ogpu_next_list *list = NULL;
+    ogpu_next_feature_info features = {0};
+    q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
+    TRY(ogpu_next_device_query(device, &q));
+    if (features.enabled & OGPU_NEXT_FEATURE_PIPELINE_STATISTICS) {
+        ogpu_next_query_pool_desc qd = {HEADER(ogpu_next_query_pool_desc, OGPU_NEXT_QUERY_POOL_DESC),
+            OGPU_NEXT_QUERY_PIPELINE_STATISTICS, 2, OGPU_NEXT_STATISTIC_COMPUTE_INVOCATIONS};
+        TRY(ogpu_next_query_pool_create(device, &qd, &statistics));
+    }
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    if (statistics) {
+        ogpu_next_queries_reset(encoder, statistics, 0, 2);
+        ogpu_next_query_begin(encoder, statistics, 0, 0);
+    }
     ogpu_next_bind_executable(encoder, executable);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, base + 1024);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 1, base + 1040);
@@ -162,8 +176,15 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_INDIRECT_READ;
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_dispatch_indirect(encoder, (ogpu_next_span){memory, 1536, 12}, 0);
-    dep.before = OGPU_NEXT_STAGE_COMPUTE; dep.after = OGPU_NEXT_STAGE_HOST;
-    dep.global_before = OGPU_NEXT_ACCESS_SHADER_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
+    if (statistics) {
+        ogpu_next_query_end(encoder, statistics, 0);
+        ogpu_next_query_begin(encoder, statistics, 1, 0);
+        ogpu_next_query_end(encoder, statistics, 1);
+        ogpu_next_queries_resolve(encoder, statistics, 0, 2, (ogpu_next_span){memory,2560,40}, 24,
+            OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
+    }
+    dep.before = OGPU_NEXT_STAGE_COMPUTE | OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;
+    dep.global_before = OGPU_NEXT_ACCESS_SHADER_WRITE | OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
     ogpu_next_barrier(encoder, &dep);
     TRY(ogpu_next_commands_end(encoder, &list));
     TRY(ogpu_next_timeline_create(device, 0, &done));
@@ -187,6 +208,12 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
         pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
         TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(all));
+        if (statistics) {
+            const uint64_t *values = (const uint64_t *)((const char *)mapping.data + 2560);
+            REQUIRE(values[0] == 256 && values[1] != 0 && values[3] == 0 && values[4] != 0);
+            REQUIRE(values[2] == UINT64_C(0xa5a5a5a5a5a5a5a5));
+            REQUIRE(((unsigned char *)mapping.data)[2559] == 0xa5 && ((unsigned char *)mapping.data)[2600] == 0xa5);
+        }
         for (uint32_t i = 0; i < 65; ++i) {
             REQUIRE(((uint32_t *)mapping.data)[128 + i] == (i < count ? (i + replay) * 3 + replay + 7 + 13 : UINT32_C(0xa5a5a5a5)));
             REQUIRE(((uint32_t *)mapping.data)[512 + i] == (i < count ? (i + replay) * 5 + replay + 11 + 13 : UINT32_C(0xa5a5a5a5)));
@@ -201,11 +228,13 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, base + 1);
     REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
     printf("Compute passes: named entry, specialization, two device roots, partial inline updates, GPU-written indirect dimensions and changed-data replay.\n");
+    if (statistics) printf("Compute statistics pass: direct/indirect invocation counts, empty query, availability, padded records and replay.\n");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr, "Pending compute work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(executable);
     ogpu_next_executable_cache_destroy(cache);
+    ogpu_next_query_pool_destroy(statistics);
     ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
     free(code); free(scratch);
@@ -861,7 +890,7 @@ int main(int argc, char **argv) {
         }
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
-            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES)) };
+            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES)) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         for (uint32_t j = 0; j < count; ++j) {
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 0) != NULL);
@@ -874,7 +903,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES))));
+    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES))));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);

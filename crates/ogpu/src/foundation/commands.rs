@@ -28,6 +28,12 @@ pub struct Arena {
     used: usize,
     usable: bool,
 }
+#[derive(Clone, Copy)]
+struct ActiveQuery {
+    pool: *const QueryPool,
+    index: u32,
+    inside: bool,
+}
 pub struct List {
     device: *const Device,
     command: vk::VkCommandBuffer,
@@ -40,7 +46,7 @@ pub struct List {
     rendering: Cell<bool>,
     viewport_set: Cell<bool>,
     index_count: Cell<Option<u64>>,
-    active_query: Cell<Option<(*const QueryPool, u32, bool)>>,
+    active_queries: [Cell<Option<ActiveQuery>>; 2],
 }
 
 impl Arena {
@@ -114,7 +120,7 @@ impl Arena {
                 rendering: Cell::new(false),
                 viewport_set: Cell::new(false),
                 index_count: Cell::new(None),
-                active_query: Cell::new(None),
+                active_queries: [const { Cell::new(None) }; 2],
             }));
         }
         let info = vk::VkCommandBufferAllocateInfo {
@@ -207,7 +213,9 @@ impl Arena {
         slot.rendering.set(false);
         slot.viewport_set.set(false);
         slot.index_count.set(None);
-        slot.active_query.set(None);
+        for query in &slot.active_queries {
+            query.set(None);
+        }
         slot.mode = desc.replay_mode;
         let info = vk::VkCommandBufferBeginInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -578,7 +586,7 @@ impl List {
     }
     pub(in crate::foundation) fn end(&self) -> Result<(), Status> {
         let result = self.outside_render().and_then(|d| {
-            if self.active_query.get().is_some() {
+            if self.active_queries.iter().any(|q| q.get().is_some()) {
                 return Err(INVALID);
             }
             unsafe { d.result((d.f.vkEndCommandBuffer.unwrap())(self.command)) }
@@ -810,7 +818,12 @@ impl List {
     }
     pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
         let d = self.recording()?;
-        if !self.rendering.get() || self.active_query.get().is_some_and(|(_, _, inside)| inside) {
+        if !self.rendering.get()
+            || self
+                .active_queries
+                .iter()
+                .any(|q| q.get().is_some_and(|active| active.inside))
+        {
             return Err(INVALID);
         }
         unsafe {
@@ -835,11 +848,11 @@ impl List {
         let d = self.outside_render()?;
         stages(d, self.domain, 32, false)?; // Native reset/copy requires graphics or compute, not transfer-only.
         pool.range(d, first, count)?;
-        if self
-            .active_query
-            .get()
-            .is_some_and(|(p, i, _)| ptr::eq(p, pool) && i >= first && i - first < count)
-        {
+        if self.active_queries.iter().any(|q| {
+            q.get().is_some_and(|active| {
+                ptr::eq(active.pool, pool) && active.index >= first && active.index - first < count
+            })
+        }) {
             return Err(INVALID);
         }
         unsafe {
@@ -852,31 +865,52 @@ impl List {
         pool: &QueryPool,
         index: u32,
         begin: bool,
+        flags: u32,
     ) -> Result<(), Status> {
         let d = self.recording()?;
-        stages(d, self.domain, 24, false)?;
+        stages(d, self.domain, 32, false)?;
         pool.range(d, index, 1)?;
-        if pool.kind != 2 {
+        if !matches!(pool.kind, 2 | 3) {
             return Err(INVALID);
         }
+        let queue_flags = d
+            .snapshot
+            .queues
+            .iter()
+            .find(|q| q.domain == self.domain)
+            .ok_or(INVALID)?
+            .flags;
+        if (pool.kind == 2 || pool.statistics & !1024 != 0) && queue_flags & GRAPHICS == 0
+            || pool.statistics & 1024 != 0 && queue_flags & COMPUTE == 0
+        {
+            return Err(UNSUPPORTED);
+        }
+        let native_flags = queries::controls(pool.kind, d.snapshot.features.enabled, flags)?;
+        let active = &self.active_queries[(pool.kind - 2) as usize];
         if begin {
-            if self.active_query.get().is_some() {
+            if active.get().is_some() {
                 return Err(INVALID);
             }
             unsafe {
-                (d.f.vkCmdBeginQuery.unwrap())(self.command, pool.handle, index, 0);
+                (d.f.vkCmdBeginQuery.unwrap())(self.command, pool.handle, index, native_flags);
             }
-            self.active_query
-                .set(Some((pool, index, self.rendering.get())));
+            active.set(Some(ActiveQuery {
+                pool,
+                index,
+                inside: self.rendering.get(),
+            }));
         } else {
-            let (p, i, inside) = self.active_query.get().ok_or(INVALID)?;
-            if !ptr::eq(p, pool) || i != index || inside != self.rendering.get() {
+            let previous = active.get().ok_or(INVALID)?;
+            if !ptr::eq(previous.pool, pool)
+                || previous.index != index
+                || previous.inside != self.rendering.get()
+            {
                 return Err(INVALID);
             }
             unsafe {
                 (d.f.vkCmdEndQuery.unwrap())(self.command, pool.handle, index);
             }
-            self.active_query.set(None);
+            active.set(None);
         }
         Ok(())
     }
@@ -920,14 +954,15 @@ impl List {
         let d = self.outside_render()?;
         stages(d, self.domain, 32, false)?;
         pool.range(d, first, count)?;
-        if self
-            .active_query
-            .get()
-            .is_some_and(|(p, i, _)| ptr::eq(p, pool) && i >= first && i - first < count)
-        {
+        if self.active_queries.iter().any(|q| {
+            q.get().is_some_and(|active| {
+                ptr::eq(active.pool, pool) && active.index >= first && active.index - first < count
+            })
+        }) {
             return Err(INVALID);
         }
-        let (size, align, native) = queries::result_layout(pool.kind, count, stride, flags)?;
+        let (size, align, native) =
+            queries::result_layout(pool.kind, pool.statistics, count, stride, flags)?;
         if dst.size < size {
             return Err(INVALID);
         }

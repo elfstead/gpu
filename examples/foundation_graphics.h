@@ -18,7 +18,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     uint32_t depth_aspects = OGPU_NEXT_ASPECT_DEPTH | (stencil_enabled ? OGPU_NEXT_ASPECT_STENCIL : 0);
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *done = NULL;
-    ogpu_next_query_pool *timestamps = NULL, *occlusion = NULL;
+    ogpu_next_query_pool *timestamps = NULL, *occlusion = NULL, *statistics = NULL;
     ogpu_next_graphics_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS, &limits, 1, sizeof(limits));
     TRY(ogpu_next_device_query(device, &q)); REQUIRE(limits.max_colors > 0);
@@ -31,12 +31,22 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_query_limits ql = {0};
     q = query(OGPU_NEXT_QUERY_LIMITS, &ql, 1, sizeof(ql));
     TRY(ogpu_next_device_query(device, &q)); REQUIRE(ql.timestamp_period_ns > 0);
-    _Static_assert(sizeof(ogpu_next_query_limits) == 8, "query limits ABI");
+    _Static_assert(sizeof(ogpu_next_query_limits) == 16, "query limits ABI");
     _Static_assert(sizeof(ogpu_next_query_pool_desc) == 40, "query pool ABI");
     ogpu_next_query_pool_desc qd = {HEADER(ogpu_next_query_pool_desc, OGPU_NEXT_QUERY_POOL_DESC), OGPU_NEXT_QUERY_TIMESTAMP, 2, 0};
     TRY(ogpu_next_query_pool_create(device, &qd, &timestamps));
     qd.type = OGPU_NEXT_QUERY_OCCLUSION;
     TRY(ogpu_next_query_pool_create(device, &qd, &occlusion));
+    uint32_t precise = features.enabled & OGPU_NEXT_FEATURE_PRECISE_OCCLUSION ? OGPU_NEXT_QUERY_PRECISE : 0;
+    qd.type = OGPU_NEXT_QUERY_PIPELINE_STATISTICS;
+    qd.statistics = OGPU_NEXT_STATISTIC_INPUT_VERTICES | OGPU_NEXT_STATISTIC_INPUT_PRIMITIVES |
+        OGPU_NEXT_STATISTIC_VERTEX_INVOCATIONS | OGPU_NEXT_STATISTIC_FRAGMENT_INVOCATIONS;
+    if (features.enabled & OGPU_NEXT_FEATURE_PIPELINE_STATISTICS) {
+        REQUIRE((ql.statistics & qd.statistics) == qd.statistics);
+        TRY(ogpu_next_query_pool_create(device, &qd, &statistics));
+    } else {
+        REQUIRE(ogpu_next_query_pool_create(device, &qd, &statistics) == OGPU_NEXT_UNSUPPORTED && statistics == NULL);
+    }
     ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, 16};
     ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE), 8, 1, &slot};
     ogpu_next_shader shaders[2];
@@ -144,6 +154,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
     ogpu_next_queries_reset(encoder, timestamps, 0, 2);
     ogpu_next_queries_reset(encoder, occlusion, 0, 2);
+    if (statistics) ogpu_next_queries_reset(encoder, statistics, 0, 2);
     ogpu_next_timestamp(encoder, timestamps, 0, OGPU_NEXT_STAGE_ALL);
     ogpu_next_image_barrier barriers[3];
     for (uint32_t i = 0; i < image_count; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
@@ -166,9 +177,11 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_bind_executable(encoder, pipelines[0]);
     ogpu_next_set_graphics_state(encoder, &vp.header);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address);
-    ogpu_next_query_begin(encoder, occlusion, 0);
+    ogpu_next_query_begin(encoder, occlusion, 0, precise);
+    if (statistics) ogpu_next_query_begin(encoder, statistics, 0, 0);
     ogpu_next_draw(encoder, &draw);
     ogpu_next_query_end(encoder, occlusion, 0);
+    if (statistics) ogpu_next_query_end(encoder, statistics, 0);
     ogpu_next_render_end(encoder);
     /* LOAD in a new scope is explicit, including inter-scope attachment hazards. */
     dep.before = dep.after;
@@ -192,8 +205,10 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_draw_indexed(encoder, &draw); /* Fails depth on left; writes right. */
     draw.vertex_offset = 0;
     ogpu_next_bind_executable(encoder, pipelines[1]);
-    ogpu_next_query_begin(encoder, occlusion, 1);
+    ogpu_next_query_begin(encoder, occlusion, 1, precise);
+    if (statistics) ogpu_next_query_begin(encoder, statistics, 1, 0);
     ogpu_next_query_end(encoder, occlusion, 1); /* No samples. */
+    if (statistics) ogpu_next_query_end(encoder, statistics, 1);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address + 64);
     /* Four disjoint stripes prove all address-indirect variants, not just no-ops. */
     for (uint32_t variant = 0; variant < 4; ++variant) {
@@ -222,6 +237,12 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
     ogpu_next_queries_resolve(encoder, occlusion, 0, 2, (ogpu_next_span){host,448,16}, 8,
         OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
+    if (statistics) {
+        ogpu_next_queries_resolve(encoder, statistics, 0, 2, (ogpu_next_span){host,2304,96}, 56,
+            OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
+        ogpu_next_queries_resolve(encoder, statistics, 0, 1, (ogpu_next_span){host,2432,20}, 0,
+            OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
+    }
     dep.image_count = 0; dep.images = NULL; dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;
     dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
     ogpu_next_barrier(encoder, &dep);
@@ -263,6 +284,15 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         REQUIRE(((uint64_t *)map.data)[51] != 0 && ((uint64_t *)map.data)[54] != 0); /* timestamp availability */
         REQUIRE(((uint32_t *)map.data)[112] != 0 && ((uint32_t *)map.data)[114] == 0); /* visible/empty */
         REQUIRE(((uint32_t *)map.data)[113] != 0 && ((uint32_t *)map.data)[115] != 0);
+        if (precise) REQUIRE(((uint32_t *)map.data)[112] == 64 * samples);
+        if (statistics) {
+            const uint64_t *values = (const uint64_t *)((const char *)map.data + 2304);
+            const uint64_t *empty = (const uint64_t *)((const char *)map.data + 2360);
+            const uint32_t *narrow = (const uint32_t *)((const char *)map.data + 2432);
+            REQUIRE(values[0] == 3 && values[1] == 1 && values[2] >= 3 && values[3] > 0 && values[4] != 0);
+            for (uint32_t i = 0; i < 4; ++i) REQUIRE(empty[i] == 0 && narrow[i] == values[i]);
+            REQUIRE(empty[4] != 0 && narrow[4] != 0);
+        }
         for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 16; ++x) {
             uint32_t expected = UINT32_C(0xff000000) | (((x < 8) != (replay != 0)) ? 255 : 65280) | ((x >= 4 && x < (replay && !stencil_enabled ? 12u : 8u)) ? 16711680 : 0);
             if (samples > 1 && x == 15) {
@@ -289,6 +319,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
             REQUIRE(((unsigned char *)map.data)[1536+y*16+x] == (x < 8 ? 1 : 2));
         }
         for (uint32_t i = 96; i < host_desc.size; ++i) {
+            if (statistics && ((i >= 2304 && i < 2344) || (i >= 2360 && i < 2400) || (i >= 2432 && i < 2452))) continue;
             if (vertex_fetch && ((i >= 2048 && i < 2096) || (i >= 2112 && i < 2144))) continue;
             if (i < 256 || (i >= 388 && i < 400) || (i >= 416 && i < 424)
                 || (i >= 440 && i < 448) || (i >= 464 && i < 512) || i >= (!read_planes ? 1024u : stencil_enabled ? 1664u : samples == 1 ? 1536u : 1024u))
@@ -300,7 +331,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     render.color_count = 0; render.colors = NULL; render.depth = NULL; render.stencil = NULL; render.scratch = (ogpu_next_host_span){NULL,0};
     ogpu_next_queries_reset(encoder,occlusion,1,1);
-    ogpu_next_query_begin(encoder,occlusion,1); /* Query enclosing a whole rendering scope. */
+    ogpu_next_query_begin(encoder,occlusion,1,0); /* Query enclosing a whole rendering scope. */
     ogpu_next_render_begin(encoder,&render); ogpu_next_render_end(encoder);
     ogpu_next_query_end(encoder,occlusion,1);
     ogpu_next_queries_resolve(encoder,occlusion,1,1,(ogpu_next_span){host,480,8},0,
@@ -361,8 +392,24 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         if (bad == 3) ogpu_next_queries_resolve(encoder,timestamps,0,2,(ogpu_next_span){host,400,40},4,OGPU_NEXT_QUERY_RESULT_64);
         if (bad >= 4) {
             if (bad == 6) ogpu_next_render_begin(encoder,&render);
-            ogpu_next_query_begin(encoder,occlusion,0);
+            ogpu_next_query_begin(encoder,occlusion,0,0);
             if (bad == 4) ogpu_next_query_end(encoder,occlusion,1);
+            if (bad == 6) ogpu_next_render_end(encoder);
+        }
+        REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
+    }
+    if (statistics) for (uint32_t bad = 0; bad < 7; ++bad) {
+        TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        if (bad == 0) ogpu_next_queries_resolve(encoder,statistics,0,2,(ogpu_next_span){host,2304,95},56,
+            OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY);
+        if (bad == 1) ogpu_next_query_begin(encoder,statistics,0,OGPU_NEXT_QUERY_PRECISE);
+        if (bad >= 2) {
+            if (bad == 6) ogpu_next_render_begin(encoder,&render);
+            ogpu_next_query_begin(encoder,statistics,0,0);
+            if (bad == 2) ogpu_next_query_begin(encoder,statistics,1,0);
+            if (bad == 3) ogpu_next_query_end(encoder,statistics,1);
+            if (bad == 4) ogpu_next_queries_reset(encoder,statistics,0,1);
+            if (bad == 5) ogpu_next_queries_resolve(encoder,statistics,0,1,(ogpu_next_span){host,2304,40},0,OGPU_NEXT_QUERY_RESULT_64);
             if (bad == 6) ogpu_next_render_end(encoder);
         }
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
@@ -402,6 +449,8 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     }
     printf("Graphics (%u samples) passes: direct/indexed/all indirect variants, viewport/scissor, depth rejection, blending, LOAD scopes, changed-root/count replay%s.\n",samples,samples > 1 ? ", mixed-coverage average attachment resolve" : "");
     printf("Queries pass: explicit reset, 64-bit strided timestamps, 32-bit visible/empty occlusion with availability, scope matching, replay and guard bytes.\n");
+    if (precise) printf("Precise occlusion passes: exactly %u samples in each replay.\n",64*samples);
+    if (statistics) printf("Graphics statistics pass: overlapping occlusion/statistics, ordered 32/64-bit counters, empty query, padded records and replay.\n");
     if (stencil_enabled) printf("Stencil passes: clear/load, depth-fail KEEP, REPLACE references, EQUAL rejection and replay%s.\n", read_planes ? ", separate depth/stencil plane readback" : " (raster-only diagnostic; plane copies NOT tested)");
     if (vertex_fetch) printf("Vertex fetch passes: sparse binding IDs, batched address binding, padded records, per-instance rate, nonzero direct first-instance, indexed/indirect draws and changed-instance replay.\n");
     result = EXIT_SUCCESS;
@@ -409,6 +458,7 @@ cleanup:
     if (pending) { fprintf(stderr,"Pending graphics after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
     ogpu_next_query_pool_destroy(timestamps); ogpu_next_query_pool_destroy(occlusion);
+    ogpu_next_query_pool_destroy(statistics);
     for (uint32_t i = 0; i < 3; ++i) ogpu_next_executable_destroy(pipelines[i]);
     ogpu_next_executable_cache_destroy(cache);
     for (uint32_t i = 0; i < image_count; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }

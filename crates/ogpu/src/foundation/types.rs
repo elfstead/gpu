@@ -46,6 +46,9 @@ pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
 pub const CACHE_CONTROL: u64 = 16;
+pub const PIPELINE_STATISTICS: u64 = 32768;
+pub const PRECISE_OCCLUSION: u64 = 65536;
+pub const STATISTICS_MASK: u64 = 2047;
 pub const INT8: u64 = 32;
 pub const INT16: u64 = 64;
 pub const INT64: u64 = 128;
@@ -90,6 +93,7 @@ pub struct ExecutableCacheDesc {
 pub struct QueryLimits {
     pub timestamp_period_ns: f32,
     pub timestamp_compute_graphics: u32,
+    pub statistics: u64,
 }
 #[repr(C)]
 pub struct QueryPoolDesc {

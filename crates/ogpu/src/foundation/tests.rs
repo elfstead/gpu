@@ -204,7 +204,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<DrawDesc>(), 20);
     assert_eq!(size_of::<Indirect>(), 56);
     assert_eq!(size_of::<QueryPoolDesc>(), 40);
-    assert_eq!(size_of::<QueryLimits>(), 8);
+    assert_eq!(size_of::<QueryLimits>(), 16);
     assert_eq!(size_of::<ImageTransfer>(), 88);
     assert_eq!(std::mem::offset_of!(ImageDesc, concurrent_domains), 88);
     unsafe {

@@ -530,32 +530,49 @@ source-only executable record is now 80 bytes; installed ABI 20 is unchanged.
 
 ## Implemented explicit queries
 
-Independent timestamp and occlusion pools now own only their native query storage
+Independent timestamp, occlusion and pipeline-statistics pools own only their native query storage
 and borrow the device. Reset, timestamp, begin/end and result-copy commands operate
 on explicit slots; no automatic timer, completion object, host polling, CPU result
 cache or resource-retention registry is created. Occlusion queries may live inside
-one rendering scope or surround complete scopes; exact sample counts are not yet
-enabled. Timestamp period and per-queue valid bits are explicit metadata, not a
+one rendering scope or surround complete scopes. Opt-in `PRECISE_OCCLUSION` and a
+per-begin `PRECISE` flag expose exact passing-sample counts; ordinary occlusion
+keeps the native visibility-only guarantee. Timestamp period and per-queue valid bits are explicit metadata, not a
 calibrated host clock or a guarantee of comparable clocks across arbitrary queues.
 
 Results copy into caller COPY_DST spans with chosen 32/64-bit width, byte stride,
 availability and optional explicit **GPU** wait. Timestamp partial results are
 rejected. Reset/use/replay synchronization remains the caller's responsibility;
 the same query slots cannot be reused concurrently without satisfying native rules.
-One small encoder-local active-query record checks matching begin/end and scopes,
+Small encoder-local records check matching begin/end and scopes per native query type,
 without retaining the pool or tracking every query's global execution state.
+Occlusion and statistics can overlap, but a second active query of the same type
+is invalid. In-scope queries must end before the scope; outside queries may enclose
+complete scopes. See [native begin-query rules](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBeginQuery.html).
 Output memory visibility, host wait and invalidation are explicit just as for other
 GPU writes. See [native query result copies](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdCopyQueryPoolResults.html).
 
 The C consumer now also checks padded 64-bit timestamp/availability records and
 32-bit visible/empty occlusion records, serial replay/reset, enclosing and in-scope
 queries, and guard bytes. It does not infer a performance comparison from timestamps.
-Pipeline statistics, precise occlusion, performance-counter profiles, finer timestamp
-stage vocabulary and calibrated clocks remain explicit follow-up work.
+Statistics require independently enabled `PIPELINE_STATISTICS` and a nonempty
+queried counter mask. Counters use ascending mask-bit order, followed by one optional
+availability word, all at the selected width; record size includes every selected
+counter. Queue capabilities must cover each requested operation. Compute statistics
+do not require RASTER, and querying geometry/tessellation counters does not enable
+their shader stages. Counters expose native counting rules, not portable performance
+predictions. This path adds no command-time allocation or automatic host readback.
+
+Radeon and llvmpipe pass compute direct/indirect invocation counts, empty statistics,
+ordered 32/64-bit graphics counters, simultaneous occlusion/statistics, precise
+64/256-sample results, padding guards and serial replay. Negative checks cover
+disabled enabling, zero masks, duplicate active types, wrong scope/index, resetting
+or resolving active slots, short multi-counter destinations and invalid precise use.
+The known llvmpipe combined-plane-copy caveat is unchanged. Performance-counter
+profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-up work.
 
 ## Verification so far
 
-- 66 ordinary Rust tests pass, including foundation contract, status and
+- 71 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -571,7 +588,7 @@ stage vocabulary and calibrated clocks remain explicit follow-up work.
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All nine foundation GPU tests pass on each available driver. Pinned Vulkan
+  All twelve foundation GPU tests pass on each available driver. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.
@@ -639,7 +656,7 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 Broader graphics and compute/argument profiles, richer query facilities and consumer
 cutover as the coordinated tranche proceeds. Graphics is usable offscreen, not a
 complete graphics contract or a completed M4 consumer. Presentation remains separate.
-Compile-required controls/pipeline binaries, set/binding-to-address mappings and generated interface integration
+Pipeline binaries, set/binding-to-address mappings and generated interface integration
 remain explicit work; the current compute slice does not close the whole foundation.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection

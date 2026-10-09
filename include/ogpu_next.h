@@ -130,6 +130,8 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL UINT64_C(4096)
 #define OGPU_NEXT_FEATURE_FULL_SUBGROUPS UINT64_C(8192)
 #define OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES UINT64_C(16384)
+#define OGPU_NEXT_FEATURE_PIPELINE_STATISTICS UINT64_C(32768)
+#define OGPU_NEXT_FEATURE_PRECISE_OCCLUSION UINT64_C(65536)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -716,6 +718,7 @@ typedef struct ogpu_next_graphics_limits {
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
     uint32_t timestamp_compute_graphics;
+    uint64_t statistics;
 } ogpu_next_query_limits;
 enum { OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR = 1 };
 enum {
@@ -919,7 +922,19 @@ void ogpu_next_bind_vertices(ogpu_next_encoder *, uint32_t first, uint32_t count
 void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
 void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
-enum { OGPU_NEXT_QUERY_TIMESTAMP = 1, OGPU_NEXT_QUERY_OCCLUSION = 2 };
+enum { OGPU_NEXT_QUERY_TIMESTAMP = 1, OGPU_NEXT_QUERY_OCCLUSION = 2, OGPU_NEXT_QUERY_PIPELINE_STATISTICS = 3 };
+enum { OGPU_NEXT_QUERY_PRECISE = 1 };
+#define OGPU_NEXT_STATISTIC_INPUT_VERTICES UINT64_C(1)
+#define OGPU_NEXT_STATISTIC_INPUT_PRIMITIVES UINT64_C(2)
+#define OGPU_NEXT_STATISTIC_VERTEX_INVOCATIONS UINT64_C(4)
+#define OGPU_NEXT_STATISTIC_GEOMETRY_INVOCATIONS UINT64_C(8)
+#define OGPU_NEXT_STATISTIC_GEOMETRY_PRIMITIVES UINT64_C(16)
+#define OGPU_NEXT_STATISTIC_CLIPPING_INVOCATIONS UINT64_C(32)
+#define OGPU_NEXT_STATISTIC_CLIPPING_PRIMITIVES UINT64_C(64)
+#define OGPU_NEXT_STATISTIC_FRAGMENT_INVOCATIONS UINT64_C(128)
+#define OGPU_NEXT_STATISTIC_TESS_CONTROL_PATCHES UINT64_C(256)
+#define OGPU_NEXT_STATISTIC_TESS_EVALUATION_INVOCATIONS UINT64_C(512)
+#define OGPU_NEXT_STATISTIC_COMPUTE_INVOCATIONS UINT64_C(1024)
 enum {
     OGPU_NEXT_QUERY_RESULT_64 = 1, OGPU_NEXT_QUERY_RESULT_AVAILABILITY = 2,
     OGPU_NEXT_QUERY_RESULT_WAIT = 4, OGPU_NEXT_QUERY_RESULT_PARTIAL = 8
@@ -930,18 +945,26 @@ typedef struct ogpu_next_query_pool_desc {
     uint64_t statistics;
 } ogpu_next_query_pool_desc;
 /* Pools explicitly allocate native query storage, borrow their device and are
- * UNINITIALIZED until a recorded reset executes. count>0; statistics=0 in this
- * timestamp/occlusion profile. No implicit creation/reset/recycling, CPU readback,
+ * UNINITIALIZED until a recorded reset executes. count>0; statistics=0 for
+ * timestamps/occlusion. PIPELINE_STATISTICS requires enabled PIPELINE_STATISTICS
+ * and a nonempty statistics mask contained in query_limits.statistics (physical
+ * capability, not implicit enabling). Geometry/tessellation counters do not enable
+ * those shader stages. No implicit creation/reset/recycling, CPU readback,
  * retained list reference or wait-on-destroy. Caller owns reset/use/resolve order
  * and all recorded/pending lifetimes, including independent or simultaneous lists.
  * Replaying a reset/write list concurrently against the same slots is invalid;
  * independent pools/ranges remain usable independently. Host recording is local
  * to command arenas; there is no device-wide or query-pool recording mutex.
  *
- * Occlusion requires RASTER. One query may be active per list; begin/end must
- * match pool/index and render scope. An outside-scope query may enclose complete
- * scopes. An inside-scope query must end before render_end. No precise-count flag
- * yet: zero/nonzero visibility is meaningful, exact sample count is not promised.
+ * Occlusion requires RASTER. One query of EACH type may be active per list;
+ * occlusion and statistics may overlap. Begin/end match pool/index and render
+ * scope. An outside-scope query may enclose complete scopes. An inside-scope query
+ * must end before render_end. Begin flags=0, or PRECISE for occlusion with enabled
+ * PRECISE_OCCLUSION; only PRECISE promises the actual number of passing samples.
+ * Statistics use flags=0 and require a queue supporting every selected operation:
+ * COMPUTE for compute invocations, GRAPHICS for all other counters. A compute-only
+ * query does not require RASTER. Native counting rules apply, not a portable shader
+ * cost model or an exact count of unique source invocations.
  * Timestamp requires nonzero queue_info.timestamp_bits and one native stage bit:
  * ALL, COPY, COMPUTE, FRAGMENT, INDIRECT or COLOR in this profile; combined masks,
  * HOST and broad VERTEX/DEPTH groups are rejected. The requested stage can measure
@@ -953,13 +976,14 @@ typedef struct ogpu_next_query_pool_desc {
  *
  * Reset/resolve are outside rendering on graphics/compute queues; first/count
  * names a nonempty in-bounds range with no active overlapping query. Resolve
- * writes COPY_DST memory: one unsigned 32-bit result, or 64-bit with RESULT_64;
- * optional availability follows at the same width (0 unavailable, nonzero ready).
+ * writes COPY_DST memory: one unsigned 32-bit result, or 64-bit with RESULT_64.
+ * Statistics write one value per selected bit in ascending bit order; optional
+ * availability follows ALL values at the same width (0 unavailable, nonzero ready).
  * Stride is bytes between records; when count>1, nonzero and aligned to result
  * width. Destination must fit every record and be width-aligned; overlapping
  * records are not repacked or given an OGPU write-order guarantee. WAIT is
  * an EXPLICIT GPU-side wait, never a host wait. Without WAIT, result data must not
- * be interpreted before available; PARTIAL permits interim occlusion values only.
+ * be interpreted before available; PARTIAL permits interim occlusion/statistics values.
  * Queried slots must have been reset and issued by prior execution; do not resolve
  * never-issued slots. Timestamp PARTIAL is invalid. Writes need a subsequent
  * COPY/WRITE dependency before host/shader use. Completion and cache invalidation
@@ -968,7 +992,7 @@ typedef struct ogpu_next_query_pool_desc {
 ogpu_next_status ogpu_next_query_pool_create(ogpu_next_device *, const ogpu_next_query_pool_desc *, ogpu_next_query_pool **);
 void ogpu_next_query_pool_destroy(ogpu_next_query_pool *);
 void ogpu_next_queries_reset(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count);
-void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
+void ogpu_next_query_begin(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, uint32_t flags);
 void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index);
 void ogpu_next_timestamp(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, ogpu_next_stages);
 void ogpu_next_queries_resolve(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count, ogpu_next_span dst, uint64_t stride, uint32_t flags);

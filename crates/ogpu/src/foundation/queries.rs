@@ -5,6 +5,7 @@ pub struct QueryPool {
     pub(super) device: *const Device,
     pub(super) handle: vk::VkQueryPool,
     pub(super) kind: u32,
+    pub(super) statistics: u64,
     count: u32,
 }
 impl QueryPool {
@@ -17,8 +18,16 @@ impl QueryPool {
         if desc.count == 0 {
             return Err(INVALID);
         }
-        if desc.statistics != 0 {
+        if desc.kind != 3 && desc.statistics != 0 {
             return Err(UNSUPPORTED);
+        }
+        if desc.kind == 3 {
+            if desc.statistics == 0 {
+                return Err(INVALID);
+            }
+            if desc.statistics & !d.snapshot.query_limits.statistics != 0 {
+                return Err(UNSUPPORTED);
+            }
         }
         let query_type = match desc.kind {
             1 if d
@@ -32,12 +41,16 @@ impl QueryPool {
             2 if d.snapshot.features.enabled & RASTER != 0 => {
                 vk::VkQueryType_VK_QUERY_TYPE_OCCLUSION
             }
+            3 if d.snapshot.features.enabled & PIPELINE_STATISTICS != 0 => {
+                vk::VkQueryType_VK_QUERY_TYPE_PIPELINE_STATISTICS
+            }
             _ => return Err(UNSUPPORTED),
         };
         let info = vk::VkQueryPoolCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,
             queryType: query_type,
             queryCount: desc.count,
+            pipelineStatistics: desc.statistics as u32,
             ..Default::default()
         };
         let mut handle = ptr::null_mut();
@@ -54,6 +67,7 @@ impl QueryPool {
             device: d,
             handle,
             kind: desc.kind,
+            statistics: desc.statistics,
             count: desc.count,
         }))
     }
@@ -73,8 +87,24 @@ impl Drop for QueryPool {
     }
 }
 
+pub(super) fn controls(kind: u32, enabled: u64, flags: u32) -> Result<u32, Status> {
+    if flags & !1 != 0 {
+        return Err(UNSUPPORTED);
+    }
+    if flags != 0 {
+        if kind != 2 {
+            return Err(INVALID);
+        }
+        if enabled & PRECISE_OCCLUSION == 0 {
+            return Err(UNSUPPORTED);
+        }
+    }
+    Ok(flags) // Native VK_QUERY_CONTROL_PRECISE_BIT = 1.
+}
+
 pub(super) fn result_layout(
     kind: u32,
+    statistics: u64,
     count: u32,
     stride: u64,
     flags: u32,
@@ -86,7 +116,12 @@ pub(super) fn result_layout(
         return Err(INVALID);
     }
     let width = if flags & 1 != 0 { 8 } else { 4 };
-    let record = width * if flags & 2 != 0 { 2 } else { 1 };
+    let values = if kind == 3 {
+        u64::from(statistics.count_ones())
+    } else {
+        1
+    };
+    let record = width * (values + u64::from(flags & 2 != 0));
     if count > 1 && (stride == 0 || stride % width != 0) {
         return Err(INVALID);
     }
@@ -178,6 +213,33 @@ mod tests {
                 physical,
                 snapshot,
             };
+            if adapter.snapshot.features.available & PIPELINE_STATISTICS != 0 {
+                // Statistics enabling is independent of RASTER and precise occlusion.
+                let stats_device = Device::create(
+                    &adapter,
+                    &[QueueRequest {
+                        domain,
+                        count: 1,
+                        priority: 0.5,
+                    }],
+                    PIPELINE_STATISTICS,
+                )
+                .unwrap();
+                let mut stats_desc = QueryPoolDesc {
+                    header: Record::new::<QueryPoolDesc>(QUERY_POOL_DESC),
+                    kind: 3,
+                    count: 2,
+                    statistics: 1024,
+                };
+                drop(QueryPool::create(&stats_device, &stats_desc).unwrap());
+                stats_desc.statistics = STATISTICS_MASK;
+                drop(QueryPool::create(&stats_device, &stats_desc).unwrap());
+                stats_desc.statistics = 2048;
+                assert!(matches!(
+                    QueryPool::create(&stats_device, &stats_desc),
+                    Err(UNSUPPORTED)
+                ));
+            }
             let mut device = Device::create(
                 &adapter,
                 &[QueueRequest {
@@ -209,6 +271,20 @@ mod tests {
             assert!(out.is_null());
             assert_eq!(CALLS.get(), 0);
             desc.count = 2;
+            desc.kind = 3;
+            assert_eq!(
+                unsafe { ogpu_next_query_pool_create(d, &desc, &mut out) },
+                INVALID
+            );
+            desc.statistics = 1024;
+            assert_eq!(
+                unsafe { ogpu_next_query_pool_create(d, &desc, &mut out) },
+                UNSUPPORTED
+            );
+            assert!(out.is_null());
+            assert_eq!(CALLS.get(), 0);
+            desc.kind = 1;
+            desc.statistics = 0;
             for mode in [1, 0, 2] {
                 FAILURE.set(mode);
                 assert_eq!(
@@ -238,14 +314,22 @@ mod tests {
     }
     #[test]
     fn result_ranges_and_flags_are_explicit() {
-        assert_eq!(result_layout(1, 2, 24, 7).unwrap().0, 40);
-        assert_eq!(result_layout(2, 1, 0, 2).unwrap().0, 8);
-        assert_eq!(result_layout(2, 1, 0, 0).unwrap().0, 4);
-        assert_eq!(result_layout(2, 2, 8, 3).unwrap().0, 24); // Preserve native overlapping strides.
-        assert_eq!(result_layout(1, 1, 0, 8), Err(INVALID));
-        assert_eq!(result_layout(2, 2, 4, 3), Err(INVALID));
-        assert_eq!(result_layout(2, 2, 18, 3), Err(INVALID));
-        assert_eq!(result_layout(2, 2, u64::MAX - 7, 3), Err(INVALID));
-        assert_eq!(result_layout(2, 1, 0, 16), Err(UNSUPPORTED));
+        assert_eq!(result_layout(1, 0, 2, 24, 7).unwrap().0, 40);
+        assert_eq!(result_layout(2, 0, 1, 0, 2).unwrap().0, 8);
+        assert_eq!(result_layout(2, 0, 1, 0, 0).unwrap().0, 4);
+        assert_eq!(result_layout(2, 0, 2, 8, 3).unwrap().0, 24); // Preserve native overlapping strides.
+        assert_eq!(result_layout(1, 0, 1, 0, 8), Err(INVALID));
+        assert_eq!(result_layout(2, 0, 2, 4, 3), Err(INVALID));
+        assert_eq!(result_layout(2, 0, 2, 18, 3), Err(INVALID));
+        assert_eq!(result_layout(2, 0, 2, u64::MAX - 7, 3), Err(INVALID));
+        assert_eq!(result_layout(2, 0, 1, 0, 16), Err(UNSUPPORTED));
+        assert_eq!(result_layout(3, 1 | 4 | 1024, 2, 40, 3).unwrap().0, 72);
+        assert_eq!(result_layout(3, 1 | 4 | 1024, 2, 20, 2).unwrap().0, 36);
+        assert_eq!(result_layout(3, 2047, 1, 0, 9).unwrap().0, 88);
+        assert_eq!(controls(2, PRECISE_OCCLUSION, 1), Ok(1));
+        assert_eq!(controls(2, 0, 1), Err(UNSUPPORTED));
+        assert_eq!(controls(3, PRECISE_OCCLUSION, 1), Err(INVALID));
+        assert_eq!(controls(3, 0, 0), Ok(0));
+        assert_eq!(controls(2, PRECISE_OCCLUSION, 2), Err(UNSUPPORTED));
     }
 }

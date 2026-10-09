@@ -337,6 +337,11 @@ pub(super) fn snapshot(
         query_limits = QueryLimits {
             timestamp_period_ns: p.timestampPeriod,
             timestamp_compute_graphics: p.timestampComputeAndGraphics,
+            statistics: if root.features.pipelineStatisticsQuery != 0 {
+                STATISTICS_MASK
+            } else {
+                0
+            },
         };
         graphics_limits = GraphicsLimits {
             max_colors: p.maxColorAttachments,
@@ -369,6 +374,8 @@ pub(super) fn snapshot(
             features.available |= FLOAT16;
         }
         for (supported, bit) in [
+            (root.features.pipelineStatisticsQuery, PIPELINE_STATISTICS),
+            (root.features.occlusionQueryPrecise, PRECISE_OCCLUSION),
             (v12.shaderInt8, INT8),
             (root.features.shaderInt16, INT16),
             (root.features.shaderInt64, INT64),
@@ -588,6 +595,8 @@ impl Device {
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            pipelineStatisticsQuery: u32::from(enabled & PIPELINE_STATISTICS != 0),
+            occlusionQueryPrecise: u32::from(enabled & PRECISE_OCCLUSION != 0),
             multiDrawIndirect: u32::from(enabled & RASTER != 0),
             samplerAnisotropy: u32::from(enabled & SAMPLER_ANISOTROPY != 0),
             shaderInt16: u32::from(enabled & INT16 != 0),

@@ -68,8 +68,8 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
 void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
 void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 
-/* Timestamp/occlusion pools and explicit GPU result copies are imported above.
- * Pipeline statistics, precise occlusion and performance-counter profiles follow. */
+/* Timestamp/occlusion/statistics pools and explicit GPU result copies are imported
+ * above, including precise occlusion. Performance-counter profiles follow. */
 void ogpu_next_label_begin(ogpu_next_encoder *, const char *name);
 void ogpu_next_label_end(ogpu_next_encoder *);
 

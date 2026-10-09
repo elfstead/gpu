@@ -214,16 +214,17 @@ pub unsafe extern "C" fn ogpu_next_queries_reset(
     }
 }
 /// # Safety
-/// Live occlusion pool, unavailable query at execution and exclusive recording.
+/// Live occlusion/statistics pool, unavailable query at execution and exclusive recording.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_query_begin(
     encoder: *mut List,
     pool: *mut QueryPool,
     index: u32,
+    flags: u32,
 ) {
     unsafe {
         encode(encoder, |e| {
-            e.query(pool.as_ref().ok_or(INVALID)?, index, true)
+            e.query(pool.as_ref().ok_or(INVALID)?, index, true, flags)
         });
     }
 }
@@ -233,7 +234,7 @@ pub unsafe extern "C" fn ogpu_next_query_begin(
 pub unsafe extern "C" fn ogpu_next_query_end(encoder: *mut List, pool: *mut QueryPool, index: u32) {
     unsafe {
         encode(encoder, |e| {
-            e.query(pool.as_ref().ok_or(INVALID)?, index, false)
+            e.query(pool.as_ref().ok_or(INVALID)?, index, false, 0)
         });
     }
 }
