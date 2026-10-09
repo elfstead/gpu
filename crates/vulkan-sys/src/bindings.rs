@@ -8536,6 +8536,104 @@ impl Default for VkPhysicalDeviceSynchronization2Features {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkImageCopy2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcSubresource: VkImageSubresourceLayers,
+    pub srcOffset: VkOffset3D,
+    pub dstSubresource: VkImageSubresourceLayers,
+    pub dstOffset: VkOffset3D,
+    pub extent: VkExtent3D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkImageCopy2"][::std::mem::size_of::<VkImageCopy2>() - 88usize];
+    ["Alignment of VkImageCopy2"][::std::mem::align_of::<VkImageCopy2>() - 8usize];
+    [
+        "Offset of field: VkImageCopy2::sType",
+    ][::std::mem::offset_of!(VkImageCopy2, sType) - 0usize];
+    [
+        "Offset of field: VkImageCopy2::pNext",
+    ][::std::mem::offset_of!(VkImageCopy2, pNext) - 8usize];
+    [
+        "Offset of field: VkImageCopy2::srcSubresource",
+    ][::std::mem::offset_of!(VkImageCopy2, srcSubresource) - 16usize];
+    [
+        "Offset of field: VkImageCopy2::srcOffset",
+    ][::std::mem::offset_of!(VkImageCopy2, srcOffset) - 32usize];
+    [
+        "Offset of field: VkImageCopy2::dstSubresource",
+    ][::std::mem::offset_of!(VkImageCopy2, dstSubresource) - 44usize];
+    [
+        "Offset of field: VkImageCopy2::dstOffset",
+    ][::std::mem::offset_of!(VkImageCopy2, dstOffset) - 60usize];
+    [
+        "Offset of field: VkImageCopy2::extent",
+    ][::std::mem::offset_of!(VkImageCopy2, extent) - 72usize];
+};
+impl Default for VkImageCopy2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCopyImageInfo2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcImage: VkImage,
+    pub srcImageLayout: VkImageLayout,
+    pub dstImage: VkImage,
+    pub dstImageLayout: VkImageLayout,
+    pub regionCount: u32,
+    pub pRegions: *const VkImageCopy2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkCopyImageInfo2"][::std::mem::size_of::<VkCopyImageInfo2>() - 56usize];
+    [
+        "Alignment of VkCopyImageInfo2",
+    ][::std::mem::align_of::<VkCopyImageInfo2>() - 8usize];
+    [
+        "Offset of field: VkCopyImageInfo2::sType",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, sType) - 0usize];
+    [
+        "Offset of field: VkCopyImageInfo2::pNext",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, pNext) - 8usize];
+    [
+        "Offset of field: VkCopyImageInfo2::srcImage",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, srcImage) - 16usize];
+    [
+        "Offset of field: VkCopyImageInfo2::srcImageLayout",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, srcImageLayout) - 24usize];
+    [
+        "Offset of field: VkCopyImageInfo2::dstImage",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, dstImage) - 32usize];
+    [
+        "Offset of field: VkCopyImageInfo2::dstImageLayout",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, dstImageLayout) - 40usize];
+    [
+        "Offset of field: VkCopyImageInfo2::regionCount",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, regionCount) - 44usize];
+    [
+        "Offset of field: VkCopyImageInfo2::pRegions",
+    ][::std::mem::offset_of!(VkCopyImageInfo2, pRegions) - 48usize];
+};
+impl Default for VkCopyImageInfo2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceMaintenance4Properties {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -8633,6 +8731,106 @@ const _: () = {
     ][::std::mem::offset_of!(VkDeviceImageMemoryRequirements, planeAspect) - 24usize];
 };
 impl Default for VkDeviceImageMemoryRequirements {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkImageResolve2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcSubresource: VkImageSubresourceLayers,
+    pub srcOffset: VkOffset3D,
+    pub dstSubresource: VkImageSubresourceLayers,
+    pub dstOffset: VkOffset3D,
+    pub extent: VkExtent3D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkImageResolve2"][::std::mem::size_of::<VkImageResolve2>() - 88usize];
+    ["Alignment of VkImageResolve2"][::std::mem::align_of::<VkImageResolve2>() - 8usize];
+    [
+        "Offset of field: VkImageResolve2::sType",
+    ][::std::mem::offset_of!(VkImageResolve2, sType) - 0usize];
+    [
+        "Offset of field: VkImageResolve2::pNext",
+    ][::std::mem::offset_of!(VkImageResolve2, pNext) - 8usize];
+    [
+        "Offset of field: VkImageResolve2::srcSubresource",
+    ][::std::mem::offset_of!(VkImageResolve2, srcSubresource) - 16usize];
+    [
+        "Offset of field: VkImageResolve2::srcOffset",
+    ][::std::mem::offset_of!(VkImageResolve2, srcOffset) - 32usize];
+    [
+        "Offset of field: VkImageResolve2::dstSubresource",
+    ][::std::mem::offset_of!(VkImageResolve2, dstSubresource) - 44usize];
+    [
+        "Offset of field: VkImageResolve2::dstOffset",
+    ][::std::mem::offset_of!(VkImageResolve2, dstOffset) - 60usize];
+    [
+        "Offset of field: VkImageResolve2::extent",
+    ][::std::mem::offset_of!(VkImageResolve2, extent) - 72usize];
+};
+impl Default for VkImageResolve2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkResolveImageInfo2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcImage: VkImage,
+    pub srcImageLayout: VkImageLayout,
+    pub dstImage: VkImage,
+    pub dstImageLayout: VkImageLayout,
+    pub regionCount: u32,
+    pub pRegions: *const VkImageResolve2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkResolveImageInfo2",
+    ][::std::mem::size_of::<VkResolveImageInfo2>() - 56usize];
+    [
+        "Alignment of VkResolveImageInfo2",
+    ][::std::mem::align_of::<VkResolveImageInfo2>() - 8usize];
+    [
+        "Offset of field: VkResolveImageInfo2::sType",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, sType) - 0usize];
+    [
+        "Offset of field: VkResolveImageInfo2::pNext",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, pNext) - 8usize];
+    [
+        "Offset of field: VkResolveImageInfo2::srcImage",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, srcImage) - 16usize];
+    [
+        "Offset of field: VkResolveImageInfo2::srcImageLayout",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, srcImageLayout) - 24usize];
+    [
+        "Offset of field: VkResolveImageInfo2::dstImage",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, dstImage) - 32usize];
+    [
+        "Offset of field: VkResolveImageInfo2::dstImageLayout",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, dstImageLayout) - 40usize];
+    [
+        "Offset of field: VkResolveImageInfo2::regionCount",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, regionCount) - 44usize];
+    [
+        "Offset of field: VkResolveImageInfo2::pRegions",
+    ][::std::mem::offset_of!(VkResolveImageInfo2, pRegions) - 48usize];
+};
+impl Default for VkResolveImageInfo2 {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -8837,6 +9035,12 @@ pub type PFN_vkQueueSubmit2 = ::std::option::Option<
         fence: VkFence,
     ) -> VkResult,
 >;
+pub type PFN_vkCmdCopyImage2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pCopyImageInfo: *const VkCopyImageInfo2,
+    ),
+>;
 pub type PFN_vkGetDeviceBufferMemoryRequirements = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
@@ -8871,6 +9075,12 @@ pub type PFN_vkCmdWaitEvents2 = ::std::option::Option<
         eventCount: u32,
         pEvents: *const VkEvent,
         pDependencyInfos: *const VkDependencyInfo,
+    ),
+>;
+pub type PFN_vkCmdResolveImage2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pResolveImageInfo: *const VkResolveImageInfo2,
     ),
 >;
 pub type PFN_vkCmdBeginRendering = ::std::option::Option<

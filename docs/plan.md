@@ -34,6 +34,8 @@ arguments, dispatch and direct/indexed/indirect/count draws. Offscreen rendering
 explicit viewport/scissor, attachment LOAD/STORE, color blending and depth testing.
 Timestamp/occlusion pools now provide explicit reset/use and GPU result copies with
 caller-selected widths, strides, availability and wait policy.
+Image-to-image and standalone native-color resolve commands now preserve explicit
+regions/layouts, including tested disjoint same-image and multisample-copy paths.
 Rust/C checks pass on Radeon/llvmpipe; Radeon also passes an explicit cross-family
 transfer. It is source-only Linux work under `ogpu_next_*`, not the installed ABI.
 Broader graphics/numerical/query profiles, compiler metadata and consumer migration

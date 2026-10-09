@@ -54,8 +54,8 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
 
 /* Ordinary commands copy immediate parameter records into command storage;
  * resource data and device roots are never copied implicitly. */
-void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *);
-void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, const ogpu_next_image_region *, ogpu_next_image *src, const ogpu_next_image_region *, uint32_t mode);
+/* Image-to-image copies and native-color resolves are imported above with explicit
+ * source/destination regions AND layouts. Other resolve profiles remain draft work. */
 
 /* Graphics preparation, attachment scopes, explicit viewport/scissor and direct/
  * indexed/indirect/count draws are imported above. Broader sample/stencil/vertex-fetch/tile-local and

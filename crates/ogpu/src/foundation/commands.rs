@@ -770,6 +770,17 @@ impl List {
         }
         Ok(d)
     }
+    pub(in crate::foundation) fn transfer_image(
+        &self,
+        dst: &Image,
+        src: &Image,
+        transfer: &ImageTransfer,
+        mode: u32,
+    ) -> Result<(), Status> {
+        let d = self.outside_render()?;
+        stages(d, self.domain, 2, false)?;
+        dst.record_transfer(d, self.domain, self.command, src, transfer, mode)
+    }
     pub(in crate::foundation) unsafe fn render_begin(
         &self,
         desc: &RenderDesc,

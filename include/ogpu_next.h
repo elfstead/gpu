@@ -890,6 +890,33 @@ typedef struct ogpu_next_image_copy {
     ogpu_next_image_state state;
     uint32_t reserved;
 } ogpu_next_image_copy;
+typedef struct ogpu_next_image_transfer {
+    ogpu_next_image_region source, destination;
+    ogpu_next_image_state source_state, destination_state;
+} ogpu_next_image_transfer;
+enum { OGPU_NEXT_RESOLVE_NATIVE_COLOR = 1 };
+/* Image-to-image operations: both region extents/layer counts/aspects match;
+ * source COPY_SRC usage/state (or GENERAL), destination COPY_DST (or GENERAL).
+ * No implicit layouts, staging, allocation or resource retention. Caller proves
+ * disjoint source/destination memory regions, even for distinct aliasing images,
+ * and consistent layouts for shared subresources. Same-image disjoint copies
+ * are allowed; GENERAL is needed when one subresource is both source/destination.
+ * Current copy profile: matching dimensionality/sample counts, uncompressed
+ * color formats of equal texel size (raw bits, no conversion), or identical
+ * depth/stencil formats. Offsets, mip/layer bounds and queue granularity checked.
+ * Depth/stencil copies currently require a graphics family. 2D-array/3D cross-
+ * dimensional mappings, compressed/multiplanar and depth/color reinterpretation
+ * remain profiles to add, not silently staged.
+ * Resolve: graphics queue, multisample source, single-sample destination, identical
+ * color format with native color-attachment format support. NATIVE_COLOR preserves
+ * Vulkan's implementation-dependent default: float/normalized resolve mode and
+ * precision are native; integer formats select one sample. It does NOT promise
+ * explicit average/sample-zero or a particular sRGB transfer-function policy.
+ * Depth/stencil and explicit-mode resolve need further feature/profile enabling.
+ * These are outside-rendering transfer operations, separate from attachment resolve.
+ */
+void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_image *src, const ogpu_next_image_transfer *);
+void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_image *src, const ogpu_next_image_transfer *, uint32_t mode);
 /* Commands never insert transitions or hazard barriers. Clear requires GENERAL
  * or COPY_DST; copies require GENERAL or the corresponding COPY_SRC/COPY_DST.
  * Single-sample copies support one aspect and explicit mip/layer/subregion bounds.

@@ -367,6 +367,13 @@ pub struct ImageCopy {
     pub reserved: u32,
 }
 #[repr(C)]
+pub struct ImageTransfer {
+    pub source: ImageRegion,
+    pub destination: ImageRegion,
+    pub source_state: u32,
+    pub destination_state: u32,
+}
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct DepthStencil {
     pub depth: f32,

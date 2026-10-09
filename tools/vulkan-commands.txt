@@ -83,6 +83,8 @@ vkCmdDrawIndexedIndirect2KHR
 vkCmdDrawIndirectCount2KHR
 vkCmdDrawIndexedIndirectCount2KHR
 vkCmdCopyImageToMemoryKHR
+vkCmdCopyImage2
+vkCmdResolveImage2
 vkCmdCopyMemoryToImageKHR
 vkCmdCopyMemoryKHR
 vkCmdFillBuffer

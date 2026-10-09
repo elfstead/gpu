@@ -158,9 +158,29 @@ retention. See the native [copy-region constraints](https://docs.vulkan.org/refp
 
 The source-only barrier-scratch query now takes both memory and image counts.
 The combined draft imports these declarations; installed ABI 20 is unchanged.
-Image-to-image copies, resolves, image ownership/
-alias execution coverage, and shader sampling/rendering of these new views remain
-to integrate. Creation support is not a claim of full shader-consumer verification.
+Image-to-image copies now take a single source/destination region record with
+explicit layouts. Matching-dimensional copies preserve sample count, mip/layer
+offsets and raw compatible-format bits; disjoint copies within one image are
+allowed. Shared bounds/granularity checks also serve the memory/image path. Caller
+proof of memory non-overlap includes aliases: there is no allocation-wide alias
+registry or implicit staging. See the [native copy contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkCopyImageInfo2.html).
+
+Standalone color resolves consume multisample images into single-sample images
+with explicit source/destination subregions. The current `NATIVE_COLOR` strategy
+preserves Vulkan's implementation-dependent default resolve mode/precision and
+integer-sample selection; it is deliberately **not** advertised as an exact average
+or sample-zero policy. Format support is captured at image preparation, not queried
+per command. Explicit-mode/depth/stencil and attachment resolves still need their
+feature profiles. See the [native resolve semantics](https://docs.vulkan.org/refpages/latest/refpages/source/VkResolveImageInfo2.html).
+
+The C path verifies two-layer mip-to-mip copies with moved rectangles, a disjoint
+same-image GENERAL copy, a four-sample image copy and a partial standalone resolve,
+with full output/guard checks. All resolved source samples have the same known
+color: this proves transfer/region lowering, not per-sample numerical behavior.
+Depth/stencil image-to-image, compatible-format reinterpretation, other dimensions,
+image ownership/alias execution and nonuniform-sample numerical coverage remain
+to verify. Compressed/multiplanar and cross-dimensional copies remain unimplemented.
+Creation support is not a claim of full shader-consumer verification.
 
 ## Implemented descriptor encoding and binding
 
@@ -344,7 +364,7 @@ stage vocabulary and calibrated clocks remain explicit follow-up work.
 
 ## Verification so far
 
-- 64 ordinary Rust tests pass, including foundation contract, status and
+- 65 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

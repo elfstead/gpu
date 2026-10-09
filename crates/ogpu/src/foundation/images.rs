@@ -114,12 +114,43 @@ fn copy_pitches(
     ))
 }
 
+fn copy_bounds(
+    full: [u32; 3],
+    offset: Offset,
+    extent: Extent,
+    granularity: [u32; 3],
+) -> Result<(), Status> {
+    let offset = [offset.x, offset.y, offset.z];
+    let extent = [extent.x, extent.y, extent.z];
+    for i in 0..3 {
+        if offset[i] < 0
+            || extent[i] == 0
+            || offset[i] as u32 >= full[i]
+            || extent[i] > full[i] - offset[i] as u32
+        {
+            return Err(INVALID);
+        }
+        let g = granularity[i];
+        if g == 0 {
+            if offset[i] != 0 || extent[i] != full[i] {
+                return Err(UNSUPPORTED);
+            }
+        } else if offset[i] as u32 % g != 0
+            || (extent[i] % g != 0 && offset[i] as u32 + extent[i] != full[i])
+        {
+            return Err(INVALID);
+        }
+    }
+    Ok(())
+}
+
 struct Prepared {
     info: vk::VkImageCreateInfo,
     formats: Vec<vk::VkFormat>,
     domains: Vec<u32>,
     desc: ImageDesc,
     max_resource_size: u64,
+    format_features: u32,
 }
 impl Prepared {
     fn with_info<T>(&self, f: impl FnOnce(&vk::VkImageCreateInfo) -> T) -> T {
@@ -257,6 +288,14 @@ impl Device {
             ..Default::default()
         };
         let max_resource_size = self.check_image_support(&info)?;
+        let mut properties = vk::VkFormatProperties::default();
+        unsafe {
+            (self.f.vkGetPhysicalDeviceFormatProperties.unwrap())(
+                self.physical,
+                base.native,
+                &mut properties,
+            );
+        }
         // No borrowed description-array pointers survive the synchronous call.
         let mut desc = *desc;
         desc.view_formats = ptr::null();
@@ -267,6 +306,7 @@ impl Device {
             domains,
             desc,
             max_resource_size,
+            format_features: properties.optimalTilingFeatures,
         })
     }
     fn check_image_support(&self, info: &vk::VkImageCreateInfo) -> Result<u64, Status> {
@@ -597,6 +637,155 @@ impl Image {
         }
         Ok(())
     }
+    fn transfer_region(
+        &self,
+        r: ImageRegion,
+        granularity: [u32; 3],
+    ) -> Result<(vk::VkImageSubresourceLayers, vk::VkOffset3D, vk::VkExtent3D), Status> {
+        self.subresources(Subresources {
+            aspects: r.aspect,
+            first_mip: r.mip,
+            mip_count: 1,
+            first_layer: r.first_layer,
+            layer_count: r.layer_count,
+        })?;
+        let desc = &self.prepared.desc;
+        let full = [desc.extent.x, desc.extent.y, desc.extent.z].map(|v| (v >> r.mip).max(1));
+        copy_bounds(full, r.offset, r.extent, granularity)?;
+        Ok((
+            vk::VkImageSubresourceLayers {
+                aspectMask: r.aspect,
+                mipLevel: r.mip,
+                baseArrayLayer: r.first_layer,
+                layerCount: r.layer_count,
+            },
+            vk::VkOffset3D {
+                x: r.offset.x,
+                y: r.offset.y,
+                z: r.offset.z,
+            },
+            vk::VkExtent3D {
+                width: r.extent.x,
+                height: r.extent.y,
+                depth: r.extent.z,
+            },
+        ))
+    }
+    pub(super) fn record_transfer(
+        &self,
+        d: &Device,
+        domain: u32,
+        command: vk::VkCommandBuffer,
+        src: &Image,
+        t: &ImageTransfer,
+        mode: u32,
+    ) -> Result<(), Status> {
+        let dst_image = self.command_handle(d, domain, 2)?;
+        let src_image = src.command_handle(d, domain, 1)?;
+        if !matches!(t.source_state, 1 | 2) || !matches!(t.destination_state, 1 | 3) {
+            return Err(INVALID);
+        }
+        let queue = d
+            .snapshot
+            .queues
+            .iter()
+            .find(|q| q.domain == domain)
+            .ok_or(INVALID)?;
+        let a = &src.prepared.desc;
+        let b = &self.prepared.desc;
+        if a.dimension != b.dimension {
+            return Err(UNSUPPORTED);
+        }
+        if t.source.aspect != t.destination.aspect
+            || t.source.layer_count != t.destination.layer_count
+            || [t.source.extent.x, t.source.extent.y, t.source.extent.z]
+                != [
+                    t.destination.extent.x,
+                    t.destination.extent.y,
+                    t.destination.extent.z,
+                ]
+        {
+            return Err(INVALID);
+        }
+        let sf = format(a.format)?;
+        let df = format(b.format)?;
+        if mode == 0 {
+            if a.sample_count != b.sample_count || sf.class != df.class || sf.aspects != df.aspects
+            {
+                return Err(INVALID);
+            }
+            if t.source.aspect != 1 && queue.flags & GRAPHICS == 0 {
+                return Err(UNSUPPORTED);
+            }
+        } else {
+            if mode != 1 || t.source.aspect != 1 || queue.flags & GRAPHICS == 0 {
+                return Err(UNSUPPORTED);
+            }
+            if a.sample_count == 1 || b.sample_count != 1 || a.format != b.format {
+                return Err(INVALID);
+            }
+            if self.prepared.format_features
+                & vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT
+                == 0
+            {
+                return Err(UNSUPPORTED);
+            }
+        }
+        let (src_subresource, src_offset, extent) =
+            src.transfer_region(t.source, queue.copy_granularity)?;
+        let (dst_subresource, dst_offset, _) =
+            self.transfer_region(t.destination, queue.copy_granularity)?;
+        let src_layout = src.layout(t.source_state)?;
+        let dst_layout = self.layout(t.destination_state)?;
+        if mode == 0 {
+            let region = vk::VkImageCopy2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_COPY_2,
+                srcSubresource: src_subresource,
+                srcOffset: src_offset,
+                dstSubresource: dst_subresource,
+                dstOffset: dst_offset,
+                extent,
+                ..Default::default()
+            };
+            let info = vk::VkCopyImageInfo2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2,
+                srcImage: src_image,
+                srcImageLayout: src_layout,
+                dstImage: dst_image,
+                dstImageLayout: dst_layout,
+                regionCount: 1,
+                pRegions: &region,
+                ..Default::default()
+            };
+            unsafe {
+                (d.f.vkCmdCopyImage2.unwrap())(command, &info);
+            }
+        } else {
+            let region = vk::VkImageResolve2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2,
+                srcSubresource: src_subresource,
+                srcOffset: src_offset,
+                dstSubresource: dst_subresource,
+                dstOffset: dst_offset,
+                extent,
+                ..Default::default()
+            };
+            let info = vk::VkResolveImageInfo2 {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2,
+                srcImage: src_image,
+                srcImageLayout: src_layout,
+                dstImage: dst_image,
+                dstImageLayout: dst_layout,
+                regionCount: 1,
+                pRegions: &region,
+                ..Default::default()
+            };
+            unsafe {
+                (d.f.vkCmdResolveImage2.unwrap())(command, &info);
+            }
+        }
+        Ok(())
+    }
     pub(super) unsafe fn record_copy(
         &self,
         device: *const Device,
@@ -616,13 +805,6 @@ impl Image {
             return Err(INVALID);
         }
         let r = copy.region;
-        self.subresources(Subresources {
-            aspects: r.aspect,
-            first_mip: r.mip,
-            mip_count: 1,
-            first_layer: r.first_layer,
-            layer_count: r.layer_count,
-        })?;
         if !r.aspect.is_power_of_two() {
             return Err(INVALID);
         }
@@ -645,28 +827,7 @@ impl Image {
         } else {
             4
         };
-        let extent = [r.extent.x, r.extent.y, r.extent.z];
-        let offset = [r.offset.x, r.offset.y, r.offset.z];
-        let full = [desc.extent.x, desc.extent.y, desc.extent.z].map(|v| (v >> r.mip).max(1));
-        for i in 0..3 {
-            if offset[i] < 0
-                || extent[i] == 0
-                || offset[i] as u32 >= full[i]
-                || extent[i] > full[i] - offset[i] as u32
-            {
-                return Err(INVALID);
-            }
-            let granularity = queue.copy_granularity[i];
-            if granularity == 0 {
-                if offset[i] != 0 || extent[i] != full[i] {
-                    return Err(UNSUPPORTED);
-                }
-            } else if offset[i] as u32 % granularity != 0
-                || (extent[i] % granularity != 0 && offset[i] as u32 + extent[i] != full[i])
-            {
-                return Err(INVALID);
-            }
-        }
+        let (subresource, offset, extent) = self.transfer_region(r, queue.copy_granularity)?;
         let (row_texels, slice_rows, size) = copy_pitches(
             r.extent,
             r.layer_count,
@@ -704,22 +865,9 @@ impl Image {
             addressRowLength: row_texels,
             addressImageHeight: slice_rows,
             imageLayout: self.layout(copy.state)?,
-            imageSubresource: vk::VkImageSubresourceLayers {
-                aspectMask: r.aspect,
-                mipLevel: r.mip,
-                baseArrayLayer: r.first_layer,
-                layerCount: r.layer_count,
-            },
-            imageOffset: vk::VkOffset3D {
-                x: r.offset.x,
-                y: r.offset.y,
-                z: r.offset.z,
-            },
-            imageExtent: vk::VkExtent3D {
-                width: r.extent.x,
-                height: r.extent.y,
-                depth: r.extent.z,
-            },
+            imageSubresource: subresource,
+            imageOffset: offset,
+            imageExtent: extent,
             ..Default::default()
         };
         let info = vk::VkCopyDeviceMemoryImageInfoKHR {
@@ -930,6 +1078,71 @@ impl Drop for View {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn copy_region_bounds_respect_granularity_and_edges() {
+        use super::*;
+        let zero = Offset { x: 0, y: 0, z: 0 };
+        let full = Extent { x: 7, y: 4, z: 1 };
+        assert_eq!(copy_bounds([7, 4, 1], zero, full, [0; 3]), Ok(()));
+        assert_eq!(
+            copy_bounds([7, 4, 1], zero, Extent { x: 6, ..full }, [0; 3]),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            copy_bounds(
+                [7, 4, 1],
+                Offset { x: 4, ..zero },
+                Extent { x: 3, ..full },
+                [4, 4, 1]
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            copy_bounds(
+                [7, 4, 1],
+                Offset { x: 2, ..zero },
+                Extent { x: 3, ..full },
+                [4, 4, 1]
+            ),
+            Err(INVALID)
+        );
+        assert_eq!(
+            copy_bounds([7, 4, 1], Offset { x: -1, ..zero }, full, [1; 3]),
+            Err(INVALID)
+        );
+        assert_eq!(
+            copy_bounds([7, 4, 1], zero, Extent { x: 0, ..full }, [1; 3]),
+            Err(INVALID)
+        );
+        assert_eq!(
+            copy_bounds(
+                [7, 4, 1],
+                Offset {
+                    x: i32::MAX,
+                    ..zero
+                },
+                full,
+                [1; 3]
+            ),
+            Err(INVALID)
+        );
+        assert_eq!(
+            copy_bounds(
+                [u32::MAX, 1, 1],
+                Offset {
+                    x: i32::MAX,
+                    ..zero
+                },
+                Extent {
+                    x: u32::MAX,
+                    y: 1,
+                    z: 1
+                },
+                [1; 3]
+            ),
+            Err(INVALID)
+        );
+    }
     use super::*;
     use crate::foundation::*;
     fn desc() -> ImageDesc {

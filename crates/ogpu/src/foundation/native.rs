@@ -127,6 +127,8 @@ functions! {
     vkCmdEndQuery: PFN_vkCmdEndQuery,
     vkCmdWriteTimestamp2: PFN_vkCmdWriteTimestamp2,
     vkCmdCopyQueryPoolResults: PFN_vkCmdCopyQueryPoolResults,
+    vkCmdCopyImage2: PFN_vkCmdCopyImage2,
+    vkCmdResolveImage2: PFN_vkCmdResolveImage2,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {

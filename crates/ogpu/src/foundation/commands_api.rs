@@ -522,3 +522,47 @@ pub unsafe extern "C" fn ogpu_next_copy_from_image(
         });
     }
 }
+/// # Safety
+/// Live images and readable transfer; caller proves layouts, non-overlap and synchronization.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_copy_image(
+    encoder: *mut List,
+    dst: *mut Image,
+    src: *mut Image,
+    transfer: *const ImageTransfer,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.transfer_image(
+                dst.as_ref().ok_or(INVALID)?,
+                src.as_ref().ok_or(INVALID)?,
+                transfer.as_ref().ok_or(INVALID)?,
+                0,
+            )
+        });
+    }
+}
+/// # Safety
+/// Same lifetime/non-overlap contract as copy; valid native multisample resolve profile.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_resolve_image(
+    encoder: *mut List,
+    dst: *mut Image,
+    src: *mut Image,
+    transfer: *const ImageTransfer,
+    mode: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            if mode != 1 {
+                return Err(UNSUPPORTED);
+            }
+            e.transfer_image(
+                dst.as_ref().ok_or(INVALID)?,
+                src.as_ref().ok_or(INVALID)?,
+                transfer.as_ref().ok_or(INVALID)?,
+                mode,
+            )
+        });
+    }
+}
