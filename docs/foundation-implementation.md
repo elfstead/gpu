@@ -319,14 +319,21 @@ and synchronization. The [native counted-draw contract](https://docs.vulkan.org/
 also constrains the GPU count itself, not only the application's maximum.
 
 The implemented profile is deliberately stated, not a fundamental restriction:
-single-sample vertex/fragment, optional D16/D32 depth, fill/depth clipping, vertex
-pulling, one viewport/scissor and matching per-color blend state. Stencil, resolves,
-multisample rendering, independent blend, fixed-function vertex fetch, additional
+vertex/fragment, optional D16/D32 depth, explicit supported sample counts, fill/depth
+clipping, vertex pulling, one viewport/scissor and matching per-color blend state.
+Color attachments now resolve explicitly at scope end: average for normalized/float,
+sample zero for integer formats, independent of whether the multisample source is
+stored or discarded. The single-sample resolve view, matching format, usage/layout
+and lifetime belong to the caller; no transient target or implicit transition is
+created. Integer-color, depth, stencil and attachmentless sample masks are reported
+separately. See the [native attachment resolve contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkRenderingAttachmentInfo.html).
+
+Stencil, depth/stencil resolves, sample shading/masks/custom positions, independent
+blend, fixed-function vertex fetch, additional
 stages, restart, wide lines, richer dynamic state, tile-local dependencies and
 nonzero indirect first-instance enabling remain work. Unsupported requested state
 is rejected, never emulated with a hidden state cache or fallback. The existing
-broader native sample masks are hardware metadata, not a support claim for this
-preparation profile.
+sample masks still require exact format/image-tuple support, not guessed allocation.
 
 The public C offscreen consumer checks opaque and additive pipelines, depth rejection,
 LOAD across scopes, negative base vertex, direct/indexed and all four indirect
@@ -336,6 +343,14 @@ caught by this test: Slang's `SV_VertexID` subtracts base vertex; the fixture ex
 uses `SV_VulkanVertexID` to test native offset semantics. This distinction belongs in
 future generated graphics metadata, not a runtime draw rewrite. See
 [Slang's SPIR-V semantics](https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html).
+
+The same consumer now runs at one and four samples. Four-sample depth rejection,
+blending, LOAD, all draw forms and replay resolve into caller-owned single-sample
+storage. An actual geometry edge produces mixed covered/uncovered samples, checking
+intermediate resolved color without assuming exact rounding. A fractional viewport
+alone was not a reliable coverage fixture; no API workaround was introduced.
+Multisample depth is tested through visibility, not direct depth readback. Integer
+sample-zero resolve and other sample counts remain to verify on real shader output.
 
 ## Implemented explicit queries
 
@@ -364,7 +379,7 @@ stage vocabulary and calibrated clocks remain explicit follow-up work.
 
 ## Verification so far
 
-- 65 ordinary Rust tests pass, including foundation contract, status and
+- 66 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

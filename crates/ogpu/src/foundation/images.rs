@@ -913,7 +913,12 @@ impl View {
         image.command_handle(device, domain, required)?;
         let p = &image.prepared.desc;
         let r = self.info.subresourceRange;
+        let c = self.info.components;
         if self.usage.usage & required as u32 == 0
+            || !matches!(c.r, 0 | 3)
+            || !matches!(c.g, 0 | 4)
+            || !matches!(c.b, 0 | 5)
+            || !matches!(c.a, 0 | 6)
             || r.levelCount != 1
             || r.layerCount < desc.layers
             || !matches!(
@@ -940,6 +945,36 @@ impl View {
             return Err(INVALID);
         }
         Ok(self.handle)
+    }
+    pub(super) fn color_resolve(
+        &self,
+        device: *const Device,
+        domain: u32,
+        desc: &RenderDesc,
+        a: &Attachment,
+        source: &View,
+    ) -> Result<vk::VkImageView, Status> {
+        let mode = if source.info.format == vk::VkFormat_VK_FORMAT_R32_UINT {
+            1
+        } else {
+            2
+        };
+        if a.resolve_mode != mode {
+            return Err(UNSUPPORTED);
+        }
+        if self.info.format != source.info.format {
+            return Err(INVALID);
+        }
+        let target = RenderDesc {
+            samples: 1,
+            ..*desc
+        };
+        let attachment = Attachment {
+            state: a.resolve_state,
+            load_op: 2,
+            ..*a
+        };
+        self.attachment(device, domain, &target, &attachment, false)
     }
     pub(in crate::foundation) fn create(
         image: &Image,

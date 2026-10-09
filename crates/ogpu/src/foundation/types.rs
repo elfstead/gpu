@@ -69,6 +69,8 @@ pub struct GraphicsLimits {
     pub depth_samples: u32,
     pub no_attachment_samples: u32,
     pub max_indirect_count: u32,
+    pub integer_color_samples: u32,
+    pub stencil_samples: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]

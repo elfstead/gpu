@@ -36,7 +36,6 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         || state.depth_test > 1
         || state.depth_write > 1
         || state.depth_compare > 7
-        || state.samples != 1
     {
         return Err(UNSUPPORTED);
     }
@@ -50,6 +49,22 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         return Err(INVALID);
     }
     let colors = unsafe { array(state.colors, state.color_count)? };
+    let mut sample_mask = if colors.is_empty() && state.depth_format == 0 {
+        p.no_attachment_samples
+    } else {
+        u32::MAX
+    };
+    for c in colors {
+        sample_mask &= if c.format == 11 {
+            p.integer_color_samples
+        } else {
+            p.color_samples
+        };
+    }
+    if state.depth_format != 0 {
+        sample_mask &= p.depth_samples;
+    }
+    samples(state.samples, sample_mask)?;
     let mut formats = Vec::new();
     let mut blends = Vec::new();
     formats

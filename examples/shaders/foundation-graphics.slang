@@ -1,4 +1,4 @@
-struct Root { float4 color; float depth; uint width; uint height; uint pad; };
+struct Root { float4 color; float depth; float rightEdge; uint height; uint pad; };
 struct Control { Root* root; };
 [[vk::push_constant]] ConstantBuffer<Control> control;
 struct Vertex { float4 position : SV_Position; };
@@ -7,8 +7,9 @@ struct Vertex { float4 position : SV_Position; };
 // Native VertexIndex includes base vertex; SV_VertexID subtracts it in Slang.
 Vertex vertexMain(uint id : SV_VulkanVertexID) {
     Vertex v;
-    float2 p = float2((id << 1) & 2, id & 2);
-    v.position = float4(p * 2.0 - 1.0, control.root->depth, 1.0);
+    // Oversized triangle with a real vertical edge, not a viewport/scissor edge.
+    float2 p = float2(id == 0 ? -5.0 : control.root->rightEdge, id == 2 ? 5.0 : -5.0);
+    v.position = float4(p, control.root->depth, 1.0);
     return v;
 }
 [shader("fragment")]

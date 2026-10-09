@@ -1,12 +1,13 @@
 /* Offscreen public-C consumer. No old ABI helpers or implicit attachment policy. */
 static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
-                              uint32_t domain, const char *vertex_path, const char *fragment_path) {
+                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code[2] = {NULL, NULL}, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
-    ogpu_next_memory *host = NULL, *backing[2] = {NULL, NULL};
-    ogpu_next_image *images[2] = {NULL, NULL};
-    ogpu_next_view *views[2] = {NULL, NULL};
+    ogpu_next_memory *host = NULL, *backing[3] = {NULL};
+    ogpu_next_image *images[3] = {NULL};
+    ogpu_next_view *views[3] = {NULL};
+    uint32_t image_count = samples > 1 ? 3 : 2;
     ogpu_next_executable *pipelines[2] = {NULL, NULL};
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *done = NULL;
@@ -45,19 +46,19 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, {NULL, 0}};
-    gs.samples = 4;
-    REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_UNSUPPORTED && pipelines[0] == NULL);
-    gs.samples = 1;
+    gs.samples = 3;
+    REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
+    gs.samples = samples;
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[0]));
     color.blend = 1; color.dst_color = 1; color.src_alpha = 0; color.dst_alpha = 1;
     gs.depth_write = 0;
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[1]));
     free(code[0]); code[0] = NULL; free(code[1]); code[1] = NULL;
     ogpu_next_subresources range = {OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1};
-    for (uint32_t i = 0; i < 2; ++i) {
+    for (uint32_t i = 0; i < image_count; ++i) {
         ogpu_next_image_desc desc = {HEADER(ogpu_next_image_desc, OGPU_NEXT_IMAGE_DESC),
-            i ? OGPU_NEXT_D32_FLOAT : OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_IMAGE_2D, 1, 1, 1, {16, 8, 1},
-            OGPU_NEXT_IMAGE_COPY_SRC | (i ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT),
+            i == 1 ? OGPU_NEXT_D32_FLOAT : OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_IMAGE_2D, 1, 1, i == 2 ? 1 : samples, {16, 8, 1},
+            OGPU_NEXT_IMAGE_COPY_SRC | (i == 1 ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT),
             0, NULL, 0, 0, NULL};
         uint32_t types[32];
         ogpu_next_requirements memory_req = {0};
@@ -66,9 +67,9 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         TRY(ogpu_next_image_create_unbound(device, &desc, &images[i]));
         TRY(ogpu_next_memory_create_dedicated_image(images[i], types[0], &backing[i]));
         TRY(ogpu_next_image_bind(images[i], (ogpu_next_span){backing[i], 0, memory_req.size}));
-        range.aspects = i ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR;
+        range.aspects = i == 1 ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR;
         ogpu_next_view_desc vd = {HEADER(ogpu_next_view_desc, OGPU_NEXT_VIEW_DESC), desc.format,
-            OGPU_NEXT_VIEW_2D, (uint32_t)(i ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT), {0,0,0,0}, range};
+            OGPU_NEXT_VIEW_2D, (uint32_t)(i == 1 ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT), {0,0,0,0}, range};
         TRY(ogpu_next_view_create(images[i], &vd, &views[i]));
     }
     TRY(ogpu_next_memory_create(device, &host_desc, &host));
@@ -79,7 +80,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     ogpu_next_host_requirements rr = {0}, br = {0}, sr = {0};
-    TRY(ogpu_next_render_scratch_requirements(1, &rr)); TRY(ogpu_next_barrier_scratch_requirements(0, 2, &br));
+    TRY(ogpu_next_render_scratch_requirements(1, &rr)); TRY(ogpu_next_barrier_scratch_requirements(0, image_count, &br));
     TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &sr));
     REQUIRE(rr.alignment <= _Alignof(max_align_t) && br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)rr.size); barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size);
@@ -91,19 +92,19 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_queries_reset(encoder, timestamps, 0, 2);
     ogpu_next_queries_reset(encoder, occlusion, 0, 2);
     ogpu_next_timestamp(encoder, timestamps, 0, OGPU_NEXT_STAGE_ALL);
-    ogpu_next_image_barrier barriers[2];
-    for (uint32_t i = 0; i < 2; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
-        {i ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
-        i ? OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE,
-        OGPU_NEXT_STATE_UNDEFINED, i ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT,
+    ogpu_next_image_barrier barriers[3];
+    for (uint32_t i = 0; i < image_count; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
+        {i == 1 ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
+        i == 1 ? OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE,
+        OGPU_NEXT_STATE_UNDEFINED, i == 1 ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT,
         OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 1};
     ogpu_next_dependency dep = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_ALL,
-        OGPU_NEXT_STAGE_COLOR | OGPU_NEXT_STAGE_DEPTH, 0, 0, 0, 2, 0, NULL, barriers, barrier_scratch, br.size};
+        OGPU_NEXT_STAGE_COLOR | OGPU_NEXT_STAGE_DEPTH, 0, 0, 0, image_count, 0, NULL, barriers, barrier_scratch, br.size};
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_attachment colors = {views[0], NULL, OGPU_NEXT_STATE_COLOR_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.f32 = {0,0,0,1}}};
     ogpu_next_attachment depth = {views[1], NULL, OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.depth_stencil = {1,0}}};
     ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc, OGPU_NEXT_RENDER_DESC),
-        0, 0, 16, 8, 1, 0, 1, 0, 1, &colors, &depth, NULL, {scratch, rr.size}};
+        0, 0, 16, 8, 1, 0, samples, 0, 1, &colors, &depth, NULL, {scratch, rr.size}};
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state, OGPU_NEXT_VIEWPORT_STATE),
         0, 0, 16, 8, 0, 1, 0, 0, 8, 8};
     ogpu_next_draw_desc draw = {3, 1, 0, 0, 0};
@@ -117,10 +118,16 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_render_end(encoder);
     /* LOAD in a new scope is explicit, including inter-scope attachment hazards. */
     dep.before = dep.after;
+    dep.image_count = 2;
     for (uint32_t i = 0; i < 2; ++i) { barriers[i].before = barriers[i].after; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; }
     barriers[0].after |= OGPU_NEXT_ACCESS_COLOR_READ;
     ogpu_next_barrier(encoder, &dep);
     colors.load_op = OGPU_NEXT_LOAD; depth.load_op = OGPU_NEXT_LOAD;
+    if (samples > 1) {
+        colors.resolve_view = views[2]; colors.resolve_state = OGPU_NEXT_STATE_COLOR_ATTACHMENT;
+        colors.resolve_mode = OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE;
+        colors.store_op = OGPU_NEXT_DISCARD; /* Resolve remains valid without storing the multisample source. */
+    }
     ogpu_next_render_begin(encoder, &render);
     vp.scissor_width = 16;
     ogpu_next_set_graphics_state(encoder, &vp.header);
@@ -143,13 +150,14 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         else ogpu_next_draw_indirect(encoder, &indirect);
     }
     ogpu_next_render_end(encoder);
-    for (uint32_t i = 0; i < 2; ++i) { barriers[i].before = barriers[i].after; barriers[i].after = OGPU_NEXT_ACCESS_COPY_READ; barriers[i].new_state = OGPU_NEXT_STATE_COPY_SRC; }
+    dep.image_count = image_count;
+    for (uint32_t i = 0; i < image_count; ++i) { barriers[i].before = barriers[i].after; barriers[i].after = OGPU_NEXT_ACCESS_COPY_READ; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; barriers[i].new_state = OGPU_NEXT_STATE_COPY_SRC; }
     dep.after = OGPU_NEXT_STAGE_COPY;
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR, 0, 0, 1, {0,0,0}, {16,8,1}}, 0, 0, OGPU_NEXT_STATE_COPY_SRC, 0};
-    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,512,512}, images[0], &copy);
+    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,512,512}, images[samples > 1 ? 2 : 0], &copy);
     copy.region.aspect = OGPU_NEXT_ASPECT_DEPTH;
-    ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,1024,512}, images[1], &copy);
+    if (samples == 1) ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,1024,512}, images[1], &copy);
     ogpu_next_timestamp(encoder, timestamps, 1, OGPU_NEXT_STAGE_ALL);
     ogpu_next_queries_resolve(encoder, timestamps, 0, 2, (ogpu_next_span){host,400,40}, 24,
         OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
@@ -162,11 +170,12 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_sync_point signal = {{done,1}, OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC), 1,0,1,&list,NULL,&signal,submit_scratch,sr.size};
-    struct Root { float color[4], depth; uint32_t width,height,pad; };
+    struct Root { float color[4], depth, right_edge; uint32_t height,pad; };
     _Static_assert(sizeof(struct Root) == 32, "graphics root ABI");
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(map.data, 0xa5, (size_t)host_desc.size);
-        struct Root roots[3] = {{{1,0,0,1},0.25f,16,8,0}, {{0,1,0,1},0.75f,16,8,0}, {{0,0,1,1},0.125f,16,8,0}};
+        float right_edge = samples > 1 ? 0.9375f : 1.f;
+        struct Root roots[3] = {{{1,0,0,1},0.25f,right_edge,8,0}, {{0,1,0,1},0.75f,right_edge,8,0}, {{0,0,1,1},0.125f,right_edge,8,0}};
         if (replay) { roots[0].color[0] = 0; roots[0].color[1] = 1; roots[1].color[0] = 1; roots[1].color[1] = 0; }
         memcpy(map.data, roots, sizeof(roots));
         const uint16_t indices[3] = {1,2,3};
@@ -191,14 +200,20 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         REQUIRE(((uint32_t *)map.data)[113] != 0 && ((uint32_t *)map.data)[115] != 0);
         for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 16; ++x) {
             uint32_t expected = UINT32_C(0xff000000) | (((x < 8) != (replay != 0)) ? 255 : 65280) | ((x >= 4 && x < (replay ? 12u : 8u)) ? 16711680 : 0);
+            if (samples > 1 && x == 15) {
+                uint32_t shift = replay ? 0 : 8, mask = 255u << shift;
+                uint32_t channel = (((uint32_t *)map.data)[128+y*16+x] >> shift) & 255u;
+                REQUIRE(channel > 0 && channel < 255); /* Average, not sample-zero; no exact rounding assumption. */
+                expected = (expected & ~mask) | (channel << shift);
+            }
             if (((uint32_t *)map.data)[128+y*16+x] != expected)
                 fprintf(stderr, "graphics replay %u pixel (%u,%u): %08x expected %08x\n", replay,x,y,((uint32_t *)map.data)[128+y*16+x],expected);
             REQUIRE(((uint32_t *)map.data)[128+y*16+x] == expected);
-            REQUIRE(((float *)map.data)[256+y*16+x] == (x < 8 ? 0.25f : 0.75f));
+            if (samples == 1) REQUIRE(((float *)map.data)[256+y*16+x] == (x < 8 ? 0.25f : 0.75f));
         }
         for (uint32_t i = 96; i < host_desc.size; ++i)
             if (i < 256 || (i >= 388 && i < 400) || (i >= 416 && i < 424)
-                || (i >= 440 && i < 448) || (i >= 464 && i < 512) || i >= 1536)
+                || (i >= 440 && i < 448) || (i >= 464 && i < 512) || i >= (samples == 1 ? 1536u : 1024u))
                 REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
     }
     TRY(ogpu_next_arena_reset(arena));
@@ -273,14 +288,24 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         }
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
     }
-    printf("Graphics passes: direct/indexed/all indirect variants, viewport/scissor, depth rejection, additive blending, LOAD scopes, changed-root/count replay and attachmentless scopes.\n");
+    if (samples > 1) for (uint32_t bad = 0; bad < 4; ++bad) {
+        TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        render.color_count = 1; render.colors = &colors; render.depth = &depth; render.scratch = (ogpu_next_host_span){scratch,rr.size};
+        colors.resolve_view = bad == 0 ? views[0] : views[2];
+        colors.resolve_mode = bad == 1 ? OGPU_NEXT_ATTACHMENT_RESOLVE_SAMPLE_ZERO : bad == 2 ? 0 : OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE;
+        colors.resolve_state = bad == 3 ? OGPU_NEXT_STATE_COPY_SRC : OGPU_NEXT_STATE_COLOR_ATTACHMENT;
+        ogpu_next_render_begin(encoder,&render);
+        REQUIRE(ogpu_next_commands_end(encoder,&list) == (bad == 1 ? OGPU_NEXT_UNSUPPORTED : OGPU_NEXT_INVALID) && list == NULL);
+    }
+    printf("Graphics (%u samples) passes: direct/indexed/all indirect variants, viewport/scissor, depth rejection, blending, LOAD scopes, changed-root/count replay%s.\n",samples,samples > 1 ? ", mixed-coverage average attachment resolve" : "");
     printf("Queries pass: explicit reset, 64-bit strided timestamps, 32-bit visible/empty occlusion with availability, scope matching, replay and guard bytes.\n");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending graphics after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
     ogpu_next_query_pool_destroy(timestamps); ogpu_next_query_pool_destroy(occlusion);
-    for (uint32_t i = 0; i < 2; ++i) { ogpu_next_executable_destroy(pipelines[i]); ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
+    for (uint32_t i = 0; i < 2; ++i) ogpu_next_executable_destroy(pipelines[i]);
+    for (uint32_t i = 0; i < image_count; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     ogpu_next_memory_destroy(host);
     if (file) fclose(file);
     free(code[0]);free(code[1]);free(scratch);free(barrier_scratch);free(submit_scratch);

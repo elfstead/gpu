@@ -186,7 +186,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<Shader>(), 48);
     assert_eq!(size_of::<ExecutableDesc>(), 80);
     assert_eq!(size_of::<Launch>(), 24);
-    assert_eq!(size_of::<GraphicsLimits>(), 48);
+    assert_eq!(size_of::<GraphicsLimits>(), 56);
     assert_eq!(size_of::<GraphicsState>(), 88);
     assert_eq!(size_of::<ColorState>(), 36);
     assert_eq!(size_of::<Attachment>(), 56);

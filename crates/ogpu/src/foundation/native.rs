@@ -32,6 +32,7 @@ pub(super) use executables::record as executable_record;
 mod rendering;
 pub use executables::Executable;
 pub(super) use rendering::render_scratch;
+use rendering::samples;
 #[path = "queries.rs"]
 mod queries;
 pub use queries::QueryPool;
@@ -206,7 +207,12 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()
         };
+        let mut v12_properties = vk::VkPhysicalDeviceVulkan12Properties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
+            ..Default::default()
+        };
         let mut heaps = vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT {
+            pNext: ptr::from_mut(&mut v12_properties).cast(),
             sType:
                 vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT,
             ..Default::default()
@@ -221,15 +227,9 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut maintenance3).cast(),
             ..Default::default()
         };
-        let mut timeline = vk::VkPhysicalDeviceTimelineSemaphoreProperties {
-            pNext: ptr::from_mut(&mut maintenance4).cast(),
-            sType:
-                vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_PROPERTIES,
-            ..Default::default()
-        };
         let mut properties = vk::VkPhysicalDeviceProperties2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-            pNext: ptr::from_mut(&mut timeline).cast(),
+            pNext: ptr::from_mut(&mut maintenance4).cast(),
             ..Default::default()
         };
         unsafe {
@@ -294,6 +294,8 @@ pub(super) fn snapshot(
             depth_samples: p.framebufferDepthSampleCounts,
             no_attachment_samples: p.framebufferNoAttachmentsSampleCounts,
             max_indirect_count: p.maxDrawIndirectCount,
+            integer_color_samples: v12_properties.framebufferIntegerColorSampleCounts,
+            stencil_samples: p.framebufferStencilSampleCounts,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
@@ -310,7 +312,7 @@ pub(super) fn snapshot(
         if has_unified && unified.unifiedImageLayouts != 0 {
             features.available |= UNIFIED_IMAGES;
         }
-        features.max_timeline_difference = timeline.maxTimelineSemaphoreValueDifference;
+        features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
     Ok(Snapshot {
         info: AdapterInfo {

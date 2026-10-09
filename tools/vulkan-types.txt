@@ -50,3 +50,4 @@ VkImageCreateFlagBits
 VkImageFormatListCreateInfo
 VkImageViewUsageCreateInfo
 VkPhysicalDeviceShaderDrawParametersFeatures
+VkPhysicalDeviceVulkan12Properties

@@ -7106,6 +7106,58 @@ pub type PFN_vkTrimCommandPool = ::std::option::Option<
         flags: VkCommandPoolTrimFlags,
     ),
 >;
+pub const VkDriverId_VK_DRIVER_ID_AMD_PROPRIETARY: VkDriverId = 1;
+pub const VkDriverId_VK_DRIVER_ID_AMD_OPEN_SOURCE: VkDriverId = 2;
+pub const VkDriverId_VK_DRIVER_ID_MESA_RADV: VkDriverId = 3;
+pub const VkDriverId_VK_DRIVER_ID_NVIDIA_PROPRIETARY: VkDriverId = 4;
+pub const VkDriverId_VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS: VkDriverId = 5;
+pub const VkDriverId_VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA: VkDriverId = 6;
+pub const VkDriverId_VK_DRIVER_ID_IMAGINATION_PROPRIETARY: VkDriverId = 7;
+pub const VkDriverId_VK_DRIVER_ID_QUALCOMM_PROPRIETARY: VkDriverId = 8;
+pub const VkDriverId_VK_DRIVER_ID_ARM_PROPRIETARY: VkDriverId = 9;
+pub const VkDriverId_VK_DRIVER_ID_GOOGLE_SWIFTSHADER: VkDriverId = 10;
+pub const VkDriverId_VK_DRIVER_ID_GGP_PROPRIETARY: VkDriverId = 11;
+pub const VkDriverId_VK_DRIVER_ID_BROADCOM_PROPRIETARY: VkDriverId = 12;
+pub const VkDriverId_VK_DRIVER_ID_MESA_LLVMPIPE: VkDriverId = 13;
+pub const VkDriverId_VK_DRIVER_ID_MOLTENVK: VkDriverId = 14;
+pub const VkDriverId_VK_DRIVER_ID_COREAVI_PROPRIETARY: VkDriverId = 15;
+pub const VkDriverId_VK_DRIVER_ID_JUICE_PROPRIETARY: VkDriverId = 16;
+pub const VkDriverId_VK_DRIVER_ID_VERISILICON_PROPRIETARY: VkDriverId = 17;
+pub const VkDriverId_VK_DRIVER_ID_MESA_TURNIP: VkDriverId = 18;
+pub const VkDriverId_VK_DRIVER_ID_MESA_V3DV: VkDriverId = 19;
+pub const VkDriverId_VK_DRIVER_ID_MESA_PANVK: VkDriverId = 20;
+pub const VkDriverId_VK_DRIVER_ID_SAMSUNG_PROPRIETARY: VkDriverId = 21;
+pub const VkDriverId_VK_DRIVER_ID_MESA_VENUS: VkDriverId = 22;
+pub const VkDriverId_VK_DRIVER_ID_MESA_DOZEN: VkDriverId = 23;
+pub const VkDriverId_VK_DRIVER_ID_MESA_NVK: VkDriverId = 24;
+pub const VkDriverId_VK_DRIVER_ID_IMAGINATION_OPEN_SOURCE_MESA: VkDriverId = 25;
+pub const VkDriverId_VK_DRIVER_ID_MESA_HONEYKRISP: VkDriverId = 26;
+pub const VkDriverId_VK_DRIVER_ID_VULKAN_SC_EMULATION_ON_VULKAN: VkDriverId = 27;
+pub const VkDriverId_VK_DRIVER_ID_MESA_KOSMICKRISP: VkDriverId = 28;
+pub const VkDriverId_VK_DRIVER_ID_MESA_GFXSTREAM: VkDriverId = 29;
+pub const VkDriverId_VK_DRIVER_ID_APE_SOFT: VkDriverId = 30;
+pub const VkDriverId_VK_DRIVER_ID_AMD_PROPRIETARY_KHR: VkDriverId = 1;
+pub const VkDriverId_VK_DRIVER_ID_AMD_OPEN_SOURCE_KHR: VkDriverId = 2;
+pub const VkDriverId_VK_DRIVER_ID_MESA_RADV_KHR: VkDriverId = 3;
+pub const VkDriverId_VK_DRIVER_ID_NVIDIA_PROPRIETARY_KHR: VkDriverId = 4;
+pub const VkDriverId_VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS_KHR: VkDriverId = 5;
+pub const VkDriverId_VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA_KHR: VkDriverId = 6;
+pub const VkDriverId_VK_DRIVER_ID_IMAGINATION_PROPRIETARY_KHR: VkDriverId = 7;
+pub const VkDriverId_VK_DRIVER_ID_QUALCOMM_PROPRIETARY_KHR: VkDriverId = 8;
+pub const VkDriverId_VK_DRIVER_ID_ARM_PROPRIETARY_KHR: VkDriverId = 9;
+pub const VkDriverId_VK_DRIVER_ID_GOOGLE_SWIFTSHADER_KHR: VkDriverId = 10;
+pub const VkDriverId_VK_DRIVER_ID_GGP_PROPRIETARY_KHR: VkDriverId = 11;
+pub const VkDriverId_VK_DRIVER_ID_BROADCOM_PROPRIETARY_KHR: VkDriverId = 12;
+pub const VkDriverId_VK_DRIVER_ID_MAX_ENUM: VkDriverId = 2147483647;
+pub type VkDriverId = ::std::os::raw::c_uint;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY: VkShaderFloatControlsIndependence = 0;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL: VkShaderFloatControlsIndependence = 1;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_NONE: VkShaderFloatControlsIndependence = 2;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR: VkShaderFloatControlsIndependence = 0;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL_KHR: VkShaderFloatControlsIndependence = 1;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_NONE_KHR: VkShaderFloatControlsIndependence = 2;
+pub const VkShaderFloatControlsIndependence_VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_MAX_ENUM: VkShaderFloatControlsIndependence = 2147483647;
+pub type VkShaderFloatControlsIndependence = ::std::os::raw::c_uint;
 pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_BINARY: VkSemaphoreType = 0;
 pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_TIMELINE: VkSemaphoreType = 1;
 pub const VkSemaphoreType_VK_SEMAPHORE_TYPE_BINARY_KHR: VkSemaphoreType = 0;
@@ -7127,7 +7179,37 @@ pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_MAX_BIT_KHR: VkResolveModeFlagBi
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_EXTERNAL_FORMAT_DOWNSAMPLE_ANDROID: VkResolveModeFlagBits = 16;
 pub const VkResolveModeFlagBits_VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM: VkResolveModeFlagBits = 2147483647;
 pub type VkResolveModeFlagBits = ::std::os::raw::c_uint;
+pub type VkResolveModeFlags = VkFlags;
 pub type VkSemaphoreWaitFlags = VkFlags;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkConformanceVersion {
+    pub major: u8,
+    pub minor: u8,
+    pub subminor: u8,
+    pub patch: u8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkConformanceVersion",
+    ][::std::mem::size_of::<VkConformanceVersion>() - 4usize];
+    [
+        "Alignment of VkConformanceVersion",
+    ][::std::mem::align_of::<VkConformanceVersion>() - 1usize];
+    [
+        "Offset of field: VkConformanceVersion::major",
+    ][::std::mem::offset_of!(VkConformanceVersion, major) - 0usize];
+    [
+        "Offset of field: VkConformanceVersion::minor",
+    ][::std::mem::offset_of!(VkConformanceVersion, minor) - 1usize];
+    [
+        "Offset of field: VkConformanceVersion::subminor",
+    ][::std::mem::offset_of!(VkConformanceVersion, subminor) - 2usize];
+    [
+        "Offset of field: VkConformanceVersion::patch",
+    ][::std::mem::offset_of!(VkConformanceVersion, patch) - 3usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceVulkan12Features {
@@ -7413,6 +7495,352 @@ const _: () = {
     ) - 200usize];
 };
 impl Default for VkPhysicalDeviceVulkan12Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVulkan12Properties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub driverID: VkDriverId,
+    pub driverName: [::std::os::raw::c_char; 256usize],
+    pub driverInfo: [::std::os::raw::c_char; 256usize],
+    pub conformanceVersion: VkConformanceVersion,
+    pub denormBehaviorIndependence: VkShaderFloatControlsIndependence,
+    pub roundingModeIndependence: VkShaderFloatControlsIndependence,
+    pub shaderSignedZeroInfNanPreserveFloat16: VkBool32,
+    pub shaderSignedZeroInfNanPreserveFloat32: VkBool32,
+    pub shaderSignedZeroInfNanPreserveFloat64: VkBool32,
+    pub shaderDenormPreserveFloat16: VkBool32,
+    pub shaderDenormPreserveFloat32: VkBool32,
+    pub shaderDenormPreserveFloat64: VkBool32,
+    pub shaderDenormFlushToZeroFloat16: VkBool32,
+    pub shaderDenormFlushToZeroFloat32: VkBool32,
+    pub shaderDenormFlushToZeroFloat64: VkBool32,
+    pub shaderRoundingModeRTEFloat16: VkBool32,
+    pub shaderRoundingModeRTEFloat32: VkBool32,
+    pub shaderRoundingModeRTEFloat64: VkBool32,
+    pub shaderRoundingModeRTZFloat16: VkBool32,
+    pub shaderRoundingModeRTZFloat32: VkBool32,
+    pub shaderRoundingModeRTZFloat64: VkBool32,
+    pub maxUpdateAfterBindDescriptorsInAllPools: u32,
+    pub shaderUniformBufferArrayNonUniformIndexingNative: VkBool32,
+    pub shaderSampledImageArrayNonUniformIndexingNative: VkBool32,
+    pub shaderStorageBufferArrayNonUniformIndexingNative: VkBool32,
+    pub shaderStorageImageArrayNonUniformIndexingNative: VkBool32,
+    pub shaderInputAttachmentArrayNonUniformIndexingNative: VkBool32,
+    pub robustBufferAccessUpdateAfterBind: VkBool32,
+    pub quadDivergentImplicitLod: VkBool32,
+    pub maxPerStageDescriptorUpdateAfterBindSamplers: u32,
+    pub maxPerStageDescriptorUpdateAfterBindUniformBuffers: u32,
+    pub maxPerStageDescriptorUpdateAfterBindStorageBuffers: u32,
+    pub maxPerStageDescriptorUpdateAfterBindSampledImages: u32,
+    pub maxPerStageDescriptorUpdateAfterBindStorageImages: u32,
+    pub maxPerStageDescriptorUpdateAfterBindInputAttachments: u32,
+    pub maxPerStageUpdateAfterBindResources: u32,
+    pub maxDescriptorSetUpdateAfterBindSamplers: u32,
+    pub maxDescriptorSetUpdateAfterBindUniformBuffers: u32,
+    pub maxDescriptorSetUpdateAfterBindUniformBuffersDynamic: u32,
+    pub maxDescriptorSetUpdateAfterBindStorageBuffers: u32,
+    pub maxDescriptorSetUpdateAfterBindStorageBuffersDynamic: u32,
+    pub maxDescriptorSetUpdateAfterBindSampledImages: u32,
+    pub maxDescriptorSetUpdateAfterBindStorageImages: u32,
+    pub maxDescriptorSetUpdateAfterBindInputAttachments: u32,
+    pub supportedDepthResolveModes: VkResolveModeFlags,
+    pub supportedStencilResolveModes: VkResolveModeFlags,
+    pub independentResolveNone: VkBool32,
+    pub independentResolve: VkBool32,
+    pub filterMinmaxSingleComponentFormats: VkBool32,
+    pub filterMinmaxImageComponentMapping: VkBool32,
+    pub maxTimelineSemaphoreValueDifference: u64,
+    pub framebufferIntegerColorSampleCounts: VkSampleCountFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVulkan12Properties",
+    ][::std::mem::size_of::<VkPhysicalDeviceVulkan12Properties>() - 736usize];
+    [
+        "Alignment of VkPhysicalDeviceVulkan12Properties",
+    ][::std::mem::align_of::<VkPhysicalDeviceVulkan12Properties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::driverID",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, driverID) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::driverName",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, driverName) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::driverInfo",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, driverInfo) - 276usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::conformanceVersion",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, conformanceVersion)
+        - 532usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::denormBehaviorIndependence",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, denormBehaviorIndependence
+    ) - 536usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::roundingModeIndependence",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, roundingModeIndependence
+    ) - 540usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderSignedZeroInfNanPreserveFloat16",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderSignedZeroInfNanPreserveFloat16
+    ) - 544usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderSignedZeroInfNanPreserveFloat32",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderSignedZeroInfNanPreserveFloat32
+    ) - 548usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderSignedZeroInfNanPreserveFloat64",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderSignedZeroInfNanPreserveFloat64
+    ) - 552usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderDenormPreserveFloat16",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderDenormPreserveFloat16
+    ) - 556usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderDenormPreserveFloat32",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderDenormPreserveFloat32
+    ) - 560usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderDenormPreserveFloat64",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderDenormPreserveFloat64
+    ) - 564usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderDenormFlushToZeroFloat16",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderDenormFlushToZeroFloat16
+    ) - 568usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderDenormFlushToZeroFloat32",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderDenormFlushToZeroFloat32
+    ) - 572usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderDenormFlushToZeroFloat64",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderDenormFlushToZeroFloat64
+    ) - 576usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderRoundingModeRTEFloat16",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderRoundingModeRTEFloat16
+    ) - 580usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderRoundingModeRTEFloat32",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderRoundingModeRTEFloat32
+    ) - 584usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderRoundingModeRTEFloat64",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderRoundingModeRTEFloat64
+    ) - 588usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderRoundingModeRTZFloat16",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderRoundingModeRTZFloat16
+    ) - 592usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderRoundingModeRTZFloat32",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderRoundingModeRTZFloat32
+    ) - 596usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderRoundingModeRTZFloat64",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, shaderRoundingModeRTZFloat64
+    ) - 600usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxUpdateAfterBindDescriptorsInAllPools",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxUpdateAfterBindDescriptorsInAllPools
+    ) - 604usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderUniformBufferArrayNonUniformIndexingNative",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        shaderUniformBufferArrayNonUniformIndexingNative
+    ) - 608usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderSampledImageArrayNonUniformIndexingNative",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        shaderSampledImageArrayNonUniformIndexingNative
+    ) - 612usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderStorageBufferArrayNonUniformIndexingNative",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        shaderStorageBufferArrayNonUniformIndexingNative
+    ) - 616usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderStorageImageArrayNonUniformIndexingNative",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        shaderStorageImageArrayNonUniformIndexingNative
+    ) - 620usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::shaderInputAttachmentArrayNonUniformIndexingNative",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        shaderInputAttachmentArrayNonUniformIndexingNative
+    ) - 624usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::robustBufferAccessUpdateAfterBind",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, robustBufferAccessUpdateAfterBind
+    ) - 628usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::quadDivergentImplicitLod",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, quadDivergentImplicitLod
+    ) - 632usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageDescriptorUpdateAfterBindSamplers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxPerStageDescriptorUpdateAfterBindSamplers
+    ) - 636usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageDescriptorUpdateAfterBindUniformBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxPerStageDescriptorUpdateAfterBindUniformBuffers
+    ) - 640usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageDescriptorUpdateAfterBindStorageBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxPerStageDescriptorUpdateAfterBindStorageBuffers
+    ) - 644usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageDescriptorUpdateAfterBindSampledImages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxPerStageDescriptorUpdateAfterBindSampledImages
+    ) - 648usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageDescriptorUpdateAfterBindStorageImages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxPerStageDescriptorUpdateAfterBindStorageImages
+    ) - 652usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageDescriptorUpdateAfterBindInputAttachments",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxPerStageDescriptorUpdateAfterBindInputAttachments
+    ) - 656usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxPerStageUpdateAfterBindResources",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxPerStageUpdateAfterBindResources
+    ) - 660usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindSamplers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxDescriptorSetUpdateAfterBindSamplers
+    ) - 664usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindUniformBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxDescriptorSetUpdateAfterBindUniformBuffers
+    ) - 668usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindUniformBuffersDynamic",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxDescriptorSetUpdateAfterBindUniformBuffersDynamic
+    ) - 672usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindStorageBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxDescriptorSetUpdateAfterBindStorageBuffers
+    ) - 676usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindStorageBuffersDynamic",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxDescriptorSetUpdateAfterBindStorageBuffersDynamic
+    ) - 680usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindSampledImages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxDescriptorSetUpdateAfterBindSampledImages
+    ) - 684usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindStorageImages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxDescriptorSetUpdateAfterBindStorageImages
+    ) - 688usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindInputAttachments",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties,
+        maxDescriptorSetUpdateAfterBindInputAttachments
+    ) - 692usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::supportedDepthResolveModes",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, supportedDepthResolveModes
+    ) - 696usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::supportedStencilResolveModes",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, supportedStencilResolveModes
+    ) - 700usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::independentResolveNone",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, independentResolveNone)
+        - 704usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::independentResolve",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan12Properties, independentResolve)
+        - 708usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::filterMinmaxSingleComponentFormats",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, filterMinmaxSingleComponentFormats
+    ) - 712usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::filterMinmaxImageComponentMapping",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, filterMinmaxImageComponentMapping
+    ) - 716usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::maxTimelineSemaphoreValueDifference",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, maxTimelineSemaphoreValueDifference
+    ) - 720usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan12Properties::framebufferIntegerColorSampleCounts",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan12Properties, framebufferIntegerColorSampleCounts
+    ) - 728usize];
+};
+impl Default for VkPhysicalDeviceVulkan12Properties {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

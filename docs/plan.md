@@ -32,6 +32,8 @@ explicit image transitions/clears/pitched transfers, caller-owned descriptor enc
 and mixed-heap shader consumption, prepared compute/graphics executables, inline/root
 arguments, dispatch and direct/indexed/indirect/count draws. Offscreen rendering has
 explicit viewport/scissor, attachment LOAD/STORE, color blending and depth testing.
+Multisample raster and explicit color attachment resolves use caller-owned targets;
+one/four-sample output and mixed-coverage averaging are covered on both local drivers.
 Timestamp/occlusion pools now provide explicit reset/use and GPU result copies with
 caller-selected widths, strides, availability and wait policy.
 Image-to-image and standalone native-color resolve commands now preserve explicit

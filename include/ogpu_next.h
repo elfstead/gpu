@@ -604,6 +604,7 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t max_colors, max_width, max_height, max_layers;
     uint32_t max_viewport[2]; float viewport_bounds[2];
     uint32_t color_samples, depth_samples, no_attachment_samples, max_indirect_count;
+    uint32_t integer_color_samples, stencil_samples;
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
@@ -647,7 +648,9 @@ typedef struct ogpu_next_graphics_state {
  * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
  * Format count may be zero or up to max_colors; format=0 means no depth, otherwise
- * D16/D32. samples=1; sample bitmasks describe hardware, not enabled profile breadth.
+ * D16/D32. samples is a single supported count bit (1/2/4/8/16/32/64), selected
+ * from the intersection of the corresponding graphics sample masks. Integer
+ * color has its own mask. Exact image tuples still use image_requirements.
  * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
  * All color entries need identical blend/write state (independentBlend not enabled).
  * Fixed profile: fill, depth clip on, no depth bias/bounds/stencil/primitive restart,
@@ -657,6 +660,7 @@ typedef struct ogpu_next_graphics_state {
  */
 enum { OGPU_NEXT_LOAD = 0, OGPU_NEXT_CLEAR = 1, OGPU_NEXT_DONT_CARE = 2 };
 enum { OGPU_NEXT_STORE = 0, OGPU_NEXT_DISCARD = 1 };
+enum { OGPU_NEXT_ATTACHMENT_RESOLVE_NONE = 0, OGPU_NEXT_ATTACHMENT_RESOLVE_SAMPLE_ZERO = 1, OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE = 2 };
 typedef union ogpu_next_clear_value {
     float f32[4]; uint32_t u32[4]; int32_t i32[4];
     struct { float depth; uint32_t stencil; } depth_stencil;
@@ -686,8 +690,9 @@ typedef struct ogpu_next_draw_desc {
     int32_t vertex_offset;
 } ogpu_next_draw_desc;
 /* Render begin does not need an executable and permits clear-only or attachmentless
- * scopes. Area is explicit and nonempty; layers>0; view_mask=flags=0, samples=1,
- * stencil=NULL, resolve_view=NULL, resolve_state=resolve_mode=0. Views are 2D/array,
+ * scopes. Area is explicit and nonempty; layers>0; view_mask=flags=0, stencil=NULL.
+ * samples is one supported count and must match all non-resolve attachments.
+ * Views are 2D/array with identity component mapping,
  * one mip, with sufficient extent/layers and attachment usage. Null color/depth
  * views (state=UNDEFINED) are unused; null color slots require matching undefined
  * output format at draw, which the current executable profile does not yet expose.
@@ -698,6 +703,15 @@ typedef struct ogpu_next_draw_desc {
  * Scratch is sized per color count, aligned, disjoint and borrowed only during
  * begin. Attachments are borrowed through every recorded future/pending use.
  * All local attachment validation precedes the native begin call.
+ * Color resolve is explicit: NONE requires resolve_view=NULL and resolve_state=0;
+ * AVERAGE for normalized/float formats, SAMPLE_ZERO for integer formats. These
+ * attachment modes differ from standalone RESOLVE_NATIVE_COLOR. Source samples>1;
+ * destination has one sample, identical view format, sufficient extent/layers,
+ * COLOR_ATTACHMENT usage and GENERAL/COLOR_ATTACHMENT state. It resolves at scope
+ * end, independently of source STORE/DISCARD; no temporary image or transition.
+ * Caller proves non-aliasing attachment accesses. Depth/stencil resolves follow.
+ * Sample shading, custom sample positions, sample masks and alpha-to-coverage
+ * remain additional profiles; this one uses native fixed positions/all samples.
  *
  * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and depth
  * write permission; shader output types and accesses must match. No per-draw

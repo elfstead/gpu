@@ -2,6 +2,16 @@
 use super::*;
 use std::alloc::Layout;
 
+pub(super) fn samples(value: u32, supported: u32) -> Result<(), Status> {
+    if !value.is_power_of_two() || value > 64 {
+        return Err(INVALID);
+    }
+    if value & supported == 0 {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
+
 pub(in crate::foundation) fn render_scratch(colors: u32) -> Result<HostRequirements, Status> {
     if colors == 0 {
         return Ok(HostRequirements {
@@ -25,10 +35,11 @@ impl Device {
         desc: &RenderDesc,
     ) -> Result<(), Status> {
         desc.header.validate::<RenderDesc>(RENDER_DESC)?;
-        if desc.view_mask != 0 || desc.flags != 0 || desc.samples != 1 || !desc.stencil.is_null() {
+        if desc.view_mask != 0 || desc.flags != 0 || !desc.stencil.is_null() {
             return Err(UNSUPPORTED);
         }
         let limits = &self.snapshot.graphics_limits;
+        samples(desc.samples, 127)?;
         if desc.x < 0 || desc.y < 0 || desc.width == 0 || desc.height == 0 || desc.layers == 0 {
             return Err(INVALID);
         }
@@ -63,6 +74,11 @@ impl Device {
         } else {
             Some(unsafe { self.render_attachment(domain, desc, &*desc.depth, true)? })
         };
+        let has_color = (0..desc.color_count as usize)
+            .any(|i| unsafe { !(*output.add(i)).imageView.is_null() });
+        if !has_color && depth.as_ref().is_none_or(|a| a.imageView.is_null()) {
+            samples(desc.samples, limits.no_attachment_samples)?;
+        }
         let info = vk::VkRenderingInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_INFO,
             renderArea: vk::VkRect2D {
@@ -93,8 +109,11 @@ impl Device {
         a: &Attachment,
         depth: bool,
     ) -> Result<vk::VkRenderingAttachmentInfo, Status> {
-        if !a.resolve_view.is_null() || a.resolve_mode != 0 || a.resolve_state != 0 {
+        if depth && a.resolve_mode != 0 {
             return Err(UNSUPPORTED);
+        }
+        if a.resolve_mode == 0 && (!a.resolve_view.is_null() || a.resolve_state != 0) {
+            return Err(INVALID);
         }
         if a.load_op > 2 || a.store_op > 1 {
             return Err(INVALID);
@@ -106,13 +125,26 @@ impl Device {
             ..Default::default()
         };
         if a.view.is_null() {
-            if a.state != 0 {
+            if a.state != 0 || a.resolve_mode != 0 {
                 return Err(INVALID);
             }
             return Ok(info);
         }
         let view = unsafe { &*a.view };
         info.imageView = view.attachment(self, domain, desc, a, depth)?;
+        if a.resolve_mode != 0 {
+            if desc.samples == 1 || a.resolve_view.is_null() {
+                return Err(INVALID);
+            }
+            let resolve = unsafe { &*a.resolve_view };
+            info.resolveImageView = resolve.color_resolve(self, domain, desc, a, view)?;
+            info.resolveMode = a.resolve_mode;
+            info.resolveImageLayout = if a.resolve_state == 1 {
+                vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL
+            } else {
+                vk::VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            };
+        }
         info.imageLayout = match a.state {
             1 => vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
             5 => vk::VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -189,6 +221,14 @@ impl Device {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn sample_counts_are_exact() {
+        assert_eq!(samples(4, 5), Ok(()));
+        assert_eq!(samples(2, 5), Err(UNSUPPORTED));
+        for n in [0, 3, 128, u32::MAX] {
+            assert_eq!(samples(n, u32::MAX), Err(INVALID));
+        }
+    }
     #[test]
     fn rendering_scratch_has_no_fixed_color_capacity() {
         assert_eq!(
