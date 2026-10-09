@@ -59,7 +59,7 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
 
 /* Graphics preparation, attachment scopes, explicit viewport/scissor and direct/
  * indexed/indirect/count draws, multisampling and color attachment resolves are imported
- * above. Broader sample/stencil/vertex-fetch/tile-local and
+ * above. Broader sample/dynamic-stencil/vertex-fetch/tile-local and
  * dynamic-state profiles remain to implement; no hidden dynamic-to-PSO JIT. */
 void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
 void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);

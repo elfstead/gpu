@@ -35,7 +35,7 @@ impl Device {
         desc: &RenderDesc,
     ) -> Result<(), Status> {
         desc.header.validate::<RenderDesc>(RENDER_DESC)?;
-        if desc.view_mask != 0 || desc.flags != 0 || !desc.stencil.is_null() {
+        if desc.view_mask != 0 || desc.flags != 0 {
             return Err(UNSUPPORTED);
         }
         let limits = &self.snapshot.graphics_limits;
@@ -64,7 +64,7 @@ impl Device {
         let output = desc.scratch.data.cast::<vk::VkRenderingAttachmentInfo>();
         for i in 0..desc.color_count as usize {
             let a = unsafe { &*desc.colors.add(i) };
-            let native = unsafe { self.render_attachment(domain, desc, a, false)? };
+            let native = unsafe { self.render_attachment(domain, desc, a, 1)? };
             unsafe {
                 output.add(i).write(native);
             }
@@ -72,11 +72,26 @@ impl Device {
         let depth = if desc.depth.is_null() {
             None
         } else {
-            Some(unsafe { self.render_attachment(domain, desc, &*desc.depth, true)? })
+            Some(unsafe { self.render_attachment(domain, desc, &*desc.depth, 2)? })
         };
+        let stencil = if desc.stencil.is_null() {
+            None
+        } else {
+            Some(unsafe { self.render_attachment(domain, desc, &*desc.stencil, 4)? })
+        };
+        if let (Some(d), Some(s)) = (&depth, &stencil) {
+            if d.imageView != s.imageView
+                || (!d.imageView.is_null() && d.imageLayout != s.imageLayout)
+            {
+                return Err(INVALID);
+            }
+        }
         let has_color = (0..desc.color_count as usize)
             .any(|i| unsafe { !(*output.add(i)).imageView.is_null() });
-        if !has_color && depth.as_ref().is_none_or(|a| a.imageView.is_null()) {
+        if !has_color
+            && depth.as_ref().is_none_or(|a| a.imageView.is_null())
+            && stencil.as_ref().is_none_or(|a| a.imageView.is_null())
+        {
             samples(desc.samples, limits.no_attachment_samples)?;
         }
         let info = vk::VkRenderingInfo {
@@ -95,6 +110,7 @@ impl Device {
             colorAttachmentCount: desc.color_count,
             pColorAttachments: output,
             pDepthAttachment: depth.as_ref().map_or(ptr::null(), ptr::from_ref),
+            pStencilAttachment: stencil.as_ref().map_or(ptr::null(), ptr::from_ref),
             ..Default::default()
         };
         unsafe {
@@ -107,9 +123,9 @@ impl Device {
         domain: u32,
         desc: &RenderDesc,
         a: &Attachment,
-        depth: bool,
+        aspect: u32,
     ) -> Result<vk::VkRenderingAttachmentInfo, Status> {
-        if depth && a.resolve_mode != 0 {
+        if aspect != 1 && a.resolve_mode != 0 {
             return Err(UNSUPPORTED);
         }
         if a.resolve_mode == 0 && (!a.resolve_view.is_null() || a.resolve_state != 0) {
@@ -131,7 +147,7 @@ impl Device {
             return Ok(info);
         }
         let view = unsafe { &*a.view };
-        info.imageView = view.attachment(self, domain, desc, a, depth)?;
+        info.imageView = view.attachment(self, domain, desc, a, aspect)?;
         if a.resolve_mode != 0 {
             if desc.samples == 1 || a.resolve_view.is_null() {
                 return Err(INVALID);
@@ -152,7 +168,7 @@ impl Device {
             7 => vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
             _ => return Err(INVALID),
         };
-        if depth && a.load_op == 1 {
+        if aspect == 2 && a.load_op == 1 {
             let clear = unsafe { a.clear.depth_stencil };
             if !clear.depth.is_finite() || !(0.0..=1.0).contains(&clear.depth) {
                 return Err(INVALID);

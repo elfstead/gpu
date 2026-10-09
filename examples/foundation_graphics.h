@@ -1,6 +1,6 @@
 /* Offscreen public-C consumer. No old ABI helpers or implicit attachment policy. */
 static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
-                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples) {
+                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code[2] = {NULL, NULL}, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
@@ -8,7 +8,12 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_image *images[3] = {NULL};
     ogpu_next_view *views[3] = {NULL};
     uint32_t image_count = samples > 1 ? 3 : 2;
-    ogpu_next_executable *pipelines[2] = {NULL, NULL};
+    /* Explicit diagnostic isolation only; full plane readback remains the default. */
+    const char *raster_only = getenv("OGPU_FOUNDATION_STENCIL_RASTER_ONLY");
+    uint32_t read_planes = !stencil_enabled || !(raster_only && strcmp(raster_only, "1") == 0);
+    if (!read_planes) fprintf(stderr, "Explicit diagnostic mode: combined depth/stencil plane copies and their readback checks are NOT exercised.\n");
+    ogpu_next_executable *pipelines[3] = {NULL};
+    uint32_t depth_aspects = OGPU_NEXT_ASPECT_DEPTH | (stencil_enabled ? OGPU_NEXT_ASPECT_STENCIL : 0);
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *done = NULL;
     ogpu_next_query_pool *timestamps = NULL, *occlusion = NULL;
@@ -42,14 +47,33 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM, 15, 0, 1, 0, 0, 1, 0, 0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state, OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES, OGPU_NEXT_CULL_NONE, OGPU_NEXT_FRONT_CCW, 1, 1, &color,
-        OGPU_NEXT_D32_FLOAT, 1, 1, OGPU_NEXT_COMPARE_LESS, {0, 0, 0, 0}};
+        OGPU_NEXT_D32_FLOAT, 1, 1, OGPU_NEXT_COMPARE_LESS, {0, 0, 0, 0}, 0, {0}, {0}};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, {NULL, 0}};
     gs.samples = 3;
     REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
     gs.samples = samples;
+    gs.stencil_test = 1;
+    REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
+    gs.stencil_test = stencil_enabled;
+    if (stencil_enabled) {
+        gs.depth_format = OGPU_NEXT_D32_FLOAT_S8_UINT;
+        gs.stencil_front = (ogpu_next_stencil_state){OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_STENCIL_REPLACE,
+            OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_COMPARE_ALWAYS, 255, 255, 1};
+        gs.stencil_back = gs.stencil_front;
+        gs.stencil_back.fail = 8;
+        REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
+        gs.stencil_back.fail = OGPU_NEXT_STENCIL_KEEP;
+    }
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[0]));
+    if (stencil_enabled) {
+        gs.stencil_front.reference = gs.stencil_back.reference = 2;
+        TRY(ogpu_next_executable_create(device, &ed, &pipelines[2]));
+        gs.stencil_front = (ogpu_next_stencil_state){OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_STENCIL_KEEP,
+            OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_COMPARE_EQUAL, 255, 0, 1};
+        gs.stencil_back = gs.stencil_front;
+    }
     color.blend = 1; color.dst_color = 1; color.src_alpha = 0; color.dst_alpha = 1;
     gs.depth_write = 0;
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[1]));
@@ -57,7 +81,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_subresources range = {OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1};
     for (uint32_t i = 0; i < image_count; ++i) {
         ogpu_next_image_desc desc = {HEADER(ogpu_next_image_desc, OGPU_NEXT_IMAGE_DESC),
-            i == 1 ? OGPU_NEXT_D32_FLOAT : OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_IMAGE_2D, 1, 1, i == 2 ? 1 : samples, {16, 8, 1},
+            i == 1 ? gs.depth_format : OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_IMAGE_2D, 1, 1, i == 2 ? 1 : samples, {16, 8, 1},
             OGPU_NEXT_IMAGE_COPY_SRC | (i == 1 ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT),
             0, NULL, 0, 0, NULL};
         uint32_t types[32];
@@ -67,7 +91,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         TRY(ogpu_next_image_create_unbound(device, &desc, &images[i]));
         TRY(ogpu_next_memory_create_dedicated_image(images[i], types[0], &backing[i]));
         TRY(ogpu_next_image_bind(images[i], (ogpu_next_span){backing[i], 0, memory_req.size}));
-        range.aspects = i == 1 ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR;
+        range.aspects = i == 1 ? depth_aspects : OGPU_NEXT_ASPECT_COLOR;
         ogpu_next_view_desc vd = {HEADER(ogpu_next_view_desc, OGPU_NEXT_VIEW_DESC), desc.format,
             OGPU_NEXT_VIEW_2D, (uint32_t)(i == 1 ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_IMAGE_COLOR_ATTACHMENT), {0,0,0,0}, range};
         TRY(ogpu_next_view_create(images[i], &vd, &views[i]));
@@ -94,7 +118,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_timestamp(encoder, timestamps, 0, OGPU_NEXT_STAGE_ALL);
     ogpu_next_image_barrier barriers[3];
     for (uint32_t i = 0; i < image_count; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
-        {i == 1 ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
+        {i == 1 ? depth_aspects : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
         i == 1 ? OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE,
         OGPU_NEXT_STATE_UNDEFINED, i == 1 ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT,
         OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 1};
@@ -103,8 +127,9 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_attachment colors = {views[0], NULL, OGPU_NEXT_STATE_COLOR_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.f32 = {0,0,0,1}}};
     ogpu_next_attachment depth = {views[1], NULL, OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.depth_stencil = {1,0}}};
+    ogpu_next_attachment stencil = depth;
     ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc, OGPU_NEXT_RENDER_DESC),
-        0, 0, 16, 8, 1, 0, samples, 0, 1, &colors, &depth, NULL, {scratch, rr.size}};
+        0, 0, 16, 8, 1, 0, samples, 0, 1, &colors, &depth, stencil_enabled ? &stencil : NULL, {scratch, rr.size}};
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state, OGPU_NEXT_VIEWPORT_STATE),
         0, 0, 16, 8, 0, 1, 0, 0, 8, 8};
     ogpu_next_draw_desc draw = {3, 1, 0, 0, 0};
@@ -122,7 +147,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     for (uint32_t i = 0; i < 2; ++i) { barriers[i].before = barriers[i].after; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; }
     barriers[0].after |= OGPU_NEXT_ACCESS_COLOR_READ;
     ogpu_next_barrier(encoder, &dep);
-    colors.load_op = OGPU_NEXT_LOAD; depth.load_op = OGPU_NEXT_LOAD;
+    colors.load_op = OGPU_NEXT_LOAD; depth.load_op = OGPU_NEXT_LOAD; stencil.load_op = OGPU_NEXT_LOAD;
     if (samples > 1) {
         colors.resolve_view = views[2]; colors.resolve_state = OGPU_NEXT_STATE_COLOR_ATTACHMENT;
         colors.resolve_mode = OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE;
@@ -130,6 +155,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     }
     ogpu_next_render_begin(encoder, &render);
     vp.scissor_width = 16;
+    if (stencil_enabled) ogpu_next_bind_executable(encoder, pipelines[2]);
     ogpu_next_set_graphics_state(encoder, &vp.header);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address + 32);
     ogpu_next_bind_indices(encoder, (ogpu_next_span){host,256,6}, OGPU_NEXT_INDEX_U16);
@@ -157,7 +183,11 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR, 0, 0, 1, {0,0,0}, {16,8,1}}, 0, 0, OGPU_NEXT_STATE_COPY_SRC, 0};
     ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,512,512}, images[samples > 1 ? 2 : 0], &copy);
     copy.region.aspect = OGPU_NEXT_ASPECT_DEPTH;
-    if (samples == 1) ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,1024,512}, images[1], &copy);
+    if (samples == 1 && read_planes) ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,1024,512}, images[1], &copy);
+    if (stencil_enabled && read_planes) {
+        copy.region.aspect = OGPU_NEXT_ASPECT_STENCIL;
+        ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,1536,128}, images[1], &copy);
+    }
     ogpu_next_timestamp(encoder, timestamps, 1, OGPU_NEXT_STAGE_ALL);
     ogpu_next_queries_resolve(encoder, timestamps, 0, 2, (ogpu_next_span){host,400,40}, 24,
         OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
@@ -199,7 +229,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         REQUIRE(((uint32_t *)map.data)[112] != 0 && ((uint32_t *)map.data)[114] == 0); /* visible/empty */
         REQUIRE(((uint32_t *)map.data)[113] != 0 && ((uint32_t *)map.data)[115] != 0);
         for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 16; ++x) {
-            uint32_t expected = UINT32_C(0xff000000) | (((x < 8) != (replay != 0)) ? 255 : 65280) | ((x >= 4 && x < (replay ? 12u : 8u)) ? 16711680 : 0);
+            uint32_t expected = UINT32_C(0xff000000) | (((x < 8) != (replay != 0)) ? 255 : 65280) | ((x >= 4 && x < (replay && !stencil_enabled ? 12u : 8u)) ? 16711680 : 0);
             if (samples > 1 && x == 15) {
                 uint32_t shift = replay ? 0 : 8, mask = 255u << shift;
                 uint32_t channel = (((uint32_t *)map.data)[128+y*16+x] >> shift) & 255u;
@@ -209,17 +239,28 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
             if (((uint32_t *)map.data)[128+y*16+x] != expected)
                 fprintf(stderr, "graphics replay %u pixel (%u,%u): %08x expected %08x\n", replay,x,y,((uint32_t *)map.data)[128+y*16+x],expected);
             REQUIRE(((uint32_t *)map.data)[128+y*16+x] == expected);
-            if (samples == 1) REQUIRE(((float *)map.data)[256+y*16+x] == (x < 8 ? 0.25f : 0.75f));
+            if (samples == 1 && read_planes) {
+                if (((float *)map.data)[256+y*16+x] != (x < 8 ? 0.25f : 0.75f))
+                    fprintf(stderr, "depth (%u,%u): %g; stencil bytes %02x %02x %02x %02x\n",x,y,((float *)map.data)[256+y*16+x],
+                        ((unsigned char *)map.data)[1536], ((unsigned char *)map.data)[1537], ((unsigned char *)map.data)[1538], ((unsigned char *)map.data)[1539]);
+                REQUIRE(((float *)map.data)[256+y*16+x] == (x < 8 ? 0.25f : 0.75f));
+            }
+        }
+        if (stencil_enabled && read_planes) for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 16; ++x) {
+            if (((unsigned char *)map.data)[1536+y*16+x] != (x < 8 ? 1 : 2))
+                fprintf(stderr, "stencil replay %u pixel (%u,%u): %u expected %u (first bytes %02x %02x %02x %02x)\n", replay,x,y,((unsigned char *)map.data)[1536+y*16+x], x < 8 ? 1 : 2,
+                    ((unsigned char *)map.data)[1536], ((unsigned char *)map.data)[1537], ((unsigned char *)map.data)[1538], ((unsigned char *)map.data)[1539]);
+            REQUIRE(((unsigned char *)map.data)[1536+y*16+x] == (x < 8 ? 1 : 2));
         }
         for (uint32_t i = 96; i < host_desc.size; ++i)
             if (i < 256 || (i >= 388 && i < 400) || (i >= 416 && i < 424)
-                || (i >= 440 && i < 448) || (i >= 464 && i < 512) || i >= (samples == 1 ? 1536u : 1024u))
+                || (i >= 440 && i < 448) || (i >= 464 && i < 512) || i >= (!read_planes ? 1024u : stencil_enabled ? 1664u : samples == 1 ? 1536u : 1024u))
                 REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
     }
     TRY(ogpu_next_arena_reset(arena));
     /* Attachmentless scopes need no bound executable. */
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
-    render.color_count = 0; render.colors = NULL; render.depth = NULL; render.scratch = (ogpu_next_host_span){NULL,0};
+    render.color_count = 0; render.colors = NULL; render.depth = NULL; render.stencil = NULL; render.scratch = (ogpu_next_host_span){NULL,0};
     ogpu_next_queries_reset(encoder,occlusion,1,1);
     ogpu_next_query_begin(encoder,occlusion,1); /* Query enclosing a whole rendering scope. */
     ogpu_next_render_begin(encoder,&render); ogpu_next_render_end(encoder);
@@ -288,6 +329,21 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         }
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
     }
+    for (uint32_t bad = 0; bad < (stencil_enabled ? 3u : 1u); ++bad) {
+        TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        ogpu_next_attachment invalid_depth = depth, invalid_stencil = stencil;
+        render.depth = &invalid_depth; render.stencil = &invalid_stencil;
+        /* D32 has no stencil; combined attachments cannot mismatch view/layout or CLEAR read-only. */
+        if (stencil_enabled && bad == 0) { invalid_depth.view = NULL; invalid_depth.state = 0; }
+        if (stencil_enabled && bad == 1) invalid_stencil.state = OGPU_NEXT_STATE_GENERAL;
+        if (stencil_enabled && bad == 2) {
+            invalid_depth.state = invalid_stencil.state = OGPU_NEXT_STATE_DEPTH_STENCIL_READ;
+            invalid_stencil.load_op = OGPU_NEXT_CLEAR;
+        }
+        ogpu_next_render_begin(encoder,&render);
+        REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
+        render.depth = NULL; render.stencil = NULL;
+    }
     if (samples > 1) for (uint32_t bad = 0; bad < 4; ++bad) {
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         render.color_count = 1; render.colors = &colors; render.depth = &depth; render.scratch = (ogpu_next_host_span){scratch,rr.size};
@@ -299,12 +355,13 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     }
     printf("Graphics (%u samples) passes: direct/indexed/all indirect variants, viewport/scissor, depth rejection, blending, LOAD scopes, changed-root/count replay%s.\n",samples,samples > 1 ? ", mixed-coverage average attachment resolve" : "");
     printf("Queries pass: explicit reset, 64-bit strided timestamps, 32-bit visible/empty occlusion with availability, scope matching, replay and guard bytes.\n");
+    if (stencil_enabled) printf("Stencil passes: clear/load, depth-fail KEEP, REPLACE references, EQUAL rejection and replay%s.\n", read_planes ? ", separate depth/stencil plane readback" : " (raster-only diagnostic; plane copies NOT tested)");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending graphics after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
     ogpu_next_query_pool_destroy(timestamps); ogpu_next_query_pool_destroy(occlusion);
-    for (uint32_t i = 0; i < 2; ++i) ogpu_next_executable_destroy(pipelines[i]);
+    for (uint32_t i = 0; i < 3; ++i) ogpu_next_executable_destroy(pipelines[i]);
     for (uint32_t i = 0; i < image_count; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     ogpu_next_memory_destroy(host);
     if (file) fclose(file);

@@ -5,6 +5,20 @@ struct Module<'a> {
     d: &'a Device,
     handle: vk::VkShaderModule,
 }
+fn stencil(s: &StencilState) -> Result<vk::VkStencilOpState, Status> {
+    if s.fail > 7 || s.pass > 7 || s.depth_fail > 7 || s.compare > 7 {
+        return Err(INVALID);
+    }
+    Ok(vk::VkStencilOpState {
+        failOp: s.fail,
+        passOp: s.pass,
+        depthFailOp: s.depth_fail,
+        compareOp: s.compare,
+        compareMask: s.compare_mask,
+        writeMask: s.write_mask,
+        reference: s.reference,
+    })
+}
 impl Drop for Module<'_> {
     fn drop(&mut self) {
         unsafe {
@@ -36,13 +50,16 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         || state.depth_test > 1
         || state.depth_write > 1
         || state.depth_compare > 7
+        || state.stencil_test > 1
     {
         return Err(UNSUPPORTED);
     }
     if state.color_count > p.max_colors {
         return Err(UNSUPPORTED);
     }
-    if state.depth_format == 0 && (state.depth_test != 0 || state.depth_write != 0) {
+    if state.depth_format == 0
+        && (state.depth_test != 0 || state.depth_write != 0 || state.stencil_test != 0)
+    {
         return Err(INVALID);
     }
     if !state.blend_constants.iter().all(|f| f.is_finite()) {
@@ -64,6 +81,15 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     if state.depth_format != 0 {
         sample_mask &= p.depth_samples;
     }
+    let has_stencil = matches!(state.depth_format, 15 | 16);
+    if has_stencil {
+        sample_mask &= p.stencil_samples;
+    }
+    if state.stencil_test != 0 && !has_stencil {
+        return Err(INVALID);
+    }
+    let front = stencil(&state.stencil_front)?;
+    let back = stencil(&state.stencil_back)?;
     samples(state.samples, sample_mask)?;
     let mut formats = Vec::new();
     let mut blends = Vec::new();
@@ -126,7 +152,7 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         0
     } else {
         let f = images::format(state.depth_format)?;
-        if f.aspects != 2 {
+        if f.aspects & 2 == 0 {
             return Err(UNSUPPORTED);
         }
         let mut props = vk::VkFormatProperties::default();
@@ -299,6 +325,9 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         depthTestEnable: state.depth_test,
         depthWriteEnable: state.depth_write,
         depthCompareOp: state.depth_compare,
+        stencilTestEnable: state.stencil_test,
+        front,
+        back,
         ..Default::default()
     };
     let blend = vk::VkPipelineColorBlendStateCreateInfo {
@@ -329,6 +358,7 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         colorAttachmentCount: formats.len() as u32,
         pColorAttachmentFormats: formats.as_ptr(),
         depthAttachmentFormat: depth_format,
+        stencilAttachmentFormat: if has_stencil { depth_format } else { 0 },
         ..Default::default()
     };
     let info = vk::VkGraphicsPipelineCreateInfo {
@@ -365,4 +395,43 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
         ))?;
     }
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn stencil_fields_are_not_normalized() {
+        let s = StencilState {
+            fail: 7,
+            pass: 6,
+            depth_fail: 5,
+            compare: 4,
+            compare_mask: 0x12345678,
+            write_mask: 0xfedcba98,
+            reference: u32::MAX,
+        };
+        let native = stencil(&s).unwrap();
+        assert_eq!(
+            (
+                native.failOp,
+                native.passOp,
+                native.depthFailOp,
+                native.compareOp
+            ),
+            (7, 6, 5, 4)
+        );
+        assert_eq!(
+            (native.compareMask, native.writeMask, native.reference),
+            (s.compare_mask, s.write_mask, s.reference)
+        );
+        for bad in [
+            StencilState { fail: 8, ..s },
+            StencilState { pass: 8, ..s },
+            StencilState { depth_fail: 8, ..s },
+            StencilState { compare: 8, ..s },
+        ] {
+            assert!(matches!(stencil(&bad), Err(INVALID)));
+        }
+    }
 }

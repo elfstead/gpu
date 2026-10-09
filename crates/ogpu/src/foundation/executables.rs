@@ -474,6 +474,9 @@ mod tests {
                 depth_write: 0,
                 depth_compare: 0,
                 blend_constants: [0.0; 4],
+                stencil_test: 0,
+                stencil_front: StencilState::default(),
+                stencil_back: StencilState::default(),
             };
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),

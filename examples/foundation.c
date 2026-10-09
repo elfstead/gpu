@@ -51,7 +51,8 @@ _Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
 _Static_assert(sizeof(ogpu_next_graphics_limits) == 56, "graphics limits ABI");
-_Static_assert(sizeof(ogpu_next_graphics_state) == 88, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_graphics_state) == 152, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_stencil_state) == 28, "stencil state ABI");
 _Static_assert(sizeof(ogpu_next_color_state) == 36, "color state ABI");
 _Static_assert(sizeof(ogpu_next_attachment) == 56, "attachment ABI");
 _Static_assert(sizeof(ogpu_next_render_desc) == 104, "render ABI");
@@ -925,8 +926,9 @@ int main(int argc, char **argv) {
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { graphics_domain = queues[i].domain; break; }
     REQUIRE(graphics_domain != UINT32_MAX);
-    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1) == EXIT_SUCCESS);
-    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1) == EXIT_SUCCESS);
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

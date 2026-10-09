@@ -319,7 +319,7 @@ and synchronization. The [native counted-draw contract](https://docs.vulkan.org/
 also constrains the GPU count itself, not only the application's maximum.
 
 The implemented profile is deliberately stated, not a fundamental restriction:
-vertex/fragment, optional D16/D32 depth, explicit supported sample counts, fill/depth
+vertex/fragment, optional D16/D32 or combined D24S8/D32S8 depth/stencil, explicit supported sample counts, fill/depth
 clipping, vertex pulling, one viewport/scissor and matching per-color blend state.
 Color attachments now resolve explicitly at scope end: average for normalized/float,
 sample zero for integer formats, independent of whether the multisample source is
@@ -328,7 +328,13 @@ and lifetime belong to the caller; no transient target or implicit transition is
 created. Integer-color, depth, stencil and attachmentless sample masks are reported
 separately. See the [native attachment resolve contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkRenderingAttachmentInfo.html).
 
-Stencil, depth/stencil resolves, sample shading/masks/custom positions, independent
+Static front/back stencil operations, compare, masks and references map directly to
+native pipeline state. Depth and stencil have independent load/store/clear records;
+when both are supplied they name the same view and layout. Combined layout barriers
+cover both aspects. Draw-time read-only permissions remain caller obligations, not
+per-draw state reconstruction. No separate depth/stencil layouts are enabled.
+
+Dynamic stencil state, depth/stencil resolves, sample shading/masks/custom positions, independent
 blend, fixed-function vertex fetch, additional
 stages, restart, wide lines, richer dynamic state, tile-local dependencies and
 nonzero indirect first-instance enabling remain work. Unsupported requested state
@@ -351,6 +357,27 @@ intermediate resolved color without assuming exact rounding. A fractional viewpo
 alone was not a reliable coverage fixture; no API workaround was introduced.
 Multisample depth is tested through visibility, not direct depth readback. Integer
 sample-zero resolve and other sample counts remain to verify on real shader output.
+
+A third run uses D32S8: depth-passing draws replace stencil with different references,
+depth failure keeps the old value, and EQUAL gates subsequent blue draws. Both replay
+outputs and separately copied depth/stencil planes pass on Radeon. Both faces use the
+same state in this execution fixture; unit tests cover unmodified field translation,
+not every operation or independently different front/back state on hardware.
+
+**Known llvmpipe combined-plane copy failure (2026-10-09):** the default full consumer
+fails on D32S8 readback. Depth bytes are interleaved float/stencil words (pixel 1 reads
+`0x00000001` instead of float 0.25); stencil bytes start `00 00 80 3e` (float 0.25).
+This indicates whole-format copies rather than aspect extraction, including writes
+beyond the requested plane span. The allocation is larger than these fixture writes,
+but this path must not be treated as safe on that driver. The inspected
+[lavapipe address-copy implementation](https://raw.githubusercontent.com/chaotic-cx/mesa-mirror/main/src/gallium/frontends/lavapipe/lvp_execute.c)
+delegates to the host image-copy path; the exact driver defect still needs an upstream
+reproducer/fix. No fallback, byte repacking or driver-name branch was added to OGPU.
+`OGPU_FOUNDATION_STENCIL_RASTER_ONLY=1 cargo xtask foundation` explicitly omits combined
+plane copies and their checks; stencil-dependent colors, replay and untouched guards
+then pass on llvmpipe. This is diagnostic isolation, not a full llvmpipe pass or a
+runtime workaround. Default testing keeps the failure visible. D24S8 execution and
+combined depth/stencil multisampling remain unverified.
 
 ## Implemented explicit queries
 

@@ -633,6 +633,14 @@ typedef struct ogpu_next_color_state {
     uint32_t write_mask, blend;
     uint32_t src_color, dst_color, color_op, src_alpha, dst_alpha, alpha_op;
 } ogpu_next_color_state;
+enum {
+    OGPU_NEXT_STENCIL_KEEP = 0, OGPU_NEXT_STENCIL_ZERO = 1, OGPU_NEXT_STENCIL_REPLACE = 2,
+    OGPU_NEXT_STENCIL_INCREMENT_CLAMP = 3, OGPU_NEXT_STENCIL_DECREMENT_CLAMP = 4,
+    OGPU_NEXT_STENCIL_INVERT = 5, OGPU_NEXT_STENCIL_INCREMENT_WRAP = 6, OGPU_NEXT_STENCIL_DECREMENT_WRAP = 7
+};
+typedef struct ogpu_next_stencil_state {
+    uint32_t fail, pass, depth_fail, compare, compare_mask, write_mask, reference;
+} ogpu_next_stencil_state;
 typedef struct ogpu_next_graphics_state {
     ogpu_next_record header;
     uint32_t topology, cull, front_face, samples, color_count;
@@ -640,6 +648,8 @@ typedef struct ogpu_next_graphics_state {
     ogpu_next_format depth_format;
     uint32_t depth_test, depth_write, depth_compare;
     float blend_constants[4];
+    uint32_t stencil_test;
+    ogpu_next_stencil_state stencil_front, stencil_back;
 } ogpu_next_graphics_state;
 /* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, exactly two
  * shaders ordered VERTEX then FRAGMENT, static_state=GRAPHICS_STATE,
@@ -648,12 +658,15 @@ typedef struct ogpu_next_graphics_state {
  * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
  * Format count may be zero or up to max_colors; format=0 means no depth, otherwise
- * D16/D32. samples is a single supported count bit (1/2/4/8/16/32/64), selected
+ * D16/D32 or combined D24S8/D32S8. Combined formats declare both depth and stencil
+ * pipeline attachment formats. Stencil testing requires a combined format;
+ * front/back operations, masks and reference are explicit static pipeline state.
+ * samples is a single supported count bit (1/2/4/8/16/32/64), selected
  * from the intersection of the corresponding graphics sample masks. Integer
  * color has its own mask. Exact image tuples still use image_requirements.
  * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
  * All color entries need identical blend/write state (independentBlend not enabled).
- * Fixed profile: fill, depth clip on, no depth bias/bounds/stencil/primitive restart,
+ * Fixed profile: fill, depth clip on, no depth bias/bounds/primitive restart,
  * no sample shading, logic op or fixed-function vertex bindings. Vertex pulling
  * remains available. Points require shader PointSize=1; vertex/fragment storage
  * writes need future feature enabling. Missing profiles are UNSUPPORTED, not emulated.
@@ -690,14 +703,18 @@ typedef struct ogpu_next_draw_desc {
     int32_t vertex_offset;
 } ogpu_next_draw_desc;
 /* Render begin does not need an executable and permits clear-only or attachmentless
- * scopes. Area is explicit and nonempty; layers>0; view_mask=flags=0, stencil=NULL.
+ * scopes. Area is explicit and nonempty; layers>0; view_mask=flags=0.
  * samples is one supported count and must match all non-resolve attachments.
  * Views are 2D/array with identity component mapping,
  * one mip, with sufficient extent/layers and attachment usage. Null color/depth
  * views (state=UNDEFINED) are unused; null color slots require matching undefined
  * output format at draw, which the current executable profile does not yet expose.
  * Color states GENERAL/COLOR_ATTACHMENT; depth GENERAL/DEPTH_STENCIL_ATTACHMENT/
- * DEPTH_STENCIL_READ. Read-only depth forbids CLEAR and depth writes. Clear union
+ * DEPTH_STENCIL_READ. Stencil uses these same states. Read-only depth/stencil
+ * forbids CLEAR and writes to the respective aspect. When both records exist,
+ * they must name the same view and state; load/store/clear remain independent.
+ * Depth/stencil attachment view aspect masks are ignored by the native API.
+ * Separate depth/stencil layouts are not enabled. Clear union
  * member matches the format; depth clear is finite [0,1]. No inferred transition,
  * content-preservation tracking, initialization or implicit viewport/scissor.
  * Scratch is sized per color count, aligned, disjoint and borrowed only during
@@ -713,8 +730,8 @@ typedef struct ogpu_next_draw_desc {
  * Sample shading, custom sample positions, sample masks and alpha-to-coverage
  * remain additional profiles; this one uses native fixed positions/all samples.
  *
- * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and depth
- * write permission; shader output types and accesses must match. No per-draw
+ * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and
+ * depth/stencil write permission; shader output types and accesses must match. No per-draw
  * attachment scan/resource registry. Begin/end nesting, missing pipeline/viewport
  * and invalid command scope poison the list. Transfers, dispatch and generic
  * barriers are outside rendering only in this profile; local dependencies follow.

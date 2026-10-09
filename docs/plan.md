@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-08. This page owns current status and selected work. The
+Updated 2026-10-09. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -34,11 +34,16 @@ arguments, dispatch and direct/indexed/indirect/count draws. Offscreen rendering
 explicit viewport/scissor, attachment LOAD/STORE, color blending and depth testing.
 Multisample raster and explicit color attachment resolves use caller-owned targets;
 one/four-sample output and mixed-coverage averaging are covered on both local drivers.
+Static front/back stencil and combined depth/stencil attachments now map directly to
+native state. D32S8 stencil-gated output and separate plane readback pass on Radeon;
+llvmpipe passes stencil raster in explicit diagnostic isolation, but full combined-plane
+readback fails (documented in the implementation status, not hidden by a fallback).
 Timestamp/occlusion pools now provide explicit reset/use and GPU result copies with
 caller-selected widths, strides, availability and wait policy.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
-Rust/C checks pass on Radeon/llvmpipe; Radeon also passes an explicit cross-family
+Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe caveat above).
+Radeon also passes an explicit cross-family
 transfer. It is source-only Linux work under `ogpu_next_*`, not the installed ABI.
 Broader graphics/numerical/query profiles, compiler metadata and consumer migration
 remain. Secondary

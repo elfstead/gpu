@@ -86,6 +86,17 @@ pub struct ColorState {
     pub alpha_op: u32,
 }
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct StencilState {
+    pub fail: u32,
+    pub pass: u32,
+    pub depth_fail: u32,
+    pub compare: u32,
+    pub compare_mask: u32,
+    pub write_mask: u32,
+    pub reference: u32,
+}
+#[repr(C)]
 pub struct GraphicsState {
     pub header: Record,
     pub topology: u32,
@@ -99,6 +110,9 @@ pub struct GraphicsState {
     pub depth_write: u32,
     pub depth_compare: u32,
     pub blend_constants: [f32; 4],
+    pub stencil_test: u32,
+    pub stencil_front: StencilState,
+    pub stencil_back: StencilState,
 }
 #[repr(C)]
 pub struct Attachment {

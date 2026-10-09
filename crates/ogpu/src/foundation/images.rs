@@ -903,13 +903,13 @@ impl View {
         domain: u32,
         desc: &RenderDesc,
         a: &Attachment,
-        depth: bool,
+        aspect: u32,
     ) -> Result<vk::VkImageView, Status> {
         if self.device != device {
             return Err(INVALID);
         }
         let image = unsafe { &*self.image };
-        let required = if depth { 32 } else { 16 };
+        let required = if aspect != 1 { 32 } else { 16 };
         image.command_handle(device, domain, required)?;
         let p = &image.prepared.desc;
         let r = self.info.subresourceRange;
@@ -932,11 +932,15 @@ impl View {
         {
             return Err(INVALID);
         }
-        if depth {
-            if !matches!(
-                self.info.format,
-                vk::VkFormat_VK_FORMAT_D16_UNORM | vk::VkFormat_VK_FORMAT_D32_SFLOAT
-            ) || !matches!(a.state, 1 | 6 | 7)
+        if aspect != 1 {
+            let supported = match self.info.format {
+                vk::VkFormat_VK_FORMAT_D16_UNORM | vk::VkFormat_VK_FORMAT_D32_SFLOAT => 2,
+                vk::VkFormat_VK_FORMAT_D24_UNORM_S8_UINT
+                | vk::VkFormat_VK_FORMAT_D32_SFLOAT_S8_UINT => 6,
+                _ => 0,
+            };
+            if supported & aspect == 0
+                || !matches!(a.state, 1 | 6 | 7)
                 || (a.state == 7 && a.load_op == 1)
             {
                 return Err(INVALID);
@@ -974,7 +978,7 @@ impl View {
             load_op: 2,
             ..*a
         };
-        self.attachment(device, domain, &target, &attachment, false)
+        self.attachment(device, domain, &target, &attachment, 1)
     }
     pub(in crate::foundation) fn create(
         image: &Image,
