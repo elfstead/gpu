@@ -47,7 +47,9 @@ _Static_assert(sizeof(ogpu_next_argument_interface) == 40, "argument interface A
 _Static_assert(sizeof(ogpu_next_root_slot) == 16, "root slot ABI");
 _Static_assert(sizeof(ogpu_next_shader_requirements) == 48, "shader requirements ABI");
 _Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
-_Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
+_Static_assert(sizeof(ogpu_next_shader) == 56, "shader ABI");
+_Static_assert(sizeof(ogpu_next_subgroup_limits) == 40, "subgroup limits ABI");
+_Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 72, "executable ABI");
 _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
@@ -102,7 +104,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_specialization_entry entry = {7, 0, sizeof(extra)};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION), 1, 0, &entry, {&extra, sizeof(extra)}};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
-        {code, (size_t)code_size}, "transform", &abi.header, &spec.header};
+        {code, (size_t)code_size}, "transform", &abi.header, &spec.header, NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL};
     slots[1].offset = 0;
@@ -857,7 +859,7 @@ int main(int argc, char **argv) {
         }
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
-            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES)) };
+            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES)) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         for (uint32_t j = 0; j < count; ++j) {
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 0) != NULL);
@@ -870,7 +872,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES))));
+    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES))));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);
@@ -931,7 +933,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 8);
+    REQUIRE(argc == 9);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -946,8 +948,26 @@ int main(int argc, char **argv) {
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 0, 1) == EXIT_SUCCESS);
-    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0) == EXIT_SUCCESS);
-    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[7], 1) == EXIT_SUCCESS);
+    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0, 0, 0) == EXIT_SUCCESS);
+    REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[7], 1, 0, 0) == EXIT_SUCCESS);
+    ogpu_next_subgroup_limits subgroup = {0};
+    q = query(OGPU_NEXT_QUERY_SUBGROUP_LIMITS,&subgroup,1,sizeof(subgroup));
+    TRY(ogpu_next_device_query(device,&q));
+    if ((subgroup.stages & OGPU_NEXT_STAGE_COMPUTE) && (subgroup.operations & 13) == 13) {
+        REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,0,0) == EXIT_SUCCESS);
+        if ((features.enabled & OGPU_NEXT_FEATURE_FULL_SUBGROUPS) && subgroup.default_size && 64 % subgroup.default_size == 0)
+            REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,0,OGPU_NEXT_SUBGROUP_REQUIRE_FULL) == EXIT_SUCCESS);
+        if ((features.enabled & OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL) && (subgroup.required_size_stages & OGPU_NEXT_STAGE_COMPUTE)) {
+            for (uint32_t width = subgroup.min_size; width && width <= subgroup.max_size && width <= 64; width *= 2) {
+                if (64 > (uint64_t)width*subgroup.max_compute_workgroup_subgroups) continue;
+                uint32_t flags = features.enabled & OGPU_NEXT_FEATURE_FULL_SUBGROUPS ? OGPU_NEXT_SUBGROUP_REQUIRE_FULL : 0;
+                REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,width,flags) == EXIT_SUCCESS);
+            }
+            uint32_t flags = OGPU_NEXT_SUBGROUP_ALLOW_VARYING;
+            if ((features.enabled & OGPU_NEXT_FEATURE_FULL_SUBGROUPS) && subgroup.max_size <= 64) flags |= OGPU_NEXT_SUBGROUP_REQUIRE_FULL;
+            REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[8],2,0,flags) == EXIT_SUCCESS);
+        }
+    } else printf("Subgroup arithmetic/ballot fixture NOT exercised: unsupported compute operation profile.\n");
     printf("Foundation passes on %s: explicit queues, independent timeline, aligned memory and persistent ranges.\n", info.name);
     result = EXIT_SUCCESS;
 cleanup:

@@ -228,10 +228,15 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     let mut specialization_data = Vec::new();
     let mut owned_roots = Vec::new();
     let mut byte_size = 0;
+    let mut subgroup_states = Vec::new();
+    subgroup_states
+        .try_reserve_exact(2)
+        .map_err(|_| OUT_OF_MEMORY)?;
     for (i, shader) in shaders.iter().enumerate() {
         if shader.stage != [8, 16][i] || shader.format != 0 {
             return Err(UNSUPPORTED);
         }
+        subgroup_states.push(unsafe { subgroups::prepare(d, shader, [0; 3])? });
         if shader.code.data.is_null()
             || shader.code.data as usize % 4 != 0
             || shader.code.size < 20
@@ -335,6 +340,12 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     for (i, shader) in shaders.iter().enumerate() {
         stages.push(vk::VkPipelineShaderStageCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            flags: subgroup_states[i].0,
+            pNext: if subgroup_states[i].1.requiredSubgroupSize == 0 {
+                ptr::null()
+            } else {
+                ptr::from_ref(&subgroup_states[i].1).cast()
+            },
             stage: if i == 0 {
                 vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT
             } else {
@@ -343,7 +354,6 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
             module: modules[i].handle,
             pName: shader.entry,
             pSpecializationInfo: &specs[i],
-            ..Default::default()
         });
     }
     let vertex = vk::VkPipelineVertexInputStateCreateInfo {

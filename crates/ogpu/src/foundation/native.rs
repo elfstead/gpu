@@ -188,6 +188,7 @@ pub(super) fn snapshot(
     let mut execution_limits = ExecutionLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
+    let mut subgroup_limits = SubgroupLimits::default();
     let mut cache_uuid = [0; 16];
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
@@ -221,8 +222,18 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v12).cast(),
             ..Default::default()
         };
+        let mut subgroup_control = vk::VkPhysicalDeviceSubgroupSizeControlProperties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES,
+            ..Default::default()
+        };
+        let mut subgroup = vk::VkPhysicalDeviceSubgroupProperties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES,
+            pNext: ptr::from_mut(&mut subgroup_control).cast(),
+            ..Default::default()
+        };
         let mut v12_properties = vk::VkPhysicalDeviceVulkan12Properties {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES,
+            pNext: ptr::from_mut(&mut subgroup).cast(),
             ..Default::default()
         };
         let mut heaps = vk::VkPhysicalDeviceDescriptorHeapPropertiesEXT {
@@ -252,6 +263,31 @@ pub(super) fn snapshot(
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
         cache_uuid = properties.properties.pipelineCacheUUID;
+        let stages = |native: u32| {
+            (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT != 0 {
+                4
+            } else {
+                0
+            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT != 0 {
+                8
+            } else {
+                0
+            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT != 0 {
+                16
+            } else {
+                0
+            })
+        };
+        subgroup_limits = SubgroupLimits {
+            default_size: subgroup.subgroupSize,
+            min_size: subgroup_control.minSubgroupSize,
+            max_size: subgroup_control.maxSubgroupSize,
+            max_compute_workgroup_subgroups: subgroup_control.maxComputeWorkgroupSubgroups,
+            stages: stages(subgroup.supportedStages),
+            required_size_stages: stages(subgroup_control.requiredSubgroupSizeStages),
+            operations: subgroup.supportedOperations & 255,
+            quad_all_stages: subgroup.quadOperationsInAllStages,
+        };
         if v13.pipelineCreationCacheControl != 0 {
             features.available |= CACHE_CONTROL;
         }
@@ -339,6 +375,9 @@ pub(super) fn snapshot(
             (v12.storageBuffer8BitAccess, STORAGE8),
             (v12.shaderBufferInt64Atomics, BUFFER_ATOMIC64),
             (v12.shaderSharedInt64Atomics, SHARED_ATOMIC64),
+            (v13.subgroupSizeControl, SUBGROUP_SIZE_CONTROL),
+            (v13.computeFullSubgroups, FULL_SUBGROUPS),
+            (v12.shaderSubgroupExtendedTypes, SUBGROUP_EXTENDED_TYPES),
         ] {
             if supported != 0 {
                 features.available |= bit;
@@ -409,6 +448,7 @@ pub(super) fn snapshot(
         execution_limits,
         graphics_limits,
         query_limits,
+        subgroup_limits,
     })
 }
 
@@ -517,6 +557,8 @@ impl Device {
             maintenance4: 1,
             dynamicRendering: u32::from(enabled & RASTER != 0),
             pipelineCreationCacheControl: u32::from(enabled & CACHE_CONTROL != 0),
+            subgroupSizeControl: u32::from(enabled & SUBGROUP_SIZE_CONTROL != 0),
+            computeFullSubgroups: u32::from(enabled & FULL_SUBGROUPS != 0),
             pNext: ptr::from_mut(&mut v14).cast(),
             ..Default::default()
         };
@@ -529,6 +571,7 @@ impl Device {
             storageBuffer8BitAccess: u32::from(enabled & STORAGE8 != 0),
             shaderBufferInt64Atomics: u32::from(enabled & BUFFER_ATOMIC64 != 0),
             shaderSharedInt64Atomics: u32::from(enabled & SHARED_ATOMIC64 != 0),
+            shaderSubgroupExtendedTypes: u32::from(enabled & SUBGROUP_EXTENDED_TYPES != 0),
             drawIndirectCount: u32::from(enabled & RASTER != 0),
             pNext: ptr::from_mut(&mut v13).cast(),
             ..Default::default()

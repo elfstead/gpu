@@ -274,6 +274,7 @@ mod tests {
                         entry: c"transform".as_ptr(),
                         interface_metadata: &abi.header,
                         specialization: ptr::null(),
+                        subgroup: ptr::null(),
                     };
                     let desc = ExecutableDesc {
                         header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),

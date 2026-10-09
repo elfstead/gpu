@@ -50,7 +50,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         REQUIRE(fread(code[i], 1, (size_t)size, file) == (size_t)size);
         fclose(file); file = NULL;
         shaders[i] = (ogpu_next_shader){i ? OGPU_NEXT_STAGE_FRAGMENT : OGPU_NEXT_STAGE_VERTEX,
-            OGPU_NEXT_SHADER_SPIRV, {code[i], (size_t)size}, i ? "fragmentMain" : "vertexMain", &abi.header, NULL};
+            OGPU_NEXT_SHADER_SPIRV, {code[i], (size_t)size}, i ? "fragmentMain" : "vertexMain", &abi.header, NULL, NULL};
     }
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM, 15, 0, 1, 0, 0, 1, 0, 0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state, OGPU_NEXT_GRAPHICS_STATE),

@@ -52,8 +52,10 @@ Scalar capabilities now include independent INT8/INT16/INT64/FP64 and 8-bit buff
 storage, alongside FP16. Exact typed arithmetic, changed-input replay and guard checks
 pass on both local drivers; enabling does not promise throughput or a completed ML
 profile. Buffer/workgroup 64-bit integer atomics are independently enabled and tested
-with cross-workgroup accumulation and shared-memory reductions. Subgroup/matrix,
-wider atomic and floating-point-control profiles remain separate.
+with cross-workgroup accumulation and shared-memory reductions. Subgroup queries and
+per-stage exact/varying/full controls now support ballot-checked reductions and prefixes
+at native default and requested widths (Radeon 32/64, llvmpipe 8). Matrix, broader
+subgroup/atomic and floating-point-control profiles remain separate.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
 Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe caveat above).

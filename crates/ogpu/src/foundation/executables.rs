@@ -4,6 +4,8 @@ use super::*;
 use std::ffi::CStr;
 #[path = "graphics_pipeline.rs"]
 mod graphics_pipeline;
+#[path = "subgroups.rs"]
+mod subgroups;
 
 pub struct Executable {
     pub(super) device: *const Device,
@@ -142,6 +144,7 @@ impl Executable {
         }
         let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
         requirements(d, req)?;
+        let (subgroup_flags, subgroup) = unsafe { subgroups::prepare(d, shader, req.local_size)? };
         let mut entries = Vec::new();
         let mut spec = vk::VkSpecializationInfo::default();
         if !shader.specialization.is_null() {
@@ -214,11 +217,16 @@ impl Executable {
             pNext: ptr::from_ref(&flags).cast(),
             stage: vk::VkPipelineShaderStageCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                flags: subgroup_flags,
+                pNext: if subgroup.requiredSubgroupSize == 0 {
+                    ptr::null()
+                } else {
+                    ptr::from_ref(&subgroup).cast()
+                },
                 stage: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
                 module,
                 pName: shader.entry,
                 pSpecializationInfo: &spec,
-                ..Default::default()
             },
             basePipelineIndex: -1,
             ..Default::default()
@@ -299,6 +307,7 @@ mod tests {
             entry: entry.as_ptr(),
             interface_metadata: &abi.header,
             specialization: ptr::null(),
+            subgroup: ptr::null(),
         };
         let desc = ExecutableDesc {
             header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
@@ -561,6 +570,7 @@ mod tests {
                     },
                     interface_metadata: &abi.header,
                     specialization: ptr::null(),
+                    subgroup: ptr::null(),
                 })
                 .collect();
             let color = ColorState {
@@ -713,6 +723,7 @@ mod tests {
                 entry: c"transform".as_ptr(),
                 interface_metadata: &abi.header,
                 specialization: ptr::null(),
+                subgroup: ptr::null(),
             };
             let desc = ExecutableDesc {
                 header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),

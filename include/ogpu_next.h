@@ -60,6 +60,7 @@ enum {
     OGPU_NEXT_QUERY_EXECUTION_LIMITS = 8,
     OGPU_NEXT_QUERY_GRAPHICS_LIMITS = 9,
     OGPU_NEXT_QUERY_LIMITS = 10,
+    OGPU_NEXT_QUERY_SUBGROUP_LIMITS = 11,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -69,7 +70,8 @@ enum {
     OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
     OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
-    OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118, OGPU_NEXT_VERTEX_INPUT = 119
+    OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118, OGPU_NEXT_VERTEX_INPUT = 119,
+    OGPU_NEXT_SUBGROUP_STATE = 120
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -124,6 +126,9 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_STORAGE8 UINT64_C(512)
 #define OGPU_NEXT_FEATURE_BUFFER_ATOMIC64 UINT64_C(1024)
 #define OGPU_NEXT_FEATURE_SHARED_ATOMIC64 UINT64_C(2048)
+#define OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL UINT64_C(4096)
+#define OGPU_NEXT_FEATURE_FULL_SUBGROUPS UINT64_C(8192)
+#define OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES UINT64_C(16384)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -561,7 +566,41 @@ typedef struct ogpu_next_shader {
     ogpu_next_bytes code;
     const char *entry;
     const ogpu_next_record *interface_metadata, *specialization;
+    const ogpu_next_record *subgroup;
 } ogpu_next_shader;
+typedef struct ogpu_next_subgroup_limits {
+    uint32_t default_size, min_size, max_size, max_compute_workgroup_subgroups;
+    ogpu_next_stages stages, required_size_stages;
+    uint32_t operations, quad_all_stages;
+} ogpu_next_subgroup_limits;
+enum {
+    OGPU_NEXT_SUBGROUP_BASIC = 1, OGPU_NEXT_SUBGROUP_VOTE = 2,
+    OGPU_NEXT_SUBGROUP_ARITHMETIC = 4, OGPU_NEXT_SUBGROUP_BALLOT = 8,
+    OGPU_NEXT_SUBGROUP_SHUFFLE = 16, OGPU_NEXT_SUBGROUP_SHUFFLE_RELATIVE = 32,
+    OGPU_NEXT_SUBGROUP_CLUSTERED = 64, OGPU_NEXT_SUBGROUP_QUAD = 128
+};
+enum { OGPU_NEXT_SUBGROUP_ALLOW_VARYING = 1, OGPU_NEXT_SUBGROUP_REQUIRE_FULL = 2 };
+typedef struct ogpu_next_subgroup_state {
+    ogpu_next_record header;
+    uint32_t operations, required_size, flags, reserved;
+} ogpu_next_subgroup_state;
+/* Optional per-shader SUBGROUP_STATE; NULL leaves native defaults. operations is
+ * the artifact's required operation-group mask, checked against subgroup_limits
+ * and stage support. Query stage masks currently represent COMPUTE/VERTEX/FRAGMENT
+ * only. QUAD in vertex requires quad_all_stages. No lane-to-invocation mapping is
+ * promised. Lane participation/convergence and actual opcode/type requirements
+ * remain compiler/caller contracts, not inferred by runtime SPIR-V reflection.
+ * required_size=0 preserves native default; otherwise an exact supported power of
+ * two, requiring enabled SUBGROUP_SIZE_CONTROL and a required_size_stages match.
+ * ALLOW_VARYING also requires SUBGROUP_SIZE_CONTROL and forbids required_size!=0.
+ * REQUIRE_FULL requires enabled FULL_SUBGROUPS and COMPUTE in this profile. The
+ * declared post-specialization local X must be divisible by required_size, or by
+ * max_size when varying, or default_size otherwise. A specified size also bounds
+ * total local invocations by size*max_compute_workgroup_subgroups. reserved=0.
+ * SUBGROUP_EXTENDED_TYPES enables narrow/wide subgroup operand types, not their
+ * arithmetic/storage features; those must also be requested. All choices apply
+ * at preparation, never by changing dispatch dimensions or compiling while recording.
+ */
 typedef struct ogpu_next_executable_desc {
     ogpu_next_record header;
     uint32_t kind, shader_count;

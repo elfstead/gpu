@@ -41,6 +41,7 @@ struct Snapshot {
     execution_limits: ExecutionLimits,
     graphics_limits: GraphicsLimits,
     query_limits: QueryLimits,
+    subgroup_limits: SubgroupLimits,
     features: FeatureInfo,
 }
 pub struct Adapter {
@@ -95,6 +96,7 @@ impl Snapshot {
                 EXECUTION_LIMITS => copy_out(query, std::slice::from_ref(&self.execution_limits)),
                 GRAPHICS_LIMITS => copy_out(query, std::slice::from_ref(&self.graphics_limits)),
                 QUERY_LIMITS => copy_out(query, std::slice::from_ref(&self.query_limits)),
+                SUBGROUP_LIMITS => copy_out(query, std::slice::from_ref(&self.subgroup_limits)),
                 _ => Err(UNSUPPORTED),
             }
         }

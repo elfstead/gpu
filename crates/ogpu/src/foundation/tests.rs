@@ -33,6 +33,7 @@ fn fixture() -> Snapshot {
         execution_limits: ExecutionLimits::default(),
         graphics_limits: GraphicsLimits::default(),
         query_limits: QueryLimits::default(),
+        subgroup_limits: SubgroupLimits::default(),
     }
 }
 fn query<T>(kind: u32, values: &mut [T]) -> Query {
@@ -184,7 +185,9 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<RootSlot>(), 16);
     assert_eq!(size_of::<ShaderRequirements>(), 48);
     assert_eq!(size_of::<Specialization>(), 56);
-    assert_eq!(size_of::<Shader>(), 48);
+    assert_eq!(size_of::<Shader>(), 56);
+    assert_eq!(size_of::<SubgroupLimits>(), 40);
+    assert_eq!(size_of::<SubgroupState>(), 40);
     assert_eq!(size_of::<ExecutableDesc>(), 72);
     assert_eq!(size_of::<ExecutableCacheDesc>(), 48);
     assert_eq!(size_of::<Launch>(), 24);

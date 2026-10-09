@@ -2646,6 +2646,7 @@ pub const VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_NV: VkShaderStageFlagBi
 pub const VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_NV: VkShaderStageFlagBits = 128;
 pub const VkShaderStageFlagBits_VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM: VkShaderStageFlagBits = 2147483647;
 pub type VkShaderStageFlagBits = ::std::os::raw::c_uint;
+pub type VkShaderStageFlags = VkFlags;
 pub type VkDeviceCreateFlags = VkFlags;
 pub type VkDeviceQueueCreateFlags = VkFlags;
 pub const VkPipelineStageFlagBits_VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT: VkPipelineStageFlagBits = 1;
@@ -2809,6 +2810,12 @@ pub const VkPipelineCacheCreateFlagBits_VK_PIPELINE_CACHE_CREATE_FLAG_BITS_MAX_E
 pub type VkPipelineCacheCreateFlagBits = ::std::os::raw::c_uint;
 pub type VkPipelineCacheCreateFlags = VkFlags;
 pub type VkPipelineCreateFlags = VkFlags;
+pub const VkPipelineShaderStageCreateFlagBits_VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT: VkPipelineShaderStageCreateFlagBits = 1;
+pub const VkPipelineShaderStageCreateFlagBits_VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT: VkPipelineShaderStageCreateFlagBits = 2;
+pub const VkPipelineShaderStageCreateFlagBits_VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT: VkPipelineShaderStageCreateFlagBits = 1;
+pub const VkPipelineShaderStageCreateFlagBits_VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT: VkPipelineShaderStageCreateFlagBits = 2;
+pub const VkPipelineShaderStageCreateFlagBits_VK_PIPELINE_SHADER_STAGE_CREATE_FLAG_BITS_MAX_ENUM: VkPipelineShaderStageCreateFlagBits = 2147483647;
+pub type VkPipelineShaderStageCreateFlagBits = ::std::os::raw::c_uint;
 pub type VkPipelineShaderStageCreateFlags = VkFlags;
 pub type VkSamplerCreateFlags = VkFlags;
 pub const VkColorComponentFlagBits_VK_COLOR_COMPONENT_R_BIT: VkColorComponentFlagBits = 1;
@@ -6768,6 +6775,7 @@ pub type PFN_vkCmdClearDepthStencilImage = ::std::option::Option<
         pRanges: *const VkImageSubresourceRange,
     ),
 >;
+pub type VkSubgroupFeatureFlags = VkFlags;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT: VkMemoryAllocateFlagBits = 1;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT: VkMemoryAllocateFlagBits = 2;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT: VkMemoryAllocateFlagBits = 4;
@@ -7023,6 +7031,57 @@ const _: () = {
     ][::std::mem::offset_of!(VkImageViewUsageCreateInfo, usage) - 16usize];
 };
 impl Default for VkImageViewUsageCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceSubgroupProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub subgroupSize: u32,
+    pub supportedStages: VkShaderStageFlags,
+    pub supportedOperations: VkSubgroupFeatureFlags,
+    pub quadOperationsInAllStages: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceSubgroupProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceSubgroupProperties>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceSubgroupProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceSubgroupProperties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupProperties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupProperties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupProperties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupProperties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupProperties::subgroupSize",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupProperties, subgroupSize)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupProperties::supportedStages",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupProperties, supportedStages)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupProperties::supportedOperations",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupProperties, supportedOperations)
+        - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupProperties::quadOperationsInAllStages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSubgroupProperties, quadOperationsInAllStages
+    ) - 28usize];
+};
+impl Default for VkPhysicalDeviceSubgroupProperties {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -9238,6 +9297,102 @@ const _: () = {
     ][::std::mem::offset_of!(VkDeviceImageMemoryRequirements, planeAspect) - 24usize];
 };
 impl Default for VkDeviceImageMemoryRequirements {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceSubgroupSizeControlProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub minSubgroupSize: u32,
+    pub maxSubgroupSize: u32,
+    pub maxComputeWorkgroupSubgroups: u32,
+    pub requiredSubgroupSizeStages: VkShaderStageFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceSubgroupSizeControlProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceSubgroupSizeControlProperties>() - 32usize];
+    [
+        "Alignment of VkPhysicalDeviceSubgroupSizeControlProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceSubgroupSizeControlProperties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupSizeControlProperties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupSizeControlProperties, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupSizeControlProperties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSubgroupSizeControlProperties, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupSizeControlProperties::minSubgroupSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSubgroupSizeControlProperties, minSubgroupSize
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupSizeControlProperties::maxSubgroupSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSubgroupSizeControlProperties, maxSubgroupSize
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupSizeControlProperties::maxComputeWorkgroupSubgroups",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSubgroupSizeControlProperties, maxComputeWorkgroupSubgroups
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceSubgroupSizeControlProperties::requiredSubgroupSizeStages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSubgroupSizeControlProperties, requiredSubgroupSizeStages
+    ) - 28usize];
+};
+impl Default for VkPhysicalDeviceSubgroupSizeControlProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineShaderStageRequiredSubgroupSizeCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub requiredSubgroupSize: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineShaderStageRequiredSubgroupSizeCreateInfo",
+    ][::std::mem::size_of::<VkPipelineShaderStageRequiredSubgroupSizeCreateInfo>()
+        - 24usize];
+    [
+        "Alignment of VkPipelineShaderStageRequiredSubgroupSizeCreateInfo",
+    ][::std::mem::align_of::<VkPipelineShaderStageRequiredSubgroupSizeCreateInfo>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineShaderStageRequiredSubgroupSizeCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineShaderStageRequiredSubgroupSizeCreateInfo, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineShaderStageRequiredSubgroupSizeCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineShaderStageRequiredSubgroupSizeCreateInfo, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineShaderStageRequiredSubgroupSizeCreateInfo::requiredSubgroupSize",
+    ][::std::mem::offset_of!(
+        VkPipelineShaderStageRequiredSubgroupSizeCreateInfo, requiredSubgroupSize
+    ) - 16usize];
+};
+impl Default for VkPipelineShaderStageRequiredSubgroupSizeCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

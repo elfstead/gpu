@@ -424,7 +424,7 @@ declared requirements are enabled. A driver lacking that combined profile is rep
 as not exercising the C numerical subtest, not as passing those arithmetic checks.
 
 These are scalar capabilities, not a completed ML profile or throughput guarantees.
-Subgroup/matrix tuples, wider atomic profiles, floating-point controls, uniform/push narrow storage,
+Matrix tuples, broader subgroup profiles, wider atomic profiles, floating-point controls, uniform/push narrow storage,
 quantized consumer kernels and compiler-generated requirement metadata remain work.
 This fixture does not prove signed arithmetic, exceptional values, denormal behavior,
 all rounding modes or compiler/backend optimization quality. No timing gate is added.
@@ -441,6 +441,41 @@ Device/artifact tests cover each atomic domain independently and reject a combin
 artifact with either domain or INT64 missing. This does not establish all atomic
 operations, signed/floating-point atomics, device-wide synchronization algorithms,
 forward-progress properties or contention throughput.
+
+## Implemented subgroup queries and stage controls
+
+The subgroup query reports native default/min/max widths, compute workgroup subgroup
+limits, exposed shader-stage support, operation groups and stages supporting requested
+widths. This is not a promise that all devices have 32-lane or 64-lane waves, or that
+invocation IDs map to lanes in a particular order. The stage mask currently describes
+the implemented compute/vertex/fragment vocabulary; other stages remain future work.
+
+Each shader can provide a subgroup record declaring operation groups, an exact width,
+permission to vary width, and/or a full-subgroup requirement. Preparation checks native
+support, explicit feature enabling and post-specialization workgroup dimensions. Exact
+and varying widths are mutually exclusive. Full subgroups in the current stage profile
+are compute-only; local X must be divisible by the selected/default width or, when
+varying, the maximum width. Exact widths also constrain total workgroup invocations.
+Graphics stages use the same per-stage translation, not a device-wide wave policy.
+See [native stage constraints](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineShaderStageCreateInfo.html)
+and [required width](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineShaderStageRequiredSubgroupSizeCreateInfo.html).
+
+`SUBGROUP_EXTENDED_TYPES` independently enables narrow/wide subgroup operands; it does
+not substitute for scalar arithmetic/storage enabling. No shader rewriting, padded
+dispatch, extra shared-memory reduction or command-time specialization is introduced.
+The artifact producer still proves declared operations/types, convergence and memory
+semantics. This profile does not expose every later subgroup extension.
+
+The C consumer verifies every invocation's integer reduction and exclusive prefix
+against its returned active-lane ballot, including changed-seed replay and guards.
+It checks native default width, default/full, each supported requested width fitting
+the 64-thread fixture, and varying/full. Radeon passes requested 32 and 64; llvmpipe
+passes 8. Ballots avoid assuming subgroup-to-workgroup lane assignment. Unit tests
+cover unsupported operations/stages, invalid widths, disabled features, dimension
+constraints and quad restrictions. Graphics-stage subgroup execution, extended scalar
+operand types, divergent participation and other operation groups remain unverified;
+this is not a throughput comparison. Source-only shader records grow to 56 bytes;
+installed ABI 20 is unchanged.
 
 ## Implemented explicit executable caches
 

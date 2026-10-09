@@ -52,6 +52,31 @@ pub const FLOAT64: u64 = 256;
 pub const STORAGE8: u64 = 512;
 pub const BUFFER_ATOMIC64: u64 = 1024;
 pub const SHARED_ATOMIC64: u64 = 2048;
+pub const SUBGROUP_SIZE_CONTROL: u64 = 4096;
+pub const FULL_SUBGROUPS: u64 = 8192;
+pub const SUBGROUP_EXTENDED_TYPES: u64 = 16384;
+pub const SUBGROUP_LIMITS: u32 = 11;
+pub const SUBGROUP_STATE: u32 = 120;
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct SubgroupLimits {
+    pub default_size: u32,
+    pub min_size: u32,
+    pub max_size: u32,
+    pub max_compute_workgroup_subgroups: u32,
+    pub stages: u64,
+    pub required_size_stages: u64,
+    pub operations: u32,
+    pub quad_all_stages: u32,
+}
+#[repr(C)]
+pub struct SubgroupState {
+    pub header: Record,
+    pub operations: u32,
+    pub required_size: u32,
+    pub flags: u32,
+    pub reserved: u32,
+}
 #[repr(C)]
 pub struct ExecutableCacheDesc {
     pub header: Record,
@@ -276,6 +301,7 @@ pub struct Shader {
     pub entry: *const c_char,
     pub interface_metadata: *const Record,
     pub specialization: *const Record,
+    pub subgroup: *const Record,
 }
 #[repr(C)]
 pub struct ExecutableDesc {
