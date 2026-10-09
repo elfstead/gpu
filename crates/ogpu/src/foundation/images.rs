@@ -27,6 +27,8 @@ pub(super) fn format(id: u32) -> Result<Format, Status> {
         14 => (vk::VkFormat_VK_FORMAT_D32_SFLOAT, 2, 1002),
         15 => (vk::VkFormat_VK_FORMAT_D24_UNORM_S8_UINT, 6, 1003),
         16 => (vk::VkFormat_VK_FORMAT_D32_SFLOAT_S8_UINT, 6, 1004),
+        17 => (vk::VkFormat_VK_FORMAT_R32G32_SFLOAT, 1, 64),
+        18 => (vk::VkFormat_VK_FORMAT_R32G32B32_SFLOAT, 1, 96),
         _ => return Err(UNSUPPORTED),
     };
     Ok(Format {

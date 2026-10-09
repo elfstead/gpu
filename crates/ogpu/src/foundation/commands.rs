@@ -3,6 +3,21 @@
 use super::*;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
 
+pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
+    if count == 0 {
+        return Ok(HostRequirements {
+            size: 0,
+            alignment: 1,
+        });
+    }
+    let layout =
+        Layout::array::<vk::VkBindVertexBuffer3InfoKHR>(count as usize).map_err(|_| INVALID)?;
+    Ok(HostRequirements {
+        size: layout.size() as u64,
+        alignment: layout.align() as u64,
+    })
+}
+
 pub struct Arena {
     device: *const Device,
     pool: vk::VkCommandPool,
@@ -1008,6 +1023,58 @@ impl List {
             (d.f.vkCmdBindIndexBuffer3KHR.unwrap())(self.command, &info);
         }
         self.index_count.set(Some(span.size / size));
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn bind_vertices(
+        &self,
+        first: u32,
+        count: u32,
+        spans: *const Span,
+        scratch: HostSpan,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let max = d.snapshot.graphics_limits.max_vertex_bindings;
+        if first > max || count > max - first {
+            return Err(INVALID);
+        }
+        if count == 0 {
+            return Ok(());
+        }
+        let req = vertex_scratch(count)?;
+        if scratch.size < req.size {
+            return Err(CAPACITY);
+        }
+        if spans.is_null()
+            || scratch.data.is_null()
+            || scratch.data as usize % req.alignment as usize != 0
+        {
+            return Err(INVALID);
+        }
+        let output = scratch.data.cast::<vk::VkBindVertexBuffer3InfoKHR>();
+        for i in 0..count as usize {
+            let span = unsafe { &*spans.add(i) };
+            let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
+            let (_, _, address) =
+                memory.command_range(d, self.domain, span.offset, span.size, 16)?;
+            let native = vk::VkBindVertexBuffer3InfoKHR {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_VERTEX_BUFFER_3_INFO_KHR,
+                addressRange: vk::VkStridedDeviceAddressRangeKHR {
+                    address,
+                    size: span.size,
+                    stride: 0,
+                },
+                addressFlags: memory.address_flags(),
+                ..Default::default()
+            };
+            unsafe {
+                output.add(i).write(native);
+            }
+        }
+        // All local checks precede the single native bind. Strides remain static PSO state.
+        unsafe {
+            (d.f.vkCmdBindVertexBuffers3KHR.unwrap())(self.command, first, count, output);
+        }
         Ok(())
     }
     pub(in crate::foundation) unsafe fn draw_indirect(

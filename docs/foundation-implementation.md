@@ -320,7 +320,7 @@ also constrains the GPU count itself, not only the application's maximum.
 
 The implemented profile is deliberately stated, not a fundamental restriction:
 vertex/fragment, optional D16/D32 or combined D24S8/D32S8 depth/stencil, explicit supported sample counts, fill/depth
-clipping, vertex pulling, one viewport/scissor and matching per-color blend state.
+clipping, vertex pulling or native vertex fetch, one viewport/scissor and matching per-color blend state.
 Color attachments now resolve explicitly at scope end: average for normalized/float,
 sample zero for integer formats, independent of whether the multisample source is
 stored or discarded. The single-sample resolve view, matching format, usage/layout
@@ -335,7 +335,7 @@ cover both aspects. Draw-time read-only permissions remain caller obligations, n
 per-draw state reconstruction. No separate depth/stencil layouts are enabled.
 
 Dynamic stencil state, depth/stencil resolves, sample shading/masks/custom positions, independent
-blend, fixed-function vertex fetch, additional
+blend, dynamic vertex input/stride and additional
 stages, restart, wide lines, richer dynamic state, tile-local dependencies and
 nonzero indirect first-instance enabling remain work. Unsupported requested state
 is rejected, never emulated with a hidden state cache or fallback. The existing
@@ -378,6 +378,29 @@ plane copies and their checks; stencil-dependent colors, replay and untouched gu
 then pass on llvmpipe. This is diagnostic isolation, not a full llvmpipe pass or a
 runtime workaround. Default testing keeps the failure visible. D24S8 execution and
 combined depth/stencil multisampling remain unverified.
+
+Fixed-function vertex input now has explicit binding IDs, byte strides, vertex/instance
+rates and format/offset/location records. Preparation checks limits, duplicate IDs,
+missing bindings and native vertex-format support; it does not rewrite shader inputs.
+Sparse IDs, zero strides and attributes extending beyond a stride remain legal native
+strategies. `RG32_FLOAT` and `RGB32_FLOAT` extend the shared format vocabulary; image
+support for any exact tuple is still queried, not implied by vertex-fetch support.
+
+Vertex binding translates consecutive caller VERTEX spans into address bindings using
+caller-owned host scratch, then issues one native command. No hidden vertex buffer,
+layout conversion, upload or command-time allocation is introduced. Pipeline strides
+remain static. At draw time the caller proves binding completeness and all fetched
+addresses, alignment, first/base indices and lifetimes; no per-draw resource scan is
+added. See [native address binding](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBindVertexBuffers3KHR.html)
+and [attribute layout](https://docs.vulkan.org/refpages/latest/refpages/source/VkVertexInputAttributeDescription.html).
+
+The additional C run uses two sparse binding IDs, padded records and nonzero attribute
+offsets, a batched bind before rendering, per-instance depth scaling, nonzero direct
+first-instance, negative indexed base vertex, every indirect draw variant, and replay
+after changing instance data. Pixel/depth outputs and guards are checked. This validates
+RG32 float fetch and divisor-one instancing; other formats, zero-stride execution,
+dynamic input state and nontrivial divisors still need their own coverage/profiles.
+The source-only graphics limits/state records grow to 72/160 bytes; ABI 20 is unchanged.
 
 ## Implemented explicit executable caches
 

@@ -44,6 +44,10 @@ Independent executable caches now support compute/graphics preparation, native o
 caller synchronization, identity-checked import, export and explicit merge. C tests
 rebuild pipelines from exported caches and destroy caches before GPU execution;
 Rust tests exercise concurrent preparation and allocation/export failure ownership.
+Native vertex fetch now complements shader pulling: explicit prepared layouts,
+vertex/instance rates and batched address-span binding with caller scratch. The C
+consumer checks padded/sparse layouts, instancing, all draw variants and changed-data
+replay; no repacking, upload or per-draw binding scan is added.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
 Rust checks pass on Radeon/llvmpipe; full C checks pass on Radeon (llvmpipe caveat above).

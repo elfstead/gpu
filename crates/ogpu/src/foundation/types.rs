@@ -43,6 +43,7 @@ pub const GRAPHICS_LIMITS: u32 = 9;
 pub const QUERY_LIMITS: u32 = 10;
 pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
+pub const VERTEX_INPUT: u32 = 119;
 pub const CACHE_CONTROL: u64 = 16;
 #[repr(C)]
 pub struct ExecutableCacheDesc {
@@ -80,6 +81,10 @@ pub struct GraphicsLimits {
     pub max_indirect_count: u32,
     pub integer_color_samples: u32,
     pub stencil_samples: u32,
+    pub max_vertex_bindings: u32,
+    pub max_vertex_attributes: u32,
+    pub max_vertex_attribute_offset: u32,
+    pub max_vertex_stride: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]
@@ -122,6 +127,30 @@ pub struct GraphicsState {
     pub stencil_test: u32,
     pub stencil_front: StencilState,
     pub stencil_back: StencilState,
+    pub vertex_input: *const Record,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct VertexBinding {
+    pub binding: u32,
+    pub stride: u32,
+    pub rate: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct VertexAttribute {
+    pub location: u32,
+    pub binding: u32,
+    pub format: u32,
+    pub offset: u32,
+}
+#[repr(C)]
+pub struct VertexInput {
+    pub header: Record,
+    pub binding_count: u32,
+    pub attribute_count: u32,
+    pub bindings: *const VertexBinding,
+    pub attributes: *const VertexAttribute,
 }
 #[repr(C)]
 pub struct Attachment {

@@ -10145,6 +10145,48 @@ impl Default for VkBindIndexBuffer3InfoKHR {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkBindVertexBuffer3InfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub setStride: VkBool32,
+    pub addressRange: VkStridedDeviceAddressRangeKHR,
+    pub addressFlags: VkAddressCommandFlagsKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBindVertexBuffer3InfoKHR",
+    ][::std::mem::size_of::<VkBindVertexBuffer3InfoKHR>() - 56usize];
+    [
+        "Alignment of VkBindVertexBuffer3InfoKHR",
+    ][::std::mem::align_of::<VkBindVertexBuffer3InfoKHR>() - 8usize];
+    [
+        "Offset of field: VkBindVertexBuffer3InfoKHR::sType",
+    ][::std::mem::offset_of!(VkBindVertexBuffer3InfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkBindVertexBuffer3InfoKHR::pNext",
+    ][::std::mem::offset_of!(VkBindVertexBuffer3InfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkBindVertexBuffer3InfoKHR::setStride",
+    ][::std::mem::offset_of!(VkBindVertexBuffer3InfoKHR, setStride) - 16usize];
+    [
+        "Offset of field: VkBindVertexBuffer3InfoKHR::addressRange",
+    ][::std::mem::offset_of!(VkBindVertexBuffer3InfoKHR, addressRange) - 24usize];
+    [
+        "Offset of field: VkBindVertexBuffer3InfoKHR::addressFlags",
+    ][::std::mem::offset_of!(VkBindVertexBuffer3InfoKHR, addressFlags) - 48usize];
+};
+impl Default for VkBindVertexBuffer3InfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkDrawIndirect2InfoKHR {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -10239,6 +10281,14 @@ pub type PFN_vkCmdBindIndexBuffer3KHR = ::std::option::Option<
     unsafe extern "C" fn(
         commandBuffer: VkCommandBuffer,
         pInfo: *const VkBindIndexBuffer3InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdBindVertexBuffers3KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        firstBinding: u32,
+        bindingCount: u32,
+        pBindingInfos: *const VkBindVertexBuffer3InfoKHR,
     ),
 >;
 pub type PFN_vkCmdDrawIndirect2KHR = ::std::option::Option<

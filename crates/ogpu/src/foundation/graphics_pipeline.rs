@@ -90,6 +90,61 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     let front = stencil(&state.stencil_front)?;
     let back = stencil(&state.stencil_back)?;
     samples(state.samples, sample_mask)?;
+    let (vertex_bindings, vertex_attributes) = if state.vertex_input.is_null() {
+        (Vec::new(), Vec::new())
+    } else {
+        let input = unsafe { record::<VertexInput>(state.vertex_input, VERTEX_INPUT)? };
+        if input.binding_count > p.max_vertex_bindings
+            || input.attribute_count > p.max_vertex_attributes
+        {
+            return Err(UNSUPPORTED);
+        }
+        let bindings = unsafe { array(input.bindings, input.binding_count)? };
+        let attributes = unsafe { array(input.attributes, input.attribute_count)? };
+        vertex_layout(p, bindings, attributes)?;
+        let mut native_bindings = Vec::new();
+        let mut native_attributes = Vec::new();
+        native_bindings
+            .try_reserve_exact(bindings.len())
+            .map_err(|_| OUT_OF_MEMORY)?;
+        native_attributes
+            .try_reserve_exact(attributes.len())
+            .map_err(|_| OUT_OF_MEMORY)?;
+        for binding in bindings {
+            native_bindings.push(vk::VkVertexInputBindingDescription {
+                binding: binding.binding,
+                stride: binding.stride,
+                inputRate: binding.rate,
+            });
+        }
+        for attribute in attributes {
+            let format = images::format(attribute.format)?;
+            if format.aspects != 1 {
+                return Err(INVALID);
+            }
+            let mut properties = vk::VkFormatProperties::default();
+            unsafe {
+                (d.f.vkGetPhysicalDeviceFormatProperties.unwrap())(
+                    d.physical,
+                    format.native,
+                    &mut properties,
+                );
+            }
+            if properties.bufferFeatures
+                & vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT
+                == 0
+            {
+                return Err(UNSUPPORTED);
+            }
+            native_attributes.push(vk::VkVertexInputAttributeDescription {
+                location: attribute.location,
+                binding: attribute.binding,
+                format: format.native,
+                offset: attribute.offset,
+            });
+        }
+        (native_bindings, native_attributes)
+    };
     let mut formats = Vec::new();
     let mut blends = Vec::new();
     formats
@@ -293,6 +348,10 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     }
     let vertex = vk::VkPipelineVertexInputStateCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        vertexBindingDescriptionCount: vertex_bindings.len() as u32,
+        pVertexBindingDescriptions: vertex_bindings.as_ptr(),
+        vertexAttributeDescriptionCount: vertex_attributes.len() as u32,
+        pVertexAttributeDescriptions: vertex_attributes.as_ptr(),
         ..Default::default()
     };
     let assembly = vk::VkPipelineInputAssemblyStateCreateInfo {
@@ -396,9 +455,110 @@ pub(super) unsafe fn prepare(d: &Device, desc: &ExecutableDesc) -> Result<Box<Ex
     Ok(result)
 }
 
+fn vertex_layout(
+    limits: &GraphicsLimits,
+    bindings: &[VertexBinding],
+    attributes: &[VertexAttribute],
+) -> Result<(), Status> {
+    for (index, binding) in bindings.iter().enumerate() {
+        if binding.rate > 1
+            || bindings[..index]
+                .iter()
+                .any(|b| b.binding == binding.binding)
+        {
+            return Err(INVALID);
+        }
+        if binding.binding >= limits.max_vertex_bindings
+            || binding.stride > limits.max_vertex_stride
+        {
+            return Err(UNSUPPORTED);
+        }
+    }
+    for (index, attribute) in attributes.iter().enumerate() {
+        if !bindings.iter().any(|b| b.binding == attribute.binding)
+            || attributes[..index]
+                .iter()
+                .any(|a| a.location == attribute.location)
+        {
+            return Err(INVALID);
+        }
+        if attribute.location >= limits.max_vertex_attributes
+            || attribute.offset > limits.max_vertex_attribute_offset
+        {
+            return Err(UNSUPPORTED);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn vertex_layout_preserves_zero_stride_sparse_and_overlapping_fetch() {
+        let limits = GraphicsLimits {
+            max_vertex_bindings: 8,
+            max_vertex_attributes: 16,
+            max_vertex_stride: 2048,
+            max_vertex_attribute_offset: 2047,
+            ..Default::default()
+        };
+        let mut bindings = [
+            VertexBinding {
+                binding: 7,
+                stride: 0,
+                rate: 1,
+            },
+            VertexBinding {
+                binding: 3,
+                stride: 4,
+                rate: 0,
+            },
+        ];
+        let mut attributes = [
+            VertexAttribute {
+                location: 15,
+                binding: 7,
+                format: 17,
+                offset: 2047,
+            },
+            VertexAttribute {
+                location: 3,
+                binding: 3,
+                format: 18,
+                offset: 8,
+            },
+        ];
+        assert_eq!(vertex_layout(&limits, &bindings, &attributes), Ok(()));
+        bindings[1].binding = 7;
+        assert_eq!(vertex_layout(&limits, &bindings, &attributes), Err(INVALID));
+        bindings[1].binding = 3;
+        bindings[1].stride = 2049;
+        assert_eq!(
+            vertex_layout(&limits, &bindings, &attributes),
+            Err(UNSUPPORTED)
+        );
+        bindings[1].stride = 4;
+        bindings[1].rate = 2;
+        assert_eq!(vertex_layout(&limits, &bindings, &attributes), Err(INVALID));
+        bindings[1].rate = 0;
+        attributes[1].location = 15;
+        assert_eq!(vertex_layout(&limits, &bindings, &attributes), Err(INVALID));
+        attributes[1].location = 16;
+        assert_eq!(
+            vertex_layout(&limits, &bindings, &attributes),
+            Err(UNSUPPORTED)
+        );
+        attributes[1].location = 3;
+        attributes[1].binding = 0;
+        assert_eq!(vertex_layout(&limits, &bindings, &attributes), Err(INVALID));
+        attributes[1].binding = 3;
+        attributes[1].offset = 2048;
+        assert_eq!(
+            vertex_layout(&limits, &bindings, &attributes),
+            Err(UNSUPPORTED)
+        );
+    }
     #[test]
     fn stencil_fields_are_not_normalized() {
         let s = StencilState {

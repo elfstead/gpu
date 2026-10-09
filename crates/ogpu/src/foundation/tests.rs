@@ -188,8 +188,11 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ExecutableDesc>(), 72);
     assert_eq!(size_of::<ExecutableCacheDesc>(), 48);
     assert_eq!(size_of::<Launch>(), 24);
-    assert_eq!(size_of::<GraphicsLimits>(), 56);
-    assert_eq!(size_of::<GraphicsState>(), 152);
+    assert_eq!(size_of::<GraphicsLimits>(), 72);
+    assert_eq!(size_of::<GraphicsState>(), 160);
+    assert_eq!(size_of::<VertexInput>(), 48);
+    assert_eq!(size_of::<VertexBinding>(), 12);
+    assert_eq!(size_of::<VertexAttribute>(), 16);
     assert_eq!(size_of::<StencilState>(), 28);
     assert_eq!(size_of::<ColorState>(), 36);
     assert_eq!(size_of::<Attachment>(), 56);

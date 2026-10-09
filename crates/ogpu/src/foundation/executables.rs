@@ -476,6 +476,7 @@ mod tests {
                 stencil_test: 0,
                 stencil_front: StencilState::default(),
                 stencil_back: StencilState::default(),
+                vertex_input: ptr::null(),
             };
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),

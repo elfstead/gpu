@@ -79,6 +79,7 @@ vkCmdBeginRendering
 vkCmdEndRendering
 vkCmdDrawIndirect2KHR
 vkCmdBindIndexBuffer3KHR
+vkCmdBindVertexBuffers3KHR
 vkCmdDrawIndexedIndirect2KHR
 vkCmdDrawIndirectCount2KHR
 vkCmdDrawIndexedIndirectCount2KHR

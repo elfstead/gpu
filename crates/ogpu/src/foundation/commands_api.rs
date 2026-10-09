@@ -337,6 +337,37 @@ pub unsafe extern "C" fn ogpu_next_bind_indices(encoder: *mut List, span: Span, 
     }
 }
 /// # Safety
+/// Writable disjoint output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_vertex_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        unsafe {
+            out.write(native::vertex_scratch(count)?);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Exclusive pool, live vertex spans, disjoint readable inputs and writable scratch.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_bind_vertices(
+    encoder: *mut List,
+    first: u32,
+    count: u32,
+    spans: *const Span,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| e.bind_vertices(first, count, spans, scratch));
+    }
+}
+/// # Safety
 /// Same requirements as draw plus valid bound indices and resulting shader accesses.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_draw_indexed(encoder: *mut List, draw: *const DrawDesc) {

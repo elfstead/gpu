@@ -17,7 +17,7 @@ mod memory;
 pub use memory::Memory;
 #[path = "commands.rs"]
 mod commands;
-pub(super) use commands::{barrier_scratch, submit_scratch};
+pub(super) use commands::{barrier_scratch, submit_scratch, vertex_scratch};
 pub use commands::{Arena, List};
 #[path = "images.rs"]
 mod images;
@@ -123,6 +123,7 @@ functions! {
     vkCmdDraw: PFN_vkCmdDraw,
     vkCmdDrawIndexed: PFN_vkCmdDrawIndexed,
     vkCmdBindIndexBuffer3KHR: PFN_vkCmdBindIndexBuffer3KHR,
+    vkCmdBindVertexBuffers3KHR: PFN_vkCmdBindVertexBuffers3KHR,
     vkCmdDrawIndirect2KHR: PFN_vkCmdDrawIndirect2KHR,
     vkCmdDrawIndexedIndirect2KHR: PFN_vkCmdDrawIndexedIndirect2KHR,
     vkCmdDrawIndirectCount2KHR: PFN_vkCmdDrawIndirectCount2KHR,
@@ -308,6 +309,10 @@ pub(super) fn snapshot(
             max_indirect_count: p.maxDrawIndirectCount,
             integer_color_samples: v12_properties.framebufferIntegerColorSampleCounts,
             stencil_samples: p.framebufferStencilSampleCounts,
+            max_vertex_bindings: p.maxVertexInputBindings,
+            max_vertex_attributes: p.maxVertexInputAttributes,
+            max_vertex_attribute_offset: p.maxVertexInputAttributeOffset,
+            max_vertex_stride: p.maxVertexInputBindingStride,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0

@@ -69,7 +69,7 @@ enum {
     OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
     OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
-    OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118
+    OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118, OGPU_NEXT_VERTEX_INPUT = 119
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -252,7 +252,8 @@ enum {
     OGPU_NEXT_R16_FLOAT = 7, OGPU_NEXT_RG16_FLOAT = 8, OGPU_NEXT_RGBA16_FLOAT = 9,
     OGPU_NEXT_R32_FLOAT = 10, OGPU_NEXT_R32_UINT = 11, OGPU_NEXT_RGBA32_FLOAT = 12,
     OGPU_NEXT_D16_UNORM = 13, OGPU_NEXT_D32_FLOAT = 14,
-    OGPU_NEXT_D24_UNORM_S8_UINT = 15, OGPU_NEXT_D32_FLOAT_S8_UINT = 16
+    OGPU_NEXT_D24_UNORM_S8_UINT = 15, OGPU_NEXT_D32_FLOAT_S8_UINT = 16,
+    OGPU_NEXT_RG32_FLOAT = 17, OGPU_NEXT_RGB32_FLOAT = 18
 };
 enum { OGPU_NEXT_IMAGE_1D = 1, OGPU_NEXT_IMAGE_2D = 2, OGPU_NEXT_IMAGE_3D = 3 };
 enum { OGPU_NEXT_ASPECT_COLOR = 1, OGPU_NEXT_ASPECT_DEPTH = 2, OGPU_NEXT_ASPECT_STENCIL = 4 };
@@ -641,6 +642,7 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t max_viewport[2]; float viewport_bounds[2];
     uint32_t color_samples, depth_samples, no_attachment_samples, max_indirect_count;
     uint32_t integer_color_samples, stencil_samples;
+    uint32_t max_vertex_bindings, max_vertex_attributes, max_vertex_attribute_offset, max_vertex_stride;
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
@@ -686,7 +688,27 @@ typedef struct ogpu_next_graphics_state {
     float blend_constants[4];
     uint32_t stencil_test;
     ogpu_next_stencil_state stencil_front, stencil_back;
+    const ogpu_next_record *vertex_input;
 } ogpu_next_graphics_state;
+enum { OGPU_NEXT_VERTEX_RATE_VERTEX = 0, OGPU_NEXT_VERTEX_RATE_INSTANCE = 1 };
+typedef struct ogpu_next_vertex_binding { uint32_t binding, stride, rate; } ogpu_next_vertex_binding;
+typedef struct ogpu_next_vertex_attribute { uint32_t location, binding; ogpu_next_format format; uint32_t offset; } ogpu_next_vertex_attribute;
+typedef struct ogpu_next_vertex_input {
+    ogpu_next_record header;
+    uint32_t binding_count, attribute_count;
+    const ogpu_next_vertex_binding *bindings;
+    const ogpu_next_vertex_attribute *attributes;
+} ogpu_next_vertex_input;
+/* vertex_input=NULL means no fixed-function input (vertex pulling remains legal).
+ * Otherwise VERTEX_INPUT describes explicit unique binding IDs and unique attribute
+ * locations; each attribute references a listed binding. Sparse binding IDs are
+ * allowed. Limits and native vertex-format support are checked during preparation.
+ * Strides are static, including zero and overlapping records; attribute extent is
+ * not artificially constrained to stride. Rate is per vertex or per instance with
+ * divisor one. Shader input types/locations and native fetch alignment are caller
+ * contracts. Metadata is borrowed only during preparation. Additional divisor and
+ * dynamic input/stride profiles are not enabled; no repack or shader rewriting.
+ */
 /* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, exactly two
  * shaders ordered VERTEX then FRAGMENT, static_state=GRAPHICS_STATE,
  * dynamic_state=DYNAMIC_VIEWPORT_SCISSOR. requirements local_size/shared_memory=0.
@@ -703,8 +725,8 @@ typedef struct ogpu_next_graphics_state {
  * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
  * All color entries need identical blend/write state (independentBlend not enabled).
  * Fixed profile: fill, depth clip on, no depth bias/bounds/primitive restart,
- * no sample shading, logic op or fixed-function vertex bindings. Vertex pulling
- * remains available. Points require shader PointSize=1; vertex/fragment storage
+ * no sample shading or logic op. Both vertex pulling and native vertex fetch
+ * are available. Points require shader PointSize=1; vertex/fragment storage
  * writes need future feature enabling. Missing profiles are UNSUPPORTED, not emulated.
  */
 enum { OGPU_NEXT_LOAD = 0, OGPU_NEXT_CLEAR = 1, OGPU_NEXT_DONT_CARE = 2 };
@@ -812,6 +834,19 @@ typedef struct ogpu_next_draw_indexed_arguments {
  * lifetime. No resource retention, hidden allocation or implicit barrier.
  */
 void ogpu_next_bind_indices(ogpu_next_encoder *, ogpu_next_span, uint32_t index_type);
+/* Bind consecutive native vertex slots from explicit VERTEX spans. No executable
+ * or active render scope required. count=0 is a no-op; first+count <= max bindings.
+ * Scratch is sized by count, disjoint/aligned, borrowed only during the call.
+ * All local checks precede one native bind; no allocation, repack, barrier or
+ * resource retention. Binding state persists across scopes/pipeline binds, not
+ * across command begin/reset. Pipeline static strides are left unchanged.
+ * Each draw TRUSTS that every fetched binding is set and that all vertex/instance
+ * indices (including first/base offsets), attribute offsets, strides and formats
+ * address aligned, initialized bytes within the supplied spans. No per-draw scan.
+ * Spans must remain alive and synchronized through recorded future/pending uses.
+ */
+ogpu_next_status ogpu_next_vertex_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
+void ogpu_next_bind_vertices(ogpu_next_encoder *, uint32_t first, uint32_t count, const ogpu_next_span *, ogpu_next_host_span scratch);
 void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
 void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
