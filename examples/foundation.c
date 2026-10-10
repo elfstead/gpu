@@ -88,7 +88,9 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_formats.h"
 #include "foundation_split.h"
 #include "foundation_raster_storage.h"
+#include "foundation_mrt.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
+#define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path, uint32_t secondary) {
@@ -935,7 +937,7 @@ int main(int argc, char **argv) {
         }
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
-            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES)) };
+            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES)) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
         for (uint32_t j = 0; j < count; ++j) {
@@ -949,7 +951,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES))));
+    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES))));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);
@@ -1010,7 +1012,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 13);
+    REQUIRE(argc == 14);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1027,6 +1029,7 @@ int main(int argc, char **argv) {
     for (uint32_t mode = OGPU_NEXT_ONE_SHOT; mode <= OGPU_NEXT_SIMULTANEOUS_REPLAY; ++mode)
         REQUIRE(split_execution(device, memory_desc, graphics_domain, mode) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
+    REQUIRE(mrt_execution(device,memory_desc,graphics_domain,argv[3],argv[13]) == EXIT_SUCCESS);
     const char *storage_paths[4] = {argv[9],argv[10],argv[11],argv[12]};
     for (uint32_t writers = 1; writers <= 3; ++writers)
         REQUIRE(raster_storage_execution(device,memory_desc,graphics_domain,storage_paths,writers,0) == EXIT_SUCCESS);
@@ -1035,6 +1038,9 @@ int main(int argc, char **argv) {
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 0, 1, 0) == EXIT_SUCCESS);
+    if (features.enabled & OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE)
+        REQUIRE(graphics_execution(device,memory_desc,graphics_domain,argv[5],argv[4],1,0,2,0) == EXIT_SUCCESS);
+    else printf("Indirect first-instance NOT exercised: feature unavailable.\n");
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 1) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 2) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 1, 1, 2) == EXIT_SUCCESS);

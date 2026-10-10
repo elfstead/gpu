@@ -188,6 +188,8 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_INHERITED_QUERIES UINT64_C(131072)
 #define OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS UINT64_C(262144)
 #define OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS UINT64_C(524288)
+#define OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE UINT64_C(1048576)
+#define OGPU_NEXT_FEATURE_INDEPENDENT_BLEND UINT64_C(2097152)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -218,6 +220,10 @@ typedef struct ogpu_next_feature_info {
  * work, fragment helper invocations and early/late tests). A draw is not an
  * exactly-once general compute dispatch. Attachmentless rasterization may use
  * these operations without allocating dummy color/depth targets.
+ * INDIRECT_FIRST_INSTANCE permits nonzero GPU-resident indirect first_instance;
+ * it does not add a CPU scan, remap or patch of argument records. INDEPENDENT_BLEND
+ * permits distinct per-color-target blend/write state during preparation. Both
+ * features are independent of RASTER enabling and preserve the existing commands.
  */
 typedef struct ogpu_next_queue_request {
     ogpu_next_queue_domain domain;
@@ -967,7 +973,7 @@ typedef struct ogpu_next_vertex_input {
  * from the intersection of the corresponding graphics sample masks. Integer
  * color has its own mask. Exact image tuples still use image_requirements.
  * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
- * All color entries need identical blend/write state (independentBlend not enabled).
+ * Color entries need identical blend/write state unless INDEPENDENT_BLEND is enabled.
  * Fixed profile: fill, depth clip on, no depth bias/bounds/primitive restart,
  * no sample shading or logic op. Both vertex pulling and native vertex fetch
  * are available. Points require shader PointSize=1; vertex/fragment storage
@@ -1074,8 +1080,9 @@ typedef struct ogpu_next_draw_indexed_arguments {
  * arguments covers (maximum_count-1)*stride + record size when count>0; no scan,
  * repack or CPU readback. maximum_count <= graphics_limits.max_indirect_count.
  * GPU count reads one uint32_t; draws min(count,maximum_count). GPU count itself
- * must also be <= max_indirect_count. GPU first_instance must be zero in this
- * profile (drawIndirectFirstInstance not enabled). Other GPU draw fields/index
+ * must also be <= max_indirect_count. GPU first_instance must be zero unless
+ * INDIRECT_FIRST_INSTANCE is enabled. This is a caller execution-time obligation;
+ * argument memory is never read or patched by OGPU. Other GPU draw fields/index
  * bounds and resulting shader accesses are TRUSTED valid at every execution.
  * Index/argument/count memory requires caller synchronization and recorded/pending
  * lifetime. No resource retention, hidden allocation or implicit barrier.

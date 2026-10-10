@@ -197,14 +197,16 @@ pub(super) unsafe fn prepare(
             colorWriteMask: c.write_mask,
         });
     }
-    // independentBlend is not enabled in this profile. Do not normalize differing states.
-    if colors.iter().skip(1).any(|c| {
-        let first = colors[0];
-        ColorState {
-            format: first.format,
-            ..*c
-        } != first
-    }) {
+    // Without explicit enabling, native attachment states must match. Never normalize.
+    if d.snapshot.features.enabled & INDEPENDENT_BLEND == 0
+        && colors.iter().skip(1).any(|c| {
+            let first = colors[0];
+            ColorState {
+                format: first.format,
+                ..*c
+            } != first
+        })
+    {
         return Err(UNSUPPORTED);
     }
     let depth_format = if state.depth_format == 0 {

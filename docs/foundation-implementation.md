@@ -521,10 +521,10 @@ when both are supplied they name the same view and layout. Combined layout barri
 cover both aspects. Draw-time read-only permissions remain caller obligations, not
 per-draw state reconstruction. No separate depth/stencil layouts are enabled.
 
-Dynamic stencil operations/test enabling, depth/stencil resolves, sample shading/masks/custom positions, independent
-blend, dynamic vertex input/stride and additional
-stages, restart, wide lines, richer dynamic state, tile-local dependencies and
-nonzero indirect first-instance enabling remain work. Unsupported requested state
+Dynamic stencil operations/test enabling, depth/stencil resolves, sample shading/masks/custom positions,
+dynamic vertex input/stride and additional
+stages, restart, wide lines, richer dynamic state and tile-local dependencies
+remain work. Unsupported requested state
 is rejected, never emulated with a hidden state cache or fallback. The existing
 sample masks still require exact format/image-tuple support, not guessed allocation.
 
@@ -587,7 +587,31 @@ first-instance, negative indexed base vertex, every indirect draw variant, and r
 after changing instance data. Pixel/depth outputs and guards are checked. This validates
 RG32 float fetch and divisor-one instancing; other formats, zero-stride execution,
 dynamic input state and nontrivial divisors still need their own coverage/profiles.
-The source-only graphics limits/state records grow to 72/160 bytes; ABI 20 is unchanged.
+The source-only graphics limits/state records are now 80/160 bytes; ABI 20 is unchanged.
+
+### Independent targets and indirect base instances
+
+`INDEPENDENT_BLEND` permits different blend factors/operations/enabling and channel
+write masks for each color target. Without it, differing native attachment state
+still fails preparation; no state is normalized or substituted. The existing color
+array and commands are sufficient. A two-target consumer adds color twice in one
+target while replacing only red/blue channels in the other, verifying preserved
+green/alpha clear values, every pixel, changed-input replay and guard bytes.
+
+`INDIRECT_FIRST_INSTANCE` permits nonzero base instances in all indirect draw
+forms, independently of direct draw support. Indirect arguments remain GPU-resident:
+no CPU read, rewrite or draw-time scan is added. The caller guarantees valid records
+and enabled-feature requirements at execution time. The vertex-fetch consumer now
+uses GPU fills to write nonzero first-instance fields, with an explicit CLEAR-to-INDIRECT
+dependency. Instance zero contains depth-rejecting data; instance one produces the
+expected output. Indexed/nonindexed and counted/uncounted variants pass changed-data
+replay and final argument readback. These controls map to native
+[independent blend and indirect first instance](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceFeatures.html).
+
+Both consumers pass on Radeon and llvmpipe; no independent-blend throughput claim
+or GPU-generated arbitrary draw stream is inferred. Rust tests enable the bits
+independently, check declared requirements, and reject distinct color write masks
+when independent blend is disabled.
 
 ## Implemented graphics-stage storage writes
 

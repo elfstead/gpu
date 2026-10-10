@@ -763,6 +763,9 @@ mod tests {
                 VERTEX_STORES_ATOMICS,
                 FRAGMENT_STORES_ATOMICS,
                 VERTEX_STORES_ATOMICS | FRAGMENT_STORES_ATOMICS,
+                INDIRECT_FIRST_INSTANCE,
+                INDEPENDENT_BLEND,
+                INDIRECT_FIRST_INSTANCE | INDEPENDENT_BLEND,
             ];
             desc.dynamic_state = 1;
             for enabled in profiles {
@@ -796,6 +799,29 @@ mod tests {
                     } else {
                         assert!(matches!(result, Err(UNSUPPORTED)));
                     }
+                }
+                let colors = [
+                    color,
+                    ColorState {
+                        write_mask: 0,
+                        ..color
+                    },
+                ];
+                let mixed = GraphicsState {
+                    color_count: 2,
+                    colors: colors.as_ptr(),
+                    ..state
+                };
+                let mixed_desc = ExecutableDesc {
+                    static_state: &mixed.header,
+                    requirements: &req.header,
+                    ..desc
+                };
+                let result = unsafe { Executable::create(&profile_device, &mixed_desc) };
+                if enabled & INDEPENDENT_BLEND != 0 {
+                    assert!(result.is_ok());
+                } else {
+                    assert!(matches!(result, Err(UNSUPPORTED)));
                 }
             }
             tested += 1;

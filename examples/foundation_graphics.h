@@ -12,6 +12,8 @@ static void graphics_stencil_values(ogpu_next_encoder *encoder, uint64_t mask, u
 static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
                               uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled, uint32_t vertex_fetch, uint32_t secondary, uint64_t dynamic_mask) {
     int result = EXIT_FAILURE, pending = 0;
+    uint32_t indirect_first = vertex_fetch == 2;
+    vertex_fetch = vertex_fetch != 0;
     FILE *file = NULL;
     void *code[2] = {NULL, NULL}, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
     void *vertex_scratch = NULL;
@@ -37,6 +39,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_feature_info features = {0};
     q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
+    REQUIRE(!indirect_first || (features.enabled & OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE));
     uint32_t synchronization = features.enabled & OGPU_NEXT_FEATURE_CACHE_CONTROL ? OGPU_NEXT_CACHE_CALLER_SYNCHRONIZATION : OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION;
     ogpu_next_executable_cache_desc cache_desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC), synchronization, 0, {NULL, 0}};
     TRY(ogpu_next_executable_cache_create(device, &cache_desc, &cache));
@@ -196,6 +199,14 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_encoder *encoder = NULL;
     ogpu_next_list *list = NULL;
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
+    if (indirect_first) {
+        /* GPU produces the first-instance fields; CPU initializes them to zero. */
+        ogpu_next_fill_memory(encoder,(ogpu_next_span){host,284,4},1);
+        ogpu_next_fill_memory(encoder,(ogpu_next_span){host,336,4},1);
+        ogpu_next_dependency generated = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),
+            OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_INDIRECT,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_INDIRECT_READ,0,0,0,NULL,NULL,NULL,0};
+        ogpu_next_barrier(encoder,&generated);
+    }
     ogpu_next_span vertex_spans[2] = {{host,2048,48},{host,2112,32}};
     if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
     ogpu_next_queries_reset(encoder, timestamps, 0, 2);
@@ -350,6 +361,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
             OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
     }
     dep.image_count = 0; dep.images = NULL; dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;
+    if (indirect_first) dep.before |= OGPU_NEXT_STAGE_CLEAR;
     dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
     ogpu_next_barrier(encoder, &dep);
     TRY(ogpu_next_commands_end(encoder, &list));
@@ -374,7 +386,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         memcpy(map.data, roots, sizeof(roots));
         if (vertex_fetch) {
             const float positions[12] = {123,-5,-5,456,123,1,-5,456,123,1,5,456};
-            const float instances[8] = {123,456,0.5f,0,123,456,replay ? 0.5f : 1.f,0};
+            const float instances[8] = {123,456,indirect_first ? 8.f : 0.5f,0,123,456,replay ? 0.5f : 1.f,0};
             memcpy((char *)map.data+2048,positions,sizeof(positions));
             memcpy((char *)map.data+2112,instances,sizeof(instances));
         }
@@ -395,6 +407,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0), &submit));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate((ogpu_next_span){host,0,host_desc.size}));
+        if (indirect_first) REQUIRE(((uint32_t *)map.data)[71] == 1 && ((uint32_t *)map.data)[84] == 1);
         REQUIRE(((uint64_t *)map.data)[51] != 0 && ((uint64_t *)map.data)[54] != 0); /* timestamp availability */
         REQUIRE(((uint32_t *)map.data)[112] != 0 && ((uint32_t *)map.data)[114] == 0); /* visible/empty */
         REQUIRE(((uint32_t *)map.data)[113] != 0 && ((uint32_t *)map.data)[115] != 0);
@@ -575,6 +588,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     if (secondary == 3) printf("Inherited queries pass: primary precise occlusion/statistics count draws in the secondary.\n");
     if (stencil_enabled) printf("Stencil passes: clear/load, depth-fail KEEP, REPLACE references, EQUAL rejection and replay%s.\n", read_planes ? ", separate depth/stencil plane readback" : " (raster-only diagnostic; plane copies NOT tested)");
     if (vertex_fetch) printf("Vertex fetch passes: sparse binding IDs, batched address binding, padded records, per-instance rate, nonzero direct first-instance, indexed/indirect draws and changed-instance replay.\n");
+    if (indirect_first) printf("Indirect first-instance passes: GPU-written nonzero base selects valid instance data in all four variants; zero-base poison would fail depth, including changed-input replay.\n");
     for (uint32_t bad = 0; bad < 4; ++bad) {
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         if (bad == 0) ogpu_next_set_blend_constants(encoder,NULL);

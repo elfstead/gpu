@@ -391,6 +391,11 @@ pub(super) fn snapshot(
         }
         for (supported, bit) in [
             (
+                root.features.drawIndirectFirstInstance,
+                INDIRECT_FIRST_INSTANCE,
+            ),
+            (root.features.independentBlend, INDEPENDENT_BLEND),
+            (
                 root.features.vertexPipelineStoresAndAtomics,
                 VERTEX_STORES_ATOMICS,
             ),
@@ -621,6 +626,8 @@ impl Device {
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            drawIndirectFirstInstance: u32::from(enabled & INDIRECT_FIRST_INSTANCE != 0),
+            independentBlend: u32::from(enabled & INDEPENDENT_BLEND != 0),
             vertexPipelineStoresAndAtomics: u32::from(enabled & VERTEX_STORES_ATOMICS != 0),
             fragmentStoresAndAtomics: u32::from(enabled & FRAGMENT_STORES_ATOMICS != 0),
             inheritedQueries: u32::from(enabled & INHERITED_QUERIES != 0),
