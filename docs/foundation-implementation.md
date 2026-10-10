@@ -602,11 +602,10 @@ Seven independent feature bits map to native enabling; RASTER does not enable th
 Line-width range/granularity are immutable reported limits. State is prepared once,
 with no command-time state cache, shader transformation or extra draw calls.
 
-Discard takes one vertex shader, not an unused fragment artifact. It currently
-requires zero color/depth formats and an attachmentless render scope. Static discard
-has no native fragment-output interface; using it in an attached scope needs the
-separate dynamic-rendering unused-attachments profile. This is unfinished profile
-coverage, not a permanent API restriction or an implicit extra render scope.
+Discard takes one vertex shader, not an unused fragment artifact, and zero
+color/depth formats. Static discard has no native fragment-output interface;
+attached execution is available with the independent unused-attachments feature
+described below. No implicit extra render scope is introduced.
 Depth clamp also disables Z clipping in this profile; independent clipping remains
 work. Sample shading expresses a minimum fraction, not an exact invocation count.
 Alpha coverage is native, not a portable bit-exact coverage pattern. See native
@@ -627,6 +626,33 @@ verification work; pipeline creation alone is not evidence for those outputs.
 The above C cases and all 14 foundation GPU tests pass with validation on Radeon
 26.2.4 and llvmpipe 26.2.1 (the latter retains the documented stencil-copy exclusion).
 The ordinary suite now has 80 passing tests. No timing or Metal claim follows.
+
+### Unused attachments and sparse output interfaces
+
+`UNUSED_ATTACHMENTS` explicitly enables native
+[`VK_EXT_dynamic_rendering_unused_attachments`](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT.html).
+Pipeline and render-scope color counts may differ; absent/null attachments and
+undefined output formats no longer force artificial pipeline variants. Defined,
+non-null pairs still match formats; sample counts, synchronization and lifetimes
+remain caller contracts. Color format zero now describes an unused pipeline slot,
+without a format-support query. That description itself needs no optional feature;
+using it with non-null attachments needs the feature. If a shader writes such a
+slot while its view is non-null, the caller must set its write mask to zero. OGPU
+does not reflect shaders or silently rewrite masks. Native
+[draw compatibility](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDraw.html)
+still applies; this is not blanket permission to ignore formats.
+
+The C cases cover vertex-only discard inside a two-target scope, a masked undefined
+output with a real view, a defined output with a null view, and differing output/
+attachment counts in both directions. Clears, explicit resolves, unchanged targets,
+changed-input replay and guards are read back. Unused shader outputs can emit native
+validation warnings; validation errors still fail the runner. Static discard inside
+an attached scope is currently single-sample only: native static discard omits its
+multisample state. Multisample attached discard and depth/stencil compatibility
+execution coverage remain work, not silent scope rewriting or emulation.
+All five new execution cases and the expanded feature-enabling preparation matrix
+pass on Radeon 26.2.4 and llvmpipe 26.2.1 under validation. Generated bindings
+reproduce; C/Rust ABI checks cover 851 layout values, with installed ABI 20 unchanged.
 
 ### Independent targets and indirect base instances
 

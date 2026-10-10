@@ -199,6 +199,7 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_DEPTH_BOUNDS UINT64_C(67108864)
 #define OGPU_NEXT_FEATURE_SAMPLE_SHADING UINT64_C(134217728)
 #define OGPU_NEXT_FEATURE_ALPHA_TO_ONE UINT64_C(268435456)
+#define OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS UINT64_C(536870912)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -1010,8 +1011,10 @@ typedef struct ogpu_next_raster_options {
  * Bounds testing uses the existing stored depth, not incoming fragment depth;
  * with no depth attachment the native test passes. Discard suppresses rasterization,
  * not vertex work; discard pipelines supply only VERTEX (no FRAGMENT shader).
- * Static discard currently requires zero color/depth formats and an attachmentless
- * render scope; attached discard awaits the unused-attachments profile.
+ * Static discard requires zero color/depth formats. It can execute in an attached
+ * render scope when UNUSED_ATTACHMENTS is enabled; otherwise use attachmentless scopes.
+ * Attached static discard currently supports single-sample scopes only; native
+ * static discard omits multisample state. Multisample attached discard remains work.
  * The viewport/scissor dynamic bit remains required by this profile.
  * Sample bit n controls sample n; bits beyond samples are ignored, including the
  * high 32 bits for counts <=32. No custom sample locations or mask expansion.
@@ -1055,6 +1058,17 @@ typedef struct ogpu_next_vertex_input {
  * color has its own mask. Exact image tuples still use image_requirements.
  * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
  * Color entries need identical blend/write state unless INDEPENDENT_BLEND is enabled.
+ * Color format=0 declares an unused output slot (no format-support query).
+ * Without UNUSED_ATTACHMENTS, pipeline/scope color counts must match, and null
+ * color views require corresponding format=0; non-null views match exact formats.
+ * With UNUSED_ATTACHMENTS, color counts may differ and a format=0/absent output
+ * may coexist with a non-null view, or a defined output with a null view. For a
+ * format=0 slot with a non-null view, the shader must not write it or its write_mask
+ * must be zero. This is a caller precondition, not shader reflection or mask rewriting.
+ * Null-view outputs are discarded; attachment clears,
+ * stores and resolves still follow the explicit render scope. Defined non-null
+ * pairs still require matching formats. Depth/stencil format=0 versus absent view
+ * is similarly relaxed. No inferred transitions, attachment allocation or remap.
  * Additional static raster/sample controls use raster_options. Logic ops, custom
  * sample locations and independent depth clipping remain unimplemented profiles.
  * Both vertex pulling and native vertex fetch are available. Points require shader
@@ -1100,8 +1114,8 @@ typedef struct ogpu_next_draw_desc {
  * samples is one supported count and must match all non-resolve attachments.
  * Views are 2D/array with identity component mapping,
  * one mip, with sufficient extent/layers and attachment usage. Null color/depth
- * views (state=UNDEFINED) are unused; null color slots require matching undefined
- * output format at draw, which the current executable profile does not yet expose.
+ * views (state=UNDEFINED) are unused; executable format compatibility follows the
+ * UNUSED_ATTACHMENTS contract above.
  * Color states GENERAL/COLOR_ATTACHMENT; depth GENERAL/DEPTH_STENCIL_ATTACHMENT/
  * DEPTH_STENCIL_READ. Stencil uses these same states. Read-only depth/stencil
  * forbids CLEAR and writes to the respective aspect. When both records exist,

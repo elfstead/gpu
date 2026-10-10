@@ -214,14 +214,24 @@ pub(super) fn snapshot(
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
             .map_err(loader_error)?;
+        let has_unused = instance
+            .supports_extension(physical, c"VK_EXT_dynamic_rendering_unused_attachments")
+            .map_err(loader_error)?;
+        let mut unused = vk::VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
+            ..Default::default()
+        };
         let mut unified = vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR,
+            pNext: if has_unused { ptr::from_mut(&mut unused).cast() } else { ptr::null_mut() },
             ..Default::default()
         };
         let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
             pNext: if has_unified {
                 ptr::from_mut(&mut unified).cast()
+            } else if has_unused {
+                ptr::from_mut(&mut unused).cast()
             } else {
                 ptr::null_mut()
             },
@@ -282,6 +292,9 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
+        if unused.dynamicRenderingUnusedAttachments != 0 {
+            features.available |= UNUSED_ATTACHMENTS;
+        }
         float_controls = float_snapshot(&v12_properties);
         cache_uuid = properties.properties.pipelineCacheUUID;
         let stages = |native: u32| {
@@ -580,14 +593,23 @@ impl Device {
                 ..Default::default()
             })
             .collect();
+        let mut unused = vk::VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
+            dynamicRenderingUnusedAttachments: 1, ..Default::default()
+        };
+        let unused_next = if enabled & UNUSED_ATTACHMENTS != 0 {
+            ptr::from_mut(&mut unused).cast()
+        } else {
+            ptr::null_mut()
+        };
         let mut unified = vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR,
-            unifiedImageLayouts: 1, ..Default::default()
+            unifiedImageLayouts: 1, pNext: unused_next, ..Default::default()
         };
         let mut untyped = vk::VkPhysicalDeviceShaderUntypedPointersFeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR,
             shaderUntypedPointers: 1,
-            pNext: if enabled & UNIFIED_IMAGES != 0 { ptr::from_mut(&mut unified).cast() } else { ptr::null_mut() },
+            pNext: if enabled & UNIFIED_IMAGES != 0 { ptr::from_mut(&mut unified).cast() } else { unused_next },
         };
         let mut addresses = vk::VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR,
@@ -670,6 +692,9 @@ impl Device {
         ];
         if enabled & UNIFIED_IMAGES != 0 {
             extensions.push(c"VK_KHR_unified_image_layouts".as_ptr());
+        }
+        if enabled & UNUSED_ATTACHMENTS != 0 {
+            extensions.push(c"VK_EXT_dynamic_rendering_unused_attachments".as_ptr());
         }
         let create = vk::VkDeviceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

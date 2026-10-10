@@ -140,8 +140,8 @@ pub(super) unsafe fn prepare(
     if desc.shader_count != shader_count {
         return Err(UNSUPPORTED);
     }
-    // Static discard has no fragment-output interface. Attached discard needs the
-    // separate unused-attachments profile, not a fabricated native color interface.
+    // Static discard has no fragment-output interface. Attached execution uses
+    // UNUSED_ATTACHMENTS with this same zero-format pipeline, not invented formats.
     if options.discard != 0 && (state.color_count != 0 || state.depth_format != 0) {
         return Err(UNSUPPORTED);
     }
@@ -167,12 +167,15 @@ pub(super) unsafe fn prepare(
         return Err(INVALID);
     }
     let colors = unsafe { array(state.colors, state.color_count)? };
-    let mut sample_mask = if colors.is_empty() && state.depth_format == 0 {
+    let mut sample_mask = if colors.iter().all(|c| c.format == 0) && state.depth_format == 0 {
         p.no_attachment_samples
     } else {
         u32::MAX
     };
     for c in colors {
+        if c.format == 0 {
+            continue;
+        }
         sample_mask &= if c.format == 11 {
             p.integer_color_samples
         } else {
@@ -256,9 +259,7 @@ pub(super) unsafe fn prepare(
         .try_reserve_exact(colors.len())
         .map_err(|_| OUT_OF_MEMORY)?;
     for c in colors {
-        let f = images::format(c.format)?;
-        if f.aspects != 1
-            || c.write_mask & !15 != 0
+        if c.write_mask & !15 != 0
             || c.blend > 1
             || c.src_color > 14
             || c.dst_color > 14
@@ -269,20 +270,31 @@ pub(super) unsafe fn prepare(
         {
             return Err(INVALID);
         }
-        let mut props = vk::VkFormatProperties::default();
-        unsafe {
-            (d.f.vkGetPhysicalDeviceFormatProperties.unwrap())(d.physical, f.native, &mut props);
-        }
-        let flags = vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT
-            | if c.blend != 0 {
-                vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT
-            } else {
-                0
-            };
-        if props.optimalTilingFeatures & flags != flags {
-            return Err(UNSUPPORTED);
-        }
-        formats.push(f.native);
+        let native_format = if c.format == 0 {
+            0
+        } else {
+            let f = images::format(c.format)?;
+            if f.aspects != 1 {
+                return Err(INVALID);
+            }
+            let mut props = vk::VkFormatProperties::default();
+            unsafe {
+                (d.f.vkGetPhysicalDeviceFormatProperties.unwrap())(
+                    d.physical, f.native, &mut props,
+                );
+            }
+            let flags = vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT
+                | if c.blend != 0 {
+                    vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT
+                } else {
+                    0
+                };
+            if props.optimalTilingFeatures & flags != flags {
+                return Err(UNSUPPORTED);
+            }
+            f.native
+        };
+        formats.push(native_format);
         blends.push(vk::VkPipelineColorBlendAttachmentState {
             blendEnable: c.blend,
             srcColorBlendFactor: c.src_color,

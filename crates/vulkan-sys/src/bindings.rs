@@ -11449,6 +11449,51 @@ pub type PFN_vkCmdPushDataEXT = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub dynamicRenderingUnusedAttachments: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT",
+    ][::std::mem::size_of::<
+        VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT,
+    >() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT",
+    ][::std::mem::align_of::<
+        VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT,
+    >() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT::dynamicRenderingUnusedAttachments",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT,
+        dynamicRenderingUnusedAttachments
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderFloat8FeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,

@@ -774,6 +774,8 @@ mod tests {
                 DEPTH_BOUNDS,
                 SAMPLE_SHADING,
                 ALPHA_TO_ONE,
+                UNUSED_ATTACHMENTS,
+                UNUSED_ATTACHMENTS | UNIFIED_IMAGES,
             ];
             desc.dynamic_state = 1;
             for enabled in profiles {
@@ -832,6 +834,19 @@ mod tests {
                     assert!(matches!(result, Err(UNSUPPORTED)));
                 }
                 let defaults = RasterOptions::default();
+                // Undefined color slots are a native pipeline description even
+                // without relaxed draw-time compatibility. No fake format query.
+                let unused_color = ColorState { format: 0, ..color };
+                let unused_state = GraphicsState {
+                    colors: &unused_color,
+                    ..state
+                };
+                let unused_desc = ExecutableDesc {
+                    static_state: &unused_state.header,
+                    requirements: &req.header,
+                    ..desc
+                };
+                assert!(unsafe { Executable::create(&profile_device, &unused_desc) }.is_ok());
                 for (bit, options) in [
                     (0, defaults),
                     (

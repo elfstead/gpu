@@ -1,4 +1,7 @@
-/* Different blend and write-mask state on two targets, with no normalization. */
+/* Modes: 0/null defaults, 1/explicit, 2/zero mask, 3/high-only mask, 4/high+low,
+ * 5/zero-alpha coverage, 6/alpha-to-one, 7/low-only mask, 8/partial MSAA mask,
+ * 9/full sample shading, 10/attached discard, 11/undefined target, 12/null view,
+ * 13/fewer pipeline outputs, 14/fewer scope attachments. No state normalization. */
 static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                          const char *vertex_path, const char *fragment_path, uint32_t mode) {
     int result = EXIT_FAILURE, pending = 0;
@@ -14,11 +17,12 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     if (!(features.enabled & OGPU_NEXT_FEATURE_INDEPENDENT_BLEND)) {
         printf("Independent blend execution NOT exercised: feature unavailable.\n"); return EXIT_SUCCESS;
     }
-    uint64_t required = mode == 6 ? OGPU_NEXT_FEATURE_ALPHA_TO_ONE : mode == 9 ? OGPU_NEXT_FEATURE_SAMPLE_SHADING : 0;
+    uint64_t required = mode >= 10 ? OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS
+        : mode == 6 ? OGPU_NEXT_FEATURE_ALPHA_TO_ONE : mode == 9 ? OGPU_NEXT_FEATURE_SAMPLE_SHADING : 0;
     if (required & ~features.enabled) {
         printf("Raster options mode %u NOT exercised: feature unavailable.\n",mode); return EXIT_SUCCESS;
     }
-    uint32_t samples = mode >= 8 ? 4 : 1, image_count = samples == 1 ? 2 : 4;
+    uint32_t samples = mode >= 8 && mode != 10 ? 4 : 1, image_count = samples == 1 ? 2 : 4;
     ogpu_next_graphics_limits limits = {0}; q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS,&limits,1,sizeof(limits));
     TRY(ogpu_next_device_query(device,&q));
     if (!(limits.color_samples & samples)) {
@@ -46,12 +50,17 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     if (mode == 2) options.sample_mask = 0;
     if (mode == 3) options.sample_mask = UINT64_C(1) << 63;
     if (mode == 4) options.sample_mask = (UINT64_C(1) << 63) | 1;
+    if (mode == 7) options.sample_mask = 1;
     if (mode == 8) options.sample_mask = 5;
     gs.samples = samples; gs.raster_options = mode ? &options.header : NULL;
+    if (mode == 10) { options.discard = 1; gs.color_count = 0; }
+    if (mode == 11) { states[1].format = 0; states[1].write_mask = 0; }
+    if (mode == 13) gs.color_count = 1;
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),
         OGPU_NEXT_FEATURE_RASTER | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND,{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         2,shaders,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
+    if (options.discard) ed.shader_count = 1;
     TRY(ogpu_next_executable_create(device,&ed,&pipeline));
     for (uint32_t i = 0; i < 2; ++i) { free(code[i]); code[i] = NULL; }
     TRY(ogpu_next_memory_create(device,&md,&memory));
@@ -92,6 +101,18 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),0,OGPU_NEXT_STAGE_COLOR,0,0,0,image_count,0,NULL,barriers,bs,br.size};
     ogpu_next_barrier(encoder,&dep);
     ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,samples,0,2,attachments,NULL,NULL,{rs,rr.size}};
+    if (mode == 12 || mode == 14) {
+        // Explicitly initialize both targets, including the target omitted below.
+        ogpu_next_render_begin(encoder,&render); ogpu_next_render_end(encoder);
+        dep.before = dep.after = OGPU_NEXT_STAGE_COLOR;
+        dep.global_before = OGPU_NEXT_ACCESS_COLOR_WRITE;
+        dep.global_after = OGPU_NEXT_ACCESS_COLOR_READ | OGPU_NEXT_ACCESS_COLOR_WRITE;
+        dep.image_count = 0; dep.images = NULL; ogpu_next_barrier(encoder,&dep);
+        dep.global_before = dep.global_after = 0; dep.image_count = image_count; dep.images = barriers;
+        attachments[0].load_op = attachments[1].load_op = OGPU_NEXT_LOAD;
+        if (mode == 12) attachments[1] = (ogpu_next_attachment){0};
+        if (mode == 14) render.color_count = 1;
+    }
     ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,pipeline);
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,8,8};
     ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,address);
@@ -120,6 +141,8 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
         if (mode == 2 || mode == 3 || mode == 5) { expected[0] = 0; expected[1] = 16 | (34u<<8) | (48u<<16) | (68u<<24); }
         if (mode == 8) { expected[0] = r | (g<<8) | (b<<16) | UINT32_C(0x80000000);
             expected[1] = (b+16)/2 | (34u<<8) | ((r+48)/2<<16) | (68u<<24); }
+        if (mode >= 10) expected[1] = 16 | (34u<<8) | (48u<<16) | (68u<<24);
+        if (mode == 10) expected[0] = 0;
         for (uint32_t i = 0; i < 2; ++i) for (uint32_t pixel = 0; pixel < 64; ++pixel)
             REQUIRE(((uint32_t *)((char *)map.data+512+i*512))[pixel] == expected[i]);
         REQUIRE(memcmp(map.data,root_data,sizeof(root_data)) == 0);
