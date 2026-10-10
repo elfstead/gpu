@@ -133,6 +133,11 @@ unsupported buffer addition without emulation. Exact finite-data checks do not
 promise arbitrary reduction ordering, exceptional-value behavior or throughput.
 Wider numerical and matrix profiles, compiler integration and consumer migration
 remain outstanding.
+FP64 atomic operation/domain enabling now follows the same model, with separate
+`FLOAT64` type requirements. Radeon verifies buffer/shared min/max and exchange
+using precision-sensitive values; neither local driver advertises FP64 atomic add,
+so its execution remains unverified rather than emulated. Matrix tuples, FP16/image
+atomic profiles and the broader migration remain open.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

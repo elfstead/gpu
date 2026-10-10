@@ -312,6 +312,12 @@ mod tests {
             (include_bytes!("../../../../examples/shaders/foundation-float-atomics.shared-minmax.comp.spv").as_slice(), c"sharedMinMax", SHARED_FLOAT32_ATOMIC_MIN_MAX, 8),
             (include_bytes!("../../../../examples/shaders/foundation-float-atomics.buffer-exchange.comp.spv").as_slice(), c"bufferExchange", BUFFER_FLOAT32_ATOMICS, 0),
             (include_bytes!("../../../../examples/shaders/foundation-float-atomics.shared-exchange.comp.spv").as_slice(), c"sharedExchange", SHARED_FLOAT32_ATOMICS, 4),
+            (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.buffer-add.comp.spv").as_slice(), c"bufferAdd", FLOAT64 | BUFFER_FLOAT64_ATOMIC_ADD, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.shared-add.comp.spv").as_slice(), c"sharedAdd", FLOAT64 | SHARED_FLOAT64_ATOMIC_ADD, 8),
+            (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.buffer-minmax.comp.spv").as_slice(), c"bufferMinMax", FLOAT64 | BUFFER_FLOAT64_ATOMIC_MIN_MAX, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.shared-minmax.comp.spv").as_slice(), c"sharedMinMax", FLOAT64 | SHARED_FLOAT64_ATOMIC_MIN_MAX, 16),
+            (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.buffer-exchange.comp.spv").as_slice(), c"bufferExchange", FLOAT64 | BUFFER_FLOAT64_ATOMICS, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.shared-exchange.comp.spv").as_slice(), c"sharedExchange", FLOAT64 | SHARED_FLOAT64_ATOMICS, 8),
         ] { check_numerical_profile(bytes, entry, required, shared); }
     }
     fn check_numerical_profile(bytes: &[u8], entry: &CStr, all: u64, shared_memory: u32) {

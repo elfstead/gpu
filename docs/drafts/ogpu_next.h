@@ -30,7 +30,8 @@ extern "C" {
  * Vertex/fragment storage writes and atomics have independent enabling bits.
  * Floating-point mode/width capabilities and independence queries are implemented;
  * artifact mode metadata, mode-specific execution tests and float-controls-2 follow.
- * Budget, broader atomic/matrix numerical tuples and
+ * FP32/FP64 buffer/workgroup atomic operation profiles are independently enabled;
+ * image/sparse and FP16 atomics remain separate work. Budget, matrix numerical tuples and
  * exact executable/state query records remain to be defined. */
 
 /* Backing, placed/dedicated images, views and explicit image transitions/copies

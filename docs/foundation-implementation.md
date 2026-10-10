@@ -896,6 +896,27 @@ Atomic load/store execution, image/sparse and 16/64-bit operations, exceptional
 values, denormals, contention throughput and device-wide progress remain work.
 These results do not establish a completed ML numerical profile or new Metal support.
 
+The same six independent operation/domain bits are now implemented for FP64.
+They do not implicitly enable `FLOAT64`; shader artifacts declare that type
+requirement separately. Native extension selection is shared with the FP32 path,
+without enabling unrelated operations. The ordinary mapping test covers all 4096
+FP32/FP64 combinations and keeps FP16/image/sparse features disabled.
+
+Six further pinned artifacts use actual double-precision atomic operands, checked
+in disassembly and SPIR-V validation. The C consumer shares its source with FP32
+but uses 64-bit storage and a `2^-30` bias component that FP32 would lose. On Radeon
+26.2.4, buffer/shared FP64 min/max and exchange pass exact results, previous-value
+checks and changed-input replay. Neither buffer nor shared FP64 addition is
+advertised by this GPU. llvmpipe 26.2.1 advertises none of these FP64 atomic profiles;
+the consumer reports each as not exercised. Thus FP64 addition is **implemented
+and artifact-validated, but not GPU-executed locally**, not an inferred success.
+Preparation checks still exercise disabled and partially enabled type/operation
+profiles and preserve early requirement rejection. Both full foundation regressions
+pass within the documented driver limits, with 15 GPU tests each and 82 ordinary
+tests; generated shaders and bindings reproduce, Clippy and 881 ABI values pass.
+FP16/image atomics, FP64-add execution, atomic load/store execution and exceptional
+floating-point behavior remain separate verification/implementation work.
+
 ### Floating-point policy discovery
 
 `QUERY_FLOAT_CONTROLS` returns one immutable physical record for binary16/32/64

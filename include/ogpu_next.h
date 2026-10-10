@@ -209,6 +209,12 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS UINT64_C(68719476736)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD UINT64_C(137438953472)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX UINT64_C(274877906944)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMICS UINT64_C(549755813888)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_ADD UINT64_C(1099511627776)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT64_ATOMIC_MIN_MAX UINT64_C(2199023255552)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS UINT64_C(4398046511104)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD UINT64_C(8796093022208)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX UINT64_C(17592186044416)
 /* FLOAT32_ATOMICS means floating-point atomic load/store/exchange; ADD and MIN_MAX
  * are separate, independently enabled operations, not implied by that bit. BUFFER
  * covers storage/address-backed buffer memory; SHARED covers workgroup memory.
@@ -217,7 +223,9 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
  * order, cross-workgroup barrier or throughput guarantee is provided. NaN, signed
  * zero, denormal and rounding behavior follow the native artifact contract; the
  * ordinary floating-point-controls query does not establish atomic arithmetic
- * policy. Image, sparse-image and 16/64-bit floating atomic profiles remain work.
+ * policy. FLOAT64 operation/domain bits have the same independence; FLOAT64
+ * arithmetic/type enabling must also be requested by artifacts using double.
+ * Image, sparse-image and 16-bit floating atomic profiles remain work.
  */
 /* SHADER_OUTPUT_LAYER enables vertex-stage Layer output (Slang
  * SV_RenderTargetArrayIndex) into ordinary layered render scopes. It neither
