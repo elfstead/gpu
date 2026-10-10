@@ -834,6 +834,33 @@ mod tests {
                     assert!(matches!(result, Err(UNSUPPORTED)));
                 }
                 let defaults = RasterOptions::default();
+                let depth_only = GraphicsState {
+                    color_count: 0,
+                    depth_format: 14,
+                    depth_test: 1,
+                    depth_write: 1,
+                    depth_compare: 1,
+                    ..state
+                };
+                let depth_desc = ExecutableDesc {
+                    shader_count: 1,
+                    static_state: &depth_only.header,
+                    requirements: &req.header,
+                    ..desc
+                };
+                let depth_pipeline =
+                    unsafe { Executable::create(&profile_device, &depth_desc) }.unwrap();
+                assert_eq!(depth_pipeline.stages, 8);
+                for count in [0, 3, u32::MAX] {
+                    let invalid = ExecutableDesc {
+                        shader_count: count,
+                        ..depth_desc
+                    };
+                    assert!(matches!(
+                        unsafe { Executable::create(&profile_device, &invalid) },
+                        Err(UNSUPPORTED)
+                    ));
+                }
                 // Undefined color slots are a native pipeline description even
                 // without relaxed draw-time compatibility. No fake format query.
                 let unused_color = ColorState { format: 0, ..color };

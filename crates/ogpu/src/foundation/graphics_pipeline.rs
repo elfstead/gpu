@@ -136,8 +136,8 @@ pub(super) unsafe fn prepare(
         unsafe { *record::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
     };
     raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
-    let shader_count = if options.discard != 0 { 1 } else { 2 };
-    if desc.shader_count != shader_count {
+    let shader_count = desc.shader_count;
+    if !matches!(shader_count, 1 | 2) || (options.discard != 0 && shader_count != 1) {
         return Err(UNSUPPORTED);
     }
     // Static discard has no fragment-output interface. Attached execution uses
@@ -376,7 +376,7 @@ pub(super) unsafe fn prepare(
         if roots.iter().any(|r| r.stages & !24 != 0) {
             return Err(UNSUPPORTED);
         }
-        // One shared argument namespace; the complete slot table is identical for both stages.
+        // One shared argument namespace; all supplied stages use the same slot table.
         if i == 0 {
             byte_size = abi.byte_size;
             owned_roots
@@ -601,7 +601,7 @@ pub(super) unsafe fn prepare(
         pipeline: ptr::null_mut(),
         byte_size,
         roots: owned_roots,
-        stages: if options.discard != 0 { 8 } else { 24 },
+        stages: if shader_count == 1 { 8 } else { 24 },
     });
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(

@@ -1042,11 +1042,11 @@ typedef struct ogpu_next_vertex_input {
  * contracts. Metadata is borrowed only during preparation. Additional divisor and
  * dynamic input/stride profiles are not enabled; no repack or shader rewriting.
  */
-/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, two shaders
- * ordered VERTEX then FRAGMENT (only VERTEX when discard is enabled), static_state=GRAPHICS_STATE,
+/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, VERTEX followed
+ * by optional FRAGMENT (FRAGMENT must be absent when discard is enabled), static_state=GRAPHICS_STATE,
  * dynamic_state includes DYNAMIC_VIEWPORT_SCISSOR and any selected supported
  * optional bits (graphics_limits.dynamic_states). requirements local_size/shared_memory=0.
- * Both shaders provide identical full argument interfaces; root visibility is
+ * Supplied shaders provide identical full argument interfaces; root visibility is
  * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
  * Format count may be zero or up to max_colors; format=0 means no depth, otherwise
@@ -1074,6 +1074,11 @@ typedef struct ogpu_next_vertex_input {
  * Both vertex pulling and native vertex fetch are available. Points require shader
  * PointSize=1; vertex/fragment storage writes require their independent feature bits.
  * Missing profiles are UNSUPPORTED, not emulated.
+ * Omitting FRAGMENT still rasterizes and runs fixed depth/stencil tests and writes.
+ * It is useful for depth-only passes and occlusion, not equivalent to discard.
+ * No dummy fragment shader is created. With no fragment shader, color outputs and
+ * shader-derived alpha are undefined: do not consume them (disable color writes
+ * and alpha-to-coverage). Attachment load/store operations remain explicit.
  */
 enum { OGPU_NEXT_LOAD = 0, OGPU_NEXT_CLEAR = 1, OGPU_NEXT_DONT_CARE = 2 };
 enum { OGPU_NEXT_STORE = 0, OGPU_NEXT_DISCARD = 1 };

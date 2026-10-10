@@ -506,7 +506,7 @@ and synchronization. The [native counted-draw contract](https://docs.vulkan.org/
 also constrains the GPU count itself, not only the application's maximum.
 
 The implemented profile is deliberately stated, not a fundamental restriction:
-vertex/fragment (vertex-only for static discard), optional D16/D32 or combined
+vertex with optional fragment (vertex-only for static discard), optional D16/D32 or combined
 D24S8/D32S8 depth/stencil, explicit supported sample counts and static raster/sample
 controls, vertex pulling or native vertex fetch, one viewport/scissor and optional
 independent per-color blend state.
@@ -620,12 +620,34 @@ ignored high bits for single-sample targets, zero-alpha coverage, alpha-to-one,
 four-sample partial-mask resolves and full sample shading with changed-input replay
 and guarded readback. Attachmentless primary/secondary draws separately verify that
 discard preserves vertex storage writes while suppressing fragment writes.
-Pixel execution of depth clamp/bias/bounds, non-solid fill/wide lines and strip
-restart, exact sample-rate invocation behavior and 64-sample execution remain
+Pixel execution of non-solid fill/wide lines and strip restart,
+exact sample-rate invocation behavior and 64-sample execution remain
 verification work; pipeline creation alone is not evidence for those outputs.
 The above C cases and all 14 foundation GPU tests pass with validation on Radeon
 26.2.4 and llvmpipe 26.2.1 (the latter retains the documented stencil-copy exclusion).
 The ordinary suite now has 80 passing tests. No timing or Metal claim follows.
+
+### Vertex-only depth rendering
+
+The fragment shader is optional independently of raster discard. A vertex-only
+pipeline still rasterizes and performs fixed depth/stencil operations; OGPU creates
+no placeholder fragment artifact and records no additional commands. Present stages
+share one argument interface, and the executable reports only its actual stage mask.
+Color outputs without a fragment shader are undefined, not implicitly zero: callers
+disable color writes/alpha coverage or use depth-only scopes. This follows the native
+[graphics pipeline contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkGraphicsPipelineCreateInfo.html).
+
+The new C depth-only consumer uses one vertex artifact, zero color attachments and
+a placed D32 target. Guarded readback checks near/far depth rejection; out-of-range
+Z clipping versus clamping; depth bounds using **stored** depth on opposite halves;
+positive and negative clamped constant bias; and nonzero unclamped bias. Changed
+roots replay the same list, including swapping which half passes depth bounds.
+Clamped outputs use exactly representable values; the unclamped case checks the
+direction and a small range without imposing a cross-device bias unit.
+All seven modes pass under validation on Radeon 26.2.4 and llvmpipe 26.2.1, together
+with the 14 foundation GPU tests. No fragment module is loaded by this consumer.
+Slope bias, arbitrary depth formats and vertex-only multisample/stencil execution
+remain verification work; existing two-stage consumers still cover multisample/stencil.
 
 ### Unused attachments and sparse output interfaces
 
