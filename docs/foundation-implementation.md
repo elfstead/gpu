@@ -450,6 +450,37 @@ Vertex/fragment SPIR-V preparation now shares the executable and argument model.
 Static state states topology, culling, front face, color formats/write masks/blend,
 depth format/test/write/compare and blend constants. Viewport/scissor is explicitly
 dynamic; no state is inferred from an attachment and no draw compiles a pipeline.
+Blend constants and stencil reference/compare-mask/write-mask may now each be
+selected independently as dynamic. The immutable graphics-limits record reports
+the supported bitmask; all combinations with required viewport/scissor are supported
+in this Vulkan profile. Unsupported bits fail during preparation. Each setter maps
+to one native command and copies no resource data, allocates nothing in OGPU and
+does not generate or look up a pipeline variant. Stencil setters select front/back
+faces independently and preserve full-width values. Blend constants are passed
+unchanged, without clamping to the normalized range.
+
+The caller owns initialization and native dynamic-state lifetime. Set-before-bind
+is legal; binding a pipeline with a field static invalidates its earlier dynamic
+value, while a dynamic bind preserves it. A setter after a static bind needs a
+subsequent compatible bind before drawing. Executing secondary lists invalidates
+ordinary state, with no automatic restoration. There is no new per-draw state walk
+or shadow-state cache. These rules follow native
+[dynamic state lifetime](https://docs.vulkan.org/guide/latest/dynamic_state.html),
+[blend constants](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetBlendConstants.html)
+and [stencil reference](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetStencilReference.html).
+Initialization of newly exposed fields is a trusted caller obligation, not a promise
+that OGPU's existing inexpensive draw checks diagnose every misuse.
+
+The C consumer tests each optional bit independently and all together in a rendering
+secondary, ignores deliberately wrong static values, restores after a static bind,
+changes reference/masks between draws and checks quarter/half-strength blended
+stripes. Dynamic reference eliminates a reference-only pipeline variant. Exact
+pixels, changed-input replay and guards pass on Radeon and llvmpipe (the existing
+stencil-copy diagnostic exclusion still applies there). Native preparation injection
+checks all sixteen combinations and rejects unknown/missing-required bits before a
+native creation call. Nonfinite blend execution and genuinely different front/back
+face values are not verified by this fixture.
+
 Vertex and fragment interfaces describe the same byte namespace, with root slots
 visible to either or both stages. Compute and graphics pipeline binds are independent,
 but push bytes are shared even across those bind points: callers own compatible
@@ -490,7 +521,7 @@ when both are supplied they name the same view and layout. Combined layout barri
 cover both aspects. Draw-time read-only permissions remain caller obligations, not
 per-draw state reconstruction. No separate depth/stencil layouts are enabled.
 
-Dynamic stencil state, depth/stencil resolves, sample shading/masks/custom positions, independent
+Dynamic stencil operations/test enabling, depth/stencil resolves, sample shading/masks/custom positions, independent
 blend, dynamic vertex input/stride and additional
 stages, restart, wide lines, richer dynamic state, tile-local dependencies and
 nonzero indirect first-instance enabling remain work. Unsupported requested state
@@ -724,7 +755,8 @@ ordered 32/64-bit graphics counters, simultaneous occlusion/statistics, precise
 disabled enabling, zero masks, duplicate active types, wrong scope/index, resetting
 or resolving active slots, short multi-counter destinations and invalid precise use.
 The known llvmpipe combined-plane-copy caveat is unchanged. Performance-counter
-profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-up work.
+profiles and calibrated clocks remain follow-up work; timestamps use the expanded
+stage vocabulary when the requested scope lowers to one supported native stage bit.
 
 ## Verification so far
 

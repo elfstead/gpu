@@ -849,13 +849,39 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t color_samples, depth_samples, no_attachment_samples, max_indirect_count;
     uint32_t integer_color_samples, stencil_samples;
     uint32_t max_vertex_bindings, max_vertex_attributes, max_vertex_attribute_offset, max_vertex_stride;
+    uint64_t dynamic_states; /* supported bits; VIEWPORT_SCISSOR remains required in this profile */
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
     uint32_t timestamp_compute_graphics;
     uint64_t statistics;
 } ogpu_next_query_limits;
-enum { OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR = 1 };
+enum {
+    OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR = 1, OGPU_NEXT_DYNAMIC_BLEND_CONSTANTS = 2,
+    OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE = 4, OGPU_NEXT_DYNAMIC_STENCIL_COMPARE_MASK = 8,
+    OGPU_NEXT_DYNAMIC_STENCIL_WRITE_MASK = 16
+};
+enum { OGPU_NEXT_FACE_FRONT = 1, OGPU_NEXT_FACE_BACK = 2, OGPU_NEXT_FACE_BOTH = 3 };
+/* Dynamic values map directly to native commands, inside or outside rendering,
+ * on graphics domains with RASTER enabled. No pipeline need be bound yet.
+ * Preparation selects each optional dynamic bit independently; unselected fields
+ * stay static. Dynamic fields ignore their corresponding static-state values.
+ * The caller initializes every state/face needed by the draw. Dynamic values
+ * survive binds declaring that state dynamic, but a bind declaring it STATIC
+ * invalidates its prior dynamic value. Reissue the setter before the next draw
+ * using that state dynamically. Setting a field after binding a static pipeline
+ * requires a subsequent compatible pipeline bind before drawing; no automatic
+ * restore, cache, elision, pipeline variant/JIT, or per-draw state walk is added.
+ * Secondary execution invalidates ordinary dynamic state; it is not restored.
+ * faces=FRONT/BACK/BOTH, or 0 (native no-op); bits outside BOTH are INVALID.
+ * Reference/masks are full u32 values, not normalized to a guessed stencil width.
+ * Blend values are passed unchanged, without clamping; the four floats are
+ * borrowed only during the call. Native numerical rules apply.
+ */
+void ogpu_next_set_blend_constants(ogpu_next_encoder *, const float values[4]);
+void ogpu_next_set_stencil_reference(ogpu_next_encoder *, uint32_t faces, uint32_t reference);
+void ogpu_next_set_stencil_compare_mask(ogpu_next_encoder *, uint32_t faces, uint32_t mask);
+void ogpu_next_set_stencil_write_mask(ogpu_next_encoder *, uint32_t faces, uint32_t mask);
 enum {
     OGPU_NEXT_POINTS = 0, OGPU_NEXT_LINES = 1, OGPU_NEXT_LINE_STRIP = 2,
     OGPU_NEXT_TRIANGLES = 3, OGPU_NEXT_TRIANGLE_STRIP = 4
@@ -918,7 +944,8 @@ typedef struct ogpu_next_vertex_input {
  */
 /* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, exactly two
  * shaders ordered VERTEX then FRAGMENT, static_state=GRAPHICS_STATE,
- * dynamic_state=DYNAMIC_VIEWPORT_SCISSOR. requirements local_size/shared_memory=0.
+ * dynamic_state includes DYNAMIC_VIEWPORT_SCISSOR and any selected supported
+ * optional bits (graphics_limits.dynamic_states). requirements local_size/shared_memory=0.
  * Both shaders provide identical full argument interfaces; root visibility is
  * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
@@ -1103,9 +1130,10 @@ typedef struct ogpu_next_query_pool_desc {
  * COMPUTE for compute invocations, GRAPHICS for all other counters. A compute-only
  * query does not require RASTER. Native counting rules apply, not a portable shader
  * cost model or an exact count of unique source invocations.
- * Timestamp requires nonzero queue_info.timestamp_bits and one native stage bit:
- * ALL, COPY, COMPUTE, FRAGMENT, INDIRECT or COLOR in this profile; combined masks,
- * HOST and broad VERTEX/DEPTH groups are rejected. The requested stage can measure
+ * Timestamp requires nonzero queue_info.timestamp_bits and a scope lowering to
+ * one supported native stage bit (including VERTEX shader and narrow transfer/
+ * input/depth scopes). HOST, zero and masks lowering to multiple native bits,
+ * such as DEPTH, are rejected. The requested stage can measure
  * a later native stage; it is not a whole-list completion or calibrated host clock.
  * Timestamp period is nanoseconds per tick. Mask to the queue's valid low bits and
  * account for wrap; compare only within a known compatible device/queue clock

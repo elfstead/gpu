@@ -90,6 +90,11 @@ acquires across independently recorded lists, with range/image dependencies and
 caller scratch. No recording-order registry, arena ownership or implicit reset is
 imposed. One-shot and replay execution, changed-input readback, atomic rejection and
 native failure ownership pass locally; shared-event overlapping replay is not claimed.
+Graphics preparation now independently selects dynamic blend constants and stencil
+reference/compare/write masks. Setters are native commands with caller-owned state
+initialization/lifetime, not hidden pipeline variants or a new per-draw state walk.
+Independent-bit and combined-secondary output tests pass; preparation checks all
+sixteen combinations. Dynamic reference removes a reference-only executable variant.
 Broader draft profiles and consumer cutover remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

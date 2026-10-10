@@ -33,7 +33,8 @@ pub(super) unsafe fn prepare(
 ) -> Result<Box<Executable>, Status> {
     if d.snapshot.features.enabled & RASTER == 0
         || desc.shader_count != 2
-        || desc.dynamic_state != 1
+        || desc.dynamic_state & 1 == 0
+        || desc.dynamic_state & !d.snapshot.graphics_limits.dynamic_states != 0
     {
         return Err(UNSUPPORTED);
     }
@@ -65,7 +66,7 @@ pub(super) unsafe fn prepare(
     {
         return Err(INVALID);
     }
-    if !state.blend_constants.iter().all(|f| f.is_finite()) {
+    if desc.dynamic_state & 2 == 0 && !state.blend_constants.iter().all(|f| f.is_finite()) {
         return Err(INVALID);
     }
     let colors = unsafe { array(state.colors, state.color_count)? };
@@ -409,13 +410,29 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let dynamic_states = [
+    let mut dynamic_states = [
         vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT,
         vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR,
+        0,
+        0,
+        0,
+        0,
     ];
+    let mut dynamic_count = 2;
+    for (mask, state) in [
+        (2, vk::VkDynamicState_VK_DYNAMIC_STATE_BLEND_CONSTANTS),
+        (4, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_REFERENCE),
+        (8, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK),
+        (16, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_WRITE_MASK),
+    ] {
+        if desc.dynamic_state & mask != 0 {
+            dynamic_states[dynamic_count] = state;
+            dynamic_count += 1;
+        }
+    }
     let dynamic = vk::VkPipelineDynamicStateCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        dynamicStateCount: 2,
+        dynamicStateCount: dynamic_count as u32,
         pDynamicStates: dynamic_states.as_ptr(),
         ..Default::default()
     };

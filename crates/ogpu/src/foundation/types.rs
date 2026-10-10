@@ -159,6 +159,7 @@ pub struct GraphicsLimits {
     pub max_vertex_attributes: u32,
     pub max_vertex_attribute_offset: u32,
     pub max_vertex_stride: u32,
+    pub dynamic_states: u64,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]

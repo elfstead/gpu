@@ -973,6 +973,34 @@ impl List {
         self.secondary_contents.set(false);
         Ok(())
     }
+    pub(in crate::foundation) fn blend_constants(&self, values: &[f32; 4]) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        // Values are not clamped: native floating-point attachment behavior remains available.
+        unsafe { (d.f.vkCmdSetBlendConstants.unwrap())(self.command, values.as_ptr()) };
+        Ok(())
+    }
+    pub(in crate::foundation) fn stencil_value(
+        &self,
+        field: u32,
+        faces: u32,
+        value: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        if faces & !3 != 0 {
+            return Err(INVALID);
+        }
+        let command = match field {
+            4 => d.f.vkCmdSetStencilReference,
+            8 => d.f.vkCmdSetStencilCompareMask,
+            16 => d.f.vkCmdSetStencilWriteMask,
+            _ => return Err(INVALID),
+        }
+        .unwrap();
+        unsafe { command(self.command, faces, value) };
+        Ok(())
+    }
     pub(in crate::foundation) fn viewport(&self, state: &ViewportState) -> Result<(), Status> {
         let d = self.recording()?;
         stages(d, self.domain, 24, false)?;

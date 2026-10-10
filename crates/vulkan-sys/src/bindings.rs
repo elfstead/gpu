@@ -2839,6 +2839,7 @@ pub type VkPipelineRasterizationStateCreateFlags = VkFlags;
 pub type VkPipelineTessellationStateCreateFlags = VkFlags;
 pub type VkPipelineVertexInputStateCreateFlags = VkFlags;
 pub type VkPipelineViewportStateCreateFlags = VkFlags;
+pub type VkStencilFaceFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
 pub struct VkExtent2D {
@@ -6755,6 +6756,30 @@ pub type PFN_vkCmdSetScissor = ::std::option::Option<
         firstScissor: u32,
         scissorCount: u32,
         pScissors: *const VkRect2D,
+    ),
+>;
+pub type PFN_vkCmdSetBlendConstants = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, blendConstants: *const f32),
+>;
+pub type PFN_vkCmdSetStencilCompareMask = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        faceMask: VkStencilFaceFlags,
+        compareMask: u32,
+    ),
+>;
+pub type PFN_vkCmdSetStencilWriteMask = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        faceMask: VkStencilFaceFlags,
+        writeMask: u32,
+    ),
+>;
+pub type PFN_vkCmdSetStencilReference = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        faceMask: VkStencilFaceFlags,
+        reference: u32,
     ),
 >;
 pub type PFN_vkCmdDraw = ::std::option::Option<

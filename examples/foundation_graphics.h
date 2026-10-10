@@ -1,6 +1,16 @@
 /* Offscreen public-C consumer. No old ABI helpers or implicit attachment policy. */
-static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
-                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled, uint32_t vertex_fetch, uint32_t secondary) {
+static void graphics_stencil_values(ogpu_next_encoder *encoder, uint64_t mask, uint32_t reference, uint32_t write_mask) {
+    if (mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE) {
+        ogpu_next_set_stencil_reference(encoder,OGPU_NEXT_FACE_FRONT,reference);
+        ogpu_next_set_stencil_reference(encoder,OGPU_NEXT_FACE_BACK,reference);
+    }
+    if (mask & OGPU_NEXT_DYNAMIC_STENCIL_COMPARE_MASK)
+        ogpu_next_set_stencil_compare_mask(encoder,OGPU_NEXT_FACE_BOTH,UINT32_MAX);
+    if (mask & OGPU_NEXT_DYNAMIC_STENCIL_WRITE_MASK)
+        ogpu_next_set_stencil_write_mask(encoder,OGPU_NEXT_FACE_BOTH,write_mask);
+}
+static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
+                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled, uint32_t vertex_fetch, uint32_t secondary, uint64_t dynamic_mask) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code[2] = {NULL, NULL}, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
@@ -14,7 +24,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     const char *raster_only = getenv("OGPU_FOUNDATION_STENCIL_RASTER_ONLY");
     uint32_t read_planes = !stencil_enabled || !(raster_only && strcmp(raster_only, "1") == 0);
     if (!read_planes) fprintf(stderr, "Explicit diagnostic mode: combined depth/stencil plane copies and their readback checks are NOT exercised.\n");
-    ogpu_next_executable *pipelines[3] = {NULL};
+    ogpu_next_executable *pipelines[4] = {NULL};
     ogpu_next_executable_cache *cache = NULL;
     uint32_t depth_aspects = OGPU_NEXT_ASPECT_DEPTH | (stencil_enabled ? OGPU_NEXT_ASPECT_STENCIL : 0);
     ogpu_next_arena *arena = NULL, *secondary_arena = NULL, *parent_arena = NULL;
@@ -23,6 +33,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_graphics_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS, &limits, 1, sizeof(limits));
     TRY(ogpu_next_device_query(device, &q)); REQUIRE(limits.max_colors > 0);
+    REQUIRE(((dynamic_mask | OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR) & ~limits.dynamic_states) == 0);
     ogpu_next_feature_info features = {0};
     q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
@@ -73,7 +84,10 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     gs.vertex_input = vertex_fetch ? &input.header : NULL;
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), OGPU_NEXT_FEATURE_RASTER, {0, 0, 0}, 0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
-        OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &req.header, cache, 0, 0};
+        OGPU_NEXT_EXECUTABLE_GRAPHICS, 2, shaders, &gs.header, OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR | dynamic_mask, &req.header, cache, 0, 0};
+    ed.dynamic_state |= UINT64_C(1) << 63;
+    REQUIRE(ogpu_next_executable_create(device,&ed,&pipelines[0]) == OGPU_NEXT_UNSUPPORTED && pipelines[0] == NULL);
+    ed.dynamic_state &= ~(UINT64_C(1) << 63);
     gs.samples = 3;
     REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
     gs.samples = samples;
@@ -95,19 +109,33 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         gs.stencil_back.fail = 8;
         REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
         gs.stencil_back.fail = OGPU_NEXT_STENCIL_KEEP;
+        /* Deliberately unusable static values: selected dynamic fields must ignore them. */
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE) gs.stencil_front.reference = gs.stencil_back.reference = 77;
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_COMPARE_MASK) gs.stencil_front.compare_mask = gs.stencil_back.compare_mask = 0;
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_WRITE_MASK) gs.stencil_front.write_mask = gs.stencil_back.write_mask = 0;
     }
     REQUIRE(prepare_with_compile_policy(device, &ed, &pipelines[0]) == EXIT_SUCCESS);
+    if (dynamic_mask) {
+        ed.dynamic_state = OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR;
+        TRY(ogpu_next_executable_create(device,&ed,&pipelines[3]));
+        ed.dynamic_state |= dynamic_mask;
+    }
     REQUIRE(cache_roundtrip(device, &cache, synchronization) == EXIT_SUCCESS);
     ogpu_next_executable_destroy(pipelines[0]); pipelines[0] = NULL; ed.cache = cache;
     REQUIRE(prepare_with_compile_policy(device, &ed, &pipelines[0]) == EXIT_SUCCESS);
     if (stencil_enabled) {
-        gs.stencil_front.reference = gs.stencil_back.reference = 2;
-        TRY(ogpu_next_executable_create(device, &ed, &pipelines[2]));
+        if (!(dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE)) {
+            gs.stencil_front.reference = gs.stencil_back.reference = 2;
+            TRY(ogpu_next_executable_create(device, &ed, &pipelines[2]));
+        } /* Dynamic reference reuses pipelines[0] for both rectangles. */
         gs.stencil_front = (ogpu_next_stencil_state){OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_STENCIL_KEEP,
             OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_COMPARE_EQUAL, 255, 0, 1};
         gs.stencil_back = gs.stencil_front;
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE) gs.stencil_front.reference = gs.stencil_back.reference = 77;
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_COMPARE_MASK) gs.stencil_front.compare_mask = gs.stencil_back.compare_mask = 0;
     }
     color.blend = 1; color.dst_color = 1; color.src_alpha = 0; color.dst_alpha = 1;
+    if (dynamic_mask & OGPU_NEXT_DYNAMIC_BLEND_CONSTANTS) color.src_color = OGPU_NEXT_BLEND_CONSTANT_COLOR;
     gs.depth_write = 0;
     TRY(ogpu_next_executable_create(device, &ed, &pipelines[1]));
     ogpu_next_executable_cache_destroy(cache); cache = NULL; ed.cache = NULL;
@@ -219,7 +247,13 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         memset(inheritance_scratch,0xcc,(size_t)ir.size);
         if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
     }
+    graphics_stencil_values(encoder,dynamic_mask,1,UINT32_MAX); /* Set-before-bind is legal. */
+    if (dynamic_mask) {
+        ogpu_next_bind_executable(encoder,pipelines[3]); /* Static bind invalidates earlier dynamic values. */
+        graphics_stencil_values(encoder,dynamic_mask,1,UINT32_MAX); /* Explicit restore before dynamic bind. */
+    }
     ogpu_next_bind_executable(encoder, pipelines[0]);
+    if (dynamic_mask) ogpu_next_bind_executable(encoder,pipelines[0]); /* Dynamic bind preserves values. */
     ogpu_next_set_graphics_state(encoder, &vp.header);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address);
     if (secondary != 3) {
@@ -262,7 +296,8 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
     }
     vp.scissor_width = 16;
-    if (stencil_enabled) ogpu_next_bind_executable(encoder, pipelines[2]);
+    if (stencil_enabled) ogpu_next_bind_executable(encoder, pipelines[2] ? pipelines[2] : pipelines[0]);
+    graphics_stencil_values(encoder,dynamic_mask,2,UINT32_MAX);
     ogpu_next_set_graphics_state(encoder, &vp.header);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address + 32);
     ogpu_next_bind_indices(encoder, (ogpu_next_span){host,256,6}, OGPU_NEXT_INDEX_U16);
@@ -270,6 +305,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_draw_indexed(encoder, &draw); /* Fails depth on left; writes right. */
     draw.vertex_offset = 0;
     ogpu_next_bind_executable(encoder, pipelines[1]);
+    graphics_stencil_values(encoder,dynamic_mask,1,0);
     ogpu_next_query_begin(encoder, occlusion, 1, precise);
     if (statistics) ogpu_next_query_begin(encoder, statistics, 1, 0);
     ogpu_next_query_end(encoder, occlusion, 1); /* No samples. */
@@ -277,6 +313,11 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address + 64);
     /* Four disjoint stripes prove all address-indirect variants, not just no-ops. */
     for (uint32_t variant = 0; variant < 4; ++variant) {
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_BLEND_CONSTANTS) {
+            float constants[4] = {0,0,variant % 2 ? 0.5f : 0.25f,1};
+            ogpu_next_set_blend_constants(encoder,constants);
+            memset(constants,0xcc,sizeof(constants)); /* Native command borrowed only this call. */
+        }
         vp.scissor_x = 4 + (int32_t)variant * 2; vp.scissor_width = 2;
         ogpu_next_set_graphics_state(encoder, &vp.header);
         ogpu_next_indirect indirect = {{host,variant % 2 ? 320 : 272,64},32,2,
@@ -367,7 +408,8 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
             REQUIRE(empty[4] != 0 && narrow[4] != 0);
         }
         for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 16; ++x) {
-            uint32_t expected = UINT32_C(0xff000000) | (((x < 8) != (replay != 0)) ? 255 : 65280) | ((x >= 4 && x < (replay && !stencil_enabled ? 12u : 8u)) ? 16711680 : 0);
+            uint32_t blue = dynamic_mask & OGPU_NEXT_DYNAMIC_BLEND_CONSTANTS ? ((x / 2) % 2 ? 128u : 64u) : 255u;
+            uint32_t expected = UINT32_C(0xff000000) | (((x < 8) != (replay != 0)) ? 255 : 65280) | ((x >= 4 && x < (replay && !stencil_enabled ? 12u : 8u)) ? blue << 16 : 0);
             if (samples > 1 && x == 15) {
                 uint32_t shift = replay ? 0 : 8, mask = 255u << shift;
                 uint32_t channel = (((uint32_t *)map.data)[128+y*16+x] >> shift) & 255u;
@@ -533,13 +575,22 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     if (secondary == 3) printf("Inherited queries pass: primary precise occlusion/statistics count draws in the secondary.\n");
     if (stencil_enabled) printf("Stencil passes: clear/load, depth-fail KEEP, REPLACE references, EQUAL rejection and replay%s.\n", read_planes ? ", separate depth/stencil plane readback" : " (raster-only diagnostic; plane copies NOT tested)");
     if (vertex_fetch) printf("Vertex fetch passes: sparse binding IDs, batched address binding, padded records, per-instance rate, nonzero direct first-instance, indexed/indirect draws and changed-instance replay.\n");
+    for (uint32_t bad = 0; bad < 4; ++bad) {
+        TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        if (bad == 0) ogpu_next_set_blend_constants(encoder,NULL);
+        if (bad == 1) ogpu_next_set_stencil_reference(encoder,4,1);
+        if (bad == 2) ogpu_next_set_stencil_compare_mask(encoder,4,255);
+        if (bad == 3) ogpu_next_set_stencil_write_mask(encoder,4,255);
+        REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
+    }
+    if (dynamic_mask) printf("Dynamic graphics passes: mask %llu, ignored static values, per-draw updates, explicit static/dynamic bind ordering, secondary mode %u and replay%s.\n",(unsigned long long)dynamic_mask,secondary,dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE ? ", one reference pipeline for both rectangles" : "");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending graphics after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_arena_destroy(parent_arena); ogpu_next_arena_destroy(secondary_arena); ogpu_next_timeline_destroy(done);
     ogpu_next_query_pool_destroy(timestamps); ogpu_next_query_pool_destroy(occlusion);
     ogpu_next_query_pool_destroy(statistics);
-    for (uint32_t i = 0; i < 3; ++i) ogpu_next_executable_destroy(pipelines[i]);
+    for (uint32_t i = 0; i < 4; ++i) ogpu_next_executable_destroy(pipelines[i]);
     ogpu_next_executable_cache_destroy(cache);
     for (uint32_t i = 0; i < image_count; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     ogpu_next_memory_destroy(host);
@@ -548,4 +599,8 @@ cleanup:
     free(vertex_scratch);
     free(execute_scratch); free(inheritance_scratch);
     return result;
+}
+static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
+                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled, uint32_t vertex_fetch, uint32_t secondary) {
+    return graphics_execution_profile(device,host_desc,domain,vertex_path,fragment_path,samples,stencil_enabled,vertex_fetch,secondary,0);
 }

@@ -148,6 +148,10 @@ functions! {
     vkCmdSetEvent2: PFN_vkCmdSetEvent2,
     vkCmdWaitEvents2: PFN_vkCmdWaitEvents2,
     vkCmdResetEvent2: PFN_vkCmdResetEvent2,
+    vkCmdSetBlendConstants: PFN_vkCmdSetBlendConstants,
+    vkCmdSetStencilReference: PFN_vkCmdSetStencilReference,
+    vkCmdSetStencilCompareMask: PFN_vkCmdSetStencilCompareMask,
+    vkCmdSetStencilWriteMask: PFN_vkCmdSetStencilWriteMask,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -371,6 +375,7 @@ pub(super) fn snapshot(
             max_vertex_attributes: p.maxVertexInputAttributes,
             max_vertex_attribute_offset: p.maxVertexInputAttributeOffset,
             max_vertex_stride: p.maxVertexInputBindingStride,
+            dynamic_states: 31,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0

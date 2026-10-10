@@ -61,6 +61,10 @@ vkDestroyImageView
 vkCreateGraphicsPipelines
 vkCmdSetViewport
 vkCmdSetScissor
+vkCmdSetBlendConstants
+vkCmdSetStencilReference
+vkCmdSetStencilCompareMask
+vkCmdSetStencilWriteMask
 vkCmdDraw
 vkCmdDrawIndexed
 vkCreateQueryPool

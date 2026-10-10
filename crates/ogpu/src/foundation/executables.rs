@@ -451,6 +451,8 @@ mod tests {
         static DESTROY_PIPELINE: Cell<vk::PFN_vkDestroyPipeline> = const { Cell::new(None) };
         static MODULE_DROPS: Cell<u32> = const { Cell::new(0) };
         static PIPELINE_DROPS: Cell<u32> = const { Cell::new(0) };
+        static DYNAMIC_MASK: Cell<u64> = const { Cell::new(0) };
+        static DYNAMIC_COUNT: Cell<u32> = const { Cell::new(0) };
     }
     unsafe extern "C" fn module(
         d: vk::VkDevice,
@@ -517,6 +519,24 @@ mod tests {
         a: *const vk::VkAllocationCallbacks,
         out: *mut vk::VkPipeline,
     ) -> vk::VkResult {
+        let dynamic = unsafe { &*(*info).pDynamicState };
+        let states = unsafe {
+            std::slice::from_raw_parts(dynamic.pDynamicStates, dynamic.dynamicStateCount as usize)
+        };
+        let mut mask = 0;
+        for state in states {
+            mask |= match *state {
+                vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT
+                | vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR => 1,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_BLEND_CONSTANTS => 2,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_REFERENCE => 4,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK => 8,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_WRITE_MASK => 16,
+                _ => u64::MAX,
+            };
+        }
+        DYNAMIC_MASK.set(mask);
+        DYNAMIC_COUNT.set(dynamic.dynamicStateCount);
         if FAILURE.get() == 2 {
             unsafe {
                 out.write(ptr::null_mut());
@@ -711,6 +731,32 @@ mod tests {
                 assert_eq!(MODULE_DROPS.get(), modules);
                 assert_eq!(PIPELINE_DROPS.get(), pipelines);
                 assert_eq!(device.ready(), Ok(()));
+            }
+            FAILURE.set(0);
+            desc.compile_flags = 0;
+            // All combinations of the independently selectable native states.
+            for optional in 0..16 {
+                desc.dynamic_state = 1 | (optional << 1);
+                let mut out = ptr::null_mut();
+                DYNAMIC_MASK.set(u64::MAX);
+                assert_eq!(
+                    unsafe { ogpu_next_executable_create(d, &desc, &mut out) },
+                    OK
+                );
+                assert_eq!(DYNAMIC_MASK.get(), desc.dynamic_state);
+                assert_eq!(DYNAMIC_COUNT.get(), desc.dynamic_state.count_ones() + 1);
+                unsafe { ogpu_next_executable_destroy(out) };
+            }
+            for unsupported in [0, 2, 33, u64::MAX] {
+                desc.dynamic_state = unsupported;
+                let mut out = ptr::dangling_mut();
+                DYNAMIC_MASK.set(0);
+                assert_eq!(
+                    unsafe { ogpu_next_executable_create(d, &desc, &mut out) },
+                    UNSUPPORTED
+                );
+                assert!(out.is_null());
+                assert_eq!(DYNAMIC_MASK.get(), 0); // Rejected before native preparation.
             }
             tested += 1;
         }

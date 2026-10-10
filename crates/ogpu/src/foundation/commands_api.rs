@@ -100,6 +100,49 @@ unsafe fn description<'a, T>(pointer: *const T, kind: u32) -> Result<&'a T, Stat
     Ok(unsafe { &*pointer })
 }
 /// # Safety
+/// Live exclusive encoder and readable four-float array; native dynamic-state lifetime rules apply.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_blend_constants(
+    encoder: *mut List,
+    values: *const [f32; 4],
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.blend_constants(values.as_ref().ok_or(INVALID)?)
+        })
+    };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes required faces and obeys native state lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_stencil_reference(
+    encoder: *mut List,
+    faces: u32,
+    value: u32,
+) {
+    unsafe { encode(encoder, |e| e.stencil_value(4, faces, value)) };
+}
+/// # Safety
+/// Same as ogpu_next_set_stencil_reference.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_stencil_compare_mask(
+    encoder: *mut List,
+    faces: u32,
+    value: u32,
+) {
+    unsafe { encode(encoder, |e| e.stencil_value(8, faces, value)) };
+}
+/// # Safety
+/// Same as ogpu_next_set_stencil_reference.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_stencil_write_mask(
+    encoder: *mut List,
+    faces: u32,
+    value: u32,
+) {
+    unsafe { encode(encoder, |e| e.stencil_value(16, faces, value)) };
+}
+/// # Safety
 /// Live device and description/output as documented in include/ogpu_next.h.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_arena_create(

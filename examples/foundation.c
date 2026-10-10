@@ -61,7 +61,7 @@ _Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
-_Static_assert(sizeof(ogpu_next_graphics_limits) == 72, "graphics limits ABI");
+_Static_assert(sizeof(ogpu_next_graphics_limits) == 80, "graphics limits ABI");
 _Static_assert(sizeof(ogpu_next_graphics_state) == 160, "graphics state ABI");
 _Static_assert(sizeof(ogpu_next_vertex_input) == 48, "vertex input ABI");
 _Static_assert(sizeof(ogpu_next_vertex_binding) == 12, "vertex binding ABI");
@@ -1033,6 +1033,9 @@ int main(int argc, char **argv) {
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 1) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 2) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 1, 1, 2) == EXIT_SUCCESS);
+    for (uint64_t mask = 2; mask <= 16; mask *= 2)
+        REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,0,mask) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,2,30) == EXIT_SUCCESS);
     if (features.enabled & OGPU_NEXT_FEATURE_INHERITED_QUERIES)
         REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 3) == EXIT_SUCCESS);
     else printf("Inherited query execution not exercised: feature unavailable.\n");
