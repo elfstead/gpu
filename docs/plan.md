@@ -95,6 +95,10 @@ reference/compare/write masks. Setters are native commands with caller-owned sta
 initialization/lifetime, not hidden pipeline variants or a new per-draw state walk.
 Independent-bit and combined-secondary output tests pass; preparation checks all
 sixteen combinations. Dynamic reference removes a reference-only executable variant.
+Independent vertex/fragment storage-write and atomic enabling now removes the
+read-only graphics-shader restriction. Attachmentless address-root consumers pass
+vertex-only, fragment-only, combined and secondary execution with changed-seed replay.
+No dummy attachment, new host operation or exactly-once vertex assumption is added.
 Broader draft profiles and consumer cutover remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

@@ -186,6 +186,8 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_PIPELINE_STATISTICS UINT64_C(32768)
 #define OGPU_NEXT_FEATURE_PRECISE_OCCLUSION UINT64_C(65536)
 #define OGPU_NEXT_FEATURE_INHERITED_QUERIES UINT64_C(131072)
+#define OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS UINT64_C(262144)
+#define OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS UINT64_C(524288)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -208,6 +210,14 @@ typedef struct ogpu_next_feature_info {
  * Atomicity does not imply ordering of unrelated accesses or a global execution
  * barrier. Shader memory scopes/semantics, convergence and inter-dispatch hazards
  * are caller/compiler contracts. Floating-point atomics are a separate profile.
+ * VERTEX_STORES_ATOMICS and FRAGMENT_STORES_ATOMICS independently enable storage
+ * writes/atomics in their shader stages; they do not enable RASTER, additional
+ * stages, 64-bit/floating atomics or a storage-image format. Artifacts declare the
+ * required bits; OGPU does not scan/rewrite shaders. Caller owns address validity,
+ * synchronization and native invocation semantics (including duplicated vertex
+ * work, fragment helper invocations and early/late tests). A draw is not an
+ * exactly-once general compute dispatch. Attachmentless rasterization may use
+ * these operations without allocating dummy color/depth targets.
  */
 typedef struct ogpu_next_queue_request {
     ogpu_next_queue_domain domain;

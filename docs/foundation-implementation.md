@@ -589,6 +589,29 @@ RG32 float fetch and divisor-one instancing; other formats, zero-stride executio
 dynamic input state and nontrivial divisors still need their own coverage/profiles.
 The source-only graphics limits/state records grow to 72/160 bytes; ABI 20 is unchanged.
 
+## Implemented graphics-stage storage writes
+
+`VERTEX_STORES_ATOMICS` and `FRAGMENT_STORES_ATOMICS` independently expose native
+storage writes and atomics in those shader stages. Neither implicitly enables RASTER,
+new shader stages, an image format or 64-bit/floating-point atomic operations.
+Artifact requirements declare the needed bits and preparation rejects unavailable or
+disabled requirements before shader creation. There is no shader scan, translation,
+resource list or extra host command for an operation expressed in device code.
+These map to the native
+[per-stage storage features](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceFeatures.html).
+
+The public consumer draws without color/depth attachments, writing through a GPU
+address root. Separate vertex-only, fragment-only and combined artifacts plus a
+standalone secondary test cover vertex atomic OR, fragment ordinary stores and an
+atomic sum, explicit shader-to-host visibility, three changed-seed replays and guards.
+Both local drivers pass. Vertex checks deliberately use idempotent atomics instead
+of assuming exactly one invocation per logical vertex. The one-sample, single-triangle
+fragment test has one contributing invocation per pixel; it makes no broader promise
+about helpers, overdraw or early/late tests. Rust tests enable neither/either/both
+features on independent devices and reject disabled declared artifact requirements.
+Storage-image writes in graphics, graphics 64-bit atomics, multisample side effects
+and cross-draw shader-read dependencies remain unverified by this fixture.
+
 ## Implemented scalar numerical profiles
 
 Alongside existing FP16, devices now advertise and explicitly enable `INT8`, `INT16`,

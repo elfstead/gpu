@@ -758,6 +758,46 @@ mod tests {
                 assert!(out.is_null());
                 assert_eq!(DYNAMIC_MASK.get(), 0); // Rejected before native preparation.
             }
+            let profiles = [
+                0,
+                VERTEX_STORES_ATOMICS,
+                FRAGMENT_STORES_ATOMICS,
+                VERTEX_STORES_ATOMICS | FRAGMENT_STORES_ATOMICS,
+            ];
+            desc.dynamic_state = 1;
+            for enabled in profiles {
+                if enabled & !adapter.snapshot.features.available != 0 {
+                    continue;
+                }
+                let profile_device = Device::create(
+                    &adapter,
+                    &[QueueRequest {
+                        domain,
+                        count: 1,
+                        priority: 0.5,
+                    }],
+                    RASTER | enabled,
+                )
+                .unwrap();
+                assert_eq!(profile_device.snapshot.features.enabled, RASTER | enabled);
+                for required in profiles {
+                    let requirements = ShaderRequirements {
+                        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+                        features: RASTER | required,
+                        local_size: [0; 3],
+                        shared_memory: 0,
+                    };
+                    desc.requirements = &requirements.header;
+                    // The harmless artifact lets us verify requirements without issuing
+                    // an invalid shader on disabled devices. C executes the writing artifacts.
+                    let result = unsafe { Executable::create(&profile_device, &desc) };
+                    if required & !enabled == 0 {
+                        assert!(result.is_ok());
+                    } else {
+                        assert!(matches!(result, Err(UNSUPPORTED)));
+                    }
+                }
+            }
             tested += 1;
         }
         assert!(tested > 0, "No suitable raster device; not a passing skip");

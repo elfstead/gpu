@@ -390,6 +390,14 @@ pub(super) fn snapshot(
             features.available |= FLOAT16;
         }
         for (supported, bit) in [
+            (
+                root.features.vertexPipelineStoresAndAtomics,
+                VERTEX_STORES_ATOMICS,
+            ),
+            (
+                root.features.fragmentStoresAndAtomics,
+                FRAGMENT_STORES_ATOMICS,
+            ),
             (root.features.inheritedQueries, INHERITED_QUERIES),
             (root.features.pipelineStatisticsQuery, PIPELINE_STATISTICS),
             (root.features.occlusionQueryPrecise, PRECISE_OCCLUSION),
@@ -613,6 +621,8 @@ impl Device {
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            vertexPipelineStoresAndAtomics: u32::from(enabled & VERTEX_STORES_ATOMICS != 0),
+            fragmentStoresAndAtomics: u32::from(enabled & FRAGMENT_STORES_ATOMICS != 0),
             inheritedQueries: u32::from(enabled & INHERITED_QUERIES != 0),
             pipelineStatisticsQuery: u32::from(enabled & PIPELINE_STATISTICS != 0),
             occlusionQueryPrecise: u32::from(enabled & PRECISE_OCCLUSION != 0),

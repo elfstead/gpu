@@ -27,6 +27,7 @@ extern "C" {
  * timeline objects and scalar arithmetic/storage enabling: implemented header above.
  * Subgroup queries and per-stage size/operation requirements are also implemented.
  * Format capabilities and explicit image-profile limits are implemented too.
+ * Vertex/fragment storage writes and atomics have independent enabling bits.
  * Budget, broader atomic/matrix numerical tuples and
  * exact executable/state query records remain to be defined. */
 
