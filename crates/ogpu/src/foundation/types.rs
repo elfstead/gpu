@@ -64,6 +64,35 @@ pub const FULL_SUBGROUPS: u64 = 8192;
 pub const SUBGROUP_EXTENDED_TYPES: u64 = 16384;
 pub const SUBGROUP_LIMITS: u32 = 11;
 pub const SUBGROUP_STATE: u32 = 120;
+pub const FORMATS: u32 = 12;
+pub const IMAGE_PROFILE: u32 = 123;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct FormatInfo {
+    pub format: u32,
+    pub aspects: u32,
+    pub optimal_features: u64,
+    pub linear_features: u64,
+    pub buffer_features: u64,
+}
+#[repr(C)]
+pub struct ImageProfile {
+    pub header: Record,
+    pub format: u32,
+    pub dimension: u32,
+    pub usage: u64,
+    pub image_flags: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct ImageLimits {
+    pub max_extent: [u32; 3],
+    pub max_mips: u32,
+    pub max_layers: u32,
+    pub sample_counts: u32,
+    pub max_resource_size: u64,
+}
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct SubgroupLimits {

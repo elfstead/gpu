@@ -82,6 +82,9 @@ exercise narrow mappings; the source-only COPY/VERTEX meanings are corrected.
 Native blits now cover explicit scaling/reversal, nearest/linear filtering, format
 conversion and caller-recorded mip generation. The public consumer checks layered
 BGRA output, UNORM-to-float output and linear mip results with changed-input replay.
+Immutable format capabilities and allocation-free image-profile limits now let callers
+discover tiling/buffer uses and exact tuple limits before creating resources or
+recording commands. Queries preserve outputs on failure; blit prerequisites are explicit.
 Split dependencies and broader draft profiles remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

@@ -9,6 +9,26 @@ unsafe fn description<'a, T>(pointer: *const T, kind: u32) -> Result<&'a T, Stat
     Ok(unsafe { &*pointer })
 }
 /// # Safety
+/// Live device, readable profile and disjoint writable limits output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_image_limits_query(
+    device: *const Device,
+    profile: *const ImageProfile,
+    out: *mut ImageLimits,
+) -> Status {
+    boundary(|| {
+        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let limits = d.image_limits(unsafe { description(profile, IMAGE_PROFILE)? })?;
+        unsafe {
+            out.write(limits);
+        }
+        Ok(())
+    })
+}
+/// # Safety
 /// Live device, readable description/arrays, writable output as in ogpu_next.h.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_image_requirements(

@@ -5,6 +5,9 @@ use std::cell::Cell;
 
 #[path = "blits.rs"]
 mod blits;
+#[path = "formats.rs"]
+mod formats;
+pub(super) use formats::format_snapshot;
 
 #[derive(Clone, Copy)]
 pub(super) struct Format {
@@ -255,19 +258,7 @@ impl Device {
             }
             domains.to_vec()
         };
-        let flags = if desc.flags & 1 != 0 {
-            vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT
-        } else {
-            0
-        } | if desc.flags & 2 != 0 {
-            vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT
-        } else {
-            0
-        } | if desc.flags & 4 != 0 {
-            vk::VkImageCreateFlagBits_VK_IMAGE_CREATE_ALIAS_BIT
-        } else {
-            0
-        };
+        let flags = formats::image_flags(desc.flags)?;
         let info = vk::VkImageCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             flags,

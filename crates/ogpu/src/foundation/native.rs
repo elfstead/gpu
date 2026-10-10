@@ -196,6 +196,7 @@ pub(super) fn snapshot(
     let mut query_limits = QueryLimits::default();
     let mut subgroup_limits = SubgroupLimits::default();
     let mut cache_uuid = [0; 16];
+    let formats = images::format_snapshot(&f, physical)?;
     if crate::compute::require_baseline(&info).is_ok() {
         let has_unified = instance
             .supports_extension(physical, c"VK_KHR_unified_image_layouts")
@@ -463,6 +464,7 @@ pub(super) fn snapshot(
         graphics_limits,
         query_limits,
         subgroup_limits,
+        formats,
     })
 }
 

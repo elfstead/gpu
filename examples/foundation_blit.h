@@ -7,6 +7,22 @@ static int blit_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_timeline *done = NULL;
     void *barrier_scratch = NULL, *submit_scratch = NULL;
     ogpu_next_host_requirements br = {0}, sr = {0};
+    ogpu_next_format_info formats[32];
+    ogpu_next_query fq = query(OGPU_NEXT_QUERY_FORMATS, formats, 32, sizeof(formats[0]));
+    TRY(ogpu_next_device_query(device, &fq));
+    uint32_t supported = 0;
+    for (uint32_t i = 0; i < fq.count; ++i) {
+        uint64_t need = OGPU_NEXT_FORMAT_COPY_SRC | OGPU_NEXT_FORMAT_COPY_DST | OGPU_NEXT_FORMAT_BLIT_DST;
+        if (formats[i].format == OGPU_NEXT_RGBA8_UNORM) {
+            need |= OGPU_NEXT_FORMAT_BLIT_SRC | OGPU_NEXT_FORMAT_FILTER_LINEAR;
+            REQUIRE((formats[i].optimal_features & need) == need); supported |= 1;
+        } else if (formats[i].format == OGPU_NEXT_BGRA8_UNORM) {
+            REQUIRE((formats[i].optimal_features & need) == need); supported |= 2;
+        } else if (formats[i].format == OGPU_NEXT_RGBA32_FLOAT) {
+            REQUIRE((formats[i].optimal_features & need) == need); supported |= 4;
+        }
+    }
+    REQUIRE(supported == 7); /* Explicit fixture prerequisite, not a passing skip. */
     for (uint32_t i = 0; i < 3; ++i) {
         ogpu_next_image_desc desc = {HEADER(ogpu_next_image_desc, OGPU_NEXT_IMAGE_DESC),
             i == 1 ? OGPU_NEXT_BGRA8_UNORM : i == 2 ? OGPU_NEXT_RGBA32_FLOAT : OGPU_NEXT_RGBA8_UNORM,

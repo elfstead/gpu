@@ -196,6 +196,21 @@ this remains source-only revision 1, not an installed ABI change.
 
 ## Implemented images and views
 
+`QUERY_FORMATS` exposes immutable per-format optimal/linear tiling and formatted-buffer
+capabilities on adapters and devices, including zero-support formats. It uses the
+existing atomic capacity protocol and does not imply optional feature enabling.
+An allocation-free `image_limits_query` reports extent/mip/layer/sample/resource-size
+limits for an explicit optimal-image format/dimension/usage/flags profile. Output
+is unchanged on failure; disabled multisampled storage remains excluded. Physical
+capabilities are not a memory budget or a guarantee that combined maximum values
+can be instantiated. Concrete descriptions still use `image_requirements` for exact
+support, memory types/alignment and dedicated-placement rules. Native
+[format properties](https://docs.vulkan.org/refpages/latest/refpages/source/VkFormatProperties.html)
+and [image limits](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetPhysicalDeviceImageFormatProperties.html)
+remain separate. The public C consumer compares adapter/device snapshots, checks
+short-capacity atomicity and failure-output preservation, and discovers blit prerequisites
+after discovery teardown instead of assuming format support.
+
 Images interpret caller-selected opaque backing spans: format, dimensionality,
 mips, layers, samples, uses, mutable-format list, alias permission and concurrent
 queue families are explicit. Requirements query the exact native tuple without
@@ -670,7 +685,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
 
 ## Verification so far
 
-- 76 ordinary Rust tests pass, including foundation contract, status and
+- 77 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

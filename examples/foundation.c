@@ -29,6 +29,9 @@ _Static_assert(sizeof(ogpu_next_inheritance) == 64, "inheritance ABI");
 _Static_assert(sizeof(ogpu_next_render_inheritance) == 72, "render inheritance ABI");
 _Static_assert(sizeof(ogpu_next_blit_region) == 40, "blit region ABI");
 _Static_assert(sizeof(ogpu_next_image_blit) == 96, "image blit ABI");
+_Static_assert(sizeof(ogpu_next_format_info) == 32, "format info ABI");
+_Static_assert(sizeof(ogpu_next_image_profile) == 48, "image profile ABI");
+_Static_assert(sizeof(ogpu_next_image_limits) == 32, "image limits ABI");
 _Static_assert(sizeof(ogpu_next_recording_desc) == 40, "recording ABI");
 _Static_assert(sizeof(ogpu_next_submit_desc) == 80, "submit ABI");
 _Static_assert(sizeof(ogpu_next_dependency) == 104, "dependency ABI");
@@ -81,6 +84,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_numerics.h"
 #include "foundation_submission.h"
 #include "foundation_blit.h"
+#include "foundation_formats.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
@@ -930,6 +934,7 @@ int main(int argc, char **argv) {
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
             OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES)) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
+        REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
         for (uint32_t j = 0; j < count; ++j) {
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 0) != NULL);
             REQUIRE(ogpu_next_device_queue(device, requests[j].domain, 1) == NULL);

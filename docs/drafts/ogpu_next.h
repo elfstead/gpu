@@ -26,8 +26,9 @@ extern "C" {
 /* Discovery, queue/memory topology, requested feature enabling and independent
  * timeline objects and scalar arithmetic/storage enabling: implemented header above.
  * Subgroup queries and per-stage size/operation requirements are also implemented.
+ * Format capabilities and explicit image-profile limits are implemented too.
  * Budget, broader atomic/matrix numerical tuples and
- * exact executable/format/state query records remain to be defined. */
+ * exact executable/state query records remain to be defined. */
 
 /* Backing, placed/dedicated images, views and explicit image transitions/copies
  * are now in the implemented header above. Broader format/feature profiles follow. */

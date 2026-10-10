@@ -62,6 +62,7 @@ enum {
     OGPU_NEXT_QUERY_GRAPHICS_LIMITS = 9,
     OGPU_NEXT_QUERY_LIMITS = 10,
     OGPU_NEXT_QUERY_SUBGROUP_LIMITS = 11,
+    OGPU_NEXT_QUERY_FORMATS = 12,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -73,7 +74,7 @@ enum {
     OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
     OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118, OGPU_NEXT_VERTEX_INPUT = 119,
     OGPU_NEXT_SUBGROUP_STATE = 120, OGPU_NEXT_INHERITANCE = 121,
-    OGPU_NEXT_RENDER_INHERITANCE = 122
+    OGPU_NEXT_RENDER_INHERITANCE = 122, OGPU_NEXT_IMAGE_PROFILE = 123
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -116,6 +117,56 @@ typedef struct ogpu_next_memory_heap_info {
 typedef struct ogpu_next_memory_limits {
     uint64_t max_buffer_size, max_allocation_size, cache_atom_size, map_alignment;
 } ogpu_next_memory_limits;
+/* QUERY_FORMATS lists every format known to this revision, including records with
+ * zero capabilities. IDs/order are not array indices or a fixed-count promise.
+ * Immutable physical capabilities, identical on adapter/device: not optional
+ * feature enabling, throughput, supported combinations or allocation guarantees.
+ * optimal/linear masks concern image tiling; linear image creation is not yet
+ * exposed. buffer_features concern formatted buffers (including vertex fetch),
+ * not arbitrary address-buffer arithmetic. Texel buffers remain a future profile.
+ * Use image_limits for dimension/usage/flag tuples, then image_requirements for
+ * concrete extents, placement and dedicated allocation constraints.
+ */
+#define OGPU_NEXT_FORMAT_SAMPLED UINT64_C(1)
+#define OGPU_NEXT_FORMAT_STORAGE UINT64_C(2)
+#define OGPU_NEXT_FORMAT_STORAGE_ATOMIC UINT64_C(4)
+#define OGPU_NEXT_FORMAT_COLOR UINT64_C(8)
+#define OGPU_NEXT_FORMAT_BLEND UINT64_C(16)
+#define OGPU_NEXT_FORMAT_DEPTH_STENCIL UINT64_C(32)
+#define OGPU_NEXT_FORMAT_BLIT_SRC UINT64_C(64)
+#define OGPU_NEXT_FORMAT_BLIT_DST UINT64_C(128)
+#define OGPU_NEXT_FORMAT_FILTER_LINEAR UINT64_C(256)
+#define OGPU_NEXT_FORMAT_COPY_SRC UINT64_C(512)
+#define OGPU_NEXT_FORMAT_COPY_DST UINT64_C(1024)
+#define OGPU_NEXT_FORMAT_BUFFER_VERTEX UINT64_C(1)
+#define OGPU_NEXT_FORMAT_BUFFER_UNIFORM_TEXEL UINT64_C(2)
+#define OGPU_NEXT_FORMAT_BUFFER_STORAGE_TEXEL UINT64_C(4)
+#define OGPU_NEXT_FORMAT_BUFFER_ATOMIC_TEXEL UINT64_C(8)
+typedef struct ogpu_next_format_info {
+    ogpu_next_format format;
+    uint32_t aspects;
+    uint64_t optimal_features, linear_features, buffer_features;
+} ogpu_next_format_info;
+typedef struct ogpu_next_image_profile {
+    ogpu_next_record header;
+    ogpu_next_format format;
+    uint32_t dimension;
+    uint64_t usage;
+    uint32_t image_flags, reserved;
+} ogpu_next_image_profile;
+typedef struct ogpu_next_image_limits {
+    uint32_t max_extent[3], max_mips, max_layers, sample_counts;
+    uint64_t max_resource_size;
+} ogpu_next_image_limits;
+/* Optimal-image profile query: IMAGE_PROFILE, dimension/usage/flags use the image
+ * description enums; reserved=0. Output written only on OK. No native resource,
+ * memory allocation or OGPU heap allocation. Reports limits for this tuple under
+ * the current implemented image profile (e.g. storage sample counts restricted to
+ * one until multisampled-storage enabling exists). Unknown profiles fail; no
+ * format substitution. Limits are not a promise that every maximal value can be
+ * used simultaneously, or that memory of that size is currently available.
+ */
+ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const ogpu_next_image_profile *, ogpu_next_image_limits *);
 #define OGPU_NEXT_FEATURE_RASTER UINT64_C(1)
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT64_C(2)
 #define OGPU_NEXT_FEATURE_UNIFIED_IMAGES UINT64_C(4)

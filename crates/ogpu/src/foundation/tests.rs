@@ -34,6 +34,7 @@ fn fixture() -> Snapshot {
         graphics_limits: GraphicsLimits::default(),
         query_limits: QueryLimits::default(),
         subgroup_limits: SubgroupLimits::default(),
+        formats: vec![],
     }
 }
 fn query<T>(kind: u32, values: &mut [T]) -> Query {
@@ -164,6 +165,9 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ArenaDesc>(), 40);
     assert_eq!(size_of::<Inheritance>(), 64);
     assert_eq!(size_of::<RenderInheritance>(), 72);
+    assert_eq!(size_of::<FormatInfo>(), 32);
+    assert_eq!(size_of::<ImageProfile>(), 48);
+    assert_eq!(size_of::<ImageLimits>(), 32);
     assert_eq!(size_of::<BlitRegion>(), 40);
     assert_eq!(size_of::<ImageBlit>(), 96);
     assert_eq!(size_of::<RecordingDesc>(), 40);
