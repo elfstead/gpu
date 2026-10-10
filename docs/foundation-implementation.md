@@ -678,6 +678,29 @@ reproduce; C/Rust ABI checks cover 851 layout values, with installed ABI 20 unch
 
 ### Independent targets and indirect base instances
 
+`DUAL_SOURCE_BLEND` independently enables the four secondary-source blend factors
+in any source/destination color/alpha factor field. The second value is source
+index one at the same output location, not another target. The compiler artifact
+provides the interface; OGPU creates no temporary attachment and performs no shader
+rewriting or extra draw. Graphics limits report `max_dual_source_attachments` in the
+previously reserved word (record size remains 96 bytes). That is a bound on all
+statically used fragment output locations when dual-source blending is active, not
+a blanket bound on the pipeline's declared attachment array. Output interfaces and
+their static-use limit remain caller artifact contracts, without a reflection scan.
+See [native blend factors](https://docs.vulkan.org/refpages/latest/refpages/source/VkBlendFactor.html)
+and Slang's [location/index attributes](https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/a2-01-spirv-target-specific.html).
+
+The dedicated C consumer prepares all sixteen factor/field combinations using a
+Slang fragment artifact with both outputs at location zero, source indices zero
+and one. Two draws blend into RGBA32_FLOAT; binary-fraction inputs permit exact
+readback including values above one, separate color/alpha factors and dependence
+on existing destination contents. The same list replays changed primary and
+secondary values with guards. Feature-off/invalid-factor cases reject before native
+preparation. These cases and all 14 foundation GPU tests pass on Radeon 26.2.4 and
+llvmpipe 26.2.1 (with the existing stencil-copy exclusion); the new shader reproduces
+with pinned Slang and validates. Multiple dual-source output locations, normalized
+target rounding and dual-source multisample execution remain verification work.
+
 `LOGIC_OP` independently enables all sixteen native color logic operations. The
 graphics state carries explicit enable/op fields; one operation applies across
 targets, before each target's channel mask. It operates on converted attachment

@@ -396,7 +396,7 @@ pub(super) fn snapshot(
             dynamic_states: 31,
             line_width_range: p.lineWidthRange,
             line_width_granularity: p.lineWidthGranularity,
-            reserved: 0,
+            max_dual_source_attachments: p.maxFragmentDualSrcAttachments,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
@@ -417,6 +417,7 @@ pub(super) fn snapshot(
             ),
             (root.features.independentBlend, INDEPENDENT_BLEND),
             (root.features.logicOp, LOGIC_OP),
+            (root.features.dualSrcBlend, DUAL_SOURCE_BLEND),
             (root.features.depthClamp, DEPTH_CLAMP),
             (root.features.depthBiasClamp, DEPTH_BIAS_CLAMP),
             (root.features.fillModeNonSolid, NON_SOLID_FILL),
@@ -668,6 +669,7 @@ impl Device {
             drawIndirectFirstInstance: u32::from(enabled & INDIRECT_FIRST_INSTANCE != 0),
             independentBlend: u32::from(enabled & INDEPENDENT_BLEND != 0),
             logicOp: u32::from(enabled & LOGIC_OP != 0),
+            dualSrcBlend: u32::from(enabled & DUAL_SOURCE_BLEND != 0),
             depthClamp: u32::from(enabled & DEPTH_CLAMP != 0),
             depthBiasClamp: u32::from(enabled & DEPTH_BIAS_CLAMP != 0),
             fillModeNonSolid: u32::from(enabled & NON_SOLID_FILL != 0),

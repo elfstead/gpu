@@ -790,7 +790,13 @@ mod tests {
                 UNUSED_ATTACHMENTS,
                 UNUSED_ATTACHMENTS | UNIFIED_IMAGES,
                 LOGIC_OP,
+                DUAL_SOURCE_BLEND,
             ];
+            let dual_code: Vec<u32> =
+                include_bytes!("../../../../examples/shaders/foundation-dual-source.frag.spv")
+                    .chunks_exact(4)
+                    .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+                    .collect();
             desc.dynamic_state = 1;
             for enabled in profiles {
                 if enabled & !adapter.snapshot.features.available != 0 {
@@ -850,6 +856,56 @@ mod tests {
                     assert!(matches!(result, Err(UNSUPPORTED)));
                 }
                 let defaults = RasterOptions::default();
+                // Use the actual Index=1 artifact, but reject disabled factors
+                // before either native module or pipeline sees that interface.
+                for field in 0..4 {
+                    for factor in 15..=19 {
+                        let mut dual_color = ColorState { blend: 1, ..color };
+                        match field {
+                            0 => dual_color.src_color = factor,
+                            1 => dual_color.dst_color = factor,
+                            2 => dual_color.src_alpha = factor,
+                            _ => dual_color.dst_alpha = factor,
+                        }
+                        let dual_shader = Shader {
+                            code: Bytes {
+                                data: dual_code.as_ptr().cast(),
+                                size: dual_code.len() * 4,
+                            },
+                            ..shaders[1]
+                        };
+                        let dual_shaders = [Shader { ..shaders[0] }, dual_shader];
+                        let dual_state = GraphicsState {
+                            colors: &dual_color,
+                            ..state
+                        };
+                        let dual_desc = ExecutableDesc {
+                            shaders: dual_shaders.as_ptr(),
+                            static_state: &dual_state.header,
+                            requirements: &req.header,
+                            ..desc
+                        };
+                        COLOR_LOGIC.set((u32::MAX, u32::MAX, u32::MAX));
+                        let result = unsafe { Executable::create(&profile_device, &dual_desc) };
+                        if factor == 19 {
+                            assert!(matches!(result, Err(INVALID)));
+                        } else if enabled & DUAL_SOURCE_BLEND != 0 {
+                            assert!(
+                                profile_device
+                                    .snapshot
+                                    .graphics_limits
+                                    .max_dual_source_attachments
+                                    > 0
+                            );
+                            assert!(result.is_ok());
+                        } else {
+                            assert!(matches!(result, Err(UNSUPPORTED)));
+                        }
+                        if factor == 19 || enabled & DUAL_SOURCE_BLEND == 0 {
+                            assert_eq!(COLOR_LOGIC.get(), (u32::MAX, u32::MAX, u32::MAX));
+                        }
+                    }
+                }
                 for op in 0..=15 {
                     let blend_color = ColorState { blend: 1, ..color };
                     let logic_state = GraphicsState {

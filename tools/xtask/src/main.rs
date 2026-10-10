@@ -311,6 +311,7 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
         ("foundation-atomics", "atomicMain", "compute", "comp"),
         ("foundation-subgroups", "subgroupMain", "compute", "comp"),
         ("foundation-mrt", "fragmentMain", "fragment", "frag"),
+        ("foundation-dual-source", "fragmentMain", "fragment", "frag"),
         ("foundation-raster-storage", "vertexMain", "vertex", "vert"),
         (
             "foundation-raster-storage",
@@ -600,7 +601,7 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag"]),
+        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag"]),
         Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
         Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),

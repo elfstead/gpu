@@ -267,14 +267,21 @@ pub(super) unsafe fn prepare(
     for c in colors {
         if c.write_mask & !15 != 0
             || c.blend > 1
-            || c.src_color > 14
-            || c.dst_color > 14
-            || c.src_alpha > 14
-            || c.dst_alpha > 14
+            || c.src_color > 18
+            || c.dst_color > 18
+            || c.src_alpha > 18
+            || c.dst_alpha > 18
             || c.color_op > 4
             || c.alpha_op > 4
         {
             return Err(INVALID);
+        }
+        if [c.src_color, c.dst_color, c.src_alpha, c.dst_alpha]
+            .iter()
+            .any(|&f| f >= 15)
+            && d.snapshot.features.enabled & DUAL_SOURCE_BLEND == 0
+        {
+            return Err(UNSUPPORTED);
         }
         let native_format = if c.format == 0 {
             0

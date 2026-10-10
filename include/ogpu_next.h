@@ -201,6 +201,7 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_ALPHA_TO_ONE UINT64_C(268435456)
 #define OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS UINT64_C(536870912)
 #define OGPU_NEXT_FEATURE_LOGIC_OP UINT64_C(1073741824)
+#define OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND UINT64_C(2147483648)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -908,7 +909,7 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t max_vertex_bindings, max_vertex_attributes, max_vertex_attribute_offset, max_vertex_stride;
     uint64_t dynamic_states; /* supported bits; VIEWPORT_SCISSOR remains required in this profile */
     float line_width_range[2], line_width_granularity;
-    uint32_t reserved;
+    uint32_t max_dual_source_attachments;
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
@@ -955,8 +956,21 @@ enum {
     OGPU_NEXT_BLEND_DST_ALPHA = 8, OGPU_NEXT_BLEND_ONE_MINUS_DST_ALPHA = 9,
     OGPU_NEXT_BLEND_CONSTANT_COLOR = 10, OGPU_NEXT_BLEND_ONE_MINUS_CONSTANT_COLOR = 11,
     OGPU_NEXT_BLEND_CONSTANT_ALPHA = 12, OGPU_NEXT_BLEND_ONE_MINUS_CONSTANT_ALPHA = 13,
-    OGPU_NEXT_BLEND_SRC_ALPHA_SATURATE = 14
+    OGPU_NEXT_BLEND_SRC_ALPHA_SATURATE = 14,
+    OGPU_NEXT_BLEND_SRC1_COLOR = 15, OGPU_NEXT_BLEND_ONE_MINUS_SRC1_COLOR = 16,
+    OGPU_NEXT_BLEND_SRC1_ALPHA = 17, OGPU_NEXT_BLEND_ONE_MINUS_SRC1_ALPHA = 18
 };
+/* SRC1 factors require DUAL_SOURCE_BLEND, including when stored in disabled blend
+ * state. They use the fragment output's second source index at the SAME location,
+ * not another color attachment. The artifact supplies source indices 0 and 1;
+ * OGPU does not rewrite output locations, create another target or blend in a shader.
+ * With enabled dual-source blending, all statically used fragment output locations
+ * must be below max_dual_source_attachments. This limits shader output locations,
+ * not the number of declared pipeline slots (unused slots need not be removed).
+ * Shader requirements must declare DUAL_SOURCE_BLEND when its interface needs it.
+ * Output type/components, secondary outputs and their limit are caller artifact
+ * contracts; no shader reflection or draw-time output scan is performed.
+ */
 enum { OGPU_NEXT_BLEND_ADD = 0, OGPU_NEXT_BLEND_SUBTRACT = 1, OGPU_NEXT_BLEND_REVERSE_SUBTRACT = 2, OGPU_NEXT_BLEND_MIN = 3, OGPU_NEXT_BLEND_MAX = 4 };
 typedef struct ogpu_next_color_state {
     ogpu_next_format format;

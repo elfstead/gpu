@@ -62,6 +62,7 @@ pub const SAMPLE_SHADING: u64 = 134217728;
 pub const ALPHA_TO_ONE: u64 = 268435456;
 pub const UNUSED_ATTACHMENTS: u64 = 536870912;
 pub const LOGIC_OP: u64 = 1073741824;
+pub const DUAL_SOURCE_BLEND: u64 = 2147483648;
 pub const INHERITANCE: u32 = 121;
 pub const RENDER_INHERITANCE: u32 = 122;
 pub const STATISTICS_MASK: u64 = 2047;
@@ -187,7 +188,7 @@ pub struct GraphicsLimits {
     pub dynamic_states: u64,
     pub line_width_range: [f32; 2],
     pub line_width_granularity: f32,
-    pub reserved: u32,
+    pub max_dual_source_attachments: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]
