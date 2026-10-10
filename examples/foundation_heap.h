@@ -211,8 +211,9 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         TRY(ogpu_next_commands_end(dispatch_encoder, &child));
         ogpu_next_execute_lists(encoder, 1, &child, (ogpu_next_host_span){execute_scratch, er.size});
         memset(execute_scratch, 0xcc, (size_t)er.size);
-        /* Dispatch once more in the parent. Inherited heaps survive execution;
-         * only non-inherited heaps, pipeline and argument state are rebound. */
+        /* Parent overwrites only the first half, sampling different source rows.
+         * Both parent and child must therefore execute to satisfy readback.
+         * Inherited heaps survive; only other heaps/pipeline/arguments rebind. */
         ogpu_next_dependency writes = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY),
             OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_STAGE_COMPUTE,
             OGPU_NEXT_ACCESS_STORAGE_WRITE, OGPU_NEXT_ACCESS_STORAGE_WRITE, 0, 0, 0, NULL, NULL, NULL, 0};
@@ -220,6 +221,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         for (uint32_t i = 0; i < 2; ++i)
             if (!(secondary & (1u << i))) ogpu_next_bind_heap(encoder, &bindings[i]);
         ogpu_next_bind_executable(encoder, executable);
+        control[5] = height / 2;
         ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
         ogpu_next_dispatch(encoder, &launch);
     }
@@ -259,7 +261,8 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate((ogpu_next_span){data, 0, host_desc.size}));
         for (uint32_t i = 0; i < width * height; ++i) {
-            uint32_t expected = UINT32_C(0xff000000) | (220 - i - replay) | ((255 - 31 - i * 3) << 8) | ((17 + i + replay) << 16);
+            uint32_t source = secondary && i < width * (height/2) ? (2*(i/width)+1)*width + i%width : i;
+            uint32_t expected = UINT32_C(0xff000000) | (220 - source - replay) | ((255 - 31 - source * 3) << 8) | ((17 + source + replay) << 16);
             REQUIRE(((uint32_t *)data_map.data)[128 + i] == expected);
             REQUIRE(((uint32_t *)data_map.data)[resources[2].buffer.offset / 4 + i] == expected);
         }

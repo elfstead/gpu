@@ -177,6 +177,8 @@ Backing and native reserved-range obligations extend through both child and pare
 future/pending uses. The C fixture checks neither/either/both heaps inherited,
 parent dispatch after execution without rebinding inherited heaps, changed-descriptor
 replay, pending disjoint sampler writes and rejection of inherited-heap rebinding.
+Parent dispatch overwrites only half the child output using different sampled rows;
+readback requires both executions, so a successful parent cannot hide a broken child.
 
 Secondary lifetime and replay obligations are explicit: reset/destruction invalidates
 referring primaries, a simultaneous parent needs simultaneous children, and callers
