@@ -676,6 +676,31 @@ artifact with either domain or INT64 missing. This does not establish all atomic
 operations, signed/floating-point atomics, device-wide synchronization algorithms,
 forward-progress properties or contention throughput.
 
+### Floating-point policy discovery
+
+`QUERY_FLOAT_CONTROLS` returns one immutable physical record for binary16/32/64
+preservation, denormal and rounding-mode support, plus separate denormal/rounding
+independence rules. Adapter and device results match regardless of optional type
+enabling. The mapping follows native
+[float-control properties](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceFloatControlsProperties.html)
+and [width independence](https://docs.vulkan.org/refpages/latest/refpages/source/VkShaderFloatControlsIndependence.html).
+Support is not selection: the compiler's artifact must request legal modes, and
+the caller must enable arithmetic types separately. No default preservation,
+precision widening, fast-math choice, emulation or throughput promise is inferred.
+Instruction-specific exceptions and precision rules still apply; this is not a
+blanket IEEE-754, transcendental accuracy, NaN-payload or reproducibility guarantee.
+
+Host tests isolate all fifteen native mode/width fields and preserve independence
+values. Both local drivers pass adapter/device equality, count-only and failure-output
+checks; GPU setup tests compare results with optional features disabled and enabled.
+Radeon 26.2.4 reports all five modes for all three widths, with 32-bit-only policy
+independence (16/64 are coupled). llvmpipe 26.2.1 reports signed-zero/Inf/NaN preservation
+and nearest-even rounding, with all-width independence. Its missing explicit denormal
+mode bits do not establish an unspecified artifact's actual denormal behavior.
+This tranche is discovery only: numerical execution-mode litmus tests, artifact
+mode requirement/reflection validation and float-controls-2 remain work. There is
+no command-time floating-point policy setter.
+
 ## Implemented subgroup queries and stage controls
 
 The subgroup query reports native default/min/max widths, compute workgroup subgroup
@@ -807,7 +832,7 @@ stage vocabulary when the requested scope lowers to one supported native stage b
 
 ## Verification so far
 
-- 78 ordinary Rust tests pass, including foundation contract, status and
+- 79 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

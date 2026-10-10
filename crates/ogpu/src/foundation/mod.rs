@@ -42,6 +42,7 @@ struct Snapshot {
     graphics_limits: GraphicsLimits,
     query_limits: QueryLimits,
     subgroup_limits: SubgroupLimits,
+    float_controls: FloatControls,
     formats: Vec<FormatInfo>,
     features: FeatureInfo,
 }
@@ -98,6 +99,7 @@ impl Snapshot {
                 GRAPHICS_LIMITS => copy_out(query, std::slice::from_ref(&self.graphics_limits)),
                 QUERY_LIMITS => copy_out(query, std::slice::from_ref(&self.query_limits)),
                 SUBGROUP_LIMITS => copy_out(query, std::slice::from_ref(&self.subgroup_limits)),
+                FLOAT_CONTROLS => copy_out(query, std::slice::from_ref(&self.float_controls)),
                 FORMATS => copy_out(query, &self.formats),
                 _ => Err(UNSUPPORTED),
             }

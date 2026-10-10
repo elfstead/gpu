@@ -1,6 +1,20 @@
 /* Physical discovery is distinct from per-description placement requirements. */
 static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_device *device) {
     int result = EXIT_FAILURE;
+    ogpu_next_float_controls float_physical = {0}, float_device = {0};
+    ogpu_next_query fq = query(OGPU_NEXT_QUERY_FLOAT_CONTROLS,NULL,0,sizeof(float_physical));
+    TRY(ogpu_next_adapter_query(adapter,&fq)); REQUIRE(fq.count == 1);
+    fq.data = &float_physical; fq.capacity = 1; TRY(ogpu_next_adapter_query(adapter,&fq));
+    fq.data = &float_device; TRY(ogpu_next_device_query(device,&fq));
+    REQUIRE(memcmp(&float_physical,&float_device,sizeof(float_physical)) == 0);
+    REQUIRE(((float_device.binary16 | float_device.binary32 | float_device.binary64) & ~31u) == 0);
+    REQUIRE(float_device.denorm_independence <= 2 && float_device.rounding_independence <= 2 && float_device.reserved == 0);
+    memset(&float_device,0xa5,sizeof(float_device)); ogpu_next_float_controls float_saved = float_device;
+    fq.element_size--; fq.count = 79;
+    REQUIRE(ogpu_next_device_query(device,&fq) == OGPU_NEXT_INVALID && fq.count == 79);
+    REQUIRE(memcmp(&float_device,&float_saved,sizeof(float_device)) == 0);
+    printf("Float controls: binary16=%u binary32=%u binary64=%u; denorm independence=%u rounding independence=%u (capabilities, not selected policy).\n",
+        float_physical.binary16,float_physical.binary32,float_physical.binary64,float_physical.denorm_independence,float_physical.rounding_independence);
     ogpu_next_format_info physical[32], enabled[32], saved[32];
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FORMATS, NULL, 0, sizeof(physical[0]));
     TRY(ogpu_next_adapter_query(adapter, &q));

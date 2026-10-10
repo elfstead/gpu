@@ -1,8 +1,11 @@
 //! Vulkan foundation: immutable device state, externally synchronized queues,
 //! independent timelines. No implicit queue, completion counter or resource cache.
 use super::types::*;
+#[path = "float_controls.rs"]
+mod float_controls;
 use super::{loader_error, Adapter, Snapshot};
 use crate::vulkan::Instance;
+use float_controls::float_snapshot;
 use ogpu_vulkan_sys as vk;
 use std::{
     ptr,
@@ -204,6 +207,7 @@ pub(super) fn snapshot(
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
     let mut subgroup_limits = SubgroupLimits::default();
+    let mut float_controls = FloatControls::default();
     let mut cache_uuid = [0; 16];
     let formats = images::format_snapshot(&f, physical)?;
     if crate::compute::require_baseline(&info).is_ok() {
@@ -278,6 +282,7 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
+        float_controls = float_snapshot(&v12_properties);
         cache_uuid = properties.properties.pipelineCacheUUID;
         let stages = |native: u32| {
             (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT != 0 {
@@ -487,6 +492,7 @@ pub(super) fn snapshot(
         graphics_limits,
         query_limits,
         subgroup_limits,
+        float_controls,
         formats,
     })
 }

@@ -64,6 +64,7 @@ enum {
     OGPU_NEXT_QUERY_LIMITS = 10,
     OGPU_NEXT_QUERY_SUBGROUP_LIMITS = 11,
     OGPU_NEXT_QUERY_FORMATS = 12,
+    OGPU_NEXT_QUERY_FLOAT_CONTROLS = 13,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -194,6 +195,36 @@ typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
 } ogpu_next_feature_info;
+enum {
+    OGPU_NEXT_FLOAT_PRESERVE_SIGNED_ZERO_INF_NAN = 1,
+    OGPU_NEXT_FLOAT_PRESERVE_DENORMS = 2, OGPU_NEXT_FLOAT_FLUSH_DENORMS = 4,
+    OGPU_NEXT_FLOAT_ROUND_NEAREST_EVEN = 8, OGPU_NEXT_FLOAT_ROUND_TOWARD_ZERO = 16
+};
+enum {
+    OGPU_NEXT_FLOAT_INDEPENDENT_32 = 0, OGPU_NEXT_FLOAT_INDEPENDENT_ALL = 1,
+    OGPU_NEXT_FLOAT_INDEPENDENT_NONE = 2
+};
+typedef struct ogpu_next_float_controls {
+    uint32_t binary16, binary32, binary64;
+    uint32_t denorm_independence, rounding_independence, reserved;
+} ogpu_next_float_controls;
+/* QUERY_FLOAT_CONTROLS is one immutable physical-capability record, identical on
+ * adapter/device and independent of optional type enabling. Per-width masks report
+ * supported artifact execution modes, NOT active/default modes or fast throughput.
+ * Both denorm choices or rounding choices may be supported; that does not permit
+ * selecting conflicting modes for one width. INDEPENDENT_32 permits 32-bit policy
+ * to differ while 16/64 must agree; ALL permits per-width policies; NONE requires
+ * one policy across widths. Denorm and rounding independence are separate.
+ * An artifact/compiler chooses legal modes subject to these constraints and declares
+ * arithmetic features separately. OGPU does not change modes, rewrite SPIR-V, widen
+ * arithmetic, impose fast-math, or emulate unsupported behavior. Missing execution
+ * modes do not acquire preservation guarantees from this query. Instruction-specific
+ * native precision/exception rules still apply; this is not a blanket IEEE-754,
+ * correctly-rounded-transcendental, NaN-payload or cross-device reproducibility promise.
+ * reserved=0. No artifact mode-reflection/validation record or command-time floating
+ * policy setter is implemented by this query. Later float-controls-2 modes remain
+ * separate work. On baseline-ineligible adapters, zero masks make no mode promise.
+ */
 /* Feature records describe native enabling, not availability of future OGPU
  * draw/dispatch commands. Adapter queries: enabled=0, device_scope=0. Device
  * queries: only explicitly requested optional bits enabled, device_scope=1.

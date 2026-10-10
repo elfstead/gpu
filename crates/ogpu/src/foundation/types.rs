@@ -69,6 +69,17 @@ pub const SUBGROUP_EXTENDED_TYPES: u64 = 16384;
 pub const SUBGROUP_LIMITS: u32 = 11;
 pub const SUBGROUP_STATE: u32 = 120;
 pub const FORMATS: u32 = 12;
+pub const FLOAT_CONTROLS: u32 = 13;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct FloatControls {
+    pub binary16: u32,
+    pub binary32: u32,
+    pub binary64: u32,
+    pub denorm_independence: u32,
+    pub rounding_independence: u32,
+    pub reserved: u32,
+}
 pub const IMAGE_PROFILE: u32 = 123;
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]

@@ -103,6 +103,10 @@ Independent per-target blend/write state and nonzero indirect first-instance now
 have explicit feature enabling. Two-target additive/replacement output and GPU-written
 base instances pass with guards and replay; the existing command shapes need no
 argument scan, state normalization or emulation.
+Floating-point discovery now reports per-width preservation/denormal/rounding support
+and policy-independence constraints. This informs artifact selection without imposing
+numerical policy; mode-specific numerical execution and artifact-mode metadata remain
+unverified/unimplemented respectively, not hidden behind the capability query.
 Broader draft profiles and consumer cutover remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

@@ -28,6 +28,8 @@ extern "C" {
  * Subgroup queries and per-stage size/operation requirements are also implemented.
  * Format capabilities and explicit image-profile limits are implemented too.
  * Vertex/fragment storage writes and atomics have independent enabling bits.
+ * Floating-point mode/width capabilities and independence queries are implemented;
+ * artifact mode metadata, mode-specific execution tests and float-controls-2 follow.
  * Budget, broader atomic/matrix numerical tuples and
  * exact executable/state query records remain to be defined. */
 

@@ -34,6 +34,7 @@ fn fixture() -> Snapshot {
         graphics_limits: GraphicsLimits::default(),
         query_limits: QueryLimits::default(),
         subgroup_limits: SubgroupLimits::default(),
+        float_controls: FloatControls::default(),
         formats: vec![],
     }
 }
@@ -201,6 +202,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ExecutableCacheDesc>(), 48);
     assert_eq!(size_of::<Launch>(), 24);
     assert_eq!(size_of::<GraphicsLimits>(), 80);
+    assert_eq!(size_of::<FloatControls>(), 24);
     assert_eq!(size_of::<GraphicsState>(), 160);
     assert_eq!(size_of::<VertexInput>(), 48);
     assert_eq!(size_of::<VertexBinding>(), 12);
@@ -261,6 +263,11 @@ fn gpu_foundation_setup() {
             if features[0].baseline_supported == 0 {
                 continue;
             }
+            let mut physical_float = [FloatControls::default()];
+            assert_eq!(
+                ogpu_next_adapter_query(adapter, &mut query(FLOAT_CONTROLS, &mut physical_float)),
+                OK
+            );
             let mut count = query::<QueueInfo>(QUEUES, &mut []);
             assert_eq!(ogpu_next_adapter_query(adapter, &mut count), OK);
             let mut queues = vec![QueueInfo::default(); count.count as usize];
@@ -293,6 +300,12 @@ fn gpu_foundation_setup() {
                     OK
                 );
                 assert_eq!(enabled_info[0].enabled, enabled);
+                let mut device_float = [FloatControls::default()];
+                assert_eq!(
+                    ogpu_next_device_query(device, &mut query(FLOAT_CONTROLS, &mut device_float)),
+                    OK
+                );
+                assert_eq!(device_float, physical_float); // Enabling arithmetic never changes physical mode support.
                 assert_eq!(enabled_info[0].device_scope, 1);
                 let mut returned = vec![QueueInfo::default(); queues.len()];
                 assert_eq!(
