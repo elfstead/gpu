@@ -190,6 +190,10 @@ pub struct GraphicsLimits {
     pub line_width_range: [f32; 2],
     pub line_width_granularity: f32,
     pub max_dual_source_attachments: u32,
+    pub depth_resolve_modes: u32,
+    pub stencil_resolve_modes: u32,
+    pub independent_resolve_none: u32,
+    pub independent_resolve: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]

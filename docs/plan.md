@@ -119,6 +119,13 @@ render scopes without replicated draws; offset-view and changed-layer replay pas
 locally. Exact execution coverage and driver discrepancies are recorded in the
 [foundation implementation](foundation-implementation.md#vertex-only-depth-rendering),
 not inferred from feature discovery or pipeline preparation alone.
+Depth/stencil attachment resolves now expose native mode masks and independence
+constraints through the same explicit attachment records. Different per-sample
+depths and later stencil-tested consumption verify results without hidden resolve
+passes. Radeon passes sample-zero/average/min/max depth and sample-zero/min/max
+stencil; llvmpipe passes its advertised sample-zero profile. Broader graphics,
+numerical profiles and consumer migration remain the selected tranche, not closed
+by these focused checks.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

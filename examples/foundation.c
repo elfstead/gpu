@@ -61,7 +61,7 @@ _Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
-_Static_assert(sizeof(ogpu_next_graphics_limits) == 96, "graphics limits ABI");
+_Static_assert(sizeof(ogpu_next_graphics_limits) == 112, "graphics limits ABI");
 _Static_assert(sizeof(ogpu_next_float_controls) == 24, "float controls ABI");
 _Static_assert(sizeof(ogpu_next_graphics_state) == 176, "graphics state ABI");
 _Static_assert(sizeof(ogpu_next_raster_options) == 96, "raster options ABI");
@@ -1037,6 +1037,8 @@ int main(int argc, char **argv) {
     for (uint32_t mode = 0; mode <= 6; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[15],7) == EXIT_SUCCESS);
+    for (uint32_t mode = 8; mode < 15; ++mode)
+        REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     for (uint32_t mode = 0; mode <= 30; ++mode)
         REQUIRE(mrt_execution(device,memory_desc,graphics_domain,argv[3],argv[13],mode) == EXIT_SUCCESS);
     const char *storage_paths[4] = {argv[9],argv[10],argv[11],argv[12]};

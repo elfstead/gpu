@@ -729,9 +729,9 @@ typedef struct ogpu_next_heap_binding {
  * avoid reservations. Bind requires a graphics/compute queue domain. */
 void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
 
-/* Prepared executable state. This implementation supports compute or paired
- * vertex/fragment SPIR-V with native heap/pointer access. Native artifacts, descriptor
- * set-to-heap mappings, cache import/export and launch extensions follow; these
+/* Prepared executable state. This implementation supports compute or vertex with
+ * optional fragment SPIR-V with native heap/pointer access. Native artifacts, descriptor
+ * set-to-heap mappings and launch extensions follow; these
  * are unimplemented profiles, not excluded designs. No runtime shader translation.
  * Preparation may allocate/compile. Binding, arguments and dispatch never allocate
  * OGPU storage, compile, retain resources, upload pointees or insert dependencies.
@@ -919,6 +919,8 @@ typedef struct ogpu_next_graphics_limits {
     uint64_t dynamic_states; /* supported bits; VIEWPORT_SCISSOR remains required in this profile */
     float line_width_range[2], line_width_granularity;
     uint32_t max_dual_source_attachments;
+    uint32_t depth_resolve_modes, stencil_resolve_modes;
+    uint32_t independent_resolve_none, independent_resolve;
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
@@ -1123,7 +1125,11 @@ typedef struct ogpu_next_vertex_input {
  */
 enum { OGPU_NEXT_LOAD = 0, OGPU_NEXT_CLEAR = 1, OGPU_NEXT_DONT_CARE = 2 };
 enum { OGPU_NEXT_STORE = 0, OGPU_NEXT_DISCARD = 1 };
-enum { OGPU_NEXT_ATTACHMENT_RESOLVE_NONE = 0, OGPU_NEXT_ATTACHMENT_RESOLVE_SAMPLE_ZERO = 1, OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE = 2 };
+enum {
+    OGPU_NEXT_ATTACHMENT_RESOLVE_NONE = 0, OGPU_NEXT_ATTACHMENT_RESOLVE_SAMPLE_ZERO = 1,
+    OGPU_NEXT_ATTACHMENT_RESOLVE_AVERAGE = 2, OGPU_NEXT_ATTACHMENT_RESOLVE_MIN = 4,
+    OGPU_NEXT_ATTACHMENT_RESOLVE_MAX = 8
+};
 typedef union ogpu_next_clear_value {
     float f32[4]; uint32_t u32[4]; int32_t i32[4];
     struct { float depth; uint32_t stencil; } depth_stencil;
@@ -1179,9 +1185,19 @@ typedef struct ogpu_next_draw_desc {
  * destination has one sample, identical view format, sufficient extent/layers,
  * COLOR_ATTACHMENT usage and GENERAL/COLOR_ATTACHMENT state. It resolves at scope
  * end, independently of source STORE/DISCARD; no temporary image or transition.
- * Caller proves non-aliasing attachment accesses. Depth/stencil resolves follow.
- * Sample shading, custom sample positions, sample masks and alpha-to-coverage
- * remain additional profiles; this one uses native fixed positions/all samples.
+ * Depth/stencil resolves select one supported bit from graphics_limits'
+ * depth_resolve_modes/stencil_resolve_modes, with identical source/target format,
+ * DEPTH_STENCIL_ATTACHMENT usage and GENERAL/DEPTH_STENCIL_ATTACHMENT target state.
+ * No feature bit is needed. With both depth and stencil views active, differing
+ * modes require independent_resolve when neither is NONE, or independent_resolve_none
+ * when one is NONE. When both resolve, they use the same target view/state.
+ * Absent depth/stencil records do not impose paired-mode constraints. Source discard
+ * does not discard the resolved target. Caller proves non-aliasing accesses; no
+ * automatic shader resolve, temporary target, barrier or content tracking.
+ * Native Vulkan attachment resolves (including depth/stencil) use COLOR stage
+ * with COLOR_READ/COLOR_WRITE access, not standalone RESOLVE or DEPTH scopes.
+ * Sample shading, masks and alpha coverage are explicit raster options; custom
+ * sample positions remain a separate unimplemented profile.
  *
  * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and
  * depth/stencil write permission; shader output types and accesses must match. No per-draw
@@ -1191,7 +1207,8 @@ typedef struct ogpu_next_draw_desc {
  * Graphics/compute bind points are independent. Viewport/scissor and byte state
  * persist across compatible binds/scopes, reset to undefined by command begin.
  * Dynamic viewport allows negative height and reversed depth endpoints within
- * [0,1]. set_graphics_state currently accepts VIEWPORT_STATE only. Draw requires
+ * [0,1]. set_graphics_state accepts VIEWPORT_STATE and the declared dynamic
+ * blend/stencil records. Draw requires
  * vertex_offset=0 and passes all count/first/instance values directly to native.
  */
 ogpu_next_status ogpu_next_render_scratch_requirements(uint32_t color_count, ogpu_next_host_requirements *);

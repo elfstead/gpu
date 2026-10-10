@@ -946,23 +946,26 @@ impl View {
         }
         Ok(self.handle)
     }
-    pub(super) fn color_resolve(
+    pub(super) fn attachment_resolve(
         &self,
         device: *const Device,
         domain: u32,
         desc: &RenderDesc,
         a: &Attachment,
         source: &View,
+        aspect: u32,
     ) -> Result<vk::VkImageView, Status> {
         let mode = if source.info.format == vk::VkFormat_VK_FORMAT_R32_UINT {
             1
         } else {
             2
         };
-        if a.resolve_mode != mode {
+        if aspect == 1 && a.resolve_mode != mode {
             return Err(UNSUPPORTED);
         }
-        if self.info.format != source.info.format {
+        if self.info.format != source.info.format
+            || (aspect != 1 && !matches!(a.resolve_state, 1 | 6))
+        {
             return Err(INVALID);
         }
         let target = RenderDesc {
@@ -974,7 +977,7 @@ impl View {
             load_op: 2,
             ..*a
         };
-        self.attachment(device, domain, &target, &attachment, 1)
+        self.attachment(device, domain, &target, &attachment, aspect)
     }
     pub(in crate::foundation) fn create(
         image: &Image,

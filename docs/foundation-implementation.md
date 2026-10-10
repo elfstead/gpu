@@ -666,6 +666,47 @@ rejection before native pipeline creation) pass on Radeon 26.2.4 and llvmpipe
 26.2.1 with validation. Color, multisample and cube-array layered execution remain
 verification work; this does not claim multiview support.
 
+### Explicit depth/stencil attachment resolves
+
+The existing attachment records now accept depth/stencil resolve targets and modes.
+Graphics limits report per-aspect mode masks plus independent-mode and independent-
+NONE support; this source-only limits record grows to 112 bytes. No new feature bit,
+owned resolve object or host command is needed. `SAMPLE_ZERO`, `AVERAGE`, `MIN` and
+`MAX` map to native modes; support is queried, not emulated. Paired depth/stencil
+resolves obey the native independence limits and share their destination view/state.
+Absent aspects do not force paired mode selection. Targets have one sample,
+matching format and explicit attachment usage/state. Source discard still permits
+resolved output; all placement, transitions and lifetimes remain caller-owned.
+See the native [resolve properties](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceDepthStencilResolveProperties.html)
+and [render-scope constraints](https://docs.vulkan.org/refpages/latest/refpages/source/VkRenderingInfo.html).
+
+The C depth consumer writes different values into samples 0/1 and 2/3 using explicit
+sample-mask pipelines, then discards source storage. D32 readback checks all four
+depth modes, with changed-depth replay swapping the minimum/maximum source. Combined
+D32S8 targets separately resolve stencil sample-zero/min/max: a subsequent read-only
+render pass tests equality to each possible value, with occlusion queries checking
+64 passing samples and zero for the other value. This observes resolved stencil
+without combined-plane host copies. The latter remains a distinct existing llvmpipe
+driver problem, not a resolve fallback. Guards and root preservation are checked.
+
+All seven new execution cases pass under validation on Radeon 26.2.4. llvmpipe
+26.2.1 advertises only sample-zero and passes that depth/stencil execution; unsupported
+modes are reported as not exercised. A 25-pair record-only matrix checks mode support,
+independence rules and native acceptance; malformed modes, absent/multisampled
+destinations, read-only targets and mismatched paired target views/states reject.
+Synthetic unit coverage also checks all independence policies, not just local ones.
+All 14 foundation GPU tests, 81 ordinary tests, Clippy, generated shader/binding
+reproduction and the 851-value native/installed ABI checks pass. Installed ABI 20
+remains unchanged; these are source-only records.
+
+The consumer explicitly orders attachment resolve accesses at `COLOR` with
+`COLOR_READ`/`COLOR_WRITE`, including depth/stencil targets; these are not standalone
+`RESOLVE` transfer operations or `DEPTH` accesses. Synchronization validation caught
+the initial depth-only target barriers, which were corrected in caller code without
+adding runtime barriers. Layered resolves, alternative depth formats, mismatched
+depth/stencil mode execution and resolved-depth shader sampling remain verification
+work. No timing, Metal or portable throughput claim follows.
+
 ### Unused attachments and sparse output interfaces
 
 `UNUSED_ATTACHMENTS` explicitly enables native
@@ -700,7 +741,7 @@ in any source/destination color/alpha factor field. The second value is source
 index one at the same output location, not another target. The compiler artifact
 provides the interface; OGPU creates no temporary attachment and performs no shader
 rewriting or extra draw. Graphics limits report `max_dual_source_attachments` in the
-previously reserved word (record size remains 96 bytes). That is a bound on all
+previously reserved word (the later resolve fields grow the record to 112 bytes). That is a bound on all
 statically used fragment output locations when dual-source blending is active, not
 a blanket bound on the pipeline's declared attachment array. Output interfaces and
 their static-use limit remain caller artifact contracts, without a reflection scan.

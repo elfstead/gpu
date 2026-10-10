@@ -12,6 +12,32 @@ pub(super) fn samples(value: u32, supported: u32) -> Result<(), Status> {
     Ok(())
 }
 
+fn resolve_mode(mode: u32, supported: u32) -> Result<(), Status> {
+    if mode == 0 {
+        return Ok(());
+    }
+    if !mode.is_power_of_two() || mode > 8 {
+        return Err(INVALID);
+    }
+    if mode & supported == 0 {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
+
+fn resolve_pair(limits: &GraphicsLimits, depth: u32, stencil: u32) -> Result<(), Status> {
+    if depth != stencil
+        && if depth == 0 || stencil == 0 {
+            limits.independent_resolve_none == 0
+        } else {
+            limits.independent_resolve == 0
+        }
+    {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
+
 pub(in crate::foundation) fn render_scratch(colors: u32) -> Result<HostRequirements, Status> {
     if colors == 0 {
         return Ok(HostRequirements {
@@ -85,6 +111,16 @@ impl Device {
             {
                 return Err(INVALID);
             }
+            if !d.imageView.is_null() && !s.imageView.is_null() {
+                resolve_pair(limits, d.resolveMode, s.resolveMode)?;
+                if d.resolveMode != 0
+                    && s.resolveMode != 0
+                    && (d.resolveImageView != s.resolveImageView
+                        || d.resolveImageLayout != s.resolveImageLayout)
+                {
+                    return Err(INVALID);
+                }
+            }
         }
         let has_color = (0..desc.color_count as usize)
             .any(|i| unsafe { !(*output.add(i)).imageView.is_null() });
@@ -130,9 +166,15 @@ impl Device {
         a: &Attachment,
         aspect: u32,
     ) -> Result<vk::VkRenderingAttachmentInfo, Status> {
-        if aspect != 1 && a.resolve_mode != 0 {
-            return Err(UNSUPPORTED);
-        }
+        let limits = &self.snapshot.graphics_limits;
+        resolve_mode(
+            a.resolve_mode,
+            match aspect {
+                1 => 3,
+                2 => limits.depth_resolve_modes,
+                _ => limits.stencil_resolve_modes,
+            },
+        )?;
         if a.resolve_mode == 0 && (!a.resolve_view.is_null() || a.resolve_state != 0) {
             return Err(INVALID);
         }
@@ -158,12 +200,15 @@ impl Device {
                 return Err(INVALID);
             }
             let resolve = unsafe { &*a.resolve_view };
-            info.resolveImageView = resolve.color_resolve(self, domain, desc, a, view)?;
+            info.resolveImageView =
+                resolve.attachment_resolve(self, domain, desc, a, view, aspect)?;
             info.resolveMode = a.resolve_mode;
             info.resolveImageLayout = if a.resolve_state == 1 {
                 vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL
-            } else {
+            } else if aspect == 1 {
                 vk::VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            } else {
+                vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
             };
         }
         info.imageLayout = match a.state {
@@ -242,6 +287,46 @@ impl Device {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn resolve_modes_preserve_aspect_and_pair_constraints() {
+        for supported in [0, 1, 3, 5, 9, 13, 15] {
+            assert_eq!(resolve_mode(0, supported), Ok(()));
+            for mode in [1, 2, 4, 8] {
+                assert_eq!(
+                    resolve_mode(mode, supported),
+                    if mode & supported != 0 {
+                        Ok(())
+                    } else {
+                        Err(UNSUPPORTED)
+                    }
+                );
+            }
+            for mode in [3, 6, 15, 16, u32::MAX] {
+                assert_eq!(resolve_mode(mode, supported), Err(INVALID));
+            }
+        }
+        for (none, independent) in [(0, 0), (1, 0), (1, 1)] {
+            let limits = GraphicsLimits {
+                independent_resolve_none: none,
+                independent_resolve: independent,
+                ..Default::default()
+            };
+            for depth in [0, 1, 2, 4, 8] {
+                for stencil in [0, 1, 4, 8] {
+                    let allowed = depth == stencil
+                        || if depth == 0 || stencil == 0 {
+                            none != 0
+                        } else {
+                            independent != 0
+                        };
+                    assert_eq!(
+                        resolve_pair(&limits, depth, stencil),
+                        if allowed { Ok(()) } else { Err(UNSUPPORTED) }
+                    );
+                }
+            }
+        }
+    }
     #[test]
     fn sample_counts_are_exact() {
         assert_eq!(samples(4, 5), Ok(()));

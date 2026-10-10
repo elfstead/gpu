@@ -201,7 +201,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ExecutableDesc>(), 80);
     assert_eq!(size_of::<ExecutableCacheDesc>(), 48);
     assert_eq!(size_of::<Launch>(), 24);
-    assert_eq!(size_of::<GraphicsLimits>(), 96);
+    assert_eq!(size_of::<GraphicsLimits>(), 112);
     assert_eq!(size_of::<FloatControls>(), 24);
     assert_eq!(size_of::<GraphicsState>(), 176);
     assert_eq!(size_of::<RasterOptions>(), 96);

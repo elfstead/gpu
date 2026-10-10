@@ -400,6 +400,10 @@ pub(super) fn snapshot(
             line_width_range: p.lineWidthRange,
             line_width_granularity: p.lineWidthGranularity,
             max_dual_source_attachments: p.maxFragmentDualSrcAttachments,
+            depth_resolve_modes: v12_properties.supportedDepthResolveModes & 15,
+            stencil_resolve_modes: v12_properties.supportedStencilResolveModes & 13,
+            independent_resolve_none: v12_properties.independentResolveNone,
+            independent_resolve: v12_properties.independentResolve,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0

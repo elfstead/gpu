@@ -59,8 +59,10 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
 /* Ordinary commands copy immediate parameter records into command storage;
  * resource data and device roots are never copied implicitly. */
 /* Image-to-image copies, native-color resolves and filtered/scaled blits are imported
- * above with explicit source/destination regions AND layouts. Other resolve profiles
- * remain draft work. Mip generation is an explicit caller sequence of blits/barriers. */
+ * above with explicit source/destination regions AND layouts. Depth/stencil attachment
+ * resolves are implemented with queried mode/independence limits; standalone depth/
+ * stencil and custom shader-resolve profiles remain draft work.
+ * Mip generation is an explicit caller sequence of blits/barriers. */
 
 /* Graphics preparation, attachment scopes, explicit viewport/scissor and direct/
  * indexed/indirect/count draws, multisampling and color attachment resolves are imported
