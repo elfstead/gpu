@@ -94,7 +94,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_depth.h"
 #include "foundation_blend.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
-#define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE | OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS | OGPU_NEXT_FEATURE_LOGIC_OP | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND)
+#define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE | OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS | OGPU_NEXT_FEATURE_LOGIC_OP | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND | OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path, uint32_t secondary) {
@@ -1016,7 +1016,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 15);
+    REQUIRE(argc == 16);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1036,6 +1036,7 @@ int main(int argc, char **argv) {
     REQUIRE(dual_source_execution(device,memory_desc,graphics_domain,argv[3],argv[14]) == EXIT_SUCCESS);
     for (uint32_t mode = 0; mode <= 6; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
+    REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[15],7) == EXIT_SUCCESS);
     for (uint32_t mode = 0; mode <= 30; ++mode)
         REQUIRE(mrt_execution(device,memory_desc,graphics_domain,argv[3],argv[13],mode) == EXIT_SUCCESS);
     const char *storage_paths[4] = {argv[9],argv[10],argv[11],argv[12]};

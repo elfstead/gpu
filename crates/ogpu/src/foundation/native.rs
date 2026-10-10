@@ -325,6 +325,9 @@ pub(super) fn snapshot(
         if v13.pipelineCreationCacheControl != 0 {
             features.available |= CACHE_CONTROL;
         }
+        if v12.shaderOutputLayer != 0 {
+            features.available |= SHADER_OUTPUT_LAYER;
+        }
         memory_limits = MemoryLimits {
             max_buffer_size: maintenance4.maxBufferSize,
             max_allocation_size: maintenance3.maxMemoryAllocationSize,
@@ -646,6 +649,7 @@ impl Device {
             bufferDeviceAddress: 1,
             timelineSemaphore: 1,
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
+            shaderOutputLayer: u32::from(enabled & SHADER_OUTPUT_LAYER != 0),
             shaderInt8: u32::from(enabled & INT8 != 0),
             storageBuffer8BitAccess: u32::from(enabled & STORAGE8 != 0),
             shaderBufferInt64Atomics: u32::from(enabled & BUFFER_ATOMIC64 != 0),

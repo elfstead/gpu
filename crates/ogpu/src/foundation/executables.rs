@@ -791,6 +791,7 @@ mod tests {
                 UNUSED_ATTACHMENTS | UNIFIED_IMAGES,
                 LOGIC_OP,
                 DUAL_SOURCE_BLEND,
+                SHADER_OUTPUT_LAYER,
             ];
             let dual_code: Vec<u32> =
                 include_bytes!("../../../../examples/shaders/foundation-dual-source.frag.spv")
@@ -798,6 +799,11 @@ mod tests {
                     .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
                     .collect();
             desc.dynamic_state = 1;
+            let layer_code: Vec<u32> =
+                include_bytes!("../../../../examples/shaders/foundation-layer.vert.spv")
+                    .chunks_exact(4)
+                    .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+                    .collect();
             for enabled in profiles {
                 if enabled & !adapter.snapshot.features.available != 0 {
                     continue;
@@ -962,6 +968,30 @@ mod tests {
                 let depth_pipeline =
                     unsafe { Executable::create(&profile_device, &depth_desc) }.unwrap();
                 assert_eq!(depth_pipeline.stages, 8);
+                let layer_shader = Shader {
+                    code: Bytes {
+                        data: layer_code.as_ptr().cast(),
+                        size: layer_code.len() * 4,
+                    },
+                    ..shaders[0]
+                };
+                let layer_req = ShaderRequirements {
+                    features: RASTER | SHADER_OUTPUT_LAYER,
+                    ..req
+                };
+                let layer_desc = ExecutableDesc {
+                    shaders: &layer_shader,
+                    requirements: &layer_req.header,
+                    ..depth_desc
+                };
+                COLOR_LOGIC.set((u32::MAX, u32::MAX, u32::MAX));
+                let layered = unsafe { Executable::create(&profile_device, &layer_desc) };
+                if enabled & SHADER_OUTPUT_LAYER != 0 {
+                    assert!(layered.is_ok());
+                } else {
+                    assert!(matches!(layered, Err(UNSUPPORTED)));
+                    assert_eq!(COLOR_LOGIC.get(), (u32::MAX, u32::MAX, u32::MAX));
+                }
                 for count in [0, 3, u32::MAX] {
                     let invalid = ExecutableDesc {
                         shader_count: count,

@@ -112,6 +112,14 @@ Broader draft profiles and consumer cutover remain outstanding. Current Radeon
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes
 returned after a 32-byte size query); that failure is not masked by the runtime.
 
+Raster preparation additionally exposes explicit polygon/depth/sample controls,
+vertex-only depth rendering, unused attachment profiles, logic operations and
+dual-source blending. Vertex-stage layer output now uses ordinary array views and
+render scopes without replicated draws; offset-view and changed-layer replay pass
+locally. Exact execution coverage and driver discrepancies are recorded in the
+[foundation implementation](foundation-implementation.md#vertex-only-depth-rendering),
+not inferred from feature discovery or pipeline preparation alone.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

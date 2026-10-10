@@ -649,6 +649,23 @@ with the 14 foundation GPU tests. No fragment module is loaded by this consumer.
 Slope bias, arbitrary depth formats and vertex-only multisample/stencil execution
 remain verification work; existing two-stage consumers still cover multisample/stencil.
 
+`SHADER_OUTPUT_LAYER` independently enables vertex-stage `Layer` output (Slang
+`SV_RenderTargetArrayIndex`) using the existing image/view/render layer records.
+The native [Vulkan 1.2 feature](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceVulkan12Features.html)
+does not imply multiview or additional shader stages. Layer indices are relative
+to the attachment view, bounded by the render scope and consistent per primitive;
+these remain caller shader contracts. OGPU adds no per-layer draw loop, duplicated
+view, index readback or hidden transition.
+
+An eighth depth-only case renders through a two-layer view starting at layer one
+of a three-layer D32 image. The shader selects opposite layers for two scissored
+draws; replay changes depths and swaps the selected layers. Readback checks every
+pixel, render clears in unselected halves, the unchanged layer outside the view
+and host guards. This and actual Layer-artifact preparation (including feature-off
+rejection before native pipeline creation) pass on Radeon 26.2.4 and llvmpipe
+26.2.1 with validation. Color, multisample and cube-array layered execution remain
+verification work; this does not claim multiview support.
+
 ### Unused attachments and sparse output interfaces
 
 `UNUSED_ATTACHMENTS` explicitly enables native

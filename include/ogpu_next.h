@@ -202,6 +202,15 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS UINT64_C(536870912)
 #define OGPU_NEXT_FEATURE_LOGIC_OP UINT64_C(1073741824)
 #define OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND UINT64_C(2147483648)
+#define OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER UINT64_C(4294967296)
+/* SHADER_OUTPUT_LAYER enables vertex-stage Layer output (Slang
+ * SV_RenderTargetArrayIndex) into ordinary layered render scopes. It neither
+ * enables multiview nor implicitly adds geometry/tessellation/mesh stages.
+ * Layer indices are relative to the attachment view's base layer. The caller
+ * guarantees valid indices below render.layers and consistent values across each
+ * primitive. Shader requirements declare this feature. No per-layer draw loop,
+ * view duplication, CPU readback of indices or hidden attachment transitions.
+ */
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
