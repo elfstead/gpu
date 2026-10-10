@@ -679,6 +679,7 @@ mod tests {
                 stencil_front: StencilState::default(),
                 stencil_back: StencilState::default(),
                 vertex_input: ptr::null(),
+                raster_options: ptr::null(),
             };
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
@@ -766,6 +767,13 @@ mod tests {
                 INDIRECT_FIRST_INSTANCE,
                 INDEPENDENT_BLEND,
                 INDIRECT_FIRST_INSTANCE | INDEPENDENT_BLEND,
+                DEPTH_CLAMP,
+                DEPTH_BIAS_CLAMP,
+                NON_SOLID_FILL,
+                WIDE_LINES,
+                DEPTH_BOUNDS,
+                SAMPLE_SHADING,
+                ALPHA_TO_ONE,
             ];
             desc.dynamic_state = 1;
             for enabled in profiles {
@@ -822,6 +830,119 @@ mod tests {
                     assert!(result.is_ok());
                 } else {
                     assert!(matches!(result, Err(UNSUPPORTED)));
+                }
+                let defaults = RasterOptions::default();
+                for (bit, options) in [
+                    (0, defaults),
+                    (
+                        0,
+                        RasterOptions {
+                            discard: 1,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        0,
+                        RasterOptions {
+                            primitive_restart: 1,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        0,
+                        RasterOptions {
+                            depth_bias: 1,
+                            depth_bias_constant: -2.0,
+                            depth_bias_slope: 3.0,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        0,
+                        RasterOptions {
+                            sample_mask: 0,
+                            alpha_to_coverage: 1,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        DEPTH_CLAMP,
+                        RasterOptions {
+                            depth_clamp: 1,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        DEPTH_BIAS_CLAMP,
+                        RasterOptions {
+                            depth_bias: 1,
+                            depth_bias_clamp: 0.5,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        NON_SOLID_FILL,
+                        RasterOptions {
+                            polygon_mode: 1,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        WIDE_LINES,
+                        RasterOptions {
+                            line_width: 2.0,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        DEPTH_BOUNDS,
+                        RasterOptions {
+                            depth_bounds: 1,
+                            min_depth_bounds: 0.25,
+                            max_depth_bounds: 0.75,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        SAMPLE_SHADING,
+                        RasterOptions {
+                            sample_shading: 1,
+                            min_sample_shading: 0.5,
+                            ..defaults
+                        },
+                    ),
+                    (
+                        ALPHA_TO_ONE,
+                        RasterOptions {
+                            alpha_to_one: 1,
+                            ..defaults
+                        },
+                    ),
+                ] {
+                    let profile = GraphicsState {
+                        topology: if options.primitive_restart != 0 { 4 } else { 3 },
+                        color_count: if options.discard != 0 {
+                            0
+                        } else {
+                            state.color_count
+                        },
+                        raster_options: &options.header,
+                        ..state
+                    };
+                    let profile_desc = ExecutableDesc {
+                        static_state: &profile.header,
+                        shader_count: if options.discard != 0 { 1 } else { 2 },
+                        requirements: &req.header,
+                        ..desc
+                    };
+                    let result = unsafe { Executable::create(&profile_device, &profile_desc) };
+                    let width_supported = bit != WIDE_LINES
+                        || profile_device.snapshot.graphics_limits.line_width_range[1] >= 2.0;
+                    if bit & !enabled == 0 && width_supported {
+                        assert!(result.is_ok(), "raster option {bit}: {:?}", result.err());
+                    } else {
+                        assert!(matches!(result, Err(UNSUPPORTED)));
+                    }
                 }
             }
             tested += 1;

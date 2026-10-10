@@ -1,7 +1,7 @@
 #define RASTER_STORAGE_FEATURES (OGPU_NEXT_FEATURE_VERTEX_STORES_ATOMICS | OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS)
 /* No attachment allocation, descriptor heap, readback staging or retained resource list. */
 static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
-                                    const char *const paths[4], uint32_t writers, uint32_t secondary) {
+                                    const char *const paths[4], uint32_t writers, uint32_t secondary, uint32_t discard) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code[2] = {NULL}, *scratch = NULL, *execute_scratch = NULL;
@@ -36,9 +36,13 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
     }
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{0,0,0},0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,0,0,0,0,{0},0,{0},{0},NULL};
+        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,0,0,0,0,{0},0,{0},{0},NULL,NULL};
+    ogpu_next_raster_options options = {HEADER(ogpu_next_raster_options,OGPU_NEXT_RASTER_OPTIONS),
+        0,0,discard,OGPU_NEXT_POLYGON_FILL,0,0,0,0,1,0,0,1,UINT64_MAX,0,0,0,0};
+    gs.raster_options = &options.header;
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_GRAPHICS,2,shaders,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
+    if (discard) ed.shader_count = 1;
     TRY(ogpu_next_executable_create(device,&ed,&executable));
     for (uint32_t i = 0; i < 2; ++i) { free(code[i]); code[i] = NULL; }
     TRY(ogpu_next_memory_create(device,&md,&memory));
@@ -90,13 +94,13 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
         TRY(ogpu_next_memory_invalidate(all));
         REQUIRE(output[0] == (writers & 1 ? 7u : 0u));
         for (uint32_t i = 0; i < 3; ++i) REQUIRE(output[4+i] == (writers & 1 ? (i+1) << seed : 0));
-        REQUIRE(output[1] == (writers & 2 ? 2080+64*seed*17 : 0));
-        for (uint32_t i = 0; i < 64; ++i) REQUIRE(output[16+i] == (writers & 2 ? i+1+seed*17 : UINT32_C(0xa5a5a5a5)));
+        REQUIRE(output[1] == ((writers & 2) && !discard ? 2080+64*seed*17 : 0));
+        for (uint32_t i = 0; i < 64; ++i) REQUIRE(output[16+i] == ((writers & 2) && !discard ? i+1+seed*17 : UINT32_C(0xa5a5a5a5)));
         REQUIRE(memcmp(map.data,&output_address,8) == 0 && memcmp((char *)map.data+8,&seed,4) == 0);
         for (uint64_t i = 12; i < md.size; ++i)
             if (!(i >= 512 && i < 520) && !(i >= 528 && i < 540) && !(i >= 576 && i < 832)) REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
     }
-    printf("Raster storage passes: writer mask %u, attachmentless draw, vertex OR / fragment stores + sum, secondary %u, changed-seed replay and guards.\n",writers,secondary);
+    printf("Raster storage passes: writer mask %u, discard %u, attachmentless draw, vertex OR / fragment stores + sum, secondary %u, changed-seed replay and guards.\n",writers,discard,secondary);
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending raster storage after failure.\n"); _Exit(EXIT_FAILURE); }

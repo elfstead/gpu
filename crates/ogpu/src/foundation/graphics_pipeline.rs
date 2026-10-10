@@ -5,6 +5,89 @@ struct Module<'a> {
     d: &'a Device,
     handle: vk::VkShaderModule,
 }
+impl Default for RasterOptions {
+    fn default() -> Self {
+        Self {
+            header: Record::new::<Self>(RASTER_OPTIONS),
+            primitive_restart: 0,
+            depth_clamp: 0,
+            discard: 0,
+            polygon_mode: 0,
+            depth_bias: 0,
+            depth_bias_constant: 0.0,
+            depth_bias_clamp: 0.0,
+            depth_bias_slope: 0.0,
+            line_width: 1.0,
+            depth_bounds: 0,
+            min_depth_bounds: 0.0,
+            max_depth_bounds: 1.0,
+            sample_mask: u64::MAX,
+            sample_shading: 0,
+            min_sample_shading: 0.0,
+            alpha_to_coverage: 0,
+            alpha_to_one: 0,
+        }
+    }
+}
+fn raster_options(
+    o: &RasterOptions,
+    features: u64,
+    p: &GraphicsLimits,
+    topology: u32,
+) -> Result<(), Status> {
+    if [
+        o.primitive_restart,
+        o.depth_clamp,
+        o.discard,
+        o.depth_bias,
+        o.depth_bounds,
+        o.sample_shading,
+        o.alpha_to_coverage,
+        o.alpha_to_one,
+    ]
+    .iter()
+    .any(|&v| v > 1)
+        || o.polygon_mode > 2
+        || !o.line_width.is_finite()
+        || o.line_width <= 0.0
+        || ![
+            o.depth_bias_constant,
+            o.depth_bias_clamp,
+            o.depth_bias_slope,
+        ]
+        .iter()
+        .all(|v| v.is_finite())
+        || ![o.min_depth_bounds, o.max_depth_bounds, o.min_sample_shading]
+            .iter()
+            .all(|v| v.is_finite() && (0.0..=1.0).contains(v))
+        || o.min_depth_bounds > o.max_depth_bounds
+    {
+        return Err(INVALID);
+    }
+    // List restart and independent depth clipping are separate, unimplemented profiles.
+    if o.primitive_restart != 0 && !matches!(topology, 2 | 4) {
+        return Err(UNSUPPORTED);
+    }
+    for (needed, bit) in [
+        (o.depth_clamp != 0, DEPTH_CLAMP),
+        (o.depth_bias_clamp != 0.0, DEPTH_BIAS_CLAMP),
+        (o.polygon_mode != 0, NON_SOLID_FILL),
+        (o.line_width != 1.0, WIDE_LINES),
+        (o.depth_bounds != 0, DEPTH_BOUNDS),
+        (o.sample_shading != 0, SAMPLE_SHADING),
+        (o.alpha_to_one != 0, ALPHA_TO_ONE),
+    ] {
+        if needed && features & bit == 0 {
+            return Err(UNSUPPORTED);
+        }
+    }
+    if o.line_width != 1.0
+        && !(p.line_width_range[0]..=p.line_width_range[1]).contains(&o.line_width)
+    {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
 fn stencil(s: &StencilState) -> Result<vk::VkStencilOpState, Status> {
     if s.fail > 7 || s.pass > 7 || s.depth_fail > 7 || s.compare > 7 {
         return Err(INVALID);
@@ -32,7 +115,6 @@ pub(super) unsafe fn prepare(
     pipeline_flags: u64,
 ) -> Result<Box<Executable>, Status> {
     if d.snapshot.features.enabled & RASTER == 0
-        || desc.shader_count != 2
         || desc.dynamic_state & 1 == 0
         || desc.dynamic_state & !d.snapshot.graphics_limits.dynamic_states != 0
     {
@@ -48,6 +130,21 @@ pub(super) unsafe fn prepare(
         return Err(INVALID);
     }
     let p = &d.snapshot.graphics_limits;
+    let options = if state.raster_options.is_null() {
+        RasterOptions::default()
+    } else {
+        unsafe { *record::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
+    };
+    raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
+    let shader_count = if options.discard != 0 { 1 } else { 2 };
+    if desc.shader_count != shader_count {
+        return Err(UNSUPPORTED);
+    }
+    // Static discard has no fragment-output interface. Attached discard needs the
+    // separate unused-attachments profile, not a fabricated native color interface.
+    if options.discard != 0 && (state.color_count != 0 || state.depth_format != 0) {
+        return Err(UNSUPPORTED);
+    }
     if state.topology > 4
         || state.cull > 3
         || state.front_face > 1
@@ -228,7 +325,7 @@ pub(super) unsafe fn prepare(
         }
         f.native
     };
-    let shaders = unsafe { array(desc.shaders, 2)? };
+    let shaders = unsafe { array(desc.shaders, shader_count)? };
     let mut modules = Vec::new();
     let mut stages = Vec::new();
     let mut specialization_entries = Vec::new();
@@ -374,6 +471,7 @@ pub(super) unsafe fn prepare(
     let assembly = vk::VkPipelineInputAssemblyStateCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         topology: state.topology,
+        primitiveRestartEnable: options.primitive_restart,
         ..Default::default()
     };
     let viewport = vk::VkPipelineViewportStateCreateInfo {
@@ -384,15 +482,30 @@ pub(super) unsafe fn prepare(
     };
     let raster = vk::VkPipelineRasterizationStateCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-        polygonMode: vk::VkPolygonMode_VK_POLYGON_MODE_FILL,
+        depthClampEnable: options.depth_clamp,
+        rasterizerDiscardEnable: options.discard,
+        polygonMode: options.polygon_mode,
         cullMode: state.cull,
         frontFace: state.front_face,
-        lineWidth: 1.0,
+        depthBiasEnable: options.depth_bias,
+        depthBiasConstantFactor: options.depth_bias_constant,
+        depthBiasClamp: options.depth_bias_clamp,
+        depthBiasSlopeFactor: options.depth_bias_slope,
+        lineWidth: options.line_width,
         ..Default::default()
     };
+    let mask_words = [
+        options.sample_mask as u32,
+        (options.sample_mask >> 32) as u32,
+    ];
     let multi = vk::VkPipelineMultisampleStateCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         rasterizationSamples: state.samples,
+        sampleShadingEnable: options.sample_shading,
+        minSampleShading: options.min_sample_shading,
+        pSampleMask: mask_words.as_ptr(),
+        alphaToCoverageEnable: options.alpha_to_coverage,
+        alphaToOneEnable: options.alpha_to_one,
         ..Default::default()
     };
     let depth = vk::VkPipelineDepthStencilStateCreateInfo {
@@ -400,6 +513,9 @@ pub(super) unsafe fn prepare(
         depthTestEnable: state.depth_test,
         depthWriteEnable: state.depth_write,
         depthCompareOp: state.depth_compare,
+        depthBoundsTestEnable: options.depth_bounds,
+        minDepthBounds: options.min_depth_bounds,
+        maxDepthBounds: options.max_depth_bounds,
         stencilTestEnable: state.stencil_test,
         front,
         back,
@@ -455,7 +571,7 @@ pub(super) unsafe fn prepare(
     let info = vk::VkGraphicsPipelineCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         pNext: ptr::from_ref(&rendering).cast(),
-        stageCount: 2,
+        stageCount: shader_count,
         pStages: stages.as_ptr(),
         pVertexInputState: &vertex,
         pInputAssemblyState: &assembly,
@@ -473,7 +589,7 @@ pub(super) unsafe fn prepare(
         pipeline: ptr::null_mut(),
         byte_size,
         roots: owned_roots,
-        stages: 24,
+        stages: if options.discard != 0 { 8 } else { 24 },
     });
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(
@@ -527,6 +643,197 @@ fn vertex_layout(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn raster_options_validate_without_normalizing_or_enabling_features() {
+        let p = GraphicsLimits {
+            line_width_range: [1.0, 8.0],
+            ..Default::default()
+        };
+        let base = RasterOptions::default();
+        assert_eq!(base.sample_mask, u64::MAX);
+        assert_eq!(raster_options(&base, 0, &p, 3), Ok(()));
+        for (bit, options) in [
+            (
+                DEPTH_CLAMP,
+                RasterOptions {
+                    depth_clamp: 1,
+                    ..base
+                },
+            ),
+            (
+                DEPTH_BIAS_CLAMP,
+                RasterOptions {
+                    depth_bias_clamp: -1.0,
+                    ..base
+                },
+            ),
+            (
+                NON_SOLID_FILL,
+                RasterOptions {
+                    polygon_mode: 2,
+                    ..base
+                },
+            ),
+            (
+                WIDE_LINES,
+                RasterOptions {
+                    line_width: 2.0,
+                    ..base
+                },
+            ),
+            (
+                DEPTH_BOUNDS,
+                RasterOptions {
+                    depth_bounds: 1,
+                    min_depth_bounds: 0.25,
+                    max_depth_bounds: 0.75,
+                    ..base
+                },
+            ),
+            (
+                SAMPLE_SHADING,
+                RasterOptions {
+                    sample_shading: 1,
+                    min_sample_shading: 0.5,
+                    ..base
+                },
+            ),
+            (
+                ALPHA_TO_ONE,
+                RasterOptions {
+                    alpha_to_one: 1,
+                    ..base
+                },
+            ),
+        ] {
+            assert_eq!(raster_options(&options, 0, &p, 3), Err(UNSUPPORTED));
+            assert_eq!(raster_options(&options, !bit, &p, 3), Err(UNSUPPORTED));
+            assert_eq!(raster_options(&options, bit, &p, 3), Ok(()));
+        }
+        for options in [
+            RasterOptions { discard: 1, ..base },
+            RasterOptions {
+                sample_mask: 0,
+                ..base
+            },
+            RasterOptions {
+                sample_mask: 1 << 63,
+                ..base
+            },
+            RasterOptions {
+                depth_bias: 1,
+                depth_bias_constant: -2.0,
+                depth_bias_slope: 3.0,
+                ..base
+            },
+            RasterOptions {
+                alpha_to_coverage: 1,
+                ..base
+            },
+        ] {
+            assert_eq!(raster_options(&options, 0, &p, 3), Ok(()));
+        }
+        let restart = RasterOptions {
+            primitive_restart: 1,
+            ..base
+        };
+        for topology in 0..=4 {
+            assert_eq!(
+                raster_options(&restart, u64::MAX, &p, topology),
+                if matches!(topology, 2 | 4) {
+                    Ok(())
+                } else {
+                    Err(UNSUPPORTED)
+                }
+            );
+        }
+        for options in [
+            RasterOptions { discard: 2, ..base },
+            RasterOptions {
+                primitive_restart: 2,
+                ..base
+            },
+            RasterOptions {
+                depth_clamp: 2,
+                ..base
+            },
+            RasterOptions {
+                depth_bias: 2,
+                ..base
+            },
+            RasterOptions {
+                depth_bounds: 2,
+                ..base
+            },
+            RasterOptions {
+                sample_shading: 2,
+                ..base
+            },
+            RasterOptions {
+                alpha_to_coverage: 2,
+                ..base
+            },
+            RasterOptions {
+                alpha_to_one: 2,
+                ..base
+            },
+            RasterOptions {
+                polygon_mode: 3,
+                ..base
+            },
+            RasterOptions {
+                line_width: 0.0,
+                ..base
+            },
+            RasterOptions {
+                line_width: f32::NAN,
+                ..base
+            },
+            RasterOptions {
+                depth_bias_constant: f32::INFINITY,
+                ..base
+            },
+            RasterOptions {
+                depth_bias_clamp: f32::NAN,
+                ..base
+            },
+            RasterOptions {
+                depth_bias_slope: f32::NEG_INFINITY,
+                ..base
+            },
+            RasterOptions {
+                min_depth_bounds: 0.75,
+                max_depth_bounds: 0.25,
+                ..base
+            },
+            RasterOptions {
+                min_depth_bounds: -0.1,
+                ..base
+            },
+            RasterOptions {
+                max_depth_bounds: 1.1,
+                ..base
+            },
+            RasterOptions {
+                min_sample_shading: 1.1,
+                ..base
+            },
+        ] {
+            assert_eq!(raster_options(&options, u64::MAX, &p, 3), Err(INVALID));
+        }
+        assert_eq!(
+            raster_options(
+                &RasterOptions {
+                    line_width: 9.0,
+                    ..base
+                },
+                WIDE_LINES,
+                &p,
+                3
+            ),
+            Err(UNSUPPORTED)
+        );
+    }
     #[test]
     fn vertex_layout_preserves_zero_stride_sparse_and_overlapping_fetch() {
         let limits = GraphicsLimits {

@@ -53,6 +53,13 @@ pub const VERTEX_STORES_ATOMICS: u64 = 262144;
 pub const FRAGMENT_STORES_ATOMICS: u64 = 524288;
 pub const INDIRECT_FIRST_INSTANCE: u64 = 1048576;
 pub const INDEPENDENT_BLEND: u64 = 2097152;
+pub const DEPTH_CLAMP: u64 = 4194304;
+pub const DEPTH_BIAS_CLAMP: u64 = 8388608;
+pub const NON_SOLID_FILL: u64 = 16777216;
+pub const WIDE_LINES: u64 = 33554432;
+pub const DEPTH_BOUNDS: u64 = 67108864;
+pub const SAMPLE_SHADING: u64 = 134217728;
+pub const ALPHA_TO_ONE: u64 = 268435456;
 pub const INHERITANCE: u32 = 121;
 pub const RENDER_INHERITANCE: u32 = 122;
 pub const STATISTICS_MASK: u64 = 2047;
@@ -81,6 +88,7 @@ pub struct FloatControls {
     pub reserved: u32,
 }
 pub const IMAGE_PROFILE: u32 = 123;
+pub const RASTER_OPTIONS: u32 = 124;
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct FormatInfo {
@@ -175,6 +183,9 @@ pub struct GraphicsLimits {
     pub max_vertex_attribute_offset: u32,
     pub max_vertex_stride: u32,
     pub dynamic_states: u64,
+    pub line_width_range: [f32; 2],
+    pub line_width_granularity: f32,
+    pub reserved: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq)]
@@ -218,6 +229,29 @@ pub struct GraphicsState {
     pub stencil_front: StencilState,
     pub stencil_back: StencilState,
     pub vertex_input: *const Record,
+    pub raster_options: *const Record,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RasterOptions {
+    pub header: Record,
+    pub primitive_restart: u32,
+    pub depth_clamp: u32,
+    pub discard: u32,
+    pub polygon_mode: u32,
+    pub depth_bias: u32,
+    pub depth_bias_constant: f32,
+    pub depth_bias_clamp: f32,
+    pub depth_bias_slope: f32,
+    pub line_width: f32,
+    pub depth_bounds: u32,
+    pub min_depth_bounds: f32,
+    pub max_depth_bounds: f32,
+    pub sample_mask: u64,
+    pub sample_shading: u32,
+    pub min_sample_shading: f32,
+    pub alpha_to_coverage: u32,
+    pub alpha_to_one: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]

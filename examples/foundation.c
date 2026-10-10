@@ -61,9 +61,10 @@ _Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
 _Static_assert(sizeof(ogpu_next_executable_cache_desc) == 48, "executable cache ABI");
 _Static_assert(sizeof(ogpu_next_launch) == 24, "launch ABI");
-_Static_assert(sizeof(ogpu_next_graphics_limits) == 80, "graphics limits ABI");
+_Static_assert(sizeof(ogpu_next_graphics_limits) == 96, "graphics limits ABI");
 _Static_assert(sizeof(ogpu_next_float_controls) == 24, "float controls ABI");
-_Static_assert(sizeof(ogpu_next_graphics_state) == 160, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_graphics_state) == 168, "graphics state ABI");
+_Static_assert(sizeof(ogpu_next_raster_options) == 96, "raster options ABI");
 _Static_assert(sizeof(ogpu_next_vertex_input) == 48, "vertex input ABI");
 _Static_assert(sizeof(ogpu_next_vertex_binding) == 12, "vertex binding ABI");
 _Static_assert(sizeof(ogpu_next_vertex_attribute) == 16, "vertex attribute ABI");
@@ -91,7 +92,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_raster_storage.h"
 #include "foundation_mrt.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
-#define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND)
+#define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path, uint32_t secondary) {
@@ -1030,11 +1031,15 @@ int main(int argc, char **argv) {
     for (uint32_t mode = OGPU_NEXT_ONE_SHOT; mode <= OGPU_NEXT_SIMULTANEOUS_REPLAY; ++mode)
         REQUIRE(split_execution(device, memory_desc, graphics_domain, mode) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
-    REQUIRE(mrt_execution(device,memory_desc,graphics_domain,argv[3],argv[13]) == EXIT_SUCCESS);
+    for (uint32_t mode = 0; mode <= 9; ++mode)
+        REQUIRE(mrt_execution(device,memory_desc,graphics_domain,argv[3],argv[13],mode) == EXIT_SUCCESS);
     const char *storage_paths[4] = {argv[9],argv[10],argv[11],argv[12]};
     for (uint32_t writers = 1; writers <= 3; ++writers)
-        REQUIRE(raster_storage_execution(device,memory_desc,graphics_domain,storage_paths,writers,0) == EXIT_SUCCESS);
-    REQUIRE(raster_storage_execution(device,memory_desc,graphics_domain,storage_paths,3,1) == EXIT_SUCCESS);
+        REQUIRE(raster_storage_execution(device,memory_desc,graphics_domain,storage_paths,writers,0,0) == EXIT_SUCCESS);
+    for (uint32_t secondary = 0; secondary <= 1; ++secondary) {
+        REQUIRE(raster_storage_execution(device,memory_desc,graphics_domain,storage_paths,3,secondary,1) == EXIT_SUCCESS);
+    }
+    REQUIRE(raster_storage_execution(device,memory_desc,graphics_domain,storage_paths,3,1,0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0, 0) == EXIT_SUCCESS);

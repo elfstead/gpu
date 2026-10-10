@@ -506,8 +506,10 @@ and synchronization. The [native counted-draw contract](https://docs.vulkan.org/
 also constrains the GPU count itself, not only the application's maximum.
 
 The implemented profile is deliberately stated, not a fundamental restriction:
-vertex/fragment, optional D16/D32 or combined D24S8/D32S8 depth/stencil, explicit supported sample counts, fill/depth
-clipping, vertex pulling or native vertex fetch, one viewport/scissor and matching per-color blend state.
+vertex/fragment (vertex-only for static discard), optional D16/D32 or combined
+D24S8/D32S8 depth/stencil, explicit supported sample counts and static raster/sample
+controls, vertex pulling or native vertex fetch, one viewport/scissor and optional
+independent per-color blend state.
 Color attachments now resolve explicitly at scope end: average for normalized/float,
 sample zero for integer formats, independent of whether the multisample source is
 stored or discarded. The single-sample resolve view, matching format, usage/layout
@@ -521,9 +523,9 @@ when both are supplied they name the same view and layout. Combined layout barri
 cover both aspects. Draw-time read-only permissions remain caller obligations, not
 per-draw state reconstruction. No separate depth/stencil layouts are enabled.
 
-Dynamic stencil operations/test enabling, depth/stencil resolves, sample shading/masks/custom positions,
+Dynamic stencil operations/test enabling, depth/stencil resolves, custom sample positions,
 dynamic vertex input/stride and additional
-stages, restart, wide lines, richer dynamic state and tile-local dependencies
+stages, list restart, richer dynamic state and tile-local dependencies
 remain work. Unsupported requested state
 is rejected, never emulated with a hidden state cache or fallback. The existing
 sample masks still require exact format/image-tuple support, not guessed allocation.
@@ -587,7 +589,44 @@ first-instance, negative indexed base vertex, every indirect draw variant, and r
 after changing instance data. Pixel/depth outputs and guards are checked. This validates
 RG32 float fetch and divisor-one instancing; other formats, zero-stride execution,
 dynamic input state and nontrivial divisors still need their own coverage/profiles.
-The source-only graphics limits/state records are now 80/160 bytes; ABI 20 is unchanged.
+The source-only graphics limits/state records are now 96/168 bytes; ABI 20 is unchanged.
+
+### Static raster and sample controls
+
+The optional 96-byte `RASTER_OPTIONS` record exposes strip primitive restart,
+depth clamp, raster discard, fill/line/point polygon modes, depth bias and its clamp,
+line width, depth bounds, a 64-bit sample mask, minimum sample shading, alpha coverage
+and alpha-to-one. Null selects the previous defaults. Non-null records are explicit:
+zero width is invalid and zero mask suppresses coverage; no hidden default rewriting.
+Seven independent feature bits map to native enabling; RASTER does not enable them.
+Line-width range/granularity are immutable reported limits. State is prepared once,
+with no command-time state cache, shader transformation or extra draw calls.
+
+Discard takes one vertex shader, not an unused fragment artifact. It currently
+requires zero color/depth formats and an attachmentless render scope. Static discard
+has no native fragment-output interface; using it in an attached scope needs the
+separate dynamic-rendering unused-attachments profile. This is unfinished profile
+coverage, not a permanent API restriction or an implicit extra render scope.
+Depth clamp also disables Z clipping in this profile; independent clipping remains
+work. Sample shading expresses a minimum fraction, not an exact invocation count.
+Alpha coverage is native, not a portable bit-exact coverage pattern. See native
+[rasterization state](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineRasterizationStateCreateInfo.html),
+[multisample state](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineMultisampleStateCreateInfo.html)
+and [depth/bounds state](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineDepthStencilStateCreateInfo.html).
+
+Ordinary tests cover malformed fields, independent feature rejection and strip/list
+restart separation. Native preparation tests enable each feature separately and
+reject the others. The C consumer checks explicit/default sample masks, zero masks,
+ignored high bits for single-sample targets, zero-alpha coverage, alpha-to-one,
+four-sample partial-mask resolves and full sample shading with changed-input replay
+and guarded readback. Attachmentless primary/secondary draws separately verify that
+discard preserves vertex storage writes while suppressing fragment writes.
+Pixel execution of depth clamp/bias/bounds, non-solid fill/wide lines and strip
+restart, exact sample-rate invocation behavior and 64-sample execution remain
+verification work; pipeline creation alone is not evidence for those outputs.
+The above C cases and all 14 foundation GPU tests pass with validation on Radeon
+26.2.4 and llvmpipe 26.2.1 (the latter retains the documented stencil-copy exclusion).
+The ordinary suite now has 80 passing tests. No timing or Metal claim follows.
 
 ### Independent targets and indirect base instances
 

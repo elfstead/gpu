@@ -76,7 +76,8 @@ enum {
     OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
     OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118, OGPU_NEXT_VERTEX_INPUT = 119,
     OGPU_NEXT_SUBGROUP_STATE = 120, OGPU_NEXT_INHERITANCE = 121,
-    OGPU_NEXT_RENDER_INHERITANCE = 122, OGPU_NEXT_IMAGE_PROFILE = 123
+    OGPU_NEXT_RENDER_INHERITANCE = 122, OGPU_NEXT_IMAGE_PROFILE = 123,
+    OGPU_NEXT_RASTER_OPTIONS = 124
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -191,6 +192,13 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_FRAGMENT_STORES_ATOMICS UINT64_C(524288)
 #define OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE UINT64_C(1048576)
 #define OGPU_NEXT_FEATURE_INDEPENDENT_BLEND UINT64_C(2097152)
+#define OGPU_NEXT_FEATURE_DEPTH_CLAMP UINT64_C(4194304)
+#define OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP UINT64_C(8388608)
+#define OGPU_NEXT_FEATURE_NON_SOLID_FILL UINT64_C(16777216)
+#define OGPU_NEXT_FEATURE_WIDE_LINES UINT64_C(33554432)
+#define OGPU_NEXT_FEATURE_DEPTH_BOUNDS UINT64_C(67108864)
+#define OGPU_NEXT_FEATURE_SAMPLE_SHADING UINT64_C(134217728)
+#define OGPU_NEXT_FEATURE_ALPHA_TO_ONE UINT64_C(268435456)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -897,6 +905,8 @@ typedef struct ogpu_next_graphics_limits {
     uint32_t integer_color_samples, stencil_samples;
     uint32_t max_vertex_bindings, max_vertex_attributes, max_vertex_attribute_offset, max_vertex_stride;
     uint64_t dynamic_states; /* supported bits; VIEWPORT_SCISSOR remains required in this profile */
+    float line_width_range[2], line_width_granularity;
+    uint32_t reserved;
 } ogpu_next_graphics_limits;
 typedef struct ogpu_next_query_limits {
     float timestamp_period_ns;
@@ -969,7 +979,47 @@ typedef struct ogpu_next_graphics_state {
     uint32_t stencil_test;
     ogpu_next_stencil_state stencil_front, stencil_back;
     const ogpu_next_record *vertex_input;
+    const ogpu_next_record *raster_options;
 } ogpu_next_graphics_state;
+enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON_POINT = 2 };
+typedef struct ogpu_next_raster_options {
+    ogpu_next_record header;
+    uint32_t primitive_restart, depth_clamp, discard, polygon_mode;
+    uint32_t depth_bias;
+    float depth_bias_constant, depth_bias_clamp, depth_bias_slope;
+    float line_width;
+    uint32_t depth_bounds;
+    float min_depth_bounds, max_depth_bounds;
+    uint64_t sample_mask;
+    uint32_t sample_shading;
+    float min_sample_shading;
+    uint32_t alpha_to_coverage, alpha_to_one;
+} ogpu_next_raster_options;
+/* raster_options=NULL selects fill, width=1, all samples enabled, bounds=[0,1],
+ * all enables/factors zero. Otherwise borrow RASTER_OPTIONS during preparation:
+ * booleans are 0/1; floats finite, line_width>0, bounds ordered within [0,1],
+ * min_sample_shading in [0,1]. Supply explicit defaults: a zeroed record is NOT
+ * equivalent to NULL (zero width is invalid; zero sample mask suppresses coverage).
+ * Restart is available for LINE_STRIP/TRIANGLE_STRIP, using the fixed all-ones
+ * index value for the bound index type. List restart is a separate future profile.
+ * DEPTH_CLAMP enables clamping and disables Z clipping; independent depth clipping
+ * is not exposed. Nonzero bias clamp needs DEPTH_BIAS_CLAMP even with bias disabled.
+ * Non-fill modes, non-unit width, bounds testing, sample shading and alpha-to-one
+ * need NON_SOLID_FILL/WIDE_LINES/DEPTH_BOUNDS/SAMPLE_SHADING/ALPHA_TO_ONE respectively.
+ * Non-unit width must fit the reported range; native granularity/rounding applies.
+ * Bounds testing uses the existing stored depth, not incoming fragment depth;
+ * with no depth attachment the native test passes. Discard suppresses rasterization,
+ * not vertex work; discard pipelines supply only VERTEX (no FRAGMENT shader).
+ * Static discard currently requires zero color/depth formats and an attachmentless
+ * render scope; attached discard awaits the unused-attachments profile.
+ * The viewport/scissor dynamic bit remains required by this profile.
+ * Sample bit n controls sample n; bits beyond samples are ignored, including the
+ * high 32 bits for counts <=32. No custom sample locations or mask expansion.
+ * Sample shading specifies a minimum fraction, not an exact invocation count.
+ * Alpha coverage uses fragment output zero's alpha; conversion is native, not
+ * portable bit-exact coverage. Alpha-to-one applies after that coverage operation.
+ * All are static state: no draw-time tracking, shader patch or implicit resolve.
+ */
 enum { OGPU_NEXT_VERTEX_RATE_VERTEX = 0, OGPU_NEXT_VERTEX_RATE_INSTANCE = 1 };
 typedef struct ogpu_next_vertex_binding { uint32_t binding, stride, rate; } ogpu_next_vertex_binding;
 typedef struct ogpu_next_vertex_attribute { uint32_t location, binding; ogpu_next_format format; uint32_t offset; } ogpu_next_vertex_attribute;
@@ -989,8 +1039,8 @@ typedef struct ogpu_next_vertex_input {
  * contracts. Metadata is borrowed only during preparation. Additional divisor and
  * dynamic input/stride profiles are not enabled; no repack or shader rewriting.
  */
-/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, exactly two
- * shaders ordered VERTEX then FRAGMENT, static_state=GRAPHICS_STATE,
+/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, two shaders
+ * ordered VERTEX then FRAGMENT (only VERTEX when discard is enabled), static_state=GRAPHICS_STATE,
  * dynamic_state includes DYNAMIC_VIEWPORT_SCISSOR and any selected supported
  * optional bits (graphics_limits.dynamic_states). requirements local_size/shared_memory=0.
  * Both shaders provide identical full argument interfaces; root visibility is
@@ -1005,10 +1055,11 @@ typedef struct ogpu_next_vertex_input {
  * color has its own mask. Exact image tuples still use image_requirements.
  * Color mask bits are R=1,G=2,B=4,A=8. Booleans 0/1, compare uses COMPARE_*.
  * Color entries need identical blend/write state unless INDEPENDENT_BLEND is enabled.
- * Fixed profile: fill, depth clip on, no depth bias/bounds/primitive restart,
- * no sample shading or logic op. Both vertex pulling and native vertex fetch
- * are available. Points require shader PointSize=1; vertex/fragment storage
- * writes need future feature enabling. Missing profiles are UNSUPPORTED, not emulated.
+ * Additional static raster/sample controls use raster_options. Logic ops, custom
+ * sample locations and independent depth clipping remain unimplemented profiles.
+ * Both vertex pulling and native vertex fetch are available. Points require shader
+ * PointSize=1; vertex/fragment storage writes require their independent feature bits.
+ * Missing profiles are UNSUPPORTED, not emulated.
  */
 enum { OGPU_NEXT_LOAD = 0, OGPU_NEXT_CLEAR = 1, OGPU_NEXT_DONT_CARE = 2 };
 enum { OGPU_NEXT_STORE = 0, OGPU_NEXT_DISCARD = 1 };

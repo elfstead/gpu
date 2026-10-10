@@ -381,6 +381,9 @@ pub(super) fn snapshot(
             max_vertex_attribute_offset: p.maxVertexInputAttributeOffset,
             max_vertex_stride: p.maxVertexInputBindingStride,
             dynamic_states: 31,
+            line_width_range: p.lineWidthRange,
+            line_width_granularity: p.lineWidthGranularity,
+            reserved: 0,
         };
         let caps = info.capabilities;
         if v13.dynamicRendering != 0
@@ -400,6 +403,13 @@ pub(super) fn snapshot(
                 INDIRECT_FIRST_INSTANCE,
             ),
             (root.features.independentBlend, INDEPENDENT_BLEND),
+            (root.features.depthClamp, DEPTH_CLAMP),
+            (root.features.depthBiasClamp, DEPTH_BIAS_CLAMP),
+            (root.features.fillModeNonSolid, NON_SOLID_FILL),
+            (root.features.wideLines, WIDE_LINES),
+            (root.features.depthBounds, DEPTH_BOUNDS),
+            (root.features.sampleRateShading, SAMPLE_SHADING),
+            (root.features.alphaToOne, ALPHA_TO_ONE),
             (
                 root.features.vertexPipelineStoresAndAtomics,
                 VERTEX_STORES_ATOMICS,
@@ -634,6 +644,13 @@ impl Device {
         let features = vk::VkPhysicalDeviceFeatures {
             drawIndirectFirstInstance: u32::from(enabled & INDIRECT_FIRST_INSTANCE != 0),
             independentBlend: u32::from(enabled & INDEPENDENT_BLEND != 0),
+            depthClamp: u32::from(enabled & DEPTH_CLAMP != 0),
+            depthBiasClamp: u32::from(enabled & DEPTH_BIAS_CLAMP != 0),
+            fillModeNonSolid: u32::from(enabled & NON_SOLID_FILL != 0),
+            wideLines: u32::from(enabled & WIDE_LINES != 0),
+            depthBounds: u32::from(enabled & DEPTH_BOUNDS != 0),
+            sampleRateShading: u32::from(enabled & SAMPLE_SHADING != 0),
+            alphaToOne: u32::from(enabled & ALPHA_TO_ONE != 0),
             vertexPipelineStoresAndAtomics: u32::from(enabled & VERTEX_STORES_ATOMICS != 0),
             fragmentStoresAndAtomics: u32::from(enabled & FRAGMENT_STORES_ATOMICS != 0),
             inheritedQueries: u32::from(enabled & INHERITED_QUERIES != 0),
