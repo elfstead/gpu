@@ -11449,6 +11449,214 @@ pub type PFN_vkCmdPushDataEXT = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderAtomicFloatFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderBufferFloat32Atomics: VkBool32,
+    pub shaderBufferFloat32AtomicAdd: VkBool32,
+    pub shaderBufferFloat64Atomics: VkBool32,
+    pub shaderBufferFloat64AtomicAdd: VkBool32,
+    pub shaderSharedFloat32Atomics: VkBool32,
+    pub shaderSharedFloat32AtomicAdd: VkBool32,
+    pub shaderSharedFloat64Atomics: VkBool32,
+    pub shaderSharedFloat64AtomicAdd: VkBool32,
+    pub shaderImageFloat32Atomics: VkBool32,
+    pub shaderImageFloat32AtomicAdd: VkBool32,
+    pub sparseImageFloat32Atomics: VkBool32,
+    pub sparseImageFloat32AtomicAdd: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderAtomicFloatFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceShaderAtomicFloatFeaturesEXT>() - 64usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderAtomicFloatFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceShaderAtomicFloatFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderBufferFloat32Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderBufferFloat32Atomics
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderBufferFloat32AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderBufferFloat32AtomicAdd
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderBufferFloat64Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderBufferFloat64Atomics
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderBufferFloat64AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderBufferFloat64AtomicAdd
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderSharedFloat32Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderSharedFloat32Atomics
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderSharedFloat32AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderSharedFloat32AtomicAdd
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderSharedFloat64Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderSharedFloat64Atomics
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderSharedFloat64AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderSharedFloat64AtomicAdd
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderImageFloat32Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderImageFloat32Atomics
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::shaderImageFloat32AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, shaderImageFloat32AtomicAdd
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::sparseImageFloat32Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, sparseImageFloat32Atomics
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloatFeaturesEXT::sparseImageFloat32AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloatFeaturesEXT, sparseImageFloat32AtomicAdd
+    ) - 60usize];
+};
+impl Default for VkPhysicalDeviceShaderAtomicFloatFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub shaderBufferFloat16Atomics: VkBool32,
+    pub shaderBufferFloat16AtomicAdd: VkBool32,
+    pub shaderBufferFloat16AtomicMinMax: VkBool32,
+    pub shaderBufferFloat32AtomicMinMax: VkBool32,
+    pub shaderBufferFloat64AtomicMinMax: VkBool32,
+    pub shaderSharedFloat16Atomics: VkBool32,
+    pub shaderSharedFloat16AtomicAdd: VkBool32,
+    pub shaderSharedFloat16AtomicMinMax: VkBool32,
+    pub shaderSharedFloat32AtomicMinMax: VkBool32,
+    pub shaderSharedFloat64AtomicMinMax: VkBool32,
+    pub shaderImageFloat32AtomicMinMax: VkBool32,
+    pub sparseImageFloat32AtomicMinMax: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT>() - 64usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderBufferFloat16Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderBufferFloat16Atomics
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderBufferFloat16AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderBufferFloat16AtomicAdd
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderBufferFloat16AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderBufferFloat16AtomicMinMax
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderBufferFloat32AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderBufferFloat32AtomicMinMax
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderBufferFloat64AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderBufferFloat64AtomicMinMax
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderSharedFloat16Atomics",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderSharedFloat16Atomics
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderSharedFloat16AtomicAdd",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderSharedFloat16AtomicAdd
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderSharedFloat16AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderSharedFloat16AtomicMinMax
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderSharedFloat32AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderSharedFloat32AtomicMinMax
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderSharedFloat64AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderSharedFloat64AtomicMinMax
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::shaderImageFloat32AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, shaderImageFloat32AtomicMinMax
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT::sparseImageFloat32AtomicMinMax",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT, sparseImageFloat32AtomicMinMax
+    ) - 60usize];
+};
+impl Default for VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,

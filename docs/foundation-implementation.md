@@ -866,6 +866,36 @@ artifact with either domain or INT64 missing. This does not establish all atomic
 operations, signed/floating-point atomics, device-wide synchronization algorithms,
 forward-progress properties or contention throughput.
 
+### Native floating-point atomics
+
+FP32 buffer and workgroup atomics now have independent operation bits: atomic
+load/store/exchange, add, and min/max. Requesting one does not enable the others;
+graphics storage-write enabling remains separate. The Vulkan mapping uses
+[shader atomic float](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderAtomicFloatFeaturesEXT.html)
+and [atomic float min/max](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT.html)
+features and their extension dependencies. No host command, CAS loop, shader
+rewriting, extra barrier or reduction-order policy is introduced. Native artifacts
+declare exact operation/domain requirements; numerical and progress guarantees
+are not inferred from general floating-point control properties.
+
+Six pinned Slang artifacts exercise global addition across two workgroups, shared
+addition, buffer/shared min/max and buffer/shared exchange including previous
+values. SPIR-V inspection confirms native floating add/min/max/exchange instructions.
+Finite binary-fraction inputs make addition exact regardless of invocation order;
+shared exchange checks exactly one first exchanger without assuming which lane wins.
+Guarded readback, root preservation and changed-input replay pass on llvmpipe 26.2.1
+for all six cases. Radeon 26.2.4 passes five: buffer FP32 addition is not advertised
+and is explicitly reported as not exercised. The runtime does not emulate it.
+
+The preparation matrix requests each operation independently, tries the other
+floating-atomic feature bits, and rejects missing artifact requirements. Unit tests
+check all 64 enabling subsets and ensure wider/image/sparse features remain off.
+All 15 foundation GPU tests pass on both drivers; the ordinary suite has 82 passing
+tests. C/Rust native layout checks now include both atomic feature structures.
+Atomic load/store execution, image/sparse and 16/64-bit operations, exceptional
+values, denormals, contention throughput and device-wide progress remain work.
+These results do not establish a completed ML numerical profile or new Metal support.
+
 ### Floating-point policy discovery
 
 `QUERY_FLOAT_CONTROLS` returns one immutable physical record for binary16/32/64

@@ -203,6 +203,22 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_LOGIC_OP UINT64_C(1073741824)
 #define OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND UINT64_C(2147483648)
 #define OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER UINT64_C(4294967296)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMICS UINT64_C(8589934592)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_ADD UINT64_C(17179869184)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT32_ATOMIC_MIN_MAX UINT64_C(34359738368)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMICS UINT64_C(68719476736)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_ADD UINT64_C(137438953472)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT32_ATOMIC_MIN_MAX UINT64_C(274877906944)
+/* FLOAT32_ATOMICS means floating-point atomic load/store/exchange; ADD and MIN_MAX
+ * are separate, independently enabled operations, not implied by that bit. BUFFER
+ * covers storage/address-backed buffer memory; SHARED covers workgroup memory.
+ * Shader requirements declare every used operation/domain. Graphics storage-write
+ * enabling remains separate. No CAS-loop/shader rewrite, deterministic reduction
+ * order, cross-workgroup barrier or throughput guarantee is provided. NaN, signed
+ * zero, denormal and rounding behavior follow the native artifact contract; the
+ * ordinary floating-point-controls query does not establish atomic arithmetic
+ * policy. Image, sparse-image and 16/64-bit floating atomic profiles remain work.
+ */
 /* SHADER_OUTPUT_LAYER enables vertex-stage Layer output (Slang
  * SV_RenderTargetArrayIndex) into ordinary layered render scopes. It neither
  * enables multiview nor implicitly adds geometry/tessellation/mesh stages.

@@ -127,6 +127,13 @@ stencil; llvmpipe passes its advertised sample-zero profile. Broader graphics,
 numerical profiles and consumer migration remain the selected tranche, not closed
 by these focused checks.
 
+FP32 atomics now independently enable buffer/shared load-store-exchange, add and
+min/max. Six native shader cases pass on llvmpipe; Radeon passes five and reports
+unsupported buffer addition without emulation. Exact finite-data checks do not
+promise arbitrary reduction ordering, exceptional-value behavior or throughput.
+Wider numerical and matrix profiles, compiler integration and consumer migration
+remain outstanding.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

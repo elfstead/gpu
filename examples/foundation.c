@@ -93,6 +93,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_mrt.h"
 #include "foundation_depth.h"
 #include "foundation_blend.h"
+#include "foundation_float_atomics.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
 #define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE | OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS | OGPU_NEXT_FEATURE_LOGIC_OP | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND | OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER)
 
@@ -941,7 +942,7 @@ int main(int argc, char **argv) {
         }
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
-            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES)) };
+            OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES)) };
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
         for (uint32_t j = 0; j < count; ++j) {
@@ -955,7 +956,7 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES))));
+    REQUIRE(features.device_scope == 1 && features.enabled == (OGPU_NEXT_FEATURE_RASTER | (features.available & (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES))));
     q = query(OGPU_NEXT_QUERY_MEMORY_TYPES, NULL, 0, sizeof(*types));
     TRY(ogpu_next_device_query(device, &q));
     types = calloc(q.count, sizeof(*types)); REQUIRE(types != NULL);
@@ -1016,7 +1017,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 16);
+    REQUIRE(argc == 22);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1066,6 +1067,8 @@ int main(int argc, char **argv) {
     else printf("Inherited query execution not exercised: feature unavailable.\n");
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[7], 1, 0, 0) == EXIT_SUCCESS);
+    for (uint32_t mode = 0; mode < 6; ++mode)
+        REQUIRE(float_atomic_execution(device,memory_desc,compute_domain,argv[16+mode],mode) == EXIT_SUCCESS);
     ogpu_next_subgroup_limits subgroup = {0};
     q = query(OGPU_NEXT_QUERY_SUBGROUP_LIMITS,&subgroup,1,sizeof(subgroup));
     TRY(ogpu_next_device_query(device,&q));

@@ -302,6 +302,18 @@ mod tests {
             8,
         );
     }
+    #[test]
+    #[ignore = "requires modern Vulkan; independently enabled native float atomic operation/domain profiles"]
+    fn gpu_foundation_float_atomic_profiles() {
+        for (bytes, entry, required, shared) in [
+            (include_bytes!("../../../../examples/shaders/foundation-float-atomics.buffer-add.comp.spv").as_slice(), c"bufferAdd", BUFFER_FLOAT32_ATOMIC_ADD, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float-atomics.shared-add.comp.spv").as_slice(), c"sharedAdd", SHARED_FLOAT32_ATOMIC_ADD, 4),
+            (include_bytes!("../../../../examples/shaders/foundation-float-atomics.buffer-minmax.comp.spv").as_slice(), c"bufferMinMax", BUFFER_FLOAT32_ATOMIC_MIN_MAX, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float-atomics.shared-minmax.comp.spv").as_slice(), c"sharedMinMax", SHARED_FLOAT32_ATOMIC_MIN_MAX, 8),
+            (include_bytes!("../../../../examples/shaders/foundation-float-atomics.buffer-exchange.comp.spv").as_slice(), c"bufferExchange", BUFFER_FLOAT32_ATOMICS, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float-atomics.shared-exchange.comp.spv").as_slice(), c"sharedExchange", SHARED_FLOAT32_ATOMICS, 4),
+        ] { check_numerical_profile(bytes, entry, required, shared); }
+    }
     fn check_numerical_profile(bytes: &[u8], entry: &CStr, all: u64, shared_memory: u32) {
         let instance = Arc::new(Instance::new().unwrap());
         let code: Vec<u32> = bytes
@@ -380,6 +392,12 @@ mod tests {
                     .map(|n| 1u64 << n)
                     .filter(|bit| all & bit != 0)
                     .flat_map(|bit| [bit, all & !bit]),
+            );
+            // Float operations are independent even within the same width/domain.
+            let profiles = profiles.chain(
+                (0..64)
+                    .map(|n| 1u64 << n)
+                    .filter(|bit| all & float_atomics::ALL != 0 && bit & float_atomics::ALL != 0),
             );
             for enabled in profiles {
                 if enabled & !available != 0 {

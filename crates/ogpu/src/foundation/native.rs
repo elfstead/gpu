@@ -1,6 +1,8 @@
 //! Vulkan foundation: immutable device state, externally synchronized queues,
 //! independent timelines. No implicit queue, completion counter or resource cache.
 use super::types::*;
+#[path = "float_atomics.rs"]
+mod float_atomics;
 #[path = "float_controls.rs"]
 mod float_controls;
 use super::{loader_error, Adapter, Snapshot};
@@ -217,13 +219,30 @@ pub(super) fn snapshot(
         let has_unused = instance
             .supports_extension(physical, c"VK_EXT_dynamic_rendering_unused_attachments")
             .map_err(loader_error)?;
+        let has_float_atomic = instance
+            .supports_extension(physical, c"VK_EXT_shader_atomic_float")
+            .map_err(loader_error)?;
+        let has_float_atomic2 = has_float_atomic
+            && instance
+                .supports_extension(physical, c"VK_EXT_shader_atomic_float2")
+                .map_err(loader_error)?;
+        let (mut float_atomic, mut float_atomic2) = float_atomics::requested(0);
+        if has_float_atomic2 {
+            float_atomic.pNext = ptr::from_mut(&mut float_atomic2).cast();
+        }
+        let float_next = if has_float_atomic {
+            ptr::from_mut(&mut float_atomic).cast()
+        } else {
+            ptr::null_mut()
+        };
         let mut unused = vk::VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
+            pNext: float_next,
             ..Default::default()
         };
         let mut unified = vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR,
-            pNext: if has_unused { ptr::from_mut(&mut unused).cast() } else { ptr::null_mut() },
+            pNext: if has_unused { ptr::from_mut(&mut unused).cast() } else { float_next },
             ..Default::default()
         };
         let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
@@ -233,7 +252,7 @@ pub(super) fn snapshot(
             } else if has_unused {
                 ptr::from_mut(&mut unused).cast()
             } else {
-                ptr::null_mut()
+                float_next
             },
             ..Default::default()
         };
@@ -292,6 +311,7 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
+        features.available |= float_atomics::available(&float_atomic, &float_atomic2);
         if unused.dynamicRenderingUnusedAttachments != 0 {
             features.available |= UNUSED_ATTACHMENTS;
         }
@@ -602,14 +622,23 @@ impl Device {
                 ..Default::default()
             })
             .collect();
+        let (mut float_atomic, mut float_atomic2) = float_atomics::requested(enabled);
+        if enabled & float_atomics::MIN_MAX != 0 {
+            float_atomic.pNext = ptr::from_mut(&mut float_atomic2).cast();
+        }
+        let float_next = if enabled & float_atomics::ALL != 0 {
+            ptr::from_mut(&mut float_atomic).cast()
+        } else {
+            ptr::null_mut()
+        };
         let mut unused = vk::VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
-            dynamicRenderingUnusedAttachments: 1, ..Default::default()
+            dynamicRenderingUnusedAttachments: 1, pNext: float_next,
         };
         let unused_next = if enabled & UNUSED_ATTACHMENTS != 0 {
             ptr::from_mut(&mut unused).cast()
         } else {
-            ptr::null_mut()
+            float_next
         };
         let mut unified = vk::VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR,
@@ -707,6 +736,12 @@ impl Device {
         }
         if enabled & UNUSED_ATTACHMENTS != 0 {
             extensions.push(c"VK_EXT_dynamic_rendering_unused_attachments".as_ptr());
+        }
+        if enabled & float_atomics::ALL != 0 {
+            extensions.push(c"VK_EXT_shader_atomic_float".as_ptr());
+        }
+        if enabled & float_atomics::MIN_MAX != 0 {
+            extensions.push(c"VK_EXT_shader_atomic_float2".as_ptr());
         }
         let create = vk::VkDeviceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
