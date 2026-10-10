@@ -72,7 +72,8 @@ enum {
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
     OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
     OGPU_NEXT_EXECUTABLE_CACHE_DESC = 118, OGPU_NEXT_VERTEX_INPUT = 119,
-    OGPU_NEXT_SUBGROUP_STATE = 120
+    OGPU_NEXT_SUBGROUP_STATE = 120, OGPU_NEXT_INHERITANCE = 121,
+    OGPU_NEXT_RENDER_INHERITANCE = 122
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
  * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
@@ -132,6 +133,7 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES UINT64_C(16384)
 #define OGPU_NEXT_FEATURE_PIPELINE_STATISTICS UINT64_C(32768)
 #define OGPU_NEXT_FEATURE_PRECISE_OCCLUSION UINT64_C(65536)
+#define OGPU_NEXT_FEATURE_INHERITED_QUERIES UINT64_C(131072)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -376,19 +378,41 @@ typedef struct ogpu_next_arena_desc {
     ogpu_next_record header;
     ogpu_next_queue_domain domain;
     uint32_t list_capacity;
+    uint32_t level, reserved;
 } ogpu_next_arena_desc;
 enum { OGPU_NEXT_ONE_SHOT = 1, OGPU_NEXT_SERIAL_REPLAY = 2, OGPU_NEXT_SIMULTANEOUS_REPLAY = 3 };
-enum { OGPU_NEXT_PRIMARY = 0 };
+enum { OGPU_NEXT_PRIMARY = 0, OGPU_NEXT_SECONDARY = 1 };
 typedef struct ogpu_next_recording_desc {
     ogpu_next_record header;
     uint32_t replay_mode, level;
     const ogpu_next_record *inheritance;
 } ogpu_next_recording_desc;
-/* Only primary, inheritance=NULL is implemented. One-shot accepts one successful
- * submit. Serial replay requires prior executions complete before resubmission;
+typedef struct ogpu_next_inheritance {
+    ogpu_next_record header;
+    uint32_t occlusion, query_flags;
+    uint64_t statistics;
+    const ogpu_next_record *rendering;
+} ogpu_next_inheritance;
+/* Arena level is fixed at creation/reserve; recording level must match. reserved=0.
+ * Primary inheritance=NULL. Secondary inheritance=NULL means standalone, no query
+ * inheritance; otherwise INHERITANCE optionally names RENDER_INHERITANCE below.
+ * One-shot accepts one successful execution (direct or through a primary).
+ * Serial replay requires prior executions complete before resubmission;
  * simultaneous replay permits pending executions but does NOT resolve hazards.
  * The caller tracks pending use and keeps referenced resources alive, including
  * between replays. No resource lists, pending scans or implicit timeline values.
+ * Secondary one-shot consumption is caller-tracked: submitting a primary never
+ * walks its children. Non-simultaneous secondary lists may be referenced only once
+ * by one live primary recording; recording into another invalidates the prior
+ * primary under native rules. A simultaneous primary needs simultaneous children.
+ * Reset/trim/destruction of a secondary arena invalidates ALL referring primary
+ * recordings, even when idle. Discard/reset those primaries before future use.
+ * No reset, re-recording or destruction while any direct/indirect use is pending.
+ * Query inheritance occlusion=0/1; nonzero occlusion/query_flags requires enabled
+ * INHERITED_QUERIES; query_flags=0 or QUERY_PRECISE. Nonzero statistics needs
+ * PIPELINE_STATISTICS and a supported mask. Executing under any active query needs
+ * INHERITED_QUERIES; the declared masks must cover that query. Secondary commands
+ * must not begin query types active in the parent (caller proves this).
  */
 ogpu_next_status ogpu_next_arena_create(ogpu_next_device *, const ogpu_next_arena_desc *, ogpu_next_arena **);
 ogpu_next_status ogpu_next_arena_reserve(ogpu_next_arena *, uint32_t list_capacity);
@@ -452,6 +476,35 @@ typedef struct ogpu_next_descriptor_limits {
     float max_sampler_lod_bias, max_sampler_anisotropy;
 } ogpu_next_descriptor_limits;
 typedef struct ogpu_next_host_span { void *data; uint64_t size; } ogpu_next_host_span;
+typedef struct ogpu_next_render_inheritance {
+    ogpu_next_record header;
+    uint32_t color_count, samples, view_mask, reserved;
+    ogpu_next_format depth_format, stencil_format;
+    const ogpu_next_format *color_formats;
+    ogpu_next_host_span scratch;
+} ogpu_next_render_inheritance;
+/* Rendering inheritance declares compatible attachment formats/sample count, not
+ * attachment handles. Zero formats mean unused; view_mask=reserved=0 for now.
+ * Both nonzero depth/stencil formats must match. Format translation uses caller
+ * scratch, borrowed with all description data only during commands_begin. The
+ * caller proves formats/count/samples match each eventual primary render scope.
+ * This secondary starts/ends INSIDE that scope: do not call render_begin/end.
+ * Standalone secondaries may record complete inline rendering scopes themselves.
+ * Neither flavor inherits pipeline, arguments, heap, vertex/index or viewport
+ * state: initialize everything used. Heap-inheritance and nested-secondary
+ * execution are separate profiles, not silently simulated.
+ */
+ogpu_next_status ogpu_next_inheritance_scratch_requirements(uint32_t color_count, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_execute_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
+/* Execute from a primary only. Inputs and aligned scratch are borrowed only for
+ * this call; the lists, arenas and their resources survive all future/pending use.
+ * Entire array is validated before native execution. count=0 is a no-op.
+ * Nonempty execution invalidates the primary's pipeline, inline/root bytes,
+ * viewport/scissor, vertex/index and heap bindings: re-establish before using.
+ * Render/query scopes survive. No implicit restoration or retained child graph.
+ * Inside rendering requires RENDER_SECONDARY; outside requires standalone children.
+ */
+void ogpu_next_execute_lists(ogpu_next_encoder *, uint32_t count, ogpu_next_list *const *, ogpu_next_host_span scratch);
 enum { OGPU_NEXT_HEAP_RESOURCE = 1, OGPU_NEXT_HEAP_SAMPLER = 2 };
 enum {
     OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE = 1, OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE = 2,
@@ -822,6 +875,7 @@ typedef struct ogpu_next_render_desc {
     const ogpu_next_attachment *depth, *stencil;
     ogpu_next_host_span scratch;
 } ogpu_next_render_desc;
+enum { OGPU_NEXT_RENDER_SECONDARY = 1 };
 typedef struct ogpu_next_viewport_state {
     ogpu_next_record header;
     float x, y, width, height, min_depth, max_depth;
@@ -833,7 +887,9 @@ typedef struct ogpu_next_draw_desc {
     int32_t vertex_offset;
 } ogpu_next_draw_desc;
 /* Render begin does not need an executable and permits clear-only or attachmentless
- * scopes. Area is explicit and nonempty; layers>0; view_mask=flags=0.
+ * scopes. Area is explicit and nonempty; layers>0; view_mask=0.
+ * flags=0 selects inline commands; RENDER_SECONDARY selects secondary execution
+ * in a primary scope and disallows inline draws. Nested execution is unsupported.
  * samples is one supported count and must match all non-resolve attachments.
  * Views are 2D/array with identity component mapping,
  * one mip, with sufficient extent/layers and attachment usage. Null color/depth

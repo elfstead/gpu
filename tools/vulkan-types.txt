@@ -45,6 +45,8 @@ VkPipelineRenderingCreateInfo
 VkImageMemoryBarrier2
 VkAddressCommandFlagBitsKHR
 VkCommandBufferUsageFlagBits
+VkCommandBufferInheritanceRenderingInfo
+VkRenderingFlagBits
 VkCommandPoolResetFlagBits
 VkImageCreateFlagBits
 VkImageFormatListCreateInfo

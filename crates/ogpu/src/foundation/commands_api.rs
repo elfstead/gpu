@@ -192,6 +192,56 @@ pub unsafe extern "C" fn ogpu_next_queue_submit_batch(
         unsafe { queue.submit_batch(count, descs, scratch) }
     })
 }
+/// # Safety
+/// Writable requirements output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_execute_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let value = native::execute_scratch(count)?;
+        unsafe {
+            out.write(value);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Writable requirements output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_inheritance_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let value = native::inheritance_scratch(count)?;
+        unsafe {
+            out.write(value);
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// Live primary encoder and secondary handles. Caller owns disjoint translation
+/// scratch, parent/child lifetimes, reset invalidation, replay and compatibility.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_execute_lists(
+    encoder: *mut List,
+    count: u32,
+    lists: *const *mut List,
+    scratch: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| e.execute(count, lists, scratch));
+    }
+}
 unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>) {
     if let Some(encoder) = unsafe { encoder.as_ref() } {
         encoder.poison(boundary(|| f(encoder)));

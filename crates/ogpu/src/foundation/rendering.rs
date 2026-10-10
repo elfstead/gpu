@@ -35,7 +35,7 @@ impl Device {
         desc: &RenderDesc,
     ) -> Result<(), Status> {
         desc.header.validate::<RenderDesc>(RENDER_DESC)?;
-        if desc.view_mask != 0 || desc.flags != 0 {
+        if desc.view_mask != 0 || desc.flags & !1 != 0 {
             return Err(UNSUPPORTED);
         }
         let limits = &self.snapshot.graphics_limits;
@@ -96,6 +96,11 @@ impl Device {
         }
         let info = vk::VkRenderingInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RENDERING_INFO,
+            flags: if desc.flags & 1 != 0 {
+                vk::VkRenderingFlagBits_VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
+            } else {
+                0
+            },
             renderArea: vk::VkRect2D {
                 offset: vk::VkOffset2D {
                     x: desc.x,

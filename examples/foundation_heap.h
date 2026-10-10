@@ -138,7 +138,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL, 0, 0};
     TRY(ogpu_next_executable_create(device, &ed, &executable));
     free(code); code = NULL;
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     TRY(ogpu_next_barrier_scratch_requirements(0, 2, &br));
     TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &sr));

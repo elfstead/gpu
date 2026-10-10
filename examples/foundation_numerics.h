@@ -54,7 +54,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_mapping map = {0};
     TRY(ogpu_next_memory_map(all,&map));
     uint64_t address = 0; TRY(ogpu_next_memory_address(all,&address));
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL;

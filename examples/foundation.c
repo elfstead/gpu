@@ -24,7 +24,9 @@ _Static_assert(sizeof(ogpu_next_span) == 24, "span ABI");
 _Static_assert(sizeof(ogpu_next_requirements) == 40, "requirements ABI");
 _Static_assert(sizeof(ogpu_next_mapping) == 40, "mapping ABI");
 _Static_assert(sizeof(ogpu_next_memory_limits) == 32, "memory limits ABI");
-_Static_assert(sizeof(ogpu_next_arena_desc) == 32, "arena ABI");
+_Static_assert(sizeof(ogpu_next_arena_desc) == 40, "arena ABI");
+_Static_assert(sizeof(ogpu_next_inheritance) == 48, "inheritance ABI");
+_Static_assert(sizeof(ogpu_next_render_inheritance) == 72, "render inheritance ABI");
 _Static_assert(sizeof(ogpu_next_recording_desc) == 40, "recording ABI");
 _Static_assert(sizeof(ogpu_next_submit_desc) == 80, "submit ABI");
 _Static_assert(sizeof(ogpu_next_dependency) == 104, "dependency ABI");
@@ -76,18 +78,18 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_graphics.h"
 #include "foundation_numerics.h"
 #include "foundation_submission.h"
-#define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION)
+#define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
-                   uint32_t domain, const char *shader_path) {
+                   uint32_t domain, const char *shader_path, uint32_t secondary) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
-    void *code = NULL, *scratch = NULL;
+    void *code = NULL, *scratch = NULL, *execute_scratch = NULL;
     ogpu_next_executable *executable = NULL;
     ogpu_next_executable_cache *cache = NULL;
     ogpu_next_query_pool *statistics = NULL;
     ogpu_next_memory *memory = NULL;
-    ogpu_next_arena *arena = NULL;
+    ogpu_next_arena *arena = NULL, *parent_arena = NULL;
     ogpu_next_timeline *done = NULL;
     file = fopen(shader_path, "rb"); REQUIRE(file != NULL);
     REQUIRE(fseek(file, 0, SEEK_END) == 0);
@@ -138,9 +140,11 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     TRY(ogpu_next_memory_map(all, &mapping));
     ogpu_next_address base = 0;
     TRY(ogpu_next_memory_address(all, &base));
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 2};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 2, OGPU_NEXT_PRIMARY, 0};
+    if (secondary) ad.level = OGPU_NEXT_SECONDARY;
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_PRIMARY, NULL};
+    rd.level = ad.level;
     ogpu_next_encoder *encoder = NULL;
     ogpu_next_list *list = NULL;
     ogpu_next_feature_info features = {0};
@@ -188,6 +192,25 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     dep.global_before = OGPU_NEXT_ACCESS_SHADER_WRITE | OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
     ogpu_next_barrier(encoder, &dep);
     TRY(ogpu_next_commands_end(encoder, &list));
+    if (secondary) {
+        ogpu_next_list *child = list;
+        ad.level = OGPU_NEXT_PRIMARY;
+        TRY(ogpu_next_arena_create(device,&ad,&parent_arena));
+        ogpu_next_recording_desc prd = rd; prd.level = OGPU_NEXT_PRIMARY;
+        ogpu_next_host_requirements er = {0};
+        TRY(ogpu_next_execute_scratch_requirements(1,&er)); REQUIRE(er.alignment <= _Alignof(max_align_t));
+        execute_scratch = malloc((size_t)er.size); REQUIRE(execute_scratch != NULL);
+        TRY(ogpu_next_commands_begin(parent_arena,&prd,&encoder));
+        ogpu_next_bind_executable(encoder,executable);
+        ogpu_next_execute_lists(encoder,1,&child,(ogpu_next_host_span){execute_scratch,er.size});
+        ogpu_next_dispatch(encoder,&launch); /* Secondary execution invalidates the parent's bind. */
+        REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
+        TRY(ogpu_next_arena_reset(parent_arena));
+        TRY(ogpu_next_commands_begin(parent_arena,&prd,&encoder));
+        ogpu_next_execute_lists(encoder,1,&child,(ogpu_next_host_span){execute_scratch,er.size});
+        memset(execute_scratch,0xcc,(size_t)er.size);
+        TRY(ogpu_next_commands_end(encoder,&list));
+    }
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_host_requirements scratch_req = {0};
     TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &scratch_req));
@@ -220,6 +243,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
             REQUIRE(((uint32_t *)mapping.data)[512 + i] == (i < count ? (i + replay) * 5 + replay + 11 + 13 : UINT32_C(0xa5a5a5a5)));
         }
     }
+    if (parent_arena) TRY(ogpu_next_arena_reset(parent_arena));
     TRY(ogpu_next_arena_reset(arena));
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     ogpu_next_dispatch(encoder, &launch); /* No inherited executable after reset. */
@@ -230,15 +254,16 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
     printf("Compute passes: named entry, specialization, two device roots, partial inline updates, GPU-written indirect dimensions and changed-data replay.\n");
     if (statistics) printf("Compute statistics pass: direct/indirect invocation counts, empty query, availability, padded records and replay.\n");
+    if (secondary) printf("Secondary compute passes: explicit child/parent arenas, independent state, parent bind invalidation and changed-root replay.\n");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr, "Pending compute work after failure.\n"); _Exit(EXIT_FAILURE); }
-    ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(executable);
+    ogpu_next_arena_destroy(parent_arena); ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(executable);
     ogpu_next_executable_cache_destroy(cache);
     ogpu_next_query_pool_destroy(statistics);
     ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
-    free(code); free(scratch);
+    free(code); free(scratch); free(execute_scratch);
     return result;
 }
 
@@ -337,7 +362,7 @@ static int descriptors(ogpu_next_device *device, ogpu_next_memory_desc host_desc
         memcpy((unsigned char *)mappings[i].data + slot_sizes[i], encoded + stride, (size_t)(i ? limits.sampler_size : limits.image_size));
         TRY(ogpu_next_memory_flush((ogpu_next_span){heaps[i], 0, slot_sizes[i] * 2}));
     }
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_ONE_SHOT, OGPU_NEXT_PRIMARY, NULL};
     ogpu_next_encoder *encoder = NULL;
@@ -479,7 +504,7 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { domain = queues[i].domain; break; }
     REQUIRE(domain != UINT32_MAX);
     REQUIRE(descriptors(device, host_desc, domain, view) == EXIT_SUCCESS);
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_host_requirements hr = {0}, br = {0};
@@ -703,7 +728,7 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
     TRY(ogpu_next_memory_map(u, &um)); TRY(ogpu_next_memory_map(r, &rm));
     TRY(ogpu_next_timeline_create(device, 0, &done));
     TRY(ogpu_next_timeline_create(device, 0, &gate));
-    ogpu_next_arena_desc ad = { HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1 };
+    ogpu_next_arena_desc ad = { HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0 };
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &req));
     REQUIRE(req.alignment <= _Alignof(max_align_t));
@@ -971,16 +996,23 @@ int main(int argc, char **argv) {
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
     REQUIRE(compute_domain != UINT32_MAX);
     REQUIRE(submission_batches(device, memory_desc, compute_domain) == EXIT_SUCCESS);
-    REQUIRE(compute(device, memory_desc, compute_domain, argv[1]) == EXIT_SUCCESS);
+    REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 0) == EXIT_SUCCESS);
+    REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 1) == EXIT_SUCCESS);
     REQUIRE(heap_execution(device, memory_desc, compute_domain, argv[2]) == EXIT_SUCCESS);
     uint32_t graphics_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { graphics_domain = queues[i].domain; break; }
     REQUIRE(graphics_domain != UINT32_MAX);
-    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0) == EXIT_SUCCESS);
-    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0) == EXIT_SUCCESS);
-    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0) == EXIT_SUCCESS);
-    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 0, 1) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 0) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 0) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0, 0) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 0, 1, 0) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 1) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 2) == EXIT_SUCCESS);
+    REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[5], argv[4], 1, 1, 1, 2) == EXIT_SUCCESS);
+    if (features.enabled & OGPU_NEXT_FEATURE_INHERITED_QUERIES)
+        REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 3) == EXIT_SUCCESS);
+    else printf("Inherited query execution not exercised: feature unavailable.\n");
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[7], 1, 0, 0) == EXIT_SUCCESS);
     ogpu_next_subgroup_limits subgroup = {0};

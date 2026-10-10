@@ -72,7 +72,7 @@ one mapping, and unmap invalidates them all.
 
 ## Implemented command storage and submission
 
-Explicit per-domain arenas reserve primary list slots, not fictitious native-byte
+Explicit per-domain arenas reserve primary or secondary list slots, not fictitious native-byte
 budgets. Begin consumes a reserved slot without growing OGPU storage. Reserve can
 grow without moving existing list handles; reset retains capacity, and trim resets,
 frees excess slots and asks the driver to release pool storage. Neither destruction
@@ -109,8 +109,7 @@ signal is not a blanket completion receipt. Submit OOM is retryable with one-sho
 work intact; loss is sticky. Unexpected native submission errors conservatively
 poison the device instead of pretending a retry or resource reuse is safe.
 
-This is still an unstabilized subset. Secondary recording/inheritance and split
-dependencies are not implemented, and the current
+This is still an unstabilized subset. Split dependencies are not implemented, and the current
 stage vocabulary includes broad transfer/vertex/depth groups. Finer graphics scopes
 must be added with the executable surface. Multiple lists and timeline edges are
 batched in one native submit record, or an ordered array of distinct wait/work/signal
@@ -131,6 +130,42 @@ Rust injection checks one native call with the full batch count, no native call 
 local rejection, OOM retry, successful one-shot consumption and terminal loss.
 No performance
 equivalence claim follows merely from the absence of OGPU hot-path allocation.
+
+### Secondary command lists
+
+Arena level is fixed at creation; recording level must match. Standalone secondary
+lists support compute/transfers and complete rendering scopes. Rendering-continuation
+secondaries declare formats/sample count, then record inside a caller-owned primary
+rendering scope. Attachment compatibility remains a caller proof, without retaining
+attachment arrays or walking child resources. Primary scopes explicitly select
+inline draws or secondary contents; mixed/nested secondary execution is not enabled.
+
+An optional inheritance record declares occlusion and pipeline-statistics masks.
+The independent `INHERITED_QUERIES` feature is required to execute under active
+queries. The caller must not start conflicting query types inside a child. Radeon
+executes inherited occlusion/statistics and checks their draw counts; llvmpipe does
+not expose query inheritance. Secondaries may still own their own query scopes.
+
+Execution translates the complete list array into caller-owned scratch and validates
+it before one native call. It neither retains a child graph nor allocates OGPU memory.
+Ordinary pipeline, arguments, heaps, viewport and vertex/index bindings become
+undefined after execution; callers re-establish them. Render/query scopes survive.
+Children do not inherit those bindings either. Heap inheritance is a separate
+follow-up profile, not an implicit rebinding implementation.
+
+Secondary lifetime and replay obligations are explicit: reset/destruction invalidates
+referring primaries, a simultaneous parent needs simultaneous children, and callers
+track indirect one-shot consumption and pending uses. Submission does not traverse
+children. Direct secondary queue submission is rejected. See native
+[execution rules](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdExecuteCommands.html)
+and [rendering inheritance](https://docs.vulkan.org/refpages/latest/refpages/source/VkCommandBufferInheritanceRenderingInfo.html).
+
+The C consumer executes secondary compute with changed-input replay, standalone
+graphics, multisampled inherited rendering, stencil/vertex-fetch continuation and
+inherited query counting. Rust tests additionally check atomic local rejection,
+scratch capacity, one native execute call, level/mode rules and query masks. Arena,
+inheritance and rendering-inheritance records are respectively 40, 48 and 72 bytes;
+this remains source-only revision 1, not an installed ABI change.
 
 ## Implemented images and views
 
@@ -587,14 +622,19 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
 
 ## Verification so far
 
-- 71 ordinary Rust tests pass, including foundation contract, status and
+- 72 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
   creation where available, optional features off/on, four concurrent host workers,
   timeline timeout/signal/poll, failed creation and sticky synthetic device loss.
-- `cargo xtask foundation` builds/runs the public C example on both drivers. It
+- `cargo xtask foundation` passes on Radeon (currently Mesa 26.2.4); llvmpipe
+  26.2.1 passes with the documented stencil-plane-copy diagnostic exclusion. It
   includes C/Rust layout expectations and device survival after discovery teardown.
+  On October 10, newly installed llvmpipe 26.2.4 instead stops earlier: native
+  pipeline-cache export returns OK with 20 bytes after reporting a 32-byte required
+  size, too short for the required version-one header. The C fixture reports this
+  failure; no cache workaround or successful full run is claimed for that driver.
 - The existing C compute example still passes on Radeon; ABI-20 checks pass
   (847 layout values). Clippy and C11/C++17 combined-header syntax checks pass.
 - The public C example now also checks compatible host-visible placement, aligned
@@ -603,7 +643,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All twelve foundation GPU tests pass on each available driver. Pinned Vulkan
+  All thirteen foundation GPU tests pass on Radeon 26.2.4 and llvmpipe 26.2.1. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.

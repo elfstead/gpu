@@ -42,6 +42,8 @@ static int cache_roundtrip(ogpu_next_device *device, ogpu_next_executable_cache 
     REQUIRE(written == 0 && bytes[0] == 0xa5);
     written = size;
     TRY(ogpu_next_executable_cache_data(*cache, &written, bytes));
+    if (written < 32 || written > size)
+        fprintf(stderr, "Cache export returned OK with %zu bytes after querying %zu bytes (expected a complete native header).\n", written, size);
     REQUIRE(written >= 32 && written <= size);
     for (size_t i = written; i < size + 16; ++i) REQUIRE(bytes[i] == 0xa5);
     ogpu_next_executable_cache_desc desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC),

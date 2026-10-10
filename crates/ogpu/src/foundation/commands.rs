@@ -2,6 +2,9 @@
 //! hot-path allocator, implicit signal, or host wait.
 use super::*;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
+#[path = "secondary.rs"]
+mod secondary;
+pub(in crate::foundation) use secondary::{execute_scratch, inheritance_scratch};
 
 pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
     if count == 0 {
@@ -22,6 +25,7 @@ pub struct Arena {
     device: *const Device,
     pool: vk::VkCommandPool,
     domain: u32,
+    level: u32,
     // Box addresses remain stable when the explicitly reserved slot array grows.
     #[allow(clippy::vec_box)]
     slots: Vec<Box<List>>,
@@ -33,11 +37,18 @@ struct ActiveQuery {
     pool: *const QueryPool,
     index: u32,
     inside: bool,
+    flags: u32,
 }
 pub struct List {
     device: *const Device,
     command: vk::VkCommandBuffer,
     domain: u32,
+    level: u32,
+    continuation: bool,
+    inherited_occlusion: u32,
+    inherited_query_flags: u32,
+    inherited_statistics: u64,
+    secondary_contents: Cell<bool>,
     mode: u32,
     state: Cell<u32>, // 0 invalid, 1 recording, 2 executable, 3 consumed one-shot
     error: Cell<Status>,
@@ -53,6 +64,9 @@ impl Arena {
     pub(in crate::foundation) fn create(d: &Device, desc: &ArenaDesc) -> Result<Box<Self>, Status> {
         d.ready()?;
         desc.header.validate::<ArenaDesc>(ARENA_DESC)?;
+        if desc.level > 1 || desc.reserved != 0 {
+            return Err(UNSUPPORTED);
+        }
         let queue = d
             .snapshot
             .queues
@@ -66,6 +80,7 @@ impl Arena {
             device: d,
             pool: ptr::null_mut(),
             domain: desc.domain,
+            level: desc.level,
             slots: Vec::new(),
             used: 0,
             usable: true,
@@ -112,6 +127,12 @@ impl Arena {
                 device: self.device,
                 command: ptr::null_mut(),
                 domain: self.domain,
+                level: self.level,
+                continuation: false,
+                inherited_occlusion: 0,
+                inherited_query_flags: 0,
+                inherited_statistics: 0,
+                secondary_contents: Cell::new(false),
                 mode: 0,
                 state: Cell::new(0),
                 error: Cell::new(OK),
@@ -126,7 +147,7 @@ impl Arena {
         let info = vk::VkCommandBufferAllocateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
             commandPool: self.pool,
-            level: vk::VkCommandBufferLevel_VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            level: self.level,
             commandBufferCount: extra as u32,
             ..Default::default()
         };
@@ -192,15 +213,26 @@ impl Arena {
         let d = unsafe { &*self.device };
         d.ready()?;
         desc.header.validate::<RecordingDesc>(RECORDING_DESC)?;
-        if desc.level != 0 || !desc.inheritance.is_null() {
-            return Err(UNSUPPORTED);
+        if desc.level != self.level {
+            return Err(INVALID);
         }
-        let flags = match desc.replay_mode {
+        let (mut inheritance, rendering) = unsafe { secondary::inheritance(d, desc)? };
+        if rendering.is_some() {
+            stages(d, self.domain, 24, false)?;
+        }
+        inheritance.pNext = rendering
+            .as_ref()
+            .map_or(ptr::null(), |r| ptr::from_ref(r).cast());
+        let mut flags = match desc.replay_mode {
             1 => vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
             2 => 0,
             3 => vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
             _ => return Err(INVALID),
         };
+        if rendering.is_some() {
+            flags |=
+                vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+        }
         if !self.usable {
             return Err(INVALID);
         }
@@ -210,7 +242,12 @@ impl Arena {
         slot.error.set(OK);
         slot.executable.set(ptr::null());
         slot.graphics.set(ptr::null());
-        slot.rendering.set(false);
+        slot.continuation = rendering.is_some();
+        slot.rendering.set(slot.continuation);
+        slot.secondary_contents.set(false);
+        slot.inherited_occlusion = inheritance.occlusionQueryEnable;
+        slot.inherited_query_flags = inheritance.queryFlags;
+        slot.inherited_statistics = u64::from(inheritance.pipelineStatistics);
         slot.viewport_set.set(false);
         slot.index_count.set(None);
         for query in &slot.active_queries {
@@ -220,6 +257,11 @@ impl Arena {
         let info = vk::VkCommandBufferBeginInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             flags,
+            pInheritanceInfo: if self.level == 1 {
+                &inheritance
+            } else {
+                ptr::null()
+            },
             ..Default::default()
         };
         unsafe {
@@ -592,8 +634,10 @@ impl List {
         }
     }
     pub(in crate::foundation) fn end(&self) -> Result<(), Status> {
-        let result = self.outside_render().and_then(|d| {
-            if self.active_queries.iter().any(|q| q.get().is_some()) {
+        let result = self.recording().and_then(|d| {
+            if self.rendering.get() != self.continuation
+                || self.active_queries.iter().any(|q| q.get().is_some())
+            {
                 return Err(INVALID);
             }
             unsafe { d.result((d.f.vkEndCommandBuffer.unwrap())(self.command)) }
@@ -817,15 +861,20 @@ impl List {
     ) -> Result<(), Status> {
         let d = self.outside_render()?;
         stages(d, self.domain, 24, false)?;
+        if self.level == 1 && desc.flags & 1 != 0 {
+            return Err(UNSUPPORTED);
+        }
         unsafe {
             d.begin_render(self.command, self.domain, desc)?;
         }
         self.rendering.set(true);
+        self.secondary_contents.set(desc.flags & 1 != 0);
         Ok(())
     }
     pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
         let d = self.recording()?;
-        if !self.rendering.get()
+        if self.continuation
+            || !self.rendering.get()
             || self
                 .active_queries
                 .iter()
@@ -837,6 +886,7 @@ impl List {
             (d.f.vkCmdEndRendering.unwrap())(self.command);
         }
         self.rendering.set(false);
+        self.secondary_contents.set(false);
         Ok(())
     }
     pub(in crate::foundation) fn viewport(&self, state: &ViewportState) -> Result<(), Status> {
@@ -905,6 +955,7 @@ impl List {
                 pool,
                 index,
                 inside: self.rendering.get(),
+                flags,
             }));
         } else {
             let previous = active.get().ok_or(INVALID)?;
@@ -995,6 +1046,7 @@ impl List {
     fn drawing(&self, indexed: bool) -> Result<&Device, Status> {
         self.executable(24)?;
         if !self.rendering.get()
+            || self.secondary_contents.get()
             || !self.viewport_set.get()
             || (indexed && self.index_count.get().is_none())
         {
@@ -1282,7 +1334,11 @@ impl Queue {
             .cast::<vk::VkSemaphoreSubmitInfo>();
         for (i, pointer) in lists.iter().enumerate() {
             let list = unsafe { pointer.as_ref() }.ok_or(INVALID)?;
-            if list.device != device || list.domain != self.domain || list.state.get() != 2 {
+            if list.device != device
+                || list.domain != self.domain
+                || list.state.get() != 2
+                || list.level != 0
+            {
                 return Err(INVALID);
             }
             let info = vk::VkCommandBufferSubmitInfo {
@@ -1473,6 +1529,8 @@ mod tests {
                 header: Record::new::<ArenaDesc>(ARENA_DESC),
                 domain,
                 list_capacity: 1,
+                level: 0,
+                reserved: 0,
             };
             let rd = RecordingDesc {
                 header: Record::new::<RecordingDesc>(RECORDING_DESC),
@@ -1643,6 +1701,8 @@ mod tests {
                             header: Record::new::<ArenaDesc>(ARENA_DESC),
                             domain,
                             list_capacity: 1,
+                            level: 0,
+                            reserved: 0,
                         };
                         let rd = RecordingDesc {
                             header: Record::new::<RecordingDesc>(RECORDING_DESC),

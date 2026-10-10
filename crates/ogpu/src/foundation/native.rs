@@ -17,7 +17,10 @@ mod memory;
 pub use memory::Memory;
 #[path = "commands.rs"]
 mod commands;
-pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch, vertex_scratch};
+pub(super) use commands::{
+    barrier_scratch, execute_scratch, inheritance_scratch, submit_batch_scratch, submit_scratch,
+    vertex_scratch,
+};
 pub use commands::{Arena, List};
 #[path = "images.rs"]
 mod images;
@@ -138,6 +141,7 @@ functions! {
     vkCmdCopyQueryPoolResults: PFN_vkCmdCopyQueryPoolResults,
     vkCmdCopyImage2: PFN_vkCmdCopyImage2,
     vkCmdResolveImage2: PFN_vkCmdResolveImage2,
+    vkCmdExecuteCommands: PFN_vkCmdExecuteCommands,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {
@@ -374,6 +378,7 @@ pub(super) fn snapshot(
             features.available |= FLOAT16;
         }
         for (supported, bit) in [
+            (root.features.inheritedQueries, INHERITED_QUERIES),
             (root.features.pipelineStatisticsQuery, PIPELINE_STATISTICS),
             (root.features.occlusionQueryPrecise, PRECISE_OCCLUSION),
             (v12.shaderInt8, INT8),
@@ -595,6 +600,7 @@ impl Device {
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            inheritedQueries: u32::from(enabled & INHERITED_QUERIES != 0),
             pipelineStatisticsQuery: u32::from(enabled & PIPELINE_STATISTICS != 0),
             occlusionQueryPrecise: u32::from(enabled & PRECISE_OCCLUSION != 0),
             multiDrawIndirect: u32::from(enabled & RASTER != 0),

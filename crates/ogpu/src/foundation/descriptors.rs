@@ -172,8 +172,7 @@ impl Device {
                 ..Default::default()
             };
             let mut entry = ResourceData::default();
-            let size;
-            match input.kind {
+            let size = match input.kind {
                 1 | 2 | 5 => {
                     if !input.buffer.memory.is_null()
                         || input.buffer.offset != 0
@@ -199,7 +198,7 @@ impl Device {
                     info.data = vk::VkResourceDescriptorDataEXT {
                         pImage: unsafe { ptr::addr_of!((*data.add(i)).image) },
                     };
-                    size = limits.image_size;
+                    limits.image_size
                 }
                 3 | 4 => {
                     if !input.view.is_null() || input.image_state != 0 || input.buffer.size == 0 {
@@ -236,10 +235,10 @@ impl Device {
                     info.data = vk::VkResourceDescriptorDataEXT {
                         pAddressRange: unsafe { ptr::addr_of!((*data.add(i)).range) },
                     };
-                    size = limits.buffer_size;
+                    limits.buffer_size
                 }
                 _ => return Err(UNSUPPORTED),
-            }
+            };
             let dest = destination(unsafe { outputs.add(i).read() }, size)?;
             unsafe {
                 data.add(i).write(entry);

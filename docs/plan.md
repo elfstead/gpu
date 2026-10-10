@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-09. This page owns current status and selected work. The
+Updated 2026-10-10. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -69,8 +69,13 @@ transfer. It is source-only Linux work under `ogpu_next_*`, not the installed AB
 Broader graphics/numerical/query profiles, compiler metadata and consumer migration
 remain. Native multi-submit now preserves separate wait/work/signal records in
 one driver call using caller scratch, with whole-call local rejection and OOM retry.
-Secondary execution and split dependencies remain outstanding;
-the broader draft is not yet implemented.
+Secondary arenas now support compute, standalone graphics and inherited rendering,
+including explicit query inheritance where enabled. Execution uses caller scratch,
+retains no child graph and invalidates ordinary bindings instead of restoring them.
+Split dependencies and broader draft profiles remain outstanding. Current Radeon
+26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
+diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes
+returned after a 32-byte size query); that failure is not masked by the runtime.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

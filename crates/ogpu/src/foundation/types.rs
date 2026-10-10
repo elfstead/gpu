@@ -48,6 +48,9 @@ pub const VERTEX_INPUT: u32 = 119;
 pub const CACHE_CONTROL: u64 = 16;
 pub const PIPELINE_STATISTICS: u64 = 32768;
 pub const PRECISE_OCCLUSION: u64 = 65536;
+pub const INHERITED_QUERIES: u64 = 131072;
+pub const INHERITANCE: u32 = 121;
+pub const RENDER_INHERITANCE: u32 = 122;
 pub const STATISTICS_MASK: u64 = 2047;
 pub const INT8: u64 = 32;
 pub const INT16: u64 = 64;
@@ -610,6 +613,28 @@ pub struct ArenaDesc {
     pub header: Record,
     pub domain: u32,
     pub list_capacity: u32,
+    pub level: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct Inheritance {
+    pub header: Record,
+    pub occlusion: u32,
+    pub query_flags: u32,
+    pub statistics: u64,
+    pub rendering: *const Record,
+}
+#[repr(C)]
+pub struct RenderInheritance {
+    pub header: Record,
+    pub color_count: u32,
+    pub samples: u32,
+    pub view_mask: u32,
+    pub reserved: u32,
+    pub depth_format: u32,
+    pub stencil_format: u32,
+    pub color_formats: *const u32,
+    pub scratch: HostSpan,
 }
 #[repr(C)]
 pub struct RecordingDesc {

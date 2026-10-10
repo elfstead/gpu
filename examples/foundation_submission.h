@@ -27,7 +27,7 @@ static int submission_batches(ogpu_next_device *device, ogpu_next_memory_desc me
     TRY(ogpu_next_timeline_create(device,0,&edge));
     TRY(ogpu_next_timeline_create(device,0,&gate));
     TRY(ogpu_next_timeline_create(device,0,&done));
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,2};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,2,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_ONE_SHOT,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL;

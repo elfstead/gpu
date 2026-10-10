@@ -6610,6 +6610,13 @@ pub type PFN_vkCmdCopyQueryPoolResults = ::std::option::Option<
         flags: VkQueryResultFlags,
     ),
 >;
+pub type PFN_vkCmdExecuteCommands = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        commandBufferCount: u32,
+        pCommandBuffers: *const VkCommandBuffer,
+    ),
+>;
 pub type PFN_vkCreateEvent = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,
@@ -8581,6 +8588,21 @@ pub const VK_ACCESS_2_DATA_GRAPH_WRITE_BIT_ARM: VkAccessFlagBits2 = 281474976710
 pub const VK_ACCESS_2_MEMORY_DECOMPRESSION_READ_BIT_EXT: VkAccessFlagBits2 = 36028797018963968;
 pub const VK_ACCESS_2_MEMORY_DECOMPRESSION_WRITE_BIT_EXT: VkAccessFlagBits2 = 72057594037927936;
 pub type VkSubmitFlags = VkFlags;
+pub const VkRenderingFlagBits_VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT: VkRenderingFlagBits = 1;
+pub const VkRenderingFlagBits_VK_RENDERING_SUSPENDING_BIT: VkRenderingFlagBits = 2;
+pub const VkRenderingFlagBits_VK_RENDERING_RESUMING_BIT: VkRenderingFlagBits = 4;
+pub const VkRenderingFlagBits_VK_RENDERING_ENABLE_LEGACY_DITHERING_BIT_EXT: VkRenderingFlagBits = 8;
+pub const VkRenderingFlagBits_VK_RENDERING_CONTENTS_INLINE_BIT_KHR: VkRenderingFlagBits = 16;
+pub const VkRenderingFlagBits_VK_RENDERING_PER_LAYER_FRAGMENT_DENSITY_BIT_VALVE: VkRenderingFlagBits = 32;
+pub const VkRenderingFlagBits_VK_RENDERING_FRAGMENT_REGION_BIT_EXT: VkRenderingFlagBits = 64;
+pub const VkRenderingFlagBits_VK_RENDERING_CUSTOM_RESOLVE_BIT_EXT: VkRenderingFlagBits = 128;
+pub const VkRenderingFlagBits_VK_RENDERING_LOCAL_READ_CONCURRENT_ACCESS_CONTROL_BIT_KHR: VkRenderingFlagBits = 256;
+pub const VkRenderingFlagBits_VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT_KHR: VkRenderingFlagBits = 1;
+pub const VkRenderingFlagBits_VK_RENDERING_SUSPENDING_BIT_KHR: VkRenderingFlagBits = 2;
+pub const VkRenderingFlagBits_VK_RENDERING_RESUMING_BIT_KHR: VkRenderingFlagBits = 4;
+pub const VkRenderingFlagBits_VK_RENDERING_CONTENTS_INLINE_BIT_EXT: VkRenderingFlagBits = 16;
+pub const VkRenderingFlagBits_VK_RENDERING_FLAG_BITS_MAX_ENUM: VkRenderingFlagBits = 2147483647;
+pub type VkRenderingFlagBits = ::std::os::raw::c_uint;
 pub type VkRenderingFlags = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -9667,6 +9689,75 @@ const _: () = {
         - 36usize];
 };
 impl Default for VkPipelineRenderingCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferInheritanceRenderingInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkRenderingFlags,
+    pub viewMask: u32,
+    pub colorAttachmentCount: u32,
+    pub pColorAttachmentFormats: *const VkFormat,
+    pub depthAttachmentFormat: VkFormat,
+    pub stencilAttachmentFormat: VkFormat,
+    pub rasterizationSamples: VkSampleCountFlagBits,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferInheritanceRenderingInfo",
+    ][::std::mem::size_of::<VkCommandBufferInheritanceRenderingInfo>() - 56usize];
+    [
+        "Alignment of VkCommandBufferInheritanceRenderingInfo",
+    ][::std::mem::align_of::<VkCommandBufferInheritanceRenderingInfo>() - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::sType",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceRenderingInfo, sType) - 0usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::pNext",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceRenderingInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::flags",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceRenderingInfo, flags) - 16usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::viewMask",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceRenderingInfo, viewMask)
+        - 20usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::colorAttachmentCount",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceRenderingInfo, colorAttachmentCount
+    ) - 24usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::pColorAttachmentFormats",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceRenderingInfo, pColorAttachmentFormats
+    ) - 32usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::depthAttachmentFormat",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceRenderingInfo, depthAttachmentFormat
+    ) - 40usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::stencilAttachmentFormat",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceRenderingInfo, stencilAttachmentFormat
+    ) - 44usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceRenderingInfo::rasterizationSamples",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceRenderingInfo, rasterizationSamples
+    ) - 48usize];
+};
+impl Default for VkCommandBufferInheritanceRenderingInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

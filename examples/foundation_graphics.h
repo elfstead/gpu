@@ -1,10 +1,11 @@
 /* Offscreen public-C consumer. No old ABI helpers or implicit attachment policy. */
 static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
-                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled, uint32_t vertex_fetch) {
+                              uint32_t domain, const char *vertex_path, const char *fragment_path, uint32_t samples, uint32_t stencil_enabled, uint32_t vertex_fetch, uint32_t secondary) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code[2] = {NULL, NULL}, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
     void *vertex_scratch = NULL;
+    void *execute_scratch = NULL, *inheritance_scratch = NULL;
     ogpu_next_memory *host = NULL, *backing[3] = {NULL};
     ogpu_next_image *images[3] = {NULL};
     ogpu_next_view *views[3] = {NULL};
@@ -16,7 +17,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_executable *pipelines[3] = {NULL};
     ogpu_next_executable_cache *cache = NULL;
     uint32_t depth_aspects = OGPU_NEXT_ASPECT_DEPTH | (stencil_enabled ? OGPU_NEXT_ASPECT_STENCIL : 0);
-    ogpu_next_arena *arena = NULL;
+    ogpu_next_arena *arena = NULL, *secondary_arena = NULL, *parent_arena = NULL;
     ogpu_next_timeline *done = NULL;
     ogpu_next_query_pool *timestamps = NULL, *occlusion = NULL, *statistics = NULL;
     ogpu_next_graphics_limits limits = {0};
@@ -134,8 +135,24 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     TRY(ogpu_next_memory_map((ogpu_next_span){host, 0, host_desc.size}, &map));
     uint64_t address = 0;
     TRY(ogpu_next_memory_address((ogpu_next_span){host, 0, host_desc.size}, &address));
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
+    if (secondary == 1) ad.level = OGPU_NEXT_SECONDARY;
     TRY(ogpu_next_arena_create(device, &ad, &arena));
+    ogpu_next_host_requirements er = {0}, ir = {0};
+    if (secondary) {
+        TRY(ogpu_next_execute_scratch_requirements(1,&er));
+        TRY(ogpu_next_inheritance_scratch_requirements(1,&ir));
+        REQUIRE(er.alignment <= _Alignof(max_align_t) && ir.alignment <= _Alignof(max_align_t));
+        execute_scratch = malloc((size_t)er.size); inheritance_scratch = malloc((size_t)ir.size);
+        REQUIRE(execute_scratch && inheritance_scratch);
+        if (secondary >= 2) {
+            ad.level = OGPU_NEXT_SECONDARY;
+            TRY(ogpu_next_arena_create(device,&ad,&secondary_arena));
+        } else {
+            ad.level = OGPU_NEXT_PRIMARY;
+            TRY(ogpu_next_arena_create(device,&ad,&parent_arena));
+        }
+    }
     ogpu_next_host_requirements rr = {0}, br = {0}, sr = {0};
     ogpu_next_host_requirements vr = {0};
     TRY(ogpu_next_vertex_scratch_requirements(2, &vr));
@@ -147,6 +164,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     scratch = malloc((size_t)rr.size); barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size);
     REQUIRE(scratch && barrier_scratch && submit_scratch);
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC), OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_PRIMARY, NULL};
+    if (secondary == 1) rd.level = OGPU_NEXT_SECONDARY;
     ogpu_next_encoder *encoder = NULL;
     ogpu_next_list *list = NULL;
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
@@ -173,16 +191,59 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state, OGPU_NEXT_VIEWPORT_STATE),
         0, 0, 16, 8, 0, 1, 0, 0, 8, 8};
     ogpu_next_draw_desc draw = {3, 1, 0, vertex_fetch ? 1u : 0u, 0};
+    if (secondary >= 2) render.flags = OGPU_NEXT_RENDER_SECONDARY;
     ogpu_next_render_begin(encoder, &render);
+    ogpu_next_encoder *primary_encoder = encoder;
+    if (secondary == 3) {
+        ogpu_next_query_begin(encoder,occlusion,0,precise);
+        if (statistics) ogpu_next_query_begin(encoder,statistics,0,0);
+    }
+    if (secondary >= 2) {
+        ogpu_next_format format = OGPU_NEXT_RGBA8_UNORM;
+        ogpu_next_render_inheritance ri = {HEADER(ogpu_next_render_inheritance,OGPU_NEXT_RENDER_INHERITANCE),
+            1,samples,0,0,gs.depth_format,stencil_enabled ? gs.depth_format : 0,&format,{inheritance_scratch,ir.size}};
+        ogpu_next_inheritance inherit = {HEADER(ogpu_next_inheritance,OGPU_NEXT_INHERITANCE),0,0,0,&ri.header};
+        if (secondary == 3) {
+            inherit.occlusion = 1; inherit.query_flags = precise;
+            inherit.statistics = statistics ? qd.statistics : 0;
+        }
+        ogpu_next_recording_desc child = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),
+            OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_SECONDARY,&inherit.header};
+        ri.scratch.size = ir.size-1;
+        REQUIRE(ogpu_next_commands_begin(secondary_arena,&child,&encoder) == OGPU_NEXT_CAPACITY && encoder == NULL);
+        ri.scratch.size = ir.size;
+        ri.stencil_format = OGPU_NEXT_D32_FLOAT;
+        REQUIRE(ogpu_next_commands_begin(secondary_arena,&child,&encoder) == OGPU_NEXT_INVALID && encoder == NULL);
+        ri.stencil_format = stencil_enabled ? gs.depth_format : 0;
+        TRY(ogpu_next_commands_begin(secondary_arena,&child,&encoder));
+        memset(inheritance_scratch,0xcc,(size_t)ir.size);
+        if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
+    }
     ogpu_next_bind_executable(encoder, pipelines[0]);
     ogpu_next_set_graphics_state(encoder, &vp.header);
     ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, address);
-    ogpu_next_query_begin(encoder, occlusion, 0, precise);
-    if (statistics) ogpu_next_query_begin(encoder, statistics, 0, 0);
+    if (secondary != 3) {
+        ogpu_next_query_begin(encoder, occlusion, 0, precise);
+        if (statistics) ogpu_next_query_begin(encoder, statistics, 0, 0);
+    }
     ogpu_next_draw(encoder, &draw);
-    ogpu_next_query_end(encoder, occlusion, 0);
-    if (statistics) ogpu_next_query_end(encoder, statistics, 0);
+    if (secondary != 3) {
+        ogpu_next_query_end(encoder, occlusion, 0);
+        if (statistics) ogpu_next_query_end(encoder, statistics, 0);
+    }
+    if (secondary >= 2) {
+        ogpu_next_list *child = NULL;
+        TRY(ogpu_next_commands_end(encoder,&child));
+        encoder = primary_encoder;
+        ogpu_next_execute_lists(encoder,1,&child,(ogpu_next_host_span){execute_scratch,er.size});
+        memset(execute_scratch,0xcc,(size_t)er.size);
+    }
+    if (secondary == 3) {
+        ogpu_next_query_end(encoder,occlusion,0);
+        if (statistics) ogpu_next_query_end(encoder,statistics,0);
+    }
     ogpu_next_render_end(encoder);
+    render.flags = 0;
     /* LOAD in a new scope is explicit, including inter-scope attachment hazards. */
     dep.before = dep.after;
     dep.image_count = 2;
@@ -196,6 +257,10 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         colors.store_op = OGPU_NEXT_DISCARD; /* Resolve remains valid without storing the multisample source. */
     }
     ogpu_next_render_begin(encoder, &render);
+    if (secondary >= 2) {
+        ogpu_next_bind_executable(encoder,pipelines[0]);
+        if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
+    }
     vp.scissor_width = 16;
     if (stencil_enabled) ogpu_next_bind_executable(encoder, pipelines[2]);
     ogpu_next_set_graphics_state(encoder, &vp.header);
@@ -247,6 +312,14 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
     ogpu_next_barrier(encoder, &dep);
     TRY(ogpu_next_commands_end(encoder, &list));
+    if (secondary == 1) {
+        ogpu_next_list *child = list;
+        ogpu_next_recording_desc prd = rd; prd.level = OGPU_NEXT_PRIMARY;
+        TRY(ogpu_next_commands_begin(parent_arena,&prd,&encoder));
+        ogpu_next_execute_lists(encoder,1,&child,(ogpu_next_host_span){execute_scratch,er.size});
+        memset(execute_scratch,0xcc,(size_t)er.size);
+        TRY(ogpu_next_commands_end(encoder,&list));
+    }
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_sync_point signal = {{done,1}, OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC), 1,0,1,&list,NULL,&signal,submit_scratch,sr.size};
@@ -326,7 +399,11 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
                 REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
         }
     }
+    if (parent_arena) TRY(ogpu_next_arena_reset(parent_arena));
     TRY(ogpu_next_arena_reset(arena));
+    if (secondary_arena) TRY(ogpu_next_arena_reset(secondary_arena));
+    /* The remaining diagnostics are primary recordings. */
+    if (secondary == 1) { ogpu_next_arena *swap = arena; arena = parent_arena; parent_arena = swap; rd.level = OGPU_NEXT_PRIMARY; }
     /* Attachmentless scopes need no bound executable. */
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     render.color_count = 0; render.colors = NULL; render.depth = NULL; render.stencil = NULL; render.scratch = (ogpu_next_host_span){NULL,0};
@@ -451,12 +528,15 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     printf("Queries pass: explicit reset, 64-bit strided timestamps, 32-bit visible/empty occlusion with availability, scope matching, replay and guard bytes.\n");
     if (precise) printf("Precise occlusion passes: exactly %u samples in each replay.\n",64*samples);
     if (statistics) printf("Graphics statistics pass: overlapping occlusion/statistics, ordered 32/64-bit counters, empty query, padded records and replay.\n");
+    if (secondary) printf("Secondary graphics passes: %s, independent bindings, query results and changed-root replay.\n",
+        secondary == 1 ? "complete standalone scopes" : "inherited attachment scope");
+    if (secondary == 3) printf("Inherited queries pass: primary precise occlusion/statistics count draws in the secondary.\n");
     if (stencil_enabled) printf("Stencil passes: clear/load, depth-fail KEEP, REPLACE references, EQUAL rejection and replay%s.\n", read_planes ? ", separate depth/stencil plane readback" : " (raster-only diagnostic; plane copies NOT tested)");
     if (vertex_fetch) printf("Vertex fetch passes: sparse binding IDs, batched address binding, padded records, per-instance rate, nonzero direct first-instance, indexed/indirect draws and changed-instance replay.\n");
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending graphics after failure.\n"); _Exit(EXIT_FAILURE); }
-    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
+    ogpu_next_arena_destroy(arena); ogpu_next_arena_destroy(parent_arena); ogpu_next_arena_destroy(secondary_arena); ogpu_next_timeline_destroy(done);
     ogpu_next_query_pool_destroy(timestamps); ogpu_next_query_pool_destroy(occlusion);
     ogpu_next_query_pool_destroy(statistics);
     for (uint32_t i = 0; i < 3; ++i) ogpu_next_executable_destroy(pipelines[i]);
@@ -466,5 +546,6 @@ cleanup:
     if (file) fclose(file);
     free(code[0]);free(code[1]);free(scratch);free(barrier_scratch);free(submit_scratch);
     free(vertex_scratch);
+    free(execute_scratch); free(inheritance_scratch);
     return result;
 }
