@@ -5,6 +5,8 @@ use super::types::*;
 mod float_atomics;
 #[path = "float_controls.rs"]
 mod float_controls;
+#[path = "matrices.rs"]
+mod matrices;
 use super::{loader_error, Adapter, Snapshot};
 use crate::vulkan::Instance;
 use float_controls::float_snapshot;
@@ -210,6 +212,7 @@ pub(super) fn snapshot(
     let mut query_limits = QueryLimits::default();
     let mut subgroup_limits = SubgroupLimits::default();
     let mut float_controls = FloatControls::default();
+    let mut matrix_tuples = Vec::new();
     let mut cache_uuid = [0; 16];
     let formats = images::format_snapshot(&f, physical)?;
     if crate::compute::require_baseline(&info).is_ok() {
@@ -312,6 +315,15 @@ pub(super) fn snapshot(
         }
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
         features.available |= float_atomics::available(&float_atomic, &float_atomic2);
+        if v12.vulkanMemoryModel != 0 {
+            features.available |= VULKAN_MEMORY_MODEL;
+        }
+        if v12.vulkanMemoryModelDeviceScope != 0 {
+            features.available |= VULKAN_MEMORY_MODEL_DEVICE_SCOPE;
+        }
+        let (matrix_feature, tuples) = matrices::snapshot(instance, physical, &f)?;
+        features.available |= matrix_feature;
+        matrix_tuples = tuples;
         if unused.dynamicRenderingUnusedAttachments != 0 {
             features.available |= UNUSED_ATTACHMENTS;
         }
@@ -545,6 +557,7 @@ pub(super) fn snapshot(
         query_limits,
         subgroup_limits,
         float_controls,
+        matrix_tuples,
         formats,
     })
 }
@@ -622,14 +635,25 @@ impl Device {
                 ..Default::default()
             })
             .collect();
+        let mut matrix = vk::VkPhysicalDeviceCooperativeMatrixFeaturesKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COOPERATIVE_MATRIX_FEATURES_KHR,
+            cooperativeMatrix: 1, ..Default::default()
+        };
+        let matrix_next = if enabled & COOPERATIVE_MATRIX != 0 {
+            ptr::from_mut(&mut matrix).cast()
+        } else {
+            ptr::null_mut()
+        };
         let (mut float_atomic, mut float_atomic2) = float_atomics::requested(enabled);
+        float_atomic.pNext = matrix_next;
+        float_atomic2.pNext = matrix_next;
         if enabled & float_atomics::MIN_MAX != 0 {
             float_atomic.pNext = ptr::from_mut(&mut float_atomic2).cast();
         }
         let float_next = if enabled & float_atomics::ALL != 0 {
             ptr::from_mut(&mut float_atomic).cast()
         } else {
-            ptr::null_mut()
+            matrix_next
         };
         let mut unused = vk::VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,
@@ -683,6 +707,10 @@ impl Device {
             timelineSemaphore: 1,
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
             shaderOutputLayer: u32::from(enabled & SHADER_OUTPUT_LAYER != 0),
+            vulkanMemoryModel: u32::from(enabled & VULKAN_MEMORY_MODEL != 0),
+            vulkanMemoryModelDeviceScope: u32::from(
+                enabled & VULKAN_MEMORY_MODEL_DEVICE_SCOPE != 0,
+            ),
             shaderInt8: u32::from(enabled & INT8 != 0),
             storageBuffer8BitAccess: u32::from(enabled & STORAGE8 != 0),
             shaderBufferInt64Atomics: u32::from(enabled & BUFFER_ATOMIC64 != 0),
@@ -742,6 +770,9 @@ impl Device {
         }
         if enabled & float_atomics::MIN_MAX != 0 {
             extensions.push(c"VK_EXT_shader_atomic_float2".as_ptr());
+        }
+        if enabled & COOPERATIVE_MATRIX != 0 {
+            extensions.push(c"VK_KHR_cooperative_matrix".as_ptr());
         }
         let create = vk::VkDeviceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,

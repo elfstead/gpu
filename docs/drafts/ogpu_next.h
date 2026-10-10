@@ -31,7 +31,9 @@ extern "C" {
  * Floating-point mode/width capabilities and independence queries are implemented;
  * artifact mode metadata, mode-specific execution tests and float-controls-2 follow.
  * FP32/FP64 buffer/workgroup atomic operation profiles are independently enabled;
- * image/sparse and FP16 atomics remain separate work. Budget, matrix numerical tuples and
+ * image/sparse and FP16 atomics remain separate work. Exact KHR subgroup matrix
+ * tuples and independent cooperative-matrix/Vulkan-memory-model enabling are implemented.
+ * Budget and
  * exact executable/state query records remain to be defined. */
 
 /* Backing, placed/dedicated images, views and explicit image transitions/copies

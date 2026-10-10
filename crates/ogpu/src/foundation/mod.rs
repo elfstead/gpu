@@ -43,6 +43,7 @@ struct Snapshot {
     query_limits: QueryLimits,
     subgroup_limits: SubgroupLimits,
     float_controls: FloatControls,
+    matrix_tuples: Vec<MatrixTuple>,
     formats: Vec<FormatInfo>,
     features: FeatureInfo,
 }
@@ -100,6 +101,7 @@ impl Snapshot {
                 QUERY_LIMITS => copy_out(query, std::slice::from_ref(&self.query_limits)),
                 SUBGROUP_LIMITS => copy_out(query, std::slice::from_ref(&self.subgroup_limits)),
                 FLOAT_CONTROLS => copy_out(query, std::slice::from_ref(&self.float_controls)),
+                MATRIX_TUPLES => copy_out(query, &self.matrix_tuples),
                 FORMATS => copy_out(query, &self.formats),
                 _ => Err(UNSUPPORTED),
             }
@@ -227,6 +229,11 @@ pub unsafe extern "C" fn ogpu_next_device_create(
         let requests =
             unsafe { std::slice::from_raw_parts(desc.queues, desc.queue_request_count as usize) };
         validate_requests(&adapter.snapshot.queues, requests)?;
+        if desc.required_features & VULKAN_MEMORY_MODEL_DEVICE_SCOPE != 0
+            && desc.required_features & VULKAN_MEMORY_MODEL == 0
+        {
+            return Err(INVALID);
+        }
         if adapter.snapshot.features.baseline_supported == 0
             || desc.required_features & !adapter.snapshot.features.available != 0
         {

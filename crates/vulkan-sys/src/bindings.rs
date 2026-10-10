@@ -10753,6 +10753,119 @@ impl Default for VkPhysicalDeviceShaderUntypedPointersFeaturesKHR {
         }
     }
 }
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT16_KHR: VkComponentTypeKHR = 0;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT32_KHR: VkComponentTypeKHR = 1;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT64_KHR: VkComponentTypeKHR = 2;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT8_KHR: VkComponentTypeKHR = 3;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT16_KHR: VkComponentTypeKHR = 4;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT32_KHR: VkComponentTypeKHR = 5;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT64_KHR: VkComponentTypeKHR = 6;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT8_KHR: VkComponentTypeKHR = 7;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT16_KHR: VkComponentTypeKHR = 8;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT32_KHR: VkComponentTypeKHR = 9;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT64_KHR: VkComponentTypeKHR = 10;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_BFLOAT16_KHR: VkComponentTypeKHR = 1000141000;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT8_PACKED_NV: VkComponentTypeKHR = 1000491000;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT8_PACKED_NV: VkComponentTypeKHR = 1000491001;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT8_E4M3_EXT: VkComponentTypeKHR = 1000491002;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT8_E5M2_EXT: VkComponentTypeKHR = 1000491003;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT6_E2M3_EXT: VkComponentTypeKHR = 1000672000;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT6_E3M2_EXT: VkComponentTypeKHR = 1000672001;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT4_E2M1_EXT: VkComponentTypeKHR = 1000672002;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT8_UNSIGNED_E8M0_EXT: VkComponentTypeKHR = 1000672003;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_MXINT8_EXT: VkComponentTypeKHR = 1000672004;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT16_NV: VkComponentTypeKHR = 0;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT32_NV: VkComponentTypeKHR = 1;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT64_NV: VkComponentTypeKHR = 2;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT8_NV: VkComponentTypeKHR = 3;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT16_NV: VkComponentTypeKHR = 4;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT32_NV: VkComponentTypeKHR = 5;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_SINT64_NV: VkComponentTypeKHR = 6;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT8_NV: VkComponentTypeKHR = 7;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT16_NV: VkComponentTypeKHR = 8;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT32_NV: VkComponentTypeKHR = 9;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_UINT64_NV: VkComponentTypeKHR = 10;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT_E4M3_NV: VkComponentTypeKHR = 1000491002;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT_E5M2_NV: VkComponentTypeKHR = 1000491003;
+pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_MAX_ENUM_KHR: VkComponentTypeKHR = 2147483647;
+pub type VkComponentTypeKHR = ::std::os::raw::c_uint;
+pub const VkScopeKHR_VK_SCOPE_DEVICE_KHR: VkScopeKHR = 1;
+pub const VkScopeKHR_VK_SCOPE_WORKGROUP_KHR: VkScopeKHR = 2;
+pub const VkScopeKHR_VK_SCOPE_SUBGROUP_KHR: VkScopeKHR = 3;
+pub const VkScopeKHR_VK_SCOPE_QUEUE_FAMILY_KHR: VkScopeKHR = 5;
+pub const VkScopeKHR_VK_SCOPE_DEVICE_NV: VkScopeKHR = 1;
+pub const VkScopeKHR_VK_SCOPE_WORKGROUP_NV: VkScopeKHR = 2;
+pub const VkScopeKHR_VK_SCOPE_SUBGROUP_NV: VkScopeKHR = 3;
+pub const VkScopeKHR_VK_SCOPE_QUEUE_FAMILY_NV: VkScopeKHR = 5;
+pub const VkScopeKHR_VK_SCOPE_MAX_ENUM_KHR: VkScopeKHR = 2147483647;
+pub type VkScopeKHR = ::std::os::raw::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCooperativeMatrixPropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub MSize: u32,
+    pub NSize: u32,
+    pub KSize: u32,
+    pub AType: VkComponentTypeKHR,
+    pub BType: VkComponentTypeKHR,
+    pub CType: VkComponentTypeKHR,
+    pub ResultType: VkComponentTypeKHR,
+    pub saturatingAccumulation: VkBool32,
+    pub scope: VkScopeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCooperativeMatrixPropertiesKHR",
+    ][::std::mem::size_of::<VkCooperativeMatrixPropertiesKHR>() - 56usize];
+    [
+        "Alignment of VkCooperativeMatrixPropertiesKHR",
+    ][::std::mem::align_of::<VkCooperativeMatrixPropertiesKHR>() - 8usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::sType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, sType) - 0usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::pNext",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::MSize",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, MSize) - 16usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::NSize",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, NSize) - 20usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::KSize",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, KSize) - 24usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::AType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, AType) - 28usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::BType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, BType) - 32usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::CType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, CType) - 36usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::ResultType",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, ResultType) - 40usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::saturatingAccumulation",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, saturatingAccumulation)
+        - 44usize];
+    [
+        "Offset of field: VkCooperativeMatrixPropertiesKHR::scope",
+    ][::std::mem::offset_of!(VkCooperativeMatrixPropertiesKHR, scope) - 48usize];
+};
+impl Default for VkCooperativeMatrixPropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceCooperativeMatrixFeaturesKHR {
@@ -10797,6 +10910,51 @@ impl Default for VkPhysicalDeviceCooperativeMatrixFeaturesKHR {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceCooperativeMatrixPropertiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub cooperativeMatrixSupportedStages: VkShaderStageFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceCooperativeMatrixPropertiesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceCooperativeMatrixPropertiesKHR>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceCooperativeMatrixPropertiesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceCooperativeMatrixPropertiesKHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrixPropertiesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceCooperativeMatrixPropertiesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrixPropertiesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceCooperativeMatrixPropertiesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceCooperativeMatrixPropertiesKHR::cooperativeMatrixSupportedStages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceCooperativeMatrixPropertiesKHR, cooperativeMatrixSupportedStages
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceCooperativeMatrixPropertiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pPropertyCount: *mut u32,
+        pProperties: *mut VkCooperativeMatrixPropertiesKHR,
+    ) -> VkResult,
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {

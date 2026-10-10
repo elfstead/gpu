@@ -35,6 +35,7 @@ fn fixture() -> Snapshot {
         query_limits: QueryLimits::default(),
         subgroup_limits: SubgroupLimits::default(),
         float_controls: FloatControls::default(),
+        matrix_tuples: vec![],
         formats: vec![],
     }
 }
@@ -110,6 +111,55 @@ fn malformed_queries_preserve_outputs() {
         unsafe { snapshot.query(ptr::from_mut(&mut short).cast()) },
         Err(INVALID)
     );
+}
+
+#[test]
+fn matrix_query_preserves_native_order_and_atomic_capacity() {
+    assert_eq!(size_of::<MatrixTuple>(), 48);
+    assert_eq!(std::mem::offset_of!(MatrixTuple, stages), 40);
+    let mut snapshot = fixture();
+    let sentinel = MatrixTuple {
+        m: 999,
+        ..Default::default()
+    };
+    let mut values = [sentinel; 2];
+    let mut q = query(MATRIX_TUPLES, &mut values);
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(q.count, 0);
+    assert_eq!(values, [sentinel; 2]);
+    snapshot.matrix_tuples = vec![
+        MatrixTuple {
+            m: 32,
+            n: 16,
+            k: 8,
+            ..Default::default()
+        },
+        MatrixTuple {
+            m: 16,
+            n: 32,
+            k: 16,
+            saturating: 1,
+            ..Default::default()
+        },
+    ];
+    q.capacity = 1;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(CAPACITY));
+    assert_eq!(q.count, 2);
+    assert_eq!(values, [sentinel; 2]);
+    q.capacity = 0;
+    q.data = ptr::null_mut();
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(q.count, 2);
+    q.capacity = 2;
+    q.data = values.as_mut_ptr().cast();
+    q.element_size -= 1;
+    q.count = 91;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(INVALID));
+    assert_eq!(q.count, 91);
+    assert_eq!(values, [sentinel; 2]);
+    q.element_size += 1;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(values.as_slice(), snapshot.matrix_tuples);
 }
 #[test]
 fn queue_requests_are_exact_and_do_not_alias_or_clamp() {
@@ -265,6 +315,16 @@ fn gpu_foundation_setup() {
                 continue;
             }
             let mut physical_float = [FloatControls::default()];
+            let mut matrix_count = query::<MatrixTuple>(MATRIX_TUPLES, &mut []);
+            assert_eq!(ogpu_next_adapter_query(adapter, &mut matrix_count), OK);
+            let mut physical_matrices = vec![MatrixTuple::default(); matrix_count.count as usize];
+            assert_eq!(
+                ogpu_next_adapter_query(adapter, &mut query(MATRIX_TUPLES, &mut physical_matrices)),
+                OK
+            );
+            if features[0].available & COOPERATIVE_MATRIX == 0 {
+                assert!(physical_matrices.is_empty());
+            }
             assert_eq!(
                 ogpu_next_adapter_query(adapter, &mut query(FLOAT_CONTROLS, &mut physical_float)),
                 OK
@@ -285,7 +345,40 @@ fn gpu_foundation_setup() {
                     priority: 0.5,
                 })
                 .collect();
-            for enabled in [0, features[0].available] {
+            if features[0].available & COOPERATIVE_MATRIX == 0 {
+                let desc = DeviceDesc {
+                    header: Record::new::<DeviceDesc>(DEVICE_DESC),
+                    queues: requests.as_ptr(),
+                    queue_request_count: requests.len() as u32,
+                    reserved: 0,
+                    required_features: COOPERATIVE_MATRIX,
+                };
+                let mut rejected = ptr::dangling_mut();
+                assert_eq!(
+                    ogpu_next_device_create(adapter, &desc, &mut rejected),
+                    UNSUPPORTED
+                );
+                assert!(rejected.is_null());
+            }
+            let incomplete_memory_model = DeviceDesc {
+                header: Record::new::<DeviceDesc>(DEVICE_DESC),
+                queues: requests.as_ptr(),
+                queue_request_count: requests.len() as u32,
+                reserved: 0,
+                required_features: VULKAN_MEMORY_MODEL_DEVICE_SCOPE,
+            };
+            let mut rejected = ptr::dangling_mut();
+            assert_eq!(
+                ogpu_next_device_create(adapter, &incomplete_memory_model, &mut rejected),
+                INVALID
+            );
+            assert!(rejected.is_null());
+            for enabled in [
+                0,
+                features[0].available,
+                features[0].available & COOPERATIVE_MATRIX,
+                features[0].available & VULKAN_MEMORY_MODEL,
+            ] {
                 let desc = DeviceDesc {
                     header: Record::new::<DeviceDesc>(DEVICE_DESC),
                     queues: requests.as_ptr(),
@@ -307,6 +400,12 @@ fn gpu_foundation_setup() {
                     OK
                 );
                 assert_eq!(device_float, physical_float); // Enabling arithmetic never changes physical mode support.
+                let mut device_matrices = vec![MatrixTuple::default(); physical_matrices.len()];
+                assert_eq!(
+                    ogpu_next_device_query(device, &mut query(MATRIX_TUPLES, &mut device_matrices)),
+                    OK
+                );
+                assert_eq!(device_matrices, physical_matrices);
                 assert_eq!(enabled_info[0].device_scope, 1);
                 let mut returned = vec![QueueInfo::default(); queues.len()];
                 assert_eq!(

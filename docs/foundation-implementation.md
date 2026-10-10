@@ -848,7 +848,7 @@ declared requirements are enabled. A driver lacking that combined profile is rep
 as not exercising the C numerical subtest, not as passing those arithmetic checks.
 
 These are scalar capabilities, not a completed ML profile or throughput guarantees.
-Matrix tuples, broader subgroup profiles, wider atomic profiles, floating-point controls, uniform/push narrow storage,
+Broader matrix/subgroup profiles, wider atomic profiles, floating-point controls, uniform/push narrow storage,
 quantized consumer kernels and compiler-generated requirement metadata remain work.
 This fixture does not prove signed arithmetic, exceptional values, denormal behavior,
 all rounding modes or compiler/backend optimization quality. No timing gate is added.
@@ -916,6 +916,51 @@ pass within the documented driver limits, with 15 GPU tests each and 82 ordinary
 tests; generated shaders and bindings reproduce, Clippy and 881 ABI values pass.
 FP16/image atomics, FP64-add execution, atomic load/store execution and exceptional
 floating-point behavior remain separate verification/implementation work.
+
+### Native cooperative-matrix tuples and execution
+
+`QUERY_MATRIX_TUPLES` returns exact native M/N/K, A/B/C/result component types,
+saturating accumulation, scope and stage tuples. The current profile covers KHR
+subgroup-scope compute and its core component types; it does not combine independent
+maxima into invented combinations. Results are snapshotted at discovery, preserve
+native enumeration order and use the existing allocation-free count/capacity protocol.
+Device queries return the same physical tuples regardless of feature enabling.
+Native enumeration initializes every output structure, retries bounded `INCOMPLETE`,
+checks returned counts and propagates allocation/native failures.
+
+`COOPERATIVE_MATRIX`, `VULKAN_MEMORY_MODEL` and scalar arithmetic bits are independent
+opt-ins. `VULKAN_MEMORY_MODEL_DEVICE_SCOPE` additionally requires the base memory-model
+bit; incomplete device requests fail locally. This separation matters even to older
+artifacts: Vulkan's [Device-scope rule](https://docs.vulkan.org/spec/latest/appendices/spirvenv.html#VUID-RuntimeSpirv-vulkanMemoryModel-06265)
+forbids Device memory scope in **all shaders** when the memory model is enabled without
+Device scope. The combined consumer explicitly requests both because its existing
+atomic fixtures use Device scope. Neither availability/visibility chains nor robust
+matrix-buffer access are implicitly enabled. Shader memory order, convergence,
+tuple selection, layout/stride, address bounds and feature metadata remain caller/
+compiler obligations; there is no shader reflection or inserted barrier.
+
+No host matrix command, tensor allocation, workspace, launch policy or shader fallback
+is needed. A pinned Slang artifact uses native cooperative loads, multiply-add and
+stores through ordinary caller-owned memory, a device root and compute dispatch.
+The fixture selects an advertised 8x8x8 FP16 A/B, FP32 C/result tuple, specializes its
+workgroup size to one explicitly requested full subgroup, and launches two workgroups.
+Asymmetric row-major A, column-major B and nonzero C detect layout/accumulation errors.
+All 128 output elements match an exact CPU oracle over two changed-input replays;
+input/root preservation and surrounding guards are checked after explicit visibility
+and timeline completion. The 8x8x8 shape is a fixture choice, not an API restriction.
+
+llvmpipe 26.2.1 exposes four tuples and passes this execution test. Radeon 26.2.4
+exposes none; optional function loading is avoided, unsupported feature enabling
+is rejected, and execution is explicitly reported as not exercised. This establishes
+software-driver execution, **not hardware matrix acceleration or throughput**.
+Other shapes/types, integer saturation, exceptional numerical values, divergent
+control flow and newer workgroup/flexible-dimension profiles are not verified here.
+
+All 15 foundation GPU tests pass on both local drivers. Full C regressions pass on
+Radeon and on llvmpipe with the existing documented combined-stencil-copy exclusion.
+The ordinary suite has 85 passing tests; Clippy, strict C/C++ compilation, 902 native
+ABI values and shader/binding reproduction pass. Installed ABI 20 and Metal are
+unchanged; compiler-generated requirements and consumer migration remain outstanding.
 
 ### Floating-point policy discovery
 

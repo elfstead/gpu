@@ -65,6 +65,7 @@ enum {
     OGPU_NEXT_QUERY_SUBGROUP_LIMITS = 11,
     OGPU_NEXT_QUERY_FORMATS = 12,
     OGPU_NEXT_QUERY_FLOAT_CONTROLS = 13,
+    OGPU_NEXT_QUERY_MATRIX_TUPLES = 14,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -215,6 +216,16 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMICS UINT64_C(4398046511104)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_ADD UINT64_C(8796093022208)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT64_ATOMIC_MIN_MAX UINT64_C(17592186044416)
+#define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT64_C(35184372088832)
+#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT64_C(70368744177664)
+#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT64_C(140737488355328)
+/* Enables artifacts using SPIR-V VulkanMemoryModel independently of matrix/scalar
+ * features. DEVICE_SCOPE must be requested separately and requires the base bit
+ * (otherwise device creation returns INVALID). Enabling the base without DEVICE_SCOPE
+ * forbids Device memory scope in ALL shaders on that device, including GLSL450
+ * artifacts. Availability/visibility chains are not enabled by either bit.
+ * Memory ordering remains explicit in shader code;
+ * no shader translation or inserted host/GPU barriers. */
 /* FLOAT32_ATOMICS means floating-point atomic load/store/exchange; ADD and MIN_MAX
  * are separate, independently enabled operations, not implied by that bit. BUFFER
  * covers storage/address-backed buffer memory; SHARED covers workgroup memory.
@@ -802,6 +813,35 @@ typedef struct ogpu_next_subgroup_limits {
     ogpu_next_stages stages, required_size_stages;
     uint32_t operations, quad_all_stages;
 } ogpu_next_subgroup_limits;
+enum {
+    OGPU_NEXT_COMPONENT_FLOAT16 = 0, OGPU_NEXT_COMPONENT_FLOAT32 = 1,
+    OGPU_NEXT_COMPONENT_FLOAT64 = 2, OGPU_NEXT_COMPONENT_SINT8 = 3,
+    OGPU_NEXT_COMPONENT_SINT16 = 4, OGPU_NEXT_COMPONENT_SINT32 = 5,
+    OGPU_NEXT_COMPONENT_SINT64 = 6, OGPU_NEXT_COMPONENT_UINT8 = 7,
+    OGPU_NEXT_COMPONENT_UINT16 = 8, OGPU_NEXT_COMPONENT_UINT32 = 9,
+    OGPU_NEXT_COMPONENT_UINT64 = 10
+};
+enum { OGPU_NEXT_MATRIX_SCOPE_SUBGROUP = 3 };
+typedef struct ogpu_next_matrix_tuple {
+    uint32_t m, n, k, a, b, c, result, saturating, scope, reserved;
+    ogpu_next_stages stages;
+} ogpu_next_matrix_tuple;
+/* QUERY_MATRIX_TUPLES reports immutable physical multiply-add tuples in native
+ * enumeration order, independent of device enabling. Each tuple describes
+ * A[M,K] * B[K,N] + C[M,N] -> result[M,N]; component enums are not image formats.
+ * saturating=0/1 is the exact required integer saturation operand, not permission
+ * to freely choose either. All shape/type/scope fields match one tuple together;
+ * maxima from different tuples cannot be combined. This implemented profile is
+ * KHR subgroup-scope, COMPUTE-stage, core component types only. Later workgroup,
+ * flexible-size, BF16/FP8 and tensor-resource profiles are not inferred from it.
+ * No supported tuples returns count=0, not a synthetic scalar fallback.
+ * COOPERATIVE_MATRIX must be explicitly enabled and declared in shader requirements.
+ * Scalar features needed by the artifact (e.g. FLOAT16/INT8) remain independent.
+ * The caller/compiler verifies exact native matrix types/operands and tuple support,
+ * converged participation, memory alignment/layout/stride/bounds and synchronization.
+ * OGPU does not reflect/rewrite code, choose subgroup size, pad tensors, allocate
+ * workspace, or promise tensor-core throughput. Robust matrix access is not enabled.
+ */
 enum {
     OGPU_NEXT_SUBGROUP_BASIC = 1, OGPU_NEXT_SUBGROUP_VOTE = 2,
     OGPU_NEXT_SUBGROUP_ARITHMETIC = 4, OGPU_NEXT_SUBGROUP_BALLOT = 8,

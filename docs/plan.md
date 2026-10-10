@@ -59,7 +59,7 @@ pass on both local drivers; enabling does not promise throughput or a completed 
 profile. Buffer/workgroup 64-bit integer atomics are independently enabled and tested
 with cross-workgroup accumulation and shared-memory reductions. Subgroup queries and
 per-stage exact/varying/full controls now support ballot-checked reductions and prefixes
-at native default and requested widths (Radeon 32/64, llvmpipe 8). Matrix, broader
+at native default and requested widths (Radeon 32/64, llvmpipe 8). Broader matrix,
 subgroup/atomic and floating-point-control profiles remain separate.
 Image-to-image and standalone native-color resolve commands now preserve explicit
 regions/layouts, including tested disjoint same-image and multisample-copy paths.
@@ -136,8 +136,17 @@ remain outstanding.
 FP64 atomic operation/domain enabling now follows the same model, with separate
 `FLOAT64` type requirements. Radeon verifies buffer/shared min/max and exchange
 using precision-sensitive values; neither local driver advertises FP64 atomic add,
-so its execution remains unverified rather than emulated. Matrix tuples, FP16/image
+so its execution remains unverified rather than emulated. Broader matrix, FP16/image
 atomic profiles and the broader migration remain open.
+
+Exact cooperative-matrix tuples now expose native dimensions, operand/result types,
+saturation, scope and stages without a host tensor API. Cooperative instructions,
+Vulkan memory model and Device scope are separately enabled; the latter requires
+the memory-model bit explicitly. A native 8x8x8 FP16-input/FP32-accumulator Slang
+kernel passes exact results, mixed row/column-major inputs, two workgroups, replay
+and guards on llvmpipe 26.2.1. Radeon advertises no matrix extension, so no hardware
+matrix acceleration or throughput is claimed. Other shapes/types, integer saturation,
+newer matrix extensions and compiler-generated requirements remain work.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

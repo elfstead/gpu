@@ -76,6 +76,25 @@ pub const BUFFER_FLOAT64_ATOMIC_MIN_MAX: u64 = 2199023255552;
 pub const SHARED_FLOAT64_ATOMICS: u64 = 4398046511104;
 pub const SHARED_FLOAT64_ATOMIC_ADD: u64 = 8796093022208;
 pub const SHARED_FLOAT64_ATOMIC_MIN_MAX: u64 = 17592186044416;
+pub const COOPERATIVE_MATRIX: u64 = 35184372088832;
+pub const VULKAN_MEMORY_MODEL: u64 = 70368744177664;
+pub const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: u64 = 140737488355328;
+pub const MATRIX_TUPLES: u32 = 14;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct MatrixTuple {
+    pub m: u32,
+    pub n: u32,
+    pub k: u32,
+    pub a: u32,
+    pub b: u32,
+    pub c: u32,
+    pub result: u32,
+    pub saturating: u32,
+    pub scope: u32,
+    pub reserved: u32,
+    pub stages: u64,
+}
 pub const INHERITANCE: u32 = 121;
 pub const RENDER_INHERITANCE: u32 = 122;
 pub const STATISTICS_MASK: u64 = 2047;
