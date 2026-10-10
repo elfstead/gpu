@@ -40,22 +40,61 @@ fn attachment_format(d: &Device, format: u32, aspect: u32) -> Result<vk::VkForma
     Ok(f.native)
 }
 
+#[derive(Default)]
+pub(super) struct PreparedInheritance {
+    pub native: vk::VkCommandBufferInheritanceInfo,
+    pub rendering: Option<vk::VkCommandBufferInheritanceRenderingInfo>,
+    resource: Option<vk::VkBindHeapInfoEXT>,
+    sampler: Option<vk::VkBindHeapInfoEXT>,
+    heaps: vk::VkCommandBufferInheritanceDescriptorHeapInfoEXT,
+}
+impl PreparedInheritance {
+    pub fn heap_mask(&self) -> u32 {
+        u32::from(self.resource.is_some()) | (u32::from(self.sampler.is_some()) << 1)
+    }
+    // Link only after placing this aggregate at its final stack address. The
+    // returned borrow prevents moving it while the native begin reads the chain.
+    pub fn link(&mut self) -> &vk::VkCommandBufferInheritanceInfo {
+        self.native.pNext = self
+            .rendering
+            .as_ref()
+            .map_or(ptr::null(), |r| ptr::from_ref(r).cast());
+        if self.heap_mask() != 0 {
+            self.heaps = vk::VkCommandBufferInheritanceDescriptorHeapInfoEXT {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_DESCRIPTOR_HEAP_INFO_EXT,
+                pNext: self.native.pNext,
+                pResourceHeapBindInfo: self.resource.as_ref().map_or(ptr::null(), ptr::from_ref),
+                pSamplerHeapBindInfo: self.sampler.as_ref().map_or(ptr::null(), ptr::from_ref),
+            };
+            self.native.pNext = ptr::from_ref(&self.heaps).cast();
+        }
+        &self.native
+    }
+}
+unsafe fn heap(
+    d: &Device,
+    domain: u32,
+    record: *const Record,
+    kind: u32,
+) -> Result<Option<vk::VkBindHeapInfoEXT>, Status> {
+    if record.is_null() {
+        return Ok(None);
+    }
+    let binding = unsafe { executable_record::<HeapBinding>(record, HEAP_BINDING)? };
+    if binding.kind != kind {
+        return Err(INVALID);
+    }
+    Ok(Some(unsafe { d.heap_binding(domain, binding)? }))
+}
 pub(super) unsafe fn inheritance(
     d: &Device,
+    domain: u32,
     desc: &RecordingDesc,
-) -> Result<
-    (
-        vk::VkCommandBufferInheritanceInfo,
-        Option<vk::VkCommandBufferInheritanceRenderingInfo>,
-    ),
-    Status,
-> {
-    let mut native = vk::VkCommandBufferInheritanceInfo {
-        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-        ..Default::default()
-    };
+) -> Result<PreparedInheritance, Status> {
+    let mut prepared = PreparedInheritance::default();
+    prepared.native.sType = vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
     if desc.inheritance.is_null() {
-        return Ok((native, None));
+        return Ok(prepared);
     }
     if desc.level != 1 {
         return Err(INVALID);
@@ -71,11 +110,13 @@ pub(super) unsafe fn inheritance(
     {
         return Err(UNSUPPORTED);
     }
-    native.occlusionQueryEnable = input.occlusion;
-    native.queryFlags = input.query_flags;
-    native.pipelineStatistics = input.statistics as u32;
+    prepared.native.occlusionQueryEnable = input.occlusion;
+    prepared.native.queryFlags = input.query_flags;
+    prepared.native.pipelineStatistics = input.statistics as u32;
+    prepared.resource = unsafe { heap(d, domain, input.resource_heap, 1)? };
+    prepared.sampler = unsafe { heap(d, domain, input.sampler_heap, 2)? };
     if input.rendering.is_null() {
-        return Ok((native, None));
+        return Ok(prepared);
     }
     if enabled & RASTER == 0 {
         return Err(UNSUPPORTED);
@@ -101,7 +142,7 @@ pub(super) unsafe fn inheritance(
             formats.add(i).write(attachment_format(d, *color, 1)?);
         }
     }
-    let rendering = vk::VkCommandBufferInheritanceRenderingInfo {
+    prepared.rendering = Some(vk::VkCommandBufferInheritanceRenderingInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
         colorAttachmentCount: r.color_count,
         pColorAttachmentFormats: formats,
@@ -109,8 +150,8 @@ pub(super) unsafe fn inheritance(
         stencilAttachmentFormat: attachment_format(d, r.stencil_format, 4)?,
         rasterizationSamples: r.samples,
         ..Default::default()
-    };
-    Ok((native, Some(rendering)))
+    });
+    Ok(prepared)
 }
 
 impl List {
@@ -192,6 +233,44 @@ mod tests {
         unsafe {
             EXECUTE.get().unwrap()(command, count, children);
         }
+    }
+    #[test]
+    fn inheritance_chain_links_only_final_storage() {
+        let mut prepared = PreparedInheritance::default();
+        assert_eq!(prepared.heap_mask(), 0);
+        assert!(prepared.link().pNext.is_null());
+        prepared.rendering = Some(vk::VkCommandBufferInheritanceRenderingInfo {
+            colorAttachmentCount: 2,
+            ..Default::default()
+        });
+        for mask in 0..4 {
+            prepared.resource = (mask & 1 != 0).then(vk::VkBindHeapInfoEXT::default);
+            prepared.sampler = (mask & 2 != 0).then(vk::VkBindHeapInfoEXT::default);
+            // Moving before link must not preserve dangling self-pointers.
+            let mut moved = prepared;
+            assert_eq!(moved.heap_mask(), mask);
+            let head = moved.link().pNext;
+            let rendering = ptr::from_ref(moved.rendering.as_ref().unwrap()).cast();
+            if mask == 0 {
+                assert_eq!(head, rendering);
+            } else {
+                assert_eq!(head, ptr::from_ref(&moved.heaps).cast());
+                assert_eq!(moved.heaps.pNext, rendering);
+                assert_eq!(
+                    moved.heaps.pResourceHeapBindInfo,
+                    moved.resource.as_ref().map_or(ptr::null(), ptr::from_ref)
+                );
+                assert_eq!(
+                    moved.heaps.pSamplerHeapBindInfo,
+                    moved.sampler.as_ref().map_or(ptr::null(), ptr::from_ref)
+                );
+            }
+            prepared = moved;
+        }
+        prepared.resource = None;
+        prepared.sampler = None;
+        prepared.rendering = None;
+        assert!(prepared.link().pNext.is_null());
     }
     #[test]
     fn secondary_scratch_layouts() {
@@ -285,6 +364,8 @@ mod tests {
                     0
                 },
                 rendering: ptr::null(),
+                resource_heap: ptr::null(),
+                sampler_heap: ptr::null(),
             };
             rd.inheritance = &inh.header;
             let b = children.begin(&rd).unwrap();

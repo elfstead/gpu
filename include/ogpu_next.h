@@ -392,6 +392,7 @@ typedef struct ogpu_next_inheritance {
     uint32_t occlusion, query_flags;
     uint64_t statistics;
     const ogpu_next_record *rendering;
+    const ogpu_next_record *resource_heap, *sampler_heap;
 } ogpu_next_inheritance;
 /* Arena level is fixed at creation/reserve; recording level must match. reserved=0.
  * Primary inheritance=NULL. Secondary inheritance=NULL means standalone, no query
@@ -490,9 +491,15 @@ typedef struct ogpu_next_render_inheritance {
  * caller proves formats/count/samples match each eventual primary render scope.
  * This secondary starts/ends INSIDE that scope: do not call render_begin/end.
  * Standalone secondaries may record complete inline rendering scopes themselves.
- * Neither flavor inherits pipeline, arguments, heap, vertex/index or viewport
- * state: initialize everything used. Heap-inheritance and nested-secondary
- * execution are separate profiles, not silently simulated.
+ * Neither flavor inherits pipeline, arguments, vertex/index or viewport state:
+ * initialize everything used. Nested-secondary execution is not enabled.
+ * Optional resource_heap/sampler_heap inheritance pointers name HEAP_BINDING
+ * records of the corresponding kind. At EVERY execute, caller proves the parent
+ * has identical address/size/reservation bindings. No parent-state scan or implicit
+ * bind is added. An inherited heap cannot be rebound in that child; the other heap
+ * remains independently bindable. NULL means not inherited, not an inferred heap.
+ * Descriptions are borrowed only during begin, but their backing/reserved ranges
+ * remain live and reserved through all child and parent future/pending uses.
  */
 ogpu_next_status ogpu_next_inheritance_scratch_requirements(uint32_t color_count, ogpu_next_host_requirements *);
 ogpu_next_status ogpu_next_execute_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
@@ -500,7 +507,9 @@ ogpu_next_status ogpu_next_execute_scratch_requirements(uint32_t count, ogpu_nex
  * this call; the lists, arenas and their resources survive all future/pending use.
  * Entire array is validated before native execution. count=0 is a no-op.
  * Nonempty execution invalidates the primary's pipeline, inline/root bytes,
- * viewport/scissor, vertex/index and heap bindings: re-establish before using.
+ * viewport/scissor and vertex/index bindings: re-establish before using.
+ * A heap binding survives only when EVERY executed child inherits that heap;
+ * otherwise it becomes undefined. No implicit binding restoration.
  * Render/query scopes survive. No implicit restoration or retained child graph.
  * Inside rendering requires RENDER_SECONDARY; outside requires standalone children.
  */

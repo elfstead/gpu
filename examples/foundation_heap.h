@@ -25,16 +25,16 @@ cleanup:
 }
 
 static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
-                          uint32_t domain, const char *shader_path) {
+                          uint32_t domain, const char *shader_path, uint32_t secondary) {
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
-    void *code = NULL, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
+    void *code = NULL, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL, *execute_scratch = NULL;
     ogpu_next_memory *data = NULL, *staging = NULL, *resource_heap = NULL, *sampler_heap = NULL;
     ogpu_next_memory *backing[2] = {NULL, NULL};
     ogpu_next_image *images[2] = {NULL, NULL};
     ogpu_next_view *views[2] = {NULL, NULL};
     ogpu_next_executable *executable = NULL;
-    ogpu_next_arena *arena = NULL;
+    ogpu_next_arena *arena = NULL, *child_arena = NULL;
     ogpu_next_timeline *done = NULL, *gate = NULL;
     ogpu_next_descriptor_limits limits = {0};
     ogpu_next_memory_limits memory_limits = {0};
@@ -101,7 +101,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         {HEADER(ogpu_next_heap_binding, OGPU_NEXT_HEAP_BINDING), OGPU_NEXT_HEAP_SAMPLER, 0,
             {sampler_heap, 0, sampler_size}, sampler_reserved, limits.sampler_reserved_size}
     };
-    ogpu_next_host_requirements wr = {0}, ws = {0}, br = {0}, sr = {0};
+    ogpu_next_host_requirements wr = {0}, ws = {0}, br = {0}, sr = {0}, er = {0};
     TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_RESOURCE, 3, &wr));
     TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_SAMPLER, 1, &ws));
     uint64_t scratch_size = wr.size > ws.size ? wr.size : ws.size;
@@ -140,6 +140,13 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     free(code); code = NULL;
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
+    if (secondary) {
+        ad.level = OGPU_NEXT_SECONDARY;
+        TRY(ogpu_next_arena_create(device, &ad, &child_arena));
+        TRY(ogpu_next_execute_scratch_requirements(1, &er));
+        REQUIRE(er.alignment <= _Alignof(max_align_t));
+        execute_scratch = malloc((size_t)er.size); REQUIRE(execute_scratch != NULL);
+    }
     TRY(ogpu_next_barrier_scratch_requirements(0, 2, &br));
     TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
@@ -169,12 +176,53 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     dep.image_count = 1;
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_bind_heap(encoder, &bindings[0]); ogpu_next_bind_heap(encoder, &bindings[1]);
-    ogpu_next_bind_executable(encoder, executable);
+    ogpu_next_encoder *dispatch_encoder = encoder;
+    ogpu_next_list *child = NULL;
+    if (secondary) {
+        ogpu_next_inheritance inherit = {HEADER(ogpu_next_inheritance, OGPU_NEXT_INHERITANCE),
+            0, 0, 0, NULL, secondary & 1 ? &bindings[0].header : NULL, secondary & 2 ? &bindings[1].header : NULL};
+        ogpu_next_recording_desc cr = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC),
+            OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_SECONDARY, &inherit.header};
+        /* Reject wrong typed records/kinds before consuming the reserved slot. */
+        const ogpu_next_record *saved = inherit.resource_heap;
+        inherit.resource_heap = &bindings[1].header;
+        REQUIRE(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder) == OGPU_NEXT_INVALID && dispatch_encoder == NULL);
+        inherit.resource_heap = &cr.header;
+        REQUIRE(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder) == OGPU_NEXT_UNSUPPORTED && dispatch_encoder == NULL);
+        inherit.resource_heap = saved;
+        for (uint32_t i = 0; i < 2; ++i) if (secondary & (1u << i)) {
+            TRY(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder));
+            ogpu_next_bind_heap(dispatch_encoder, &bindings[i]);
+            REQUIRE(ogpu_next_commands_end(dispatch_encoder, &child) == OGPU_NEXT_INVALID && child == NULL);
+            TRY(ogpu_next_arena_reset(child_arena));
+        }
+        TRY(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder));
+        memset(&inherit, 0xcc, sizeof(inherit)); /* begin retains no host descriptions */
+        for (uint32_t i = 0; i < 2; ++i)
+            if (!(secondary & (1u << i))) ogpu_next_bind_heap(dispatch_encoder, &bindings[i]);
+    }
+    ogpu_next_bind_executable(dispatch_encoder, executable);
     uint32_t control[6] = {0, (uint32_t)(resource_stride / image_stride), 0,
         (uint32_t)(resource_stride * 2 / buffer_stride), width, height};
-    ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
+    ogpu_next_set_inline(dispatch_encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
     ogpu_next_launch launch = {{1, 1, 1}, 0, NULL};
-    ogpu_next_dispatch(encoder, &launch);
+    ogpu_next_dispatch(dispatch_encoder, &launch);
+    if (secondary) {
+        TRY(ogpu_next_commands_end(dispatch_encoder, &child));
+        ogpu_next_execute_lists(encoder, 1, &child, (ogpu_next_host_span){execute_scratch, er.size});
+        memset(execute_scratch, 0xcc, (size_t)er.size);
+        /* Dispatch once more in the parent. Inherited heaps survive execution;
+         * only non-inherited heaps, pipeline and argument state are rebound. */
+        ogpu_next_dependency writes = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY),
+            OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_STAGE_COMPUTE,
+            OGPU_NEXT_ACCESS_SHADER_WRITE, OGPU_NEXT_ACCESS_SHADER_WRITE, 0, 0, 0, NULL, NULL, NULL, 0};
+        ogpu_next_barrier(encoder, &writes);
+        for (uint32_t i = 0; i < 2; ++i)
+            if (!(secondary & (1u << i))) ogpu_next_bind_heap(encoder, &bindings[i]);
+        ogpu_next_bind_executable(encoder, executable);
+        ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
+        ogpu_next_dispatch(encoder, &launch);
+    }
     barriers[1].before = OGPU_NEXT_ACCESS_SHADER_WRITE; barriers[1].after = OGPU_NEXT_ACCESS_COPY_READ;
     barriers[1].old_state = OGPU_NEXT_STATE_GENERAL; barriers[1].discard = 0;
     dep.images = &barriers[1]; dep.before = OGPU_NEXT_STAGE_COMPUTE; dep.after = OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_HOST;
@@ -221,16 +269,18 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
                 REQUIRE(((unsigned char *)data_map.data)[i] == 0xa5);
     }
     TRY(ogpu_next_arena_reset(arena)); /* Reservation release, not just GPU completion. */
+    if (child_arena) TRY(ogpu_next_arena_reset(child_arena));
     printf("Heap execution passes: sampled image + sampler, storage image + buffer, explicit local descriptor upload, changed-descriptor replay and pending disjoint-slot writes.\n");
+    if (secondary) printf("Secondary heaps pass: inheritance mask %u, independent other-heap binding, parent heap preservation and replay.\n", secondary & 3);
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr, "Pending heap execution after failure.\n"); _Exit(EXIT_FAILURE); }
-    ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(executable);
+    ogpu_next_arena_destroy(arena); ogpu_next_arena_destroy(child_arena); ogpu_next_executable_destroy(executable);
     ogpu_next_timeline_destroy(done); ogpu_next_timeline_destroy(gate);
     for (uint32_t i = 0; i < 2; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     ogpu_next_memory_destroy(resource_heap); ogpu_next_memory_destroy(sampler_heap);
     ogpu_next_memory_destroy(staging); ogpu_next_memory_destroy(data);
     if (file) fclose(file);
-    free(code); free(scratch); free(barrier_scratch); free(submit_scratch);
+    free(code); free(scratch); free(barrier_scratch); free(submit_scratch); free(execute_scratch);
     return result;
 }

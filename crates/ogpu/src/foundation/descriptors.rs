@@ -304,6 +304,20 @@ impl Device {
         domain: u32,
         binding: &HeapBinding,
     ) -> Result<(), Status> {
+        let info = unsafe { self.heap_binding(domain, binding)? };
+        let f = match binding.kind {
+            1 => self.f.vkCmdBindResourceHeapEXT,
+            2 => self.f.vkCmdBindSamplerHeapEXT,
+            _ => unreachable!(), // validated by heap_binding
+        };
+        unsafe { f.unwrap()(command, &info) };
+        Ok(())
+    }
+    pub(super) unsafe fn heap_binding(
+        &self,
+        domain: u32,
+        binding: &HeapBinding,
+    ) -> Result<vk::VkBindHeapInfoEXT, Status> {
         binding.header.validate::<HeapBinding>(HEAP_BINDING)?;
         if binding.flags != 0 {
             return Err(UNSUPPORTED);
@@ -318,20 +332,18 @@ impl Device {
             return Err(UNSUPPORTED);
         }
         let p = &self.snapshot.descriptor_limits;
-        let (alignment, maximum, reserved, offset_alignment, f) = match binding.kind {
+        let (alignment, maximum, reserved, offset_alignment) = match binding.kind {
             1 => (
                 p.resource_heap_alignment,
                 p.resource_heap_max_size,
                 p.resource_reserved_size,
                 p.resource_reserved_alignment,
-                self.f.vkCmdBindResourceHeapEXT,
             ),
             2 => (
                 p.sampler_heap_alignment,
                 p.sampler_heap_max_size,
                 p.sampler_reserved_size,
                 p.sampler_reserved_alignment,
-                self.f.vkCmdBindSamplerHeapEXT,
             ),
             _ => return Err(UNSUPPORTED),
         };
@@ -352,7 +364,7 @@ impl Device {
         if span.size > maximum || binding.reserved_size < reserved {
             return Err(UNSUPPORTED);
         }
-        let info = vk::VkBindHeapInfoEXT {
+        Ok(vk::VkBindHeapInfoEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
             heapRange: vk::VkDeviceAddressRangeKHR {
                 address,
@@ -361,11 +373,7 @@ impl Device {
             reservedRangeOffset: binding.reserved_offset,
             reservedRangeSize: binding.reserved_size,
             ..Default::default()
-        };
-        unsafe {
-            f.unwrap()(command, &info);
-        }
-        Ok(())
+        })
     }
 }
 

@@ -202,7 +202,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         ogpu_next_format format = OGPU_NEXT_RGBA8_UNORM;
         ogpu_next_render_inheritance ri = {HEADER(ogpu_next_render_inheritance,OGPU_NEXT_RENDER_INHERITANCE),
             1,samples,0,0,gs.depth_format,stencil_enabled ? gs.depth_format : 0,&format,{inheritance_scratch,ir.size}};
-        ogpu_next_inheritance inherit = {HEADER(ogpu_next_inheritance,OGPU_NEXT_INHERITANCE),0,0,0,&ri.header};
+        ogpu_next_inheritance inherit = {HEADER(ogpu_next_inheritance,OGPU_NEXT_INHERITANCE),0,0,0,&ri.header,NULL,NULL};
         if (secondary == 3) {
             inherit.occlusion = 1; inherit.query_flags = precise;
             inherit.statistics = statistics ? qd.statistics : 0;

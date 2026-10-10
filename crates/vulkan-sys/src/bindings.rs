@@ -11234,6 +11234,52 @@ impl Default for VkPhysicalDeviceDescriptorHeapPropertiesEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkCommandBufferInheritanceDescriptorHeapInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub pSamplerHeapBindInfo: *const VkBindHeapInfoEXT,
+    pub pResourceHeapBindInfo: *const VkBindHeapInfoEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkCommandBufferInheritanceDescriptorHeapInfoEXT",
+    ][::std::mem::size_of::<VkCommandBufferInheritanceDescriptorHeapInfoEXT>()
+        - 32usize];
+    [
+        "Alignment of VkCommandBufferInheritanceDescriptorHeapInfoEXT",
+    ][::std::mem::align_of::<VkCommandBufferInheritanceDescriptorHeapInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceDescriptorHeapInfoEXT::sType",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceDescriptorHeapInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceDescriptorHeapInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkCommandBufferInheritanceDescriptorHeapInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceDescriptorHeapInfoEXT::pSamplerHeapBindInfo",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceDescriptorHeapInfoEXT, pSamplerHeapBindInfo
+    ) - 16usize];
+    [
+        "Offset of field: VkCommandBufferInheritanceDescriptorHeapInfoEXT::pResourceHeapBindInfo",
+    ][::std::mem::offset_of!(
+        VkCommandBufferInheritanceDescriptorHeapInfoEXT, pResourceHeapBindInfo
+    ) - 24usize];
+};
+impl Default for VkCommandBufferInheritanceDescriptorHeapInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 pub type PFN_vkWriteSamplerDescriptorsEXT = ::std::option::Option<
     unsafe extern "C" fn(
         device: VkDevice,

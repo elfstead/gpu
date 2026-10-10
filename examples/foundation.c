@@ -25,7 +25,7 @@ _Static_assert(sizeof(ogpu_next_requirements) == 40, "requirements ABI");
 _Static_assert(sizeof(ogpu_next_mapping) == 40, "mapping ABI");
 _Static_assert(sizeof(ogpu_next_memory_limits) == 32, "memory limits ABI");
 _Static_assert(sizeof(ogpu_next_arena_desc) == 40, "arena ABI");
-_Static_assert(sizeof(ogpu_next_inheritance) == 48, "inheritance ABI");
+_Static_assert(sizeof(ogpu_next_inheritance) == 64, "inheritance ABI");
 _Static_assert(sizeof(ogpu_next_render_inheritance) == 72, "render inheritance ABI");
 _Static_assert(sizeof(ogpu_next_recording_desc) == 40, "recording ABI");
 _Static_assert(sizeof(ogpu_next_submit_desc) == 80, "submit ABI");
@@ -998,7 +998,8 @@ int main(int argc, char **argv) {
     REQUIRE(submission_batches(device, memory_desc, compute_domain) == EXIT_SUCCESS);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 0) == EXIT_SUCCESS);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 1) == EXIT_SUCCESS);
-    REQUIRE(heap_execution(device, memory_desc, compute_domain, argv[2]) == EXIT_SUCCESS);
+    for (uint32_t secondary = 0; secondary <= 4; ++secondary)
+        REQUIRE(heap_execution(device, memory_desc, compute_domain, argv[2], secondary) == EXIT_SUCCESS);
     uint32_t graphics_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { graphics_domain = queues[i].domain; break; }

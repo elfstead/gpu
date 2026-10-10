@@ -48,6 +48,7 @@ pub struct List {
     inherited_occlusion: u32,
     inherited_query_flags: u32,
     inherited_statistics: u64,
+    inherited_heaps: u32,
     secondary_contents: Cell<bool>,
     mode: u32,
     state: Cell<u32>, // 0 invalid, 1 recording, 2 executable, 3 consumed one-shot
@@ -132,6 +133,7 @@ impl Arena {
                 inherited_occlusion: 0,
                 inherited_query_flags: 0,
                 inherited_statistics: 0,
+                inherited_heaps: 0,
                 secondary_contents: Cell::new(false),
                 mode: 0,
                 state: Cell::new(0),
@@ -216,20 +218,20 @@ impl Arena {
         if desc.level != self.level {
             return Err(INVALID);
         }
-        let (mut inheritance, rendering) = unsafe { secondary::inheritance(d, desc)? };
-        if rendering.is_some() {
+        let mut prepared = unsafe { secondary::inheritance(d, self.domain, desc)? };
+        let continuation = prepared.rendering.is_some();
+        let inherited_heaps = prepared.heap_mask();
+        if continuation {
             stages(d, self.domain, 24, false)?;
         }
-        inheritance.pNext = rendering
-            .as_ref()
-            .map_or(ptr::null(), |r| ptr::from_ref(r).cast());
+        let inheritance = prepared.link();
         let mut flags = match desc.replay_mode {
             1 => vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
             2 => 0,
             3 => vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
             _ => return Err(INVALID),
         };
-        if rendering.is_some() {
+        if continuation {
             flags |=
                 vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
         }
@@ -242,12 +244,13 @@ impl Arena {
         slot.error.set(OK);
         slot.executable.set(ptr::null());
         slot.graphics.set(ptr::null());
-        slot.continuation = rendering.is_some();
+        slot.continuation = continuation;
         slot.rendering.set(slot.continuation);
         slot.secondary_contents.set(false);
         slot.inherited_occlusion = inheritance.occlusionQueryEnable;
         slot.inherited_query_flags = inheritance.queryFlags;
         slot.inherited_statistics = u64::from(inheritance.pipelineStatistics);
+        slot.inherited_heaps = inherited_heaps;
         slot.viewport_set.set(false);
         slot.index_count.set(None);
         for query in &slot.active_queries {
@@ -258,7 +261,7 @@ impl Arena {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             flags,
             pInheritanceInfo: if self.level == 1 {
-                &inheritance
+                inheritance
             } else {
                 ptr::null()
             },
@@ -615,6 +618,9 @@ impl List {
         binding: &HeapBinding,
     ) -> Result<(), Status> {
         let d = self.recording()?;
+        if matches!(binding.kind, 1 | 2) && self.inherited_heaps & (1 << (binding.kind - 1)) != 0 {
+            return Err(INVALID);
+        }
         unsafe { d.bind_heap(self.command, self.domain, binding) }
     }
     fn recording(&self) -> Result<&Device, Status> {

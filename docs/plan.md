@@ -72,6 +72,9 @@ one driver call using caller scratch, with whole-call local rejection and OOM re
 Secondary arenas now support compute, standalone graphics and inherited rendering,
 including explicit query inheritance where enabled. Execution uses caller scratch,
 retains no child graph and invalidates ordinary bindings instead of restoring them.
+Explicit resource/sampler heap inheritance avoids forced child rebinding and preserves
+parent heaps when all executed children inherit them. Neither/either/both inheritance
+combinations pass shader consumption, parent reuse and changed-descriptor replay.
 Split dependencies and broader draft profiles remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

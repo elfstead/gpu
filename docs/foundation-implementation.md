@@ -148,10 +148,20 @@ not expose query inheritance. Secondaries may still own their own query scopes.
 
 Execution translates the complete list array into caller-owned scratch and validates
 it before one native call. It neither retains a child graph nor allocates OGPU memory.
-Ordinary pipeline, arguments, heaps, viewport and vertex/index bindings become
+Ordinary pipeline, arguments, viewport and vertex/index bindings become
 undefined after execution; callers re-establish them. Render/query scopes survive.
-Children do not inherit those bindings either. Heap inheritance is a separate
-follow-up profile, not an implicit rebinding implementation.
+Children do not inherit those bindings either. Resource and sampler heaps can be
+inherited independently by naming exact heap-binding records at begin. A child
+cannot rebind an inherited heap, but can bind the other heap normally. Callers prove
+each inherited range/reservation matches the primary at every execution; no state
+scan, retained binding description or inserted bind is added. A primary heap binding
+survives only if every executed child inherits that heap. See native
+[heap inheritance](https://docs.vulkan.org/refpages/latest/refpages/source/VkCommandBufferInheritanceDescriptorHeapInfoEXT.html)
+and [state preservation](https://docs.vulkan.org/spec/latest/chapters/cmdbuffers.html).
+Backing and native reserved-range obligations extend through both child and parent
+future/pending uses. The C fixture checks neither/either/both heaps inherited,
+parent dispatch after execution without rebinding inherited heaps, changed-descriptor
+replay, pending disjoint sampler writes and rejection of inherited-heap rebinding.
 
 Secondary lifetime and replay obligations are explicit: reset/destruction invalidates
 referring primaries, a simultaneous parent needs simultaneous children, and callers
@@ -164,7 +174,7 @@ The C consumer executes secondary compute with changed-input replay, standalone
 graphics, multisampled inherited rendering, stencil/vertex-fetch continuation and
 inherited query counting. Rust tests additionally check atomic local rejection,
 scratch capacity, one native execute call, level/mode rules and query masks. Arena,
-inheritance and rendering-inheritance records are respectively 40, 48 and 72 bytes;
+inheritance and rendering-inheritance records are respectively 40, 64 and 72 bytes;
 this remains source-only revision 1, not an installed ABI change.
 
 ## Implemented images and views
@@ -622,7 +632,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
 
 ## Verification so far
 
-- 72 ordinary Rust tests pass, including foundation contract, status and
+- 73 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

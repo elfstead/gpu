@@ -623,6 +623,8 @@ pub struct Inheritance {
     pub query_flags: u32,
     pub statistics: u64,
     pub rendering: *const Record,
+    pub resource_heap: *const Record,
+    pub sampler_heap: *const Record,
 }
 #[repr(C)]
 pub struct RenderInheritance {
