@@ -453,6 +453,7 @@ mod tests {
         static PIPELINE_DROPS: Cell<u32> = const { Cell::new(0) };
         static DYNAMIC_MASK: Cell<u64> = const { Cell::new(0) };
         static DYNAMIC_COUNT: Cell<u32> = const { Cell::new(0) };
+        static COLOR_LOGIC: Cell<(u32, u32, u32)> = const { Cell::new((0, 0, 0)) };
     }
     unsafe extern "C" fn module(
         d: vk::VkDevice,
@@ -520,6 +521,16 @@ mod tests {
         out: *mut vk::VkPipeline,
     ) -> vk::VkResult {
         let dynamic = unsafe { &*(*info).pDynamicState };
+        let blend = unsafe { &*(*info).pColorBlendState };
+        COLOR_LOGIC.set((
+            blend.logicOpEnable,
+            blend.logicOp,
+            if blend.attachmentCount == 0 {
+                0
+            } else {
+                unsafe { (*blend.pAttachments).blendEnable }
+            },
+        ));
         let states = unsafe {
             std::slice::from_raw_parts(dynamic.pDynamicStates, dynamic.dynamicStateCount as usize)
         };
@@ -680,6 +691,8 @@ mod tests {
                 stencil_back: StencilState::default(),
                 vertex_input: ptr::null(),
                 raster_options: ptr::null(),
+                logic_op_enable: 0,
+                logic_op: 0,
             };
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
@@ -776,13 +789,14 @@ mod tests {
                 ALPHA_TO_ONE,
                 UNUSED_ATTACHMENTS,
                 UNUSED_ATTACHMENTS | UNIFIED_IMAGES,
+                LOGIC_OP,
             ];
             desc.dynamic_state = 1;
             for enabled in profiles {
                 if enabled & !adapter.snapshot.features.available != 0 {
                     continue;
                 }
-                let profile_device = Device::create(
+                let mut profile_device = Device::create(
                     &adapter,
                     &[QueueRequest {
                         domain,
@@ -792,6 +806,8 @@ mod tests {
                     RASTER | enabled,
                 )
                 .unwrap();
+                CREATE_GRAPHICS.set(profile_device.f.vkCreateGraphicsPipelines);
+                profile_device.f.vkCreateGraphicsPipelines = Some(graphics_pipeline);
                 assert_eq!(profile_device.snapshot.features.enabled, RASTER | enabled);
                 for required in profiles {
                     let requirements = ShaderRequirements {
@@ -834,6 +850,45 @@ mod tests {
                     assert!(matches!(result, Err(UNSUPPORTED)));
                 }
                 let defaults = RasterOptions::default();
+                for op in 0..=15 {
+                    let blend_color = ColorState { blend: 1, ..color };
+                    let logic_state = GraphicsState {
+                        logic_op_enable: 1,
+                        logic_op: op,
+                        colors: &blend_color,
+                        ..state
+                    };
+                    let logic_desc = ExecutableDesc {
+                        static_state: &logic_state.header,
+                        requirements: &req.header,
+                        ..desc
+                    };
+                    COLOR_LOGIC.set((u32::MAX, u32::MAX, u32::MAX));
+                    let result = unsafe { Executable::create(&profile_device, &logic_desc) };
+                    if enabled & LOGIC_OP != 0 {
+                        assert!(result.is_ok());
+                        assert_eq!(COLOR_LOGIC.get(), (1, op, 1)); // Native precedence; no mask/blend rewriting.
+                    } else {
+                        assert!(matches!(result, Err(UNSUPPORTED)));
+                        assert_eq!(COLOR_LOGIC.get(), (u32::MAX, u32::MAX, u32::MAX));
+                    }
+                }
+                for (enable, op) in [(2, 0), (0, 16), (1, u32::MAX)] {
+                    let logic_state = GraphicsState {
+                        logic_op_enable: enable,
+                        logic_op: op,
+                        ..state
+                    };
+                    let logic_desc = ExecutableDesc {
+                        static_state: &logic_state.header,
+                        requirements: &req.header,
+                        ..desc
+                    };
+                    assert!(matches!(
+                        unsafe { Executable::create(&profile_device, &logic_desc) },
+                        Err(INVALID)
+                    ));
+                }
                 let depth_only = GraphicsState {
                     color_count: 0,
                     depth_format: 14,

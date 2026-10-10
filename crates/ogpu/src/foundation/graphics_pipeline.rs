@@ -158,6 +158,12 @@ pub(super) unsafe fn prepare(
     if state.color_count > p.max_colors {
         return Err(UNSUPPORTED);
     }
+    if state.logic_op_enable > 1 || state.logic_op > 15 {
+        return Err(INVALID);
+    }
+    if state.logic_op_enable != 0 && d.snapshot.features.enabled & LOGIC_OP == 0 {
+        return Err(UNSUPPORTED);
+    }
     if state.depth_format == 0
         && (state.depth_test != 0 || state.depth_write != 0 || state.stencil_test != 0)
     {
@@ -535,6 +541,8 @@ pub(super) unsafe fn prepare(
     };
     let blend = vk::VkPipelineColorBlendStateCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        logicOpEnable: state.logic_op_enable,
+        logicOp: state.logic_op,
         attachmentCount: blends.len() as u32,
         pAttachments: blends.as_ptr(),
         blendConstants: state.blend_constants,

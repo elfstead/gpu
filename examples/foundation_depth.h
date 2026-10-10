@@ -31,7 +31,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     if (mode == 6) options.depth_bias_constant = 16;
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,
-        OGPU_NEXT_D32_FLOAT,1,1,mode == 0 ? OGPU_NEXT_COMPARE_LESS : OGPU_NEXT_COMPARE_ALWAYS,{0},0,{0},{0},NULL,&options.header};
+        OGPU_NEXT_D32_FLOAT,1,1,mode == 0 ? OGPU_NEXT_COMPARE_LESS : OGPU_NEXT_COMPARE_ALWAYS,{0},0,{0},{0},NULL,&options.header,0,0};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),OGPU_NEXT_FEATURE_RASTER,{0,0,0},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         1,&shader,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};

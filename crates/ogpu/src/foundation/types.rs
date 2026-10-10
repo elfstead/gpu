@@ -61,6 +61,7 @@ pub const DEPTH_BOUNDS: u64 = 67108864;
 pub const SAMPLE_SHADING: u64 = 134217728;
 pub const ALPHA_TO_ONE: u64 = 268435456;
 pub const UNUSED_ATTACHMENTS: u64 = 536870912;
+pub const LOGIC_OP: u64 = 1073741824;
 pub const INHERITANCE: u32 = 121;
 pub const RENDER_INHERITANCE: u32 = 122;
 pub const STATISTICS_MASK: u64 = 2047;
@@ -231,6 +232,8 @@ pub struct GraphicsState {
     pub stencil_back: StencilState,
     pub vertex_input: *const Record,
     pub raster_options: *const Record,
+    pub logic_op_enable: u32,
+    pub logic_op: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]

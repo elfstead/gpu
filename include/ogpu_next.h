@@ -200,6 +200,7 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_SAMPLE_SHADING UINT64_C(134217728)
 #define OGPU_NEXT_FEATURE_ALPHA_TO_ONE UINT64_C(268435456)
 #define OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS UINT64_C(536870912)
+#define OGPU_NEXT_FEATURE_LOGIC_OP UINT64_C(1073741824)
 typedef struct ogpu_next_feature_info {
     uint64_t available, enabled, max_timeline_difference;
     uint32_t baseline_supported, device_scope;
@@ -981,7 +982,24 @@ typedef struct ogpu_next_graphics_state {
     ogpu_next_stencil_state stencil_front, stencil_back;
     const ogpu_next_record *vertex_input;
     const ogpu_next_record *raster_options;
+    uint32_t logic_op_enable, logic_op;
 } ogpu_next_graphics_state;
+enum {
+    OGPU_NEXT_LOGIC_CLEAR = 0, OGPU_NEXT_LOGIC_AND = 1, OGPU_NEXT_LOGIC_AND_REVERSE = 2,
+    OGPU_NEXT_LOGIC_COPY = 3, OGPU_NEXT_LOGIC_AND_INVERTED = 4, OGPU_NEXT_LOGIC_NO_OP = 5,
+    OGPU_NEXT_LOGIC_XOR = 6, OGPU_NEXT_LOGIC_OR = 7, OGPU_NEXT_LOGIC_NOR = 8,
+    OGPU_NEXT_LOGIC_EQUIVALENT = 9, OGPU_NEXT_LOGIC_INVERT = 10, OGPU_NEXT_LOGIC_OR_REVERSE = 11,
+    OGPU_NEXT_LOGIC_COPY_INVERTED = 12, OGPU_NEXT_LOGIC_OR_INVERTED = 13,
+    OGPU_NEXT_LOGIC_NAND = 14, OGPU_NEXT_LOGIC_SET = 15
+};
+/* logic_op_enable is 0/1; enabling requires LOGIC_OP. logic_op is one of LOGIC_*.
+ * One static operation applies independently per stored component on all targets,
+ * after source format conversion and before the per-target write mask. Enabling
+ * logic operations disables blending natively; blend state is not rewritten.
+ * Native formats that do not support logic operations pass through source values.
+ * This is not arbitrary bitwise arithmetic on shader floating-point encodings.
+ * No shader emulation, extra pass or implicit attachment read transition.
+ */
 enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON_POINT = 2 };
 typedef struct ogpu_next_raster_options {
     ogpu_next_record header;
@@ -1069,7 +1087,7 @@ typedef struct ogpu_next_vertex_input {
  * stores and resolves still follow the explicit render scope. Defined non-null
  * pairs still require matching formats. Depth/stencil format=0 versus absent view
  * is similarly relaxed. No inferred transitions, attachment allocation or remap.
- * Additional static raster/sample controls use raster_options. Logic ops, custom
+ * Additional static raster/sample controls use raster_options. Custom
  * sample locations and independent depth clipping remain unimplemented profiles.
  * Both vertex pulling and native vertex fetch are available. Points require shader
  * PointSize=1; vertex/fragment storage writes require their independent feature bits.

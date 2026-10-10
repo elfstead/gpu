@@ -589,7 +589,7 @@ first-instance, negative indexed base vertex, every indirect draw variant, and r
 after changing instance data. Pixel/depth outputs and guards are checked. This validates
 RG32 float fetch and divisor-one instancing; other formats, zero-stride execution,
 dynamic input state and nontrivial divisors still need their own coverage/profiles.
-The source-only graphics limits/state records are now 96/168 bytes; ABI 20 is unchanged.
+The source-only graphics limits/state records are now 96/176 bytes; ABI 20 is unchanged.
 
 ### Static raster and sample controls
 
@@ -677,6 +677,28 @@ pass on Radeon 26.2.4 and llvmpipe 26.2.1 under validation. Generated bindings
 reproduce; C/Rust ABI checks cover 851 layout values, with installed ABI 20 unchanged.
 
 ### Independent targets and indirect base instances
+
+`LOGIC_OP` independently enables all sixteen native color logic operations. The
+graphics state carries explicit enable/op fields; one operation applies across
+targets, before each target's channel mask. It operates on converted attachment
+components, not shader-float bit patterns. Native unsupported color formats pass
+source values through; no shader emulation or substitute formats are introduced.
+See the [native logic operation semantics](https://docs.vulkan.org/refpages/latest/refpages/source/VkLogicOp.html).
+
+The C consumer checks every operation on two RGBA8 targets, distinct per-draw source
+values, different channel masks, four-sample resolve, two changed-input replays and
+guards. Feature-off preparation fails before reaching Vulkan; feature-on preparation
+captures the exact native operation and preserves explicitly enabled blend state.
+
+Known driver discrepancy: with both `logicOpEnable=1` and attachment `blendEnable=1`,
+RADV 26.2.4 on this RX 5700 XT blends instead of honoring logic precedence. For CLEAR,
+the updated two-source fixture reads `c0ff60a0` instead of zero. The same case and
+all operations pass on llvmpipe 26.2.1. Both drivers pass all operations with the
+consumer explicitly setting blendEnable=0. The normal fixture uses that explicit
+state; `OGPU_FOUNDATION_LOGIC_BLEND_BOTH=1 cargo xtask foundation` retains the failing
+Radeon diagnostic (and passing llvmpipe coverage). OGPU does not rewrite blend state,
+blacklist the device or claim this native combination has been fixed. Integer,
+sRGB and unsupported-format pass-through execution remain verification work.
 
 `INDEPENDENT_BLEND` permits different blend factors/operations/enabling and channel
 write masks for each color target. Without it, differing native attachment state

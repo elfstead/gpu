@@ -36,7 +36,7 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
     }
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{0,0,0},0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
-        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,0,0,0,0,{0},0,{0},{0},NULL,NULL};
+        OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,0,NULL,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
     ogpu_next_raster_options options = {HEADER(ogpu_next_raster_options,OGPU_NEXT_RASTER_OPTIONS),
         0,0,discard,OGPU_NEXT_POLYGON_FILL,0,0,0,0,1,0,0,1,UINT64_MAX,0,0,0,0};
     gs.raster_options = &options.header;
