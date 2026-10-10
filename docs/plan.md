@@ -79,6 +79,9 @@ Synchronization no longer forces broad transfer/vertex/depth groups: native narr
 copy/clear/resolve/blit, vertex shader/fetch/index and early/late depth scopes are
 explicit, alongside aggregates and distinct sampled/storage accesses. Consumers
 exercise narrow mappings; the source-only COPY/VERTEX meanings are corrected.
+Native blits now cover explicit scaling/reversal, nearest/linear filtering, format
+conversion and caller-recorded mip generation. The public consumer checks layered
+BGRA output, UNORM-to-float output and linear mip results with changed-input replay.
 Split dependencies and broader draft profiles remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

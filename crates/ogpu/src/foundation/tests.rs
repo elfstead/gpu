@@ -164,6 +164,8 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ArenaDesc>(), 40);
     assert_eq!(size_of::<Inheritance>(), 64);
     assert_eq!(size_of::<RenderInheritance>(), 72);
+    assert_eq!(size_of::<BlitRegion>(), 40);
+    assert_eq!(size_of::<ImageBlit>(), 96);
     assert_eq!(size_of::<RecordingDesc>(), 40);
     assert_eq!(size_of::<HostRequirements>(), 16);
     assert_eq!(size_of::<SyncPoint>(), 24);

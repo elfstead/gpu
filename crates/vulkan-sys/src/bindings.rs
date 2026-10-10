@@ -9425,6 +9425,104 @@ impl Default for VkPipelineShaderStageRequiredSubgroupSizeCreateInfo {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkImageBlit2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcSubresource: VkImageSubresourceLayers,
+    pub srcOffsets: [VkOffset3D; 2usize],
+    pub dstSubresource: VkImageSubresourceLayers,
+    pub dstOffsets: [VkOffset3D; 2usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkImageBlit2"][::std::mem::size_of::<VkImageBlit2>() - 96usize];
+    ["Alignment of VkImageBlit2"][::std::mem::align_of::<VkImageBlit2>() - 8usize];
+    [
+        "Offset of field: VkImageBlit2::sType",
+    ][::std::mem::offset_of!(VkImageBlit2, sType) - 0usize];
+    [
+        "Offset of field: VkImageBlit2::pNext",
+    ][::std::mem::offset_of!(VkImageBlit2, pNext) - 8usize];
+    [
+        "Offset of field: VkImageBlit2::srcSubresource",
+    ][::std::mem::offset_of!(VkImageBlit2, srcSubresource) - 16usize];
+    [
+        "Offset of field: VkImageBlit2::srcOffsets",
+    ][::std::mem::offset_of!(VkImageBlit2, srcOffsets) - 32usize];
+    [
+        "Offset of field: VkImageBlit2::dstSubresource",
+    ][::std::mem::offset_of!(VkImageBlit2, dstSubresource) - 56usize];
+    [
+        "Offset of field: VkImageBlit2::dstOffsets",
+    ][::std::mem::offset_of!(VkImageBlit2, dstOffsets) - 72usize];
+};
+impl Default for VkImageBlit2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBlitImageInfo2 {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub srcImage: VkImage,
+    pub srcImageLayout: VkImageLayout,
+    pub dstImage: VkImage,
+    pub dstImageLayout: VkImageLayout,
+    pub regionCount: u32,
+    pub pRegions: *const VkImageBlit2,
+    pub filter: VkFilter,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkBlitImageInfo2"][::std::mem::size_of::<VkBlitImageInfo2>() - 64usize];
+    [
+        "Alignment of VkBlitImageInfo2",
+    ][::std::mem::align_of::<VkBlitImageInfo2>() - 8usize];
+    [
+        "Offset of field: VkBlitImageInfo2::sType",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, sType) - 0usize];
+    [
+        "Offset of field: VkBlitImageInfo2::pNext",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, pNext) - 8usize];
+    [
+        "Offset of field: VkBlitImageInfo2::srcImage",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, srcImage) - 16usize];
+    [
+        "Offset of field: VkBlitImageInfo2::srcImageLayout",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, srcImageLayout) - 24usize];
+    [
+        "Offset of field: VkBlitImageInfo2::dstImage",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, dstImage) - 32usize];
+    [
+        "Offset of field: VkBlitImageInfo2::dstImageLayout",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, dstImageLayout) - 40usize];
+    [
+        "Offset of field: VkBlitImageInfo2::regionCount",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, regionCount) - 44usize];
+    [
+        "Offset of field: VkBlitImageInfo2::pRegions",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, pRegions) - 48usize];
+    [
+        "Offset of field: VkBlitImageInfo2::filter",
+    ][::std::mem::offset_of!(VkBlitImageInfo2, filter) - 56usize];
+};
+impl Default for VkBlitImageInfo2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkImageResolve2 {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -9828,6 +9926,12 @@ pub type PFN_vkCmdWaitEvents2 = ::std::option::Option<
         eventCount: u32,
         pEvents: *const VkEvent,
         pDependencyInfos: *const VkDependencyInfo,
+    ),
+>;
+pub type PFN_vkCmdBlitImage2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pBlitImageInfo: *const VkBlitImageInfo2,
     ),
 >;
 pub type PFN_vkCmdResolveImage2 = ::std::option::Option<

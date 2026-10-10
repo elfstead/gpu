@@ -86,6 +86,7 @@ vkCmdDrawIndexedIndirectCount2KHR
 vkCmdCopyImageToMemoryKHR
 vkCmdCopyImage2
 vkCmdResolveImage2
+vkCmdBlitImage2
 vkCmdExecuteCommands
 vkCmdCopyMemoryToImageKHR
 vkCmdCopyMemoryKHR

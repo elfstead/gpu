@@ -914,6 +914,16 @@ impl List {
         stages(d, self.domain, 2, false)?;
         dst.record_transfer(d, self.domain, self.command, src, transfer, mode)
     }
+    pub(in crate::foundation) fn blit_image(
+        &self,
+        dst: &Image,
+        src: &Image,
+        blit: &ImageBlit,
+    ) -> Result<(), Status> {
+        let d = self.outside_render()?;
+        stages(d, self.domain, BLIT_SCOPE, false)?;
+        dst.record_blit(d, self.domain, self.command, src, blit)
+    }
     pub(in crate::foundation) unsafe fn render_begin(
         &self,
         desc: &RenderDesc,

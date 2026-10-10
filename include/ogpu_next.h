@@ -1215,6 +1215,33 @@ enum { OGPU_NEXT_RESOLVE_NATIVE_COLOR = 1 };
  */
 void ogpu_next_copy_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_image *src, const ogpu_next_image_transfer *);
 void ogpu_next_resolve_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_image *src, const ogpu_next_image_transfer *, uint32_t mode);
+typedef struct ogpu_next_blit_region {
+    uint32_t aspect, mip, first_layer, layer_count;
+    ogpu_next_offset offsets[2];
+} ogpu_next_blit_region;
+typedef struct ogpu_next_image_blit {
+    ogpu_next_blit_region source, destination;
+    ogpu_next_image_state source_state, destination_state;
+    uint32_t filter, reserved;
+} ogpu_next_image_blit;
+/* Native single-sample blit: explicit scaling, axis reversal and format conversion.
+ * Graphics family required, not RASTER enabling; outside rendering, BLIT stage.
+ * COPY_SRC/DST usage and respective states or GENERAL. reserved=0; filter is
+ * NEAREST or LINEAR with native format support (no fallback shader or staging).
+ * Both endpoint coordinates lie within their mip, inclusive. Endpoints may be
+ * reversed independently; only destination zero-size axes are forbidden.
+ * Inactive dimensions use exactly [0,1]. Aspects/layer counts match; if either
+ * image is 3D, both base layers are zero and layer counts one in this profile.
+ * Unsigned integer colors convert only to unsigned integer colors; depth/stencil
+ * requires identical formats and NEAREST. Other supported colors convert via
+ * native float/filter/sRGB rules. Rounding/filter precision is implementation-
+ * dependent, not a portable bitwise numerical kernel or custom sampling policy.
+ * Caller proves destination memory does not overlap ANY potentially sampled texel
+ * (including filter footprints, not merely the declared source box). Same-image
+ * mip generation is allowed with explicit per-mip barriers. Shared subresources
+ * require GENERAL. No automatic mip chain, transition, barrier or retention.
+ */
+void ogpu_next_blit_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_image *src, const ogpu_next_image_blit *);
 /* Commands never insert transitions or hazard barriers. Clear requires GENERAL
  * or COPY_DST; copies require GENERAL or the corresponding COPY_SRC/COPY_DST.
  * Single-sample copies support one aspect and explicit mip/layer/subregion bounds.

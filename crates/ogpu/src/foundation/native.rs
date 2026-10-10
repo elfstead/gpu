@@ -141,6 +141,7 @@ functions! {
     vkCmdCopyQueryPoolResults: PFN_vkCmdCopyQueryPoolResults,
     vkCmdCopyImage2: PFN_vkCmdCopyImage2,
     vkCmdResolveImage2: PFN_vkCmdResolveImage2,
+    vkCmdBlitImage2: PFN_vkCmdBlitImage2,
     vkCmdExecuteCommands: PFN_vkCmdExecuteCommands,
 }
 

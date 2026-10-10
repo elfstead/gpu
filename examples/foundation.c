@@ -27,6 +27,8 @@ _Static_assert(sizeof(ogpu_next_memory_limits) == 32, "memory limits ABI");
 _Static_assert(sizeof(ogpu_next_arena_desc) == 40, "arena ABI");
 _Static_assert(sizeof(ogpu_next_inheritance) == 64, "inheritance ABI");
 _Static_assert(sizeof(ogpu_next_render_inheritance) == 72, "render inheritance ABI");
+_Static_assert(sizeof(ogpu_next_blit_region) == 40, "blit region ABI");
+_Static_assert(sizeof(ogpu_next_image_blit) == 96, "image blit ABI");
 _Static_assert(sizeof(ogpu_next_recording_desc) == 40, "recording ABI");
 _Static_assert(sizeof(ogpu_next_submit_desc) == 80, "submit ABI");
 _Static_assert(sizeof(ogpu_next_dependency) == 104, "dependency ABI");
@@ -78,6 +80,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_graphics.h"
 #include "foundation_numerics.h"
 #include "foundation_submission.h"
+#include "foundation_blit.h"
 #define QUERY_FEATURES (OGPU_NEXT_FEATURE_PIPELINE_STATISTICS | OGPU_NEXT_FEATURE_PRECISE_OCCLUSION | OGPU_NEXT_FEATURE_INHERITED_QUERIES)
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
@@ -1013,6 +1016,7 @@ int main(int argc, char **argv) {
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_GRAPHICS)) { graphics_domain = queues[i].domain; break; }
     REQUIRE(graphics_domain != UINT32_MAX);
+    REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 4, 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 1, 0, 0) == EXIT_SUCCESS);

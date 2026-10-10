@@ -681,3 +681,23 @@ pub unsafe extern "C" fn ogpu_next_resolve_image(
         });
     }
 }
+/// # Safety
+/// Live same-device images, valid description and caller-proven non-overlapping
+/// filtered source/destination memory, layouts, synchronization and lifetimes.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_blit_image(
+    encoder: *mut List,
+    dst: *mut Image,
+    src: *mut Image,
+    blit: *const ImageBlit,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.blit_image(
+                dst.as_ref().ok_or(INVALID)?,
+                src.as_ref().ok_or(INVALID)?,
+                blit.as_ref().ok_or(INVALID)?,
+            )
+        });
+    }
+}

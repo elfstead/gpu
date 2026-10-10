@@ -124,8 +124,8 @@ vocabularies determine the mapping. Queue/feature checks reject unsupported scop
 and access checks distinguish fetch from shading and transfer reads from clear writes.
 Public-C coverage includes CLEAR-to-indirect, copy/fill/copy chains, standalone
 clear/copy/resolve image chains, sampled/storage heap consumption, early/late depth,
-vertex-stage timestamps and a CLEAR-signal/COPY-wait edge. BLIT scope is mapped but
-there is no blit command yet; no blit workload or performance equivalence is claimed.
+vertex-stage timestamps and a CLEAR-signal/COPY-wait edge. Native blits also use
+their separate scope; no performance equivalence claim follows from these checks.
 Multiple lists and timeline edges are
 batched in one native submit record, or an ordered array of distinct wait/work/signal
 records can be submitted in one native call. None is flattened or silently split.
@@ -213,13 +213,34 @@ one-shot. No view or GPU command accepts an unbound image. See the native
 and [dedicated-image association](https://docs.vulkan.org/refpages/latest/refpages/source/VkMemoryDedicatedAllocateInfo.html).
 
 Independent views select compatible formats, dimensions, mip/layer/aspect ranges,
-usage subsets and component mappings. The initial table covers sixteen common
+usage subsets and component mappings. The current table covers eighteen common
 uncompressed color/depth/stencil formats. 1D/2D/3D and array/cube views and ordinary
 multisample images are implemented subject to exact native support. Optional
 cube arrays, 2D views of 3D slices, multisampled storage, extended usage, compressed
 and multi-planar formats, linear tiling, sparse/external/disjoint images and
 separate depth/stencil layout enabling remain outside this implemented profile.
 They are not ruled out by the design and are never silently substituted.
+
+Native image blits expose independent source/destination endpoint pairs, mip/layer
+selection, nearest/linear filtering, axis reversal and format conversion. No shader
+fallback, temporary image, implicit barrier or automatic mip chain is introduced.
+A graphics queue is necessary; raster feature enabling is not. Single samples,
+format-class/filter support, bounds, aspect/layer matching and inactive-dimension
+rules are checked before recording one native call. Degenerate source axes remain
+legal; destination axes must be nonzero. The application proves non-overlap including
+the filter footprint, not just the declared source region. See native
+[blit semantics](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdBlitImage.html).
+Depth/stencil requires matching formats and nearest filtering; integer signedness
+must match. Current 3D cross-dimensional blits require base layer zero and count one;
+array/3D slice mapping, cubic filters and broader formats remain separate profiles.
+
+The public C consumer checks layered RGBA-to-BGRA upscaling with reversal,
+UNORM-to-float conversion, and explicit same-image linear downsampling with a pattern
+that distinguishes linear from nearest. It runs three changed-input replays, checks
+guards and rejects invalid endpoints/mips/layers/aspects/filter records. These paths
+pass Radeon 26.2.4 and the llvmpipe 26.2.1 diagnostic. Native filter/rounding precision
+is not a portable bitwise numerical guarantee. Depth/stencil, sRGB, 3D and degenerate
+source GPU workloads remain unverified here; host tests cover endpoint/format rules.
 
 Image transitions join buffer/global dependencies in one scratch-backed native
 barrier. Native-compatible GENERAL, transfer, shader-read and attachment states
@@ -647,7 +668,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
 
 ## Verification so far
 
-- 74 ordinary Rust tests pass, including foundation contract, status and
+- 76 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

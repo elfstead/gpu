@@ -3,6 +3,9 @@
 use super::*;
 use std::cell::Cell;
 
+#[path = "blits.rs"]
+mod blits;
+
 #[derive(Clone, Copy)]
 pub(super) struct Format {
     pub(super) native: vk::VkFormat,

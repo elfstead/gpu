@@ -472,6 +472,24 @@ pub struct ImageTransfer {
 }
 #[repr(C)]
 #[derive(Clone, Copy)]
+pub struct BlitRegion {
+    pub aspect: u32,
+    pub mip: u32,
+    pub first_layer: u32,
+    pub layer_count: u32,
+    pub offsets: [Offset; 2],
+}
+#[repr(C)]
+pub struct ImageBlit {
+    pub source: BlitRegion,
+    pub destination: BlitRegion,
+    pub source_state: u32,
+    pub destination_state: u32,
+    pub filter: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
 pub struct DepthStencil {
     pub depth: f32,
     pub stencil: u32,
