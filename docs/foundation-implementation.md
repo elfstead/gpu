@@ -109,9 +109,24 @@ signal is not a blanket completion receipt. Submit OOM is retryable with one-sho
 work intact; loss is sticky. Unexpected native submission errors conservatively
 poison the device instead of pretending a retry or resource reuse is safe.
 
-This is still an unstabilized subset. Split dependencies are not implemented, and the current
-stage vocabulary includes broad transfer/vertex/depth groups. Finer graphics scopes
-must be added with the executable surface. Multiple lists and timeline edges are
+This is still an unstabilized subset. Split dependencies are not implemented.
+Synchronization now exposes separate copy, clear/fill, blit, resolve, vertex shader,
+index input, vertex fetch and early/late depth scopes. Explicit TRANSFER, VERTEX_INPUT,
+DEPTH, PRE_RASTER and ALL_GRAPHICS aggregates remain available. Narrow shader sampled,
+storage and uniform accesses coexist with broad shader and independent heap accesses.
+Scopes lower exactly, without adding neighboring stages. In this source-only revision,
+COPY no longer means all transfers and VERTEX no longer includes fixed-function input;
+the consumers are updated accordingly. Shader artifact/root stage identities remain
+COMPUTE/VERTEX/FRAGMENT; synchronization-only masks do not enable new shader stages.
+Native [stage](https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineStageFlagBits2.html)
+and [access](https://docs.vulkan.org/refpages/latest/refpages/source/VkAccessFlagBits2.html)
+vocabularies determine the mapping. Queue/feature checks reject unsupported scopes,
+and access checks distinguish fetch from shading and transfer reads from clear writes.
+Public-C coverage includes CLEAR-to-indirect, copy/fill/copy chains, standalone
+clear/copy/resolve image chains, sampled/storage heap consumption, early/late depth,
+vertex-stage timestamps and a CLEAR-signal/COPY-wait edge. BLIT scope is mapped but
+there is no blit command yet; no blit workload or performance equivalence is claimed.
+Multiple lists and timeline edges are
 batched in one native submit record, or an ordered array of distinct wait/work/signal
 records can be submitted in one native call. None is flattened or silently split.
 The batch API adds caller scratch for native headers, in addition to each record's
@@ -632,7 +647,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
 
 ## Verification so far
 
-- 73 ordinary Rust tests pass, including foundation contract, status and
+- 74 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue

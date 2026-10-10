@@ -425,10 +425,14 @@ ogpu_next_status ogpu_next_commands_end(ogpu_next_encoder *, ogpu_next_list **);
 void ogpu_next_commands_cancel(ogpu_next_encoder *);
 
 #define OGPU_NEXT_STAGE_ALL UINT64_C(1)
-/* COPY covers all native transfer operations (copy/fill/clear/resolve); VERTEX
- * covers vertex input and vertex shader; DEPTH covers early and late tests.
- * Finer graphics scopes and optional-stage capabilities accompany that surface. */
-#define OGPU_NEXT_STAGE_COPY UINT64_C(2)
+/* TRANSFER covers all native transfer operations. COPY excludes fill/clear,
+ * blit and resolve; CLEAR includes buffer fill and standalone image clears.
+ * Attachment clears/resolves instead use COLOR or DEPTH as appropriate.
+ * VERTEX means vertex shader only, not fixed-function input. DEPTH combines
+ * EARLY_DEPTH/LATE_DEPTH; VERTEX_INPUT combines INDEX_INPUT/VERTEX_FETCH.
+ * Aggregate scopes are choices, never automatically added to narrower scopes.
+ * Except COMPUTE/VERTEX/FRAGMENT, these are synchronization-only stage bits. */
+#define OGPU_NEXT_STAGE_TRANSFER UINT64_C(2)
 #define OGPU_NEXT_STAGE_COMPUTE UINT64_C(4)
 #define OGPU_NEXT_STAGE_VERTEX UINT64_C(8)
 #define OGPU_NEXT_STAGE_FRAGMENT UINT64_C(16)
@@ -436,6 +440,17 @@ void ogpu_next_commands_cancel(ogpu_next_encoder *);
 #define OGPU_NEXT_STAGE_COLOR UINT64_C(64)
 #define OGPU_NEXT_STAGE_DEPTH UINT64_C(128)
 #define OGPU_NEXT_STAGE_HOST UINT64_C(256)
+#define OGPU_NEXT_STAGE_COPY UINT64_C(512)
+#define OGPU_NEXT_STAGE_INDEX_INPUT UINT64_C(1024)
+#define OGPU_NEXT_STAGE_VERTEX_FETCH UINT64_C(2048)
+#define OGPU_NEXT_STAGE_EARLY_DEPTH UINT64_C(4096)
+#define OGPU_NEXT_STAGE_LATE_DEPTH UINT64_C(8192)
+#define OGPU_NEXT_STAGE_CLEAR UINT64_C(16384)
+#define OGPU_NEXT_STAGE_RESOLVE UINT64_C(32768)
+#define OGPU_NEXT_STAGE_BLIT UINT64_C(65536)
+#define OGPU_NEXT_STAGE_VERTEX_INPUT UINT64_C(131072)
+#define OGPU_NEXT_STAGE_ALL_GRAPHICS UINT64_C(262144)
+#define OGPU_NEXT_STAGE_PRE_RASTER UINT64_C(524288)
 #define OGPU_NEXT_ACCESS_READ UINT64_C(1)
 #define OGPU_NEXT_ACCESS_WRITE UINT64_C(2)
 #define OGPU_NEXT_ACCESS_COPY_READ UINT64_C(4)
@@ -454,6 +469,12 @@ void ogpu_next_commands_cancel(ogpu_next_encoder *);
 #define OGPU_NEXT_ACCESS_DEPTH_WRITE UINT64_C(32768)
 #define OGPU_NEXT_ACCESS_RESOURCE_HEAP_READ UINT64_C(65536)
 #define OGPU_NEXT_ACCESS_SAMPLER_HEAP_READ UINT64_C(131072)
+#define OGPU_NEXT_ACCESS_SAMPLED_READ UINT64_C(262144)
+#define OGPU_NEXT_ACCESS_STORAGE_READ UINT64_C(524288)
+#define OGPU_NEXT_ACCESS_STORAGE_WRITE UINT64_C(1048576)
+/* COPY_READ/WRITE cover native transfer accesses across COPY/CLEAR/BLIT/RESOLVE.
+ * SHADER_READ/WRITE are broad shader accesses; sampled/storage/uniform and heap
+ * accesses can be selected independently. Unknown masks are not widened. */
 typedef struct ogpu_next_host_requirements { uint64_t size, alignment; } ogpu_next_host_requirements;
 /* Descriptor bytes are opaque and device-specific, not a serializable ABI.
  * No owned heap/slot table: encode into host storage, place/copy into linear

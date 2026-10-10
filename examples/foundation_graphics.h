@@ -173,7 +173,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
     ogpu_next_queries_reset(encoder, timestamps, 0, 2);
     ogpu_next_queries_reset(encoder, occlusion, 0, 2);
     if (statistics) ogpu_next_queries_reset(encoder, statistics, 0, 2);
-    ogpu_next_timestamp(encoder, timestamps, 0, OGPU_NEXT_STAGE_ALL);
+    ogpu_next_timestamp(encoder, timestamps, 0, OGPU_NEXT_STAGE_VERTEX);
     ogpu_next_image_barrier barriers[3];
     for (uint32_t i = 0; i < image_count; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
         {i == 1 ? depth_aspects : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
@@ -181,7 +181,7 @@ static int graphics_execution(ogpu_next_device *device, ogpu_next_memory_desc ho
         OGPU_NEXT_STATE_UNDEFINED, i == 1 ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT,
         OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 1};
     ogpu_next_dependency dep = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_ALL,
-        OGPU_NEXT_STAGE_COLOR | OGPU_NEXT_STAGE_DEPTH, 0, 0, 0, image_count, 0, NULL, barriers, barrier_scratch, br.size};
+        OGPU_NEXT_STAGE_COLOR | OGPU_NEXT_STAGE_EARLY_DEPTH | OGPU_NEXT_STAGE_LATE_DEPTH, 0, 0, 0, image_count, 0, NULL, barriers, barrier_scratch, br.size};
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_attachment colors = {views[0], NULL, OGPU_NEXT_STATE_COLOR_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.f32 = {0,0,0,1}}};
     ogpu_next_attachment depth = {views[1], NULL, OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.depth_stencil = {1,0}}};

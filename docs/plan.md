@@ -75,6 +75,10 @@ retains no child graph and invalidates ordinary bindings instead of restoring th
 Explicit resource/sampler heap inheritance avoids forced child rebinding and preserves
 parent heaps when all executed children inherit them. Neither/either/both inheritance
 combinations pass shader consumption, parent reuse and changed-descriptor replay.
+Synchronization no longer forces broad transfer/vertex/depth groups: native narrow
+copy/clear/resolve/blit, vertex shader/fetch/index and early/late depth scopes are
+explicit, alongside aggregates and distinct sampled/storage accesses. Consumers
+exercise narrow mappings; the source-only COPY/VERTEX meanings are corrected.
 Split dependencies and broader draft profiles remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes

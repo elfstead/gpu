@@ -169,7 +169,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_copy_memory(encoder, (ogpu_next_span){resource_heap, 0, payload}, (ogpu_next_span){staging, 0, payload});
     ogpu_next_image_copy image_copy = {{OGPU_NEXT_ASPECT_COLOR, 0, 0, 1, {0, 0, 0}, {width, height, 1}}, 0, 0, OGPU_NEXT_STATE_GENERAL, 0};
     ogpu_next_copy_to_image(encoder, images[0], (ogpu_next_span){data, 0, pixels_size}, &image_copy);
-    barriers[0].before = OGPU_NEXT_ACCESS_COPY_WRITE; barriers[0].after = OGPU_NEXT_ACCESS_SHADER_READ;
+    barriers[0].before = OGPU_NEXT_ACCESS_COPY_WRITE; barriers[0].after = OGPU_NEXT_ACCESS_SAMPLED_READ;
     barriers[0].old_state = OGPU_NEXT_STATE_GENERAL; barriers[0].discard = 0;
     dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_COMPUTE;
     dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_RESOURCE_HEAP_READ;
@@ -215,7 +215,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
          * only non-inherited heaps, pipeline and argument state are rebound. */
         ogpu_next_dependency writes = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY),
             OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_STAGE_COMPUTE,
-            OGPU_NEXT_ACCESS_SHADER_WRITE, OGPU_NEXT_ACCESS_SHADER_WRITE, 0, 0, 0, NULL, NULL, NULL, 0};
+            OGPU_NEXT_ACCESS_STORAGE_WRITE, OGPU_NEXT_ACCESS_STORAGE_WRITE, 0, 0, 0, NULL, NULL, NULL, 0};
         ogpu_next_barrier(encoder, &writes);
         for (uint32_t i = 0; i < 2; ++i)
             if (!(secondary & (1u << i))) ogpu_next_bind_heap(encoder, &bindings[i]);
@@ -223,10 +223,10 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
         ogpu_next_dispatch(encoder, &launch);
     }
-    barriers[1].before = OGPU_NEXT_ACCESS_SHADER_WRITE; barriers[1].after = OGPU_NEXT_ACCESS_COPY_READ;
+    barriers[1].before = OGPU_NEXT_ACCESS_STORAGE_WRITE; barriers[1].after = OGPU_NEXT_ACCESS_COPY_READ;
     barriers[1].old_state = OGPU_NEXT_STATE_GENERAL; barriers[1].discard = 0;
     dep.images = &barriers[1]; dep.before = OGPU_NEXT_STAGE_COMPUTE; dep.after = OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_HOST;
-    dep.global_before = OGPU_NEXT_ACCESS_SHADER_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
+    dep.global_before = OGPU_NEXT_ACCESS_STORAGE_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
     ogpu_next_barrier(encoder, &dep);
     ogpu_next_copy_from_image(encoder, (ogpu_next_span){data, 512, pixels_size}, images[1], &image_copy);
     dep.image_count = 0; dep.images = NULL; dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;

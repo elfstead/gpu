@@ -286,25 +286,43 @@ impl Drop for Arena {
     }
 }
 
-fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, Status> {
-    if mask & !511 != 0 {
+const COPY_SCOPE: u64 = 512;
+const INDEX_SCOPE: u64 = 1024;
+const FETCH_SCOPE: u64 = 2048;
+const EARLY_SCOPE: u64 = 4096;
+const LATE_SCOPE: u64 = 8192;
+const CLEAR_SCOPE: u64 = 16384;
+const RESOLVE_SCOPE: u64 = 32768;
+const BLIT_SCOPE: u64 = 65536;
+const INPUT_SCOPE: u64 = 131072;
+const GRAPHICS_SCOPE: u64 = 262144;
+const PRE_RASTER_SCOPE: u64 = 524288;
+const KNOWN_SCOPES: u64 = (1 << 20) - 1;
+const RASTER_SCOPES: u64 = 8
+    | 16
+    | 64
+    | 128
+    | INDEX_SCOPE
+    | FETCH_SCOPE
+    | EARLY_SCOPE
+    | LATE_SCOPE
+    | INPUT_SCOPE
+    | GRAPHICS_SCOPE
+    | PRE_RASTER_SCOPE;
+
+fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u64, Status> {
+    if mask & !KNOWN_SCOPES != 0 {
         return Err(UNSUPPORTED);
     }
     if semaphore && mask & 256 != 0 {
         return Err(INVALID);
     }
-    let flags = d
-        .snapshot
-        .queues
-        .iter()
-        .find(|q| q.domain == domain)
-        .ok_or(INVALID)?
-        .flags;
-    if mask & (8 | 16 | 64 | 128) != 0
-        && (flags & GRAPHICS == 0 || d.snapshot.features.enabled & RASTER == 0)
+    if mask & RASTER_SCOPES != 0 && (flags & GRAPHICS == 0 || !raster)
+        || mask & (RESOLVE_SCOPE | BLIT_SCOPE) != 0 && flags & GRAPHICS == 0
         || mask & 4 != 0 && flags & COMPUTE == 0
         || mask & 32 != 0 && flags & (COMPUTE | GRAPHICS) == 0
-        || mask & 2 != 0 && flags & (COMPUTE | GRAPHICS | TRANSFER) == 0
+        || mask & (2 | COPY_SCOPE | CLEAR_SCOPE) != 0
+            && flags & (COMPUTE | GRAPHICS | TRANSFER) == 0
     {
         return Err(UNSUPPORTED);
     }
@@ -312,42 +330,74 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
         vk::VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         vk::VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
         vk::VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-        vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | vk::VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
+        vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
         vk::VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
         vk::VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
         vk::VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         vk::VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
             | vk::VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
         vk::VK_PIPELINE_STAGE_2_HOST_BIT,
+        vk::VK_PIPELINE_STAGE_2_COPY_BIT,
+        vk::VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT,
+        vk::VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT,
+        vk::VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+        vk::VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+        vk::VK_PIPELINE_STAGE_2_CLEAR_BIT,
+        vk::VK_PIPELINE_STAGE_2_RESOLVE_BIT,
+        vk::VK_PIPELINE_STAGE_2_BLIT_BIT,
+        vk::VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
+        vk::VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+        vk::VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
+fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, Status> {
+    let flags = d
+        .snapshot
+        .queues
+        .iter()
+        .find(|q| q.domain == domain)
+        .ok_or(INVALID)?
+        .flags;
+    stage_mask(
+        flags,
+        d.snapshot.features.enabled & RASTER != 0,
+        mask,
+        semaphore,
+    )
+}
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !262143 != 0 {
+    if mask & !((1 << 21) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
+    let shaders = 1 | 4 | 8 | 16 | GRAPHICS_SCOPE | PRE_RASTER_SCOPE;
+    let transfer_read = 1 | 2 | COPY_SCOPE | RESOLVE_SCOPE | BLIT_SCOPE;
+    let depth = 1 | 128 | EARLY_SCOPE | LATE_SCOPE | GRAPHICS_SCOPE;
     let allowed = [
-        511,
-        511,
-        3,
-        3,
-        1 | 4 | 8 | 16,
-        1 | 4 | 8 | 16,
+        KNOWN_SCOPES,
+        KNOWN_SCOPES,
+        transfer_read,
+        transfer_read | CLEAR_SCOPE,
+        shaders,
+        shaders,
         256,
         256,
-        1 | 32,
-        1 | 8,
-        1 | 8,
-        1 | 4 | 8 | 16,
-        1 | 64,
-        1 | 64,
-        1 | 128,
-        1 | 128,
-        1 | 4 | 8 | 16,
-        1 | 4 | 8 | 16,
+        1 | 32 | GRAPHICS_SCOPE,
+        1 | INDEX_SCOPE | INPUT_SCOPE | GRAPHICS_SCOPE,
+        1 | FETCH_SCOPE | INPUT_SCOPE | GRAPHICS_SCOPE,
+        shaders,
+        1 | 64 | GRAPHICS_SCOPE,
+        1 | 64 | GRAPHICS_SCOPE,
+        depth,
+        depth,
+        shaders,
+        shaders,
+        shaders,
+        shaders,
+        shaders,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -368,6 +418,9 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT,
         vk::VK_ACCESS_2_SAMPLER_HEAP_READ_BIT_EXT,
+        vk::VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
+        vk::VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
+        vk::VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -400,7 +453,7 @@ fn scoped_access(d: &Device, domain: u32, mask: u64, mut scope: u64) -> Result<u
             scope |= 4 | 32;
         }
         if flags & GRAPHICS != 0 {
-            scope |= 8 | 16 | 32 | 64 | 128;
+            scope |= 8 | 16 | 32 | 64 | 128 | INPUT_SCOPE;
         }
     }
     access(mask, scope)
@@ -1730,6 +1783,74 @@ mod tests {
         assert_ne!(tested, 0, "No suitable device, not a passing skip");
     }
     #[test]
+    fn synchronization_scopes_remain_narrow_and_queue_specific() {
+        let exact = [
+            (8, vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT),
+            (COPY_SCOPE, vk::VK_PIPELINE_STAGE_2_COPY_BIT),
+            (INDEX_SCOPE, vk::VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT),
+            (
+                FETCH_SCOPE,
+                vk::VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT,
+            ),
+            (
+                EARLY_SCOPE,
+                vk::VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+            ),
+            (LATE_SCOPE, vk::VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT),
+            (CLEAR_SCOPE, vk::VK_PIPELINE_STAGE_2_CLEAR_BIT),
+            (RESOLVE_SCOPE, vk::VK_PIPELINE_STAGE_2_RESOLVE_BIT),
+            (BLIT_SCOPE, vk::VK_PIPELINE_STAGE_2_BLIT_BIT),
+            (INPUT_SCOPE, vk::VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT),
+            (GRAPHICS_SCOPE, vk::VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT),
+            (
+                PRE_RASTER_SCOPE,
+                vk::VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
+            ),
+        ];
+        for (scope, native) in exact {
+            assert_eq!(stage_mask(GRAPHICS, true, scope, false), Ok(native));
+            assert_eq!(stage_mask(GRAPHICS, true, scope, true), Ok(native));
+            if scope & RASTER_SCOPES != 0 {
+                assert_eq!(stage_mask(GRAPHICS, false, scope, false), Err(UNSUPPORTED));
+            }
+            if scope != COPY_SCOPE && scope != CLEAR_SCOPE {
+                assert_eq!(stage_mask(TRANSFER, false, scope, false), Err(UNSUPPORTED));
+                assert_eq!(stage_mask(COMPUTE, false, scope, false), Err(UNSUPPORTED));
+            }
+        }
+        assert_eq!(
+            stage_mask(TRANSFER, false, COPY_SCOPE | CLEAR_SCOPE, false),
+            Ok(vk::VK_PIPELINE_STAGE_2_COPY_BIT | vk::VK_PIPELINE_STAGE_2_CLEAR_BIT)
+        );
+        assert_eq!(stage_mask(GRAPHICS, true, 1 << 20, false), Err(UNSUPPORTED));
+        assert_eq!(stage_mask(COMPUTE, false, 256, true), Err(INVALID));
+        assert_eq!(access(512, 8), Err(INVALID));
+        assert_eq!(access(1024, 8), Err(INVALID));
+        assert_eq!(access(512, INDEX_SCOPE), Ok(vk::VK_ACCESS_2_INDEX_READ_BIT));
+        assert_eq!(
+            access(1024, FETCH_SCOPE),
+            Ok(vk::VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT)
+        );
+        assert_eq!(access(512, FETCH_SCOPE), Err(INVALID));
+        assert_eq!(access(1024, INDEX_SCOPE), Err(INVALID));
+        assert_eq!(access(16, FETCH_SCOPE), Err(INVALID));
+        assert_eq!(access(4, CLEAR_SCOPE), Err(INVALID));
+        assert_eq!(
+            access(8, CLEAR_SCOPE),
+            Ok(vk::VK_ACCESS_2_TRANSFER_WRITE_BIT)
+        );
+        for (mask, native) in [
+            (1 << 18, vk::VK_ACCESS_2_SHADER_SAMPLED_READ_BIT),
+            (1 << 19, vk::VK_ACCESS_2_SHADER_STORAGE_READ_BIT),
+            (1 << 20, vk::VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+        ] {
+            for scope in [4, 8, 16, PRE_RASTER_SCOPE, GRAPHICS_SCOPE] {
+                assert_eq!(access(mask, scope), Ok(native));
+            }
+            assert_eq!(access(mask, COPY_SCOPE), Err(INVALID));
+        }
+    }
+    #[test]
     fn scratch_layout_and_scope_contracts() {
         assert_eq!(
             submit_scratch(0, 0, 0),
@@ -1750,7 +1871,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 18, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 21, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

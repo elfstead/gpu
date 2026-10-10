@@ -42,7 +42,7 @@ static int submission_batches(ogpu_next_device *device, ogpu_next_memory_desc me
         OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0};
     ogpu_next_barrier(encoder,&dep);
     TRY(ogpu_next_commands_end(encoder,&lists[1]));
-    ogpu_next_sync_point producer = {{edge,1},OGPU_NEXT_STAGE_ALL};
+    ogpu_next_sync_point producer = {{edge,1},OGPU_NEXT_STAGE_CLEAR};
     ogpu_next_sync_point waits[2] = {{{edge,1},OGPU_NEXT_STAGE_COPY},{{gate,1},OGPU_NEXT_STAGE_ALL}};
     ogpu_next_sync_point consumer = {{done,1},OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc batches[3] = {
