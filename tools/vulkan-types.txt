@@ -47,6 +47,7 @@ VkAddressCommandFlagBitsKHR
 VkCommandBufferUsageFlagBits
 VkCommandBufferInheritanceRenderingInfo
 VkCommandBufferInheritanceDescriptorHeapInfoEXT
+VkEventCreateFlagBits
 VkRenderingFlagBits
 VkCommandPoolResetFlagBits
 VkImageCreateFlagBits

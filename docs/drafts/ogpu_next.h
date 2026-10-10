@@ -49,11 +49,8 @@ extern "C" {
 /* Barriers separate execution scopes, memory access and optional ranges/state.
  * Zero resource ranges means a global memory dependency, not no dependency.
  * Ownership transfer endpoints use matching release/acquire records and a queue
- * timeline edge. Split tokens are arena-local and capability-scoped; not generic
- * GPU-address semaphores. Exact reset/replay rules remain to be specified. */
-typedef struct ogpu_next_split { uint64_t value; } ogpu_next_split;
-void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_next_split *);
-void ogpu_next_split_acquire(ogpu_next_encoder *, ogpu_next_split, const ogpu_next_dependency *);
+ * timeline edge. Caller-owned split objects, explicit reset/release and batched
+ * acquire are imported above; no arena lifetime or implicit replay reset. */
 void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu_next_dependency *);
 
 /* Ordinary commands copy immediate parameter records into command storage;

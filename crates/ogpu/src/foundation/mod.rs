@@ -18,7 +18,7 @@ pub use native::Executable;
 pub use native::ExecutableCache;
 pub use native::Memory;
 pub use native::QueryPool;
-pub use native::{Arena, List};
+pub use native::{Arena, List, Split};
 pub use native::{Device, Queue, Timeline};
 pub use native::{Image, View};
 use ogpu_vulkan_sys as vk;

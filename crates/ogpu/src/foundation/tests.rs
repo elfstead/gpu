@@ -168,6 +168,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<FormatInfo>(), 32);
     assert_eq!(size_of::<ImageProfile>(), 48);
     assert_eq!(size_of::<ImageLimits>(), 32);
+    assert_eq!(size_of::<SplitDependency>(), 16);
     assert_eq!(size_of::<BlitRegion>(), 40);
     assert_eq!(size_of::<ImageBlit>(), 96);
     assert_eq!(size_of::<RecordingDesc>(), 40);

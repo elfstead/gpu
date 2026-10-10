@@ -85,7 +85,12 @@ BGRA output, UNORM-to-float output and linear mip results with changed-input rep
 Immutable format capabilities and allocation-free image-profile limits now let callers
 discover tiling/buffer uses and exact tuple limits before creating resources or
 recording commands. Queries preserve outputs on failure; blit prerequisites are explicit.
-Split dependencies and broader draft profiles remain outstanding. Current Radeon
+Caller-owned split objects now support explicit reset/release and one-call batched
+acquires across independently recorded lists, with range/image dependencies and
+caller scratch. No recording-order registry, arena ownership or implicit reset is
+imposed. One-shot and replay execution, changed-input readback, atomic rejection and
+native failure ownership pass locally; shared-event overlapping replay is not claimed.
+Broader draft profiles and consumer cutover remain outstanding. Current Radeon
 26.2.4 passes the full C path; llvmpipe 26.2.1 passes the documented stencil-copy
 diagnostic. New llvmpipe 26.2.4 fails the existing cache-export check (20 bytes
 returned after a 32-byte size query); that failure is not masked by the runtime.

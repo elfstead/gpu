@@ -293,6 +293,19 @@ native strategies that are not one whole-device dependency. Queue family/type an
 ownership rules are visible; an implementation must not fabricate independent
 execution by silently funneling every queue onto one queue.
 
+The implemented split profile uses independent caller-owned device-only events,
+not arena-local endpoint tokens. Endpoints can be recorded in either CPU order,
+in different arenas or standalone secondaries; execution order on one native queue
+is explicit. This removes an unnecessary recording/ownership restriction from the
+earlier sketch. Creation is cold; release/reset are direct native commands, and a
+batch acquire uses caller scratch and one native wait. No event allocation on
+recording, endpoint registry, graph retention or automatic reset is introduced.
+The caller supplies matching dependency values at both endpoints and orders each
+event's reset/release/wait cycle, including replay. Cross-queue edges still use
+timelines; a split event is not a portable cross-queue semaphore. Other backends
+must expose an honest compatible profile or reject it, not serialize both scopes
+into an ordinary barrier and claim equivalent scheduling freedom.
+
 Use unified image access where the backend supports the requested strategy. Keep
 explicit image-state transitions for presentation, interop, aliasing and native
 optimized layouts. Do not declare “all layouts are always equivalent” merely

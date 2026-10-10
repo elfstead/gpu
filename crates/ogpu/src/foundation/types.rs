@@ -94,6 +94,11 @@ pub struct ImageLimits {
     pub max_resource_size: u64,
 }
 #[repr(C)]
+pub struct SplitDependency {
+    pub split: *const super::Split,
+    pub dependency: *const Dependency,
+}
+#[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct SubgroupLimits {
     pub default_size: u32,

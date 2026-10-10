@@ -18,10 +18,10 @@ pub use memory::Memory;
 #[path = "commands.rs"]
 mod commands;
 pub(super) use commands::{
-    barrier_scratch, execute_scratch, inheritance_scratch, submit_batch_scratch, submit_scratch,
-    vertex_scratch,
+    barrier_scratch, execute_scratch, inheritance_scratch, split_scratch, submit_batch_scratch,
+    submit_scratch, vertex_scratch,
 };
-pub use commands::{Arena, List};
+pub use commands::{Arena, List, Split};
 #[path = "images.rs"]
 mod images;
 pub use images::{Image, View};
@@ -143,6 +143,11 @@ functions! {
     vkCmdResolveImage2: PFN_vkCmdResolveImage2,
     vkCmdBlitImage2: PFN_vkCmdBlitImage2,
     vkCmdExecuteCommands: PFN_vkCmdExecuteCommands,
+    vkCreateEvent: PFN_vkCreateEvent,
+    vkDestroyEvent: PFN_vkDestroyEvent,
+    vkCmdSetEvent2: PFN_vkCmdSetEvent2,
+    vkCmdWaitEvents2: PFN_vkCmdWaitEvents2,
+    vkCmdResetEvent2: PFN_vkCmdResetEvent2,
 }
 
 fn status(result: vk::VkResult) -> Result<(), Status> {

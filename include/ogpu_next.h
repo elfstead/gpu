@@ -32,6 +32,7 @@ typedef struct ogpu_next_list ogpu_next_list;
 typedef struct ogpu_next_executable ogpu_next_executable;
 typedef struct ogpu_next_executable_cache ogpu_next_executable_cache;
 typedef struct ogpu_next_query_pool ogpu_next_query_pool;
+typedef struct ogpu_next_split ogpu_next_split;
 typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
 enum {
@@ -1220,6 +1221,41 @@ typedef struct ogpu_next_dependency {
  */
 ogpu_next_status ogpu_next_barrier_scratch_requirements(uint32_t memory_count, uint32_t image_count, ogpu_next_host_requirements *);
 void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
+/* Independent device-only split dependency. Creation is cold and initially
+ * unsignaled. The caller keeps split/device and referenced resources alive through
+ * all recorded future/pending uses; destruction never waits or retains commands.
+ * Objects are not arena-local: endpoints may be recorded independently, but every
+ * acquire must follow its matching release on the SAME native queue in submission
+ * order. This is not a timeline, cross-queue wait, or general GPU-address semaphore.
+ * Compute/graphics domains only, outside rendering, no HOST scope. Primary and
+ * standalone secondary lists are allowed. Release and acquire dependencies must
+ * match exactly (stages/accesses/ranges/layouts/ownership/flags and array order;
+ * host addresses/scratch may differ). Caller proves matching and valid sequencing;
+ * no endpoint registry, inferred hazards or automatic ownership handoff exists.
+ * A release on an already-signaled object does not create a new dependency.
+ * Reset must be explicitly ordered after ALL earlier acquires/releases and before
+ * the next release. Native reset/set lack an implicit ordering edge: use explicit
+ * execution dependencies (e.g. ALL-to-ALL) or completed executions as appropriate.
+ * Replay/simultaneous-list permission does not make shared event cycles independent;
+ * caller must prevent races and stale signals across every execution.
+ */
+ogpu_next_status ogpu_next_split_create(ogpu_next_device *, ogpu_next_split **);
+void ogpu_next_split_destroy(ogpu_next_split *);
+void ogpu_next_split_reset(ogpu_next_encoder *, const ogpu_next_split *, ogpu_next_stages before);
+void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_split *, const ogpu_next_dependency *);
+typedef struct ogpu_next_split_dependency {
+    const ogpu_next_split *split;
+    const ogpu_next_dependency *dependency;
+} ogpu_next_split_dependency;
+ogpu_next_status ogpu_next_split_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
+/* Batch acquire uses one native wait. Every local record validates first; failure
+ * records no wait and poisons end. count=0 is a no-op on a valid encoder/domain.
+ * Header scratch AND each dependency's range scratch must be mutually disjoint,
+ * aligned and disjoint from inputs. All description/scratch storage is borrowed
+ * only during the call and can be overwritten immediately. Duplicate event use,
+ * endpoint compatibility and asynchronous lifetime are trusted caller obligations.
+ */
+void ogpu_next_split_acquire(ogpu_next_encoder *, uint32_t count, const ogpu_next_split_dependency *, ogpu_next_host_span scratch);
 /* Copies require equal sizes, COPY_SRC/DST usage, no overlapping byte ranges.
  * Fill requires COPY_DST and offset/size multiples of four. Empty valid ranges
  * are no-ops. Bounds/device/usage mistakes poison the encoder, not partial work.

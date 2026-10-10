@@ -109,7 +109,7 @@ signal is not a blanket completion receipt. Submit OOM is retryable with one-sho
 work intact; loss is sticky. Unexpected native submission errors conservatively
 poison the device instead of pretending a retry or resource reuse is safe.
 
-This is still an unstabilized subset. Split dependencies are not implemented.
+This is still an unstabilized subset.
 Synchronization now exposes separate copy, clear/fill, blit, resolve, vertex shader,
 index input, vertex fetch and early/late depth scopes. Explicit TRANSFER, VERTEX_INPUT,
 DEPTH, PRE_RASTER and ALL_GRAPHICS aggregates remain available. Narrow shader sampled,
@@ -145,6 +145,49 @@ Rust injection checks one native call with the full batch count, no native call 
 local rejection, OOM retry, successful one-shot consumption and terminal loss.
 No performance
 equivalence claim follows merely from the absence of OGPU hot-path allocation.
+
+### Caller-owned split dependencies
+
+Independent device-only split objects map to native events. They are initially
+unsignaled, explicitly created/destroyed and never retained by command lists.
+They borrow their device; the caller keeps events and referenced resources alive
+through every recorded future and pending use. Endpoints are not tied to an arena:
+release/acquire may be recorded in either CPU order, in different lists or
+standalone secondaries. Commands require a graphics/compute domain and are outside
+rendering. HOST scopes are invalid. Execution is on one native queue, with release
+earlier in submission order; timeline edges, not these events, synchronize queues.
+
+Release takes the complete dependency. Each acquire repeats exactly the same
+dependency values and array ordering (not necessarily the same host pointers).
+The caller guarantees matching endpoints; no hidden registry, resource retention,
+dependency comparison walk or device-wide lock is added. Multiple acquires map to
+one native wait with caller-owned scratch for events, native dependency headers and
+global barriers, plus each dependency's separate range scratch. All descriptions
+validate before issuing that call; a bad last record emits no partial wait. All
+scratch and description arrays may be reused as soon as the call returns.
+
+Reset takes an explicit source-stage mask. It is never inserted automatically and
+does not implicitly order itself with future releases. The caller supplies the
+necessary execution edges, including earlier acquires before reuse and reset before
+release. The C fixture demonstrates an explicit ALL-to-ALL edge after prefix resets.
+Replay mode does not repair shared-event cycles: simultaneous-capable recordings
+still require correctly ordered event use. See native
+[release](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetEvent2.html),
+[wait](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdWaitEvents2.html)
+and [reset](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdResetEvent2.html)
+contracts. This replaces the source-only sketch's arena-local split-token proposal;
+the installed ABI-20 recording-local experiment is unchanged pending migration.
+
+Public C execution on both local drivers records the acquire list first, releases
+two events around independent work in another arena, then uses one batched acquire
+for a ranged buffer dependency and image transition/global dependency. Host-gated
+submissions check copy/fill/image readback, guard bytes and immediate scratch reuse.
+One-shot mode and three changed-input executions of both serial and simultaneous
+recording modes pass. These executions are deliberately serial: no overlapping
+shared-event execution, queue overlap or performance benefit is claimed. Rust native
+injection checks one complete wait, distinct global-barrier storage, atomic rejection,
+primary/standalone-secondary recording, failed creation output ownership and sticky
+synthetic device loss. Secondary split GPU execution remains unverified.
 
 ### Secondary command lists
 
@@ -685,7 +728,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
 
 ## Verification so far
 
-- 77 ordinary Rust tests pass, including foundation contract, status and
+- 78 ordinary Rust tests pass, including foundation contract, status and
   cache-boundary/usage tests, plus the expanded C/Rust layout expectations.
 - `gpu_foundation_setup` and `gpu_foundation_failures` pass on Radeon RX 5700 XT
   and llvmpipe with validation enabled. They cover exact multi-domain/multi-queue
@@ -706,7 +749,7 @@ profiles, finer timestamp stage vocabulary and calibrated clocks remain follow-u
   raw opaque backing, concurrent sharing where available, and allocation-failure
   cleanup. Noncoherent native call parameters are also checked with injected calls
   on real backing; this is not evidence from a new noncoherent physical GPU.
-  All thirteen foundation GPU tests pass on Radeon 26.2.4 and llvmpipe 26.2.1. Pinned Vulkan
+  All fourteen foundation GPU tests pass on Radeon 26.2.4 and llvmpipe 26.2.1. Pinned Vulkan
   bindings reproduce exactly after adding the requirements/property records.
 - No-GPU C example/header checks are added to CI configuration; no hosted CI run
   is claimed.

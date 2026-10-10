@@ -4,7 +4,11 @@ use super::*;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
 #[path = "secondary.rs"]
 mod secondary;
+#[path = "splits.rs"]
+mod splits;
 pub(in crate::foundation) use secondary::{execute_scratch, inheritance_scratch};
+pub(in crate::foundation) use splits::split_scratch;
+pub use splits::Split;
 
 pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
     if count == 0 {
@@ -768,13 +772,27 @@ impl List {
     }
     pub(in crate::foundation) unsafe fn barrier(&self, dep: &Dependency) -> Result<(), Status> {
         let d = self.outside_render()?;
+        let mut global = vk::VkMemoryBarrier2::default();
+        let info = unsafe { self.translate_dependency(dep, &mut global)? };
+        unsafe {
+            (d.f.vkCmdPipelineBarrier2.unwrap())(self.command, &info);
+        }
+        Ok(())
+    }
+    // global and dep.scratch must stay at stable addresses through the native call.
+    unsafe fn translate_dependency(
+        &self,
+        dep: &Dependency,
+        global: &mut vk::VkMemoryBarrier2,
+    ) -> Result<vk::VkDependencyInfo, Status> {
+        let d = self.outside_render()?;
         dep.header.validate::<Dependency>(DEPENDENCY)?;
         if dep.flags != 0 {
             return Err(UNSUPPORTED);
         }
         let before = stages(d, self.domain, dep.before, false)?;
         let after = stages(d, self.domain, dep.after, false)?;
-        let global = vk::VkMemoryBarrier2 {
+        *global = vk::VkMemoryBarrier2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
             srcStageMask: before,
             dstStageMask: after,
@@ -863,17 +881,14 @@ impl List {
                     || dep.global_before != 0
                     || dep.global_after != 0,
             ),
-            pMemoryBarriers: &global,
+            pMemoryBarriers: global,
             bufferMemoryBarrierCount: dep.memory_count,
             pBufferMemoryBarriers: storage,
             imageMemoryBarrierCount: dep.image_count,
             pImageMemoryBarriers: image_storage,
             ..Default::default()
         };
-        unsafe {
-            (d.f.vkCmdPipelineBarrier2.unwrap())(self.command, &info);
-        }
-        Ok(())
+        Ok(info)
     }
     pub(in crate::foundation) fn clear_image(
         &self,

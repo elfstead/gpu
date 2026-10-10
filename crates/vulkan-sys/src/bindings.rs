@@ -2801,6 +2801,10 @@ pub const VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_
 pub const VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_FLAG_BITS_MAX_ENUM: VkCommandBufferUsageFlagBits = 2147483647;
 pub type VkCommandBufferUsageFlagBits = ::std::os::raw::c_uint;
 pub type VkCommandBufferUsageFlags = VkFlags;
+pub const VkEventCreateFlagBits_VK_EVENT_CREATE_DEVICE_ONLY_BIT: VkEventCreateFlagBits = 1;
+pub const VkEventCreateFlagBits_VK_EVENT_CREATE_DEVICE_ONLY_BIT_KHR: VkEventCreateFlagBits = 1;
+pub const VkEventCreateFlagBits_VK_EVENT_CREATE_FLAG_BITS_MAX_ENUM: VkEventCreateFlagBits = 2147483647;
+pub type VkEventCreateFlagBits = ::std::os::raw::c_uint;
 pub type VkEventCreateFlags = VkFlags;
 pub type VkShaderModuleCreateFlags = VkFlags;
 pub const VkPipelineCacheCreateFlagBits_VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT: VkPipelineCacheCreateFlagBits = 1;

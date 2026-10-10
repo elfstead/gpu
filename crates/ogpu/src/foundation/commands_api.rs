@@ -1,6 +1,97 @@
 //! C command boundary. Encoder and executable-list handles borrow arena slots.
 use super::*;
 
+/// # Safety
+/// Live device, disjoint writable output; caller owns split and asynchronous uses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_split_create(
+    device: *mut Device,
+    out: *mut *mut Split,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let split = Split::create(d)?;
+        unsafe {
+            out.write(Box::into_raw(split));
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// NULL or uniquely owned split, live parent device, no recorded future/pending use.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_split_destroy(split: *mut Split) {
+    if !split.is_null() {
+        unsafe {
+            drop(Box::from_raw(split));
+        }
+    }
+}
+/// # Safety
+/// Live same-device objects, exclusive encoder access and caller-ordered reset.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_split_reset(
+    encoder: *mut List,
+    split: *const Split,
+    before: u64,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.split_reset(split.as_ref().ok_or(INVALID)?, before)
+        });
+    }
+}
+/// # Safety
+/// Valid objects/dependency/scratch, exclusive encoder; caller guarantees matching
+/// acquire, event-cycle ordering, asynchronous resource lifetime and queue rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_split_release(
+    encoder: *mut List,
+    split: *const Split,
+    dep: *const Dependency,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.split_release(
+                split.as_ref().ok_or(INVALID)?,
+                description(dep, DEPENDENCY)?,
+            )
+        });
+    }
+}
+/// # Safety
+/// Disjoint writable requirements output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_split_scratch_requirements(
+    count: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
+        *out = native::split_scratch(count)?;
+        Ok(())
+    })
+}
+/// # Safety
+/// Valid matching events/dependencies and disjoint scratch; see ogpu_next.h.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_split_acquire(
+    encoder: *mut List,
+    count: u32,
+    waits: *const SplitDependency,
+    storage: HostSpan,
+) {
+    unsafe {
+        encode(encoder, |e| e.split_acquire(count, waits, storage));
+    }
+}
+
 unsafe fn description<'a, T>(pointer: *const T, kind: u32) -> Result<&'a T, Status> {
     if pointer.is_null() {
         return Err(INVALID);
