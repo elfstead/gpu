@@ -30,8 +30,9 @@ extern "C" {
  * Vertex/fragment storage writes and atomics have independent enabling bits.
  * Floating-point mode/width capabilities and independence queries are implemented;
  * artifact mode metadata, mode-specific execution tests and float-controls-2 follow.
- * FP32/FP64 buffer/workgroup atomic operation profiles are independently enabled;
- * image/sparse and FP16 atomics remain separate work. Exact KHR subgroup matrix
+ * FP16/FP32/FP64 buffer/workgroup atomic operation profiles are independently enabled;
+ * FP16 execution lacks local hardware support; image/sparse atomics remain separate
+ * work. Exact KHR subgroup matrix
  * tuples and independent cooperative-matrix/Vulkan-memory-model enabling are implemented.
  * Integer dot instructions and independent native acceleration hints are implemented;
  * packed signed/unsigned 4x8 execution is verified, not all wider/saturating forms.

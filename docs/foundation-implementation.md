@@ -914,8 +914,30 @@ Preparation checks still exercise disabled and partially enabled type/operation
 profiles and preserve early requirement rejection. Both full foundation regressions
 pass within the documented driver limits, with 15 GPU tests each and 82 ordinary
 tests; generated shaders and bindings reproduce, Clippy and 881 ABI values pass.
-FP16/image atomics, FP64-add execution, atomic load/store execution and exceptional
+Image atomics, FP64-add execution, atomic load/store execution and exceptional
 floating-point behavior remain separate verification/implementation work.
+
+FP16 now also exposes six independent buffer/workgroup operation bits, with
+`FLOAT16` arithmetic declared separately. Every FP16 operation selects the native
+atomic-float-2 feature chain, not just min/max; enabling leaves unrelated widths,
+image/sparse operations and vector-atomic extensions disabled. The mapping unit test
+now checks all 262,144 combinations across the 18 operation/domain/width bits.
+
+Six pinned half artifacts validate with native half-typed atomic add, min/max and
+exchange instructions. The shared C consumer now takes an explicit 16/32/64-bit
+width. FP16 addition uses bounded quarter-unit terms so every possible partial sum
+is exactly representable regardless of invocation order; it does not reuse FP32's
+larger, rounding-sensitive accumulation. Host conversion rejects non-exact fixture
+constants and separately checks finite values, subnormals, infinities and NaN decoding
+even when the GPU profile is absent. This is fixture code, not runtime tensor casting.
+
+Neither Radeon 26.2.4 nor llvmpipe 26.2.1 advertises these six FP16 profiles. Therefore
+FP16 atomics are **implemented and shader-validated, but not GPU-executed locally**;
+preparation checks cover disabled/partial type requirements, not positive FP16
+pipeline acceptance. No CAS or FP32 atomic fallback is substituted. Existing FP32/
+FP64 execution and the full regressions still pass with the documented llvmpipe
+stencil-copy exclusion. Half exceptional arithmetic, arbitrary reduction order,
+positive feature-enabled pipeline creation and hardware execution remain unverified.
 
 ### Native cooperative-matrix tuples and execution
 

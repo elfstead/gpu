@@ -658,7 +658,7 @@ impl Device {
         let (mut float_atomic, mut float_atomic2) = float_atomics::requested(enabled);
         float_atomic.pNext = matrix_next;
         float_atomic2.pNext = matrix_next;
-        if enabled & float_atomics::MIN_MAX != 0 {
+        if enabled & float_atomics::FLOAT2 != 0 {
             float_atomic.pNext = ptr::from_mut(&mut float_atomic2).cast();
         }
         let float_next = if enabled & float_atomics::ALL != 0 {
@@ -780,7 +780,7 @@ impl Device {
         if enabled & float_atomics::ALL != 0 {
             extensions.push(c"VK_EXT_shader_atomic_float".as_ptr());
         }
-        if enabled & float_atomics::MIN_MAX != 0 {
+        if enabled & float_atomics::FLOAT2 != 0 {
             extensions.push(c"VK_EXT_shader_atomic_float2".as_ptr());
         }
         if enabled & COOPERATIVE_MATRIX != 0 {

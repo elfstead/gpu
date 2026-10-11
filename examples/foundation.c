@@ -99,7 +99,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE | OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS | OGPU_NEXT_FEATURE_LOGIC_OP | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND | OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER)
 #define FOUNDATION_FEATURES (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | FLOAT64_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES | MATRIX_FEATURES | OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE)
 static uint64_t foundation_features(uint64_t available) {
-    uint64_t enabled = OGPU_NEXT_FEATURE_RASTER | (available & (FOUNDATION_FEATURES | OGPU_NEXT_FEATURE_INTEGER_DOT));
+    uint64_t enabled = OGPU_NEXT_FEATURE_RASTER | (available & (FOUNDATION_FEATURES | OGPU_NEXT_FEATURE_INTEGER_DOT | FLOAT16_ATOMIC_FEATURES));
     /* Existing fixture atomics use Device scope. Do not enable the stricter
      * memory model without its separate Device-scope capability. This is test
      * selection, not runtime policy or a matrix-API dependency. */
@@ -1029,7 +1029,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 30);
+    REQUIRE(argc == 36);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1088,7 +1088,9 @@ int main(int argc, char **argv) {
     REQUIRE(numeric_execution(device,memory_desc,compute_domain,argv[29],3,0,0) == EXIT_SUCCESS);
     for (uint32_t mode = 0; mode < 6; ++mode)
         for (uint32_t wide = 0; wide < 2; ++wide)
-            REQUIRE(float_atomic_execution(device,memory_desc,compute_domain,argv[16+wide*6+mode],mode,wide) == EXIT_SUCCESS);
+            REQUIRE(float_atomic_execution(device,memory_desc,compute_domain,argv[16+wide*6+mode],mode,wide ? 64 : 32) == EXIT_SUCCESS);
+    for (uint32_t mode = 0; mode < 6; ++mode)
+        REQUIRE(float_atomic_execution(device,memory_desc,compute_domain,argv[30+mode],mode,16) == EXIT_SUCCESS);
     ogpu_next_subgroup_limits subgroup = {0};
     q = query(OGPU_NEXT_QUERY_SUBGROUP_LIMITS,&subgroup,1,sizeof(subgroup));
     TRY(ogpu_next_device_query(device,&q));

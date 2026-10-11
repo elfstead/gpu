@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-10. This page owns current status and selected work. The
+Updated 2026-10-11. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -136,7 +136,7 @@ remain outstanding.
 FP64 atomic operation/domain enabling now follows the same model, with separate
 `FLOAT64` type requirements. Radeon verifies buffer/shared min/max and exchange
 using precision-sensitive values; neither local driver advertises FP64 atomic add,
-so its execution remains unverified rather than emulated. Broader matrix, FP16/image
+so its execution remains unverified rather than emulated. Broader matrix and image
 atomic profiles and the broader migration remain open.
 
 Exact cooperative-matrix tuples now expose native dimensions, operand/result types,
@@ -155,6 +155,12 @@ changed-input replay and guards on both drivers, without INT8/STORAGE8 requireme
 Neither local driver advertises dot acceleration; support is not presented as a
 hardware-speed claim. Wider/mixed/saturating execution, compiler integration and
 consumer migration remain open.
+
+FP16 buffer/shared atomic operations now use the same independent feature model.
+Six native artifacts compile and validate, but neither local driver advertises
+these optional features; FP16 atomic GPU execution remains unverified. The finite
+addition fixture keeps every possible partial sum exactly representable in half
+precision instead of assuming FP32's test magnitudes have the same rounding behavior.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

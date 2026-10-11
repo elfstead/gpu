@@ -306,6 +306,12 @@ mod tests {
     #[ignore = "requires modern Vulkan; independently enabled native float atomic operation/domain profiles"]
     fn gpu_foundation_float_atomic_profiles() {
         for (bytes, entry, required, shared) in [
+            (include_bytes!("../../../../examples/shaders/foundation-float16-atomics.buffer-add.comp.spv").as_slice(), c"bufferAdd", FLOAT16 | BUFFER_FLOAT16_ATOMIC_ADD, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float16-atomics.shared-add.comp.spv").as_slice(), c"sharedAdd", FLOAT16 | SHARED_FLOAT16_ATOMIC_ADD, 2),
+            (include_bytes!("../../../../examples/shaders/foundation-float16-atomics.buffer-minmax.comp.spv").as_slice(), c"bufferMinMax", FLOAT16 | BUFFER_FLOAT16_ATOMIC_MIN_MAX, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float16-atomics.shared-minmax.comp.spv").as_slice(), c"sharedMinMax", FLOAT16 | SHARED_FLOAT16_ATOMIC_MIN_MAX, 4),
+            (include_bytes!("../../../../examples/shaders/foundation-float16-atomics.buffer-exchange.comp.spv").as_slice(), c"bufferExchange", FLOAT16 | BUFFER_FLOAT16_ATOMICS, 0),
+            (include_bytes!("../../../../examples/shaders/foundation-float16-atomics.shared-exchange.comp.spv").as_slice(), c"sharedExchange", FLOAT16 | SHARED_FLOAT16_ATOMICS, 2),
             (include_bytes!("../../../../examples/shaders/foundation-float-atomics.buffer-add.comp.spv").as_slice(), c"bufferAdd", BUFFER_FLOAT32_ATOMIC_ADD, 0),
             (include_bytes!("../../../../examples/shaders/foundation-float-atomics.shared-add.comp.spv").as_slice(), c"sharedAdd", SHARED_FLOAT32_ATOMIC_ADD, 4),
             (include_bytes!("../../../../examples/shaders/foundation-float-atomics.buffer-minmax.comp.spv").as_slice(), c"bufferMinMax", BUFFER_FLOAT32_ATOMIC_MIN_MAX, 0),

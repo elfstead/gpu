@@ -221,6 +221,12 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT64_C(70368744177664)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT64_C(140737488355328)
 #define OGPU_NEXT_FEATURE_INTEGER_DOT UINT64_C(281474976710656)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS UINT64_C(562949953421312)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD UINT64_C(1125899906842624)
+#define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_MIN_MAX UINT64_C(2251799813685248)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMICS UINT64_C(4503599627370496)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_ADD UINT64_C(9007199254740992)
+#define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_MIN_MAX UINT64_C(18014398509481984)
 /* VULKAN_MEMORY_MODEL enables SPIR-V VulkanMemoryModel independently of matrix/scalar
  * features. DEVICE_SCOPE must be requested separately and requires the base bit
  * (otherwise device creation returns INVALID). Enabling the base without DEVICE_SCOPE
@@ -236,9 +242,9 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
  * order, cross-workgroup barrier or throughput guarantee is provided. NaN, signed
  * zero, denormal and rounding behavior follow the native artifact contract; the
  * ordinary floating-point-controls query does not establish atomic arithmetic
- * policy. FLOAT64 operation/domain bits have the same independence; FLOAT64
- * arithmetic/type enabling must also be requested by artifacts using double.
- * Image, sparse-image and 16-bit floating atomic profiles remain work.
+ * policy. FLOAT16/FLOAT64 operation/domain bits have the same independence; their
+ * arithmetic/type enabling must also be requested by artifacts using half/double.
+ * Image, sparse-image and vector floating atomic profiles remain work.
  */
 /* SHADER_OUTPUT_LAYER enables vertex-stage Layer output (Slang
  * SV_RenderTargetArrayIndex) into ordinary layered render scopes. It neither
