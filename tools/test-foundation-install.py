@@ -32,8 +32,11 @@ def main():
     parser.add_argument("--shader-check",action="store_true")
     parser.add_argument("--ggml-source",type=Path,help="also build/check the independent pinned GGML consumer")
     parser.add_argument("--ggml-data",type=Path,help="optional extracted MNIST data for full GGML inference")
+    parser.add_argument("--libplacebo-source",type=Path,help="also build/check the independent pinned libplacebo consumer")
+    parser.add_argument("--vulkan-registry",type=Path,help="matching vk.xml, required with --libplacebo-source")
     args = parser.parse_args()
     require(not args.ggml_data or args.ggml_source,"--ggml-data needs --ggml-source")
+    require(bool(args.libplacebo_source) == bool(args.vulkan_registry),"--libplacebo-source and --vulkan-registry belong together")
     installed = args.prefix.resolve()
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
     require(manifest["foundation"]["revision"] == 1,"not a foundation revision-1 preview")
@@ -130,6 +133,50 @@ def main():
             require(complete[0]["sdk"]["revision"] == manifest["revision"] and
                     complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"GGML SDK identity mismatch")
         print("Independent foundation GGML source graph, runtime identity and failure report PASS")
+    if args.libplacebo_source:
+        app = temporary / "independent libplacebo"
+        shutil.copytree(prefix / "share/ogpu/examples/foundation-libplacebo",app)
+        source = temporary / "upstream libplacebo"
+        run(["git","clone","--local","--no-hardlinks","--no-checkout",str(args.libplacebo_source.resolve()),str(source)])
+        run(["git","-C",str(source),"checkout","--detach","3330a515d62139259c26239014f286e233bd3a5c"])
+        # The upstream/native reference needs external shaderc, SPIRV-Tools,
+        # Vulkan and Python/Jinja packages, unlike the small public-only examples.
+        dependency_env = dict(env)
+        dependency_env["PKG_CONFIG_PATH"] = str(prefix / "lib/pkgconfig")+os.pathsep+os.getenv("PKG_CONFIG_PATH","")
+        dependency_env.pop("PKG_CONFIG_LIBDIR",None)
+        if "PYTHONPATH" in os.environ: dependency_env["PYTHONPATH"] = os.environ["PYTHONPATH"]
+        run([sys.executable,"-B","build.py","--libplacebo-source",str(source),"--vulkan-registry",str(args.vulkan_registry.resolve())],cwd=app,env=dependency_env)
+        record = json.loads((app / "build.json").read_text()); build = Path(record["build"])
+        checkout = Path(__file__).resolve().parents[1]
+        for dependency_file in build.glob("*.d"):
+            dependencies = [Path(p).resolve() for p in shlex.split(dependency_file.read_text().replace("\\\n",""))[1:]]
+            require(not any(p.is_relative_to(checkout) for p in dependencies),"libplacebo source escaped installed graph")
+            require(not any(p.name == "ogpu.h" for p in dependencies),"libplacebo imported legacy OGPU API")
+            if dependency_file.stem in ("backend","backend-tests","perf"):
+                require(prefix / "include/ogpu_next.h" in dependencies,"libplacebo preview header missing")
+        missing = dict(dependency_env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
+        # No-GPU machines need no ICD for loader-open rejection. This existing
+        # non-ICD file passes the runner's path check but must never be parsed.
+        missing.setdefault("VK_DRIVER_FILES",str(args.vulkan_registry.resolve()))
+        failed = subprocess.run([sys.executable,"-B","run.py"],cwd=app,env=missing,capture_output=True,text=True,timeout=60)
+        require(failed.returncode != 0,"libplacebo missing loader succeeded")
+        reports = list(app.glob("run-*/report.json")); require(len(reports) == 1,"missing libplacebo failure receipt")
+        receipt = json.loads(reports[0].read_text())
+        require(not receipt["complete"] and receipt.get("error") and not receipt["runs"],"false libplacebo success on missing loader")
+        # SDK identity must be checked even in no-GPU mode: changing source bytes
+        # after build cannot silently reuse a successful old executable receipt.
+        original = (app / "backend.c").read_bytes()
+        (app / "backend.c").write_bytes(original+b"\n/* changed after build */\n")
+        stale = subprocess.run([sys.executable,"-B","run.py"],cwd=app,env=dependency_env,capture_output=True,text=True,timeout=60)
+        (app / "backend.c").write_bytes(original)
+        require(stale.returncode != 0 and "consumer source changed since build" in stale.stderr,"stale libplacebo build accepted")
+        if not args.no_gpu:
+            run([sys.executable,"-B","run.py"],cwd=app,env=dependency_env)
+            complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
+            require(len(complete) == 1 and len(complete[0]["runs"]) == 5,"incomplete libplacebo acceptance")
+            require(complete[0]["sdk"]["revision"] == manifest["revision"] and
+                    complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"libplacebo SDK identity mismatch")
+        print("Independent foundation libplacebo source graph, runtime identity and failure report PASS")
     print("Relocated foundation preview source graph, runtime identity and failure handling PASS")
 
 

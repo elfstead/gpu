@@ -29,6 +29,11 @@ consumer-managed slots. Foundation adds explicit arenas, timelines and operand l
 
 ## Reproduce
 
+For an independent build without an OGPU checkout, the opt-in preview exports
+`share/ogpu/examples/foundation-libplacebo`. Its build/run scripts use only the
+installed foundation header/library and a separate pinned upstream checkout;
+see [the handoff](../../tools/sdk/libplacebo/README.md).
+
 Linux x86-64 prerequisites: C/C++ compilers (C11/C++20 for upstream, C++17 for the
 audit tools), Meson >=1.3, Ninja, pkg-config, Python 3 with Jinja2/MarkupSafe,
 Rust/Cargo for OGPU, Vulkan 1.4 headers/loader and registry, shaderc development files, `glslc`,

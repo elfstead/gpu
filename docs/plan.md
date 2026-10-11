@@ -232,8 +232,10 @@ The [libplacebo foundation migration](foundation-libplacebo.md) also executes it
 SDR/HDR and two-frame consumers with explicit memory/views, descriptor storage,
 arenas/timeline and queued shader-variant ownership. Both local drivers match the
 native reference; Radeon additionally passes larger resident/transfer correctness
-cases. Independent SDK handoff and historical diagnostic/control retirement remain
-before default SDK cutover. No new performance or native Metal parity is claimed.
+cases. Its independent SDK source handoff now accompanies GGML's, with separate
+upstream clones and explicit complete/incomplete acceptance receipts. Historical
+diagnostic/control retirement remains before default SDK cutover. No new performance
+or native Metal parity is claimed.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

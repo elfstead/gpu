@@ -93,7 +93,21 @@ consumer, stream, HDR and verification/perf executables default to foundation.
 Builds currently share an output directory; rebuild after switching API and do
 not run/build competing variants concurrently.
 
-Next export an independent foundation SDK consumer handoff, migrate useful
-diagnostic instrumentation explicitly (or retire it with its historical receipts),
-and continue default SDK/consumer cutover. The installed adapter and old runtime
+The preview now exports an independent `foundation-libplacebo` source handoff.
+It includes only this foundation adapter, shared processing harnesses and native
+reference—not the installed control or old diagnostic wrappers. A separate pinned
+upstream clone, external shaderc/SPIRV-Tools and the installed public header/library
+are sufficient; no OGPU checkout, Rust or Slang is needed. The relocated handoff
+checks build/runtime identity, missing-loader and stale-source rejection, then
+executes the same default lifetime/SDR/HDR/small-scale acceptance. See the
+[preview instructions](foundation-quickstart.md#independent-libplacebo-adapter).
+Relocated builds and complete acceptance pass on Radeon and llvmpipe, including
+space-containing SDK/application/upstream paths. A separate no-GPU run passes
+build/dependency, missing-loader and stale-source checks without an ICD selected.
+Host-only receipt tests reject missing hash entries and changed SDK/source/binary/
+upstream-library bytes; CI runs these without shader-compiler dependencies.
+This is local handoff evidence, not independent outside adoption.
+
+Next migrate useful diagnostic instrumentation explicitly (or retire it with its
+historical receipts), and continue default SDK/consumer cutover. The installed adapter and old runtime
 policies should be removed at that boundary, not maintained as permanent backends.

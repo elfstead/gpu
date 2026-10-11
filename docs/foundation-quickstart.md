@@ -60,6 +60,37 @@ build or shader compilation occur. MNIST is not bundled; its hashes and attribut
 and the project-authored frozen model/provenance, are supplied. See
 [the migration boundary](foundation-ggml.md) for scope and retained control code.
 
+## Independent libplacebo adapter
+
+The preview also includes `share/ogpu/examples/foundation-libplacebo`. Copy it
+outside the checkout and follow its README:
+
+```sh
+python3 build.py --libplacebo-source /path/to/pinned/libplacebo \
+  --vulkan-registry /path/to/matching/vk.xml
+VK_DRIVER_FILES=/path/to/one/icd.json python3 run.py
+```
+
+This consumer compiles upstream-generated GLSL live, so it additionally needs
+Meson, Ninja, C/C++ compilers, Python/Jinja, shaderc, SPIRV-Tools development files
+and Vulkan headers/registry. These are consumer/compiler/reference dependencies,
+not imports of OGPU implementation headers. It does not build OGPU or require
+Rust/Slang. The pinned upstream checkout remains a separate LGPL dependency;
+it is neither downloaded by the scripts nor vendored into the MIT example.
+
+Default acceptance checks frame lifetimes/rejections, SDR/streaming/HDR output
+and small resident/transfer comparisons against native libplacebo. `run.py --large`
+adds 960x540 and 1920x1080 input; neither command measures performance. Complete
+and incomplete receipts preserve source/executable/upstream-library identities;
+stale builds and mismatched SDKs fail. No installed-API adapter is packaged here.
+
+Maintainers can add `--libplacebo-source ... --vulkan-registry ...` to
+`tools/test-foundation-install.py` for a relocated build from a separate upstream
+clone, public OGPU header/runtime checks, missing-loader and stale-source rejection,
+and the default GPU acceptance. `--no-gpu` retains build/dependency/failure checks.
+Its shader/compiler dependencies are optional and do not burden the smaller
+preview examples or the ordinary no-GPU CI build.
+
 ## Optional shader generation
 
 Optional shader regeneration uses the installed tools and pinned Slang 2026.14.1

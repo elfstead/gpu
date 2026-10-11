@@ -168,6 +168,8 @@ def install(prefix, foundation=False):
         copy(ROOT / "examples/learned_image" / name, f"{reuse}/{name}")
     if foundation:
         # Explicit preview opt-in; never silently replace the ABI-20 consumer.
+        for name in ("foundation-ggml.md","foundation-libplacebo.md"):
+            copy(ROOT / "docs" / name,f"share/ogpu/{name}")
         for label, files in {
             "foundation-compute": [("examples/compiler/foundation.c","main.c"),
                 ("examples/compiler/transform.slang","transform.slang"),
@@ -193,6 +195,13 @@ def install(prefix, foundation=False):
             copy(ROOT / "integrations/ggml" / name,f"{ggml}/{name}")
         for name in ("build.py","run.py","README.md"):
             copy(ROOT / "tools/sdk/ggml" / name,f"{ggml}/{name}")
+        placebo = "share/ogpu/examples/foundation-libplacebo"
+        for name in ("backend.c","backend.h","backend-tests.c","consumer.c","stream.c","perf.c",
+                     "reference.c","hdr.c","compare-hdr.c","compare-reference.cpp","workload.h",
+                     "compiler.cpp","compiler.h","metadata.cpp","shader-metadata.hpp","heap-lower.hpp","vertex-pull.hpp"):
+            copy(ROOT / "integrations/libplacebo" / name,f"{placebo}/{name}")
+        for name in ("build.py","run.py","README.md"):
+            copy(ROOT / "tools/sdk/libplacebo" / name,f"{placebo}/{name}")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
     pc.write_text("prefix=${pcfiledir}/../..\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n"
