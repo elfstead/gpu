@@ -38,8 +38,8 @@ pub(in crate::foundation::native) fn format_snapshot(
     physical: vk::VkPhysicalDevice,
 ) -> Result<Vec<FormatInfo>, Status> {
     let mut result = Vec::new();
-    result.try_reserve_exact(18).map_err(|_| OUT_OF_MEMORY)?;
-    for id in 1..=18 {
+    result.try_reserve_exact(19).map_err(|_| OUT_OF_MEMORY)?;
+    for id in 1..=19 {
         let format = format(id)?;
         let mut p = vk::VkFormatProperties::default();
         unsafe {

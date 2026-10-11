@@ -277,6 +277,13 @@ this remains source-only revision 1, not an installed ABI change.
 
 ## Implemented images and views
 
+The format table includes native RGBA16 UNORM (ID 19), alongside RGBA16 float,
+for the migrated libplacebo high-bit-depth input profile. It keeps its native
+eight-byte color texels and 64-bit compatibility class; no float conversion or
+format fallback is inserted. Concrete sampling/storage/render capabilities remain
+queried rather than promised by the enum. Consumer checks cover exact 1D/2D
+transfer codes and linear sampling to RGBA8 on both local drivers.
+
 `QUERY_FORMATS` exposes immutable per-format optimal/linear tiling and formatted-buffer
 capabilities on adapters and devices, including zero-support formats. It uses the
 existing atomic capacity protocol and does not imply optional feature enabling.

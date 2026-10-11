@@ -35,6 +35,7 @@ pub(super) fn format(id: u32) -> Result<Format, Status> {
         16 => (vk::VkFormat_VK_FORMAT_D32_SFLOAT_S8_UINT, 6, 1004),
         17 => (vk::VkFormat_VK_FORMAT_R32G32_SFLOAT, 1, 64),
         18 => (vk::VkFormat_VK_FORMAT_R32G32B32_SFLOAT, 1, 96),
+        19 => (vk::VkFormat_VK_FORMAT_R16G16B16A16_UNORM, 1, 64),
         _ => return Err(UNSUPPORTED),
     };
     Ok(Format {
@@ -1246,6 +1247,12 @@ mod tests {
         }
         assert_eq!(format(3).unwrap().class, format(4).unwrap().class);
         assert_ne!(format(14).unwrap().class, format(11).unwrap().class);
+        assert_eq!(format(19).unwrap().class, format(9).unwrap().class);
+        assert_eq!(format(19).unwrap().aspects, 1);
+        assert_eq!(
+            format(19).unwrap().native,
+            vk::VkFormat_VK_FORMAT_R16G16B16A16_UNORM
+        );
         assert!(matches!(format(u32::MAX), Err(UNSUPPORTED)));
         assert_eq!(usage(16, 2), Err(INVALID));
         assert_eq!(usage(32, 1), Err(INVALID));
