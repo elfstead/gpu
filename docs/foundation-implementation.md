@@ -370,9 +370,22 @@ same-image GENERAL copy, a four-sample image copy and a partial standalone resol
 with full output/guard checks. All resolved source samples have the same known
 color: this proves transfer/region lowering, not per-sample numerical behavior.
 Depth/stencil image-to-image, compatible-format reinterpretation, other dimensions,
-image ownership/alias execution and nonuniform-sample numerical coverage remain
+image ownership and nonuniform-sample numerical coverage remain
 to verify. Compressed/multiplanar and cross-dimensional copies remain unimplemented.
 Creation support is not a claim of full shader-consumer verification.
+
+The C alias fixture places differently shaped/formatted RGBA8 and R32_UINT images
+at the same nonzero offset in one compatible opaque allocation. It switches A/B/A
+using explicit global memory dependencies plus discarded new-image transitions,
+fully initializes each activation, and reads back all three results. Three
+changed-input replays and host payload guards pass on Radeon and llvmpipe with
+synchronization validation (the latter retains the separate stencil-copy diagnostic).
+This uses existing placement/barrier commands: the redundant draft `alias_activate`
+declaration is removed. A barrier scoped only to the new image does not cover
+accesses through the old alias; UNDEFINED/discard does not remove that hazard.
+No alias registry, hidden activation or backing-allocation policy is added.
+Cross-alias content preservation, mixed buffer/image backing, cross-queue alias
+reuse and native Metal alias behavior are not established by this fixture.
 
 ## Implemented descriptor encoding and binding
 

@@ -61,8 +61,11 @@ extern "C" {
  * Zero resource ranges means a global memory dependency, not no dependency.
  * Ownership transfer endpoints use matching release/acquire records and a queue
  * timeline edge. Caller-owned split objects, explicit reset/release and batched
- * acquire are imported above; no arena lifetime or implicit replay reset. */
-void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu_next_dependency *);
+ * acquire are imported above; no arena lifetime or implicit replay reset.
+ * Discarded image-alias reuse composes a global dependency covering old-alias
+ * accesses with a new-image discard transition and initialization. No separate
+ * alias_activate command is needed for this path; preserving interpretations
+ * and other backend-specific alias strategies still need explicit profiles. */
 
 /* Ordinary commands copy immediate parameter records into command storage;
  * resource data and device roots are never copied implicitly. */

@@ -520,6 +520,11 @@ typedef struct ogpu_next_view_desc {
  * image's native requirement and size >= required size. Multiple optimal images
  * can occupy disjoint spans of one allocation. The caller owns nonoverlap, alias
  * activation/hazards and resource lifetimes; ALIAS explicitly permits alias use.
+ * Discarded alias reuse can use a global memory dependency covering accesses
+ * through the old alias plus an UNDEFINED/discard transition for the new image,
+ * followed by full initialization before reading. An image-only dependency on
+ * the new alias does not cover accesses through a distinct old alias. Discard
+ * does not remove hazards or promise cross-alias content preservation.
  * Concurrent domains follow memory_desc rules, independently of backing.
  * View-format lists restrict permitted interpretations. Reinterpretation needs
  * MUTABLE_FORMAT and a compatible format class; depth/stencil keeps its format.

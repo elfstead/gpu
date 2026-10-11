@@ -181,6 +181,12 @@ memory-model bit. Dependency rejection and native enabling are checked; executio
 of a shader algorithm relying on transitive chains remains unverified. No hidden
 synchronization or global progress guarantee is added.
 
+Discarded image-alias reuse now passes A/B/A switches at one nonzero placement,
+with different shapes/formats, changed-data replay and host guards on both drivers.
+Existing explicit global dependencies and new-image discard transitions suffice;
+the duplicate proposed activation command is removed. Content-preserving aliases,
+mixed buffer/image backing and cross-queue reuse remain separate work.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

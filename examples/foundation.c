@@ -88,6 +88,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_numerics.h"
 #include "foundation_submission.h"
 #include "foundation_blit.h"
+#include "foundation_alias.h"
 #include "foundation_formats.h"
 #include "foundation_split.h"
 #include "foundation_raster_storage.h"
@@ -1090,6 +1091,7 @@ int main(int argc, char **argv) {
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[6], 0, 0, 0) == EXIT_SUCCESS);
     REQUIRE(numeric_execution(device, memory_desc, compute_domain, argv[7], 1, 0, 0) == EXIT_SUCCESS);
     REQUIRE(matrix_execution(device,memory_desc,compute_domain,argv[28]) == EXIT_SUCCESS);
+    REQUIRE(alias_execution(device,memory_desc,compute_domain) == EXIT_SUCCESS);
     ogpu_next_integer_dot_info dot = {0};
     _Static_assert(sizeof(ogpu_next_integer_dot_info) == 8, "integer dot ABI");
     q = query(OGPU_NEXT_QUERY_INTEGER_DOT_INFO,&dot,1,sizeof(dot)); TRY(ogpu_next_device_query(device,&q));
