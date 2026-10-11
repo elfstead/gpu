@@ -339,6 +339,9 @@ pub(super) fn snapshot(
         if v12.vulkanMemoryModelDeviceScope != 0 {
             features.available |= VULKAN_MEMORY_MODEL_DEVICE_SCOPE;
         }
+        if v12.vulkanMemoryModelAvailabilityVisibilityChains != 0 {
+            features.available |= VULKAN_MEMORY_MODEL_CHAINS;
+        }
         let (matrix_feature, tuples) = matrices::snapshot(instance, physical, &f)?;
         features.available |= matrix_feature;
         matrix_tuples = tuples;
@@ -733,6 +736,9 @@ impl Device {
             shaderFloat16: u32::from(enabled & FLOAT16 != 0),
             shaderOutputLayer: u32::from(enabled & SHADER_OUTPUT_LAYER != 0),
             vulkanMemoryModel: u32::from(enabled & VULKAN_MEMORY_MODEL != 0),
+            vulkanMemoryModelAvailabilityVisibilityChains: u32::from(
+                enabled & VULKAN_MEMORY_MODEL_CHAINS != 0,
+            ),
             vulkanMemoryModelDeviceScope: u32::from(
                 enabled & VULKAN_MEMORY_MODEL_DEVICE_SCOPE != 0,
             ),

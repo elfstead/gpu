@@ -239,6 +239,7 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT64_C(35184372088832)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT64_C(70368744177664)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT64_C(140737488355328)
+#define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_CHAINS UINT64_C(36028797018963968)
 #define OGPU_NEXT_FEATURE_INTEGER_DOT UINT64_C(281474976710656)
 #define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS UINT64_C(562949953421312)
 #define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD UINT64_C(1125899906842624)
@@ -247,10 +248,13 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_ADD UINT64_C(9007199254740992)
 #define OGPU_NEXT_FEATURE_SHARED_FLOAT16_ATOMIC_MIN_MAX UINT64_C(18014398509481984)
 /* VULKAN_MEMORY_MODEL enables SPIR-V VulkanMemoryModel independently of matrix/scalar
- * features. DEVICE_SCOPE must be requested separately and requires the base bit
+ * features. DEVICE_SCOPE and CHAINS are independent and require the base bit
  * (otherwise device creation returns INVALID). Enabling the base without DEVICE_SCOPE
  * forbids Device memory scope in ALL shaders on that device, including GLSL450
- * artifacts. Availability/visibility chains are not enabled by either bit.
+ * artifacts. CHAINS permits native availability/visibility chains with more than
+ * one element; it does not implicitly enable Device scope. Artifacts declare
+ * every required bit. Scope/order/semantics and converged participation remain
+ * shader contracts, not implied device-wide execution or forward-progress guarantees.
  * Memory ordering remains explicit in shader code;
  * no shader translation or inserted host/GPU barriers. */
 /* FLOAT32_ATOMICS means floating-point atomic load/store/exchange; ADD and MIN_MAX

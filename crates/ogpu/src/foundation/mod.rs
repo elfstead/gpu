@@ -232,11 +232,7 @@ pub unsafe extern "C" fn ogpu_next_device_create(
         let requests =
             unsafe { std::slice::from_raw_parts(desc.queues, desc.queue_request_count as usize) };
         validate_requests(&adapter.snapshot.queues, requests)?;
-        if desc.required_features & VULKAN_MEMORY_MODEL_DEVICE_SCOPE != 0
-            && desc.required_features & VULKAN_MEMORY_MODEL == 0
-        {
-            return Err(INVALID);
-        }
+        validate_feature_dependencies(desc.required_features)?;
         if adapter.snapshot.features.baseline_supported == 0
             || desc.required_features & !adapter.snapshot.features.available != 0
         {

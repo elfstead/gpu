@@ -175,6 +175,12 @@ stencil raster/secondary consumers verify changed states on both local drivers;
 unused static fields and malformed setters are checked separately. Broader dynamic
 vertex input, sample/tile-local profiles and the migration remain outstanding.
 
+The Vulkan memory-model profile now also exposes multi-element availability/visibility
+chains independently of Device scope. Both subfeatures explicitly require the base
+memory-model bit. Dependency rejection and native enabling are checked; execution
+of a shader algorithm relying on transitive chains remains unverified. No hidden
+synchronization or global progress guarantee is added.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

@@ -34,6 +34,8 @@ extern "C" {
  * FP16 execution lacks local hardware support; image/sparse atomics remain separate
  * work. Exact KHR subgroup matrix
  * tuples and independent cooperative-matrix/Vulkan-memory-model enabling are implemented.
+ * Memory-model Device scope and multi-element availability/visibility chains are
+ * independently requested subfeatures, each requiring the base memory model.
  * Integer dot instructions and independent native acceleration hints are implemented;
  * packed signed/unsigned 4x8 execution is verified, not all wider/saturating forms.
  * Explicit live per-heap budget/usage queries are implemented separately from

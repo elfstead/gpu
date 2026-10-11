@@ -303,6 +303,32 @@ fn c_layouts_and_boundary_rules() {
         ogpu_next_discovery_destroy(ptr::null_mut());
     }
 }
+#[test]
+fn memory_model_subfeatures_require_base_without_implying_each_other() {
+    for selection in 0u64..8 {
+        let required = if selection & 1 != 0 {
+            VULKAN_MEMORY_MODEL
+        } else {
+            0
+        } | if selection & 2 != 0 {
+            VULKAN_MEMORY_MODEL_DEVICE_SCOPE
+        } else {
+            0
+        } | if selection & 4 != 0 {
+            VULKAN_MEMORY_MODEL_CHAINS
+        } else {
+            0
+        };
+        assert_eq!(
+            validate_feature_dependencies(required | FLOAT16 | INTEGER_DOT),
+            if selection != 0 && selection & 1 == 0 {
+                Err(INVALID)
+            } else {
+                Ok(())
+            }
+        );
+    }
+}
 
 #[test]
 #[ignore = "requires modern Vulkan; foundation discovery, explicit queues and concurrent timelines"]
@@ -372,24 +398,42 @@ fn gpu_foundation_setup() {
                 );
                 assert!(rejected.is_null());
             }
-            let incomplete_memory_model = DeviceDesc {
-                header: Record::new::<DeviceDesc>(DEVICE_DESC),
-                queues: requests.as_ptr(),
-                queue_request_count: requests.len() as u32,
-                reserved: 0,
-                required_features: VULKAN_MEMORY_MODEL_DEVICE_SCOPE,
-            };
-            let mut rejected = ptr::dangling_mut();
-            assert_eq!(
-                ogpu_next_device_create(adapter, &incomplete_memory_model, &mut rejected),
-                INVALID
+            for required_features in [
+                VULKAN_MEMORY_MODEL_DEVICE_SCOPE,
+                VULKAN_MEMORY_MODEL_CHAINS,
+                VULKAN_MEMORY_MODEL_DEVICE_SCOPE | VULKAN_MEMORY_MODEL_CHAINS,
+            ] {
+                let incomplete_memory_model = DeviceDesc {
+                    header: Record::new::<DeviceDesc>(DEVICE_DESC),
+                    queues: requests.as_ptr(),
+                    queue_request_count: requests.len() as u32,
+                    reserved: 0,
+                    required_features,
+                };
+                let mut rejected = ptr::dangling_mut();
+                assert_eq!(
+                    ogpu_next_device_create(adapter, &incomplete_memory_model, &mut rejected),
+                    INVALID
+                );
+                assert!(rejected.is_null());
+            }
+            eprintln!(
+                "Memory model profiles: base={} device_scope={} chains={}",
+                features[0].available & VULKAN_MEMORY_MODEL != 0,
+                features[0].available & VULKAN_MEMORY_MODEL_DEVICE_SCOPE != 0,
+                features[0].available & VULKAN_MEMORY_MODEL_CHAINS != 0
             );
-            assert!(rejected.is_null());
             for enabled in [
                 0,
                 features[0].available,
                 features[0].available & COOPERATIVE_MATRIX,
                 features[0].available & VULKAN_MEMORY_MODEL,
+                features[0].available & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_CHAINS),
+                features[0].available & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_DEVICE_SCOPE),
+                features[0].available
+                    & (VULKAN_MEMORY_MODEL
+                        | VULKAN_MEMORY_MODEL_DEVICE_SCOPE
+                        | VULKAN_MEMORY_MODEL_CHAINS),
             ] {
                 let desc = DeviceDesc {
                     header: Record::new::<DeviceDesc>(DEVICE_DESC),

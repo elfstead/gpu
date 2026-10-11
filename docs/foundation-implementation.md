@@ -1021,10 +1021,23 @@ bit; incomplete device requests fail locally. This separation matters even to ol
 artifacts: Vulkan's [Device-scope rule](https://docs.vulkan.org/spec/latest/appendices/spirvenv.html#VUID-RuntimeSpirv-vulkanMemoryModel-06265)
 forbids Device memory scope in **all shaders** when the memory model is enabled without
 Device scope. The combined consumer explicitly requests both because its existing
-atomic fixtures use Device scope. Neither availability/visibility chains nor robust
-matrix-buffer access are implicitly enabled. Shader memory order, convergence,
+atomic fixtures use Device scope. Multi-element availability/visibility chains
+now have their own independent `VULKAN_MEMORY_MODEL_CHAINS` bit; robust
+matrix-buffer access is not enabled. Shader memory order, convergence,
 tuple selection, layout/stride, address bounds and feature metadata remain caller/
 compiler obligations; there is no shader reflection or inserted barrier.
+
+`VULKAN_MEMORY_MODEL_CHAINS` maps to the native
+[availability/visibility-chain feature](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceVulkanMemoryModelFeatures.html)
+for chains with more than one element. Like Device scope it requires the base
+memory-model feature, but neither subfeature implies the other. Device creation
+rejects incomplete requests locally without enabling dependencies on the caller's
+behalf. Artifact requirements must name every used bit. No host command, implicit
+barrier, stronger memory order or cross-workgroup forward-progress guarantee follows.
+All eight dependency combinations are unit-tested; real devices exercise independent
+and combined supported feature requests and unchanged enabled-bit reporting. These
+tests establish enabling/validation, **not execution of a multi-element shader
+availability/visibility-chain algorithm**. Such execution remains verification work.
 
 No host matrix command, tensor allocation, workspace, launch policy or shader fallback
 is needed. A pinned Slang artifact uses native cooperative loads, multiply-add and
