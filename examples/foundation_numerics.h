@@ -3,7 +3,7 @@
 #define SUBGROUP_FEATURES (OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL | OGPU_NEXT_FEATURE_FULL_SUBGROUPS | OGPU_NEXT_FEATURE_SUBGROUP_EXTENDED_TYPES)
 /* Scalar-width proof, not a tensor runtime or a numerical-throughput benchmark. */
 static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc desc, uint32_t domain, const char *path, uint32_t mode, uint32_t subgroup_size, uint32_t subgroup_flags) {
-    uint32_t atomics = mode == 1, subgroups = mode == 2;
+    uint32_t atomics = mode == 1, subgroups = mode == 2, dot = mode == 3;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL;
@@ -20,9 +20,9 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
         TRY(ogpu_next_device_query(device,&q));
     }
     uint64_t required = subgroups ? ((subgroup_size || (subgroup_flags & OGPU_NEXT_SUBGROUP_ALLOW_VARYING) ? OGPU_NEXT_FEATURE_SUBGROUP_SIZE_CONTROL : 0)
-        | (subgroup_flags & OGPU_NEXT_SUBGROUP_REQUIRE_FULL ? OGPU_NEXT_FEATURE_FULL_SUBGROUPS : 0)) : atomics ? ATOMIC_FEATURES : NUMERIC_FEATURES;
+        | (subgroup_flags & OGPU_NEXT_SUBGROUP_REQUIRE_FULL ? OGPU_NEXT_FEATURE_FULL_SUBGROUPS : 0)) : atomics ? ATOMIC_FEATURES : dot ? OGPU_NEXT_FEATURE_INTEGER_DOT : NUMERIC_FEATURES;
     if ((features.enabled & required) != required) {
-        printf("%s fixture NOT exercised: missing feature mask 0x%llx.\n",atomics ? "Atomic" : "Combined numerical",(unsigned long long)(required & ~features.enabled));
+        printf("%s fixture NOT exercised: missing feature mask 0x%llx.\n",dot ? "Integer dot" : atomics ? "Atomic" : "Combined numerical",(unsigned long long)(required & ~features.enabled));
         return EXIT_SUCCESS;
     }
     file = fopen(path,"rb"); REQUIRE(file != NULL);
@@ -37,7 +37,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{64,1,1},atomics ? 8u : 0u};
     ogpu_next_subgroup_state subgroup = {HEADER(ogpu_next_subgroup_state,OGPU_NEXT_SUBGROUP_STATE),
         OGPU_NEXT_SUBGROUP_BASIC | OGPU_NEXT_SUBGROUP_ARITHMETIC | OGPU_NEXT_SUBGROUP_BALLOT,subgroup_size,subgroup_flags,0};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},subgroups ? "subgroupMain" : atomics ? "atomicMain" : "numericMain",&abi.header,NULL,subgroups ? &subgroup.header : NULL};
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},subgroups ? "subgroupMain" : atomics ? "atomicMain" : dot ? "dotMain" : "numericMain",&abi.header,NULL,subgroups ? &subgroup.header : NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
     if (subgroups) {
         subgroup.required_size = 3;
@@ -83,7 +83,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     double *doubles = (double *)(raw+2048);
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(map.data,0xa5,(size_t)desc.size);
-        const uint64_t root[5] = {address+(atomics || subgroups ? 1024 : 256),subgroups ? replay : address+512,address+1024,address+2048,address+768};
+        const uint64_t root[5] = {address+(atomics || subgroups || dot ? 1024 : 256),subgroups ? replay : address+(dot ? 2048 : 512),address+(dot ? 3072 : 1024),dot ? replay : address+2048,address+768};
         memcpy(map.data,root,sizeof(root));
         for (uint32_t i = 0; i < 64; ++i) {
             bytes[i] = (uint8_t)(200+5*i+replay);
@@ -93,6 +93,10 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
             halves[i] = replay ? 0x4000 : 0x3c00;
         }
         if (atomics) { longs[0] = longs[1] = longs[2] = 0; longs[3] = replay; }
+        if (dot) for (uint32_t i = 0; i < 64; ++i) {
+            ((uint32_t *)(raw+1024))[i] = 0x807f01ffu ^ (i*0x01030507u) ^ replay;
+            ((uint32_t *)(raw+2048))[i] = 0xff80017fu + i*0x03010507u + replay;
+        }
         TRY(ogpu_next_memory_flush(all));
         signal.point.value = replay+1;
         pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
@@ -106,6 +110,23 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
         }
         for (uint32_t i = 0; i < 64; ++i) {
             uint64_t x = UINT64_C(0xffffffff)+i+replay;
+            if (dot) {
+                uint32_t a = 0x807f01ffu ^ (i*0x01030507u) ^ replay;
+                uint32_t b = 0xff80017fu + i*0x03010507u + replay;
+                uint32_t u = 0xffffff00u+i+replay, s = 0x7fffff00u+i+replay;
+                for (uint32_t lane = 0; lane < 4; ++lane) {
+                    uint32_t ua = (a >> (8*lane)) & 255, ub = (b >> (8*lane)) & 255;
+                    int32_t sa = (int32_t)ua - (ua >= 128 ? 256 : 0), sb = (int32_t)ub - (ub >= 128 ? 256 : 0);
+                    u += ua*ub; s += (uint32_t)(sa*sb); /* Explicit modulo-2^32 oracle. */
+                }
+                REQUIRE(((uint32_t *)(raw+3072))[2*i] == s && ((uint32_t *)(raw+3072))[2*i+1] == u);
+                REQUIRE(((uint32_t *)(raw+1024))[i] == a && ((uint32_t *)(raw+2048))[i] == b);
+                REQUIRE(bytes[i] == (uint8_t)(200+5*i+replay));
+                REQUIRE(shorts[i] == (uint16_t)(65000+17*i+replay));
+                REQUIRE(halves[i] == (replay ? 0x4000 : 0x3c00));
+                if (i >= 32) { REQUIRE(longs[i] == x); REQUIRE(doubles[i] == 16777216.0+i+replay*0.125); }
+                continue;
+            }
             if (subgroups) {
                 const uint32_t *out = (const uint32_t *)(raw+1024)+i*8;
                 uint32_t width = out[6], lane = out[7], sum = 0, prefix = 0, count = 0;
@@ -142,9 +163,11 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
         REQUIRE(memcmp(map.data,root,sizeof(root)) == 0);
         for (size_t i = sizeof(root); i < desc.size; ++i)
             if (!((i >= 256 && i < 320) || (i >= 512 && i < 640) || (i >= 768 && i < 896)
-                || (i >= 1024 && i < (subgroups ? 3072u : 1536u)) || (i >= 2048 && i < 2560))) REQUIRE(raw[i] == 0xa5);
+                || (i >= 1024 && i < (subgroups ? 3072u : 1536u)) || (i >= 2048 && i < 2560)
+                || (dot && i >= 3072 && i < 3584))) REQUIRE(raw[i] == 0xa5);
     }
-    if (subgroups) printf("Subgroups pass: requested size %u flags %u, ballot-checked reduction/prefix for every invocation, changed-seed replay and guards.\n",subgroup_size,subgroup_flags);
+    if (dot) printf("Integer dot passes: packed signed/unsigned 4x8 inputs, 32-bit wrapping accumulation, changed-input replay and guards.\n");
+    else if (subgroups) printf("Subgroups pass: requested size %u flags %u, ballot-checked reduction/prefix for every invocation, changed-seed replay and guards.\n",subgroup_size,subgroup_flags);
     else if (atomics) printf("Atomics pass: 64-bit address-buffer accumulation across workgroups, workgroup-shared reduction, explicit shader barriers, changed-seed replay and guards.\n");
     else printf("Numerics pass: native typed 8/16/64-bit integer storage, wraparound/high-word arithmetic, FP16/FP64 arithmetic, address roots, changed-input replay and guards.\n");
     result = EXIT_SUCCESS;

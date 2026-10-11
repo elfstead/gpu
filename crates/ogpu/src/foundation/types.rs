@@ -80,6 +80,14 @@ pub const COOPERATIVE_MATRIX: u64 = 35184372088832;
 pub const VULKAN_MEMORY_MODEL: u64 = 70368744177664;
 pub const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: u64 = 140737488355328;
 pub const MATRIX_TUPLES: u32 = 14;
+pub const INTEGER_DOT: u64 = 281474976710656;
+pub const INTEGER_DOT_INFO: u32 = 15;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct IntegerDotInfo {
+    pub accelerated: u32,
+    pub accumulating_saturating_accelerated: u32,
+}
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct MatrixTuple {

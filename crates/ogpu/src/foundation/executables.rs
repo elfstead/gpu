@@ -320,6 +320,16 @@ mod tests {
             (include_bytes!("../../../../examples/shaders/foundation-float64-atomics.shared-exchange.comp.spv").as_slice(), c"sharedExchange", FLOAT64 | SHARED_FLOAT64_ATOMICS, 8),
         ] { check_numerical_profile(bytes, entry, required, shared); }
     }
+    #[test]
+    #[ignore = "requires modern Vulkan; independent packed integer-dot enabling and native preparation"]
+    fn gpu_foundation_integer_dot_profile() {
+        check_numerical_profile(
+            include_bytes!("../../../../examples/shaders/foundation-integer-dot.comp.spv"),
+            c"dotMain",
+            INTEGER_DOT,
+            0,
+        );
+    }
     fn check_numerical_profile(bytes: &[u8], entry: &CStr, all: u64, shared_memory: u32) {
         let instance = Arc::new(Instance::new().unwrap());
         let code: Vec<u32> = bytes

@@ -9454,6 +9454,250 @@ impl Default for VkPipelineShaderStageRequiredSubgroupSizeCreateInfo {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceShaderIntegerDotProductProperties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub integerDotProduct8BitUnsignedAccelerated: VkBool32,
+    pub integerDotProduct8BitSignedAccelerated: VkBool32,
+    pub integerDotProduct8BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProduct4x8BitPackedUnsignedAccelerated: VkBool32,
+    pub integerDotProduct4x8BitPackedSignedAccelerated: VkBool32,
+    pub integerDotProduct4x8BitPackedMixedSignednessAccelerated: VkBool32,
+    pub integerDotProduct16BitUnsignedAccelerated: VkBool32,
+    pub integerDotProduct16BitSignedAccelerated: VkBool32,
+    pub integerDotProduct16BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProduct32BitUnsignedAccelerated: VkBool32,
+    pub integerDotProduct32BitSignedAccelerated: VkBool32,
+    pub integerDotProduct32BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProduct64BitUnsignedAccelerated: VkBool32,
+    pub integerDotProduct64BitSignedAccelerated: VkBool32,
+    pub integerDotProduct64BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating8BitUnsignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating8BitSignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating8BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating4x8BitPackedUnsignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating4x8BitPackedSignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating4x8BitPackedMixedSignednessAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating16BitUnsignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating16BitSignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating16BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating32BitUnsignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating32BitSignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating32BitMixedSignednessAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating64BitUnsignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating64BitSignedAccelerated: VkBool32,
+    pub integerDotProductAccumulatingSaturating64BitMixedSignednessAccelerated: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceShaderIntegerDotProductProperties",
+    ][::std::mem::size_of::<VkPhysicalDeviceShaderIntegerDotProductProperties>()
+        - 136usize];
+    [
+        "Alignment of VkPhysicalDeviceShaderIntegerDotProductProperties",
+    ][::std::mem::align_of::<VkPhysicalDeviceShaderIntegerDotProductProperties>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderIntegerDotProductProperties, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceShaderIntegerDotProductProperties, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct8BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct8BitUnsignedAccelerated
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct8BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct8BitSignedAccelerated
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct8BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct8BitMixedSignednessAccelerated
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct4x8BitPackedUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct4x8BitPackedUnsignedAccelerated
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct4x8BitPackedSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct4x8BitPackedSignedAccelerated
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct4x8BitPackedMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct4x8BitPackedMixedSignednessAccelerated
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct16BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct16BitUnsignedAccelerated
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct16BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct16BitSignedAccelerated
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct16BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct16BitMixedSignednessAccelerated
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct32BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct32BitUnsignedAccelerated
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct32BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct32BitSignedAccelerated
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct32BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct32BitMixedSignednessAccelerated
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct64BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct64BitUnsignedAccelerated
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct64BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct64BitSignedAccelerated
+    ) - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProduct64BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProduct64BitMixedSignednessAccelerated
+    ) - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating8BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating8BitUnsignedAccelerated
+    ) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating8BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating8BitSignedAccelerated
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating8BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating8BitMixedSignednessAccelerated
+    ) - 84usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating4x8BitPackedUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating4x8BitPackedUnsignedAccelerated
+    ) - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating4x8BitPackedSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating4x8BitPackedSignedAccelerated
+    ) - 92usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating4x8BitPackedMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating4x8BitPackedMixedSignednessAccelerated
+    ) - 96usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating16BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating16BitUnsignedAccelerated
+    ) - 100usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating16BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating16BitSignedAccelerated
+    ) - 104usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating16BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating16BitMixedSignednessAccelerated
+    ) - 108usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating32BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating32BitUnsignedAccelerated
+    ) - 112usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating32BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating32BitSignedAccelerated
+    ) - 116usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating32BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating32BitMixedSignednessAccelerated
+    ) - 120usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating64BitUnsignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating64BitUnsignedAccelerated
+    ) - 124usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating64BitSignedAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating64BitSignedAccelerated
+    ) - 128usize];
+    [
+        "Offset of field: VkPhysicalDeviceShaderIntegerDotProductProperties::integerDotProductAccumulatingSaturating64BitMixedSignednessAccelerated",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceShaderIntegerDotProductProperties,
+        integerDotProductAccumulatingSaturating64BitMixedSignednessAccelerated
+    ) - 132usize];
+};
+impl Default for VkPhysicalDeviceShaderIntegerDotProductProperties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkImageBlit2 {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,

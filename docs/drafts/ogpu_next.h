@@ -33,6 +33,8 @@ extern "C" {
  * FP32/FP64 buffer/workgroup atomic operation profiles are independently enabled;
  * image/sparse and FP16 atomics remain separate work. Exact KHR subgroup matrix
  * tuples and independent cooperative-matrix/Vulkan-memory-model enabling are implemented.
+ * Integer dot instructions and independent native acceleration hints are implemented;
+ * packed signed/unsigned 4x8 execution is verified, not all wider/saturating forms.
  * Budget and
  * exact executable/state query records remain to be defined. */
 

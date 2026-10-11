@@ -148,6 +148,14 @@ and guards on llvmpipe 26.2.1. Radeon advertises no matrix extension, so no hard
 matrix acceleration or throughput is claimed. Other shapes/types, integer saturation,
 newer matrix extensions and compiler-generated requirements remain work.
 
+Integer dot-product instructions now have independent feature enabling and physical
+acceleration masks for each width/packing/signedness and saturating-accumulation
+profile. Packed signed/unsigned 4x8 instructions pass exact modulo-32-bit results,
+changed-input replay and guards on both drivers, without INT8/STORAGE8 requirements.
+Neither local driver advertises dot acceleration; support is not presented as a
+hardware-speed claim. Wider/mixed/saturating execution, compiler integration and
+consumer migration remain open.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

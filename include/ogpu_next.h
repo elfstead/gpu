@@ -66,6 +66,7 @@ enum {
     OGPU_NEXT_QUERY_FORMATS = 12,
     OGPU_NEXT_QUERY_FLOAT_CONTROLS = 13,
     OGPU_NEXT_QUERY_MATRIX_TUPLES = 14,
+    OGPU_NEXT_QUERY_INTEGER_DOT_INFO = 15,
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -219,7 +220,8 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX UINT64_C(35184372088832)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT64_C(70368744177664)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT64_C(140737488355328)
-/* Enables artifacts using SPIR-V VulkanMemoryModel independently of matrix/scalar
+#define OGPU_NEXT_FEATURE_INTEGER_DOT UINT64_C(281474976710656)
+/* VULKAN_MEMORY_MODEL enables SPIR-V VulkanMemoryModel independently of matrix/scalar
  * features. DEVICE_SCOPE must be requested separately and requires the base bit
  * (otherwise device creation returns INVALID). Enabling the base without DEVICE_SCOPE
  * forbids Device memory scope in ALL shaders on that device, including GLSL450
@@ -821,6 +823,35 @@ enum {
     OGPU_NEXT_COMPONENT_UINT16 = 8, OGPU_NEXT_COMPONENT_UINT32 = 9,
     OGPU_NEXT_COMPONENT_UINT64 = 10
 };
+enum {
+    OGPU_NEXT_DOT_8_UNSIGNED = 1,
+    OGPU_NEXT_DOT_8_SIGNED = 2,
+    OGPU_NEXT_DOT_8_MIXED = 4,
+    OGPU_NEXT_DOT_PACKED_4X8_UNSIGNED = 8,
+    OGPU_NEXT_DOT_PACKED_4X8_SIGNED = 16,
+    OGPU_NEXT_DOT_PACKED_4X8_MIXED = 32,
+    OGPU_NEXT_DOT_16_UNSIGNED = 64,
+    OGPU_NEXT_DOT_16_SIGNED = 128,
+    OGPU_NEXT_DOT_16_MIXED = 256,
+    OGPU_NEXT_DOT_32_UNSIGNED = 512,
+    OGPU_NEXT_DOT_32_SIGNED = 1024,
+    OGPU_NEXT_DOT_32_MIXED = 2048,
+    OGPU_NEXT_DOT_64_UNSIGNED = 4096,
+    OGPU_NEXT_DOT_64_SIGNED = 8192,
+    OGPU_NEXT_DOT_64_MIXED = 16384
+};
+typedef struct ogpu_next_integer_dot_info {
+    uint32_t accelerated, accumulating_saturating_accelerated;
+} ogpu_next_integer_dot_info;
+/* QUERY_INTEGER_DOT_INFO returns physical acceleration hints, independent of
+ * feature enabling. Both fields are masks of DOT_* operand profiles. Acceleration
+ * follows the native Vulkan definition, not a measured throughput guarantee.
+ * Zero means no advertised acceleration, not lack of instruction support.
+ * INTEGER_DOT enables native signed/unsigned/mixed dot and accumulating-saturating
+ * instructions; INT8/16/64 arithmetic and narrow storage remain separate features.
+ * Packed 4x8 operates on 32-bit values and needs no INT8/STORAGE8 enabling.
+ * Caller/compiler chooses packing, signedness, accumulation and overflow policy;
+ * OGPU neither rewrites kernels nor allocates quantization metadata/workspace. */
 enum { OGPU_NEXT_MATRIX_SCOPE_SUBGROUP = 3 };
 typedef struct ogpu_next_matrix_tuple {
     uint32_t m, n, k, a, b, c, result, saturating, scope, reserved;

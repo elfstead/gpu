@@ -962,6 +962,41 @@ The ordinary suite has 85 passing tests; Clippy, strict C/C++ compilation, 902 n
 ABI values and shader/binding reproduction pass. Installed ABI 20 and Metal are
 unchanged; compiler-generated requirements and consumer migration remain outstanding.
 
+### Integer dot products for quantized kernels
+
+`INTEGER_DOT` explicitly enables native signed/unsigned/mixed integer dot and
+accumulating-saturating instructions. It does not bundle arithmetic/storage widths:
+packed 4x8 consumes ordinary 32-bit words without INT8 or STORAGE8, while artifacts
+using other scalar types declare those independently. This follows the native
+[feature contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderIntegerDotProductFeatures.html).
+
+`QUERY_INTEGER_DOT_INFO` returns two immutable physical acceleration masks: ordinary
+dot and accumulating-saturating dot. Each keeps unsigned/signed/mixed and unpacked
+8/16/32/64-bit versus packed 4x8 profiles distinct. These are
+[native acceleration hints](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceShaderIntegerDotProductProperties.html),
+not support masks, algorithm choices or measured throughput promises. Zero does not
+forbid supported instructions. Adapter/device queries agree independently of enabling;
+no shader rewrite, packing pass, quantization allocator or workspace is introduced.
+
+The pinned Slang fixture emits `OpSDot` and `OpUDot` with packed-4x8 operands, then
+ordinary 32-bit accumulation. The C consumer compares 64 pairs of signed/unsigned
+results with a scalar byte-extraction oracle, including negative bytes and wrapping
+accumulators, over two changed-input replays. It checks input preservation and guards
+using the existing numerical fixture's explicit memory, roots, barriers and timeline.
+Both Radeon 26.2.4 and llvmpipe 26.2.1 pass, although both acceleration masks are zero.
+This is native instruction execution via the driver, **not dedicated dot hardware
+or accelerated throughput evidence**. The compiler emits no manual multiply/add
+replacement in these artifacts; driver instruction lowering remains native policy.
+
+Unit mapping tests isolate all 30 acceleration properties. Preparation tests accept
+the artifact on a device enabling only INTEGER_DOT and reject its declared requirement
+when disabled. The ordinary suite has 86 passing tests; all 16 foundation GPU tests
+pass on both drivers. Full C passes with the same documented llvmpipe stencil-copy
+exclusion; Clippy, strict headers, 935 ABI values and shader/binding reproduction pass.
+Mixed-signedness, accumulating saturation and wider/unpacked execution remain
+unverified, as do any quantized-model accuracy/performance claims. Installed ABI 20,
+Metal and consumer/compiler migration are unchanged.
+
 ### Floating-point policy discovery
 
 `QUERY_FLOAT_CONTROLS` returns one immutable physical record for binary16/32/64

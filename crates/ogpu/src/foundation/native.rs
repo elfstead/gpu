@@ -5,6 +5,8 @@ use super::types::*;
 mod float_atomics;
 #[path = "float_controls.rs"]
 mod float_controls;
+#[path = "integer_dot.rs"]
+mod integer_dot;
 #[path = "matrices.rs"]
 mod matrices;
 use super::{loader_error, Adapter, Snapshot};
@@ -213,6 +215,7 @@ pub(super) fn snapshot(
     let mut subgroup_limits = SubgroupLimits::default();
     let mut float_controls = FloatControls::default();
     let mut matrix_tuples = Vec::new();
+    let mut integer_dot = IntegerDotInfo::default();
     let mut cache_uuid = [0; 16];
     let formats = images::format_snapshot(&f, physical)?;
     if crate::compute::require_baseline(&info).is_ok() {
@@ -274,8 +277,13 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut v12).cast(),
             ..Default::default()
         };
+        let mut dot_properties = vk::VkPhysicalDeviceShaderIntegerDotProductProperties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES,
+            ..Default::default()
+        };
         let mut subgroup_control = vk::VkPhysicalDeviceSubgroupSizeControlProperties {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES,
+            pNext: ptr::from_mut(&mut dot_properties).cast(),
             ..Default::default()
         };
         let mut subgroup = vk::VkPhysicalDeviceSubgroupProperties {
@@ -328,6 +336,7 @@ pub(super) fn snapshot(
             features.available |= UNUSED_ATTACHMENTS;
         }
         float_controls = float_snapshot(&v12_properties);
+        integer_dot = integer_dot::snapshot(&dot_properties);
         cache_uuid = properties.properties.pipelineCacheUUID;
         let stages = |native: u32| {
             (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT != 0 {
@@ -483,6 +492,7 @@ pub(super) fn snapshot(
             (v12.shaderBufferInt64Atomics, BUFFER_ATOMIC64),
             (v12.shaderSharedInt64Atomics, SHARED_ATOMIC64),
             (v13.subgroupSizeControl, SUBGROUP_SIZE_CONTROL),
+            (v13.shaderIntegerDotProduct, INTEGER_DOT),
             (v13.computeFullSubgroups, FULL_SUBGROUPS),
             (v12.shaderSubgroupExtendedTypes, SUBGROUP_EXTENDED_TYPES),
         ] {
@@ -558,6 +568,7 @@ pub(super) fn snapshot(
         subgroup_limits,
         float_controls,
         matrix_tuples,
+        integer_dot,
         formats,
     })
 }
@@ -697,6 +708,7 @@ impl Device {
             dynamicRendering: u32::from(enabled & RASTER != 0),
             pipelineCreationCacheControl: u32::from(enabled & CACHE_CONTROL != 0),
             subgroupSizeControl: u32::from(enabled & SUBGROUP_SIZE_CONTROL != 0),
+            shaderIntegerDotProduct: u32::from(enabled & INTEGER_DOT != 0),
             computeFullSubgroups: u32::from(enabled & FULL_SUBGROUPS != 0),
             pNext: ptr::from_mut(&mut v14).cast(),
             ..Default::default()

@@ -36,6 +36,7 @@ fn fixture() -> Snapshot {
         subgroup_limits: SubgroupLimits::default(),
         float_controls: FloatControls::default(),
         matrix_tuples: vec![],
+        integer_dot: IntegerDotInfo::default(),
         formats: vec![],
     }
 }
@@ -196,6 +197,11 @@ fn queue_requests_are_exact_and_do_not_alias_or_clamp() {
 }
 #[test]
 fn c_layouts_and_boundary_rules() {
+    assert_eq!(size_of::<IntegerDotInfo>(), 8);
+    assert_eq!(
+        std::mem::offset_of!(IntegerDotInfo, accumulating_saturating_accelerated),
+        4
+    );
     assert_eq!((size_of::<Record>(), align_of::<Record>()), (24, 8));
     assert_eq!(size_of::<Query>(), 48);
     assert_eq!(std::mem::offset_of!(Query, data), 24);
@@ -315,6 +321,11 @@ fn gpu_foundation_setup() {
                 continue;
             }
             let mut physical_float = [FloatControls::default()];
+            let mut physical_dot = [IntegerDotInfo::default()];
+            assert_eq!(
+                ogpu_next_adapter_query(adapter, &mut query(INTEGER_DOT_INFO, &mut physical_dot)),
+                OK
+            );
             let mut matrix_count = query::<MatrixTuple>(MATRIX_TUPLES, &mut []);
             assert_eq!(ogpu_next_adapter_query(adapter, &mut matrix_count), OK);
             let mut physical_matrices = vec![MatrixTuple::default(); matrix_count.count as usize];
@@ -400,6 +411,12 @@ fn gpu_foundation_setup() {
                     OK
                 );
                 assert_eq!(device_float, physical_float); // Enabling arithmetic never changes physical mode support.
+                let mut device_dot = [IntegerDotInfo::default()];
+                assert_eq!(
+                    ogpu_next_device_query(device, &mut query(INTEGER_DOT_INFO, &mut device_dot)),
+                    OK
+                );
+                assert_eq!(device_dot, physical_dot);
                 let mut device_matrices = vec![MatrixTuple::default(); physical_matrices.len()];
                 assert_eq!(
                     ogpu_next_device_query(device, &mut query(MATRIX_TUPLES, &mut device_matrices)),
