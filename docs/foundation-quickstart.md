@@ -45,6 +45,23 @@ The locally available pkgconf 2.4.3/2.5.1 over-escape those paths for the SDK's
 quoted `.pc` metadata; use `PKG_CONFIG=/path/to/pkg-config` for that case. No
 runtime compatibility fallback hides this packaging limitation.
 
+## Independent GGML adapter
+
+The preview also includes `share/ogpu/examples/foundation-ggml`. Copy that directory,
+then follow its README: `python3 build.py --ggml-source /path/to/pinned/ggml` and
+`python3 run.py`. This example additionally needs Git, C/C++17, CMake, Ninja and
+Python 3.11+, plus the pinned upstream source (not an OGPU checkout). The default
+run validates HOST/DEVICE mixed-precision matrices, lifetime violations and
+recording-error recovery; it does not claim full MNIST acceptance.
+
+`python3 run.py --data-dir /path/to/extracted-mnist` adds both F32/F16 full-dataset
+inference against unchanged CPU references. No data downloads, training, Rust
+build or shader compilation occur. MNIST is not bundled; its hashes and attribution,
+and the project-authored frozen model/provenance, are supplied. See
+[the migration boundary](foundation-ggml.md) for scope and retained control code.
+
+## Optional shader generation
+
 Optional shader regeneration uses the installed tools and pinned Slang 2026.14.1
 plus suitable SPIRV-Tools. For the compute example:
 
@@ -67,6 +84,14 @@ failure-path checks. `--shader-check` additionally reproduces both generated
 interfaces and tests stale-header rejection plus changed-root/local-size execution
 using only the installed compiler tools. This is a local dependency-boundary test,
 not a sandbox proof against malicious example code or an external adoption claim.
+
+Add `--ggml-source /path/to/pinned/ggml` to the maintainer test to check the packaged
+adapter as well. The test makes a separate local upstream clone, verifies compiler
+dependencies contain the relocated public header and no OGPU checkout files,
+checks the actual loaded library and incomplete missing-loader receipt, and runs
+matrix/lifetime acceptance. `--ggml-data /path/to/extracted-mnist` additionally
+selects the full dataset gates. Those optional prerequisites do not burden the
+three smaller consumer checks.
 
 Local acceptance (2026-10-11): Radeon/RADV and llvmpipe pass all three copied
 consumers with synchronization validation, header/runtime identity checks and

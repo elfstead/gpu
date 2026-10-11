@@ -89,3 +89,32 @@ The default installed SDK, libplacebo adapter and other legacy workflows remain
 separate migration work. The installed helper can be removed when its migration
 control is no longer needed and Metal has a validated foundation implementation.
 This checkpoint does not retire ABI 20 or claim native Metal parity.
+
+## Independent source handoff
+
+The opt-in preview installer also exports this adapter and its tests as
+`share/ogpu/examples/foundation-ggml`, with supplied SPIR-V and frozen model.
+`build.py --ggml-source ...` gets the public header/library from `ogpu-foundation.pc`
+and builds only C/C++ consumer/upstream code. CMake's `OGPU_INCLUDE_DIR` and
+`OGPU_LIBRARY` parameters make this boundary explicit; the in-tree runner pins both
+to its freshly built checkout, while the copied wrapper pins them to the SDK.
+
+The standalone runner checks HOST/DEVICE matrix and lifecycle cases by default;
+`--data-dir` explicitly adds both full-dataset precision modes. It validates input
+digests, preserves partial logs and complete/incomplete receipts, and records
+SDK/header/library, executable and source hashes. It downloads/trains nothing and
+does not require Cargo, Slang, Vulkan headers or OGPU checkout fixtures. The pinned
+upstream checkout and optional MNIST data remain explicit caller prerequisites.
+
+Local relocated-SDK acceptance passes with a separate local clone of upstream
+GGML: Radeon runs both full-dataset precision modes; llvmpipe runs the default
+HOST/DEVICE matrix/lifetime handoff. Compiler dependencies include the relocated
+foundation header and no OGPU checkout/native/legacy headers. Actual dynamic
+resolution selects the relocated library. Missing-loader failure leaves an
+incomplete report with no accepted runs. The Linux import uses `-L/-l` for the
+Rust library without SONAME, rather than an absolute `DT_NEEDED` filename.
+
+A no-GPU hosted CI lane builds the same exported source graph and checks failure
+handling without shader tools or MNIST downloads. It is configured, not remotely
+executed by this checkpoint. Local package builds used available dependencies and
+driver/tool caches; these results do not establish clean-machine portability.

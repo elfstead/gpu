@@ -226,6 +226,8 @@ persistent mappings, one queue/timeline and reusable recording storage on Linux.
 The pinned graph/shaders/numerical gates are unchanged; graph preflight and alias
 policy are shared with a build-time installed-API control (also the existing Metal
 path), with no runtime fallback. Native Metal foundation parity is not claimed.
+The preview also exports the adapter for an independent C++ build against pinned
+upstream GGML, with default matrix/lifetime checks and opt-in full-dataset gates.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

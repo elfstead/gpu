@@ -30,7 +30,7 @@ cargo build --locked --release -p ogpu
 bash integrations/ggml/check-shaders.sh
 cmake -S integrations/ggml -B "$build_dir" -G Ninja \
     -DGGML_SOURCE="$source_dir" -DCMAKE_BUILD_TYPE=Release -DOGPU_GGML_FOUNDATION="$foundation" \
-    -DOGPU_LIBRARY="$repo/target/release/libogpu.$library_suffix"
+    -DOGPU_LIBRARY="$repo/target/release/libogpu.$library_suffix" -DOGPU_INCLUDE_DIR="$repo/include"
 cmake --build "$build_dir" -j 8
 bash integrations/ggml/check-lifecycle.sh "$memory" "$build_dir"
 log=$(mktemp "$build_dir/acceptance.XXXXXXXX")

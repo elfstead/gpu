@@ -11,6 +11,8 @@ adds FP16 matrix weights with FP32 activations and arithmetic; F32 remains the c
 Linux now builds the explicit [foundation path](../../docs/foundation-ggml.md)
 by default. The installed-API path remains an explicit build-time migration
 control and the existing macOS path. It is never selected as a runtime fallback.
+The opt-in SDK also includes a [standalone source handoff](../../docs/foundation-ggml.md#independent-source-handoff)
+using installed headers/library and a separately supplied pinned GGML checkout.
 
 ## Reproduce
 
