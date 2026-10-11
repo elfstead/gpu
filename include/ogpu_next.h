@@ -1050,7 +1050,14 @@ typedef struct ogpu_next_query_limits {
 enum {
     OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR = 1, OGPU_NEXT_DYNAMIC_BLEND_CONSTANTS = 2,
     OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE = 4, OGPU_NEXT_DYNAMIC_STENCIL_COMPARE_MASK = 8,
-    OGPU_NEXT_DYNAMIC_STENCIL_WRITE_MASK = 16
+    OGPU_NEXT_DYNAMIC_STENCIL_WRITE_MASK = 16,
+    OGPU_NEXT_DYNAMIC_DEPTH_TEST = 32,
+    OGPU_NEXT_DYNAMIC_DEPTH_WRITE = 64,
+    OGPU_NEXT_DYNAMIC_DEPTH_COMPARE = 128,
+    OGPU_NEXT_DYNAMIC_STENCIL_TEST = 256,
+    OGPU_NEXT_DYNAMIC_STENCIL_OPS = 512,
+    OGPU_NEXT_DYNAMIC_CULL = 1024,
+    OGPU_NEXT_DYNAMIC_FRONT_FACE = 2048
 };
 enum { OGPU_NEXT_FACE_FRONT = 1, OGPU_NEXT_FACE_BACK = 2, OGPU_NEXT_FACE_BOTH = 3 };
 /* Dynamic values map directly to native commands, inside or outside rendering,
@@ -1073,6 +1080,18 @@ void ogpu_next_set_blend_constants(ogpu_next_encoder *, const float values[4]);
 void ogpu_next_set_stencil_reference(ogpu_next_encoder *, uint32_t faces, uint32_t reference);
 void ogpu_next_set_stencil_compare_mask(ogpu_next_encoder *, uint32_t faces, uint32_t mask);
 void ogpu_next_set_stencil_write_mask(ogpu_next_encoder *, uint32_t faces, uint32_t mask);
+/* Booleans are exactly 0/1; cull=NONE/FRONT/BACK/BOTH, front_face=CCW/CW.
+ * Stencil operations and compare use the existing STENCIL_* and COMPARE_* enums.
+ * Each setter selects only that independent state; no coupled reset is implied.
+ * Dynamic stencil ops leave reference/compare-mask/write-mask unchanged. */
+void ogpu_next_set_depth_test(ogpu_next_encoder *, uint32_t enabled);
+void ogpu_next_set_depth_write(ogpu_next_encoder *, uint32_t enabled);
+void ogpu_next_set_depth_compare(ogpu_next_encoder *, uint32_t compare);
+void ogpu_next_set_stencil_test(ogpu_next_encoder *, uint32_t enabled);
+void ogpu_next_set_stencil_ops(ogpu_next_encoder *, uint32_t faces, uint32_t fail,
+    uint32_t pass, uint32_t depth_fail, uint32_t compare);
+void ogpu_next_set_cull(ogpu_next_encoder *, uint32_t cull);
+void ogpu_next_set_front_face(ogpu_next_encoder *, uint32_t front_face);
 enum {
     OGPU_NEXT_POINTS = 0, OGPU_NEXT_LINES = 1, OGPU_NEXT_LINE_STRIP = 2,
     OGPU_NEXT_TRIANGLES = 3, OGPU_NEXT_TRIANGLE_STRIP = 4

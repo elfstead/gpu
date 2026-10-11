@@ -2,13 +2,14 @@
  * 2/clipping control, 3/stored-depth bounds, 4/positive clamped bias,
  * 5/negative clamped bias, 6/unclamped bias, 7/shader-selected layers through an
  * offset array view; 8..11/four-sample depth resolves; 12..14/combined depth/stencil
- * resolves consumed by stencil-tested occlusion. Every list replays changed roots. */
+ * resolves consumed by stencil-tested occlusion; 15..19/dynamic depth-test,
+ * depth-write, compare, cull and front-face. Every list replays changed roots. */
 static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                            const char *vertex_path, uint32_t mode) {
     int result = EXIT_FAILURE, pending = 0;
     uint32_t layered = mode == 7, layers = layered ? 3 : 1;
-    uint32_t stencil_resolve = mode >= 12;
-    uint32_t resolving = mode >= 8, resolve_mode = stencil_resolve ? (mode == 12 ? 1 : 1u << (mode-11)) : resolving ? 1u << (mode-8) : 0;
+    uint32_t stencil_resolve = mode >= 12 && mode <= 14;
+    uint32_t resolving = mode >= 8 && mode <= 14, resolve_mode = stencil_resolve ? (mode == 12 ? 1 : 1u << (mode-11)) : resolving ? 1u << (mode-8) : 0;
     FILE *file = NULL; void *code = NULL, *bs = NULL, *ss = NULL;
     ogpu_next_executable *pipeline = NULL, *bounded = NULL;
     ogpu_next_executable *probe = NULL; ogpu_next_query_pool *occlusion = NULL;
@@ -51,6 +52,11 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         1,&shader,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
     if (resolving) { gs.samples = 4; options.sample_mask = 3; }
+    if (mode == 15) { ed.dynamic_state |= OGPU_NEXT_DYNAMIC_DEPTH_TEST; gs.depth_test = UINT32_MAX; }
+    if (mode == 16) { ed.dynamic_state |= OGPU_NEXT_DYNAMIC_DEPTH_WRITE; gs.depth_write = UINT32_MAX; }
+    if (mode == 17) { ed.dynamic_state |= OGPU_NEXT_DYNAMIC_DEPTH_COMPARE; gs.depth_compare = UINT32_MAX; }
+    if (mode == 18) { ed.dynamic_state |= OGPU_NEXT_DYNAMIC_CULL; gs.cull = UINT32_MAX; }
+    if (mode == 19) { ed.dynamic_state |= OGPU_NEXT_DYNAMIC_FRONT_FACE; gs.front_face = UINT32_MAX; gs.cull = OGPU_NEXT_CULL_FRONT; }
     if (stencil_resolve) {
         gs.depth_format = OGPU_NEXT_D32_FLOAT_S8_UINT; gs.stencil_test = 1;
         gs.stencil_front = (ogpu_next_stencil_state){OGPU_NEXT_STENCIL_KEEP,OGPU_NEXT_STENCIL_REPLACE,
@@ -145,6 +151,11 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     for (uint32_t half = 0; half < 2; ++half) {
         vp.scissor_x = half ? (mode == 0 ? 0 : 4) : 0; vp.scissor_width = half && mode == 0 ? 8 : 4;
         if (resolving) { vp.scissor_x = 0; vp.scissor_width = 8; ogpu_next_bind_executable(encoder,half ? bounded : pipeline); }
+        if (mode == 15) ogpu_next_set_depth_test(encoder,half);
+        if (mode == 16) ogpu_next_set_depth_write(encoder,half);
+        if (mode == 17) ogpu_next_set_depth_compare(encoder,half ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_NEVER);
+        if (mode == 18) ogpu_next_set_cull(encoder,half ? OGPU_NEXT_CULL_NONE : OGPU_NEXT_CULL_BOTH);
+        if (mode == 19) ogpu_next_set_front_face(encoder,half ? OGPU_NEXT_FRONT_CCW : OGPU_NEXT_FRONT_CW);
         ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_VERTEX,0,address+half*32);
         ogpu_next_draw(encoder,&draw);
     }
@@ -208,6 +219,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
             if (mode == 3 && expected <= 0.5f) expected = depths[2];
             if (mode == 4) expected += 0.0625f;
             if (mode == 5) expected -= 0.0625f;
+            if (mode >= 15 && mode <= 19 && x < 4) expected = 1;
             if (mode == 6) REQUIRE(actual > expected && actual < expected+0.001f);
             else {
                 if (actual != expected) fprintf(stderr,"depth mode %u replay %u layer %u (%u,%u): %g != %g\n",mode,replay,layer,x,y,actual,expected);

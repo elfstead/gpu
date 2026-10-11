@@ -168,6 +168,13 @@ driver afresh without OGPU allocation, waits or pressure policy. Radeon and llvm
 pass native sampling; no immediate allocation-delta or guaranteed-free-memory claim
 is made. Broader graphics/numerical profiles and compiler/consumer/SDK cutover remain.
 
+Dynamic depth test/write/compare, stencil test/operations and cull/front-face now
+map to independent native preparation bits and direct setters. No pipeline variants,
+state restoration or per-draw validation walk are introduced. Depth readback and
+stencil raster/secondary consumers verify changed states on both local drivers;
+unused static fields and malformed setters are checked separately. Broader dynamic
+vertex input, sample/tile-local profiles and the migration remain outstanding.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

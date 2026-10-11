@@ -517,6 +517,35 @@ checks all sixteen combinations and rejects unknown/missing-required bits before
 native creation call. Nonfinite blend execution and genuinely different front/back
 face values are not verified by this fixture.
 
+Depth-test enable, depth-write enable, depth compare, stencil-test enable,
+stencil operations, culling and front face now add seven independent dynamic bits.
+Their setters are single native commands from the modern
+[core dynamic-state profile](https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_extended_dynamic_state.html),
+not extension emulation or a pipeline cache. Dynamic stencil operations select
+front/back faces and do not change reference or either mask. Booleans and enums
+are validated before recording; malformed setters poison the list through the
+existing error path. The caller still initializes every state needed at draw time.
+
+Preparation ignores the corresponding static fields, including out-of-range
+placeholder values; only the ignored cold-path fields are replaced with valid
+native placeholders. Static fields continue to be checked. Required viewport/
+scissor remains unchanged, and topology is still static in this profile.
+
+Five new D32 readback cases distinguish disabled depth testing, disabled writes,
+NEVER/ALWAYS comparisons, BOTH/NONE culling and opposite front-face orientations
+within a single prepared pipeline, over changed-root replay. Stencil-test and
+operation profiles run independently and combined with the prior dynamic masks,
+including inherited-rendering secondaries, static/dynamic rebind ordering, KEEP/
+REPLACE and EQUAL rejection. Both drivers pass. Preparation tests capture each new
+native bit and the combined profile with intentionally invalid ignored fields;
+the C consumer rejects invalid enable, enum, face and stencil-operation values.
+
+All 88 ordinary tests and 16 foundation GPU tests per driver pass, alongside full C
+regression (the known llvmpipe combined-plane-copy exclusion remains), Clippy,
+strict C/C++ headers, 944 ABI values and generated bindings. These tests do not
+establish all stencil operations, asymmetric per-face operations, dynamic topology,
+dynamic vertex input or tile-local profiles. Installed ABI 20 and Metal are unchanged.
+
 Vertex and fragment interfaces describe the same byte namespace, with root slots
 visible to either or both stages. Compute and graphics pipeline binds are independent,
 but push bytes are shared even across those bind points: callers own compatible
@@ -559,7 +588,7 @@ when both are supplied they name the same view and layout. Combined layout barri
 cover both aspects. Draw-time read-only permissions remain caller obligations, not
 per-draw state reconstruction. No separate depth/stencil layouts are enabled.
 
-Dynamic stencil operations/test enabling, depth/stencil resolves, custom sample positions,
+Custom sample positions,
 dynamic vertex input/stride and additional
 stages, list restart, richer dynamic state and tile-local dependencies
 remain work. Unsupported requested state

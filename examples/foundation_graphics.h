@@ -1,5 +1,14 @@
 /* Offscreen public-C consumer. No old ABI helpers or implicit attachment policy. */
 static void graphics_stencil_values(ogpu_next_encoder *encoder, uint64_t mask, uint32_t reference, uint32_t write_mask) {
+    if (mask & OGPU_NEXT_DYNAMIC_STENCIL_TEST) ogpu_next_set_stencil_test(encoder,1);
+    if (mask & OGPU_NEXT_DYNAMIC_STENCIL_OPS) {
+        ogpu_next_set_stencil_ops(encoder,OGPU_NEXT_FACE_FRONT,OGPU_NEXT_STENCIL_KEEP,
+            write_mask ? OGPU_NEXT_STENCIL_REPLACE : OGPU_NEXT_STENCIL_KEEP,
+            OGPU_NEXT_STENCIL_KEEP,write_mask ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_EQUAL);
+        ogpu_next_set_stencil_ops(encoder,OGPU_NEXT_FACE_BACK,OGPU_NEXT_STENCIL_KEEP,
+            write_mask ? OGPU_NEXT_STENCIL_REPLACE : OGPU_NEXT_STENCIL_KEEP,
+            OGPU_NEXT_STENCIL_KEEP,write_mask ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_EQUAL);
+    }
     if (mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE) {
         ogpu_next_set_stencil_reference(encoder,OGPU_NEXT_FACE_FRONT,reference);
         ogpu_next_set_stencil_reference(encoder,OGPU_NEXT_FACE_BACK,reference);
@@ -102,7 +111,8 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         bindings[1].binding = 4;
     }
     gs.stencil_test = 1;
-    REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
+    if (!(dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_TEST))
+        REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
     gs.stencil_test = stencil_enabled;
     if (stencil_enabled) {
         gs.depth_format = OGPU_NEXT_D32_FLOAT_S8_UINT;
@@ -110,12 +120,14 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
             OGPU_NEXT_STENCIL_KEEP, OGPU_NEXT_COMPARE_ALWAYS, 255, 255, 1};
         gs.stencil_back = gs.stencil_front;
         gs.stencil_back.fail = 8;
-        REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
+        if (!(dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_OPS))
+            REQUIRE(ogpu_next_executable_create(device, &ed, &pipelines[0]) == OGPU_NEXT_INVALID && pipelines[0] == NULL);
         gs.stencil_back.fail = OGPU_NEXT_STENCIL_KEEP;
         /* Deliberately unusable static values: selected dynamic fields must ignore them. */
         if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE) gs.stencil_front.reference = gs.stencil_back.reference = 77;
         if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_COMPARE_MASK) gs.stencil_front.compare_mask = gs.stencil_back.compare_mask = 0;
         if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_WRITE_MASK) gs.stencil_front.write_mask = gs.stencil_back.write_mask = 0;
+        if (dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_TEST) gs.stencil_test = 0;
     }
     REQUIRE(prepare_with_compile_policy(device, &ed, &pipelines[0]) == EXIT_SUCCESS);
     if (dynamic_mask) {
@@ -589,12 +601,20 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     if (stencil_enabled) printf("Stencil passes: clear/load, depth-fail KEEP, REPLACE references, EQUAL rejection and replay%s.\n", read_planes ? ", separate depth/stencil plane readback" : " (raster-only diagnostic; plane copies NOT tested)");
     if (vertex_fetch) printf("Vertex fetch passes: sparse binding IDs, batched address binding, padded records, per-instance rate, nonzero direct first-instance, indexed/indirect draws and changed-instance replay.\n");
     if (indirect_first) printf("Indirect first-instance passes: GPU-written nonzero base selects valid instance data in all four variants; zero-base poison would fail depth, including changed-input replay.\n");
-    for (uint32_t bad = 0; bad < 4; ++bad) {
+    for (uint32_t bad = 0; bad < 15; ++bad) {
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         if (bad == 0) ogpu_next_set_blend_constants(encoder,NULL);
         if (bad == 1) ogpu_next_set_stencil_reference(encoder,4,1);
         if (bad == 2) ogpu_next_set_stencil_compare_mask(encoder,4,255);
         if (bad == 3) ogpu_next_set_stencil_write_mask(encoder,4,255);
+        if (bad == 4) ogpu_next_set_depth_test(encoder,2);
+        if (bad == 5) ogpu_next_set_depth_write(encoder,2);
+        if (bad == 6) ogpu_next_set_depth_compare(encoder,8);
+        if (bad == 7) ogpu_next_set_stencil_test(encoder,2);
+        if (bad == 8) ogpu_next_set_cull(encoder,4);
+        if (bad == 9) ogpu_next_set_front_face(encoder,2);
+        if (bad >= 10) ogpu_next_set_stencil_ops(encoder,bad == 10 ? 4 : 3,
+            bad == 11 ? 8 : 0,bad == 12 ? 8 : 0,bad == 13 ? 8 : 0,bad == 14 ? 8 : 0);
         REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_INVALID && list == NULL);
     }
     if (dynamic_mask) printf("Dynamic graphics passes: mask %llu, ignored static values, per-draw updates, explicit static/dynamic bind ordering, secondary mode %u and replay%s.\n",(unsigned long long)dynamic_mask,secondary,dynamic_mask & OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE ? ", one reference pipeline for both rectangles" : "");

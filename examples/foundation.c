@@ -1053,6 +1053,8 @@ int main(int argc, char **argv) {
     for (uint32_t mode = 0; mode <= 6; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[15],7) == EXIT_SUCCESS);
+    for (uint32_t mode = 15; mode <= 19; ++mode)
+        REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     for (uint32_t mode = 8; mode < 15; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     for (uint32_t mode = 0; mode <= 30; ++mode)
@@ -1077,6 +1079,11 @@ int main(int argc, char **argv) {
     for (uint64_t mask = 2; mask <= 16; mask *= 2)
         REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,0,mask) == EXIT_SUCCESS);
     REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,2,30) == EXIT_SUCCESS);
+    for (uint32_t secondary = 0; secondary <= 2; secondary += 2) {
+        REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,secondary,256) == EXIT_SUCCESS);
+        REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,secondary,512) == EXIT_SUCCESS);
+        REQUIRE(graphics_execution_profile(device,memory_desc,graphics_domain,argv[3],argv[4],1,1,0,secondary,798) == EXIT_SUCCESS);
+    }
     if (features.enabled & OGPU_NEXT_FEATURE_INHERITED_QUERIES)
         REQUIRE(graphics_execution(device, memory_desc, graphics_domain, argv[3], argv[4], 1, 0, 0, 3) == EXIT_SUCCESS);
     else printf("Inherited query execution not exercised: feature unavailable.\n");

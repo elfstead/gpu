@@ -74,8 +74,9 @@ void ogpu_next_alias_activate(ogpu_next_encoder *, ogpu_next_image *, const ogpu
  * indexed/indirect/count draws, multisampling and color attachment resolves are imported
  * above, together with static vertex input and explicit address-span binding.
  * Dynamic blend constants and stencil reference/compare/write masks are imported.
+ * Dynamic depth test/write/compare, stencil test/ops and cull/front-face are imported.
  * Independent target blend/write state and indirect base instances are feature enabled.
- * Broader sample/dynamic-stencil-operations/dynamic-vertex-input/tile-local and
+ * Broader sample/dynamic-vertex-input/tile-local and
  * dynamic-state profiles remain to implement; no hidden dynamic-to-PSO JIT. */
 void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
 void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);

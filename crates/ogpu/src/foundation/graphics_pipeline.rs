@@ -121,7 +121,29 @@ pub(super) unsafe fn prepare(
         return Err(UNSUPPORTED);
     }
     let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
-    let state = unsafe { record::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
+    let mut state = unsafe { *record::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
+    // Native dynamic fields ignore their static counterparts. Sanitize only
+    // those ignored cold-path fields before ordinary validation/native creation.
+    for (bit, field) in [
+        (32, &mut state.depth_test),
+        (64, &mut state.depth_write),
+        (128, &mut state.depth_compare),
+        (256, &mut state.stencil_test),
+        (1024, &mut state.cull),
+        (2048, &mut state.front_face),
+    ] {
+        if desc.dynamic_state & bit != 0 {
+            *field = 0;
+        }
+    }
+    if desc.dynamic_state & 512 != 0 {
+        for stencil in [&mut state.stencil_front, &mut state.stencil_back] {
+            stencil.fail = 0;
+            stencil.pass = 0;
+            stencil.depth_fail = 0;
+            stencil.compare = 0;
+        }
+    }
     let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
     if req.features & !d.snapshot.features.enabled != 0 {
         return Err(UNSUPPORTED);
@@ -555,20 +577,22 @@ pub(super) unsafe fn prepare(
         blendConstants: state.blend_constants,
         ..Default::default()
     };
-    let mut dynamic_states = [
-        vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT,
-        vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR,
-        0,
-        0,
-        0,
-        0,
-    ];
+    let mut dynamic_states = [0; 13];
+    dynamic_states[0] = vk::VkDynamicState_VK_DYNAMIC_STATE_VIEWPORT;
+    dynamic_states[1] = vk::VkDynamicState_VK_DYNAMIC_STATE_SCISSOR;
     let mut dynamic_count = 2;
     for (mask, state) in [
         (2, vk::VkDynamicState_VK_DYNAMIC_STATE_BLEND_CONSTANTS),
         (4, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_REFERENCE),
         (8, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK),
         (16, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_WRITE_MASK),
+        (32, vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE),
+        (64, vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE),
+        (128, vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_COMPARE_OP),
+        (256, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE),
+        (512, vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP),
+        (1024, vk::VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE),
+        (2048, vk::VkDynamicState_VK_DYNAMIC_STATE_FRONT_FACE),
     ] {
         if desc.dynamic_state & mask != 0 {
             dynamic_states[dynamic_count] = state;

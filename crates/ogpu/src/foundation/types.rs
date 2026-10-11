@@ -274,6 +274,7 @@ pub struct StencilState {
     pub reference: u32,
 }
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct GraphicsState {
     pub header: Record,
     pub topology: u32,

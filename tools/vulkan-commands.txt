@@ -63,6 +63,13 @@ vkCreateGraphicsPipelines
 vkCmdSetViewport
 vkCmdSetScissor
 vkCmdSetBlendConstants
+vkCmdSetDepthTestEnable
+vkCmdSetDepthWriteEnable
+vkCmdSetDepthCompareOp
+vkCmdSetStencilTestEnable
+vkCmdSetStencilOp
+vkCmdSetCullMode
+vkCmdSetFrontFace
 vkCmdSetStencilReference
 vkCmdSetStencilCompareMask
 vkCmdSetStencilWriteMask

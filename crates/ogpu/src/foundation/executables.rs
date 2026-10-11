@@ -583,6 +583,13 @@ mod tests {
                 vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_REFERENCE => 4,
                 vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK => 8,
                 vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_WRITE_MASK => 16,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE => 32,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE => 64,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_DEPTH_COMPARE_OP => 128,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE => 256,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_STENCIL_OP => 512,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_CULL_MODE => 1024,
+                vk::VkDynamicState_VK_DYNAMIC_STATE_FRONT_FACE => 2048,
                 _ => u64::MAX,
             };
         }
@@ -788,9 +795,34 @@ mod tests {
             }
             FAILURE.set(0);
             desc.compile_flags = 0;
-            // All combinations of the independently selectable native states.
-            for optional in 0..16 {
-                desc.dynamic_state = 1 | (optional << 1);
+            // Old combinations, each new independent bit, and the combined profile.
+            for selected in (0..16)
+                .map(|v| 1 | (v << 1))
+                .chain([33, 65, 129, 257, 513, 1025, 2049, 4095])
+            {
+                desc.dynamic_state = selected;
+                let mut ignored = state;
+                for (bit, field) in [
+                    (32, &mut ignored.depth_test),
+                    (64, &mut ignored.depth_write),
+                    (128, &mut ignored.depth_compare),
+                    (256, &mut ignored.stencil_test),
+                    (1024, &mut ignored.cull),
+                    (2048, &mut ignored.front_face),
+                ] {
+                    if selected & bit != 0 {
+                        *field = u32::MAX;
+                    }
+                }
+                if selected & 512 != 0 {
+                    for s in [&mut ignored.stencil_front, &mut ignored.stencil_back] {
+                        s.fail = u32::MAX;
+                        s.pass = u32::MAX;
+                        s.depth_fail = u32::MAX;
+                        s.compare = u32::MAX;
+                    }
+                }
+                desc.static_state = &ignored.header;
                 let mut out = ptr::null_mut();
                 DYNAMIC_MASK.set(u64::MAX);
                 assert_eq!(
@@ -801,7 +833,8 @@ mod tests {
                 assert_eq!(DYNAMIC_COUNT.get(), desc.dynamic_state.count_ones() + 1);
                 unsafe { ogpu_next_executable_destroy(out) };
             }
-            for unsupported in [0, 2, 33, u64::MAX] {
+            desc.static_state = &state.header;
+            for unsupported in [0, 2, 4097, u64::MAX] {
                 desc.dynamic_state = unsupported;
                 let mut out = ptr::dangling_mut();
                 DYNAMIC_MASK.set(0);

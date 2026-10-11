@@ -835,3 +835,56 @@ pub unsafe extern "C" fn ogpu_next_blit_image(
         });
     }
 }
+/// # Safety
+/// Live exclusive encoder; caller initializes dynamic state and obeys native lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_test(encoder: *mut List, value: u32) {
+    unsafe { encode(encoder, |e| e.dynamic_raster_value(32, value)) };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes dynamic state and obeys native lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_write(encoder: *mut List, value: u32) {
+    unsafe { encode(encoder, |e| e.dynamic_raster_value(64, value)) };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes dynamic state and obeys native lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_depth_compare(encoder: *mut List, value: u32) {
+    unsafe { encode(encoder, |e| e.dynamic_raster_value(128, value)) };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes dynamic state and obeys native lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_stencil_test(encoder: *mut List, value: u32) {
+    unsafe { encode(encoder, |e| e.dynamic_raster_value(256, value)) };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes dynamic state and obeys native lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_cull(encoder: *mut List, value: u32) {
+    unsafe { encode(encoder, |e| e.dynamic_raster_value(1024, value)) };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes dynamic state and obeys native lifetime rules.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_front_face(encoder: *mut List, value: u32) {
+    unsafe { encode(encoder, |e| e.dynamic_raster_value(2048, value)) };
+}
+/// # Safety
+/// Live exclusive encoder; caller initializes every required stencil face.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_stencil_ops(
+    encoder: *mut List,
+    faces: u32,
+    fail: u32,
+    pass: u32,
+    depth_fail: u32,
+    compare: u32,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.stencil_ops(faces, fail, pass, depth_fail, compare)
+        })
+    };
+}

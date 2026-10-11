@@ -10263,6 +10263,34 @@ pub type PFN_vkCmdBeginRendering = ::std::option::Option<
 pub type PFN_vkCmdEndRendering = ::std::option::Option<
     unsafe extern "C" fn(commandBuffer: VkCommandBuffer),
 >;
+pub type PFN_vkCmdSetCullMode = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, cullMode: VkCullModeFlags),
+>;
+pub type PFN_vkCmdSetFrontFace = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, frontFace: VkFrontFace),
+>;
+pub type PFN_vkCmdSetDepthTestEnable = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthTestEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetDepthWriteEnable = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthWriteEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetDepthCompareOp = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, depthCompareOp: VkCompareOp),
+>;
+pub type PFN_vkCmdSetStencilTestEnable = ::std::option::Option<
+    unsafe extern "C" fn(commandBuffer: VkCommandBuffer, stencilTestEnable: VkBool32),
+>;
+pub type PFN_vkCmdSetStencilOp = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        faceMask: VkStencilFaceFlags,
+        failOp: VkStencilOp,
+        passOp: VkStencilOp,
+        depthFailOp: VkStencilOp,
+        compareOp: VkCompareOp,
+    ),
+>;
 pub type VkPipelineCreateFlags2 = VkFlags64;
 pub type VkPipelineCreateFlagBits2 = VkFlags64;
 pub const VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT: VkPipelineCreateFlagBits2 = 256;

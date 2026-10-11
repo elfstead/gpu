@@ -1008,6 +1008,46 @@ impl List {
         self.viewport_set.set(true);
         Ok(())
     }
+    pub(in crate::foundation) fn dynamic_raster_value(
+        &self,
+        field: u32,
+        value: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        let (max, command) = match field {
+            32 => (1, d.f.vkCmdSetDepthTestEnable),
+            64 => (1, d.f.vkCmdSetDepthWriteEnable),
+            128 => (7, d.f.vkCmdSetDepthCompareOp),
+            256 => (1, d.f.vkCmdSetStencilTestEnable),
+            1024 => (3, d.f.vkCmdSetCullMode),
+            2048 => (1, d.f.vkCmdSetFrontFace),
+            _ => return Err(INVALID),
+        };
+        if value > max {
+            return Err(INVALID);
+        }
+        unsafe { command.unwrap()(self.command, value) };
+        Ok(())
+    }
+    pub(in crate::foundation) fn stencil_ops(
+        &self,
+        faces: u32,
+        fail: u32,
+        pass: u32,
+        depth_fail: u32,
+        compare: u32,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        stages(d, self.domain, 24, false)?;
+        if faces & !3 != 0 || [fail, pass, depth_fail, compare].iter().any(|&v| v > 7) {
+            return Err(INVALID);
+        }
+        unsafe {
+            (d.f.vkCmdSetStencilOp.unwrap())(self.command, faces, fail, pass, depth_fail, compare)
+        };
+        Ok(())
+    }
     pub(in crate::foundation) fn queries_reset(
         &self,
         pool: &QueryPool,
