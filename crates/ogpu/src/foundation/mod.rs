@@ -36,6 +36,7 @@ struct Snapshot {
     queues: Vec<QueueInfo>,
     memory_types: Vec<MemoryTypeInfo>,
     memory_heaps: Vec<MemoryHeapInfo>,
+    memory_budget_supported: bool,
     memory_limits: MemoryLimits,
     descriptor_limits: DescriptorLimits,
     execution_limits: ExecutionLimits,
@@ -256,6 +257,15 @@ pub unsafe extern "C" fn ogpu_next_device_query(
     query: *mut Query,
 ) -> Status {
     boundary(|| unsafe { device.as_ref().ok_or(INVALID)?.snapshot.query(query) })
+}
+/// # Safety
+/// Live device and trusted query/output storage; explicit live sampling, not a snapshot query.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_memory_budget_query(
+    device: *const Device,
+    query: *mut Query,
+) -> Status {
+    boundary(|| unsafe { device.as_ref().ok_or(INVALID)?.memory_budget_query(query) })
 }
 /// # Safety
 /// Device is null or live. Returned queue is borrowed; see include/ogpu_next.h.

@@ -27,6 +27,7 @@ fn fixture() -> Snapshot {
         ],
         memory_types: vec![],
         memory_heaps: vec![],
+        memory_budget_supported: false,
         features: FeatureInfo::default(),
         memory_limits: MemoryLimits::default(),
         descriptor_limits: DescriptorLimits::default(),
@@ -405,6 +406,43 @@ fn gpu_foundation_setup() {
                     OK
                 );
                 assert_eq!(enabled_info[0].enabled, enabled);
+                let mut budget_query = query::<MemoryBudget>(MEMORY_BUDGETS, &mut []);
+                budget_query.data = ptr::null_mut();
+                assert_eq!(
+                    ogpu_next_device_query(device, &mut budget_query),
+                    UNSUPPORTED
+                );
+                assert_eq!(
+                    ogpu_next_adapter_query(adapter, &mut budget_query),
+                    UNSUPPORTED
+                );
+                assert_eq!(budget_query.count, 91);
+                let budget_status = ogpu_next_memory_budget_query(device, &mut budget_query);
+                if (*device).snapshot.memory_budget_supported {
+                    assert_eq!(budget_status, OK);
+                    assert_eq!(
+                        budget_query.count as usize,
+                        (*device).snapshot.memory_heaps.len()
+                    );
+                    let mut budgets = vec![MemoryBudget::default(); budget_query.count as usize];
+                    for _ in 0..2 {
+                        assert_eq!(
+                            ogpu_next_memory_budget_query(
+                                device,
+                                &mut query(MEMORY_BUDGETS, &mut budgets)
+                            ),
+                            OK
+                        );
+                        for (b, heap) in budgets.iter().zip(&(*device).snapshot.memory_heaps) {
+                            assert_eq!(b.heap, heap.id);
+                            assert_eq!(b.reserved, 0);
+                            assert!(b.budget > 0 && b.budget <= heap.size);
+                        }
+                    }
+                } else {
+                    assert_eq!(budget_status, UNSUPPORTED);
+                    assert_eq!(budget_query.count, 91);
+                }
                 let mut device_float = [FloatControls::default()];
                 assert_eq!(
                     ogpu_next_device_query(device, &mut query(FLOAT_CONTROLS, &mut device_float)),
@@ -455,6 +493,19 @@ fn gpu_foundation_setup() {
                 std::thread::scope(|scope| {
                     for _ in 0..4 {
                         scope.spawn(move || {
+                            let mut budgets =
+                                vec![MemoryBudget::default(); d.snapshot.memory_heaps.len()];
+                            assert_eq!(
+                                ogpu_next_memory_budget_query(
+                                    d,
+                                    &mut query(MEMORY_BUDGETS, &mut budgets)
+                                ),
+                                if d.snapshot.memory_budget_supported {
+                                    OK
+                                } else {
+                                    UNSUPPORTED
+                                }
+                            );
                             let mut t = ptr::null_mut();
                             assert_eq!(
                                 ogpu_next_timeline_create(ptr::from_ref(d).cast_mut(), 7, &mut t),

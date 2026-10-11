@@ -7043,6 +7043,41 @@ impl Default for VkPhysicalDeviceProperties2 {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMemoryProperties2 {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub memoryProperties: VkPhysicalDeviceMemoryProperties,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMemoryProperties2",
+    ][::std::mem::size_of::<VkPhysicalDeviceMemoryProperties2>() - 536usize];
+    [
+        "Alignment of VkPhysicalDeviceMemoryProperties2",
+    ][::std::mem::align_of::<VkPhysicalDeviceMemoryProperties2>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties2::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties2, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties2::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties2, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryProperties2::memoryProperties",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryProperties2, memoryProperties)
+        - 16usize];
+};
+impl Default for VkPhysicalDeviceMemoryProperties2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkImageViewUsageCreateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -7271,6 +7306,12 @@ pub type PFN_vkGetPhysicalDeviceProperties2 = ::std::option::Option<
     unsafe extern "C" fn(
         physicalDevice: VkPhysicalDevice,
         pProperties: *mut VkPhysicalDeviceProperties2,
+    ),
+>;
+pub type PFN_vkGetPhysicalDeviceMemoryProperties2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pMemoryProperties: *mut VkPhysicalDeviceMemoryProperties2,
     ),
 >;
 pub type PFN_vkTrimCommandPool = ::std::option::Option<
@@ -11849,6 +11890,46 @@ pub type PFN_vkCmdPushDataEXT = ::std::option::Option<
         pPushDataInfo: *const VkPushDataInfoEXT,
     ),
 >;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMemoryBudgetPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub heapBudget: [VkDeviceSize; 16usize],
+    pub heapUsage: [VkDeviceSize; 16usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMemoryBudgetPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceMemoryBudgetPropertiesEXT>() - 272usize];
+    [
+        "Alignment of VkPhysicalDeviceMemoryBudgetPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceMemoryBudgetPropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryBudgetPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryBudgetPropertiesEXT, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryBudgetPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryBudgetPropertiesEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryBudgetPropertiesEXT::heapBudget",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryBudgetPropertiesEXT, heapBudget)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceMemoryBudgetPropertiesEXT::heapUsage",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMemoryBudgetPropertiesEXT, heapUsage)
+        - 144usize];
+};
+impl Default for VkPhysicalDeviceMemoryBudgetPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderAtomicFloatFeaturesEXT {

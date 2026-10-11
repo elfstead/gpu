@@ -46,6 +46,42 @@ than treating every signaled value as whole-list completion; see
 
 ## Implemented backing and ranges
 
+### Explicit live budget estimates
+
+`ogpu_next_memory_budget_query` returns one budget/usage record per physical heap,
+with IDs matching immutable heap discovery. It is a separate live operation, not
+silently refreshed state in adapter/device snapshot queries. A full-capacity call
+samples native memory properties afresh; count-only and short-capacity calls use
+the immutable heap count without a native sample. There is no OGPU allocation,
+background polling, GPU wait, automatic eviction or memory-placement policy.
+
+The native [memory budget contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceMemoryBudgetPropertiesEXT.html)
+reports a process-level pressure guideline and estimated allocation usage, not
+guaranteed additional free bytes. Estimates may include other libraries/devices,
+lag allocation changes, and change because of unrelated system activity. Usage
+may exceed budget and is returned unchanged. The runtime does not subtract or clamp
+the values. Native budget-query availability is cached during discovery; no optional
+execution-feature enabling is needed. Unsupported backends report `UNSUPPORTED`
+without replacing estimates with physical heap size or an internal allocation counter.
+
+Queries retain the existing version/size/count/capacity contract. Short capacity
+changes only the required count; other failures preserve caller outputs. Native
+heap-count/budget consistency is checked before copying any record. Known terminal
+device loss stops the query without a native call. Unit tests cover live resampling,
+over-budget usage, malformed records, count/short-capacity avoidance, native-error
+output preservation and untouched array tails. Four concurrent host workers query
+the same device alongside independent timeline operations.
+
+Radeon 26.2.4 returns three heaps and llvmpipe 26.2.1 one; native sampling passes
+with no optional features enabled as well as with the broader profiles enabled.
+The C consumer repeats samples before/after allocation without assuming an immediate
+or monotonic usage delta. This does not establish behavior under actual memory
+pressure or allocation failure. All 16 foundation GPU tests pass on both drivers;
+88 ordinary tests, Clippy, strict C/C++ headers, 944 ABI values and binding reproduction
+pass. Full C regression retains the documented llvmpipe stencil-copy exclusion.
+
+### Backing and mapped ranges
+
 The next header also implements explicit linear/opaque allocations, compatible
 memory-type/size/alignment requirements, non-owning 64-bit spans, GPU addresses,
 persistent mappings, and range flush/invalidate. Callers choose the exact memory

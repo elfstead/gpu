@@ -82,6 +82,7 @@ static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint3
 
 static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_heap.h"
+#include "foundation_budget.h"
 #include "foundation_cache.h"
 #include "foundation_graphics.h"
 #include "foundation_numerics.h"
@@ -964,6 +965,7 @@ int main(int argc, char **argv) {
     }
     REQUIRE(device != NULL); /* No suitable adapter is a failure, not a passing skip. */
     REQUIRE(matrix_discovery(device) == EXIT_SUCCESS);
+    REQUIRE(budget_query(device) == EXIT_SUCCESS);
     ogpu_next_discovery_destroy(discovery); discovery = NULL;
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
@@ -1001,6 +1003,7 @@ int main(int argc, char **argv) {
     }
     REQUIRE(memory_desc.memory_type != UINT32_MAX);
     TRY(ogpu_next_memory_create(device, &memory_desc, &memory));
+    REQUIRE(budget_query(device) == EXIT_SUCCESS);
     ogpu_next_span all = {memory, 0, memory_desc.size}, part = {memory, 257, 17};
     uint64_t base = 0, address = 0;
     TRY(ogpu_next_memory_address(all, &base)); REQUIRE(base % memory_desc.alignment == 0);

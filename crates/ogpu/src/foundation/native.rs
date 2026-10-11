@@ -9,6 +9,8 @@ mod float_controls;
 mod integer_dot;
 #[path = "matrices.rs"]
 mod matrices;
+#[path = "memory_budget.rs"]
+mod memory_budget;
 use super::{loader_error, Adapter, Snapshot};
 use crate::vulkan::Instance;
 use float_controls::float_snapshot;
@@ -74,6 +76,7 @@ macro_rules! functions {
 functions! {
     vkGetPhysicalDeviceQueueFamilyProperties: PFN_vkGetPhysicalDeviceQueueFamilyProperties,
     vkGetPhysicalDeviceMemoryProperties: PFN_vkGetPhysicalDeviceMemoryProperties,
+    vkGetPhysicalDeviceMemoryProperties2: PFN_vkGetPhysicalDeviceMemoryProperties2,
     vkGetPhysicalDeviceFeatures2: PFN_vkGetPhysicalDeviceFeatures2,
     vkGetPhysicalDeviceProperties2: PFN_vkGetPhysicalDeviceProperties2,
     vkCreateDevice: PFN_vkCreateDevice, vkDestroyDevice: PFN_vkDestroyDevice,
@@ -569,6 +572,9 @@ pub(super) fn snapshot(
         float_controls,
         matrix_tuples,
         integer_dot,
+        memory_budget_supported: instance
+            .supports_extension(physical, c"VK_EXT_memory_budget")
+            .map_err(loader_error)?,
         formats,
     })
 }
@@ -1053,6 +1059,25 @@ mod tests {
                     DEVICE_LOST
                 );
                 assert!(other.is_null());
+                d.f.vkGetPhysicalDeviceMemoryProperties2 = None;
+                let mut budgets = [MemoryBudget {
+                    budget: 7,
+                    ..Default::default()
+                }; 16];
+                let mut query = Query {
+                    header: Record::new::<Query>(MEMORY_BUDGETS),
+                    data: budgets.as_mut_ptr().cast(),
+                    capacity: 16,
+                    count: 91,
+                    element_size: size_of::<MemoryBudget>() as u32,
+                    reserved: 0,
+                };
+                assert_eq!(
+                    ogpu_next_memory_budget_query(device_pointer, &mut query),
+                    DEVICE_LOST
+                );
+                assert_eq!(query.count, 91);
+                assert!(budgets.iter().all(|b| b.budget == 7));
                 ogpu_next_timeline_destroy(t);
             }
             // The real device is idle/healthy; only the poll result was injected.

@@ -162,6 +162,12 @@ these optional features; FP16 atomic GPU execution remains unverified. The finit
 addition fixture keeps every possible partial sum exactly representable in half
 precision instead of assuming FP32's test magnitudes have the same rounding behavior.
 
+Live memory-budget/usage sampling now complements static heap discovery through an
+explicit cold-path query. Count/capacity probes do not sample; full calls ask the
+driver afresh without OGPU allocation, waits or pressure policy. Radeon and llvmpipe
+pass native sampling; no immediate allocation-delta or guaranteed-free-memory claim
+is made. Broader graphics/numerical profiles and compiler/consumer/SDK cutover remain.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

@@ -36,8 +36,8 @@ extern "C" {
  * tuples and independent cooperative-matrix/Vulkan-memory-model enabling are implemented.
  * Integer dot instructions and independent native acceleration hints are implemented;
  * packed signed/unsigned 4x8 execution is verified, not all wider/saturating forms.
- * Budget and
- * exact executable/state query records remain to be defined. */
+ * Explicit live per-heap budget/usage queries are implemented separately from
+ * immutable topology. Exact executable/state query records remain to be defined. */
 
 /* Backing, placed/dedicated images, views and explicit image transitions/copies
  * are now in the implemented header above. Broader format/feature profiles follow. */

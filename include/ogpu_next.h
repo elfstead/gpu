@@ -67,6 +67,7 @@ enum {
     OGPU_NEXT_QUERY_FLOAT_CONTROLS = 13,
     OGPU_NEXT_QUERY_MATRIX_TUPLES = 14,
     OGPU_NEXT_QUERY_INTEGER_DOT_INFO = 15,
+    OGPU_NEXT_QUERY_MEMORY_BUDGETS = 16, /* Only memory_budget_query, not immutable queries. */
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
@@ -119,6 +120,24 @@ typedef struct ogpu_next_memory_heap_info {
     uint64_t size; /* Physical heap size, NOT currently available budget. */
     uint32_t id, device_local;
 } ogpu_next_memory_heap_info;
+typedef struct ogpu_next_memory_budget {
+    uint64_t budget, usage;
+    uint32_t heap, reserved;
+} ogpu_next_memory_budget;
+/* Explicit live cold-path query: header kind QUERY_MEMORY_BUDGETS and element_size
+ * sizeof(memory_budget). Uses the usual count/capacity protocol; count-only and
+ * insufficient-capacity calls do not sample the driver. Full calls sample afresh.
+ * One record per physical heap, IDs matching QUERY_MEMORY_HEAPS. budget is an
+ * estimate of total process usage before pressure/performance degradation, NOT
+ * additional free bytes or an allocation guarantee. usage is estimated process
+ * allocation, may include other devices/libraries, and may exceed budget.
+ * Values can change asynchronously and need not track each allocation immediately.
+ * No optional feature enabling is required; UNSUPPORTED preserves count/data when
+ * the native budget query is unavailable. Static adapter/device queries do not
+ * accept this kind. CAPACITY changes only count; other failures preserve outputs.
+ * Safe concurrently with independent allocation/query operations on a live device;
+ * no OGPU allocation, polling, GPU wait, eviction or automatic OOM policy. */
+ogpu_next_status ogpu_next_memory_budget_query(const ogpu_next_device *, ogpu_next_query *);
 typedef struct ogpu_next_memory_limits {
     uint64_t max_buffer_size, max_allocation_size, cache_atom_size, map_alignment;
 } ogpu_next_memory_limits;

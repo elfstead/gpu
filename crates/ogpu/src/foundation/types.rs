@@ -88,6 +88,15 @@ pub const SHARED_FLOAT16_ATOMICS: u64 = 4503599627370496;
 pub const SHARED_FLOAT16_ATOMIC_ADD: u64 = 9007199254740992;
 pub const SHARED_FLOAT16_ATOMIC_MIN_MAX: u64 = 18014398509481984;
 pub const INTEGER_DOT_INFO: u32 = 15;
+pub const MEMORY_BUDGETS: u32 = 16;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct MemoryBudget {
+    pub budget: u64,
+    pub usage: u64,
+    pub heap: u32,
+    pub reserved: u32,
+}
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct IntegerDotInfo {
