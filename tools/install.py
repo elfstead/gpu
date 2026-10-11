@@ -19,7 +19,7 @@ def run(*args, **kwargs):
     return subprocess.run(args, check=True, text=True, **kwargs)
 
 
-def install(prefix):
+def install(prefix, foundation=False):
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise ValueError("this installer currently supports native Linux x86-64 only")
     prefix = prefix.absolute()
@@ -72,6 +72,8 @@ def install(prefix):
 
     copy(libraries[0], "lib/libogpu.so")
     copy(ROOT / "include/ogpu.h", "include/ogpu.h")
+    if foundation:
+        copy(ROOT / "include/ogpu_next.h", "include/ogpu_next.h")
     copy(ROOT / "LICENSE", "share/ogpu/licenses/ogpu-MIT.txt")
     copy(ROOT / "crates/vulkan-sys/LICENSE-KHRONOS", "share/ogpu/licenses/Vulkan-Headers-MIT.txt")
     dependency_record = []
@@ -148,7 +150,7 @@ def install(prefix):
     copy(ROOT / "examples/compiler/affine.c", "share/ogpu/examples/dependencies/main.c")
     copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/dependencies/build.py")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
-    for name in ("release-policy.md", "support.md"):
+    for name in ("release-policy.md", "support.md", "foundation-quickstart.md"):
         copy(ROOT / "docs" / name, f"share/ogpu/{name}")
     # Keep the measured consumer's relative source graph intact. Only the public
     # branch is built; no Vulkan headers/native backend, checkout or target assets.
@@ -164,6 +166,25 @@ def install(prefix):
              f"{reuse}/{name}.generated.h")
     for name in ("reference.py", "model.json"):
         copy(ROOT / "examples/learned_image" / name, f"{reuse}/{name}")
+    if foundation:
+        # Explicit preview opt-in; never silently replace the ABI-20 consumer.
+        for label, files in {
+            "foundation-compute": [("examples/compiler/foundation.c","main.c"),
+                ("examples/compiler/transform.slang","transform.slang"),
+                ("examples/compiler/foundation.generated.h","foundation.generated.h")],
+            "foundation-graphics": [("examples/compiler/foundation_graphics.c","main.c"),
+                ("examples/compiler/stage_vertex.slang","stage_vertex.slang"),
+                ("examples/compiler/stage_fragment.slang","stage_fragment.slang"),
+                ("examples/compiler/foundation-pattern.generated.h","foundation-pattern.generated.h")],
+            "foundation-learned-image": [("examples/learned_image/foundation.c","main.c"),
+                *[("examples/learned_image/"+n,n) for n in ("extent.h","foundation_timing.h","reference.py","model.json")],
+                *[(f"examples/learned_image/generated-foundation/{n}.generated.h",f"{n}.generated.h")
+                  for n in ("application","hidden","denoise","process","poison","fullscreen","display")],
+                ("tools/sdk/foundation/run.py","run.py")],
+        }.items():
+            for source,destination in files:
+                copy(ROOT / source,f"share/ogpu/examples/{label}/{destination}")
+            copy(ROOT / "tools/sdk/foundation/build.py",f"share/ogpu/examples/{label}/build.py")
     pc = staging / "lib/pkgconfig/ogpu.pc"
     pc.parent.mkdir(parents=True, exist_ok=True)
     pc.write_text("prefix=${pcfiledir}/../..\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n"
@@ -171,6 +192,17 @@ def install(prefix):
                   "Name: ogpu\nDescription: Experimental open GPU runtime (revision-pinned)\n"
                   f"Version: {package['version']}\n"
                   'Libs: -L"${libdir}" -logpu\nCflags: -I"${includedir}"\n')
+    foundation_revision = None
+    if foundation:
+        match = re.search(r"#define OGPU_NEXT_VERSION (\d+)u",(ROOT / "include/ogpu_next.h").read_text())
+        if not match: raise ValueError("missing foundation revision")
+        foundation_revision = int(match[1])
+        (pc.parent / "ogpu-foundation.pc").write_text(
+            "prefix=${pcfiledir}/../..\nlibdir=${prefix}/lib\nincludedir=${prefix}/include\n"
+            f"ogpu_revision={revision}\nogpu_foundation={foundation_revision}\n"
+            "Name: ogpu-foundation\nDescription: Experimental revision-pinned foundation preview\n"
+            f"Version: {package['version']}\n"
+            'Libs: -L"${libdir}" -logpu\nCflags: -I"${includedir}"\n')
     files = {str(p.relative_to(staging)): hashlib.sha256(p.read_bytes()).hexdigest()
              for p in sorted(staging.rglob("*")) if p.is_file()}
     manifest = dict(schema=1, revision=revision, source_dirty=dirty, abi=int(abi[1]),
@@ -179,6 +211,7 @@ def install(prefix):
                     dependencies=dependency_record, files_sha256=files,
                     compatibility="Match header/library/artifacts from one revision; no stable ABI promise.",
                     binary_scope="Locally built; host libc/toolchain dependencies are not bundled.")
+    if foundation: manifest["foundation"] = dict(revision=foundation_revision,compatibility="Exact source revision only; mutable preview, not a stable ABI.")
     (staging / "share/ogpu/manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     # Check again before publishing. There is no overwrite mode.
     if prefix.exists() or prefix.is_symlink():
@@ -191,8 +224,10 @@ def install(prefix):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prefix", required=True, type=Path)
+    parser.add_argument("--foundation",action="store_true",help="also install the opt-in, revision-pinned foundation preview")
     try:
-        install(parser.parse_args().prefix)
+        args = parser.parse_args()
+        install(args.prefix,foundation=args.foundation)
     except subprocess.CalledProcessError as error:
         print(error.stdout or "", error.stderr or "", file=sys.stderr)
         raise

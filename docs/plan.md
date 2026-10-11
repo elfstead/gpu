@@ -217,8 +217,10 @@ Resident/end-to-end A/B/A reuse now also passes both drivers, including distinct
 resident lists and separate acceptance snapshots. Explicit timestamp resolve and
 serialized replay timing have a checked handoff; setup recording and per-frame
 host phases are separate. This is instrumentation validation, not a matched-native
-performance comparison. Next migrate source-consumer packaging and remaining
-workflows, then finish consumer/SDK cutover and remove old Vulkan policy weight.
+performance comparison. An opt-in preview exports the implemented header and
+compute, graphics and learned-image consumers through a separate pkg-config entry;
+the default SDK remains ABI 20. Next migrate remaining application workflows and
+substantial adapters, then finish consumer/SDK cutover and remove old Vulkan policy weight.
 Metal is not covered; the installed runtime remains a migration control, not a
 foundation fallback.
 

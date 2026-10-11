@@ -14,8 +14,9 @@ spec.loader.exec_module(installer)
 class InstallerTests(unittest.TestCase):
     def reject(self, prefix):
         with patch.object(installer, "run", side_effect=AssertionError("must not launch a build")):
-            with self.assertRaises(ValueError):
-                installer.install(prefix)
+            for preview in (False,True):
+                with self.subTest(foundation=preview),self.assertRaises(ValueError):
+                    installer.install(prefix,foundation=preview)
 
     def test_existing_directory(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -7,6 +7,10 @@ approval is needed. Pin a source revision; this is not a stable release or ABI.
 Read the [upgrade/rollback policy](release-policy.md) and [support matrix](support.md)
 before adopting another revision. Both are included in the installed SDK.
 
+This page covers the default ABI-20 SDK. The next explicit foundation can be
+exported separately with `--foundation`; see the [opt-in preview](foundation-quickstart.md).
+It requires exact commit matching and does not stabilize or replace the default SDK.
+
 ## Requirements
 
 - To build/install the runtime: Git, Rust/Cargo, the native linker and Python 3

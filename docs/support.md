@@ -1,8 +1,13 @@
 # Current support boundary
 
-Updated 2026-10-05; experimental C ABI 19. Pin a full source revision. This table
+Updated 2026-10-11; default experimental C ABI 20. Pin a full source revision. This table
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
+
+This table covers the default runtime. The separately named
+[foundation preview](foundation-quickstart.md) exports the implemented next
+contract on Linux/Vulkan only, with opt-in packaging and exact commit matching.
+Its replay/query capabilities do not upgrade ABI-20 or Metal support in this table.
 
 | Area | Linux x86-64 / Vulkan | macOS arm64 / Metal |
 |---|---|---|

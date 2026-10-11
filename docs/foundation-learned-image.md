@@ -1,7 +1,7 @@
 # Learned-image application on the explicit foundation
 
-Local migration checkpoint, 2026-10-11. Source-only `ogpu_next_*` on Vulkan;
-installed ABI 20 remains unchanged. This closes the first substantial mixed
+Local migration checkpoint, 2026-10-11. Experimental `ogpu_next_*` on Vulkan;
+default installed ABI 20 remains unchanged. This closes the first substantial mixed
 application migration, **not** the whole foundation revision or SDK cutover.
 
 ## What moved
@@ -86,11 +86,16 @@ outputs should be serialized.
   serves those existing benchmark/SDK workflows. It is not a runtime fallback or
   intended permanent second implementation. Remove its migration-only duplication
   when those workflows and the SDK move to the new contract.
-- GGML/libplacebo adapters, wider compiler capability metadata, SDK packaging and
+- GGML/libplacebo adapters, wider compiler capability metadata, default SDK cutover and
   remaining native feature profiles are still work. Native Metal execution of
   the new foundation is unverified; this checkpoint does not depend on a Mac.
 
-Next migrate source-consumer packaging and the remaining application workflows,
+An [opt-in preview](foundation-quickstart.md) now exports this caller and its model/
+independent scalar reference, alongside compute and graphics examples. It checks
+12 resident/end-to-end frames without a checkout, Cargo, Slang or preexisting
+fixtures. This does not migrate the whole installed SDK or remove the old runtime.
+
+Next migrate the remaining application workflows,
 then complete the remaining consumer/SDK cutover and retire the old Vulkan policy
 layer. Do not call the whole API complete merely because this application passes.
 

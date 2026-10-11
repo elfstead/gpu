@@ -1,10 +1,12 @@
 # Foundation revision: implementation status
 
 Started 2026-10-08, following the [whole-API design](whole-api-design.md).
-The source-only [next header](../include/ogpu_next.h) contains implemented Linux
+The experimental [next header](../include/ogpu_next.h) contains implemented Linux
 Vulkan declarations; the [combined sketch](drafts/ogpu_next.h) adds the remaining
-unimplemented surface. Neither is installed by the SDK yet. ABI 20 still owns the
-working examples/consumers. This is a migration boundary, not two permanent runtimes.
+unimplemented surface. The implemented header has an explicit opt-in
+[preview export](foundation-quickstart.md); the sketch is never installed. ABI 20
+still owns the default SDK and most consumers. This is a migration boundary, not
+two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
 ## Implemented setup
 

@@ -11,6 +11,11 @@ profile, compiler, dependency licenses and file hashes identify the SDK contents
 Hashes detect accidental mismatch; the local manifest is not a signed provenance
 attestation. A dirty build identifies modified files, not a reproducible release.
 
+The opt-in `--foundation` preview has its own `ogpu-foundation.pc` and manifest
+entry. Its revision-1 structures remain mutable across source commits. Require
+exact commit/header/library/artifact matching; the default ABI number below does
+not govern preview compatibility. Preview export is not the default SDK cutover.
+
 The C ABI number changes for incompatible public layout/signature/behavior changes.
 It is a rejection guard at `ogpu_probe_create`, not a loader symbol-version scheme,
 semantic-version promise or compatibility negotiation. That call leaves `out_error`
