@@ -221,8 +221,11 @@ performance comparison. An opt-in preview exports the implemented header and
 compute, graphics and learned-image consumers through a separate pkg-config entry;
 the default SDK remains ABI 20. Next migrate remaining application workflows and
 substantial adapters, then finish consumer/SDK cutover and remove old Vulkan policy weight.
-Metal is not covered; the installed runtime remains a migration control, not a
-foundation fallback.
+The [GGML foundation migration](foundation-ggml.md) now selects explicit memory,
+persistent mappings, one queue/timeline and reusable recording storage on Linux.
+The pinned graph/shaders/numerical gates are unchanged; graph preflight and alias
+policy are shared with a build-time installed-API control (also the existing Metal
+path), with no runtime fallback. Native Metal foundation parity is not claimed.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

@@ -86,7 +86,8 @@ outputs should be serialized.
   serves those existing benchmark/SDK workflows. It is not a runtime fallback or
   intended permanent second implementation. Remove its migration-only duplication
   when those workflows and the SDK move to the new contract.
-- GGML/libplacebo adapters, wider compiler capability metadata, default SDK cutover and
+- The [GGML adapter](foundation-ggml.md) now has a Linux foundation path. Libplacebo,
+  wider compiler capability metadata, default SDK cutover and
   remaining native feature profiles are still work. Native Metal execution of
   the new foundation is unverified; this checkpoint does not depend on a Mac.
 

@@ -1,7 +1,11 @@
 // Thin GGML consumer adapter; the GPU runtime remains the Rust library.
 #include "backend.h"
 #include "ggml-backend-impl.h"
-#include "ogpu.h"
+#if OGPU_GGML_FOUNDATION
+#include "runtime-foundation.h"
+#else
+#include "runtime-installed.h"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -16,23 +20,7 @@
 #include <vector>
 
 namespace {
-template <class T, void (*Destroy)(T *)> using Owner = std::unique_ptr<T, decltype(Destroy)>;
-using Device = Owner<OgpuDevice, ogpu_device_destroy>;
-using Kernel = Owner<OgpuKernel, ogpu_kernel_destroy>;
-using Buffer = Owner<OgpuBuffer, ogpu_buffer_destroy>;
-using Batch = Owner<OgpuBatch, ogpu_batch_destroy>;
-using Completion = Owner<OgpuCompletion, ogpu_completion_destroy>;
-
-void check(OgpuResult result, const OgpuError &error) {
-    if (result != OGPU_SUCCESS)
-        throw std::runtime_error(error.message);
-}
-#define GPU(call)                                                                                  \
-    do {                                                                                           \
-        OgpuError error{};                                                                         \
-        const auto result = (call);                                                                \
-        check(result, error);                                                                      \
-    } while (false)
+using Kernel = gpu::Kernel;
 
 struct Root {
     uint64_t a, b, c;
@@ -43,13 +31,12 @@ static_assert(sizeof(Root) == 40 && offsetof(Root, a) == 0 && offsetof(Root, b) 
               offsetof(Root, k) == 32 && offsetof(Root, operation) == 36);
 
 struct State : std::enable_shared_from_this<State> {
-    Device device{nullptr, ogpu_device_destroy};
-    Kernel matrix{nullptr, ogpu_kernel_destroy}, element{nullptr, ogpu_kernel_destroy};
-    Kernel matrix_f16{nullptr, ogpu_kernel_destroy};
+    gpu::Runtime runtime;
+    Kernel matrix = gpu::empty_kernel(), element = gpu::empty_kernel(), matrix_f16 = gpu::empty_kernel();
     uint64_t dispatches = 0;
     OgpuGgmlMemory memory = OgpuGgmlMemory::Device;
     OgpuGgmlStats stats;
-    Buffer staging{nullptr, ogpu_buffer_destroy};
+    gpu::Memory staging;
     size_t staging_size = 0;
     std::string description;
     ggml_backend_device device_interface{};
@@ -66,10 +53,7 @@ struct Measure {
     }
 };
 
-constexpr uint32_t gpu_access = OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE |
-                                OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE;
-
-Kernel load_kernel(State &state, const std::string &path) {
+Kernel load_kernel(State &state, const std::string &path, uint32_t shared) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file)
         throw std::runtime_error("cannot open shader: " + path);
@@ -80,16 +64,12 @@ Kernel load_kernel(State &state, const std::string &path) {
     file.seekg(0);
     if (!file.read(reinterpret_cast<char *>(words.data()), bytes))
         throw std::runtime_error("short shader read");
-    OgpuKernel *raw = nullptr;
-    const OgpuShaderDesc shader = {words.data(), (words.size()) * 4, nullptr, nullptr, 0, OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
-    GPU(ogpu_kernel_create(state.device.get(), &shader, sizeof(Root), &raw,
-                           &error));
-    return Kernel(raw, ogpu_kernel_destroy);
+    return state.runtime.kernel(words.data(),words.size()*4,sizeof(Root),shared);
 }
 
 struct Allocation {
     std::shared_ptr<State> owner;
-    Buffer buffer{nullptr, ogpu_buffer_destroy};
+    gpu::Memory buffer;
     uint64_t address = 0;
     // GGML performs pointer arithmetic on tensor data even for non-host buffers.
     // Real token storage makes that arithmetic valid; it is NOT a data mirror.
@@ -133,7 +113,7 @@ template <class F> void transfer(F f) noexcept {
 }
 
 // These GGML callbacks and graph_compute are synchronous. A single session-owned
-// staging buffer can therefore be reused after each copy completion is destroyed.
+// staging buffer can therefore be reused after each copy finishes.
 // No tensor mirror or placement migration; GPU allocations/addresses stay stable.
 void copy_bytes(Allocation &a, size_t off, const void *input, void *output, size_t size) {
     if (off > a.size || size > a.size - off)
@@ -145,35 +125,25 @@ void copy_bytes(Allocation &a, size_t off, const void *input, void *output, size
     Measure measure{state.stats.transfer_ms};
     if (state.memory == OgpuGgmlMemory::Host) {
         if (upload)
-            GPU(ogpu_buffer_write(a.buffer.get(), off, input, size, &error));
+            a.buffer.write(off,input,size);
         else
-            GPU(ogpu_buffer_read(a.buffer.get(), off, output, size, &error));
+            a.buffer.read(off,output,size);
     } else {
         if (size > state.staging_size) {
-            OgpuBuffer *raw = nullptr;
-            const OgpuBufferDesc desc = {size, OGPU_MEMORY_HOST, 0};
-            GPU(ogpu_buffer_create(state.device.get(), &desc, &raw, &error));
-            state.staging.reset(raw);
+            state.staging = state.runtime.allocate(size,true);
             state.staging_size = size;
             ++state.stats.staging_allocations;
         }
         if (upload)
-            GPU(ogpu_buffer_write(state.staging.get(), 0, input, size, &error));
-        OgpuBatch *raw = nullptr;
-        GPU(ogpu_batch_create(state.device.get(), &raw, &error));
-        Batch batch(raw, ogpu_batch_destroy);
+            state.staging.write(0,input,size);
+        state.runtime.begin();
         // Covers earlier graphs/copies, including READ -> WRITE on reused storage.
-        GPU(ogpu_batch_barrier(raw, gpu_access,
-                               OGPU_ACCESS_TRANSFER_READ | OGPU_ACCESS_TRANSFER_WRITE, &error));
-        GPU(ogpu_batch_copy_buffer(raw, upload ? state.staging.get() : a.buffer.get(),
-                                   upload ? 0 : off, upload ? a.buffer.get() : state.staging.get(),
-                                   upload ? off : 0, size, &error));
-        OgpuCompletion *done = nullptr;
-        GPU(ogpu_batch_submit(raw, &done, &error));
-        Completion completion(done, ogpu_completion_destroy);
-        GPU(ogpu_completion_wait(done, &error));
+        state.runtime.barrier(false);
+        state.runtime.copy(upload ? a.buffer : state.staging,upload ? off : 0,
+                           upload ? state.staging : a.buffer,upload ? 0 : off,size);
+        state.runtime.finish();
         if (!upload)
-            GPU(ogpu_buffer_read(state.staging.get(), 0, output, size, &error));
+            state.staging.read(0,output,size);
     }
     if (upload) {
         ++state.stats.uploads;
@@ -220,12 +190,8 @@ ggml_backend_buffer_t alloc_buffer(ggml_backend_buffer_type_t buft, size_t size)
             throw std::runtime_error("invalid buffer size");
         a->size = size;
         a->tokens.resize(size + 63);
-        OgpuBuffer *raw = nullptr;
-        const OgpuBufferDesc desc = {size,
-            state->memory == OgpuGgmlMemory::Host ? OGPU_MEMORY_HOST : OGPU_MEMORY_DEVICE, 0};
-        GPU(ogpu_buffer_create(state->device.get(), &desc, &raw, &error));
-        a->buffer.reset(raw);
-        GPU(ogpu_buffer_device_address(raw, &a->address, &error));
+        a->buffer = state->runtime.allocate(size,state->memory == OgpuGgmlMemory::Host);
+        a->address = a->buffer.address;
         ggml_backend_buffer_i iface{};
         iface.free_buffer = [](ggml_backend_buffer_t b) {
             delete static_cast<Allocation *>(b->context);
@@ -305,42 +271,35 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
                 }
             }
         }
-        OgpuBatch *raw = nullptr;
         Measure measure{state->stats.graph_ms};
-        GPU(ogpu_batch_create(state->device.get(), &raw, &error));
-        Batch batch(raw, ogpu_batch_destroy);
+        state->runtime.begin();
         uint64_t dispatches = 0;
         for (int i = 0; i < ggml_graph_n_nodes(graph); ++i) {
             const auto *t = ggml_graph_node(graph, i);
             if (t->op == GGML_OP_NONE)
                 continue;
             // Include READ -> WRITE for allocator reuse, and prior submissions.
-            GPU(ogpu_batch_barrier(raw, gpu_access,
-                                   OGPU_ACCESS_COMPUTE_READ | OGPU_ACCESS_COMPUTE_WRITE, &error));
+            state->runtime.barrier(true);
             Root root{};
             root.a = address(t->src[0]);
             root.c = address(t);
             root.m = static_cast<uint32_t>(t->ne[0]);
             root.n = static_cast<uint32_t>(t->ne[1]);
             uint32_t groups = (root.m * root.n + 63) / 64;
-            OgpuKernel *kernel = state->element.get();
+            const Kernel *kernel = &state->element;
             if (t->op == GGML_OP_MUL_MAT) {
                 root.b = address(t->src[1]);
                 root.k = static_cast<uint32_t>(t->src[0]->ne[0]);
                 groups = ((root.m + 7) / 8) * ((root.n + 7) / 8);
-                kernel = t->src[0]->type == GGML_TYPE_F16 ? state->matrix_f16.get()
-                                                         : state->matrix.get();
+                kernel = t->src[0]->type == GGML_TYPE_F16 ? &state->matrix_f16 : &state->matrix;
             } else if (t->op == GGML_OP_ADD) {
                 root.b = address(t->src[1]);
                 root.operation = 1;
             }
-            GPU(ogpu_batch_dispatch(raw, kernel, groups, 1, 1, &root, sizeof(root), &error));
+            state->runtime.dispatch(*kernel,groups,&root,sizeof(root));
             ++dispatches;
         }
-        OgpuCompletion *done = nullptr;
-        GPU(ogpu_batch_submit(raw, &done, &error));
-        Completion completion(done, ogpu_completion_destroy);
-        GPU(ogpu_completion_wait(done, &error));
+        state->runtime.finish();
         state->dispatches += dispatches;
         return GGML_STATUS_SUCCESS;
     } catch (const std::exception &e) {
@@ -397,25 +356,11 @@ OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMe
     auto &device = state->device_interface;
     auto &buffer_type = state->buffer_type;
     auto &registration = state->registration;
-    OgpuProbe *raw_probe = nullptr;
-    GPU(ogpu_probe_create(OGPU_ABI_VERSION, &raw_probe, &error));
-    Owner<OgpuProbe, ogpu_probe_destroy> probe(raw_probe, ogpu_probe_destroy);
-    OgpuDeviceInfo info{};
-    if (ogpu_probe_device_info(raw_probe, index, &info) != OGPU_SUCCESS)
-        throw std::runtime_error("invalid OGPU device index");
-    state->description = info.name;
-    OgpuDevice *raw_device = nullptr;
-    GPU(ogpu_device_create(raw_probe, index, &raw_device, &error));
-    state->device.reset(raw_device);
-    OgpuCapabilities enabled{};
-    GPU(ogpu_device_capabilities(raw_device, &enabled, &error));
-    // The shader, not the absence of a device capability, guarantees FP32
-    // arithmetic. check-shaders.sh verifies that it does not require Float16.
-    if (!enabled.storage_buffer_16bit_access)
-        throw std::runtime_error("FP16 storage support is required");
-    state->matrix = load_kernel(*state, std::string(shaders) + "/matrix.comp.spv");
-    state->matrix_f16 = load_kernel(*state, std::string(shaders) + "/matrix-f16.comp.spv");
-    state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv");
+    state->runtime.initialize(index);
+    state->description = state->runtime.description;
+    state->matrix = load_kernel(*state, std::string(shaders) + "/matrix.comp.spv",512);
+    state->matrix_f16 = load_kernel(*state, std::string(shaders) + "/matrix-f16.comp.spv",512);
+    state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv",0);
 
     device.context = state.get();
     buffer_type.context = state.get();

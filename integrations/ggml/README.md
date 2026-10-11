@@ -8,6 +8,10 @@ loss/optimizer graph. The consumer uses only the public C API. The
 with device-local tensors and reusable staging. The [mixed-precision checkpoint](../../docs/ggml-mixed-precision.md)
 adds FP16 matrix weights with FP32 activations and arithmetic; F32 remains the control.
 
+Linux now builds the explicit [foundation path](../../docs/foundation-ggml.md)
+by default. The installed-API path remains an explicit build-time migration
+control and the existing macOS path. It is never selected as a runtime fallback.
+
 ## Reproduce
 
 Run from the repository root on Linux x86-64 or Apple Silicon with macOS 26+.
@@ -32,8 +36,8 @@ VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 \
 On macOS, omit the Vulkan environment variables and run
 `bash integrations/ggml/run.sh target/ggml-source 0 device f16` with Metal API
 validation enabled. See [the Metal handoff](../../docs/metal.md) for native runtime
-regressions to run first. The library path uses the platform's `.so`/`.dylib`
-suffix; if an old CMake cache overrides it, unset `OGPU_LIBRARY` in that cache.
+regressions to run first. The runner explicitly selects this checkout's freshly
+built `.so`/`.dylib`, overriding any stale `OGPU_LIBRARY` in its CMake cache.
 
 `prepare.sh` downloads only MNIST test data into ignored `target/ggml-data` and
 verifies the [dataset checksums](dataset.sha256). Routine local/CI acceptance
@@ -54,11 +58,22 @@ the locally trained regression weights are included with provenance and MIT lice
 the release Rust library, validates the checked-in SPIR-V, independently builds
 the consumer with CMake, and runs all acceptance checks. It rejects a wrong GGML
 revision or tracked upstream edits. It fails on process errors or Vulkan validation
-errors and leaves a uniquely named acceptance log under `target/ggml-integration`.
+errors and leaves a uniquely named acceptance log under `target/ggml-integration-<api>`.
 Use matching header/library/shaders from the same OGPU checkout, not an arbitrary
-older shared library. The current checkout uses ABI 12 (format-tagged shader artifacts);
-GGML retains its ABI-5 dispatch signatures with Y=Z=1 and explicit allocation placement.
+older shared library. Foundation revision 1 requires exact source-revision matching;
+the installed control uses ABI 20. Both keep Y=Z=1 and explicit allocation placement.
 Leave `CARGO_TARGET_DIR` unset.
+
+An optional fifth argument chooses `foundation` or `installed`; Linux defaults to
+`foundation`, macOS to `installed`. CMake exposes `OGPU_GGML_FOUNDATION=ON/OFF` and
+rejects foundation selection outside Linux. The runner uses separate
+`target/ggml-integration-foundation` and `target/ggml-integration-installed`
+directories to prevent a stale API selection from changing a run. For example:
+
+```sh
+bash integrations/ggml/run.sh target/ggml-source 0 device f16 foundation
+bash integrations/ggml/run.sh target/ggml-source 0 device f16 installed
+```
 
 An optional second argument to `run.sh` selects the OGPU probe's device index
 (default 0). A third argument selects `host` or `device` (default `device`, to
@@ -79,7 +94,7 @@ bash integrations/ggml/run.sh target/ggml-source 0 device f16
 `convert-weights.cpp` deterministically derives two GGUF files from the pinned
 original: F16 matrix weights with unchanged F32 biases, and those same rounded
 weights widened back to F32 for the CPU semantic reference. Files go to a unique
-ignored `target/ggml-integration/weights.*` directory; hashes are logged. The
+ignored `target/ggml-integration-<api>/weights.*` directory; hashes are logged. The
 original fixture is never edited. The upstream loader and graph builder handle
 both files unchanged. No conversion occurs inside GPU graph execution.
 The CPU's native F16 matrix path would also round activations, so it is not used
@@ -155,7 +170,7 @@ out-of-range, foreign-buffer and unsafe overlapping addresses also fail graph
 preflight. Copy callbacks have no GGML error return, so transfer failures
 abort loudly rather than return stale data.
 
-Each graph records one batch with compute/transfer dependencies before each
+Each graph records one command list/batch with compute/transfer dependencies before each
 dispatch, including the first (previous submissions). It submits and waits once.
 The graph, weights and input allocations remain live throughout. All host calls
 and backend instances share one externally serialized execution device; async,
@@ -184,8 +199,9 @@ shaders, while `check-shaders.sh` enforces storage-only half use in the artifact
 - Placement is fixed per session. DEVICE keeps all tensor allocations device-local
   and stages synchronous callbacks through one grow-to-fit HOST buffer. It adds
   one copy submission/wait per callback, with no automatic migration or tensor mirror.
-  HOST is the direct-copy control. Usage-specific placement, batched/asynchronous
-  transfers and persistent mappings are not part of this checkpoint.
+  HOST is the direct-copy control. The foundation path uses persistent mappings,
+  explicit flush/invalidate and compatible memory-type selection. Usage-specific
+  placement and batched/asynchronous transfers are not part of this checkpoint.
 - Bias and ReLU need shader code, not host-side tensor operators. There are three
   prepared shaders (two matrix variants), five dispatches, and conservative global barriers.
   This is correctness/integration evidence, not competitive GEMM performance.

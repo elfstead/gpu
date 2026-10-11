@@ -1387,7 +1387,11 @@ the [graphics linker follow-up](compiler-workflow.md#graphics-follow-up) also pa
 matching a freshly built installed control byte-for-byte. Resident/end-to-end
 A/B/A reuse and explicit replay/timestamp instrumentation also pass both local
 drivers. Scale/matched-native workflows, other substantial adapters and the
-installed SDK still need migration.
+default installed SDK still need migration. The subsequent
+[GGML adapter migration](foundation-ggml.md) now runs its pinned MNIST graph through
+foundation memory, mapping, commands and timeline ownership on Linux. Its bounded
+tensor/scheduling policy remains consumer-owned; the installed path is an explicit
+build-time control and existing Metal path, not a foundation fallback.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

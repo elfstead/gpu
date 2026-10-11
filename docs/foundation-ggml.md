@@ -1,0 +1,91 @@
+# GGML on the explicit foundation
+
+Migration checkpoint, 2026-10-11. The pinned MNIST consumer now selects the
+implemented foundation contract by default on Linux. No tensor operators, graph
+ownership or GGML-specific policy were added to the public runtime.
+
+## Boundary
+
+`integrations/ggml/backend.cpp` still owns the same graph preflight, supported
+tensor profile, allocator alias checks, CPU token ranges, registration and
+transfer accounting. A build-time-selected private consumer helper now supplies
+the small synchronous GPU workflow. `runtime-foundation.h` includes only
+`ogpu_next.h`; `runtime-installed.h` includes only `ogpu.h`. They do not call
+each other, use native Vulkan or select a runtime fallback. The latter remains a
+migration control and the existing Metal path, not a second implementation of
+the GGML graph translator. Native Metal revalidation has not been performed.
+
+The foundation helper explicitly owns one selected compute queue, one timeline,
+one reserved command arena and submission scratch. Tensor allocations choose a
+compatible LOCAL or HOST_VISIBLE memory type from public requirements and queries.
+HOST tensors and the grow-to-fit transfer buffer remain persistently mapped;
+flush/invalidate is explicit. LOCAL does not imply that memory is unmappable or
+physically discrete VRAM. No tensor mirror, automatic placement or host mapping
+is advertised to GGML.
+
+Each synchronous graph callback records one one-shot list after complete preflight.
+Each DEVICE copy callback records one copy list. Both wait on caller-owned timeline
+values, then reset the arena to discard borrowed references before GGML can free
+allocations. The next successful callback needs no extra reset or command-pool
+creation. A local recording error can reset at the next begin. Submit/wait failure
+aborts the consumer rather than unwinding resources whose completion is uncertain;
+transfer callbacks still cannot return an error through GGML.
+
+Graph barriers cover compute/copy read/write hazards, including the previous
+submission and GGML's legal dead-intermediate aliases. HOST read visibility is
+recorded before completion; invalidation precedes CPU copies. There are no host
+waits between graph nodes. Prepared executables retain the original 40-byte inline
+root, 64 invocations and 512-byte matrix shared-memory requirement; setup checks
+the profile's maximum dispatch/argument/local/shared limits. The frozen SPIR-V,
+FP16-storage/FP32-arithmetic contract, model, data and tolerances are unchanged.
+
+This intentionally retains GGML's synchronous callback policy and bounded graph
+profile. It does not promise competitive GEMM, asynchronous scheduling, cached graph
+lists, arbitrary tensors or a native-Vulkan performance comparison. The public
+foundation permits other policies; this adapter does not constrain its API.
+
+## Reproduce
+
+Use the prerequisites and pinned upstream revision in
+[the consumer README](../integrations/ggml/README.md). No download or training occurs
+inside the acceptance runner:
+
+```sh
+bash integrations/ggml/run.sh target/ggml-source 0 device f16 foundation
+bash integrations/ggml/run.sh target/ggml-source 0 host f32 foundation
+bash integrations/ggml/run.sh target/ggml-source 0 host f32 installed
+```
+
+The fifth argument explicitly selects the API. Separate build directories avoid
+cached CMake choices switching a run. A standalone CMake build can select
+`-DOGPU_GGML_FOUNDATION=ON/OFF`; ON is Linux-only. Both paths build the same graph,
+matrix and lifetime tests. Use the matching header/library/shaders from the exact
+source commit; foundation revision 1 is not a cross-commit compatibility promise.
+
+## Acceptance and remaining work
+
+Foundation runs pass all four HOST/DEVICE × F32/F16 combinations on Radeon/RADV,
+plus HOST/F32 and DEVICE/F16 on llvmpipe. The installed HOST/F32 migration control
+also passes on Radeon. Each run checks
+all 10,000 test images in six configurations: direct/scheduled at batch sizes
+1, 17 and 64. All use synchronization validation. The scheduled graph remains one
+OGPU split with exactly five dispatches per call; no CPU fallback is accepted.
+
+Both two-byte-aligned matrix cases, unchanged-weight transfer checks, unsupported
+graph/type/layout/alias rejection before execution, failed-init cleanup, repeated
+registration and live-child destruction rejection pass. Steady-state DEVICE staging
+does not reallocate; uploads/downloads remain exactly the declared input/poison/
+logit operations. FP16 runs retain 9,801/10,000 correct predictions, no prediction
+changes against the original model and maximum FP32-model drift `0.00321006775`.
+These are local observations, not new thresholds or cross-driver guarantees.
+
+A focused consumer test rejects overlapping and out-of-range copy recordings
+without advancing the timeline, then successfully records/submits again and checks
+unchanged destination bytes. A two-byte copy changes exactly its selected bytes.
+It tests the adapter's local-error recovery and arena retirement, not fault-injected
+device loss; fatal submit/wait failure remains deliberate consumer policy.
+
+The default installed SDK, libplacebo adapter and other legacy workflows remain
+separate migration work. The installed helper can be removed when its migration
+control is no longer needed and Metal has a validated foundation implementation.
+This checkpoint does not retire ABI 20 or claim native Metal parity.
