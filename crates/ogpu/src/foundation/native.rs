@@ -477,6 +477,7 @@ pub(super) fn snapshot(
                 INDIRECT_FIRST_INSTANCE,
             ),
             (root.features.independentBlend, INDEPENDENT_BLEND),
+            (root.features.imageCubeArray, CUBE_ARRAY),
             (root.features.logicOp, LOGIC_OP),
             (root.features.dualSrcBlend, DUAL_SOURCE_BLEND),
             (root.features.depthClamp, DEPTH_CLAMP),
@@ -762,6 +763,7 @@ impl Device {
             shaderDrawParameters: u32::from(enabled & RASTER != 0), pNext: ptr::from_mut(&mut storage16).cast(),
         };
         let features = vk::VkPhysicalDeviceFeatures {
+            imageCubeArray: u32::from(enabled & CUBE_ARRAY != 0),
             drawIndirectFirstInstance: u32::from(enabled & INDIRECT_FIRST_INSTANCE != 0),
             independentBlend: u32::from(enabled & INDEPENDENT_BLEND != 0),
             logicOp: u32::from(enabled & LOGIC_OP != 0),

@@ -427,6 +427,7 @@ fn gpu_foundation_setup() {
                 0,
                 features[0].available,
                 features[0].available & COOPERATIVE_MATRIX,
+                features[0].available & CUBE_ARRAY,
                 features[0].available & VULKAN_MEMORY_MODEL,
                 features[0].available & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_CHAINS),
                 features[0].available & (VULKAN_MEMORY_MODEL | VULKAN_MEMORY_MODEL_DEVICE_SCOPE),

@@ -42,7 +42,8 @@ extern "C" {
  * immutable topology. Exact executable/state query records remain to be defined. */
 
 /* Backing, placed/dedicated images, views and explicit image transitions/copies
- * are now in the implemented header above. Broader format/feature profiles follow. */
+ * are now in the implemented header above. Cube-array views use independent
+ * enabling and explicit layer/mip windows. Broader format/feature profiles follow. */
 
 /* Descriptor byte encoding and borrowed GPU heap-range binding are implemented
  * in the imported header. No owned heap object or implicit allocation policy. */

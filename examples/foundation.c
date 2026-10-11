@@ -89,6 +89,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_submission.h"
 #include "foundation_blit.h"
 #include "foundation_alias.h"
+#include "foundation_cube.h"
 #include "foundation_formats.h"
 #include "foundation_split.h"
 #include "foundation_raster_storage.h"
@@ -101,7 +102,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #define RASTER_OPTION_FEATURES (OGPU_NEXT_FEATURE_INDIRECT_FIRST_INSTANCE | OGPU_NEXT_FEATURE_INDEPENDENT_BLEND | OGPU_NEXT_FEATURE_DEPTH_CLAMP | OGPU_NEXT_FEATURE_DEPTH_BIAS_CLAMP | OGPU_NEXT_FEATURE_NON_SOLID_FILL | OGPU_NEXT_FEATURE_WIDE_LINES | OGPU_NEXT_FEATURE_DEPTH_BOUNDS | OGPU_NEXT_FEATURE_SAMPLE_SHADING | OGPU_NEXT_FEATURE_ALPHA_TO_ONE | OGPU_NEXT_FEATURE_UNUSED_ATTACHMENTS | OGPU_NEXT_FEATURE_LOGIC_OP | OGPU_NEXT_FEATURE_DUAL_SOURCE_BLEND | OGPU_NEXT_FEATURE_SHADER_OUTPUT_LAYER)
 #define FOUNDATION_FEATURES (OGPU_NEXT_FEATURE_CACHE_CONTROL | NUMERIC_FEATURES | ATOMIC_FEATURES | FLOAT_ATOMIC_FEATURES | FLOAT64_ATOMIC_FEATURES | SUBGROUP_FEATURES | QUERY_FEATURES | RASTER_STORAGE_FEATURES | RASTER_OPTION_FEATURES | MATRIX_FEATURES | OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE)
 static uint64_t foundation_features(uint64_t available) {
-    uint64_t enabled = OGPU_NEXT_FEATURE_RASTER | (available & (FOUNDATION_FEATURES | OGPU_NEXT_FEATURE_INTEGER_DOT | FLOAT16_ATOMIC_FEATURES));
+    uint64_t enabled = OGPU_NEXT_FEATURE_RASTER | (available & (FOUNDATION_FEATURES | OGPU_NEXT_FEATURE_INTEGER_DOT | FLOAT16_ATOMIC_FEATURES | OGPU_NEXT_FEATURE_CUBE_ARRAY));
     /* Existing fixture atomics use Device scope. Do not enable the stricter
      * memory model without its separate Device-scope capability. This is test
      * selection, not runtime policy or a matrix-API dependency. */
@@ -1033,11 +1034,12 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 36);
+    REQUIRE(argc == 37);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
     REQUIRE(compute_domain != UINT32_MAX);
+    REQUIRE(cube_execution(device,memory_desc,compute_domain,argv[36]) == EXIT_SUCCESS);
     REQUIRE(submission_batches(device, memory_desc, compute_domain) == EXIT_SUCCESS);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 0) == EXIT_SUCCESS);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 1) == EXIT_SUCCESS);

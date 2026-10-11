@@ -312,10 +312,29 @@ Independent views select compatible formats, dimensions, mip/layer/aspect ranges
 usage subsets and component mappings. The current table covers eighteen common
 uncompressed color/depth/stencil formats. 1D/2D/3D and array/cube views and ordinary
 multisample images are implemented subject to exact native support. Optional
-cube arrays, 2D views of 3D slices, multisampled storage, extended usage, compressed
+2D views of 3D slices, multisampled storage, extended usage, compressed
 and multi-planar formats, linear tiling, sparse/external/disjoint images and
 separate depth/stencil layout enabling remain outside this implemented profile.
 They are not ruled out by the design and are never silently substituted.
+
+Cube-array views now independently enable native `imageCubeArray`, without making
+raster stages a prerequisite. A cube-compatible image can expose any bounded
+layer window with a positive multiple of six layers; the first layer need not be
+a multiple of six. This preserves the [native view contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkImageViewCreateInfo.html),
+not an OGPU cube-packing policy. Creation checks enabled support and exact shape
+before the native call. Single-cube arrays are valid; disabled support and invalid
+counts/bounds reject with cleared outputs. No descriptor rewriting or shader
+emulation is introduced.
+The Slang/C fixture samples all six faces of two cubes at two relative mip levels,
+using nonzero layer/mip bases. Three replays replace the descriptor and image data
+without re-recording, checking exact packed colors, unchanged inputs and host
+guards. The fixture uses uniform face interiors and nearest sampling; it is not
+evidence for seam filtering, anisotropic precision, comparison sampling or storage
+cube operations. Native cube-array layered rendering remains unverified.
+Validation receipt: 89 ordinary tests, 16 foundation GPU tests per driver and full
+C execution pass on Radeon and llvmpipe (with the documented stencil-copy
+diagnostic on llvmpipe), alongside strict C/C++ compilation, Clippy, pinned shader
+reproduction and 944 ABI layout checks. Installed ABI 20 is unchanged.
 
 Native image blits expose independent source/destination endpoint pairs, mip/layer
 selection, nearest/linear filtering, axis reversal and format conversion. No shader

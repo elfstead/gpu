@@ -80,6 +80,7 @@ pub const COOPERATIVE_MATRIX: u64 = 35184372088832;
 pub const VULKAN_MEMORY_MODEL: u64 = 70368744177664;
 pub const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: u64 = 140737488355328;
 pub const VULKAN_MEMORY_MODEL_CHAINS: u64 = 36028797018963968;
+pub const CUBE_ARRAY: u64 = 72057594037927936;
 pub(super) fn validate_feature_dependencies(required: u64) -> Result<(), Status> {
     if required & (VULKAN_MEMORY_MODEL_DEVICE_SCOPE | VULKAN_MEMORY_MODEL_CHAINS) != 0
         && required & VULKAN_MEMORY_MODEL == 0

@@ -1017,7 +1017,12 @@ impl View {
             }
             5 if base.dimension == 1 => vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_1D_ARRAY,
             6 if base.dimension == 2 => vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-            7 => return Err(UNSUPPORTED), // imageCubeArray is not yet an enabled capability.
+            7 if base.flags & 2 != 0 && range.layerCount % 6 == 0 => {
+                if d.snapshot.features.enabled & CUBE_ARRAY == 0 {
+                    return Err(UNSUPPORTED);
+                }
+                vk::VkImageViewType_VK_IMAGE_VIEW_TYPE_CUBE_ARRAY
+            }
             _ => return Err(INVALID),
         };
         if desc.component_mapping.iter().any(|c| *c > 6) {
@@ -1527,6 +1532,21 @@ mod tests {
                     },
                 };
                 drop(View::create(&image, &vd).unwrap());
+                if flags == 2 {
+                    let array = ViewDesc { dimension: 7, ..vd };
+                    let mut output = ptr::dangling_mut();
+                    unsafe {
+                        assert_eq!(
+                            ogpu_next_view_create(
+                                ptr::from_ref(&*image).cast_mut(),
+                                &array,
+                                &mut output
+                            ),
+                            UNSUPPORTED
+                        );
+                    }
+                    assert!(output.is_null());
+                }
                 drop(image);
                 drop(memory);
             }

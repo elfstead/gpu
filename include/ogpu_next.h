@@ -240,6 +240,8 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL UINT64_C(70368744177664)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_DEVICE_SCOPE UINT64_C(140737488355328)
 #define OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL_CHAINS UINT64_C(36028797018963968)
+/* Cube-array views and shader sampling; independent of raster-stage support. */
+#define OGPU_NEXT_FEATURE_CUBE_ARRAY UINT64_C(72057594037927936)
 #define OGPU_NEXT_FEATURE_INTEGER_DOT UINT64_C(281474976710656)
 #define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMICS UINT64_C(562949953421312)
 #define OGPU_NEXT_FEATURE_BUFFER_FLOAT16_ATOMIC_ADD UINT64_C(1125899906842624)
@@ -529,8 +531,12 @@ typedef struct ogpu_next_view_desc {
  * View-format lists restrict permitted interpretations. Reinterpretation needs
  * MUTABLE_FORMAT and a compatible format class; depth/stencil keeps its format.
  * This revision excludes linear tiling, sparse/external/disjoint images, extended
- * usage, cube-array views, 2D views of 3D slices and multisampled storage images.
+ * usage, 2D views of 3D slices and multisampled storage images.
  * Such strategies are UNSUPPORTED, never emulated; broader profiles follow.
+ * CUBE/CUBE_ARRAY views require a CUBE-compatible image. Cube-array views require
+ * FEATURE_CUBE_ARRAY and a positive layer_count divisible by six (six layers per
+ * cube). first_layer is in image layers, not cube indices, and need not be a
+ * multiple of six. A shader's cube-array index is relative to the selected view.
  */
 ogpu_next_status ogpu_next_image_requirements(const ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_requirements *);
 ogpu_next_status ogpu_next_image_create(ogpu_next_device *, const ogpu_next_image_desc *, ogpu_next_span placement, ogpu_next_image **);

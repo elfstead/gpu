@@ -187,6 +187,12 @@ Existing explicit global dependencies and new-image discard transitions suffice;
 the duplicate proposed activation command is removed. Content-preserving aliases,
 mixed buffer/image backing and cross-queue reuse remain separate work.
 
+Cube-array views now have independent native enabling and explicit layer/mip
+windows, including non-six-aligned starting layers. Shader sampling checks both
+cubes, every face, two relative mips and changed-descriptor/data replay. No raster
+dependency, repacking policy or shader emulation is introduced; broader image
+profiles and compiler/consumer/SDK cutover remain outstanding.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks
