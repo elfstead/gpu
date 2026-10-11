@@ -8,6 +8,57 @@ Current direction: [M2's accepted language decision](language-direction.md) reta
 pinned Slang plus the explicit device contract. New native workgroup/subgroup
 probes are diagnostic evidence, not additions to the installed subset below.
 
+## Foundation migration checkpoint — 2026-10-11
+
+The same adapter now accepts `--api foundation` for **compute** output targeting
+source-only `include/ogpu_next.h`. Default output and the installed `ogpu-shader`
+command retain ABI-20 records. This is not SDK cutover or a universal artifact format.
+
+```sh
+SLANGC=/path/to/slangc cargo xtask foundation-compiler
+SLANGC=/path/to/slangc cargo xtask foundation-compiler --check
+```
+
+The first command reproduces [the generated header](../examples/compiler/foundation.generated.h),
+builds and executes [one public-only C caller](../examples/compiler/foundation.c)
+with original and reordered argument layouts. The second checks reproduction and
+compiles both variants without GPU execution. Use the same Vulkan/Slang prerequisites
+as the foundation runner, plus Python 3 and a C compiler; no tools are downloaded.
+
+Shared reflection/SPIR-V inspection supplies C layouts, embedded code, entry name,
+inline-byte interface and local dimensions. Generated shader requirements map optional
+FP16 to the **enabled** feature mask; physical addresses and native heaps are modern
+foundation baseline capabilities. The predicate checks baseline support and static
+inline/workgroup limits, not queue creation, pointer validity or algorithm semantics.
+The caller explicitly requests features and a compute queue, selects memory, records
+dependencies and controls replay. The helper declares no named root slots: addresses
+inside the generated inline struct are immediate address bytes, not copied pointees.
+It neither mandates inline arguments for the whole API nor introduces a root allocator.
+
+Original and reordered layouts pass on Radeon and llvmpipe with validation: 4,099
+elements, three dependent transforms in a reusable list, three changed-input replays
+and prefix/suffix guards. The variant moves the pointer from offset 0 to 8 and changes
+the local width from 64 to 32; host source is unchanged. Immediate host argument bytes
+are overwritten after recording. Compatibility negatives cover baseline and inline/
+local limits. Six generator tests cover matching artifact/layout output, optional
+feature mapping, unknown-capability rejection and explicit graphics-output rejection.
+The optional FP16 case is synthetic metadata evidence, not new FP16 shader execution.
+
+This retains the adapter's existing conservative shader subset. Foundation runtime
+capabilities are substantially broader: subgroup/shared-memory/specialization/matrix/
+atomic and other numerical metadata need explicit compiler-adapter work. Unknown
+requirements reject, rather than being guessed or inferred from a backend name.
+Graphics interface linking, device-root convenience metadata, substantial consumer
+migration and installed SDK changes remain separate work. No runtime changes were
+needed for this checkpoint.
+
+The installed compute header still reproduces byte-for-byte and its 16 rejection
+tests pass. Fourteen transitive-input tests and the dependency workflow build pass;
+the build receipt is refreshed to the actual adapter hashes (including an already
+stale stage-inspector hash), without changing the recorded shader inputs or output
+header. Strict C compilation and Rust Clippy also pass. This is local reproduction,
+not an installed foundation SDK, clean-machine test or independent outside adoption.
+
 ## Question and bounded consumer
 
 Can a compiler supply the mechanical host/shader interface while leaving memory

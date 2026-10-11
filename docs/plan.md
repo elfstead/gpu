@@ -193,6 +193,15 @@ cubes, every face, two relative mips and changed-descriptor/data replay. No rast
 dependency, repacking policy or shader emulation is introduced; broader image
 profiles and compiler/consumer/SDK cutover remain outstanding.
 
+Compiler integration has started: `cargo xtask foundation-compiler` emits source-only
+compute records through the existing checked Slang adapter and executes a standalone
+public-header caller. Original and reordered roots (with 64/32-thread groups) pass
+on both local drivers without changing the host source. Generated layout, artifact,
+local size and optional feature requirements replace manual metadata; allocation,
+queue selection, dispatch extent and dependencies stay application-owned. Graphics
+linking, expanded numerical metadata, substantial consumer migration and SDK cutover
+are still open. The installed generator output remains unchanged by default.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

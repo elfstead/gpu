@@ -1374,8 +1374,11 @@ the initial sandboxed Radeon discovery failed, then passed with that access.
 Broader graphics and compute/argument profiles, richer query facilities and consumer
 cutover as the coordinated tranche proceeds. Graphics is usable offscreen, not a
 complete graphics contract or a completed M4 consumer. Presentation remains separate.
-Pipeline binaries, set/binding-to-address mappings and generated interface integration
-remain explicit work; the current compute slice does not close the whole foundation.
+Pipeline binaries, set/binding-to-address mappings and broader generated interface
+integration remain explicit work; the current compute slice does not close the whole
+foundation. The [first generated compute caller](compiler-workflow.md#foundation-migration-checkpoint--2026-10-11)
+now passes original/reordered layouts on both local drivers using source-only records;
+it does not migrate the substantial consumers or installed SDK.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

@@ -713,7 +713,7 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag", "foundation-layer.vert", "foundation-float-atomics.buffer-add.comp", "foundation-float-atomics.shared-add.comp", "foundation-float-atomics.buffer-minmax.comp", "foundation-float-atomics.shared-minmax.comp", "foundation-float-atomics.buffer-exchange.comp", "foundation-float-atomics.shared-exchange.comp", "foundation-float64-atomics.buffer-add.comp", "foundation-float64-atomics.shared-add.comp", "foundation-float64-atomics.buffer-minmax.comp", "foundation-float64-atomics.shared-minmax.comp", "foundation-float64-atomics.buffer-exchange.comp", "foundation-float64-atomics.shared-exchange.comp", "foundation-matrix.comp", "foundation-integer-dot.comp", "foundation-float16-atomics.buffer-add.comp", "foundation-float16-atomics.shared-add.comp", "foundation-float16-atomics.buffer-minmax.comp", "foundation-float16-atomics.shared-minmax.comp", "foundation-float16-atomics.buffer-exchange.comp", "foundation-float16-atomics.shared-exchange.comp", "foundation-cube.comp"]),
+        Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag", "foundation-layer.vert", "foundation-float-atomics.buffer-add.comp", "foundation-float-atomics.shared-add.comp", "foundation-float-atomics.buffer-minmax.comp", "foundation-float-atomics.shared-minmax.comp", "foundation-float-atomics.buffer-exchange.comp", "foundation-float-atomics.shared-exchange.comp", "foundation-float64-atomics.buffer-add.comp", "foundation-float64-atomics.shared-add.comp", "foundation-float64-atomics.buffer-minmax.comp", "foundation-float64-atomics.shared-minmax.comp", "foundation-float64-atomics.buffer-exchange.comp", "foundation-float64-atomics.shared-exchange.comp", "foundation-matrix.comp", "foundation-integer-dot.comp", "foundation-float16-atomics.buffer-add.comp", "foundation-float16-atomics.shared-add.comp", "foundation-float16-atomics.buffer-minmax.comp", "foundation-float16-atomics.shared-minmax.comp", "foundation-float16-atomics.buffer-exchange.comp", "foundation-float16-atomics.shared-exchange.comp", "foundation-cube.comp"]),
         Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
         Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),
@@ -730,6 +730,12 @@ Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["fou
         },
         Some("compiler-workflow") if args.len() == 1 || (args.len() == 2 && args[1] == "--check") => {
             let output = run(Command::new("python3").arg(root.join("examples/compiler/run.py")).args(&args[1..]))?;
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            Ok(())
+        },
+        Some("foundation-compiler") if args.len() == 1 || (args.len() == 2 && args[1] == "--check") => {
+            let output = run(Command::new("python3").arg("-B").arg(root.join("examples/compiler/foundation.py")).args(&args[1..]))?;
             print!("{}", String::from_utf8_lossy(&output.stdout));
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
             Ok(())
@@ -754,7 +760,7 @@ Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["fou
         },
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | foundation-shaders [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | foundation-shaders [--check] | foundation-compiler [--check] | compiler-workflow [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }
