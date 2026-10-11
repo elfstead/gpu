@@ -1378,7 +1378,9 @@ Pipeline binaries, set/binding-to-address mappings and broader generated interfa
 integration remain explicit work; the current compute slice does not close the whole
 foundation. The [first generated compute caller](compiler-workflow.md#foundation-migration-checkpoint--2026-10-11)
 now passes original/reordered layouts on both local drivers using source-only records;
-it does not migrate the substantial consumers or installed SDK.
+the [graphics linker follow-up](compiler-workflow.md#graphics-follow-up) also passes
+72 checked offscreen frames per local driver. Neither migrates the substantial
+consumers or installed SDK yet.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

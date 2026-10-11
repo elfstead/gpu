@@ -140,7 +140,6 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     require(api in ("installed", "foundation"), "unsupported target API")
     fields, size, alignment, local, requirements = inspect(reflection, assembly, name)
     stage = reflection["entryPoints"][0]["stage"]
-    require(api != "foundation" or stage == "compute", "foundation graphics interface linking is not implemented")
     type_name = name[0].upper() + name[1:] + "Arguments"
     guard = "OGPU_GENERATED_" + name.upper() + ("_FOUNDATION_H" if api == "foundation" else "_H")
     require(len(binary) >= 20 and len(binary) % 4 == 0, "invalid SPIR-V size")
@@ -169,7 +168,7 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     for start in range(0, len(words), 8):
         lines.append("    " + ", ".join(f"0x{word:08x}u" for word in words[start:start+8]) + ",")
     if api == "foundation":
-        return "\n".join(lines + foundation_records(name, size, local, requirements))
+        return "\n".join(lines + foundation_records(name, size, local, requirements, stage))
     lines += ["};", f"static inline OgpuShaderDesc {name}_shader(void) {{",
               f'    return (OgpuShaderDesc){{.code = {name}_code, .code_size = sizeof({name}_code),',
               '        .entry_point = "main", .format = OGPU_SHADER_SPIRV};', "}",
@@ -186,36 +185,45 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     return "\n".join(lines)
 
 
-def foundation_records(name, size, local, requirements):
+def foundation_records(name, size, local, requirements, stage="compute"):
     """Same inspected artifact/layout, different host records; no runtime policy.
 
     Physical addressing, native heaps and untyped pointers are foundation baseline
-    requirements. A compute-capable created queue is selected by the application,
+    requirements. A stage-capable created queue is selected by the application,
     not by this artifact helper. Do not infer pointee ownership or root-slot policy.
     """
     baseline = {"compute_queue", "buffer_device_address", "descriptor_heap", "shader_untyped_pointers"}
-    optional = {"shader_float16": "OGPU_NEXT_FEATURE_FLOAT16"}
+    optional = {"shader_float16": "OGPU_NEXT_FEATURE_FLOAT16", "graphics_queue": "OGPU_NEXT_FEATURE_RASTER",
+                "shader_draw_parameters": "OGPU_NEXT_FEATURE_RASTER"}
     require(set(requirements) <= baseline | optional.keys(), "unmapped foundation requirement")
-    required = " | ".join(optional[r] for r in requirements if r in optional) or "UINT64_C(0)"
+    required = " | ".join(sorted({optional[r] for r in requirements if r in optional})) or "UINT64_C(0)"
+    require(stage in ("compute", "vertex", "fragment"), "unsupported foundation stage")
+    require(bool(local) == (stage == "compute"), "foundation stage/local mismatch")
+    dimensions = local or [0, 0, 0]
+    checks = []
+    if size: checks.append(f"l->max_inline_size >= {size}")
+    if local:
+        checks.append(f"l->max_local_invocations >= {local[0]*local[1]*local[2]}")
+        checks += [f"l->max_local_size[{i}] >= {n}" for i, n in enumerate(local)]
     record = lambda typ, kind: f"{{{kind}, OGPU_NEXT_VERSION, sizeof({typ}), 0, NULL}}"
     return ["};", "/* Source-only foundation revision; not installed ABI 20.",
             " * Inline bytes contain addresses, not pointee copies or retained owners.",
-            " * The caller selects a compute queue and proves pointer bounds/lifetimes. */",
+            f" * The caller selects a {'compute' if stage == 'compute' else 'graphics'} queue and proves pointer bounds/lifetimes. */",
             f"#define {name}_required_features ({required})",
             f"static const ogpu_next_argument_interface {name}_interface = {{",
             f"    .header = {record('ogpu_next_argument_interface', 'OGPU_NEXT_ARGUMENT_INTERFACE')},",
             f"    .byte_size = {size}, .root_count = 0, .roots = NULL}};",
             f"static const ogpu_next_shader_requirements {name}_requirements = {{",
             f"    .header = {record('ogpu_next_shader_requirements', 'OGPU_NEXT_SHADER_REQUIREMENTS')},",
-            f"    .features = {name}_required_features, .local_size = {{{', '.join(map(str, local))}}}, .shared_memory = 0}};",
+            f"    .features = {name}_required_features, .local_size = {{{', '.join(map(str, dimensions))}}}, .shared_memory = 0}};",
             f"static inline ogpu_next_shader {name}_shader(void) {{",
-            f"    return (ogpu_next_shader){{.stage = OGPU_NEXT_STAGE_COMPUTE, .format = OGPU_NEXT_SHADER_SPIRV,",
+            f"    return (ogpu_next_shader){{.stage = OGPU_NEXT_STAGE_{stage.upper()}, .format = OGPU_NEXT_SHADER_SPIRV,",
             f"        .code = {{{name}_code, sizeof({name}_code)}}, .entry = \"main\",",
             f"        .interface_metadata = &{name}_interface.header, .specialization = NULL, .subgroup = NULL}};", "}",
             f"static inline int {name}_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {{",
-            f"    return c->baseline_supported && (c->enabled & {name}_required_features) == {name}_required_features",
-            f"        && l->max_inline_size >= {size} && l->max_local_invocations >= {local[0]*local[1]*local[2]}",
-            "        && " + " && ".join(f"l->max_local_size[{i}] >= {n}" for i, n in enumerate(local)) + ";",
+            *([] if checks else ["    (void)l;"]),
+            f"    return c->baseline_supported && (c->enabled & {name}_required_features) == {name}_required_features" +
+            ("\n        && " + " && ".join(checks) if checks else "") + ";",
             "}", "#endif", ""]
 
 
@@ -345,7 +353,7 @@ def main():
     parser.add_argument("--name", default="transform")
     parser.add_argument("--stage", choices=("compute", "vertex", "fragment"), default="compute")
     parser.add_argument("--api", choices=("installed", "foundation"), default="installed",
-                        help="host records to emit; foundation currently supports compute only")
+                        help="host records to emit; use link_graphics.py to combine graphics stages")
     parser.add_argument("--native-heaps", action="store_true", help="select the native descriptor-heap compiler profile")
     build_inputs.add_options(parser)
     args = parser.parse_args()

@@ -66,7 +66,6 @@ static inline ogpu_next_shader transform_shader(void) {
 }
 static inline int transform_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & transform_required_features) == transform_required_features
-        && l->max_inline_size >= 16 && l->max_local_invocations >= 64
-        && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
+        && l->max_inline_size >= 16 && l->max_local_invocations >= 64 && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
 }
 #endif

@@ -48,12 +48,15 @@ class FoundationTests(unittest.TestCase):
     def test_wrong_api_rejected(self):
         with self.assertRaises(ValueError): self.header(api="invented")
 
-    def test_graphics_emission_rejected(self):
+    def test_rootless_graphics_emission(self):
         source = generate.HERE / "stage_vertex.slang"
         reflected, assembly, binary = generate.compile_source(source,
             generate.ROOT / "target/foundation-compiler/vertex-rejection", os.getenv("SLANGC", "slangc"), "vertex")
-        with self.assertRaisesRegex(ValueError, "foundation graphics interface linking"):
-            generate.header(reflected, assembly, binary, source.read_bytes(), api="foundation")
+        text = generate.header(reflected, assembly, binary, source.read_bytes(), api="foundation")
+        for expected in ("OGPU_NEXT_STAGE_VERTEX", "transform_required_features (OGPU_NEXT_FEATURE_RASTER)",
+                         ".local_size = {0, 0, 0}", ".byte_size = 0", "(void)l;"):
+            self.assertIn(expected, text)
+        self.assertNotIn("max_local_invocations", text)
 
     def test_unmapped_requirement_rejected(self):
         with self.assertRaises(ValueError): generate.foundation_records("test",16,[64,1,1],["invented"])

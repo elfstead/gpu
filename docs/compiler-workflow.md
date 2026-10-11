@@ -10,7 +10,7 @@ probes are diagnostic evidence, not additions to the installed subset below.
 
 ## Foundation migration checkpoint — 2026-10-11
 
-The same adapter now accepts `--api foundation` for **compute** output targeting
+The same adapter initially added `--api foundation` for **compute** output targeting
 source-only `include/ogpu_next.h`. Default output and the installed `ogpu-shader`
 command retain ABI-20 records. This is not SDK cutover or a universal artifact format.
 
@@ -58,6 +58,29 @@ the build receipt is refreshed to the actual adapter hashes (including an alread
 stale stage-inspector hash), without changing the recorded shader inputs or output
 header. Strict C compilation and Rust Clippy also pass. This is local reproduction,
 not an installed foundation SDK, clean-machine test or independent outside adoption.
+
+### Graphics follow-up
+
+`cargo xtask foundation-graphics-compiler [--check]` now extends foundation emission
+to vertex/fragment stages and the existing offline pair linker. The source-tree
+`link_graphics.py --api foundation` emits a shared argument-bank declaration,
+combined shader feature requirements and a helper that supplies both native shader
+descriptions. A rootless vertex stage and an eight-byte fragment root therefore
+declare the same eight-byte bank at pipeline preparation. Stage artifacts are not
+rewritten; struct offsets are not relocated. If both stages use inline arguments,
+their structs interpret the **same** bytes and the caller must provide values valid
+for both, rather than assuming two independent stage snapshots. Raster state,
+attachments, allocation, queues and synchronization remain application choices.
+
+The public-only [graphics caller](../examples/compiler/foundation_graphics.c) passes
+original, reordered-root/varying, renamed and noperspective variants on Radeon and
+llvmpipe. Six dimensions per variant, each with draw/empty/draw indirect replay,
+give 72 checked frames per driver. Full pixels, untouched indirect records, readback
+guards and overwritten immediate argument storage are checked. Five pair tests
+cover artifact identity, common-bank records, feature union and mismatched stage
+locations; existing offline stage checks still apply. `--check` reproduces headers
+and compiles every variant without GPU execution. This is not graphics-write,
+mesh-stage, Metal, installed-SDK or substantial application acceptance.
 
 ## Question and bounded consumer
 

@@ -198,9 +198,16 @@ compute records through the existing checked Slang adapter and executes a standa
 public-header caller. Original and reordered roots (with 64/32-thread groups) pass
 on both local drivers without changing the host source. Generated layout, artifact,
 local size and optional feature requirements replace manual metadata; allocation,
-queue selection, dispatch extent and dependencies stay application-owned. Graphics
-linking, expanded numerical metadata, substantial consumer migration and SDK cutover
+queue selection, dispatch extent and dependencies stay application-owned. Expanded
+numerical metadata, substantial consumer migration and SDK cutover
 are still open. The installed generator output remains unchanged by default.
+
+Graphics compiler integration now emits checked vertex/fragment records, a shared
+inline bank and combined feature requirements without shader rewriting or runtime
+linking. Four source-interface variants pass 72 exact offscreen frames per local
+driver, including empty/nonempty indirect replay. Next migrate the learned-image
+application's actual compute-to-raster chain, retaining its frozen numerical/oracle
+gates; the old installed runtime remains until consumer/SDK cutover.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
