@@ -56,7 +56,8 @@ static int shader_read(Scene *s,unsigned i,const char *directory,const char *nam
     if(fread(s->code[i],1,(size_t)bytes,f)!=(size_t)bytes || ferror(f)) goto done;
     s->code_size[i]=(uint64_t)bytes; okay=1;
 done:
-    if(fclose(f)) okay=0; return okay;
+    if(fclose(f)) okay=0;
+    return okay;
 }
 #endif
 /* Explicit consumer preference, not an OGPU allocator: require properties, then
@@ -279,11 +280,13 @@ static void destroy(Scene *s) {
     if(s->pending) { fputs("Unknown foundation scene completion; refusing unsafe teardown\n",stderr); _Exit(EXIT_FAILURE); }
     if(s->encoder) ogpu_next_commands_cancel(s->encoder);
     ogpu_next_arena_destroy(s->arena); ogpu_next_timeline_destroy(s->done);
-    for(unsigned i=0;i<4;++i) ogpu_next_executable_destroy(s->raster[i]); ogpu_next_executable_destroy(s->prepare);
+    for(unsigned i=0;i<4;++i) ogpu_next_executable_destroy(s->raster[i]);
+    ogpu_next_executable_destroy(s->prepare);
     for(unsigned i=0;i<2;++i) { ogpu_next_view_destroy(s->views[i]); ogpu_next_image_destroy(s->images[i]); ogpu_next_memory_destroy(s->backing[i]); }
     for(unsigned i=0;i<BUFFER_COUNT;++i) ogpu_next_memory_destroy(s->buffers[i]);
     ogpu_next_device_destroy(s->device); ogpu_next_discovery_destroy(s->discovery);
-    for(unsigned i=0;i<3;++i) free(s->code[i]); free(s->bs); free(s->rs); free(s->ss);
+    for(unsigned i=0;i<3;++i) free(s->code[i]);
+    free(s->bs); free(s->rs); free(s->ss);
 }
 int main(int argc,char **argv) {
     if(argc!=5 && argc!=6) return 1;
