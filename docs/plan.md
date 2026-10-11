@@ -233,8 +233,10 @@ SDR/HDR and two-frame consumers with explicit memory/views, descriptor storage,
 arenas/timeline and queued shader-variant ownership. Both local drivers match the
 native reference; Radeon additionally passes larger resident/transfer correctness
 cases. Its independent SDK source handoff now accompanies GGML's, with separate
-upstream clones and explicit complete/incomplete acceptance receipts. Historical
-diagnostic/control retirement remains before default SDK cutover. No new performance
+upstream clones and explicit complete/incomplete acceptance receipts. Its historical
+ABI20 adapter/diagnostic suite is now [retired with Git replay instructions](libplacebo-diagnostic-retirement.md);
+native comparisons and foundation correctness checks remain. Other application
+workflows and default SDK cutover are still outstanding. No new performance
 or native Metal parity is claimed.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

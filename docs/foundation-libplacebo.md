@@ -85,13 +85,12 @@ Metal foundation execution was tested.
 
 ## Remaining migration boundary
 
-`OGPU_LIBPLACEBO_API=installed` explicitly builds `backend-installed.c` as an ABI20
-control. It is a temporary preserved copy, not a fallback. Historical diagnostic
-wrappers for receipt timing, optimized shaders and allocation tracing select this
-control and must not be interpreted as foundation instrumentation. The ordinary
-consumer, stream, HDR and verification/perf executables default to foundation.
-Builds currently share an output directory; rebuild after switching API and do
-not run/build competing variants concurrently.
+The temporary ABI20 adapter and receipt-timing/compiler/placement diagnostic suite
+are [retired with historical replay instructions](libplacebo-diagnostic-retirement.md).
+Consumer, stream, HDR and verification/perf executables now support only foundation;
+the native Vulkan reference remains independent. A legacy API selection or an old
+backend test binary is rejected, not silently accepted as foundation coverage.
+Builds share an output directory; do not run/build competing variants concurrently.
 
 The preview now exports an independent `foundation-libplacebo` source handoff.
 It includes only this foundation adapter, shared processing harnesses and native
@@ -108,6 +107,7 @@ Host-only receipt tests reject missing hash entries and changed SDK/source/binar
 upstream-library bytes; CI runs these without shader-compiler dependencies.
 This is local handoff evidence, not independent outside adoption.
 
-Next migrate useful diagnostic instrumentation explicitly (or retire it with its
-historical receipts), and continue default SDK/consumer cutover. The installed adapter and old runtime
-policies should be removed at that boundary, not maintained as permanent backends.
+Continue default SDK and remaining application-workflow cutover. The libplacebo
+consumer no longer needs the installed API; other consumers still do. Old runtime
+policies should be removed at their last dependency, not maintained as permanent
+backends. Historical timings remain unchanged and do not measure foundation.

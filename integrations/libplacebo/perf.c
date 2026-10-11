@@ -1,10 +1,6 @@
 // Controlled whole-workload comparison, not an isolated Vulkan-call benchmark.
 #include "backend.h"
-#ifdef OGPU_LIBPLACEBO_INSTALLED
-#include "ogpu.h"
-#else
 #include "ogpu_next.h"
-#endif
 #include <libplacebo/vulkan.h>
 #include <inttypes.h>
 #include <stdatomic.h>
@@ -13,9 +9,6 @@
 #include <string.h>
 #include <sys/resource.h>
 #include <time.h>
-#ifdef OGPU_DIAGNOSTICS
-#include "diagnostics.h"
-#endif
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "check failed: %s:%d: %s\n", __FILE__, __LINE__, #x); exit(1); } } while (0)
 #define OGPU_STREAM_WORKLOAD
 #include "workload.h"
@@ -87,9 +80,6 @@ static void collect(pl_gpu gpu, enum engine engine, struct slot *s, unsigned ind
             CHECK(!pl_gpu_is_failed(gpu));
         }
     }
-#ifdef OGPU_DIAGNOSTICS
-    diagnostic_collect(gpu);
-#endif
     double end = now();
     CHECK(!pl_gpu_is_failed(gpu));
     CHECK(atomic_load(&s->callbacks) == (s->readback ? 2u : 0u));
@@ -135,17 +125,6 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
         printf("driver name=%s info=%s\n", driver.driverName, driver.driverInfo);
         CHECK(vk->queue_graphics.index == vk->queue_compute.index && vk->queue_graphics.index == vk->queue_transfer.index);
     } else {
-#ifdef OGPU_LIBPLACEBO_INSTALLED
-        OgpuProbe *probe = NULL; OgpuError error; OgpuDeviceInfo info;
-        CHECK(ogpu_probe_create(OGPU_ABI_VERSION, &probe, &error) == OGPU_SUCCESS);
-        uint32_t devices = 0;
-        CHECK(ogpu_probe_device_count(probe, &devices) == OGPU_SUCCESS && devices == 1);
-        CHECK(ogpu_probe_device_info(probe, 0, &info) == OGPU_SUCCESS);
-        if (ref) CHECK(info.vendor_id == reference_vendor && info.device_id == reference_device);
-        printf("device engine=%s name=%s vendor=%u device=%u api=%u.%u.%u\n", names[engine], info.name,
-               info.vendor_id, info.device_id, info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch);
-        ogpu_probe_destroy(probe);
-#else
         ogpu_next_discovery *probe = NULL;
         CHECK(ogpu_next_discovery_create(OGPU_NEXT_VERSION, &probe) == OGPU_NEXT_OK);
         CHECK(ogpu_next_discovery_count(probe) == 1);
@@ -157,12 +136,8 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
         printf("device engine=%s api=foundation name=%s vendor=%u device=%u native_api=%u\n",
             names[engine], info.name, info.vendor_id, info.device_id, info.native_api_version);
         ogpu_next_discovery_destroy(probe);
-#endif
         gpu = ogpu_pl_create(log, 0); CHECK(gpu);
     }
-#ifdef OGPU_DIAGNOSTICS
-    diagnostic_attach(gpu, engine == NATIVE);
-#endif
     int ow = w*2+1, oh = h*2+1;
     size_t in_size = (size_t)w*h*4, out_size = (size_t)ow*oh*4;
     uint8_t *input[3];
@@ -194,9 +169,6 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
     for (unsigned phase = 0; phase < (ref ? 1u : 2u); ++phase) {
         unsigned frames = phase ? count : ref ? 6 : 8;
         if (phase && engine != NATIVE) before = ogpu_pl_stats(gpu);
-#ifdef OGPU_DIAGNOSTICS
-        diagnostic_phase(gpu, phase != 0);
-#endif
         double start = now(), cpu_start = process_cpu();
         for (unsigned frame = 0; frame < frames; ++frame) {
             unsigned index = frame%2;
@@ -266,9 +238,6 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
     }
     for (unsigned i = 0; i < 3; ++i) free(input[i]);
     pl_gpu_finish(gpu);
-#ifdef OGPU_DIAGNOSTICS
-    diagnostic_detach(gpu);
-#endif
     if (engine == NATIVE) pl_vulkan_destroy(&vk);
     else {
         struct ogpu_stats s = ogpu_pl_stats(gpu);

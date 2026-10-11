@@ -1405,10 +1405,11 @@ views, descriptor banks, arenas and a queue timeline. Compiler-owned metadata an
 pending executable-variant lifetimes replace runtime reflection/retention policy.
 Pixel and lifetime gates pass on both local drivers; larger native-matched
 correctness cases pass on Radeon. These are not new performance results. The
-historical installed adapter survives only as an explicit control for diagnostics.
+historical installed adapter and diagnostic suite have been
+[retired with Git replay instructions](libplacebo-diagnostic-retirement.md).
 The preview now exports the foundation adapter with independent build/run receipts,
 a separate pinned upstream dependency and relocated-header/runtime checks;
-diagnostic/cutover cleanup remains.
+other application workflows and default SDK cutover remain.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

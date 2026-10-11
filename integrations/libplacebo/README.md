@@ -6,8 +6,8 @@ compute/raster workflow passes on RADV and llvmpipe; this is **not a general lib
 backend**. See the [consumer brief](../../docs/consumer-libplacebo.md) and
 [foundation migration](../../docs/foundation-libplacebo.md). The default executing
 adapter uses foundation revision 1 with matching `ogpu_next.h`/library sources.
-`OGPU_LIBPLACEBO_API=installed` selects the temporary ABI20 control explicitly;
-there is no runtime fallback. Historical diagnostic wrappers select that control.
+There is no ABI20 adapter or runtime fallback. The old diagnostic/control suite is
+[retired with Git replay instructions](../../docs/libplacebo-diagnostic-retirement.md).
 Startup validates the bounded format/usage combinations before publishing its format
 table. Image creation still checks the actual extent; this is not a general format catalog.
 
@@ -74,31 +74,17 @@ polls, callbacks and resource high-water marks. No wall-time speedup claim.
 
 ## Bounded frame scheduling
 
-The [resident-gap diagnosis](../../docs/libplacebo-diagnosis.md) uses separate
-diagnostic binaries, leaving the ordinary runtime and benchmark unchanged:
-
-```sh
-# Baseline capture/timestamps; optional final "verify" skips timing.
-bash integrations/libplacebo/run-profile.sh /path/to/pinned/libplacebo
-# Radeon placement control: requires an eligible non-host-visible local image type.
-bash integrations/libplacebo/run-image-placement.sh /path/to/pinned/libplacebo
-```
-
-Both expect one ICD and the existing build environment. `run-diagnostics.sh`
-tests the isolated optimized-compiler variant; that variant currently fails the
-SPIR-V validation gate and is intentionally not adopted. Command omissions via
-`OGPU_DIAGNOSTIC_OMIT` are diagnostic-only and must not be called workload throughput.
-See the brief for boundaries, raw results and the completed allocator correction
-(`1f41d7e`). Placement controls reproduce the pre-fix diagnosis only when built
-at its recorded source revision; on current source both choices already prefer
-non-host-visible local images where available. Use `run-perf.sh` for current results.
+The [resident-gap diagnosis](../../docs/libplacebo-diagnosis.md) records historical
+ABI results, not foundation measurements. Its retired diagnostic tools and adapter
+remain [recoverable from Git](../../docs/libplacebo-diagnostic-retirement.md).
+Use `run-perf.sh` for current native/foundation comparisons.
 
 For the separate [performance comparison](../../docs/libplacebo-performance.md),
 `ogpu_pl_frame_begin_batched` uses the same slots/banks but records one batch until
 frame end. One ALL-scoped timeline point covers all commands; a failed frame discards its
 unsubmitted batch before clearing banks/delivering failure callbacks. The normal
 `ogpu_pl_frame_begin` retains per-operation submission as the diagnostic control.
-Both default to foundation; their consumer scheduling contracts are unchanged.
+Both use foundation; their consumer scheduling contracts are unchanged.
 
 Native source uploads use explicit reusable host-visible staging through the
 public libplacebo buffer API; this is not its default pointer-upload heuristic.
@@ -130,7 +116,7 @@ upstream dispatch cache/LUT per extent. `ogpu_pl_frame_begin(gpu, slot)` selects
 slot 0 or 1; uploads, passes and callback readbacks submit immediately, without
 waiting. `ogpu_pl_frame_end` closes the frame. Both slots are submitted before
 the older one is collected; reuse requires `ogpu_pl_frame_collect` first.
-These helpers live in the adapter header, not `include/ogpu.h`.
+These helpers live in the adapter header, not the public runtime header.
 
 Each frame has a fixed eight-operation callback array and its own command arena.
 Each pass has two mutable

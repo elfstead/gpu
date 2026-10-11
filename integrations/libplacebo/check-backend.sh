@@ -3,6 +3,7 @@ set -euo pipefail
 repo=$(cd -- "$(dirname -- "$0")/../.." && pwd)
 out="$repo/target/libplacebo-integration"
 tests=${OGPU_BACKEND_TESTS:-$out/backend-tests}
+test "$("$tests" api)" = foundation
 log=$(mktemp "$out/backend-checks.XXXXXXXX.log")
 ulimit -c 0
 for mode in unorm16-sampling specialization-update partial-upload unsupported-image unsupported-shader \
@@ -23,14 +24,12 @@ test "$(rg -c '^adapter rejection=.* live=0 PASS$' "$log")" = 3
 rg -q '^adapter unorm16 sampling/transfer live=0 PASS$' "$log"
 test "$(rg -c '^adapter specialization mode=.* live=0 PASS$' "$log")" = 5
 test "$(rg -c '^adapter frame=.* live=0 PASS$' "$log")" = 16
-if test "$("$tests" api)" = foundation; then
-    "$tests" frame-end-error 2>&1 | tee -a "$log"
-    "$tests" frame-end-error batched 2>&1 | tee -a "$log"
-    status=0
-    "$tests" wait-error >> "$log" 2>&1 || status=$?
-    test "$status" = 134
-    rg -q '^OGPU libplacebo: completion unavailable; refusing unsafe teardown' "$log"
-    test "$(rg -c '^adapter frame=frame-end-error live=0 PASS$' "$log")" = 2
-    if rg 'Validation Error:|runtime error:|ERROR: AddressSanitizer' "$log"; then exit 1; fi
-fi
+"$tests" frame-end-error 2>&1 | tee -a "$log"
+"$tests" frame-end-error batched 2>&1 | tee -a "$log"
+status=0
+"$tests" wait-error >> "$log" 2>&1 || status=$?
+test "$status" = 134
+rg -q '^OGPU libplacebo: completion unavailable; refusing unsafe teardown' "$log"
+test "$(rg -c '^adapter frame=frame-end-error live=0 PASS$' "$log")" = 2
+if rg 'Validation Error:|runtime error:|ERROR: AddressSanitizer' "$log"; then exit 1; fi
 echo "Adapter rejection/cleanup and live-child checks PASS: $log"

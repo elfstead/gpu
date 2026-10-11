@@ -1,5 +1,9 @@
 # Resident libplacebo performance diagnosis
 
+Historical ABI evidence: the diagnostic/control code has since been
+[retired with replay instructions](libplacebo-diagnostic-retirement.md). Commands
+and runtime-allocation policy below refer to the recorded revisions, not foundation.
+
 **Diagnosis and runtime correction complete (`1f41d7e`).** Image memory-type
 preference is the dominant cause of the observed near-4K resident gap. Changing
 only that choice in a diagnostic loader control raises grouped OGPU from 104 to
