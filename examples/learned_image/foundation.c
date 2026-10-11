@@ -1,5 +1,5 @@
-/* Foundation port of the frozen learned-image acceptance workload, not its
- * timing harness. Allocation, synchronization and replay belong to this caller. */
+/* Foundation port of the frozen learned-image workload.
+ * Allocation, synchronization and replay belong to this caller. */
 #include "ogpu_next.h"
 #include "extent.h"
 #include <application.generated.h>
@@ -57,15 +57,29 @@ static void dispatch(ogpu_next_encoder *encoder, ogpu_next_executable *pipeline,
     ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,bytes,args);
     ogpu_next_launch launch = {{grid.x,grid.y,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
 }
+static void image_readback(ogpu_next_encoder *encoder, ogpu_next_image *target, ogpu_next_memory *readback,
+    uint32_t width, uint32_t height, size_t bytes, void *scratch, uint64_t scratch_size) {
+    ogpu_next_image_barrier barrier = {target,{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ,
+        OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0};
+    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,
+        0,0,0,1,0,NULL,&barrier,scratch,scratch_size};
+    ogpu_next_barrier(encoder,&dep);
+    ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{width,height,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
+    ogpu_next_copy_from_image(encoder,(ogpu_next_span){readback,GUARD,bytes},target,&copy);
+}
 int main(int argc, char **argv) {
-    int result = EXIT_FAILURE, pending = 0;
+    int result = EXIT_FAILURE, pending = 0, validation = 0, resident = 0;
     ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL;
-    ogpu_next_memory *buffers[BUFFER_COUNT] = {NULL}, *upload = NULL, *readback = NULL, *draw = NULL, *backing = NULL;
+    ogpu_next_memory *buffers[BUFFER_COUNT] = {NULL}, *upload = NULL, *readback = NULL, *draw = NULL, *backing = NULL, *input_b = NULL;
     ogpu_next_executable *kernels[4] = {NULL}, *raster = NULL;
     ogpu_next_image *target = NULL; ogpu_next_view *view = NULL;
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
-    void *bs = NULL, *rs = NULL, *ss = NULL; unsigned char *weights = NULL;
+    void *bs = NULL, *rs = NULL, *ss = NULL; unsigned char *weights = NULL, *inputs[2] = {NULL};
     char path[4096], name[96];
+    if (argc > 1 && !strcmp(argv[1],"--validate")) {
+        REQUIRE(argc == 11); validation = 1; resident = !strcmp(argv[2],"resident");
+        REQUIRE(resident || !strcmp(argv[2],"end-to-end")); argc -= 2; argv += 2;
+    }
     REQUIRE(argc >= 8); const uint16_t endian = 1; REQUIRE(*(const unsigned char *)&endian == 1);
     uint32_t width = extent(argv[2]), height = extent(argv[3]), ow = extent(argv[4]), oh = extent(argv[5]), count, output_count;
     REQUIRE(image_count(width,height,8,&count) && image_count(ow,oh,4,&output_count));
@@ -117,6 +131,12 @@ int main(int argc, char **argv) {
             OGPU_NEXT_MEMORY_LOCAL,&buffers[i]) == EXIT_SUCCESS);
         TRY(ogpu_next_memory_address((ogpu_next_span){buffers[i],GUARD,payloads[i]},&addresses[i]));
     }
+    uint64_t input_addresses[2] = {addresses[INPUT],addresses[INPUT]};
+    if (resident) {
+        REQUIRE(memory_create(device,sizes[INPUT],OGPU_NEXT_USAGE_STORAGE | OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST,
+            OGPU_NEXT_MEMORY_LOCAL,&input_b) == EXIT_SUCCESS);
+        TRY(ogpu_next_memory_address((ogpu_next_span){input_b,GUARD,payloads[INPUT]},&input_addresses[1]));
+    }
     REQUIRE(memory_create(device,upload_size,OGPU_NEXT_USAGE_COPY_SRC,OGPU_NEXT_MEMORY_HOST_VISIBLE,&upload) == EXIT_SUCCESS);
     REQUIRE(memory_create(device,total,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE,&readback) == EXIT_SUCCESS);
     REQUIRE(memory_create(device,16,OGPU_NEXT_USAGE_INDIRECT,OGPU_NEXT_MEMORY_HOST_VISIBLE,&draw) == EXIT_SUCCESS);
@@ -137,7 +157,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_barrier_scratch_requirements(0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && rr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); rs = malloc((size_t)rr.size); ss = malloc((size_t)sr.size); REQUIRE(bs && rs && ss);
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,resident ? 3u : 1u,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     weights = malloc(sizes[WEIGHTS]); REQUIRE(weights != NULL); poison_host(weights,sizes[WEIGHTS]);
     REQUIRE(file_bytes(argv[1],weights+GUARD,payloads[WEIGHTS],0)); memcpy(um.data,weights,sizes[WEIGHTS]);
@@ -153,6 +173,18 @@ int main(int argc, char **argv) {
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
     ogpu_next_queue *queue = ogpu_next_device_queue(device,domain,0); pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
     TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
+    if (validation) for (uint32_t i = 0; i < 2; ++i) {
+        inputs[i] = malloc(sizes[INPUT]); REQUIRE(inputs[i] != NULL); poison_host(inputs[i],sizes[INPUT]);
+        REQUIRE(path_join(path,argv[7+i],"input.f32")); REQUIRE(file_bytes(path,inputs[i]+GUARD,payloads[INPUT],0));
+        if (resident) {
+            memcpy(um.data,inputs[i],sizes[INPUT]); TRY(ogpu_next_memory_flush((ogpu_next_span){upload,0,sizes[INPUT]}));
+            TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+            ogpu_next_copy_memory(encoder,(ogpu_next_span){i ? input_b : buffers[INPUT],0,sizes[INPUT]},(ogpu_next_span){upload,0,sizes[INPUT]});
+            TRY(ogpu_next_commands_end(encoder,&list)); ++signal.point.value;
+            pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+            TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
+        }
+    }
     HiddenArguments hidden = {.arg_input_data=addresses[INPUT],.arg_weights=addresses[WEIGHTS],.arg_output_data=addresses[HIDDEN],
         .arg_width=width,.arg_height=height,.arg_dispatch_width=hidden_grid.stride};
     DenoiseArguments denoise = {.arg_input_data=addresses[INPUT],.arg_weights=addresses[WEIGHTS],.arg_hidden=addresses[HIDDEN],
@@ -161,11 +193,17 @@ int main(int argc, char **argv) {
         .arg_out_width=ow,.arg_out_height=oh,.arg_dispatch_width=process_grid.stride};
     DisplayArguments display = {.arg_pixels=addresses[COLOR],.arg_width=ow,.arg_height=oh};
     for (uint32_t diagnostic = 0; diagnostic < 2; ++diagnostic) {
-        TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        ogpu_next_list *work[2] = {NULL}, *snapshot = NULL;
+        TRY(ogpu_next_arena_reset(arena));
+        for (uint32_t variant = 0; variant < (resident ? 2u : 1u); ++variant) {
+        hidden.arg_input_data = denoise.arg_input_data = input_addresses[variant];
+        TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
         dependency(encoder,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_COMPUTE,
             OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COPY_WRITE | OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE);
-        ogpu_next_copy_memory(encoder,(ogpu_next_span){buffers[INPUT],0,sizes[INPUT]},(ogpu_next_span){upload,0,sizes[INPUT]});
-        dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
+        if (!resident) {
+            ogpu_next_copy_memory(encoder,(ogpu_next_span){buffers[INPUT],0,sizes[INPUT]},(ogpu_next_span){upload,0,sizes[INPUT]});
+            dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
+        }
         if (diagnostic) {
             for (uint32_t i = HIDDEN; i < BUFFER_COUNT; ++i) {
                 PoisonArguments args = {.arg_output_data=addresses[i]-GUARD,.arg_count=(uint32_t)(sizes[i]/4),.arg_dispatch_width=poison_grid[i].stride};
@@ -189,28 +227,42 @@ int main(int argc, char **argv) {
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,raster); ogpu_next_set_graphics_state(encoder,&vp.header);
         ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(display),&display);
         ogpu_next_indirect indirect = {{draw,0,16},16,1,{NULL,0,0}}; ogpu_next_draw_indirect(encoder,&indirect); ogpu_next_render_end(encoder);
-        image_dep.before = OGPU_NEXT_STAGE_COLOR; image_dep.after = OGPU_NEXT_STAGE_COPY;
-        barrier.before = OGPU_NEXT_ACCESS_COLOR_WRITE; barrier.after = OGPU_NEXT_ACCESS_COPY_READ; barrier.old_state = OGPU_NEXT_STATE_COLOR_ATTACHMENT;
-        barrier.new_state = OGPU_NEXT_STATE_COPY_SRC; barrier.discard = 0; ogpu_next_barrier(encoder,&image_dep);
-        ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{ow,oh,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
-        ogpu_next_copy_from_image(encoder,(ogpu_next_span){readback,GUARD,final_bytes},target,&copy);
+        if (!resident || diagnostic) image_readback(encoder,target,readback,ow,oh,final_bytes,bs,br.size);
         if (diagnostic) {
             dependency(encoder,OGPU_NEXT_STAGE_COMPUTE | OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COPY,
                 OGPU_NEXT_ACCESS_STORAGE_WRITE | OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ);
             for (uint32_t i = 0; i < BUFFER_COUNT; ++i)
-                ogpu_next_copy_memory(encoder,(ogpu_next_span){readback,offsets[i],sizes[i]},(ogpu_next_span){buffers[i],0,sizes[i]});
+                ogpu_next_copy_memory(encoder,(ogpu_next_span){readback,offsets[i],sizes[i]},
+                    (ogpu_next_span){i == INPUT && variant ? input_b : buffers[i],0,sizes[i]});
         }
-        dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
-        TRY(ogpu_next_commands_end(encoder,&list));
-        /* The command list is recorded once per mode, not once per image. */
-        for (int frame = 0; frame < argc-7; ++frame) {
+        if (!resident || diagnostic) dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
+        TRY(ogpu_next_commands_end(encoder,&work[variant]));
+        }
+        if (resident && !diagnostic) {
+            /* Acceptance-only snapshot: not part of resident work. */
+            TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+            image_readback(encoder,target,readback,ow,oh,final_bytes,bs,br.size);
+            dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
+            TRY(ogpu_next_commands_end(encoder,&snapshot));
+        }
+        /* Resident A/B have different embedded addresses; each list is reused. */
+        for (int frame = 0; frame < (validation ? 3 : argc-7); ++frame) {
+            const unsigned char *input = validation ? inputs[frame%2] : um.data;
+            if (validation && !resident) memcpy(um.data,input,sizes[INPUT]);
+            if (!validation) {
             REQUIRE(path_join(path,argv[7+frame],"input.f32")); poison_host(um.data,sizes[INPUT]);
             REQUIRE(file_bytes(path,(char *)um.data+GUARD,payloads[INPUT],0));
-            TRY(ogpu_next_memory_flush((ogpu_next_span){upload,0,sizes[INPUT]}));
+            }
+            if (!resident) TRY(ogpu_next_memory_flush((ogpu_next_span){upload,0,sizes[INPUT]}));
             size_t read_size = diagnostic ? total : final_bytes+2*GUARD; poison_host(rm.data,read_size);
             TRY(ogpu_next_memory_flush((ogpu_next_span){readback,0,read_size}));
+            list = work[resident ? frame%2 : 0];
             ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
             TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
+            if (snapshot) {
+                list = snapshot; ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+                TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
+            }
             TRY(ogpu_next_memory_invalidate((ogpu_next_span){readback,0,read_size})); unsigned char *pixels = rm.data;
             REQUIRE(guards(pixels,final_bytes+2*GUARD));
             snprintf(name,sizeof(name),"%s-%d-final.rgba",diagnostic ? "diagnostic" : "normal",frame);
@@ -221,7 +273,7 @@ int main(int argc, char **argv) {
                     REQUIRE(guards(pixels+offsets[i],sizes[i])); snprintf(name,sizeof(name),"diagnostic-%d-%s.f32",frame,names[i]);
                     REQUIRE(path_join(path,argv[6],name)); REQUIRE(file_bytes(path,pixels+offsets[i]+GUARD,payloads[i],1));
                 }
-                REQUIRE(memcmp(pixels+offsets[INPUT],um.data,sizes[INPUT]) == 0);
+                REQUIRE(memcmp(pixels+offsets[INPUT],input,sizes[INPUT]) == 0);
                 REQUIRE(memcmp(pixels+offsets[WEIGHTS],weights,sizes[WEIGHTS]) == 0);
             }
             printf("Foundation %s frame %d %ux%u -> %ux%u: replay, output guards, no intermediate CPU read/wait PASS\n",
@@ -236,5 +288,7 @@ cleanup:
     for (uint32_t i = 0; i < 4; ++i) ogpu_next_executable_destroy(kernels[i]);
     for (uint32_t i = 0; i < BUFFER_COUNT; ++i) ogpu_next_memory_destroy(buffers[i]);
     ogpu_next_memory_destroy(upload); ogpu_next_memory_destroy(readback); ogpu_next_memory_destroy(draw);
-    ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery); free(weights); return result;
+    ogpu_next_memory_destroy(input_b);
+    ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery);
+    free(weights); free(inputs[0]); free(inputs[1]); free(bs); free(rs); free(ss); return result;
 }

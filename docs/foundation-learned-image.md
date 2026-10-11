@@ -27,6 +27,14 @@ host reuse; reset/destruction are explicit. The fragment reads compute-written
 linear storage directly: no intermediate image conversion, CPU read or host wait.
 Diagnostic copies occur after the chain, not between its stages.
 
+The reuse handoff also supports `--validate resident` and `--validate end-to-end`.
+Both preload two host fixtures and execute A/B/A. Resident mode uploads each input
+once during setup and records two lists with distinct input addresses; normal work
+contains neither an input upload nor a pixel readback. A separate snapshot list
+copies its result for acceptance only. End-to-end mode reuses one list with mapped
+upload/readback storage. Diagnostic lists copy the selected resident input, not a
+stale staging buffer. Nothing is re-recorded between A/B/A frames.
+
 The compiler supplies layouts, embedded artifacts, local dimensions, feature
 requirements and one common graphics inline bank. Named fields survive reversed
 root order and 64-to-32-thread compute changes. Application launch tiling, pointer
@@ -45,6 +53,11 @@ for each of the three callers: **228 checked frames per driver**. Within each
 driver, every final and intermediate output byte agrees between foundation,
 mutated foundation and installed control. Inputs and weights stay unchanged;
 guards and A/B/A distinction/reproduction pass.
+
+The reuse follow-up passes 36 more checked frames per local driver: both modes,
+normal/diagnostic A/B/A, original/mutated foundation and installed control at
+65x47 to 131x95. All 21 output files match across those six runs, with the same
+frozen oracles and guard checks. These checks are included in the normal command.
 
 For both local driver runs, the maximum scalar error is `1.71016513e-7`, maximum
 error/allowed-bound ratio is `0.00667210166`, and maximum RGB code difference is
@@ -65,8 +78,8 @@ outputs should be serialized.
 
 ## What this does not finish
 
-- The new caller currently covers the small acceptance suite, not the resident/
-  end-to-end timing modes, timestamp instrumentation or video-scale campaign.
+- The new caller covers small acceptance and resident/end-to-end reuse, not yet
+  timing modes, timestamp instrumentation or the video-scale campaign.
   Incidental timings from the installed control are not performance acceptance.
 - The installed caller is retained as an explicit migration control and still
   serves those existing benchmark/SDK workflows. It is not a runtime fallback or

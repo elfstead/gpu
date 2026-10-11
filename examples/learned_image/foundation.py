@@ -1,14 +1,45 @@
 #!/usr/bin/env python3
 """Foundation migration acceptance against frozen oracles and the installed caller."""
 import argparse
+import json
 import os
 import shlex
 import sys
+import tempfile
+from pathlib import Path
 sys.dont_write_bytecode = True
 # Load the sibling acceptance runner before its compiler adapter prepends another
 # directory containing a run.py to sys.path.
 import run as acceptance
+import benchmark
 generate_interfaces = acceptance.generate_interfaces
+
+
+def validate_reuse(build, executables):
+    """Use the existing A/B/A oracles, not a new GPU golden or looser gate."""
+    destination = Path(tempfile.mkdtemp(prefix="foundation-reuse-",dir=build))
+    print(f"Foundation reuse artifacts: {destination}",flush=True)
+    reference = build / "reference"
+    manifest = json.loads((reference / "manifest.json").read_text())
+    extent = (65,47,131,95)
+    cases = [c for c in manifest["cases"] if tuple(c["input_size"]+c["output_size"]) == extent
+             and c["seed"] in (2001,2002)][:2]
+    acceptance.require(len(cases) == 2 and [c["seed"] for c in cases] == [2001,2002],"missing reuse fixtures")
+    acceptance.verified(acceptance.HERE / "model.json",manifest["model_sha256"])
+    acceptance.verified(reference / "weights.f32",manifest["weights_sha256"])
+    for case in cases:
+        for name,digest in case["sha256"].items(): acceptance.verified(reference / case["name"] / name,digest)
+    baseline = None
+    for variant,executable in executables.items():
+        for mode in benchmark.MODES:
+            output = destination / f"{variant}-{mode}"
+            benchmark.invoke(executable,"--validate",mode,extent,reference,cases,output,os.environ.copy())
+            benchmark.check_validation(output,reference,[cases[0],cases[1],cases[0]])
+            if baseline is None: baseline = output
+            else:
+                for name in benchmark.output_files():
+                    acceptance.require(acceptance.same_file(output / name,baseline / name),f"reuse migration mismatch: {output / name}")
+    print("Foundation resident/end-to-end A/B/A replay: frozen oracles and all three callers byte-identical PASS")
 
 
 def main():
@@ -43,6 +74,7 @@ def main():
             acceptance.require(acceptance.same_file(build / "gpu/small" / reference / path,build / "gpu/small" / variant / path),
                                f"migration changed output bytes: {variant}/{path}")
     print("Learned-image foundation migration PASS: frozen numerical gates; every output byte matches reordered interfaces and installed control")
+    validate_reuse(build,executables)
 
 
 if __name__ == "__main__": main()
