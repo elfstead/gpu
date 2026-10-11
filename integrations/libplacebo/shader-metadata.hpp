@@ -1,4 +1,5 @@
 #pragma once
+#include "compiler.h"
 // Preparation-only consumer reflection. The foundation runtime never sees this
 // parser or the specialized analysis copy. Native execution keeps the original
 // binary and specialization map, including float bit patterns.
@@ -9,9 +10,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-struct shader_constant { uint32_t id, bits; };
-struct shader_metadata { uint32_t local[3]{}, shared = 0; };
 
 inline shader_metadata compute_metadata(const uint32_t *code, size_t words,
                                        const std::vector<shader_constant> &values) {
@@ -40,7 +38,7 @@ inline shader_metadata compute_metadata(const uint32_t *code, size_t words,
     struct instruction { uint32_t op; std::vector<uint32_t> args; };
     std::unordered_map<uint32_t, instruction> definitions;
     std::vector<uint32_t> shared_types;
-    shader_metadata result;
+    shader_metadata result{};
     uint32_t entry = 0, mode_entry = 0, mode = 0, dimensions[3]{};
     for (size_t i = 5; i < specialized.size();) {
         uint32_t count = specialized[i] >> 16, op = specialized[i] & 0xffff;

@@ -1,18 +1,26 @@
 // Fail-closed/cleanup checks against the pinned callback boundary, not Vulkan fallback.
 #include "gpu.h"
 #include "backend.h"
+#ifdef OGPU_LIBPLACEBO_INSTALLED
 #include "ogpu.h"
+#else
+#include "ogpu_next.h"
+#endif
 #include <libplacebo/dispatch.h>
 #include <libplacebo/shaders/sampling.h>
 #include <stdio.h>
 #define CHECK(x) do { if (!(x)) { fprintf(stderr, "check failed: %s\n", #x); exit(1); } } while (0)
 static void completed(void *ptr) { ++*(unsigned *) ptr; }
-// Link-time shims only in this test executable. Real receipts still own real
-// GPU work; never fabricate success/retirement. Exercise rare adapter branches.
+// Link-time shims only in this test executable. Submitted GPU work still requires
+// real completion; never fabricate success/retirement. Exercise rare branches.
 static unsigned pending_polls, poll_errors, reject_submit;
+#ifndef OGPU_LIBPLACEBO_INSTALLED
+static unsigned reject_end, fail_wait;
+#endif
 static bool batched;
 static bool begin(pl_gpu gpu, unsigned slot)
 { return batched ? ogpu_pl_frame_begin_batched(gpu, slot) : ogpu_pl_frame_begin(gpu, slot); }
+#ifdef OGPU_LIBPLACEBO_INSTALLED
 OgpuResult __real_ogpu_completion_poll(OgpuCompletion *, uint32_t *, OgpuError *);
 OgpuResult __wrap_ogpu_completion_poll(OgpuCompletion *c, uint32_t *ready, OgpuError *error)
 {
@@ -37,6 +45,36 @@ OgpuResult __wrap_ogpu_batch_submit(OgpuBatch *b, OgpuCompletion **out, OgpuErro
     }
     return __real_ogpu_batch_submit(b, out, error);
 }
+#else
+ogpu_next_status __real_ogpu_next_timeline_poll(const ogpu_next_timeline *, uint64_t *);
+ogpu_next_status __wrap_ogpu_next_timeline_poll(const ogpu_next_timeline *t, uint64_t *completed)
+{
+    if (pending_polls) { --pending_polls; *completed = 0; return OGPU_NEXT_OK; }
+    if (poll_errors) { --poll_errors; return OGPU_NEXT_BACKEND_ERROR; }
+    return __real_ogpu_next_timeline_poll(t, completed);
+}
+ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
+ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q, const ogpu_next_submit_desc *d)
+{
+    if (reject_submit) { --reject_submit; return OGPU_NEXT_INVALID; }
+    return __real_ogpu_next_queue_submit(q, d);
+}
+ogpu_next_status __real_ogpu_next_commands_end(ogpu_next_encoder *, ogpu_next_list **);
+ogpu_next_status __wrap_ogpu_next_commands_end(ogpu_next_encoder *e, ogpu_next_list **out)
+{
+    if (reject_end) {
+        --reject_end; ogpu_next_commands_cancel(e); *out = NULL;
+        return OGPU_NEXT_INVALID; // Consumes the arena slot, submits nothing.
+    }
+    return __real_ogpu_next_commands_end(e, out);
+}
+ogpu_next_status __real_ogpu_next_timeline_wait(ogpu_next_point, uint64_t);
+ogpu_next_status __wrap_ogpu_next_timeline_wait(ogpu_next_point p, uint64_t timeout)
+{
+    if (fail_wait) { --fail_wait; return OGPU_NEXT_BACKEND_ERROR; }
+    return __real_ogpu_next_timeline_wait(p, timeout);
+}
+#endif
 
 static void frame_transfers(pl_gpu gpu, const char *mode)
 {
@@ -67,6 +105,13 @@ static void frame_transfers(pl_gpu gpu, const char *mode)
         if (batched) CHECK(!ogpu_pl_frame_end(gpu));
         else CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[1], .ptr=data)));
         CHECK(!reject_submit);
+#ifndef OGPU_LIBPLACEBO_INSTALLED
+    } else if (!strcmp(mode, "frame-end-error")) {
+        reject_end = 1;
+        if (batched) CHECK(!ogpu_pl_frame_end(gpu));
+        else CHECK(!pl_tex_upload(gpu, pl_tex_transfer_params(.tex=textures[1], .ptr=data)));
+        CHECK(!reject_end);
+#endif
     } else if (!strcmp(mode, "frame-poll-error")) {
         CHECK(ogpu_pl_frame_end(gpu));
         poll_errors = 1;
@@ -161,7 +206,11 @@ static void specialization_updates(pl_gpu gpu, bool async, bool premature)
     const struct ogpu_stats s = ogpu_pl_stats(gpu);
     CHECK(s.creates == 1 && s.compute == (premature ? 1u : 3u) && s.downloads == s.compute &&
           !s.raster && !s.textures && !s.passes && !s.banks && !s.outstanding && !s.inflight);
+#ifdef OGPU_LIBPLACEBO_INSTALLED
     CHECK(s.receipt_reuses == (premature || (async && batched) ? 0u : async ? 1u : 2u));
+#else
+    CHECK(s.receipt_reuses == (premature ? 0u : async ? 1u : 2u));
+#endif
 }
 
 static void unorm16_sampling(pl_gpu gpu)
@@ -179,6 +228,16 @@ static void unorm16_sampling(pl_gpu gpu)
     CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=src,.ptr=(void *)pixels)));
     CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=src,.ptr=readback)));
     CHECK(!memcmp(pixels,readback,sizeof(pixels)));
+    // Preserve interior 16-bit codes, not only normalized endpoints; exercise
+    // 1D interpretation as well as the sampled 2D source below.
+    const uint16_t codes[8] = {1,32767,32768,65534,42,12345,54321,65535};
+    pl_tex line = pl_tex_create(gpu, pl_tex_params(.w=2,.format=fmt,
+        .sampleable=true,.host_writable=true,.host_readable=true));
+    CHECK(line);
+    CHECK(pl_tex_upload(gpu, pl_tex_transfer_params(.tex=line,.ptr=(void *)codes)));
+    CHECK(pl_tex_download(gpu, pl_tex_transfer_params(.tex=line,.ptr=readback)));
+    CHECK(!memcmp(codes,readback,sizeof(codes)));
+    pl_tex_destroy(gpu,&line);
     pl_dispatch dp = pl_dispatch_create(gpu->log,gpu); CHECK(dp);
     pl_shader sh = pl_dispatch_begin(dp);
     CHECK(pl_shader_sample_bilinear(sh,pl_sample_src(.tex=src,.new_w=3,.new_h=1)));
@@ -195,10 +254,29 @@ static void unorm16_sampling(pl_gpu gpu)
 int main(int argc, char **argv)
 {
     CHECK(argc == 2 || (argc == 3 && !strcmp(argv[2], "batched")));
+    if (!strcmp(argv[1], "api")) {
+#ifdef OGPU_LIBPLACEBO_INSTALLED
+        puts("installed");
+#else
+        puts("foundation");
+#endif
+        return 0;
+    }
     batched = argc == 3;
     pl_log log = pl_log_create(PL_API_VER, NULL);
     pl_gpu gpu = ogpu_pl_create(log, 0);
     CHECK(gpu);
+#ifndef OGPU_LIBPLACEBO_INSTALLED
+    if (!strcmp(argv[1], "wait-error")) {
+        pl_tex tex = pl_tex_create(gpu, pl_tex_params(.w=4,.h=4,
+            .format=pl_find_named_fmt(gpu,"rgba8"),.sampleable=true,.host_writable=true));
+        CHECK(tex);
+        unsigned char pixels[64] = {0};
+        fail_wait = 1;
+        (void)pl_tex_upload(gpu, pl_tex_transfer_params(.tex=tex,.ptr=pixels));
+        return 1; // Must abort before unproven completion releases operands.
+    }
+#endif
     if (!strcmp(argv[1], "unorm16-sampling")) {
         unorm16_sampling(gpu);
         ogpu_pl_destroy(&gpu); pl_log_destroy(&log);

@@ -228,6 +228,12 @@ policy are shared with a build-time installed-API control (also the existing Met
 path), with no runtime fallback. Native Metal foundation parity is not claimed.
 The preview also exports the adapter for an independent C++ build against pinned
 upstream GGML, with default matrix/lifetime checks and opt-in full-dataset gates.
+The [libplacebo foundation migration](foundation-libplacebo.md) also executes its
+SDR/HDR and two-frame consumers with explicit memory/views, descriptor storage,
+arenas/timeline and queued shader-variant ownership. Both local drivers match the
+native reference; Radeon additionally passes larger resident/transfer correctness
+cases. Independent SDK handoff and historical diagnostic/control retirement remain
+before default SDK cutover. No new performance or native Metal parity is claimed.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

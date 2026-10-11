@@ -3,9 +3,11 @@
 This directory contains a bounded OGPU backend and its independent upstream Vulkan
 reference, plus declaration-lowering and executable-preparation audits. The selected
 compute/raster workflow passes on RADV and llvmpipe; this is **not a general libplacebo
-backend**. See the [consumer brief](../../docs/consumer-libplacebo.md). Use matching
-ABI-11 headers/library: specialization, triangle strips, grids/images/uploads and
-cached limits remain; enabled capabilities and exact image support are now queryable.
+backend**. See the [consumer brief](../../docs/consumer-libplacebo.md) and
+[foundation migration](../../docs/foundation-libplacebo.md). The default executing
+adapter uses foundation revision 1 with matching `ogpu_next.h`/library sources.
+`OGPU_LIBPLACEBO_API=installed` selects the temporary ABI20 control explicitly;
+there is no runtime fallback. Historical diagnostic wrappers select that control.
 Startup validates the bounded format/usage combinations before publishing its format
 table. Image creation still checks the actual extent; this is not a general format catalog.
 
@@ -17,19 +19,21 @@ upstream raster parameters alongside its vertex address. This is not arbitrary
 HDR/color management. The native-only `run-hdr-reference.sh` and existing SDR
 acceptance below remain available.
 
-Each pass keeps its last completed receipt while rewriting heaps/vertex data for
-the next frame. ABI 9 retires submission resources during wait, not receipt destruction.
-The consumer checks 12 such reuses; the A/B/A specialization check verifies two.
+Each pass reuses collected descriptor/vertex banks for the next frame. The
+historically named `receipt_reuses` counter now counts completed-bank reuse;
+foundation has no completion-receipt allocation. The consumer checks 12 reuses;
+the serial A/B/A specialization check verifies two.
 Ordinary calls remain synchronous per operation. The separate
 [two-frame checkpoint](../../docs/libplacebo-inflight.md) adds bounded, explicit
-consumer-managed slots; the public OGPU runtime is now ABI 11.
+consumer-managed slots. Foundation adds explicit arenas, timelines and operand lifetimes.
 
 ## Reproduce
 
 Linux x86-64 prerequisites: C/C++ compilers (C11/C++20 for upstream, C++17 for the
 audit tools), Meson >=1.3, Ninja, pkg-config, Python 3 with Jinja2/MarkupSafe,
 Rust/Cargo for OGPU, Vulkan 1.4 headers/loader and registry, shaderc development files, `glslc`,
-SPIRV-Tools, Git, Bash and ripgrep. Locally tested: Clang 21.1.8, Meson 1.10.2,
+SPIRV-Tools including development files (`pkg-config SPIRV-Tools`), Git, Bash and
+ripgrep. Locally tested: Clang 21.1.8, Meson 1.12.1,
 shaderc 2026.1/glslang 16.4.0 and SPIRV-Tools 1.4.357.0.
 The repository's pinned Vulkan-Headers submodule must be initialized.
 
@@ -86,10 +90,10 @@ non-host-visible local images where available. Use `run-perf.sh` for current res
 
 For the separate [performance comparison](../../docs/libplacebo-performance.md),
 `ogpu_pl_frame_begin_batched` uses the same slots/banks but records one batch until
-frame end. One frame receipt retires all commands; a failed frame discards its
+frame end. One ALL-scoped timeline point covers all commands; a failed frame discards its
 unsubmitted batch before clearing banks/delivering failure callbacks. The normal
 `ogpu_pl_frame_begin` retains per-operation submission as the diagnostic control.
-Both now use runtime ABI 11; scheduling contracts are unchanged.
+Both default to foundation; their consumer scheduling contracts are unchanged.
 
 Native source uploads use explicit reusable host-visible staging through the
 public libplacebo buffer API; this is not its default pointer-upload heuristic.
@@ -123,14 +127,17 @@ waiting. `ogpu_pl_frame_end` closes the frame. Both slots are submitted before
 the older one is collected; reuse requires `ogpu_pl_frame_collect` first.
 These helpers live in the adapter header, not `include/ogpu.h`.
 
-Each frame has a fixed eight-operation receipt array. Each pass has two mutable
+Each frame has a fixed eight-operation callback array and its own command arena.
+Each pass has two mutable
 heap/vertex banks and shared prepared executables/immutable indirect arguments.
 Texture staging is separate per used slot. A bank or staging allocation may be
 used only once per frame; excess operations and premature reuse fail closed.
 This fixed limit describes this integration, not a general scheduler.
 
-Collection polls the last receipt and optionally waits for it, then observes
-every earlier receipt to release its retained resources before clearing banks.
+Collection polls the queue timeline and optionally waits for the frame's last
+ALL-scoped signal. It resets that slot's arena before releasing executable
+variants and permitting bank reuse. Each queued bank explicitly owns its recorded
+variant until collection; the runtime retains nothing.
 It copies readbacks and fires callbacks only after retirement. Uploads copy the
 caller bytes before returning; readback destinations and callback state must
 remain valid until callback delivery. Callbacks are serialized, must not reenter
@@ -187,10 +194,10 @@ malformed artifacts, duplicate IDs, negative sizes and unsupported shared types.
 
 2026-10-11 checkpoint: all six freshly captured passes prepare on Radeon 26.2.4
 and llvmpipe 26.2.1. Each EWA compute pass declares `32x32x1` and 9,224 shared bytes;
-raster uses the shared eight-byte vertex-address interface. **The executing
-`backend.c` remains ABI 20**: explicit memory/views, descriptor ranges, arena reset,
-timeline retirement and queued specialization lifetimes still need migration.
-Preparation success does not replace consumer pixel/lifetime acceptance.
+raster uses the shared eight-byte vertex-address interface. The subsequent
+[executing adapter migration](../../docs/foundation-libplacebo.md) now also passes
+pixel/lifetime acceptance on both drivers; preparation and execution remain
+separate gates.
 
 ## What each check verifies
 
@@ -235,7 +242,7 @@ Preparation success does not replace consumer pixel/lifetime acceptance.
   overflow, drain partial-frame failures and queued child destruction, and replace
   specialization executables while two slots remain uncollected. Test-only link
   wrappers force a pending poll, transient poll error and submission rejection;
-  real GPU receipts still drain before callbacks/resource release. Failed-frame
+  real timeline completion is still established before callbacks/resource release. Failed-frame
   callbacks do not make poisoned output valid. No injection code is linked into
   the normal consumer or streaming executable.
 

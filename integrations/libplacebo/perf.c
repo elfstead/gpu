@@ -1,6 +1,10 @@
 // Controlled whole-workload comparison, not an isolated Vulkan-call benchmark.
 #include "backend.h"
+#ifdef OGPU_LIBPLACEBO_INSTALLED
 #include "ogpu.h"
+#else
+#include "ogpu_next.h"
+#endif
 #include <libplacebo/vulkan.h>
 #include <inttypes.h>
 #include <stdatomic.h>
@@ -131,6 +135,7 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
         printf("driver name=%s info=%s\n", driver.driverName, driver.driverInfo);
         CHECK(vk->queue_graphics.index == vk->queue_compute.index && vk->queue_graphics.index == vk->queue_transfer.index);
     } else {
+#ifdef OGPU_LIBPLACEBO_INSTALLED
         OgpuProbe *probe = NULL; OgpuError error; OgpuDeviceInfo info;
         CHECK(ogpu_probe_create(OGPU_ABI_VERSION, &probe, &error) == OGPU_SUCCESS);
         uint32_t devices = 0;
@@ -140,6 +145,19 @@ static void run(enum engine engine, bool transfers, int w, int h, unsigned count
         printf("device engine=%s name=%s vendor=%u device=%u api=%u.%u.%u\n", names[engine], info.name,
                info.vendor_id, info.device_id, info.vulkan_api_major, info.vulkan_api_minor, info.vulkan_api_patch);
         ogpu_probe_destroy(probe);
+#else
+        ogpu_next_discovery *probe = NULL;
+        CHECK(ogpu_next_discovery_create(OGPU_NEXT_VERSION, &probe) == OGPU_NEXT_OK);
+        CHECK(ogpu_next_discovery_count(probe) == 1);
+        ogpu_next_adapter_info info;
+        ogpu_next_query query = {{OGPU_NEXT_QUERY_INFO, OGPU_NEXT_VERSION, sizeof(ogpu_next_query), 0, NULL},
+            &info, 1, 0, sizeof(info), 0};
+        CHECK(ogpu_next_adapter_query(ogpu_next_discovery_adapter(probe, 0), &query) == OGPU_NEXT_OK);
+        if (ref) CHECK(info.vendor_id == reference_vendor && info.device_id == reference_device);
+        printf("device engine=%s api=foundation name=%s vendor=%u device=%u native_api=%u\n",
+            names[engine], info.name, info.vendor_id, info.device_id, info.native_api_version);
+        ogpu_next_discovery_destroy(probe);
+#endif
         gpu = ogpu_pl_create(log, 0); CHECK(gpu);
     }
 #ifdef OGPU_DIAGNOSTICS

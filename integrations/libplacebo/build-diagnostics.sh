@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 repo=$(cd -- "$(dirname -- "$0")/../.." && pwd)
+# These historical receipt/timer wrappers target ABI 20, not foundation.
+if test "${OGPU_LIBPLACEBO_API:-installed}" != installed; then
+    echo 'Legacy diagnostics require OGPU_LIBPLACEBO_API=installed' >&2; exit 2
+fi
+export OGPU_LIBPLACEBO_API=installed
 bash "$repo/integrations/libplacebo/build-consumer.sh" "${1:?pinned libplacebo checkout required}"
 out="$repo/target/libplacebo-integration"
 build="$repo/target/libplacebo-upstream"
@@ -24,6 +29,7 @@ source_dir=$(cd -- "$1" && pwd)
 for unit in perf diagnostics; do
     "${CC:-cc}" -std=gnu11 -O2 -Wall -Wextra -Werror -Wno-unused-parameter \
         -DOGPU_DIAGNOSTICS -I"$source_dir/src" -I"$build/src" \
+        -DOGPU_LIBPLACEBO_INSTALLED \
         -I"$source_dir/src/include" -I"$build/src/include" -I"$repo/include" \
         $(pkg-config --cflags vulkan) \
         -c "$repo/integrations/libplacebo/$unit.c" -o "$out/$unit-diagnostic.o"
