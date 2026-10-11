@@ -1392,6 +1392,13 @@ default installed SDK still need migration. The subsequent
 foundation memory, mapping, commands and timeline ownership on Linux. Its bounded
 tensor/scheduling policy remains consumer-owned; the installed path is an explicit
 build-time control and existing Metal path, not a foundation fallback.
+The [libplacebo preparation checkpoint](../integrations/libplacebo/README.md#independent-preparation-audits)
+now prepares all six captured upstream compute/raster passes through foundation
+on both local drivers. Specialization-dependent local/shared metadata is extracted
+by a consumer-local compiler helper, not by the runtime. Its executing adapter is
+still ABI 20; explicit resource, command and queued-specialization ownership is
+the next migration boundary. No foundation libplacebo execution/performance claim
+is made by this preparation-only check.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

@@ -167,9 +167,30 @@ bash integrations/libplacebo/check-executables.sh \
     target/libplacebo-integration/compiler.YYYYYYYY
 ```
 
-This last check needs the OGPU modern graphics baseline and uses
-`OGPU_VULKAN_LIBRARY`. It submits no GPU work. Regenerate captures from older
+This last check now uses the **foundation** API (`ogpu_next.h`), requires a combined
+compute/graphics queue on adapter 0, and explicitly enables raster. It needs the
+OGPU modern graphics baseline and uses `OGPU_VULKAN_LIBRARY`. It also requires
+SPIRV-Tools development headers/libraries (`pkg-config SPIRV-Tools`). It submits
+no GPU work. Regenerate captures from older
 checkpoints: the compiler gate now requires captured vertex metadata.
+
+`bash integrations/libplacebo/check-metadata.sh` is the host-only prerequisite
+(shaderc and SPIRV-Tools development packages). The consumer-local metadata helper
+specializes a temporary analysis copy, freezes and folds specialization expressions,
+then extracts the actual local dimensions and shared allocation sizes. Execution
+continues to use the unchanged original artifact and original constant bits.
+This bounded parser accepts one compute `main`, 32-bit scalars, vec2/vec4 and fixed
+arrays in shared storage; unsupported layouts, unresolved sizes and overflow fail.
+It is not runtime reflection or a general shader compiler. Tests cover specialized
+array products, A/B/A changes, specialization-defined local size, nested arrays,
+malformed artifacts, duplicate IDs, negative sizes and unsupported shared types.
+
+2026-10-11 checkpoint: all six freshly captured passes prepare on Radeon 26.2.4
+and llvmpipe 26.2.1. Each EWA compute pass declares `32x32x1` and 9,224 shared bytes;
+raster uses the shared eight-byte vertex-address interface. **The executing
+`backend.c` remains ABI 20**: explicit memory/views, descriptor ranges, arena reset,
+timeline retirement and queued specialization lifetimes still need migration.
+Preparation success does not replace consumer pixel/lifetime acceptance.
 
 ## What each check verifies
 
@@ -194,8 +215,9 @@ checkpoints: the compiler gate now requires captured vertex metadata.
 - `glslc` compilation and SPIR-V validation succeed, with native heap capabilities
   and no descriptor-set/binding decorations. Tests cover body preservation, slot
   mapping and rejection. Compiler version is recorded with each output.
-- The executable audit creates three kernels and three raster programs through
-  OGPU using the captured 32-bit specialization values. Separate public-API GPU
+- The executable audit creates three compute and three raster executables through
+  foundation using the captured 32-bit specialization values and compiler-owned
+  workgroup/shared-memory metadata. Separate public-API GPU
   tests execute specialization and the same vertex lowering with original test
   shaders; these preparation checks do not substitute for consumer acceptance.
 - `run-consumer.sh` executes the shared workload through the bounded adapter:

@@ -1,6 +1,7 @@
 // G1 only: create prepared OGPU executables from captured upstream shaders and
 // their exact constant bits. No dispatch/draw and no image-comparison claim.
-#include "ogpu.h"
+#include "ogpu_next.h"
+#include "shader-metadata.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -13,7 +14,7 @@
 struct Pass {
     unsigned id, constants, push;
     bool compute;
-    std::vector<OgpuSpecializationConstant> values;
+    std::vector<shader_constant> values;
 };
 
 static std::vector<uint32_t> read_words(const std::filesystem::path &path) {
@@ -26,9 +27,11 @@ static std::vector<uint32_t> read_words(const std::filesystem::path &path) {
     return words;
 }
 
-static void check(OgpuResult result, const OgpuError &error) {
-    if (result != OGPU_SUCCESS) throw std::runtime_error("OGPU status=" + std::to_string(result) + ": " + error.message);
+static void check(ogpu_next_status result) {
+    if (result != OGPU_NEXT_OK) throw std::runtime_error("OGPU foundation status=" + std::to_string(result));
 }
+#define RECORD(type, kind) {kind, OGPU_NEXT_VERSION, sizeof(type), 0, nullptr}
+template <class T, void (*Destroy)(T *)> using Owner = std::unique_ptr<T, decltype(Destroy)>;
 
 int main(int argc, char **argv) {
     try {
@@ -56,44 +59,66 @@ int main(int argc, char **argv) {
             }
         }
         if (input.bad() || passes.size() != 6) throw std::runtime_error("expected six captured passes");
-        OgpuError error{};
-        OgpuProbe *raw_probe = nullptr;
-        auto status = ogpu_probe_create(OGPU_ABI_VERSION, &raw_probe, &error);
-        std::unique_ptr<OgpuProbe, decltype(&ogpu_probe_destroy)> probe(raw_probe, ogpu_probe_destroy);
-        check(status, error);
-        uint32_t count = 0;
-        check(ogpu_probe_device_count(probe.get(), &count), error);
-        OgpuDevice *raw_device = nullptr;
-        for (uint32_t index = 0; index < count; ++index) {
-            status = ogpu_device_create_graphics(probe.get(), index, &raw_device, &error);
-            if (status == OGPU_ERROR_UNSUPPORTED) continue;
-            check(status, error);
-            break;
-        }
-        std::unique_ptr<OgpuDevice, decltype(&ogpu_device_destroy)> device(raw_device, ogpu_device_destroy);
-        if (!device) throw std::runtime_error("no graphics-capable OGPU device");
+        ogpu_next_discovery *raw_probe = nullptr;
+        check(ogpu_next_discovery_create(OGPU_NEXT_VERSION, &raw_probe));
+        Owner<ogpu_next_discovery, ogpu_next_discovery_destroy> probe(raw_probe, ogpu_next_discovery_destroy);
+        if (!ogpu_next_discovery_count(raw_probe)) throw std::runtime_error("no OGPU adapter");
+        const auto *adapter = ogpu_next_discovery_adapter(raw_probe, 0);
+        ogpu_next_query q{RECORD(ogpu_next_query, OGPU_NEXT_QUERY_QUEUES), nullptr, 0, 0, sizeof(ogpu_next_queue_info), 0};
+        check(ogpu_next_adapter_query(adapter, &q));
+        std::vector<ogpu_next_queue_info> queues(q.count);
+        q.data = queues.data(); q.capacity = q.count; check(ogpu_next_adapter_query(adapter, &q));
+        uint32_t domain = UINT32_MAX;
+        for (const auto &queue : queues)
+            if (queue.count && (queue.flags & (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) ==
+                (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) { domain = queue.domain; break; }
+        if (domain == UINT32_MAX) throw std::runtime_error("combined graphics/compute queue required");
+        const ogpu_next_queue_request request{domain, 1, .5f};
+        const ogpu_next_device_desc dd{RECORD(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), &request, 1, 0, OGPU_NEXT_FEATURE_RASTER};
+        ogpu_next_device *raw_device = nullptr;
+        check(ogpu_next_device_create(adapter, &dd, &raw_device));
+        Owner<ogpu_next_device, ogpu_next_device_destroy> device(raw_device, ogpu_next_device_destroy);
         for (size_t i = 0; i < passes.size(); ++i) {
             const auto &pass = passes[i];
             if (pass.id != i || pass.constants != pass.values.size()) throw std::runtime_error("incomplete or reordered pass constants");
             const auto stem = std::filesystem::path(argv[2]) / ("pass-" + std::to_string(pass.id));
             auto primary = read_words(stem.string() + (pass.compute ? ".comp.spv" : ".frag.spv"));
-            const OgpuShaderDesc shader = {primary.data(), (primary.size()) * 4, nullptr, pass.values.data(), static_cast<uint32_t>(pass.values.size()), OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
-            if (pass.compute) {
-                OgpuKernel *raw = nullptr;
-                status = ogpu_kernel_create(device.get(), &shader, pass.push, &raw, &error);
-                std::unique_ptr<OgpuKernel, decltype(&ogpu_kernel_destroy)> kernel(raw, ogpu_kernel_destroy);
-                check(status, error);
-            } else {
-                auto vertex = read_words(stem.string() + ".vert.spv");
-                const OgpuShaderDesc vs = {vertex.data(), (vertex.size()) * 4, nullptr, pass.values.data(), static_cast<uint32_t>(pass.values.size()), OGPU_SHADER_SPIRV, {0, 0, 0}, 0};
-                OgpuRaster *raw = nullptr;
-                const OgpuRasterDesc desc = {8, OGPU_TOPOLOGY_TRIANGLE_STRIP, OGPU_FORMAT_RGBA8_UNORM,
-                    OGPU_FORMAT_NONE, 0, 0, OGPU_COMPARE_ALWAYS, 0};
-                status = ogpu_raster_create(device.get(), &vs, &shader, &desc, &raw, &error);
-                std::unique_ptr<OgpuRaster, decltype(&ogpu_raster_destroy)> raster(raw, ogpu_raster_destroy);
-                check(status, error);
+            const auto metadata = pass.compute ? compute_metadata(primary.data(), primary.size(), pass.values) : shader_metadata{};
+            ogpu_next_shader_requirements requirements{RECORD(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS),
+                0, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
+            const ogpu_next_argument_interface interface{RECORD(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE),
+                pass.compute ? pass.push : 8, 0, nullptr};
+            std::vector<ogpu_next_specialization_entry> entries;
+            std::vector<uint32_t> bits;
+            for (const auto &value : pass.values) {
+                entries.push_back({value.id, static_cast<uint32_t>(bits.size() * 4), 4}); bits.push_back(value.bits);
             }
-            std::cout << "prepared pass=" << pass.id << " constants=" << pass.constants << " PASS\n";
+            const ogpu_next_specialization specialization{RECORD(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION),
+                static_cast<uint32_t>(entries.size()), 0, entries.data(), {bits.data(), bits.size() * 4}};
+            std::vector<uint32_t> vertex;
+            if (!pass.compute) vertex = read_words(stem.string() + ".vert.spv");
+            ogpu_next_shader shaders[] = {
+                {static_cast<uint32_t>(pass.compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_FRAGMENT), OGPU_NEXT_SHADER_SPIRV,
+                    {primary.data(), primary.size() * 4}, "main", &interface.header, &specialization.header, nullptr},
+                {OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_SHADER_SPIRV, {vertex.data(), vertex.size() * 4}, "main",
+                    &interface.header, &specialization.header, nullptr},
+            };
+            if (!pass.compute) std::swap(shaders[0], shaders[1]);
+            const ogpu_next_color_state color{OGPU_NEXT_RGBA8_UNORM, 15, 0, 0, 0, 0, 0, 0, 0};
+            ogpu_next_graphics_state graphics{};
+            graphics.header = RECORD(ogpu_next_graphics_state, OGPU_NEXT_GRAPHICS_STATE);
+            graphics.topology = OGPU_NEXT_TRIANGLE_STRIP; graphics.samples = 1;
+            graphics.color_count = 1; graphics.colors = &color;
+            const ogpu_next_executable_desc desc{RECORD(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
+                pass.compute ? OGPU_NEXT_EXECUTABLE_COMPUTE : OGPU_NEXT_EXECUTABLE_GRAPHICS,
+                pass.compute ? 1u : 2u, shaders, pass.compute ? nullptr : &graphics.header,
+                pass.compute ? UINT64_C(0) : OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &requirements.header, nullptr, 0, 0};
+            ogpu_next_executable *raw = nullptr;
+            check(ogpu_next_executable_create(device.get(), &desc, &raw));
+            Owner<ogpu_next_executable, ogpu_next_executable_destroy> executable(raw, ogpu_next_executable_destroy);
+            std::cout << "prepared pass=" << pass.id << " constants=" << pass.constants
+                      << " local=" << metadata.local[0] << ',' << metadata.local[1] << ',' << metadata.local[2]
+                      << " shared=" << metadata.shared << " PASS\n";
         }
         std::cout << "Six upstream executables created with captured specialization; no work submitted.\n";
     } catch (const std::exception &error) {

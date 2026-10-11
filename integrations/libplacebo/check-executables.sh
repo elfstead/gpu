@@ -7,7 +7,9 @@ test -f "$capture/manifest.txt"
 cd "$repo"
 cargo build --locked --release -p ogpu
 "${CXX:-c++}" -std=c++17 -O2 -Wall -Wextra -Werror -I"$repo/include" \
+    $(pkg-config --cflags SPIRV-Tools) \
     "$repo/integrations/libplacebo/check-executables.cpp" \
+    $(pkg-config --libs SPIRV-Tools) \
     -L"$repo/target/release" -Wl,-rpath,"$repo/target/release" -logpu \
     -o "$repo/target/libplacebo-integration/check-executables"
 log=$(mktemp "$repo/target/libplacebo-integration/executables.XXXXXXXX.log")
