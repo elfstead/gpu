@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the native M4 reference, optionally matched against the public ABI-20 scene."""
+"""Validate the native M4 reference, optionally matched against ABI20 or foundation."""
 import argparse
 import hashlib
 import json
@@ -18,6 +18,19 @@ import oracle
 
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def inspect_foundation_shader(reflection,assembly,stage):
+    """Prove the handwritten executable metadata against the compiled artifact."""
+    fields,size,alignment,local,requirements=generate.inspect(reflection,assembly)
+    generate.require(size=={'compute':32,'vertex':8,'fragment':0}[stage], 'foundation root size mismatch')
+    generate.require(local==([8,1,1] if stage=='compute' else []),'foundation local size mismatch')
+    wanted={'compute_queue' if stage=='compute' else 'graphics_queue'}
+    if stage!='fragment': wanted.add('buffer_device_address')
+    generate.require(set(requirements)==wanted,'foundation scene requirements changed')
+    # inspect() rejects workgroup globals, specialization and unmapped capability
+    # records; therefore this scene can truthfully declare shared_memory=0.
+    return fields.io
 
 
 def compare_outputs(native, public, rows):
@@ -44,14 +57,29 @@ def compare_index_width(reference_root, reference_run, output, rows):
     return dict(frames=len(rows),files=len(rows),compared_bytes=compared,exact=True)
 
 
+def check_failure(mode,code,stdout,stderr):
+    generate.require(code==1 and f'INJECT {mode}\n' in stderr,'missing injected failure')
+    generate.require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'failure validation error')
+    generate.require('SCENE_FRAME ' not in stdout,'failed frame reported success')
+    if mode in ('unknown','wait'):
+        generate.require('refusing unsafe teardown' in stderr and 'TEARDOWN ' not in stderr,'unknown completion released resources')
+    else:
+        generate.require(stderr.count('TEARDOWN arena\n')==1 and stderr.count('TEARDOWN memory\n')==8
+                         and stderr.count('TEARDOWN device\n')==1,'known rejection did not release resources')
+        generate.require(stderr.index('TEARDOWN arena\n')<stderr.index('TEARDOWN memory\n')<stderr.index('TEARDOWN device\n'),
+                         'unsafe teardown order')
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--scale',action='store_true')
     parser.add_argument('--public',action='store_true',help='also build/run public API consumer and require exact native agreement')
+    parser.add_argument('--foundation',action='store_true',help='use the foundation consumer (implies --public)')
     parser.add_argument('--index16',action='store_true',help='generate and bind UINT16 instead of UINT32 indices')
     parser.add_argument('--reference32',type=Path,help='accepted matched UINT32 report; required for UINT16 GPU acceptance')
     args=parser.parse_args()
+    if args.foundation: args.public=True
     build=ROOT/'target/graphics-scene';build.mkdir(parents=True,exist_ok=True)
     dest=Path(tempfile.mkdtemp(prefix='matched-' if args.public else 'native-',dir=build))
     print(f'Scene evidence: {dest}',flush=True)
@@ -61,6 +89,7 @@ def main():
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),runs=[],shaders={},
                 environment={k:os.getenv(k) for k in ('VK_DRIVER_FILES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_VULKAN_LIBRARY')})
+    report['api']='foundation' if args.foundation else 'installed' if args.public else 'native'
     report['toolchain']=dict(slang=generate.VERSION,cc=subprocess.check_output([*shlex.split(os.getenv('CC','cc')),'--version'],text=True).splitlines()[0],
                              python=sys.version.split()[0])
     def save(): (dest/'report.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
@@ -79,10 +108,12 @@ def main():
         sources += [ROOT/'examples/learned_image'/name for name in ('native.c','native_workload.h','extent.h')]
         sources += list((ROOT/'examples/learned_image/generated').glob('*.h'))
         sources += list((ROOT/'examples/compiler').glob('*.py'))
-        sources += [ROOT/'include/ogpu.h',ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
+        sources += [ROOT/'include'/('ogpu_next.h' if args.foundation else 'ogpu.h'),ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources)}
+        interfaces={}
         for name,stage in [('prepare16' if args.index16 else 'prepare','compute'),('scene.vert','vertex'),('scene.frag','fragment')]:
             reflection,assembly,binary=generate.compile_source(HERE/(name+'.slang'),dest/stage,os.getenv('SLANGC','slangc'),stage)
+            if args.foundation: interfaces[stage]=inspect_foundation_shader(reflection,assembly,stage)
             if stage=='compute':
                 generate.require(reflection['entryPoints'][0]['threadGroupSize']==[8,1,1],'wrong workgroup')
             if stage!='fragment':
@@ -94,6 +125,7 @@ def main():
             # This uses the native compiler, not inspect()/header()'s installed subset.
             (dest/(stage+'.spv')).write_bytes(binary)
             report['shaders'][stage]=dict(sha256=digest(dest/(stage+'.spv')),reflection=reflection)
+        if args.foundation: generate.stages.link(interfaces['vertex'],interfaces['fragment'])
         binary=dest/'native'
         command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
                  '-I'+str(ROOT/'include'),'-I'+str(ROOT/'vendor/Vulkan-Headers/include'),
@@ -108,15 +140,27 @@ def main():
             subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
             public=dest/'public'
             public_command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
-                            '-I'+str(ROOT/'include'),str(HERE/'public.c'),'-L'+str(ROOT/'target/release'),
+                            '-I'+str(ROOT/'include'),str(HERE/('foundation.c' if args.foundation else 'public.c')),'-L'+str(ROOT/'target/release'),
                             '-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-o',str(public)]
             subprocess.run(public_command,check=True)
             symbols=subprocess.check_output(['nm','-u',str(public)],text=True)
-            generate.require('ogpu_batch_draw_indexed_indirect' in symbols and not any(
+            draw_symbol='ogpu_next_draw_indexed_indirect' if args.foundation else 'ogpu_batch_draw_indexed_indirect'
+            generate.require(draw_symbol in symbols and not any(
                 line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split()),'public consumer boundary mismatch')
+            if args.foundation:
+                generate.require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
+                                     if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports installed API')
             report['public']=dict(executable_sha256=digest(public),compile_command=public_command,
-                                  runtime_sha256=digest(ROOT/'target/release/libogpu.so'),abi=20)
+                                  runtime_sha256=digest(ROOT/'target/release/libogpu.so'),
+                                  **({'foundation':1} if args.foundation else {'abi':20}))
             executables['public']=public
+            if args.foundation:
+                failure_command=[part.replace(str(HERE/'foundation.c'),str(HERE/'foundation_failures.c')).replace(str(public),str(dest/'failures'))
+                                 for part in public_command]
+                failure_command += ['-Wl,--wrap=ogpu_next_'+name for name in
+                                    ('commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy','device_destroy')]
+                subprocess.run(failure_command,check=True)
+                report['failure_control']=dict(compile_command=failure_command,executable_sha256=digest(dest/'failures'),runs=[])
         subprocess.run([sys.executable,'-B',str(HERE/'test_oracle.py')],check=True)
         subprocess.run([sys.executable,'-B',str(HERE/'test_runner.py')],check=True)
         if args.check:
@@ -128,6 +172,17 @@ def main():
         if args.public:
             environment['LD_LIBRARY_PATH']=str(ROOT/'target/release')+':'+environment.get('LD_LIBRARY_PATH','')
             report['public']['LD_LIBRARY_PATH']=environment['LD_LIBRARY_PATH']
+        if args.foundation:
+            for mode in ('end','submit','unknown','wait'):
+                output=dest/('failure-'+mode);output.mkdir()
+                failed=subprocess.run([str(dest/'failures'),mode,'257','193',str(dest),str(output),'16' if args.index16 else '32'],
+                                      capture_output=True,text=True,timeout=60,env=environment)
+                (output/'stdout').write_text(failed.stdout);(output/'stderr').write_text(failed.stderr)
+                check_failure(mode,failed.returncode,failed.stdout,failed.stderr)
+                report['failure_control']['runs'].append(dict(mode=mode,returncode=failed.returncode,directory=output.name,
+                    files={p.name:digest(p) for p in sorted(output.iterdir())}))
+                save()
+            print('Foundation scene known-rejection cleanup / unknown-completion fail-stop PASS',flush=True)
         for width,height in [(257,193),(640,360)]+([(1280,720)] if args.scale else []):
             for backend,binary in executables.items():
                 output=dest/(f'{width}x{height}-{backend}' if args.public else f'{width}x{height}');output.mkdir()
@@ -138,7 +193,9 @@ def main():
                 generate.require(f'{backend.title()} indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
                 if backend=='public':
                     context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
-                    generate.require(context==[dict(abi=20,index_bytes=report['index_bytes'],gpu_generated=True)],'wrong public scene configuration')
+                    expected_context=dict(index_bytes=report['index_bytes'],gpu_generated=True,
+                                          **({'foundation':1} if args.foundation else {'abi':20}))
+                    generate.require(context==[expected_context],'wrong public scene configuration')
                 devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
                 generate.require(len(devices)==1,'missing/duplicate device identity')
                 if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')

@@ -1410,6 +1410,10 @@ historical installed adapter and diagnostic suite have been
 The preview now exports the foundation adapter with independent build/run receipts,
 a separate pinned upstream dependency and relocated-header/runtime checks;
 other application workflows and default SDK cutover remain.
+The [indexed/depth application caller](foundation-indexed-scene.md) now also uses
+explicit backing, image views/transitions and arena/timeline lifetimes for the
+existing matched-native fresh-recording scene. This does not migrate the separate
+reuse/frontier/timing or generated SDK scene workflows.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

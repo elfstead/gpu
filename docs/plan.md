@@ -239,6 +239,13 @@ native comparisons and foundation correctness checks remain. Other application
 workflows and default SDK cutover are still outstanding. No new performance
 or native Metal parity is claimed.
 
+The [indexed/depth scene migration](foundation-indexed-scene.md) now has a
+foundation caller for the unchanged GPU-generated indexed geometry, depth and
+split-render modes, with compiler-checked metadata and explicit backing/recording/
+completion lifetimes. Its native/analytic gates remain unchanged. Separate scene
+reuse/frontier and generated SDK workflows still need migration; historical
+performance results are not foundation measurements.
+
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no
 longer the next gate. Preserve existing evidence and run focused correctness checks

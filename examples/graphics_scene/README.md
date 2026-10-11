@@ -1,5 +1,12 @@
 # M4 matched indexed/depth scene
 
+The [foundation migration](../../docs/foundation-indexed-scene.md) adds
+`run.py --foundation`, with the same native shaders and acceptance gates but
+explicit memory, views, arena/timeline ownership and dependencies. It also checks
+recording/submission failure and unknown-completion teardown. `--public` alone
+still selects the historical installed caller described below; the separate
+reuse/frontier/generated handoffs have not yet migrated.
+
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,
 allocation sizes, guarded GPU-generated data and scene modes. Existing native

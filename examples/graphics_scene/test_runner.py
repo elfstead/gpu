@@ -3,12 +3,40 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 spec=importlib.util.spec_from_file_location('scene_runner',Path(__file__).with_name('run.py'))
 runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_failure_receipts(self):
+        for mode in ('end','submit','unknown','wait'):
+            known=mode in ('end','submit')
+            cleanup='TEARDOWN arena\n'+'TEARDOWN memory\n'*8+'TEARDOWN device\n'
+            log=f'INJECT {mode}\n'+(cleanup if known else 'Unknown foundation scene completion; refusing unsafe teardown\n')
+            runner.check_failure(mode,1,'',log)
+            for code,stdout,stderr in ((0,'',log),(1,'SCENE_FRAME {}',log),(1,'',log+'Validation Error:'),
+                                      (1,'',log.replace('INJECT','MISSED')),
+                                      (1,'',log.replace('TEARDOWN arena','TEARDOWN other') if known else log+cleanup)):
+                with self.assertRaises(ValueError):runner.check_failure(mode,code,stdout,stderr)
+
+    def test_foundation_requirements(self):
+        fields=SimpleNamespace(io=['fixture'])
+        for stage,size,local,requirements in (
+            ('compute',32,[8,1,1],['compute_queue','buffer_device_address']),
+            ('vertex',8,[],['graphics_queue','buffer_device_address']),
+            ('fragment',0,[],['graphics_queue'])):
+            with patch.object(runner.generate,'inspect',return_value=(fields,size,8,local,requirements)):
+                self.assertEqual(runner.inspect_foundation_shader({},'',stage),fields.io)
+            for bad,message in (
+                ((fields,size+4,8,local,requirements),'root size'),
+                ((fields,size,8,[1,1,1],requirements),'local size'),
+                ((fields,size,8,local,requirements+['shader_float16']),'requirements changed')):
+                with patch.object(runner.generate,'inspect',return_value=bad):
+                    with self.assertRaisesRegex(ValueError,message):runner.inspect_foundation_shader({},'',stage)
+
     def test_index_width_comparison(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);old=root/'old';new=root/'new'
