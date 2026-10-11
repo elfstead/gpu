@@ -242,8 +242,9 @@ or native Metal parity is claimed.
 The [indexed/depth scene migration](foundation-indexed-scene.md) now has a
 foundation caller for the unchanged GPU-generated indexed geometry, depth and
 split-render modes, with compiler-checked metadata and explicit backing/recording/
-completion lifetimes. Its native/analytic gates remain unchanged. Separate scene
-reuse/frontier and generated SDK workflows still need migration; historical
+completion lifetimes. Its generated typed-interface caller and independent SDK
+handoff now accompany the raw matched control; native/analytic gates remain
+unchanged. Separate scene reuse/frontier workflows still need migration; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

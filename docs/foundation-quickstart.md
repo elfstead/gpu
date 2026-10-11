@@ -25,9 +25,14 @@ Copy any of these entire directories to an application directory outside the rep
   backing and offscreen indirect-draw replay across six extents.
 - `share/ogpu/examples/foundation-learned-image`: the mixed denoising/resize/raster
   caller, frozen model and independent scalar reference.
+- `share/ogpu/examples/foundation-indexed-scene`: generated compute/graphics
+  interfaces, GPU-generated UINT32/UINT16 indexed geometry and depth/split-render
+  modes, with analytic, guard, A/B/A and cross-width checks.
 
 Run `python3 build.py` in the copied directory. Run `./consumer` for compute or
-graphics; run `python3 run.py` for learned-image acceptance. The last command
+graphics; run `python3 run.py` for learned-image or indexed-scene acceptance.
+Indexed-scene checks 30 frames per index width at 257x193 (`--scale` adds 1280x720);
+see its packaged README. Learned-image
 generates its own deterministic A/B inputs and FP64 references, then checks 12
 normal/diagnostic resident/end-to-end A/B/A frames. It preserves logs and an explicit
 complete/incomplete receipt in a fresh `run-*` directory, including failures.
@@ -108,7 +113,7 @@ Application allocation, bounds, retirement, synchronization and numerical policy
 remain caller-owned; generated layouts are not safe resource-lifetime tracking.
 
 Maintainer checks: `python3 tools/test-foundation-install.py --prefix ...` copies
-the preview to a fresh space-containing prefix, builds all three examples outside
+the preview to a fresh space-containing prefix, builds all four examples outside
 the checkout, checks header dependencies and the actual linked library, rejects a
 missing Vulkan loader, and runs GPU acceptance. `--no-gpu` retains build/link and
 failure-path checks. `--shader-check` additionally reproduces both generated
@@ -122,7 +127,7 @@ dependencies contain the relocated public header and no OGPU checkout files,
 checks the actual loaded library and incomplete missing-loader receipt, and runs
 matrix/lifetime acceptance. `--ggml-data /path/to/extracted-mnist` additionally
 selects the full dataset gates. Those optional prerequisites do not burden the
-three smaller consumer checks.
+four smaller consumer checks.
 
 Local acceptance (2026-10-11): Radeon/RADV and llvmpipe pass all three copied
 consumers with synchronization validation, header/runtime identity checks and
@@ -132,3 +137,9 @@ Installed compute/graphics regeneration and changed compute interfaces pass on
 Radeon. The ABI-20 compute/stage-pair examples and default generator also pass
 from the same preview installation. Six installer safety tests cover both opt-in
 settings, and two host oracle tests reject malformed/nonfinite/out-of-bound data.
+
+The 2026-10-12 follow-up adds the independent indexed/depth scene: all four copied
+consumers pass on both local drivers, including 30 scene frames per index width,
+exact cross-width images, public-only dependency checks and missing-loader
+rejection. The scene's in-tree native comparison also passes the unchanged
+analytic/geometry/guard gates; see [its checkpoint](foundation-indexed-scene.md).

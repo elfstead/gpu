@@ -53,7 +53,7 @@ def main():
     pkg = os.getenv("PKG_CONFIG","pkg-config")
     require(run([pkg,"--variable=ogpu_revision","ogpu-foundation"],env=env).strip() == manifest["revision"],"wrong revision")
     require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "1","wrong foundation version")
-    for label in ("compute","graphics","learned-image"):
+    for label in ("compute","graphics","learned-image","indexed-scene"):
         app = temporary / ("independent "+label)
         shutil.copytree(prefix / ("share/ogpu/examples/foundation-"+label),app)
         run([sys.executable,"-B","build.py"],cwd=app,env=env)
@@ -65,21 +65,22 @@ def main():
         selected = next((line.split("=>",1)[1].rsplit(" (",1)[0].strip() for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")),None)
         require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so","wrong runtime resolved")
         missing = dict(env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
-        command = [sys.executable,"-B","run.py"] if label == "learned-image" else ["./consumer"]
+        scripted = label in ("learned-image","indexed-scene")
+        command = [sys.executable,"-B","run.py"] if scripted else ["./consumer"]
         failed = subprocess.run(command,cwd=app,env=missing,capture_output=True,text=True,timeout=60)
         require(failed.returncode != 0,"missing loader succeeded")
-        if label == "learned-image":
+        if scripted:
             reports = list(app.glob("run-*/report.json")); require(len(reports) == 1,"missing failure receipt")
             receipt = json.loads(reports[0].read_text())
             require(not receipt["complete"] and receipt.get("error") and not receipt["runs"],"false success after missing loader")
         if not args.no_gpu:
             run(command,cwd=app,env=env)
-            if label == "learned-image":
+            if scripted:
                 complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
                 require(len(complete) == 1 and len(complete[0]["runs"]) == 2,"missing completed handoff receipt")
                 require(complete[0]["sdk"]["revision"] == manifest["revision"] and
                         complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"handoff identity mismatch")
-        if args.shader_check and label != "learned-image":
+        if args.shader_check and label in ("compute","graphics"):
             shader_env = dict(env,SLANGC=os.getenv("SLANGC","slangc"))
             if label == "compute":
                 generator = [str(prefix / "bin/ogpu-shader"),"--api","foundation","--source","transform.slang","--output",

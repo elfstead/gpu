@@ -76,9 +76,11 @@ def main():
     parser.add_argument('--scale',action='store_true')
     parser.add_argument('--public',action='store_true',help='also build/run public API consumer and require exact native agreement')
     parser.add_argument('--foundation',action='store_true',help='use the foundation consumer (implies --public)')
+    parser.add_argument('--generated',action='store_true',help='use checked generated foundation interfaces (implies --foundation)')
     parser.add_argument('--index16',action='store_true',help='generate and bind UINT16 instead of UINT32 indices')
     parser.add_argument('--reference32',type=Path,help='accepted matched UINT32 report; required for UINT16 GPU acceptance')
     args=parser.parse_args()
+    if args.generated: args.foundation=True
     if args.foundation: args.public=True
     build=ROOT/'target/graphics-scene';build.mkdir(parents=True,exist_ok=True)
     dest=Path(tempfile.mkdtemp(prefix='matched-' if args.public else 'native-',dir=build))
@@ -90,6 +92,7 @@ def main():
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),runs=[],shaders={},
                 environment={k:os.getenv(k) for k in ('VK_DRIVER_FILES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_VULKAN_LIBRARY')})
     report['api']='foundation' if args.foundation else 'installed' if args.public else 'native'
+    report['generated']=args.generated
     report['toolchain']=dict(slang=generate.VERSION,cc=subprocess.check_output([*shlex.split(os.getenv('CC','cc')),'--version'],text=True).splitlines()[0],
                              python=sys.version.split()[0])
     def save(): (dest/'report.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
@@ -105,6 +108,7 @@ def main():
             report['reference32']=dict(path=str(args.reference32.resolve()),sha256=digest(args.reference32),revision=reference['revision'])
         generate.require(args.check or not args.index16 or reference is not None,'UINT16 GPU acceptance requires --public --reference32')
         sources=list(HERE.glob('*.py'))+list(HERE.glob('*.c'))+list(HERE.glob('*.slang'))+[HERE/'README.md']
+        if args.generated: sources+=list(HERE.glob('foundation_*.generated.h'))
         sources += [ROOT/'examples/learned_image'/name for name in ('native.c','native_workload.h','extent.h')]
         sources += list((ROOT/'examples/learned_image/generated').glob('*.h'))
         sources += list((ROOT/'examples/compiler').glob('*.py'))
@@ -126,6 +130,16 @@ def main():
             (dest/(stage+'.spv')).write_bytes(binary)
             report['shaders'][stage]=dict(sha256=digest(dest/(stage+'.spv')),reflection=reflection)
         if args.foundation: generate.stages.link(interfaces['vertex'],interfaces['fragment'])
+        if args.generated:
+            subprocess.run([sys.executable,'-B',str(HERE/'generated.py'),'--api','foundation','--check','--build-dir',str(dest/'generated')],check=True)
+            # Both consumers must execute the exact same shader bytes, including
+            # when the public binary embeds compiler-owned interface records.
+            from handoff import binary as embedded_binary
+            for stage,header,name in (
+                ('compute','scene_prepare16' if args.index16 else 'scene_prepare','scene_prepare16' if args.index16 else 'scene_prepare'),
+                ('vertex','scene_pair','scene_pair_vertex'),('fragment','scene_pair','scene_pair_fragment')):
+                generate.require(embedded_binary((HERE/f'foundation_{header}.generated.h').read_text(),name)==(dest/(stage+'.spv')).read_bytes(),
+                                 'generated/native shader bytes differ: '+stage)
         binary=dest/'native'
         command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
                  '-I'+str(ROOT/'include'),'-I'+str(ROOT/'vendor/Vulkan-Headers/include'),
@@ -139,8 +153,9 @@ def main():
             generate.require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
             subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
             public=dest/'public'
+            public_source=HERE/('foundation_generated.c' if args.generated else 'foundation.c' if args.foundation else 'public.c')
             public_command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
-                            '-I'+str(ROOT/'include'),str(HERE/('foundation.c' if args.foundation else 'public.c')),'-L'+str(ROOT/'target/release'),
+                            '-I'+str(ROOT/'include'),'-I'+str(HERE),str(public_source),'-L'+str(ROOT/'target/release'),
                             '-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-o',str(public)]
             subprocess.run(public_command,check=True)
             symbols=subprocess.check_output(['nm','-u',str(public)],text=True)
@@ -155,8 +170,9 @@ def main():
                                   **({'foundation':1} if args.foundation else {'abi':20}))
             executables['public']=public
             if args.foundation:
-                failure_command=[part.replace(str(HERE/'foundation.c'),str(HERE/'foundation_failures.c')).replace(str(public),str(dest/'failures'))
+                failure_command=[part.replace(str(public_source),str(HERE/'foundation_failures.c')).replace(str(public),str(dest/'failures'))
                                  for part in public_command]
+                if args.generated: failure_command += ['-DSCENE_GENERATED']
                 failure_command += ['-Wl,--wrap=ogpu_next_'+name for name in
                                     ('commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy','device_destroy')]
                 subprocess.run(failure_command,check=True)
@@ -196,6 +212,9 @@ def main():
                     expected_context=dict(index_bytes=report['index_bytes'],gpu_generated=True,
                                           **({'foundation':1} if args.foundation else {'abi':20}))
                     generate.require(context==[expected_context],'wrong public scene configuration')
+                    if args.generated:
+                        generated=[json.loads(line.removeprefix('GENERATED_SCENE ')) for line in stdout.splitlines() if line.startswith('GENERATED_SCENE ')]
+                        generate.require(generated==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated scene configuration')
                 devices=[json.loads(line.removeprefix('DEVICE ')) for line in stdout.splitlines() if line.startswith('DEVICE ')]
                 generate.require(len(devices)==1,'missing/duplicate device identity')
                 if report['runs']: generate.require(devices[0]==report['runs'][0]['device'],'device changed across extents')

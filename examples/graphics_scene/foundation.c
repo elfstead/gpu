@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef SCENE_GENERATED
+#include <foundation_scene_prepare.generated.h>
+#include <foundation_scene_prepare16.generated.h>
+#include <foundation_scene_pair.generated.h>
+#endif
 #define HEADER(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
 #define NEED(x) do { if (!(x)) { fprintf(stderr,"line %d: %s\n",__LINE__,#x); return 0; } } while (0)
 #define GPU(x) do { ogpu_next_status status_=(x); if(status_!=OGPU_NEXT_OK) { \
@@ -41,6 +46,7 @@ static ogpu_next_query query(uint32_t kind,void *data,uint32_t count,uint32_t si
 static ogpu_next_span span(Scene *s,unsigned buffer,uint64_t offset,uint64_t bytes) {
     return (ogpu_next_span){s->buffers[buffer],offset,bytes};
 }
+#ifndef SCENE_GENERATED
 static int shader_read(Scene *s,unsigned i,const char *directory,const char *name) {
     char path[4096]; int n=snprintf(path,sizeof(path),"%s/%s",directory,name); NEED(n>=0 && n<(int)sizeof(path));
     FILE *f=fopen(path,"rb"); if(!f) { perror(path); return 0; }
@@ -52,6 +58,7 @@ static int shader_read(Scene *s,unsigned i,const char *directory,const char *nam
 done:
     if(fclose(f)) okay=0; return okay;
 }
+#endif
 /* Explicit consumer preference, not an OGPU allocator: require properties, then
  * prefer non-host-visible LOCAL storage when suitable. UMA remains eligible. */
 static int memory_type(Scene *s,const ogpu_next_requirements *req,uint32_t properties,uint32_t *out) {
@@ -85,11 +92,27 @@ static int context(Scene *s,const char *directory) {
     }
     NEED(s->domain!=UINT32_MAX);
     ogpu_next_queue_request request={s->domain,1,0.5f};
-    ogpu_next_device_desc dd={HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,OGPU_NEXT_FEATURE_RASTER};
+    uint64_t required=OGPU_NEXT_FEATURE_RASTER;
+#ifdef SCENE_GENERATED
+    required=scene_pair_required_features | (s->index_bytes==2 ? scene_prepare16_required_features : scene_prepare_required_features);
+#endif
+    ogpu_next_device_desc dd={HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,required};
     GPU(ogpu_next_device_create(adapter,&dd,&s->device)); s->queue=ogpu_next_device_queue(s->device,s->domain,0); NEED(s->queue);
     printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",info.vendor_id,info.device_id,
         (info.native_api_version>>22)&127,(info.native_api_version>>12)&1023,info.native_api_version&4095);
     printf("PUBLIC_SCENE {\"foundation\":%u,\"index_bytes\":%u,\"gpu_generated\":true}\n",OGPU_NEXT_VERSION,s->index_bytes);
+#ifdef SCENE_GENERATED
+    (void)directory;
+    ogpu_next_feature_info features; ogpu_next_execution_limits limits;
+    q=query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); GPU(ogpu_next_device_query(s->device,&q));
+    q=query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); GPU(ogpu_next_device_query(s->device,&q));
+    NEED(scene_pair_compatible(&features,&limits) && (s->index_bytes==2 ? scene_prepare16_compatible(&features,&limits) : scene_prepare_compatible(&features,&limits)));
+    ogpu_next_shader shaders[3]; shaders[0]=s->index_bytes==2 ? scene_prepare16_shader() : scene_prepare_shader(); scene_pair_shaders(&shaders[1]);
+    const ogpu_next_shader_requirements *compute_req=s->index_bytes==2 ? &scene_prepare16_requirements : &scene_prepare_requirements;
+    ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,shaders,NULL,0,&compute_req->header,NULL,0,0};
+    printf("GENERATED_SCENE {\"compute_push_bytes\":%u,\"vertex_push_bytes\":%u}\n",
+        s->index_bytes==2 ? scene_prepare16_push_size : scene_prepare_push_size,scene_pair_push_size);
+#else
     NEED(shader_read(s,0,directory,"compute.spv") && shader_read(s,1,directory,"vertex.spv") && shader_read(s,2,directory,"fragment.spv"));
     /* Metadata is checked against compiler reflection by run.py. Same native
      * shader bytes as the Vulkan control, with no runtime shader inspection. */
@@ -101,11 +124,16 @@ static int context(Scene *s,const char *directory) {
         {OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_SHADER_SPIRV,{s->code[2],s->code_size[2]},"main",&raster.header,NULL,NULL}};
     ogpu_next_shader_requirements req={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{8,1,1},0};
     ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,shaders,NULL,0,&req.header,NULL,0,0};
+#endif
     GPU(ogpu_next_executable_create(s->device,&ed,&s->prepare));
     ogpu_next_color_state color={OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
     ogpu_next_graphics_state gs={HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,
         OGPU_NEXT_FRONT_CCW,1,1,&color,OGPU_NEXT_D32_FLOAT,1,1,OGPU_NEXT_COMPARE_LESS,{0},0,{0},{0},NULL,NULL,0,0};
+#ifdef SCENE_GENERATED
+    ed.requirements=&scene_pair_requirements.header;
+#else
     req.features=OGPU_NEXT_FEATURE_RASTER; memset(req.local_size,0,sizeof(req.local_size));
+#endif
     ed.kind=OGPU_NEXT_EXECUTABLE_GRAPHICS; ed.shader_count=2; ed.shaders=&shaders[1]; ed.static_state=&gs.header;
     ed.dynamic_state=OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR;
     for(unsigned i=0;i<4;++i) {
@@ -188,7 +216,12 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
     ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)s->width,(float)s->height,0,1,0,0,s->width,s->height};
     ogpu_next_set_graphics_state(s->encoder,&vp.header);
     ogpu_next_bind_indices(s->encoder,span(s,INDICES,GUARD,8*s->index_bytes),s->index_bytes==2 ? OGPU_NEXT_INDEX_U16 : OGPU_NEXT_INDEX_U32);
+#ifdef SCENE_GENERATED
+    const Scene_pair_vertexArguments args={.arg_vertices=s->root.vertices};
+    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(args),&args);
+#else
     ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,8,&s->root.vertices);
+#endif
     for(unsigned i=0;i<count;++i) {
         ogpu_next_indirect draw={span(s,DRAWS,GUARD+20*((first+i)%2),20),20,1,{NULL,0,0}};
         ogpu_next_draw_indexed_indirect(s->encoder,&draw);
@@ -203,7 +236,20 @@ static int write_output(const char *directory,unsigned mode,unsigned frame,const
 static int frame(Scene *s,unsigned mode,unsigned frame,const char *directory) {
     NEED(begin(s)); s->root.phase=frame==1; s->root.empty=mode==9;
     dependency(s,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ|OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_SHADER_WRITE);
-    ogpu_next_bind_executable(s->encoder,s->prepare); ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,32,&s->root);
+    ogpu_next_bind_executable(s->encoder,s->prepare);
+#ifdef SCENE_GENERATED
+    if(s->index_bytes==2) {
+        const Scene_prepare16Arguments args={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
+            .arg_draws=s->root.draws,.arg_phase=s->root.phase,.arg_empty=s->root.empty};
+        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    } else {
+        const Scene_prepareArguments args={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
+            .arg_draws=s->root.draws,.arg_phase=s->root.phase,.arg_empty=s->root.empty};
+        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    }
+#else
+    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,32,&s->root);
+#endif
     ogpu_next_launch launch={{1,1,1},0,NULL}; ogpu_next_dispatch(s->encoder,&launch);
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_INDEX_INPUT|OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_INDIRECT,
         OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_INDEX_READ|OGPU_NEXT_ACCESS_SHADER_READ|OGPU_NEXT_ACCESS_INDIRECT_READ);

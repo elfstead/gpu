@@ -5,7 +5,9 @@ The [foundation migration](../../docs/foundation-indexed-scene.md) adds
 explicit memory, views, arena/timeline ownership and dependencies. It also checks
 recording/submission failure and unknown-completion teardown. `--public` alone
 still selects the historical installed caller described below; the separate
-reuse/frontier/generated handoffs have not yet migrated.
+reuse/frontier controls have not yet migrated. `--generated` selects the generated
+foundation caller with identical native shader bytes; the opt-in SDK exports its
+independent handoff as `foundation-indexed-scene`.
 
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,

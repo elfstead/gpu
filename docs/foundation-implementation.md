@@ -1412,8 +1412,9 @@ a separate pinned upstream dependency and relocated-header/runtime checks;
 other application workflows and default SDK cutover remain.
 The [indexed/depth application caller](foundation-indexed-scene.md) now also uses
 explicit backing, image views/transitions and arena/timeline lifetimes for the
-existing matched-native fresh-recording scene. This does not migrate the separate
-reuse/frontier/timing or generated SDK scene workflows.
+existing matched-native fresh-recording scene. Generated typed interfaces and the
+independent foundation SDK handoff also cover this scene; separate reuse/frontier/
+timing workflows remain unmigrated.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

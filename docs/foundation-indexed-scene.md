@@ -8,6 +8,13 @@ with `python3 examples/graphics_scene/run.py --foundation` (`--public` is implie
 toolchain and SPIRV-Tools. Execution needs one selected ICD and synchronization
 validation, just as the original control does.
 
+`--generated` implies `--foundation` and selects compiler-generated typed roots,
+capability checks, executable requirements and the linked graphics argument bank.
+`generated.py --api foundation --check` reproduces the committed headers. The
+acceptance runner rejects stale generated files and requires their embedded SPIR-V
+to match the native control byte-for-byte. Independent runs use separate compiler
+output directories.
+
 ## Preserved workload and acceptance
 
 Compute generates vertices, UINT32 or UINT16 indices, and two native indexed
@@ -58,8 +65,36 @@ UINT32 outputs on the same driver. There is no weaker UINT16 acceptance mode.
 
 ## Migration boundary
 
-This ports the fresh-recording scene, not its separate range/frontier/reuse and
-timing controls or generated installed-SDK handoff. Those still retain ABI20
-dependencies. Next migrate the generated interface and useful replay/application
-workflows, then export the scene through the foundation SDK and remove their
-last legacy dependencies. No native Metal or second physical GPU result is claimed.
+The opt-in preview now exports `share/ogpu/examples/foundation-indexed-scene`,
+including typed shader artifacts and the existing analytic/cross-width oracle.
+Copy it outside the checkout, run `python3 build.py`, then `python3 run.py`.
+Only C11, Python and pkg-config plus the installed preview are needed; no Rust,
+Slang, Vulkan headers or native-reference source is required by that consumer.
+The default handoff checks both widths at 257x193; `--scale` adds 1280x720. Fresh
+complete/incomplete receipts record source/executable/runtime identity. Relocation
+checks exercise public-only header dependencies, actual loaded-library selection
+and incomplete missing-loader reports. The shared acceptance code takes an explicit
+foundation profile; it cannot accept an installed-ABI log as foundation evidence.
+
+This ports the fresh-recording scene and its generated handoff, not the separate
+range/frontier/reuse and timing controls. Those still retain ABI20 dependencies.
+Next migrate useful replay/application workflows and retire redundant historical
+controls, then finish default SDK cutover. No native Metal or second physical GPU
+result is claimed.
+
+## Local checkpoint — 2026-10-12
+
+Radeon/RADV 26.2.4 passes raw UINT32 and generated UINT16 native/cross-width
+acceptance at 257x193, 640x360 and 1280x720; generated UINT32 additionally matches
+native at the first two extents. llvmpipe 26.2.1 passes raw UINT32 and generated
+UINT16 native/cross-width acceptance at 257x193 and 640x360. Each extent/backend
+checks all 30 frames, and both drivers pass all four failure controls. The clean
+UINT32 reference revision is `72b4018`; generated runs retain their development
+source hashes. There are no accepted validation errors or output mismatches.
+
+Independent SDK relocation passes both index widths at 257x193 on both drivers,
+alongside the other three preview consumers. A separate no-GPU run passes build,
+dependency, loader-failure and incomplete-receipt checks. Both installed and
+foundation generated headers reproduce, and strict C11 plus host oracle/profile/
+failure/installer tests pass. These are local checks, not external adoption or
+performance evidence.

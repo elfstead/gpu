@@ -38,6 +38,14 @@ class InstalledSceneTests(unittest.TestCase):
                 with self.assertRaises(ValueError):scene.check_logs(bad,'',bits,20)
             for error in ('Validation Error: injected','SYNC-HAZARD injected'):
                 with self.assertRaises(ValueError):scene.check_logs(log(),error,bits,20)
+            # The shared oracle cannot accept ABI20 logs as foundation evidence,
+            # or foundation logs as the installed control.
+            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,1,foundation=True)
+            del public['abi'];public['foundation']=1
+            self.assertEqual(scene.check_logs(log(),'',bits,1,foundation=True),(device,frames))
+            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,20)
+            public['foundation']=2
+            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,1,foundation=True)
 
 
 if __name__=='__main__':unittest.main()

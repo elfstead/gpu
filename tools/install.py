@@ -168,7 +168,7 @@ def install(prefix, foundation=False):
         copy(ROOT / "examples/learned_image" / name, f"{reuse}/{name}")
     if foundation:
         # Explicit preview opt-in; never silently replace the ABI-20 consumer.
-        for name in ("foundation-ggml.md","foundation-libplacebo.md"):
+        for name in ("foundation-ggml.md","foundation-libplacebo.md","foundation-indexed-scene.md"):
             copy(ROOT / "docs" / name,f"share/ogpu/{name}")
         for label, files in {
             "foundation-compute": [("examples/compiler/foundation.c","main.c"),
@@ -178,6 +178,12 @@ def install(prefix, foundation=False):
                 ("examples/compiler/stage_vertex.slang","stage_vertex.slang"),
                 ("examples/compiler/stage_fragment.slang","stage_fragment.slang"),
                 ("examples/compiler/foundation-pattern.generated.h","foundation-pattern.generated.h")],
+            "foundation-indexed-scene": [("examples/graphics_scene/foundation_generated.c","main.c"),
+                *[("examples/graphics_scene/"+n,n) for n in ("foundation.c","oracle.py",
+                    "foundation_scene_prepare.generated.h","foundation_scene_prepare16.generated.h","foundation_scene_pair.generated.h")],
+                ("tools/sdk/indexed-scene/run.py","scene_checks.py"),
+                ("tools/sdk/foundation-scene/run.py","run.py"),
+                ("tools/sdk/foundation-scene/README.md","README.md")],
             "foundation-learned-image": [("examples/learned_image/foundation.c","main.c"),
                 *[("examples/learned_image/"+n,n) for n in ("extent.h","foundation_timing.h","reference.py","model.json")],
                 *[(f"examples/learned_image/generated-foundation/{n}.generated.h",f"{n}.generated.h")

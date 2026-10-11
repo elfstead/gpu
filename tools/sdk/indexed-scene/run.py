@@ -24,10 +24,11 @@ def rows(text,prefix):
     return [json.loads(line[len(prefix):]) for line in text.splitlines() if line.startswith(prefix)]
 
 
-def check_logs(stdout,stderr,bits,abi):
+def check_logs(stdout,stderr,bits,abi,foundation=False):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require('Public indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
-    require(rows(stdout,'PUBLIC_SCENE ')==[dict(abi=abi,index_bytes=bits//8,gpu_generated=True)],'wrong public configuration')
+    profile={'foundation':abi} if foundation else {'abi':abi}
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(**profile,index_bytes=bits//8,gpu_generated=True)],'wrong public configuration')
     require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated scene profile')
     devices=rows(stdout,'DEVICE ');require(len(devices)==1,'missing/duplicate device')
     frames=rows(stdout,'SCENE_FRAME ')
@@ -51,30 +52,38 @@ def check_files(directory,width,height,bits,frames):
     return checks
 
 
-def main():
+def main(foundation=False):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scale',action='store_true',help='also 1280x720; default 257x193')
     args=parser.parse_args()
     out=Path(tempfile.mkdtemp(prefix='run-',dir=HERE));print(f'Indexed scene evidence: {out}',flush=True)
-    report=dict(schema=1,complete=False,scope='generated installed indexed/depth correctness; not timing or full M4',runs=[])
+    report=dict(schema=1,complete=False,scope='generated indexed/depth correctness; not timing or full M4',runs=[],
+                api='foundation' if foundation else 'installed')
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
         pkg=os.getenv('PKG_CONFIG','pkg-config')
-        report['revision']=subprocess.check_output([pkg,'--variable=ogpu_revision','ogpu'],text=True).strip()
-        report['abi']=int(subprocess.check_output([pkg,'--variable=ogpu_abi','ogpu'],text=True))
+        package='ogpu-foundation' if foundation else 'ogpu'
+        report['revision']=subprocess.check_output([pkg,'--variable=ogpu_revision',package],text=True).strip()
+        version=int(subprocess.check_output([pkg,'--variable='+('ogpu_foundation' if foundation else 'ogpu_abi'),package],text=True))
+        report['foundation' if foundation else 'abi']=version
+        if foundation:
+            require(version==1,'unsupported foundation revision')
+            libdir=Path(subprocess.check_output([pkg,'--variable=libdir',package],text=True).strip())
+            report['sdk']=dict(revision=report['revision'],runtime_sha256=digest(libdir/'libogpu.so'))
         report['sources']={p.name:digest(p) for p in sorted(HERE.iterdir()) if p.is_file() and p.suffix in ('.c','.h','.py','.slang')}
-        report['executable_sha256']=digest(HERE/'scene')
+        executable=HERE/('consumer' if foundation else 'scene')
+        report['executable_sha256']=digest(executable)
         report['environment']={k:os.getenv(k) for k in ('VK_DRIVER_FILES','VK_ICD_FILENAMES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_VULKAN_LIBRARY')}
         for width,height in [(257,193)]+([(1280,720)] if args.scale else []):
             wide=None
             for bits in (32,16):
                 dest=out/f'{width}x{height}-{bits}';dest.mkdir()
-                command=[str(HERE/'scene'),str(width),str(height),'-',str(dest),str(bits)]
+                command=[str(executable),str(width),str(height),'-',str(dest),str(bits)]
                 with (dest/'stdout').open('w') as stdout,(dest/'stderr').open('w') as stderr:
                     result=subprocess.run(command,stdout=stdout,stderr=stderr,timeout=300)
                 require(result.returncode==0,'scene execution failed: '+str(dest))
-                device,frames=check_logs((dest/'stdout').read_text(),(dest/'stderr').read_text(),bits,report['abi'])
+                device,frames=check_logs((dest/'stdout').read_text(),(dest/'stderr').read_text(),bits,version,foundation)
                 if report['runs']:require(device==report['runs'][0]['device'],'device changed')
                 checks=check_files(dest,width,height,bits,frames)
                 if wide:
@@ -85,7 +94,8 @@ def main():
                 report['runs'].append(dict(directory=dest.name,extent=[width,height],index_bytes=bits//8,device=device,command=command,
                     checks=checks,files={p.name:digest(p) for p in sorted(dest.iterdir()) if p.is_file()}))
                 save();print(f'{width}x{height} UINT{bits}: 30 analytic/geometry/guard/repeat frames PASS',flush=True)
-        report['complete']=True;save();print('Installed generated indexed/depth scene PASS',flush=True)
+        report['complete']=True;save()
+        print('Generated foundation indexed/depth scene PASS' if foundation else 'Installed generated indexed/depth scene PASS',flush=True)
     except Exception as error:report['error']=str(error);save();raise
 
 
