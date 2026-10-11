@@ -4,6 +4,10 @@ Selected 2026-09-17, after the [Vulkan application acceptance](learned-image.md)
 This brief precedes migration and results. The model, fixtures, tolerances,
 memory placement and application execution policy stay unchanged.
 
+Current follow-up: the [explicit-foundation port](foundation-learned-image.md) now
+passes the same small-suite numerical gates and interface mutations on both local
+drivers. The sections below record the earlier installed-API compiler migration.
+
 ## Scope and decision
 
 Extend the existing pinned Slang/offline C generator to the six executable

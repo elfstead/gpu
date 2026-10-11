@@ -3,6 +3,18 @@
 A project-owned, synthetic-data residual denoiser, scalar reference and complete
 [mixed ML/graphics Vulkan application](../../docs/learned-image.md).
 
+The [source-only foundation migration](../../docs/foundation-learned-image.md) is
+also executable:
+
+```sh
+SLANGC=/path/to/slangc cargo xtask foundation-learned-image
+SLANGC=/path/to/slangc cargo xtask foundation-learned-image --check
+```
+
+It checks the same 38 cases with explicit memory, reusable command lists and
+timelines, and compares all output bytes against both reordered interfaces and
+the installed caller. It does not yet replace the timing/scale workflows below.
+
 ## Vulkan application
 
 ```sh

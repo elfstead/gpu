@@ -205,9 +205,18 @@ are still open. The installed generator output remains unchanged by default.
 Graphics compiler integration now emits checked vertex/fragment records, a shared
 inline bank and combined feature requirements without shader rewriting or runtime
 linking. Four source-interface variants pass 72 exact offscreen frames per local
-driver, including empty/nonempty indirect replay. Next migrate the learned-image
-application's actual compute-to-raster chain, retaining its frozen numerical/oracle
-gates; the old installed runtime remains until consumer/SDK cutover.
+driver, including empty/nonempty indirect replay.
+
+The [learned-image foundation migration](foundation-learned-image.md) now passes
+the actual compute-to-raster chain: 38 cases in normal/diagnostic modes for original
+and reversed interfaces, plus a freshly built installed control. All outputs match
+byte-for-byte within each driver, with unchanged frozen numerical gates, guards and
+A/B/A reuse. The foundation caller records once per mode and replays changed inputs;
+allocation, transitions, scratch, mapping and timeline retirement are explicit.
+Next migrate its reuse/timing and source-consumer handoff, then finish remaining
+consumer/SDK cutover and remove old Vulkan policy weight. Benchmark modes and Metal
+are not covered by this acceptance; the installed runtime remains a migration
+control, not a foundation fallback.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

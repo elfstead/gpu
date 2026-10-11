@@ -30,11 +30,12 @@ def header(vertex, fragment, build, compiler, name, native_heaps=False, include_
     return "\n".join(lines)
 
 
-def foundation_pair(name):
+def foundation_pair(name, vertex=None, fragment=None):
+    vertex, fragment = vertex or name+"_vertex", fragment or name+"_fragment"
     return ["/* One shared native inline bank, not independently snapshotted stage banks.",
             " * Stage structs are views of these SAME bytes. The caller must supply",
             " * simultaneously valid values; this linker never relocates or packs roots. */",
-            f"#define {name}_required_features ({name}_vertex_required_features | {name}_fragment_required_features)",
+            f"#define {name}_required_features ({vertex}_required_features | {fragment}_required_features)",
             f"static const ogpu_next_argument_interface {name}_interface = {{",
             "    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},",
             f"    .byte_size = {name}_push_size, .root_count = 0, .roots = NULL}};",
@@ -42,10 +43,10 @@ def foundation_pair(name):
             "    .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},",
             f"    .features = {name}_required_features, .local_size = {{0, 0, 0}}, .shared_memory = 0}};",
             f"static inline void {name}_shaders(ogpu_next_shader out[2]) {{",
-            f"    out[0] = {name}_vertex_shader(); out[1] = {name}_fragment_shader();",
+            f"    out[0] = {vertex}_shader(); out[1] = {fragment}_shader();",
             f"    out[0].interface_metadata = out[1].interface_metadata = &{name}_interface.header;", "}",
             f"static inline int {name}_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {{",
-            f"    return {name}_vertex_compatible(c, l) && {name}_fragment_compatible(c, l);", "}"]
+            f"    return {vertex}_compatible(c, l) && {fragment}_compatible(c, l);", "}"]
 
 
 def main():

@@ -1379,8 +1379,11 @@ integration remain explicit work; the current compute slice does not close the w
 foundation. The [first generated compute caller](compiler-workflow.md#foundation-migration-checkpoint--2026-10-11)
 now passes original/reordered layouts on both local drivers using source-only records;
 the [graphics linker follow-up](compiler-workflow.md#graphics-follow-up) also passes
-72 checked offscreen frames per local driver. Neither migrates the substantial
-consumers or installed SDK yet.
+72 checked offscreen frames per local driver. The subsequent
+[learned-image application migration](foundation-learned-image.md) now passes all
+38 normal/diagnostic cases with original and reversed interfaces on both drivers,
+matching a freshly built installed control byte-for-byte. Timing/scale workflows,
+other substantial adapters and the installed SDK still need migration.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

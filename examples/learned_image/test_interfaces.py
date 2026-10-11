@@ -7,6 +7,8 @@ import unittest
 sys.dont_write_bytecode = True
 import generate_interfaces as application
 generate = application.generate
+FOUNDATION = "--foundation" in sys.argv
+if FOUNDATION: sys.argv.remove("--foundation")
 
 
 class InterfaceTests(unittest.TestCase):
@@ -15,7 +17,7 @@ class InterfaceTests(unittest.TestCase):
         cls.outputs = {}
         for variant in ("original", "mutated"):
             for name, _ in application.SOURCES:
-                directory = application.ROOT / "target/learned-image/compiler" / variant / name
+                directory = application.ROOT / ("target/learned-image/compiler-foundation" if FOUNDATION else "target/learned-image/compiler") / variant / name
                 cls.outputs[variant, name] = (json.loads((directory / "reflection.json").read_text()),
                                              generate.run("spirv-dis", str(directory / "transform.spv")))
 
