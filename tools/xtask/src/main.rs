@@ -752,6 +752,12 @@ fn main() -> Result {
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
             Ok(())
         },
+        Some("foundation-learned-timing") if args.len() == 1 || (args.len() == 2 && args[1] == "--check") => {
+            let output = run(Command::new("python3").arg("-B").arg(root.join("examples/learned_image/foundation_measure.py")).args(&args[1..]))?;
+            print!("{}", String::from_utf8_lossy(&output.stdout));
+            eprint!("{}", String::from_utf8_lossy(&output.stderr));
+            Ok(())
+        },
         Some("learned-image")
             if args.len() <= 3
                 && args[1..].iter().all(|arg| arg == "--check" || arg == "--scale") =>
@@ -772,7 +778,7 @@ fn main() -> Result {
         },
         Some("smoke") => smoke(&root, &args[1..]),
         _ => Err(
-            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | foundation-shaders [--check] | foundation-graphics-compiler [--check] | foundation-compiler [--check] | compiler-workflow [--check] | foundation-learned-image [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
+            "Usage: cargo xtask bindings [--check] | heap-shaders [--check] | foundation-shaders [--check] | foundation-graphics-compiler [--check] | foundation-compiler [--check] | compiler-workflow [--check] | foundation-learned-image [--check] | foundation-learned-timing [--check] | learned-image [--check] [--scale] | learned-image-benchmark [--check|--validate-only] | abi | mock | baseline | compute | foundation | batch | retirement | graphics | image-loop | heap-image | reduction | matmul | matmul-half | gpu-tests | smoke [--expect-loader-error]"
                 .into(),
         ),
     }

@@ -9,11 +9,15 @@ also executable:
 ```sh
 SLANGC=/path/to/slangc cargo xtask foundation-learned-image
 SLANGC=/path/to/slangc cargo xtask foundation-learned-image --check
+SLANGC=/path/to/slangc cargo xtask foundation-learned-timing
 ```
 
 It checks the same 38 cases with explicit memory, reusable command lists and
 timelines, and compares all output bytes against both reordered interfaces and
-the installed caller. It does not yet replace the timing/scale workflows below.
+the installed caller. Resident/end-to-end A/B/A checks and an explicit replay/
+timestamp handoff are included. The timing command checks instrumentation, not
+performance against native Vulkan; it does not replace the matched-control/scale
+workflows below. Its `--check` option builds without GPU execution.
 
 ## Vulkan application
 

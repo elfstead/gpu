@@ -213,10 +213,14 @@ and reversed interfaces, plus a freshly built installed control. All outputs mat
 byte-for-byte within each driver, with unchanged frozen numerical gates, guards and
 A/B/A reuse. The foundation caller records once per mode and replays changed inputs;
 allocation, transitions, scratch, mapping and timeline retirement are explicit.
-Next migrate its reuse/timing and source-consumer handoff, then finish remaining
-consumer/SDK cutover and remove old Vulkan policy weight. Benchmark modes and Metal
-are not covered by this acceptance; the installed runtime remains a migration
-control, not a foundation fallback.
+Resident/end-to-end A/B/A reuse now also passes both drivers, including distinct
+resident lists and separate acceptance snapshots. Explicit timestamp resolve and
+serialized replay timing have a checked handoff; setup recording and per-frame
+host phases are separate. This is instrumentation validation, not a matched-native
+performance comparison. Next migrate source-consumer packaging and remaining
+workflows, then finish consumer/SDK cutover and remove old Vulkan policy weight.
+Metal is not covered; the installed runtime remains a migration control, not a
+foundation fallback.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,
 not prerequisites for designing it. The pending argument-timing refresh is no

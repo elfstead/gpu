@@ -78,8 +78,9 @@ outputs should be serialized.
 
 ## What this does not finish
 
-- The new caller covers small acceptance and resident/end-to-end reuse, not yet
-  timing modes, timestamp instrumentation or the video-scale campaign.
+- The new caller covers small acceptance, resident/end-to-end reuse and explicit
+  replay timing instrumentation, not yet the video-scale campaign or a new
+  matched-native comparison.
   Incidental timings from the installed control are not performance acceptance.
 - The installed caller is retained as an explicit migration control and still
   serves those existing benchmark/SDK workflows. It is not a runtime fallback or
@@ -89,6 +90,50 @@ outputs should be serialized.
   remaining native feature profiles are still work. Native Metal execution of
   the new foundation is unverified; this checkpoint does not depend on a Mac.
 
-Next migrate the application reuse/timing handoff and source-consumer packaging,
+Next migrate source-consumer packaging and the remaining application workflows,
 then complete the remaining consumer/SDK cutover and retire the old Vulkan policy
 layer. Do not call the whole API complete merely because this application passes.
+
+## Explicit replay timing handoff
+
+`cargo xtask foundation-learned-timing` builds the three callers and checks the
+reuse fixtures with synchronization validation first. It then disables layers for
+four small instrumentation runs (two foundation interfaces, two modes), each with
+10 warmups and 30 reported alternating-input frames. `--check` runs only host/
+generator/build checks. Reports and raw stdout/stderr stay under fresh
+`target/learned-image/foundation-timing-*` directories; incomplete reports never
+claim completion. Source, header, library and executable hashes identify the run.
+
+Normal lists reset two explicit query slots, write timestamps at ALL scopes,
+resolve 64-bit values and availability to a separate 32-byte mapped allocation,
+and record COPY-to-HOST visibility. An initial ALL-to-work dependency follows the
+first timestamp. The last timestamp precedes the result resolve. Timeline
+completion and cache invalidation precede host decoding. Query storage is reused
+serially, never overlapped; pools and result memory outlive the lists. Queue valid
+bits mask subtraction, and host duration must remain below the counter's wrap
+interval. Clocks with no finite >10-second interval produce explicit `null` device
+times rather than rejecting an otherwise usable device. This is fixture policy.
+
+Recording is setup work, separately reported from device/pipeline/input setup.
+Per-frame host intervals cover input copy/flush, submit, wait, query invalidate/
+decode and final-image invalidate, with no per-frame allocation, recording, arena
+reset or object destruction. Resident mode has no pixel readback allocation in
+measurement runs. Its only GPU-to-host copy is the optional timestamp resolve;
+normal end-to-end work also copies pixels. End-to-end completion means pixels are
+available in the persistent mapping, **not** copied into another CPU allocation.
+File I/O, snapshots and diagnostic poisoning/copies are outside measurement runs.
+
+The receipt accounts for requested linear-memory bytes and logical image bytes,
+not native allocation granularity, driver bookkeeping or physical residency.
+The host total includes query resolve/completion overhead; the device interval
+does not include the resolve itself. These are serialized instrumented latency
+samples, not throughput, a native Vulkan comparison, or a replacement for the
+older matched-control performance acceptance. That control records/retire batches
+per frame and has different host-copy/instrumentation boundaries. Do not compare
+their numbers as if the workloads were matched.
+
+Both local drivers pass the instrumented 36-frame reuse validation and all four
+40-frame timing smoke runs. Timestamp values are available and positive in every
+reported sample. Four parser tests reject count/order, mode/accounting, nonfinite
+clock and wrap errors; C helper tests cover 36/64-bit wrap, high-bit masking and
+invalid/ambiguous intervals. No numerical or public-API contract changed.

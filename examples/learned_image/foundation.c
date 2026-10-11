@@ -1,16 +1,24 @@
 /* Foundation port of the frozen learned-image workload.
  * Allocation, synchronization and replay belong to this caller. */
+#define _POSIX_C_SOURCE 200809L
 #include "ogpu_next.h"
 #include "extent.h"
+#include "foundation_timing.h"
 #include <application.generated.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #define HEADER(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
 #define REQUIRE(c) do { if (!(c)) { fprintf(stderr,"line %d: %s\n",__LINE__,#c); goto cleanup; } } while (0)
 #define TRY(call) do { ogpu_next_status s_ = (call); if (s_ != OGPU_NEXT_OK) { fprintf(stderr,"%s: %" PRId32 "\n",#call,s_); goto cleanup; } } while (0)
 enum { INPUT, WEIGHTS, HIDDEN, DENOISED, COLOR, BUFFER_COUNT, GUARD=64 };
+static double now_ms(void) {
+    struct timespec t;
+    if (clock_gettime(CLOCK_MONOTONIC,&t)) { perror("clock_gettime"); exit(EXIT_FAILURE); }
+    return (double)t.tv_sec*1000+(double)t.tv_nsec/1e6;
+}
 static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint32_t size) {
     return (ogpu_next_query){HEADER(ogpu_next_query,kind),data,capacity,0,size,0};
 }
@@ -68,16 +76,20 @@ static void image_readback(ogpu_next_encoder *encoder, ogpu_next_image *target, 
     ogpu_next_copy_from_image(encoder,(ogpu_next_span){readback,GUARD,bytes},target,&copy);
 }
 int main(int argc, char **argv) {
-    int result = EXIT_FAILURE, pending = 0, validation = 0, resident = 0;
+    int result = EXIT_FAILURE, pending = 0, validation = 0, measuring = 0, resident = 0;
+    double setup_begin = now_ms();
     ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL;
     ogpu_next_memory *buffers[BUFFER_COUNT] = {NULL}, *upload = NULL, *readback = NULL, *draw = NULL, *backing = NULL, *input_b = NULL;
     ogpu_next_executable *kernels[4] = {NULL}, *raster = NULL;
     ogpu_next_image *target = NULL; ogpu_next_view *view = NULL;
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
+    ogpu_next_query_pool *timestamps = NULL; ogpu_next_memory *query_results = NULL;
+    ogpu_next_mapping qm = {0};
     void *bs = NULL, *rs = NULL, *ss = NULL; unsigned char *weights = NULL, *inputs[2] = {NULL};
     char path[4096], name[96];
-    if (argc > 1 && !strcmp(argv[1],"--validate")) {
-        REQUIRE(argc == 11); validation = 1; resident = !strcmp(argv[2],"resident");
+    if (argc > 1 && (!strcmp(argv[1],"--validate") || !strcmp(argv[1],"--measure"))) {
+        REQUIRE(argc == 11); validation = !strcmp(argv[1],"--validate"); measuring = !validation;
+        resident = !strcmp(argv[2],"resident");
         REQUIRE(resident || !strcmp(argv[2],"end-to-end")); argc -= 2; argv += 2;
     }
     REQUIRE(argc >= 8); const uint16_t endian = 1; REQUIRE(*(const unsigned char *)&endian == 1);
@@ -90,14 +102,16 @@ int main(int argc, char **argv) {
     for (uint32_t i = 0; i < BUFFER_COUNT; ++i) { sizes[i] = payloads[i]+2*GUARD; offsets[i] = total; REQUIRE(add_size(total,sizes[i],&total)); }
     size_t upload_size = sizes[INPUT] > sizes[WEIGHTS] ? sizes[INPUT] : sizes[WEIGHTS];
     uint64_t required = hidden_required_features | denoise_required_features | process_required_features | poison_required_features | application_required_features;
-    uint32_t domain = UINT32_MAX;
+    uint32_t domain = UINT32_MAX, timestamp_bits = 0;
     TRY(ogpu_next_discovery_create(OGPU_NEXT_VERSION,&discovery));
     for (uint32_t index = 0; index < ogpu_next_discovery_count(discovery); ++index) {
         const ogpu_next_adapter *adapter = ogpu_next_discovery_adapter(discovery,index);
         ogpu_next_feature_info f = {0}; ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&f,1,sizeof(f)); TRY(ogpu_next_adapter_query(adapter,&q));
         if (!f.baseline_supported || (f.available & required) != required) continue;
         ogpu_next_queue_info queues[32]; q = query(OGPU_NEXT_QUERY_QUEUES,queues,32,sizeof(queues[0])); TRY(ogpu_next_adapter_query(adapter,&q));
-        for (uint32_t i = 0; i < q.count; ++i) if (queues[i].count && (queues[i].flags & (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) == (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) { domain = queues[i].domain; break; }
+        for (uint32_t i = 0; i < q.count; ++i) if (queues[i].count && (queues[i].flags & (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) == (OGPU_NEXT_QUEUE_GRAPHICS | OGPU_NEXT_QUEUE_COMPUTE)) {
+            domain = queues[i].domain; timestamp_bits = queues[i].timestamp_bits; break;
+        }
         if (domain == UINT32_MAX) continue;
         ogpu_next_queue_request request = {domain,1,0.5f};
         ogpu_next_device_desc dd = {HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,required};
@@ -107,6 +121,16 @@ int main(int argc, char **argv) {
     ogpu_next_feature_info f = {0}; ogpu_next_execution_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES,&f,1,sizeof(f)); TRY(ogpu_next_device_query(device,&q));
     q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
+    ogpu_next_query_limits query_limits = {0};
+    q = query(OGPU_NEXT_QUERY_LIMITS,&query_limits,1,sizeof(query_limits)); TRY(ogpu_next_device_query(device,&q));
+    double wrap_ms = timestamp_wrap_ms(timestamp_bits,query_limits.timestamp_period_ns);
+    int timed = (validation || measuring) && isfinite(wrap_ms) && wrap_ms > 10000;
+    if (timed) {
+        ogpu_next_query_pool_desc td = {HEADER(ogpu_next_query_pool_desc,OGPU_NEXT_QUERY_POOL_DESC),OGPU_NEXT_QUERY_TIMESTAMP,2,0};
+        TRY(ogpu_next_query_pool_create(device,&td,&timestamps));
+        REQUIRE(memory_create(device,32,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE,&query_results) == EXIT_SUCCESS);
+        TRY(ogpu_next_memory_map((ogpu_next_span){query_results,0,32},&qm));
+    }
     REQUIRE(hidden_compatible(&f,&limits) && denoise_compatible(&f,&limits) && process_compatible(&f,&limits)
         && poison_compatible(&f,&limits) && application_compatible(&f,&limits));
     Launch hidden_grid, denoise_grid, process_grid, poison_grid[BUFFER_COUNT] = {{0}};
@@ -138,10 +162,12 @@ int main(int argc, char **argv) {
         TRY(ogpu_next_memory_address((ogpu_next_span){input_b,GUARD,payloads[INPUT]},&input_addresses[1]));
     }
     REQUIRE(memory_create(device,upload_size,OGPU_NEXT_USAGE_COPY_SRC,OGPU_NEXT_MEMORY_HOST_VISIBLE,&upload) == EXIT_SUCCESS);
-    REQUIRE(memory_create(device,total,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE,&readback) == EXIT_SUCCESS);
+    size_t readback_size = measuring ? (resident ? 0 : final_bytes+2*GUARD) : total;
+    if (readback_size) REQUIRE(memory_create(device,readback_size,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE,&readback) == EXIT_SUCCESS);
     REQUIRE(memory_create(device,16,OGPU_NEXT_USAGE_INDIRECT,OGPU_NEXT_MEMORY_HOST_VISIBLE,&draw) == EXIT_SUCCESS);
     ogpu_next_mapping um = {0}, rm = {0}, dm = {0};
-    TRY(ogpu_next_memory_map((ogpu_next_span){upload,0,upload_size},&um)); TRY(ogpu_next_memory_map((ogpu_next_span){readback,0,total},&rm));
+    TRY(ogpu_next_memory_map((ogpu_next_span){upload,0,upload_size},&um));
+    if (readback_size) TRY(ogpu_next_memory_map((ogpu_next_span){readback,0,readback_size},&rm));
     TRY(ogpu_next_memory_map((ogpu_next_span){draw,0,16},&dm));
     const ogpu_next_draw_arguments triangle = {3,1,0,0}; memcpy(dm.data,&triangle,sizeof(triangle)); TRY(ogpu_next_memory_flush((ogpu_next_span){draw,0,16}));
     ogpu_next_image_desc id = {HEADER(ogpu_next_image_desc,OGPU_NEXT_IMAGE_DESC),OGPU_NEXT_RGBA8_UNORM,OGPU_NEXT_IMAGE_2D,
@@ -173,7 +199,7 @@ int main(int argc, char **argv) {
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
     ogpu_next_queue *queue = ogpu_next_device_queue(device,domain,0); pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
     TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
-    if (validation) for (uint32_t i = 0; i < 2; ++i) {
+    if (validation || measuring) for (uint32_t i = 0; i < 2; ++i) {
         inputs[i] = malloc(sizes[INPUT]); REQUIRE(inputs[i] != NULL); poison_host(inputs[i],sizes[INPUT]);
         REQUIRE(path_join(path,argv[7+i],"input.f32")); REQUIRE(file_bytes(path,inputs[i]+GUARD,payloads[INPUT],0));
         if (resident) {
@@ -192,12 +218,17 @@ int main(int argc, char **argv) {
     ProcessArguments process = {.arg_input_data=addresses[DENOISED],.arg_output_data=addresses[COLOR],.arg_width=width,.arg_height=height,
         .arg_out_width=ow,.arg_out_height=oh,.arg_dispatch_width=process_grid.stride};
     DisplayArguments display = {.arg_pixels=addresses[COLOR],.arg_width=ow,.arg_height=oh};
-    for (uint32_t diagnostic = 0; diagnostic < 2; ++diagnostic) {
+    for (uint32_t diagnostic = 0; diagnostic < (measuring ? 1u : 2u); ++diagnostic) {
         ogpu_next_list *work[2] = {NULL}, *snapshot = NULL;
+        double record_begin = now_ms();
         TRY(ogpu_next_arena_reset(arena));
         for (uint32_t variant = 0; variant < (resident ? 2u : 1u); ++variant) {
         hidden.arg_input_data = denoise.arg_input_data = input_addresses[variant];
         TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        if (timed) {
+            ogpu_next_queries_reset(encoder,timestamps,0,2);
+            ogpu_next_timestamp(encoder,timestamps,0,OGPU_NEXT_STAGE_ALL);
+        }
         dependency(encoder,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_COMPUTE,
             OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COPY_WRITE | OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE);
         if (!resident) {
@@ -236,9 +267,27 @@ int main(int argc, char **argv) {
                     (ogpu_next_span){i == INPUT && variant ? input_b : buffers[i],0,sizes[i]});
         }
         if (!resident || diagnostic) dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
+        if (timed) {
+            ogpu_next_timestamp(encoder,timestamps,1,OGPU_NEXT_STAGE_ALL);
+            ogpu_next_queries_resolve(encoder,timestamps,0,2,(ogpu_next_span){query_results,0,32},16,
+                OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
+            dependency(encoder,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
+        }
         TRY(ogpu_next_commands_end(encoder,&work[variant]));
         }
-        if (resident && !diagnostic) {
+        double record_ms = now_ms()-record_begin;
+        if ((validation || measuring) && !diagnostic) {
+            printf("REPLAY {\"schema\":1,\"mode\":\"%s\",\"validation\":%s,\"warmups\":%u,\"frames\":%u,"
+                "\"work_lists\":%u,\"setup_ms\":%.9f,\"record_ms\":%.9f,\"upload_bytes\":%zu,\"readback_bytes\":%zu,"
+                "\"query_bytes\":%u,\"timestamp_bits\":%u,\"timestamp_period_ns\":%.9f,"
+                "\"device_linear_bytes\":%zu,\"host_linear_bytes\":%zu,\"cpu_payload_bytes\":%zu,\"image_logical_bytes\":%zu}\n",
+                resident ? "resident" : "end-to-end",validation ? "true" : "false",measuring ? 10u : 0u,measuring ? 30u : 3u,
+                resident ? 2u : 1u,record_begin-setup_begin,record_ms,resident ? 0 : sizes[INPUT],resident ? 0 : final_bytes,
+                timed ? 32u : 0u,timed ? timestamp_bits : 0u,timed ? (double)query_limits.timestamp_period_ns : 0,
+                total-final_bytes-2*GUARD+(resident ? sizes[INPUT] : 0),upload_size+readback_size+16+(timed ? 32 : 0),
+                sizes[WEIGHTS]+2*sizes[INPUT],final_bytes);
+        }
+        if (resident && !diagnostic && !measuring) {
             /* Acceptance-only snapshot: not part of resident work. */
             TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
             image_readback(encoder,target,readback,ow,oh,final_bytes,bs,br.size);
@@ -246,19 +295,43 @@ int main(int argc, char **argv) {
             TRY(ogpu_next_commands_end(encoder,&snapshot));
         }
         /* Resident A/B have different embedded addresses; each list is reused. */
-        for (int frame = 0; frame < (validation ? 3 : argc-7); ++frame) {
-            const unsigned char *input = validation ? inputs[frame%2] : um.data;
-            if (validation && !resident) memcpy(um.data,input,sizes[INPUT]);
-            if (!validation) {
+        for (int frame = 0; frame < (measuring ? 40 : validation ? 3 : argc-7); ++frame) {
+            double begin = now_ms();
+            const unsigned char *input = validation || measuring ? inputs[frame%2] : um.data;
+            if ((validation || measuring) && !resident) memcpy(um.data,input,sizes[INPUT]);
+            if (!validation && !measuring) {
             REQUIRE(path_join(path,argv[7+frame],"input.f32")); poison_host(um.data,sizes[INPUT]);
             REQUIRE(file_bytes(path,(char *)um.data+GUARD,payloads[INPUT],0));
             }
             if (!resident) TRY(ogpu_next_memory_flush((ogpu_next_span){upload,0,sizes[INPUT]}));
-            size_t read_size = diagnostic ? total : final_bytes+2*GUARD; poison_host(rm.data,read_size);
-            TRY(ogpu_next_memory_flush((ogpu_next_span){readback,0,read_size}));
+            size_t read_size = diagnostic ? total : final_bytes+2*GUARD;
+            if (!measuring) {
+                poison_host(rm.data,read_size); TRY(ogpu_next_memory_flush((ogpu_next_span){readback,0,read_size}));
+            }
+            double uploaded = now_ms();
             list = work[resident ? frame%2 : 0];
             ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+            double submitted = now_ms();
             TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
+            double waited = now_ms(), device_ms = 0;
+            if (timed) {
+                TRY(ogpu_next_memory_invalidate((ogpu_next_span){query_results,0,32}));
+                uint64_t values[4]; memcpy(values,qm.data,sizeof(values));
+                REQUIRE(values[1] && values[3]);
+                REQUIRE(timestamp_delta_ms(values[0],values[2],timestamp_bits,query_limits.timestamp_period_ns,waited-begin,&device_ms));
+            }
+            double queried = now_ms();
+            if (measuring) {
+                if (!resident) TRY(ogpu_next_memory_invalidate((ogpu_next_span){readback,GUARD,final_bytes}));
+                double end = now_ms();
+                if (frame >= 10) {
+                    printf("SAMPLE {\"frame\":%d,\"input\":%d,\"upload_ms\":%.9f,\"submit_ms\":%.9f,\"wait_ms\":%.9f,"
+                        "\"query_ms\":%.9f,\"read_ms\":%.9f,\"total_ms\":%.9f,\"device_ms\":",
+                        frame,frame%2,uploaded-begin,submitted-uploaded,waited-submitted,queried-waited,end-queried,end-begin);
+                    if (timed) printf("%.9f}\n",device_ms); else printf("null}\n");
+                }
+                continue;
+            }
             if (snapshot) {
                 list = snapshot; ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
                 TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
@@ -283,7 +356,8 @@ int main(int argc, char **argv) {
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending learned-image foundation work after failure.\n"); _Exit(EXIT_FAILURE); }
-    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_view_destroy(view); ogpu_next_image_destroy(target);
+    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_query_pool_destroy(timestamps);
+    ogpu_next_memory_destroy(query_results); ogpu_next_view_destroy(view); ogpu_next_image_destroy(target);
     ogpu_next_memory_destroy(backing); ogpu_next_executable_destroy(raster);
     for (uint32_t i = 0; i < 4; ++i) ogpu_next_executable_destroy(kernels[i]);
     for (uint32_t i = 0; i < BUFFER_COUNT; ++i) ogpu_next_memory_destroy(buffers[i]);

@@ -15,10 +15,7 @@ import benchmark
 generate_interfaces = acceptance.generate_interfaces
 
 
-def validate_reuse(build, executables):
-    """Use the existing A/B/A oracles, not a new GPU golden or looser gate."""
-    destination = Path(tempfile.mkdtemp(prefix="foundation-reuse-",dir=build))
-    print(f"Foundation reuse artifacts: {destination}",flush=True)
+def reuse_fixture(build):
     reference = build / "reference"
     manifest = json.loads((reference / "manifest.json").read_text())
     extent = (65,47,131,95)
@@ -29,17 +26,28 @@ def validate_reuse(build, executables):
     acceptance.verified(reference / "weights.f32",manifest["weights_sha256"])
     for case in cases:
         for name,digest in case["sha256"].items(): acceptance.verified(reference / case["name"] / name,digest)
+    return extent,reference,cases
+
+
+def validate_reuse(build, executables):
+    """Use the existing A/B/A oracles, not a new GPU golden or looser gate."""
+    destination = Path(tempfile.mkdtemp(prefix="foundation-reuse-",dir=build))
+    print(f"Foundation reuse artifacts: {destination}",flush=True)
+    extent,reference,cases = reuse_fixture(build)
     baseline = None
+    results = []
     for variant,executable in executables.items():
         for mode in benchmark.MODES:
             output = destination / f"{variant}-{mode}"
             benchmark.invoke(executable,"--validate",mode,extent,reference,cases,output,os.environ.copy())
-            benchmark.check_validation(output,reference,[cases[0],cases[1],cases[0]])
+            errors = benchmark.check_validation(output,reference,[cases[0],cases[1],cases[0]])
+            results.append(dict(variant=variant,mode=mode,output=str(output),errors=errors))
             if baseline is None: baseline = output
             else:
                 for name in benchmark.output_files():
                     acceptance.require(acceptance.same_file(output / name,baseline / name),f"reuse migration mismatch: {output / name}")
     print("Foundation resident/end-to-end A/B/A replay: frozen oracles and all three callers byte-identical PASS")
+    return results
 
 
 def main():
@@ -51,17 +59,22 @@ def main():
     acceptance.require(not os.getenv("CARGO_TARGET_DIR"), "leave CARGO_TARGET_DIR unset")
     acceptance.command(sys.executable,"-B",str(here / "check.py"))
     acceptance.command(sys.executable,"-B",str(here / "test_runner.py"))
+    acceptance.command(sys.executable,"-B",str(here / "test_foundation_measure.py"))
     interfaces = generate_interfaces.build_interfaces(args.check,api="foundation")
     acceptance.command(sys.executable,"-B",str(here / "test_interfaces.py"),"--foundation")
     installed = generate_interfaces.build_interfaces(True)
     acceptance.command(os.getenv("CARGO","cargo"),"build","--locked","--release","-p","ogpu")
     build, library = root / "target/learned-image", root / "target/release"
+    test = build / "test-foundation-timing"
+    acceptance.command(*shlex.split(os.getenv("CC","cc")),"-std=c11","-O2","-Wall","-Wextra","-Werror","-pedantic",
+                       str(here / "test_foundation_timing.c"),"-lm","-o",str(test))
+    acceptance.command(str(test))
     executables = {}
     for variant, headers, source in [("foundation-"+name,headers,"foundation.c") for name,headers in interfaces.items()] + [
             ("installed-control",installed["original"],"app.c")]:
         executable = build / ("app-"+variant)
         acceptance.command(*shlex.split(os.getenv("CC","cc")),"-std=c11","-O2","-Wall","-Wextra","-Werror","-pedantic",
-                           "-I",str(headers),"-Iinclude",str(here / source),"-L",str(library),f"-Wl,-rpath,{library}","-logpu","-o",str(executable))
+                           "-I",str(headers),"-Iinclude",str(here / source),"-L",str(library),f"-Wl,-rpath,{library}","-logpu","-lm","-o",str(executable))
         executables[variant] = executable
     if args.check:
         print("Learned-image foundation original/mutated and installed-control build PASS; no GPU execution")
