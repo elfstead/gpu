@@ -1,8 +1,10 @@
 # Foundation indexed-scene reset/replay
 
 `examples/graphics_scene/reuse.py --foundation` runs the existing native and
-public one/two-slot scene through explicit foundation ownership. The default
-installed control remains separately selectable; no runtime fallback exists.
+public one/two-slot scene through explicit foundation ownership. Foundation is
+now unconditional; `--foundation` remains a compatibility spelling. The ABI20
+caller is retired with [Git recovery instructions](graphics-scene-diagnostic-retirement.md),
+not kept as a runtime fallback.
 
 Each slot owns attachments, dedicated backing, geometry/index/indirect allocations,
 mapped control/readback storage, scratch, an arena and a timeline. Shared shader

@@ -83,14 +83,14 @@ def inspect_foundation_artifacts(shaders,size,out):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build-only',action='store_true')
-    parser.add_argument('--foundation',action='store_true',help='select explicit foundation snapshots and sticky invalid-recording rejection')
+    parser.add_argument('--foundation',action='store_true',help=argparse.SUPPRESS)
     args=parser.parse_args()
     base=ROOT/'target/graphics-scene';base.mkdir(parents=True,exist_ok=True)
     out=Path(tempfile.mkdtemp(prefix='argument-snapshot-',dir=base));print(f'Argument snapshot evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,build_only=args.build_only,scope=__doc__,runs=[],unsupported=[],builds={},shaders={},
         revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
-    public='foundation' if args.foundation else 'public';report['api']=public
+    public='foundation';report['api']=public
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
@@ -117,7 +117,7 @@ def main():
                 # Keep this fixture inside the same fail-closed compiler profile
                 # used by foundation metadata; do not bypass push-index proof.
                 f.scene.generate.inspect(reflected,assembly)
-                if args.foundation:f.scene.inspect_foundation_shader(reflected,assembly,stage,draw_identity=True,raster_bytes=size)
+                f.scene.inspect_foundation_shader(reflected,assembly,stage,draw_identity=True,raster_bytes=size)
                 if stage=='vertex':
                     root=reflected['parameters'][0]['type']['elementType']
                     require(f.scene.generate.uniform_size(root)==(size,8),'wrong reflected root extent')
@@ -131,7 +131,7 @@ def main():
                 target=folder/backend;target.mkdir()
                 flags=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',f'-DSCENE_RASTER_BYTES={size}',
                     '-I'+str(ROOT/'include')]
-                if backend=='native':flags+=['-DARGUMENT_NATIVE','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
+                if backend=='native':flags+=['-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
                 source=HERE/('argument_foundation.c' if backend=='foundation' else 'argument_snapshot.c')
                 command=[*flags,str(source),'-ldl']
                 if backend!='native':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
@@ -139,7 +139,7 @@ def main():
                 deps=subprocess.check_output([*flags,'-MM',str(source)],text=True)
                 for path in shlex.split(deps.replace('\\\n','').split(':',1)[1]):sources[str(Path(path).resolve())]=digest(Path(path))
                 symbols=subprocess.check_output(['nm','-u',str(target/'probe')],text=True)
-                require(('ogpu' not in symbols.lower()) if backend=='native' else (('ogpu_next_set_inline' if backend=='foundation' else 'ogpu_batch_draw_indexed_indirect') in symbols
+                require(('ogpu' not in symbols.lower()) if backend=='native' else ('ogpu_next_set_inline' in symbols
                         and not any(line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split())), 'wrong linkage')
                 if backend=='foundation':require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
                 report['builds'][f'{size}-{backend}']=dict(command=command,sha256=digest(target/'probe'))
@@ -158,7 +158,7 @@ def main():
             if not args.build_only:
                 require(devices['native']==devices[public] and limits['native']==limits[public],'native/public device/limit mismatch')
                 require(len(results)==2 and results[0]==results[1],'native/public full-byte snapshot mismatch')
-                print(f'{size}-byte roots: same-address mutation, '+('invalid-recording rejection' if args.foundation else 'rejected-call retry')+', overwrite and native byte match PASS',flush=True)
+                print(f'{size}-byte roots: same-address mutation, invalid-recording rejection, overwrite and native byte match PASS',flush=True)
         for p in [Path(__file__),HERE/'argument.vert.slang',HERE/'prepare.slang',HERE/'identity.frag.slang',HERE/'oracle.py',HERE/'frontier.py',HERE/'run.py',*list((ROOT/'examples/compiler').glob('*.py'))]:
             sources[str(p.resolve())]=digest(p)
         report.update(sources=sources,complete=True);save()

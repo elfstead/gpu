@@ -25,8 +25,11 @@ call-time bytes, explicit partial updates and sticky invalid-recording rejection
 range/identity interfaces, checked against exact native shader bytes. The preview
 also exports `foundation-indexed-ranges`: independent fresh/count/identity/replay/
 scope acceptance without a checkout, compiler or earlier reports.
-Historical defaults remain selectable; retirement of their remaining legacy
-dependencies is separate work.
+The six replay/range/argument runners now select foundation unconditionally;
+`--foundation` is accepted only as a compatibility spelling. Their old ABI20
+callers and unused branches are removed, not retained as fallbacks. Historical
+receipt parsers remain for old evidence. The basic `run.py --public` and installed
+generated scene are still ABI20 until SDK cutover.
 The old range/argument timing suite and ABI20 replay-failure runner are
 [retired with Git replay instructions](../../docs/graphics-scene-diagnostic-retirement.md).
 Recorded results and native correctness controls remain; this does not remove the
@@ -115,6 +118,10 @@ addresses/indices are deliberately executed. Depth-format rejection is a setup
 failure, not a successful skipped test. All accepted work drains before teardown.
 
 ## Stable scene reuse
+
+The historical public-policy descriptions below refer to ABI19/20. Current
+replay/range/argument execution uses the foundation ownership, error and explicit
+argument policies linked above; it does not emulate old per-operation caching.
 
 The separate `argument_snapshot.py [--build-only]` control begins the
 [argument-reuse audit](../../docs/argument-reuse-plan.md). It compiles observable

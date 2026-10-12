@@ -1425,8 +1425,9 @@ recordings before submission. Generated range/identity interfaces and the indepe
 range SDK now pass on both local drivers, with self-contained baseline, count,
 one/two-slot reset/replay and persistent-scope binding checks. The old range/argument
 timing suite and ABI20 replay-failure diagnostics are [retired](graphics-scene-diagnostic-retirement.md);
-their recorded evidence remains. Installed correctness selectors and default SDK
-cutover remain separate work.
+their recorded evidence remains. Replay/range/argument correctness selectors now
+use foundation only, with unused ABI20 callers removed. The basic installed scene
+and default SDK cutover remain separate work.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

@@ -4,7 +4,9 @@
 caller to explicit foundation ownership. It uses the existing API: indirect
 argument spans, an optional GPU count span, index binding, inline root bytes,
 explicit barriers, caller-owned memory/arena and a timeline. No runtime or public
-API expansion is needed. The default ABI20 control remains explicitly selectable.
+API expansion is needed. The range/replay/argument runners now use foundation
+unconditionally; `--foundation` remains a compatibility spelling. Removed ABI20
+callers can be recovered from the documented historical checkpoints.
 
 The consumer generates UINT32 geometry, signed vertex offsets, 1/64/512 indexed
 records and a count word on the GPU. Eight frames include empty, partial, full
@@ -155,8 +157,8 @@ also execute under ASan/UBSan on both drivers, with no validation/synchronizatio
 errors. LeakSanitizer is disabled; this is not a runtime-wide sanitizer claim.
 
 Clean foundation snapshot reports can now seed the argument-reuse controls without
-requiring a new ABI20 execution. Historical installed controls remain explicitly
-selectable while their remaining consumers/diagnostics are audited for retirement.
+requiring a new ABI20 execution. Historical installed argument callers are now
+retired; native controls and parsers for recorded results remain.
 
 ## Independent SDK handoff
 
@@ -192,6 +194,6 @@ drivers pass this external regeneration check; it does not relax pointer lifetim
 or synchronization responsibilities.
 
 The old timing/failure diagnostics are now [retired with replay instructions](graphics-scene-diagnostic-retirement.md);
-remaining installed correctness selectors still await cutover. Historical performance results, native Metal
+range/replay/argument correctness selectors also now use foundation only. Historical performance results, native Metal
 parity, general graphics completeness and default SDK cutover are not established
 by this handoff.

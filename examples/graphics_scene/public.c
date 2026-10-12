@@ -8,9 +8,6 @@
 #define SCENE_RASTER_BYTES 8u
 #endif
 #ifdef SCENE_GENERATED
-#ifdef SCENE_REUSE_CONSUMER
-#error Generated scene handoff uses typed per-frame roots, not the raw-root reuse harness
-#endif
 #include "scene_prepare.generated.h"
 #include "scene_prepare16.generated.h"
 #include "scene_pair.generated.h"
@@ -42,16 +39,8 @@ typedef struct {
     unsigned char *cpu;
     uint32_t *shaders[3];
     uint64_t shader_bytes[3];
-#ifdef SCENE_ARGUMENT_REUSE
-    uint64_t argument_root[SCENE_RASTER_BYTES/8];
-#endif
 } Scene;
-#ifdef SCENE_PUBLIC_FRONTIER
-static int frontier_draw(Scene *s, unsigned pipeline, const OgpuIndexRange *indices, unsigned first);
-#define SCENE_DRAW_BYTES (132u+20u*frontier_records)
-#else
 #define SCENE_DRAW_BYTES 168u
-#endif
 #define SCENE_UPLOAD_BYTES (SCENE_DRAW_BYTES>256 ? SCENE_DRAW_BYTES : 256)
 
 static int path_join(char out[4096], const char *directory, const char *name) {
@@ -67,17 +56,17 @@ static int read_shader(Scene *s, unsigned index, const char *directory, const ch
     if(fread(s->shaders[index],1,(size_t)bytes,f)!=(size_t)bytes || ferror(f)) goto done;
     s->shader_bytes[index]=(uint64_t)bytes; okay=1;
 done:
-    if(fclose(f)) okay=0; return okay;
+    if(fclose(f)) okay=0;
+    return okay;
 }
 #endif
-#if !defined(SCENE_REUSE_CONSUMER) || (defined(SCENE_PUBLIC_FRONTIER) && !defined(FRONTIER_REUSE))
 static int write_file(const char *directory, const char *name, const void *data, size_t bytes) {
     char path[4096]; NEED(path_join(path,directory,name));
     FILE *f=fopen(path,"wb"); if(!f) { perror(path); return 0; }
     int okay=fwrite(data,1,bytes,f)==bytes && !ferror(f);
-    if(fclose(f)) okay=0; return okay;
+    if(fclose(f)) okay=0;
+    return okay;
 }
-#endif
 static int buffer_create(Scene *s, OgpuBuffer **out, uint64_t bytes, uint32_t placement, uint32_t extra_usage) {
     OgpuBufferDesc desc={bytes,placement,extra_usage};
     GPU(ogpu_buffer_create(s->device,&desc,out,&s->error)); return 1;
@@ -159,9 +148,6 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
     GPU(ogpu_batch_begin_rendering(s->batch,&desc,&s->error));
     OgpuIndexRange indices={s->indices,GUARD,8*s->index_bytes,
         s->index_bytes==2 ? OGPU_INDEX_UINT16 : OGPU_INDEX_UINT32,0};
-#ifdef SCENE_PUBLIC_FRONTIER
-    (void)count;NEED(frontier_draw(s,pipeline,&indices,first));
-#else
 #ifdef SCENE_GENERATED
     const Scene_pair_vertexArguments arguments={.arg_vertices=s->root.vertices};
     GPU(ogpu_batch_set_arguments(s->batch,0,&arguments,sizeof(arguments),&s->error));
@@ -177,7 +163,6 @@ static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_loa
         GPU(ogpu_batch_draw_indexed_indirect(s->batch, s->raster[pipeline], &indices, &(OgpuIndirectRange){.buffer=s->draws,.offset=GUARD+20*which,.stride_bytes=20,.max_draw_count=1}, draw_root, draw_bytes, &s->error));
 #endif
     }
-#endif
     GPU(ogpu_batch_end_rendering(s->batch,&s->error)); return 1;
 }
 static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
@@ -195,21 +180,12 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
        reinitialize layout on every rendering scope in the public contract. */
     GPU(ogpu_batch_discard_image(s->batch,s->color,&s->error));
     GPU(ogpu_batch_discard_image(s->batch,s->depth,&s->error));
-#ifdef SCENE_RANGE_SCOPES
-    NEED(mode==0 && frontier_strategy==0);
-    for(unsigned i=0;i<frontier_records;++i) {
-        if(i) GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_WRITE,
-            OGPU_ACCESS_COLOR_READ|OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_READ|OGPU_ACCESS_DEPTH_WRITE,&s->error));
-        NEED(scene_pass(s,0,i!=0,i!=0,1,i,1));
-    }
-#else
     if(mode>=6 && mode<=8) {
         NEED(scene_pass(s,0,0,0,1,1,1));
         GPU(ogpu_batch_barrier(s->batch,OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_WRITE,
             OGPU_ACCESS_COLOR_READ|OGPU_ACCESS_COLOR_WRITE|OGPU_ACCESS_DEPTH_READ|OGPU_ACCESS_DEPTH_WRITE,&s->error));
         NEED(scene_pass(s,0,mode!=7,mode!=8,1,0,1));
     } else NEED(scene_pass(s,mode>=2 && mode<=4 ? mode-1 : 0,0,0,mode==5 ? 0 : 1,mode>=1 && mode<=4,2));
-#endif
     GPU(ogpu_batch_copy_image_to_buffer(s->batch,s->color,s->readback,GUARD,&s->error));
     GPU(ogpu_batch_copy_image_to_buffer(s->batch,s->depth,s->readback,s->pixels+3*GUARD,&s->error));
     GPU(ogpu_batch_copy_buffer(s->batch,s->vertices,0,s->geometry,0,256,&s->error));
@@ -217,7 +193,6 @@ static int scene_commands(Scene *s, unsigned mode, const void *compute_root) {
     GPU(ogpu_batch_copy_buffer(s->batch,s->draws,0,s->geometry,416,SCENE_DRAW_BYTES,&s->error));
     return 1;
 }
-#ifndef SCENE_REUSE_CONSUMER
 static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, const char *directory) {
     GPU(ogpu_batch_create(s->device,&s->batch,&s->error));
     s->root.phase=phase; s->root.empty=mode==9;
@@ -243,7 +218,6 @@ static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, 
     NEED(write_file(directory,name,s->cpu,584));
     printf("SCENE_FRAME {\"mode\":%u,\"phase\":%u,\"frame\":%u}\n",mode,phase,frame); return 1;
 }
-#endif
 static void scene_destroy_resources(Scene *s) {
     /* Drain an accepted submission even on read/wait errors, before releasing
        any allocation reachable only through compute/vertex root addresses. */
@@ -258,7 +232,6 @@ static void scene_destroy_context(Scene *s) {
     ogpu_kernel_destroy(s->prepare); ogpu_device_destroy(s->device); ogpu_probe_destroy(s->probe);
     for(unsigned i=0;i<3;++i) free(s->shaders[i]);
 }
-#ifndef SCENE_REUSE_CONSUMER
 int main(int argc, char **argv) {
     if(argc!=5 && argc!=6) { fprintf(stderr,"Usage: public width height shaders output-directory [16|32]\n"); return 1; }
     Scene s={.index_bytes=4};
@@ -280,4 +253,3 @@ done:
     if(okay) puts("Public indexed/depth frames drained; CPU oracle must independently accept outputs");
     return !okay;
 }
-#endif

@@ -49,7 +49,7 @@ class ArgumentReuseTests(unittest.TestCase):
                         target[key]=original
 
     def test_build_modes(self):
-        for path in a.PATHS+a.FOUNDATION_PATHS:
+        for path in a.FOUNDATION_PATHS:
             opts=a.flags(['cc'],64,path)
             self.assertNotIn('-DSCENE_ARGUMENT_DIAGNOSTICS',opts)
             self.assertIn('-DSCENE_RANGE_REUSE',opts)
@@ -57,6 +57,8 @@ class ArgumentReuseTests(unittest.TestCase):
             self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in opts,a.resupply(path))
             self.assertEqual('-DSCENE_ARGUMENT_CURRENT' in opts,path=='public-current')
             self.assertIn('-DSCENE_ARGUMENT_DIAGNOSTICS',a.flags(['cc'],64,path,diagnostic=True))
+        for path in ('public','public-current'):
+            with self.assertRaisesRegex(ValueError,'retired ABI20'):a.flags(['cc'],64,path)
 
     def test_foundation_has_no_legacy_current_policy(self):
         for path in ('foundation-once','foundation-resupply'):

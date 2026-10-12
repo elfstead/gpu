@@ -106,16 +106,15 @@ def main():
     parser.add_argument('--software',action='store_true',help='64 instead of 1000 frames per case')
     parser.add_argument('--scale',action='store_true',help='also 16-frame 720p count/identity cycles on Radeon')
     parser.add_argument('--scopes',action='store_true',help='labelled per-draw CLEAR then LOAD scopes; separate-call strategy only')
-    parser.add_argument('--foundation',action='store_true',help='explicit slot-owned foundation memory, arenas and timelines')
+    parser.add_argument('--foundation',action='store_true',help=argparse.SUPPRESS)
     parser.add_argument('--generated',action='store_true',help='typed foundation range/identity interfaces')
     args=parser.parse_args()
-    if args.generated:args.foundation=True
     out=Path(tempfile.mkdtemp(prefix='range-reuse-',dir=ROOT/'target/graphics-scene'))
     print(f'Range reuse evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,scale=args.scale,per_draw_scopes=args.scopes,runs=[],
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
-    report['api']='foundation' if args.foundation else 'installed'
+    report['api']='foundation'
     report['generated']=args.generated
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
@@ -142,9 +141,8 @@ def main():
         for stage,metadata in native['shaders'].items():
             require(digest(directory/(stage+'.spv'))==metadata['sha256'],'changed native shader')
             report['shaders'][stage]=metadata['sha256']
-        if args.foundation:
-            from ranges import inspect_shaders
-            inspect_shaders(directory,out)
+        from ranges import inspect_shaders
+        inspect_shaders(directory,out)
         if args.generated:
             from ranges import inspect_generated
             inspect_generated(directory,out)
@@ -154,15 +152,15 @@ def main():
         if args.scopes:common+=['-DSCENE_RANGE_SCOPES']
         report['builds']={}
         for backend in ('native','public'):
-            source='reuse_foundation.c' if backend=='public' and args.foundation else f'reuse_{backend}.c'
+            source='reuse_foundation.c' if backend=='public' else 'reuse_native.c'
             command=common+[str(HERE/source)]
             if args.generated and backend=='public':command+=['-DSCENE_GENERATED','-I'+str(HERE)]
             if backend=='public':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
             else:command+=['-DNATIVE_DRAW_IDENTITY','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
             command+=['-ldl','-o',str(out/backend)];subprocess.run(command,check=True)
             symbols=subprocess.check_output(['nm','-u',str(out/backend)],text=True)
-            require(('ogpu' not in symbols.lower()) if backend=='native' else ('ogpu_next_queue_submit' if args.foundation else 'ogpu_command_list_submit') in symbols,'incorrect runtime linkage')
-            if backend=='public' and args.foundation:
+            require(('ogpu' not in symbols.lower()) if backend=='native' else 'ogpu_next_queue_submit' in symbols,'incorrect runtime linkage')
+            if backend=='public':
                 require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
             report['builds'][backend]=dict(command=command,sha256=digest(out/backend))
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-shared','-fPIC','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),str(HERE/'reuse_trace.c'),'-ldl','-o',str(out/'trace.so')]
@@ -174,7 +172,7 @@ def main():
         report['cpu_tests_sha256']=digest(out/'cpu-tests.txt')
         subprocess.run([sys.executable,'-B',str(HERE/'test_range_reuse.py')],check=True)
         sources=[p for p in HERE.iterdir() if p.suffix in ('.c','.h','.py','.slang')]
-        sources+=list((ROOT/'crates/ogpu/src').rglob('*.rs'))+[ROOT/'crates/vulkan-sys/src/bindings.rs',ROOT/'include'/('ogpu_next.h' if args.foundation else 'ogpu.h')]
+        sources+=list((ROOT/'crates/ogpu/src').rglob('*.rs'))+[ROOT/'crates/vulkan-sys/src/bindings.rs',ROOT/'include/ogpu_next.h']
         sources+=list((ROOT/'examples/compiler').glob('*.py'))
         sources+=list((ROOT/'examples/learned_image').glob('native*'))+list((ROOT/'examples/learned_image/generated').glob('*.h'))
         sources+=[ROOT/'examples/learned_image'/n for n in ('trace_memory.c','allocation_tracker.h')]
@@ -200,16 +198,14 @@ def main():
                         require(execution.returncode==0,f'execution failed: {dest}')
                         if args.generated and backend=='public':
                             require(f.rows((dest/'stdout').read_text(),'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
-                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height,args.scopes,foundation=args.foundation and backend=='public')
-                        if args.foundation:
-                            key=(backend,width,height,case['capacity'],slots);shape=(checked['allocation_shape'],checked['memory'])
-                            if key in shapes:require(shapes[key]==shape,'allocation shape changed across strategy/recording policy')
-                            else:shapes[key]=shape
+                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height,args.scopes,foundation=backend=='public')
+                        key=(backend,width,height,case['capacity'],slots);shape=(checked['allocation_shape'],checked['memory'])
+                        if key in shapes:require(shapes[key]==shape,'allocation shape changed across strategy/recording policy')
+                        else:shapes[key]=shape
                         results.append(checked)
                         report['runs'].append(dict(name=name,backend=backend,extent=[width,height],command=command,device=case['device'],**checked,
                                                   logs={n:digest(dest/n) for n in ('stdout','stderr')}));save()
-                    if args.foundation:require(results[0]['summary']==results[1]['summary'],'logical native/foundation budgets differ')
-                    else:require(results[0]['allocation_shape']==results[1]['allocation_shape'] and results[0]['memory']==results[1]['memory'],'matched allocation budgets differ')
+                    require(results[0]['summary']==results[1]['summary'],'logical native/foundation budgets differ')
                     print(name.rsplit('-',1)[0]+': matched outputs, budgets and native reset/replay PASS',flush=True)
         report['complete']=True;save();print('Range reuse PASS; timing remains open')
     except Exception as error:report['error']=str(error);save();raise

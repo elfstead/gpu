@@ -46,12 +46,24 @@ unchanged. Historical plans describe their then-current workflow; the current
 
 ## Remaining cutover
 
-`public.c` and its generated headers still support the default installed indexed
-scene. `frontier_public.c`, `reuse_public.c` and the installed branches of the
-argument controls remain explicit historical correctness comparisons, not a
-foundation fallback. Removing them requires switching/retiring those selectors;
-the default ABI20 SDK/runtime has other consumers too. Do not remove shared old
-runtime code until those consumers are migrated or deliberately retired.
+Follow-up cutover (2026-10-13): `reuse.py`, `ranges.py`, `range_reuse.py`,
+`argument_snapshot.py`, `argument_reuse.py` and `argument_patch.py` now execute
+foundation unconditionally. `--foundation` remains a harmless compatibility
+spelling. `frontier_public.c`, `reuse_public.c`, the installed snapshot/partial
+branches and their unused hooks in `public.c` are removed. Use checkpoint
+`c4c16f9` to recover these correctness callers (or `eaacda8` for the earlier
+timing suite). Native controls and historical receipt parsing remain unchanged;
+the build helper explicitly rejects retired `public`/`public-current` targets.
+
+`public.c` and its generated headers still support the installed basic indexed
+scene and `run.py --public`. The ABI20 SDK/runtime has other consumers too. Do
+not remove shared old runtime code until those consumers are migrated or retired.
+
+Cutover verification: both local drivers pass all six default runners without
+`--foundation`, including bounded reset/replay and per-draw scope matrices, fresh
+count/identity output, 8/64/256-byte snapshots, partial-word updates and argument
+resupply. All scene host gates pass; the retained installed scene still compiles
+warning-clean. This is correctness coverage, not a renewed timing campaign.
 
 Post-cleanup checks (2026-10-12): all current scene host tests pass. Both local
 drivers pass the bounded 16-frame native/foundation argument matrix (1,152 frames

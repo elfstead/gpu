@@ -261,8 +261,9 @@ replay/scope checks on both local drivers. The independent range SDK now builds
 and runs outside the checkout, generating its own accepted baseline and covering
 all count/identity/slot/scope variants on both drivers. The obsolete range/argument
 timing suite and ABI20 replay-failure runner are now [retired with Git replay
-instructions](graphics-scene-diagnostic-retirement.md). Remaining installed
-correctness selectors and the default SDK still need cutover; historical
+instructions](graphics-scene-diagnostic-retirement.md). Replay/range/argument
+correctness runners now select foundation only and their unused ABI20 callers are
+removed. The basic installed scene and default SDK still need cutover; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

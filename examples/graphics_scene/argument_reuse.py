@@ -14,7 +14,7 @@ import frontier as f
 import range_reuse as reuse
 ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
-PATHS=('native-once','native-resupply','public','public-current')
+PATHS=('native-once','native-resupply','public','public-current') # Historical receipt vocabulary, not build targets.
 FOUNDATION_PATHS=('native-once','native-resupply','foundation-once','foundation-resupply')
 
 
@@ -41,12 +41,12 @@ def recolor(data,size):
 
 
 def flags(cc,size,path,diagnostic=False):
+    require(path in FOUNDATION_PATHS,'retired ABI20 argument caller; use a historical worktree')
     result=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',
         '-DSCENE_ARGUMENT_REUSE','-DSCENE_ARGUMENT_ROOT',f'-DSCENE_RASTER_BYTES={size}','-I'+str(ROOT/'include')]
     result+=['-DSCENE_RANGE_REUSE']
     if diagnostic:result+=['-DSCENE_ARGUMENT_DIAGNOSTICS']
     if resupply(path):result+=['-DSCENE_ARGUMENT_RESUPPLY']
-    if path=='public-current':result+=['-DSCENE_ARGUMENT_CURRENT']
     if not public_path(path):
         result+=['-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
         result+=['-DNATIVE_DRAW_IDENTITY']
@@ -142,19 +142,19 @@ def main():
     parser.add_argument('--snapshots',required=True,type=Path)
     parser.add_argument('--frames',type=int,choices=(16,64,992),default=64)
     parser.add_argument('--build-only',action='store_true')
-    parser.add_argument('--foundation',action='store_true',help='compare native and explicit foundation bind-once/resupply, without runtime deduplication')
+    parser.add_argument('--foundation',action='store_true',help=argparse.SUPPRESS)
     args=parser.parse_args();require(args.frames%16==0,'frames must complete two-slot eight-generation cycles')
     out=Path(tempfile.mkdtemp(prefix='argument-reuse-',dir=ROOT/'target/graphics-scene'));print(f'Argument reuse evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,build_only=args.build_only,frames=args.frames,scope=__doc__,runs=[],builds={},
         revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
-    paths=FOUNDATION_PATHS if args.foundation else PATHS
-    report['api']='foundation' if args.foundation else 'installed'
+    paths=FOUNDATION_PATHS
+    report['api']='foundation'
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
         device,sizes,limit=prepare(args.native,args.snapshots,out)
-        if args.foundation:inspect_foundation(out,sizes,args.snapshots)
+        inspect_foundation(out,sizes,args.snapshots)
         report.update(device=device,sizes=sizes,limit=limit,unsupported=[n for n in snapshot.SIZES if n not in sizes],
             native=dict(path=str(args.native.resolve()),sha256=digest(args.native)),
             snapshots=dict(path=str(args.snapshots.resolve()),sha256=digest(args.snapshots)))
@@ -165,17 +165,16 @@ def main():
         report['sources']={}
         for size in sizes:
             for path in paths:
-                opts=flags(cc,size,path,diagnostic=True);source=HERE/('reuse_foundation.c' if path.startswith('foundation') else 'reuse_public.c' if public_path(path) else 'reuse_native.c')
+                opts=flags(cc,size,path,diagnostic=True);source=HERE/('reuse_foundation.c' if public_path(path) else 'reuse_native.c')
                 command=opts+[str(source),'-ldl']
                 if public_path(path):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
                 command+=['-o',str(out/str(size)/path)];subprocess.run(command,check=True)
                 deps=subprocess.check_output([*opts,'-MM',str(source)],text=True)
                 for p in shlex.split(deps.replace('\\\n','').split(':',1)[1]):report['sources'][str(Path(p).resolve())]=digest(Path(p))
                 symbols=subprocess.check_output(['nm','-u',str(out/str(size)/path)],text=True)
-                require(('ogpu' not in symbols.lower()) if not public_path(path) else ('ogpu_next_draw_indexed_indirect' if args.foundation else 'ogpu_batch_draw_indexed_indirect') in symbols,'wrong linkage')
+                require(('ogpu' not in symbols.lower()) if not public_path(path) else 'ogpu_next_draw_indexed_indirect' in symbols,'wrong linkage')
                 if path.startswith('foundation'):
                     require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
-                if path=='public-current':require('ogpu_batch_set_arguments' in symbols and 'ogpu_batch_draw_indexed_indirect_current' in symbols,'missing candidate linkage')
                 report['builds'][f'{size}-{path}']=dict(command=command,sha256=digest(out/str(size)/path))
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DSCENE_ARGUMENT_TRACE','-shared','-fPIC',
             '-I'+str(ROOT/'vendor/Vulkan-Headers/include'),str(HERE/'reuse_trace.c'),'-ldl','-o',str(out/'trace.so')]
@@ -210,12 +209,12 @@ def main():
                             report['runs'].append(dict(bytes=size,capacity=capacity,slots=slots,path=path,command=command,**checked,
                                 logs={str(p.relative_to(out)):digest(p) for p in folder.iterdir()}));save()
                         for i,value in enumerate(matched):
-                            reference=matched[2] if args.foundation and i>=2 else matched[0]
+                            reference=matched[2] if i>=2 else matched[0]
                             require(value['allocation_shape']==reference['allocation_shape'] and value['memory']==reference['memory'],
                                     'allocation shape/lifetime mismatch within backend')
                             require(value['summary']==matched[0]['summary'],'logical allocation/recording budget mismatch')
                         print(f'{size}-byte / {capacity} draws / {slots} slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS',flush=True)
-        report['complete']=True;save();print('Argument reuse '+('BUILD ONLY' if args.build_only else 'foundation explicit policies PASS; no timing claim' if args.foundation else 'PASS; timing/contract selection remains open'))
+        report['complete']=True;save();print('Argument reuse '+('BUILD ONLY' if args.build_only else 'foundation explicit policies PASS; no timing claim'))
     except Exception as error:report['error']=str(error);save();raise
 
 

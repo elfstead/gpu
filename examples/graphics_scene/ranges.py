@@ -41,20 +41,18 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',type=Path)
     parser.add_argument('--check',action='store_true')
-    parser.add_argument('--foundation',action='store_true',help='explicit foundation ownership, no ABI20 runtime policy')
+    parser.add_argument('--foundation',action='store_true',help=argparse.SUPPRESS) # Compatibility spelling; foundation is unconditional.
     parser.add_argument('--generated',action='store_true',help='typed foundation range/identity interfaces')
     parser.add_argument('--scale',action='store_true',help='also 1280x720; requires a matching scaled native acceptance')
     args=parser.parse_args()
-    if args.generated:args.foundation=True
     base=ROOT/'target/graphics-scene';base.mkdir(parents=True,exist_ok=True)
     out=Path(tempfile.mkdtemp(prefix='ranges-',dir=base));print(f'Public range evidence: {out}',flush=True)
-    report=dict(schema=1,abi=20,complete=False,scope=__doc__,runs=[],
+    report=dict(schema=1,foundation=1,complete=False,scope=__doc__,runs=[],
         revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True,cwd=ROOT).strip(),
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],text=True,cwd=ROOT)))
-    report['api']='foundation' if args.foundation else 'installed'
+    report['api']='foundation'
     report['scale']=args.scale
     report['generated']=args.generated
-    if args.foundation: del report['abi'];report['foundation']=1
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
@@ -66,22 +64,21 @@ def main():
         common=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',*includes]
         report['builds']={}
         for name,command in [
-            ('public',common+[str(HERE/('frontier_foundation.c' if args.foundation else 'frontier_public.c')),'-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-ldl','-o',str(out/'public')]),
+            ('public',common+[str(HERE/'frontier_foundation.c'),'-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-ldl','-o',str(out/'public')]),
             ('trace.so',common+['-shared','-fPIC','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),str(HERE/'reuse_trace.c'),'-ldl','-o',str(out/'trace.so')])]:
             subprocess.run(command,check=True);report['builds'][name]=dict(command=command,sha256=digest(out/name))
         symbols=subprocess.check_output(['nm','-u',str(out/'public')],text=True)
-        require(('ogpu_next_draw_indexed_indirect' if args.foundation else 'ogpu_batch_draw_indexed_indirect') in symbols and not any(line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split()),'wrong public linkage')
-        if args.foundation:
-            require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
-            command=[str(HERE/'foundation_failures.c') if word==str(HERE/'frontier_foundation.c') else
-                     str(out/'failures') if word==str(out/'public') else word for word in report['builds']['public']['command']]
-            command+=['-DSCENE_FOUNDATION_FRONTIER_FAILURES']
-            command+=['-Wl,--wrap=ogpu_next_'+name for name in ('commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy','device_destroy')]
-            subprocess.run(command,check=True)
-            report['builds']['failures']=dict(command=command,sha256=digest(out/'failures'))
-        sources=list(HERE.glob('*.c'))+list(HERE.glob('*.h'))+list(HERE.glob('*.py'))+list(HERE.glob('*.slang'))+[ROOT/'include'/('ogpu_next.h' if args.foundation else 'ogpu.h')]
+        require('ogpu_next_draw_indexed_indirect' in symbols and not any(line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split()),'wrong public linkage')
+        require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
+        command=[str(HERE/'foundation_failures.c') if word==str(HERE/'frontier_foundation.c') else
+                 str(out/'failures') if word==str(out/'public') else word for word in report['builds']['public']['command']]
+        command+=['-DSCENE_FOUNDATION_FRONTIER_FAILURES']
+        command+=['-Wl,--wrap=ogpu_next_'+name for name in ('commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy','device_destroy')]
+        subprocess.run(command,check=True)
+        report['builds']['failures']=dict(command=command,sha256=digest(out/'failures'))
+        sources=list(HERE.glob('*.c'))+list(HERE.glob('*.h'))+list(HERE.glob('*.py'))+list(HERE.glob('*.slang'))+[ROOT/'include/ogpu_next.h']
         sources+=list((ROOT/'examples/compiler').glob('*.py'))
-        sources+=list((ROOT/'crates/ogpu/src').glob('*.rs'))+[ROOT/'crates/vulkan-sys/src/bindings.rs']
+        sources+=list((ROOT/'crates/ogpu/src').rglob('*.rs'))+[ROOT/'crates/vulkan-sys/src/bindings.rs']
         sources+=[ROOT/'examples/learned_image'/name for name in ('trace_memory.c','allocation_tracker.h')]
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources)}
         report['runtime_sha256']=digest(ROOT/'target/release/libogpu.so')
@@ -101,24 +98,23 @@ def main():
         for stage,metadata in native['shaders'].items():
             require(digest(directory/(stage+'.spv'))==metadata['sha256'],'native shader hash mismatch')
             report['shaders'][stage]=metadata['sha256']
-        if args.foundation:inspect_shaders(directory,out)
+        inspect_shaders(directory,out)
         if args.generated:inspect_generated(directory,out)
         env=os.environ.copy()
         require(env.get('VK_DRIVER_FILES') and 'VK_LAYER_KHRONOS_validation' in env.get('VK_INSTANCE_LAYERS','') and env.get('VK_LAYER_VALIDATE_SYNC')=='1'
                 and not env.get('VK_LOADER_LAYERS_DISABLE'),'select one ICD with validation/sync enabled')
         env.update(OGPU_TRACE_LOADER=env.get('OGPU_VULKAN_LIBRARY','libvulkan.so.1'),OGPU_VULKAN_LIBRARY=str(out/'trace.so'),OGPU_SCENE_TRACE='1')
         report['environment']={k:env.get(k) for k in ('VK_DRIVER_FILES','VK_ICD_FILENAMES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_TRACE_LOADER','OGPU_VULKAN_LIBRARY')}
-        if args.foundation:
-            report['failures']=[]
-            for fault in ('end','submit','unknown','wait'):
-                dest=out/('failure-'+fault);dest.mkdir()
-                command=[str(out/'failures'),fault,'257','193',str(directory),str(dest),'64','count']
-                failed=subprocess.run(command,env=env,capture_output=True,text=True,timeout=60)
-                (dest/'stdout').write_text(failed.stdout);(dest/'stderr').write_text(failed.stderr)
-                f.scene.check_failure(fault,failed.returncode,failed.stdout,failed.stderr,9,'FRONTIER_FRAME ')
-                report['failures'].append(dict(fault=fault,command=command,returncode=failed.returncode,
-                    logs={p.name:digest(p) for p in dest.iterdir()}));save()
-            print('Foundation frontier rejected-record/submit cleanup and unknown-completion fail-stop PASS',flush=True)
+        report['failures']=[]
+        for fault in ('end','submit','unknown','wait'):
+            dest=out/('failure-'+fault);dest.mkdir()
+            command=[str(out/'failures'),fault,'257','193',str(directory),str(dest),'64','count']
+            failed=subprocess.run(command,env=env,capture_output=True,text=True,timeout=60)
+            (dest/'stdout').write_text(failed.stdout);(dest/'stderr').write_text(failed.stderr)
+            f.scene.check_failure(fault,failed.returncode,failed.stdout,failed.stderr,9,'FRONTIER_FRAME ')
+            report['failures'].append(dict(fault=fault,command=command,returncode=failed.returncode,
+                logs={p.name:digest(p) for p in dest.iterdir()}));save()
+        print('Foundation frontier rejected-record/submit cleanup and unknown-completion fail-stop PASS',flush=True)
         shapes={}
         for case in native['runs']:
             name=case['name'];dest=out/name;dest.mkdir();capacity=case['capacity'];strategy=case['strategy']
@@ -130,18 +126,15 @@ def main():
                 execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
             require(execution.returncode==0,f'public execution failed: {dest}')
             stdout=(dest/'stdout').read_text();stderr=(dest/'stderr').read_text()
-            profile={'foundation':1} if args.foundation else {'abi':20}
+            profile={'foundation':1}
             require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**profile,index_bytes=4,gpu_generated=True)],'wrong public API/profile')
             if args.generated:require(f.rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
-            checked=f.check_log(stdout,stderr,capacity,strategy,case['device'],True,True,args.foundation)
-            if args.foundation:
-                requested=width*height*16+1232+2*(132+20*capacity)+max(256,132+20*capacity)
-                require(case['requested_bytes']==requested and f.rows(stdout,'FRONTIER_STORAGE ')==[dict(requested_bytes=requested,arenas=1)],'wrong explicit storage budget')
-                key=(width,height,capacity);shape=(checked['allocation_shape'],checked['memory']['peak_bytes'])
-                if key in shapes:require(shapes[key]==shape,'foundation strategy allocation shapes differ')
-                else:shapes[key]=shape
-            if not args.foundation:
-                require([list(a) for a in checked['allocation_shape']]==case['allocation_shape'] and checked['memory']['peak_bytes']==case['memory']['peak_bytes'],'allocation budgets differ')
+            checked=f.check_log(stdout,stderr,capacity,strategy,case['device'],True,True,True)
+            requested=width*height*16+1232+2*(132+20*capacity)+max(256,132+20*capacity)
+            require(case['requested_bytes']==requested and f.rows(stdout,'FRONTIER_STORAGE ')==[dict(requested_bytes=requested,arenas=1)],'wrong explicit storage budget')
+            key=(width,height,capacity);shape=(checked['allocation_shape'],checked['memory']['peak_bytes'])
+            if key in shapes:require(shapes[key]==shape,'foundation strategy allocation shapes differ')
+            else:shapes[key]=shape
             for frame in f.frames(capacity):
                 index=frame['frame'];active=min(frame['active'],capacity)
                 mode=9 if active==0 else 0 if capacity>1 and active==capacity else 4
