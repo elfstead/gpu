@@ -21,8 +21,12 @@ see [ownership and acceptance](../../docs/foundation-indexed-ranges.md).
 push counts/bytes and changing draw order, without runtime argument deduplication.
 `argument_snapshot.py --foundation` and `argument_patch.py --foundation` check
 call-time bytes, explicit partial updates and sticky invalid-recording rejection.
-Historical defaults remain selectable; generated range SDK packaging and retirement
-of their remaining legacy dependencies are separate work.
+`ranges.py --generated` and `range_reuse.py --generated` use typed compiler-owned
+range/identity interfaces, checked against exact native shader bytes. The preview
+also exports `foundation-indexed-ranges`: independent fresh/count/identity/replay/
+scope acceptance without a checkout, compiler or earlier reports.
+Historical defaults remain selectable; retirement of their remaining legacy
+dependencies is separate work.
 
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,

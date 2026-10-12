@@ -257,7 +257,9 @@ native push counts/bytes and changing draw order, without runtime deduplication.
 Call-time snapshot and four-byte partial-update consumers now also pass native
 byte/range checks, with sticky invalid recordings rejected before submission.
 Generated range interfaces now match native shader bytes and pass bounded fresh/
-replay/scope checks on both local drivers. SDK packaging and legacy-control retirement remain; historical
+replay/scope checks on both local drivers. The independent range SDK now builds
+and runs outside the checkout, generating its own accepted baseline and covering
+all count/identity/slot/scope variants on both drivers. Legacy-control retirement remains; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

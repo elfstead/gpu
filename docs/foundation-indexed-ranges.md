@@ -158,7 +158,30 @@ Clean foundation snapshot reports can now seed the argument-reuse controls witho
 requiring a new ABI20 execution. Historical installed controls remain explicitly
 selectable while their remaining consumers/diagnostics are audited for retirement.
 
-Independent SDK packaging for this generated range caller remains separate
-work; the packaged foundation scene currently covers the simpler two-record
-reset/replay workload. Historical performance results, native Metal parity, general
-graphics completeness and default SDK cutover are not established by this step.
+## Independent SDK handoff
+
+The opt-in preview exports `share/ogpu/examples/foundation-indexed-ranges`.
+Copy that directory outside the checkout, select `ogpu-foundation.pc`, then run
+`python3 build.py` and `python3 run.py`. It builds four public-only executables:
+an analytic scene baseline, fresh ranges, slot replay and per-draw scopes. No
+Slang, Rust, Vulkan headers or preexisting native reports are needed by the consumer.
+Shader sources and generated headers are included for inspection/regeneration.
+
+The runner checks 30 baseline frames, 72 fresh range/identity/count frames and
+48 one/two-slot reset/replay/scope cases (768 frames). Sixteen frames per reuse
+case cover all eight control variants in both slots. It checks every byte against
+fresh independently accepted results, including geometry, counts, depth and guards.
+Receipts bind sources/executables/runtime, device and outputs, and remain incomplete
+on failure. `--scale` adds the same matrix at 1280x720.
+
+Both local drivers pass the default independent matrix with synchronization
+validation. The external-install test relocates the SDK and source directories,
+disables Rust/Slang, checks compiler dependency closure and the actually loaded
+runtime for all four executables, and verifies missing-loader rejection with an
+incomplete receipt. Host mutation tests reject corrupt profiles, count/slot
+sequences, budgets, image/depth/geometry/count bytes and guards. Native trace and
+fault-injection checks remain separate; this package does not claim to measure them.
+
+Legacy-control retirement remains. Historical performance results, native Metal
+parity, general graphics completeness and default SDK cutover are not established
+by this handoff.

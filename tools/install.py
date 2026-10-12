@@ -186,6 +186,16 @@ def install(prefix, foundation=False):
                 ("tools/sdk/indexed-scene/run.py","scene_checks.py"),
                 ("tools/sdk/foundation-scene/run.py","run.py"),
                 ("tools/sdk/foundation-scene/README.md","README.md")],
+            "foundation-indexed-ranges": [("examples/graphics_scene/foundation_generated.c","baseline.c"),
+                ("examples/graphics_scene/frontier_foundation_generated.c","main.c"),
+                ("examples/graphics_scene/range_foundation_generated.c","reuse_main.c"),
+                *[("examples/graphics_scene/"+n,n) for n in ("foundation.c","frontier_foundation.c","reuse_foundation.c","range_reuse.h",
+                    "oracle.py","range_oracle.py","foundation_scene_prepare.generated.h","foundation_scene_prepare16.generated.h",
+                    "foundation_scene_pair.generated.h","foundation_scene_range_prepare.generated.h","foundation_scene_identity_pair.generated.h",
+                    "prepare.slang","prepare16.slang","scene.vert.slang","scene.frag.slang","frontier.slang","identity.vert.slang","identity.frag.slang")],
+                ("tools/sdk/indexed-scene/run.py","scene_checks.py"),
+                ("tools/sdk/foundation-ranges/run.py","run.py"),
+                ("tools/sdk/foundation-ranges/README.md","README.md")],
             "foundation-learned-image": [("examples/learned_image/foundation.c","main.c"),
                 *[("examples/learned_image/"+n,n) for n in ("extent.h","foundation_timing.h","reference.py","model.json")],
                 *[(f"examples/learned_image/generated-foundation/{n}.generated.h",f"{n}.generated.h")
@@ -195,6 +205,7 @@ def install(prefix, foundation=False):
             for source,destination in files:
                 copy(ROOT / source,f"share/ogpu/examples/{label}/{destination}")
             builder="tools/sdk/foundation-scene/build.py" if label=="foundation-indexed-scene" else "tools/sdk/foundation/build.py"
+            if label=="foundation-indexed-ranges":builder="tools/sdk/foundation-ranges/build.py"
             copy(ROOT / builder,f"share/ogpu/examples/{label}/build.py")
         ggml = "share/ogpu/examples/foundation-ggml"
         for name in ("CMakeLists.txt","backend.cpp","backend.h","runtime-foundation.h","runtime-installed.h",

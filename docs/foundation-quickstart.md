@@ -28,9 +28,12 @@ Copy any of these entire directories to an application directory outside the rep
 - `share/ogpu/examples/foundation-indexed-scene`: generated compute/graphics
   interfaces, GPU-generated UINT32/UINT16 indexed geometry and depth/split-render
   modes, with analytic, guard, A/B/A, cross-width and one/two-slot reset/replay checks.
+- `share/ogpu/examples/foundation-indexed-ranges`: generated 1/64/512-record
+  single/multi/count draws, native draw identity and one/two-slot reset/replay,
+  including per-draw scopes with persistent bindings.
 
 Run `python3 build.py` in the copied directory. Run `./consumer` for compute or
-graphics; run `python3 run.py` for learned-image or indexed-scene acceptance.
+graphics; run `python3 run.py` for learned-image, indexed-scene or indexed-ranges acceptance.
 Indexed-scene checks 30 fresh frames per index width plus 32 reset/replay cases
 (256 frames) at 257x193 (`--scale` adds 1280x720);
 see its packaged README. Learned-image
@@ -128,7 +131,7 @@ dependencies contain the relocated public header and no OGPU checkout files,
 checks the actual loaded library and incomplete missing-loader receipt, and runs
 matrix/lifetime acceptance. `--ggml-data /path/to/extracted-mnist` additionally
 selects the full dataset gates. Those optional prerequisites do not burden the
-four smaller consumer checks.
+five smaller consumer checks.
 
 Local acceptance (2026-10-11): Radeon/RADV and llvmpipe pass all three copied
 consumers with synchronization validation, header/runtime identity checks and
@@ -148,3 +151,8 @@ Generated control-pointer reset/replay is now included in the copied example;
 both local drivers pass all 32 cases, with public-only dependency and loaded-runtime
 checks for both executables. In-tree matching native traces and sanitized failure
 controls remain separate from the SDK package; see [replay coverage](foundation-scene-reuse.md).
+
+The independent range/count/identity example also passes on both local drivers:
+30 analytic baseline frames, 72 fresh range frames and 768 reset/replay/scope
+frames. All five smaller examples pass relocation, public-only dependency and
+loaded-runtime checks plus missing-loader rejection. See [range coverage](foundation-indexed-ranges.md).

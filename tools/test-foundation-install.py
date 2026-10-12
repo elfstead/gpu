@@ -53,11 +53,12 @@ def main():
     pkg = os.getenv("PKG_CONFIG","pkg-config")
     require(run([pkg,"--variable=ogpu_revision","ogpu-foundation"],env=env).strip() == manifest["revision"],"wrong revision")
     require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "1","wrong foundation version")
-    for label in ("compute","graphics","learned-image","indexed-scene"):
+    for label in ("compute","graphics","learned-image","indexed-scene","indexed-ranges"):
         app = temporary / ("independent "+label)
         shutil.copytree(prefix / ("share/ogpu/examples/foundation-"+label),app)
         run([sys.executable,"-B","build.py"],cwd=app,env=env)
-        for binary in (("consumer","reuse") if label=="indexed-scene" else ("consumer",)):
+        binaries=("baseline","consumer","reuse","scopes") if label=="indexed-ranges" else ("consumer","reuse") if label=="indexed-scene" else ("consumer",)
+        for binary in binaries:
             dependencies = [Path(p).resolve() for p in shlex.split((app / (binary+".d")).read_text().replace("\\\n",""))[1:]]
             require(prefix / "include/ogpu_next.h" in dependencies,"preview header missing")
             require(all(p.is_relative_to(prefix) or p.is_relative_to(app) for p in dependencies),"source/header escaped installed graph")
@@ -66,7 +67,7 @@ def main():
             selected = next((line.split("=>",1)[1].rsplit(" (",1)[0].strip() for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")),None)
             require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so","wrong runtime resolved")
         missing = dict(env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
-        scripted = label in ("learned-image","indexed-scene")
+        scripted = label in ("learned-image","indexed-scene","indexed-ranges")
         command = [sys.executable,"-B","run.py"] if scripted else ["./consumer"]
         failed = subprocess.run(command,cwd=app,env=missing,capture_output=True,text=True,timeout=60)
         require(failed.returncode != 0,"missing loader succeeded")
@@ -78,8 +79,11 @@ def main():
             run(command,cwd=app,env=env)
             if scripted:
                 complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
-                require(len(complete) == 1 and len(complete[0]["runs"]) == 2,"missing completed handoff receipt")
+                require(len(complete) == 1 and len(complete[0]["runs"]) == (9 if label=="indexed-ranges" else 2),"missing completed handoff receipt")
                 if label=="indexed-scene":require(len(complete[0]["reuse_runs"])==32,"missing replay matrix")
+                if label=="indexed-ranges":
+                    require(len(complete[0]['baseline'])==1 and len(complete[0]['baseline'][0]['checks'])==30
+                            and len(complete[0]['reuse_runs'])==48,'missing range baseline/replay matrix')
                 require(complete[0]["sdk"]["revision"] == manifest["revision"] and
                         complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"handoff identity mismatch")
         if args.shader_check and label in ("compute","graphics"):
