@@ -88,7 +88,15 @@ per-draw-scope frames at 257x193 (counts include native and foundation), plus al
 claim a new 1,000-frame endurance or 720p run. Existing fresh range acceptance
 above remains separate.
 
-Per-draw argument controls still require migration. Generated
+Per-draw argument controls still require migration. Their small fixed payload
+shader now uses Slang's [ForceUnroll](https://shader-slang.org/stdlib-reference/attributes/forceunroll-05.html)
+so the compiler adapter can prove constant push-array indices before emitting
+metadata. The adapter still rejects unproven loop-carried uniformity; this is not
+a restriction on native shaders accepted by the foundation API. Fresh snapshot
+references must be generated for the changed fixture; historical looped-shader
+receipts and timings are not silently reclassified as this artifact.
+
+Generated
 interfaces and independent SDK packaging for this range caller remain separate
 work; the packaged foundation scene currently covers the simpler two-record
 reset/replay workload. Historical performance results, native Metal parity, general

@@ -20,6 +20,9 @@ Varyings main(uint id : SV_VulkanVertexID, uint draw : SV_DrawIndex) {
                              root.vertices[id*4+2], root.vertices[id*4+3]);
     uint checksum = 0;
 #if ARGUMENT_BYTES > 8
+    // Keep this small fixed test payload inspectable by the conservative
+    // push-index proof; loop-carried uniformity is not inferred by the adapter.
+    [ForceUnroll]
     for (uint i=0; i<(ARGUMENT_BYTES-8)/4; ++i)
         checksum += (i+1)*root.payload[i];
 #endif

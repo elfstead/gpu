@@ -99,6 +99,9 @@ def main():
             report['shaders'][str(size)]={}
             for stage,source in [('compute',HERE/'prepare.slang'),('vertex',wrapper),('fragment',HERE/'identity.frag.slang')]:
                 reflected,assembly,binary=f.scene.generate.compile_source(source,folder/stage,os.getenv('SLANGC','slangc'),stage)
+                # Keep this fixture inside the same fail-closed compiler profile
+                # used by foundation metadata; do not bypass push-index proof.
+                f.scene.generate.inspect(reflected,assembly)
                 if stage=='vertex':
                     root=reflected['parameters'][0]['type']['elementType']
                     require(f.scene.generate.uniform_size(root)==(size,8),'wrong reflected root extent')
