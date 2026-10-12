@@ -3,9 +3,11 @@
 Started 2026-10-08, following the [whole-API design](whole-api-design.md).
 The experimental [next header](../include/ogpu_next.h) contains implemented Linux
 Vulkan declarations; the [combined sketch](drafts/ogpu_next.h) adds the remaining
-unimplemented surface. The implemented header has an explicit opt-in
-[preview export](foundation-quickstart.md); the sketch is never installed. ABI 20
-still owns the default SDK and most consumers. This is a migration boundary, not
+unimplemented surface. The implemented header is the default
+[SDK export](foundation-quickstart.md); the sketch is never installed. ABI 20
+still supports remaining in-tree/Metal consumers, but is no longer the default
+SDK profile. Foundation packaging is default; `--legacy` adds ABI20 files explicitly.
+This is a migration boundary, not
 two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
 ## Implemented setup
@@ -1409,7 +1411,7 @@ historical installed adapter and diagnostic suite have been
 [retired with Git replay instructions](libplacebo-diagnostic-retirement.md).
 The preview now exports the foundation adapter with independent build/run receipts,
 a separate pinned upstream dependency and relocated-header/runtime checks;
-other application workflows and default SDK cutover remain.
+other application workflows and shared legacy runtime removal remain.
 The [indexed/depth application caller](foundation-indexed-scene.md) now also uses
 explicit backing, image views/transitions and arena/timeline lifetimes for the
 existing matched-native fresh-recording scene. Generated typed interfaces and the
@@ -1427,7 +1429,8 @@ one/two-slot reset/replay and persistent-scope binding checks. The old range/arg
 timing suite and ABI20 replay-failure diagnostics are [retired](graphics-scene-diagnostic-retirement.md);
 their recorded evidence remains. Replay/range/argument correctness selectors now
 use foundation only, with unused ABI20 callers removed. The basic installed scene
-and default SDK cutover remain separate work.
+and remaining runtime consumers still need retirement. The default SDK now packages
+foundation only; `--legacy` adds ABI20 files without aliasing either API.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

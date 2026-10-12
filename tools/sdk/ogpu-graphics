@@ -6,4 +6,7 @@ import sys
 sys.dont_write_bytecode = True
 directory = Path(__file__).resolve().parents[1] / "share/ogpu/tools"
 sys.path.insert(0, str(directory))
+import sdk_profile
+try:sys.argv[1:]=sdk_profile.select(sys.argv[1:],Path(__file__).resolve().parents[1])
+except ValueError as error:raise SystemExit(str(error))
 runpy.run_path(str(directory / "link_graphics.py"), run_name="__main__")

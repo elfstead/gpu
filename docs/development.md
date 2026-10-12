@@ -66,12 +66,15 @@ CI result, portable binary qualification or published release.
 For standalone use, start with the [Linux installation and independent-application
 quickstart](quickstart.md). `python3 tools/install.py --prefix /new/absolute/prefix`
 builds and installs a revision-identified release SDK without overwriting an
-existing prefix. `python3 tools/test-install.py --prefix /installed/prefix`
+existing prefix. The default package is foundation-only;
+`python3 tools/test-foundation-install.py --prefix /installed/prefix`
 checks manifest hashes, relocates the SDK and builds/runs a C consumer outside
 the checkout. `--no-gpu` checks build/link/loader failure only; `--shader-check`
 also checks optional installed shader generation and interface mutation with
 pinned Slang. Tests keep their temporary artifacts and do not provision tools.
-`--resource-reuse` adds the installed two-slot arena/replay learned-image consumer
+For the historical ABI20 SDK, install with `--legacy` and use
+`python3 tools/test-install.py --prefix /installed/prefix`; its shader checks
+explicitly select `--api installed`. `--resource-reuse` adds the legacy two-slot arena/replay learned-image consumer
 and missing-loader report gate; `--no-gpu --resource-reuse` checks its source graph,
 linking and failure path without GPU execution. `python3 tools/test-reuse-handoff.py`
 checks its report rejection rules. See the [M3 handoff receipt](resource-reuse-handoff.md).

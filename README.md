@@ -6,7 +6,8 @@ Start with [the current design](docs/design.md), [working status](docs/plan.md),
 and the [development roadmap](docs/roadmap.md).
 The [whole-API proposal](docs/whole-api-design.md) describes the next foundation revision.
 To use the runtime from your own application, see the [Linux quickstart](docs/quickstart.md).
-The next interface has an [opt-in foundation preview](docs/foundation-quickstart.md).
+The default SDK exposes the [experimental foundation interface](docs/foundation-quickstart.md);
+ABI20 packaging requires explicit legacy selection.
 See the [support matrix](docs/support.md) and [upgrade policy](docs/release-policy.md)
 for the experimental compatibility boundary.
 For a reproducible starting point, see the [experimental source/SDK checkpoint](docs/release-checkpoint.md).

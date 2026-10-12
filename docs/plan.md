@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-10-11. This page owns current status and selected work. The
+Updated 2026-10-13. This page owns current status and selected work. The
 [design](design.md) describes the model; the [ledger](experiments.md) records
 evidence. The [roadmap](roadmap.md) covers the remaining project work and proposed
 sequence. The [historical plan](plan-history.md) preserves earlier milestones.
@@ -13,8 +13,10 @@ design-led revision, not another serial argument-timing experiment. The native A
 comparison and fresh ngpu review select explicit memory placement, independent
 descriptor ranges, object-local concurrency, queues/timelines, caller-owned
 lifetimes, both inline/device-root arguments, and a coherent expanded graphics/ML
-surface. The installed runtime below is still ABI 20. Only the source-only next
-header subset documented below is implemented; the rest remains a proposal.
+surface. The default SDK now exposes foundation revision 1 through `ogpu_next.h`
+and `ogpu-foundation.pc`; ABI20 SDK files need explicit `--legacy` installation.
+Only the implemented foundation subset documented below is available; the rest
+remains a proposal. The library still includes ABI20 for remaining consumers.
 
 Next implement one coordinated tranche: finalize concrete core records/native
 mappings; replace resource/command ownership; add the common graphics/compute
@@ -217,10 +219,10 @@ Resident/end-to-end A/B/A reuse now also passes both drivers, including distinct
 resident lists and separate acceptance snapshots. Explicit timestamp resolve and
 serialized replay timing have a checked handoff; setup recording and per-frame
 host phases are separate. This is instrumentation validation, not a matched-native
-performance comparison. An opt-in preview exports the implemented header and
-compute, graphics and learned-image consumers through a separate pkg-config entry;
-the default SDK remains ABI 20. Next migrate remaining application workflows and
-substantial adapters, then finish consumer/SDK cutover and remove old Vulkan policy weight.
+performance comparison. The default SDK exports the implemented foundation header
+and public-only consumers through its own pkg-config entry. Legacy ABI20 files
+are opt-in, not aliases or fallback translation. Remaining in-tree consumers and
+the native Metal path still need cutover before removing old Vulkan policy weight.
 The [GGML foundation migration](foundation-ggml.md) now selects explicit memory,
 persistent mappings, one queue/timeline and reusable recording storage on Linux.
 The pinned graph/shaders/numerical gates are unchanged; graph preflight and alias
@@ -236,7 +238,7 @@ cases. Its independent SDK source handoff now accompanies GGML's, with separate
 upstream clones and explicit complete/incomplete acceptance receipts. Its historical
 ABI20 adapter/diagnostic suite is now [retired with Git replay instructions](libplacebo-diagnostic-retirement.md);
 native comparisons and foundation correctness checks remain. Other application
-workflows and default SDK cutover are still outstanding. No new performance
+workflows and shared legacy runtime removal are still outstanding. No new performance
 or native Metal parity is claimed.
 
 The [indexed/depth scene migration](foundation-indexed-scene.md) now has a
@@ -263,7 +265,9 @@ all count/identity/slot/scope variants on both drivers. The obsolete range/argum
 timing suite and ABI20 replay-failure runner are now [retired with Git replay
 instructions](graphics-scene-diagnostic-retirement.md). Replay/range/argument
 correctness runners now select foundation only and their unused ABI20 callers are
-removed. The basic installed scene and default SDK still need cutover; historical
+removed. The default SDK and installed shader-tool defaults now select foundation;
+ABI20 packaging/generation requires explicit `--legacy` / `--api installed`.
+The basic legacy scene and remaining runtime consumers still need retirement; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

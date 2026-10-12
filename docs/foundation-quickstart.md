@@ -1,12 +1,12 @@
-# Opt-in foundation preview (Linux x86-64)
+# Foundation SDK (Linux x86-64)
 
 The foundation is a mutable, revision-pinned low-level contract, **not** ABI 20 or
-a stabilized replacement for it. The normal installer still selects the ABI-20
-SDK. To additionally export the implemented `ogpu_next_*` surface and public-only
+a stabilized replacement for it. The normal installer now selects foundation.
+To export the implemented `ogpu_next_*` surface and public-only
 source examples, build a new installation from your selected commit:
 
 ```sh
-python3 tools/install.py --foundation --prefix /absolute/path/to/new-preview
+python3 tools/install.py --prefix /absolute/path/to/new-preview
 export PKG_CONFIG_PATH=/absolute/path/to/new-preview/lib/pkgconfig
 ```
 
@@ -14,7 +14,7 @@ The manifest records both the source commit and foundation revision. Match the
 header, library and generated artifacts from that **exact commit**: revision 1
 alone does not promise compatibility across commits. New prefixes are mandatory;
 the installer never overwrites or merges an existing installation. ABI-20 headers,
-examples and `ogpu.pc` remain unchanged. Preview consumers use the separately named
+examples and `ogpu.pc` require explicit `--legacy` installation. Foundation consumers use
 `ogpu-foundation.pc`. There is no runtime policy wrapper or fallback to ABI 20.
 
 Copy any of these entire directories to an application directory outside the repo:
@@ -112,7 +112,8 @@ plus suitable SPIRV-Tools. For the compute example:
 ```
 
 `ogpu-graphics --api foundation` likewise selects foundation records for linked
-vertex/fragment stages. The default for both tools remains `installed` (ABI 20).
+vertex/fragment stages. Both installed tools now default to `foundation`; ABI20
+generation needs `--api installed` and a SDK installed with `--legacy`.
 Application allocation, bounds, retirement, synchronization and numerical policy
 remain caller-owned; generated layouts are not safe resource-lifetime tracking.
 
@@ -159,3 +160,13 @@ The independent range/count/identity example also passes on both local drivers:
 30 analytic baseline frames, 72 fresh range frames and 768 reset/replay/scope
 frames. All five smaller examples pass relocation, public-only dependency and
 loaded-runtime checks plus missing-loader rejection. See [range coverage](foundation-indexed-ranges.md).
+
+Default-SDK cutover (2026-10-13): ordinary installs omit `ogpu.h`, `ogpu.pc` and
+legacy example directories. Both local drivers pass all five independent
+foundation examples and default shader-tool regeneration/mutation. Radeon also
+passes the explicit `--legacy` package's compute, two-slot resource-reuse,
+draw-range and indexed-scene checks with explicit legacy shader generation.
+Host tests verify both package manifests/file graphs and early rejection of an
+absent legacy profile. The library still includes ABI20 for remaining in-tree
+and Metal consumers; this checkpoint changes distribution defaults, not runtime
+code removal or the supported hardware set.

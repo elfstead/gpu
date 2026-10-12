@@ -40,6 +40,11 @@ def main():
     installed = args.prefix.resolve()
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
     require(manifest["foundation"]["revision"] == 1,"not a foundation revision-1 preview")
+    if manifest.get('default_api')=='foundation':
+        legacy=manifest['legacy_sdk']
+        require(('abi' in manifest)==legacy,'incorrect manifest profile')
+        for name in ('include/ogpu.h','lib/pkgconfig/ogpu.pc','share/ogpu/examples/transform/main.c'):
+            require((installed/name).is_file()==legacy,'legacy packaging mismatch: '+name)
     for relative,digest in manifest["files_sha256"].items():
         require(hashlib.sha256((installed / relative).read_bytes()).hexdigest() == digest,f"installed hash mismatch: {relative}")
     temporary = Path(tempfile.mkdtemp(prefix="ogpu-foundation-external-"))
@@ -53,6 +58,9 @@ def main():
     pkg = os.getenv("PKG_CONFIG","pkg-config")
     require(run([pkg,"--variable=ogpu_revision","ogpu-foundation"],env=env).strip() == manifest["revision"],"wrong revision")
     require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "1","wrong foundation version")
+    if manifest.get('default_api')=='foundation' and not manifest['legacy_sdk']:
+        absent=subprocess.run([pkg,'--exists','ogpu'],env=env,capture_output=True,text=True,timeout=30)
+        require(absent.returncode!=0,'foundation-only package exposed legacy pkg-config name')
     for label in ("compute","graphics","learned-image","indexed-scene","indexed-ranges"):
         app = temporary / ("independent "+label)
         shutil.copytree(prefix / ("share/ogpu/examples/foundation-"+label),app)
@@ -66,6 +74,9 @@ def main():
             linked = run(["ldd","./"+binary],cwd=app,env=env)
             selected = next((line.split("=>",1)[1].rsplit(" (",1)[0].strip() for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")),None)
             require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so","wrong runtime resolved")
+            symbols=run(['nm','-u',str(app/binary)],quiet=True,env=env)
+            require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
+                        if line.split() and line.split()[-1].startswith('ogpu_')),'foundation consumer imported legacy API')
         missing = dict(env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
         scripted = label in ("learned-image","indexed-scene","indexed-ranges")
         command = [sys.executable,"-B","run.py"] if scripted else ["./consumer"]
@@ -89,13 +100,17 @@ def main():
         if args.shader_check and label in ("compute","graphics"):
             shader_env = dict(env,SLANGC=os.getenv("SLANGC","slangc"))
             if label == "compute":
-                generator = [str(prefix / "bin/ogpu-shader"),"--api","foundation","--source","transform.slang","--output",
+                generator = [str(prefix / "bin/ogpu-shader"),"--source","transform.slang","--output",
                              "foundation.generated.h","--build-dir","shader-build","--name","transform","--stage","compute"]
             else:
-                generator = [str(prefix / "bin/ogpu-graphics"),"--api","foundation","--vertex-source","stage_vertex.slang",
+                generator = [str(prefix / "bin/ogpu-graphics"),"--vertex-source","stage_vertex.slang",
                              "--fragment-source","stage_fragment.slang","--output","foundation-pattern.generated.h",
                              "--build-dir","shader-build","--name","pattern"]
             run([*generator,"--check"],cwd=app,env=shader_env)
+            if not manifest.get('legacy_sdk',True):
+                rejected=subprocess.run([*generator,'--api','installed','--check'],cwd=app,
+                    env=dict(shader_env,SLANGC='/must-not-run-slang'),capture_output=True,text=True,timeout=30)
+                require(rejected.returncode!=0 and 'install with --legacy' in rejected.stderr,'absent legacy profile was not rejected before compilation')
             if label == "compute":
                 source = app / "transform.slang"; original = source.read_text()
                 changed = original.replace("    uint* data;\n    uint count;","    uint count;\n    uint* data;").replace("numthreads(64, 1, 1)","numthreads(32, 1, 1)")

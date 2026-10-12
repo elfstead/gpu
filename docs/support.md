@@ -1,13 +1,16 @@
 # Current support boundary
 
-Updated 2026-10-11; default experimental C ABI 20. Pin a full source revision. This table
+Updated 2026-10-13. The default SDK is foundation revision 1; ABI20 packaging is
+explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
-This table covers the default runtime. The separately named
-[foundation preview](foundation-quickstart.md) exports the implemented next
-contract on Linux/Vulkan only, with opt-in packaging and exact commit matching.
-Its replay/query capabilities do not upgrade ABI-20 or Metal support in this table.
+This table preserves the **legacy ABI20** support boundary, especially native
+Metal. For the default Linux/Vulkan foundation, see the
+[SDK guide](foundation-quickstart.md) and [implemented surface](foundation-implementation.md).
+Foundation adds explicit memory/queues/arenas, richer raster/query and numerical
+profiles, but not native Metal parity. Default packaging does not make those
+features available through ABI20 or change Metal support in this table.
 
 | Area | Linux x86-64 / Vulkan | macOS arm64 / Metal |
 |---|---|---|

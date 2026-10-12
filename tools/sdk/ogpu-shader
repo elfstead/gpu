@@ -6,6 +6,11 @@ import os
 from pathlib import Path
 import sys
 sys.dont_write_bytecode = True
+prefix=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(prefix/'share/ogpu/tools'))
+import sdk_profile
+try:sys.argv[1:]=sdk_profile.select(sys.argv[1:],prefix)
+except ValueError as error:raise SystemExit(str(error))
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--source", required=True, type=Path)
@@ -15,7 +20,7 @@ parser.add_argument("--name", required=True)
 parser.add_argument("--stage", required=True, choices=("compute", "vertex", "fragment"))
 parser.add_argument("--native-heaps", action="store_true", help="select the native descriptor-heap compiler profile")
 parser.add_argument("--check", action="store_true")
-parser.add_argument("--api", choices=("installed","foundation"),default="installed")
+parser.add_argument("--api", choices=("installed","foundation"),default="foundation")
 adapter = Path(__file__).resolve().parents[1] / "share/ogpu/tools/generate.py"
 spec = importlib.util.spec_from_file_location("ogpu_generator", adapter)
 generate = importlib.util.module_from_spec(spec)

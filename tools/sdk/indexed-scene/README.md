@@ -35,9 +35,9 @@ The API remains experimental and revision-pinned.
 Optional regeneration with installed adapters and the pinned compiler/toolchain:
 
 ```sh
-ogpu-shader --stage compute --source prepare.slang --name scene_prepare --output scene_prepare.generated.h --build-dir build-32
-ogpu-shader --stage compute --source prepare16.slang --name scene_prepare16 --output scene_prepare16.generated.h --build-dir build-16
-ogpu-graphics --vertex-source scene.vert.slang --fragment-source scene.frag.slang --name scene_pair --output scene_pair.generated.h --build-dir build-pair
+ogpu-shader --api installed --stage compute --source prepare.slang --name scene_prepare --output scene_prepare.generated.h --build-dir build-32
+ogpu-shader --api installed --stage compute --source prepare16.slang --name scene_prepare16 --output scene_prepare16.generated.h --build-dir build-16
+ogpu-graphics --api installed --vertex-source scene.vert.slang --fragment-source scene.frag.slang --name scene_pair --output scene_pair.generated.h --build-dir build-pair
 ```
 
 Add `--check` to detect stale artifacts. `prepare16.slang` includes `prepare.slang`;

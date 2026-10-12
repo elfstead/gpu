@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check a relocated installed SDK from an out-of-tree consumer directory."""
+"""Check an explicit legacy SDK from an out-of-tree consumer directory."""
 import argparse
 import hashlib
 import json
@@ -49,6 +49,8 @@ def main():
     args = parser.parse_args()
     installed = args.prefix.resolve()
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
+    require('abi' in manifest and manifest.get('legacy_sdk',True),
+            'ABI20 is not packaged; install with --legacy or use test-foundation-install.py')
     for relative, digest in manifest["files_sha256"].items():
         require(hashlib.sha256((installed / relative).read_bytes()).hexdigest() == digest,
                 f"installed hash mismatch: {relative}")
@@ -145,7 +147,7 @@ def main():
             run(["./transform"], cwd=application, env=split)
     if args.shader_check:
         environment["SLANGC"] = os.getenv("SLANGC", "slangc")
-        shader = [str(prefix / "bin/ogpu-shader"), "--source", "transform.slang", "--output",
+        shader = [str(prefix / "bin/ogpu-shader"), "--api", "installed", "--source", "transform.slang", "--output",
                   "transform.generated.h", "--build-dir", "shader-build", "--name", "transform", "--stage", "compute"]
         run([*shader, "--check"], cwd=application, env=environment)
         # Use the installed tool on a changed consumer-owned shader interface.
@@ -168,7 +170,7 @@ def main():
         run([sys.executable, "build.py", "--output", "affine"], cwd=affine, env=environment)
         if not args.no_gpu: run(["./affine"], cwd=affine, env=environment)
         if args.shader_check:
-            shader = [str(prefix / "bin/ogpu-shader"), "--source", "affine.slang", "--output",
+            shader = [str(prefix / "bin/ogpu-shader"), "--api", "installed", "--source", "affine.slang", "--output",
                       "affine.generated.h", "--build-dir", "shader-build", "--name", "affine", "--stage", "compute"]
             run([*shader, "--check"], cwd=affine, env=environment)
             source = affine / "affine.slang"
@@ -189,7 +191,7 @@ def main():
         run([sys.executable, "build.py", "--output", "structured"], cwd=structured, env=environment)
         if not args.no_gpu: run(["./structured"], cwd=structured, env=environment)
         if args.shader_check:
-            shader = [str(prefix / "bin/ogpu-shader"), "--source", "structured.slang", "--output",
+            shader = [str(prefix / "bin/ogpu-shader"), "--api", "installed", "--source", "structured.slang", "--output",
                       "structured.generated.h", "--build-dir", "shader-build", "--name", "structured", "--stage", "compute"]
             run([*shader, "--check"], cwd=structured, env=environment)
             source = structured / "structured.slang"
@@ -212,7 +214,7 @@ def main():
         if not args.no_gpu: run(execute, cwd=heap, env=environment)
         if args.shader_check:
             for name, stage in (("heap-process", "compute"), ("heap-sample", "fragment")):
-                shader = [str(prefix / "bin/ogpu-shader"), "--source", name+".slang", "--output",
+                shader = [str(prefix / "bin/ogpu-shader"), "--api", "installed", "--source", name+".slang", "--output",
                           name.replace("-", "_")+".generated.h", "--build-dir", "shader-build/"+name,
                           "--name", name.replace("-", "_"), "--stage", stage, "--native-heaps"]
                 run([*shader, "--check"], cwd=heap, env=environment)
@@ -235,7 +237,7 @@ def main():
         run([sys.executable, "build.py", "--output", "dependency"], cwd=dependency, env=environment)
         if not args.no_gpu: run(["./dependency"], cwd=dependency, env=environment)
         if args.shader_check:
-            shader = [str(prefix / "bin/ogpu-shader"), "--source", "affine.slang", "--name", "affine",
+            shader = [str(prefix / "bin/ogpu-shader"), "--api", "installed", "--source", "affine.slang", "--name", "affine",
                       "--stage", "compute", "--output", "affine.generated.h", "--build-dir", "shader-build",
                       "--source-root", ".", "--manifest", "build.json"]
             run([*shader, "--check"], cwd=dependency, env=environment)
@@ -270,7 +272,7 @@ def main():
         run([sys.executable, "build.py", "--output", "stage-pair"], cwd=stage, env=environment)
         if not args.no_gpu: run(["./stage-pair"], cwd=stage, env=environment)
         if args.shader_check:
-            shader = [str(prefix / "bin/ogpu-graphics"), "--vertex-source", "stage_vertex.slang",
+            shader = [str(prefix / "bin/ogpu-graphics"), "--api", "installed", "--vertex-source", "stage_vertex.slang",
                       "--fragment-source", "stage_fragment.slang", "--output", "pattern.generated.h",
                       "--build-dir", "shader-build", "--name", "pattern"]
             run([*shader, "--check"], cwd=stage, env=environment)
@@ -346,10 +348,10 @@ def main():
                         "range execution gate missing")
         execute_ranges()
         if args.shader_check:
-            pair = [str(prefix / "bin/ogpu-graphics"), "--vertex-source", "identity.vert.slang",
+            pair = [str(prefix / "bin/ogpu-graphics"), "--api", "installed", "--vertex-source", "identity.vert.slang",
                     "--fragment-source", "identity.frag.slang", "--output", "identity.generated.h",
                     "--build-dir", "pair-build", "--name", "identity"]
-            count = [str(prefix / "bin/ogpu-shader"), "--source", "range_count.slang", "--output", "range_count.generated.h",
+            count = [str(prefix / "bin/ogpu-shader"), "--api", "installed", "--source", "range_count.slang", "--output", "range_count.generated.h",
                      "--build-dir", "count-build", "--name", "range_count", "--stage", "compute"]
             run([*pair, "--check"], cwd=ranges, env=environment)
             run([*count, "--check"], cwd=ranges, env=environment)
@@ -400,10 +402,10 @@ def main():
                 previous = outputs
         execute_scene()
         if args.shader_check:
-            commands = [[str(prefix / "bin/ogpu-shader"), "--stage", "compute", "--source", source,
+            commands = [[str(prefix / "bin/ogpu-shader"), "--api", "installed", "--stage", "compute", "--source", source,
                          "--name", name, "--output", name+".generated.h", "--build-dir", name+"-build"]
                         for source, name in (("prepare.slang", "scene_prepare"), ("prepare16.slang", "scene_prepare16"))]
-            pair = [str(prefix / "bin/ogpu-graphics"), "--vertex-source", "scene.vert.slang", "--fragment-source", "scene.frag.slang",
+            pair = [str(prefix / "bin/ogpu-graphics"), "--api", "installed", "--vertex-source", "scene.vert.slang", "--fragment-source", "scene.frag.slang",
                     "--name", "scene_pair", "--output", "scene_pair.generated.h", "--build-dir", "pair-build"]
             for command in commands+[pair]:run([*command, "--check"], cwd=scene, env=environment)
             host_hashes = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in (scene/"main.c", scene/"public.c")}
