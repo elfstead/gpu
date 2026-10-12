@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef SCENE_DRAW_BYTES
+#define SCENE_DRAW_BYTES 168u
+#endif
 #ifdef SCENE_GENERATED
 #ifdef SCENE_REUSE_CONSUMER
 #include <foundation_scene_reuse_prepare.generated.h>
@@ -218,13 +221,13 @@ static int resources(Scene *s) {
     }
     uint64_t usage=OGPU_NEXT_USAGE_STORAGE|OGPU_NEXT_USAGE_COPY_SRC|OGPU_NEXT_USAGE_COPY_DST;
     NEED(buffer_create(s,VERTICES,256,usage,OGPU_NEXT_MEMORY_LOCAL) && buffer_create(s,INDICES,160,usage|OGPU_NEXT_USAGE_INDEX,OGPU_NEXT_MEMORY_LOCAL)
-        && buffer_create(s,DRAWS,168,usage|OGPU_NEXT_USAGE_INDIRECT,OGPU_NEXT_MEMORY_LOCAL)
-        && buffer_create(s,UPLOAD,256,OGPU_NEXT_USAGE_COPY_SRC,OGPU_NEXT_MEMORY_HOST_VISIBLE)
+        && buffer_create(s,DRAWS,SCENE_DRAW_BYTES,usage|OGPU_NEXT_USAGE_INDIRECT,OGPU_NEXT_MEMORY_LOCAL)
+        && buffer_create(s,UPLOAD,SCENE_DRAW_BYTES>256 ? SCENE_DRAW_BYTES : 256,OGPU_NEXT_USAGE_COPY_SRC,OGPU_NEXT_MEMORY_HOST_VISIBLE)
         && buffer_create(s,READBACK,2*s->pixels+4*GUARD,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE)
-        && buffer_create(s,GEOMETRY,584,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE));
+        && buffer_create(s,GEOMETRY,416+SCENE_DRAW_BYTES,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE));
     GPU(ogpu_next_memory_address(span(s,VERTICES,GUARD,128),&s->root.vertices));
-    GPU(ogpu_next_memory_address(span(s,INDICES,GUARD,32),&s->root.indices)); GPU(ogpu_next_memory_address(span(s,DRAWS,GUARD,40),&s->root.draws));
-    memset(s->maps[UPLOAD].data,0xa5,256); GPU(ogpu_next_memory_flush(span(s,UPLOAD,0,256)));
+    GPU(ogpu_next_memory_address(span(s,INDICES,GUARD,32),&s->root.indices)); GPU(ogpu_next_memory_address(span(s,DRAWS,GUARD,SCENE_DRAW_BYTES-2*GUARD),&s->root.draws));
+    memset(s->maps[UPLOAD].data,0xa5,s->sizes[UPLOAD]); GPU(ogpu_next_memory_flush(span(s,UPLOAD,0,s->sizes[UPLOAD])));
     memset(s->maps[READBACK].data,0xa5,s->sizes[READBACK]); GPU(ogpu_next_memory_flush(span(s,READBACK,0,s->sizes[READBACK])));
     NEED(begin(s));
     for(unsigned i=VERTICES;i<=DRAWS;++i) ogpu_next_copy_memory(s->encoder,span(s,i,0,s->sizes[i]),span(s,UPLOAD,0,s->sizes[i]));
@@ -247,10 +250,21 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #else
     ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,8,&s->root.vertices);
 #endif
+#ifdef SCENE_FOUNDATION_FRONTIER
+    (void)first; (void)count;
+    ogpu_next_indirect draw={span(s,DRAWS,GUARD,20*frontier_records),20,frontier_records,{NULL,0,0}};
+    if(frontier_strategy==2) draw.count=span(s,DRAWS,GUARD+20*frontier_records,4);
+    if(frontier_strategy) ogpu_next_draw_indexed_indirect(s->encoder,&draw);
+    else for(unsigned i=0;i<frontier_records;++i) {
+        draw.arguments=span(s,DRAWS,GUARD+20*i,20); draw.maximum_count=1;
+        ogpu_next_draw_indexed_indirect(s->encoder,&draw);
+    }
+#else
     for(unsigned i=0;i<count;++i) {
         ogpu_next_indirect draw={span(s,DRAWS,GUARD+20*((first+i)%2),20),20,1,{NULL,0,0}};
         ogpu_next_draw_indexed_indirect(s->encoder,&draw);
     }
+#endif
     ogpu_next_render_end(s->encoder);
 }
 #ifndef SCENE_REUSE_CONSUMER

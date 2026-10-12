@@ -80,7 +80,9 @@ foundation profile; it cannot accept an installed-ABI log as foundation evidence
 This ports the fresh-recording scene and its generated handoff. The subsequent
 [reset/replay caller](foundation-scene-reuse.md) also migrates one/two-slot reuse;
 its generated control-pointer interfaces and independent handoff are included.
-Separate range/frontier and timing controls still retain migration work.
+The [fresh range/count/identity caller](foundation-indexed-ranges.md) is also
+migrated; sustained range replay, per-draw scopes and argument/timing controls
+still retain migration work.
 Retire redundant historical controls at their last dependency,
 then finish default SDK cutover. No native Metal or second physical GPU result is claimed.
 

@@ -22,6 +22,17 @@ class ComparisonTests(unittest.TestCase):
                                       (1,'',log.replace('TEARDOWN arena','TEARDOWN other') if known else log+cleanup)):
                 with self.assertRaises(ValueError):runner.check_failure(mode,code,stdout,stderr)
 
+    def test_frontier_failure_receipts(self):
+        for mode in ('end','submit','unknown','wait'):
+            known=mode in ('end','submit')
+            cleanup='TEARDOWN arena\n'+'TEARDOWN memory\n'*9+'TEARDOWN device\n'
+            log=f'INJECT {mode}\n'+(cleanup if known else 'Unknown foundation scene completion; refusing unsafe teardown\n')
+            runner.check_failure(mode,1,'',log,9,'FRONTIER_FRAME ')
+            for stdout in ('FRONTIER_FRAME {}','Public indexed frontier drained'):
+                with self.assertRaises(ValueError):runner.check_failure(mode,1,stdout,log,9,'FRONTIER_FRAME ')
+            if known:
+                with self.assertRaises(ValueError):runner.check_failure(mode,1,'',log.replace('TEARDOWN memory\n','',1),9,'FRONTIER_FRAME ')
+
     def test_foundation_requirements(self):
         fields=SimpleNamespace(io=['fixture'])
         for stage,size,local,requirements in (
@@ -36,6 +47,16 @@ class ComparisonTests(unittest.TestCase):
                 ((fields,size,8,local,requirements+['shader_float16']),'requirements changed')):
                 with patch.object(runner.generate,'inspect',return_value=bad):
                     with self.assertRaisesRegex(ValueError,message):runner.inspect_foundation_shader({},'',stage)
+
+    def test_foundation_draw_identity_is_explicit(self):
+        fields=SimpleNamespace(io=['fixture'])
+        basic=['graphics_queue','buffer_device_address']
+        for identity in (False,True):
+            requirements=basic+(['shader_draw_parameters'] if identity else [])
+            with patch.object(runner.generate,'inspect',return_value=(fields,8,8,[],requirements)):
+                self.assertEqual(runner.inspect_foundation_shader({},'','vertex',identity),fields.io)
+                with self.assertRaisesRegex(ValueError,'requirements changed'):
+                    runner.inspect_foundation_shader({},'','vertex',not identity)
 
     def test_index_width_comparison(self):
         with tempfile.TemporaryDirectory() as directory:

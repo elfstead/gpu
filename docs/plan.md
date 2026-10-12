@@ -248,7 +248,10 @@ unchanged. [One/two-slot reset/replay](foundation-scene-reuse.md) now also execu
 through explicit slot-owned memory, arenas and timelines, with native command
 traces and failure cleanup checks. Generated control-pointer interfaces now match
 native shader bytes, and the independent SDK handoff runs the full bounded
-reset/replay matrix. Separate range/frontier workflows still need migration; historical
+reset/replay matrix. [Fixed/count/DrawIndex fresh recording](foundation-indexed-ranges.md)
+also uses explicit foundation ownership with unchanged native identities and
+count clamping. Sustained range replay, per-draw scopes and argument workflows
+still need migration; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

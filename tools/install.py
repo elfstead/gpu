@@ -168,7 +168,7 @@ def install(prefix, foundation=False):
         copy(ROOT / "examples/learned_image" / name, f"{reuse}/{name}")
     if foundation:
         # Explicit preview opt-in; never silently replace the ABI-20 consumer.
-        for name in ("foundation-ggml.md","foundation-libplacebo.md","foundation-indexed-scene.md","foundation-scene-reuse.md"):
+        for name in ("foundation-ggml.md","foundation-libplacebo.md","foundation-indexed-scene.md","foundation-scene-reuse.md","foundation-indexed-ranges.md"):
             copy(ROOT / "docs" / name,f"share/ogpu/{name}")
         for label, files in {
             "foundation-compute": [("examples/compiler/foundation.c","main.c"),

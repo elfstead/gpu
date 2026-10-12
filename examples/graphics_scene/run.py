@@ -20,13 +20,14 @@ import oracle
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def inspect_foundation_shader(reflection,assembly,stage):
+def inspect_foundation_shader(reflection,assembly,stage,draw_identity=False):
     """Prove the handwritten executable metadata against the compiled artifact."""
     fields,size,alignment,local,requirements=generate.inspect(reflection,assembly)
     generate.require(size=={'compute':32,'vertex':8,'fragment':0}[stage], 'foundation root size mismatch')
     generate.require(local==([8,1,1] if stage=='compute' else []),'foundation local size mismatch')
     wanted={'compute_queue' if stage=='compute' else 'graphics_queue'}
     if stage!='fragment': wanted.add('buffer_device_address')
+    if draw_identity and stage=='vertex': wanted.add('shader_draw_parameters')
     generate.require(set(requirements)==wanted,'foundation scene requirements changed')
     # inspect() rejects workgroup globals, specialization and unmapped capability
     # records; therefore this scene can truthfully declare shared_memory=0.
@@ -57,14 +58,14 @@ def compare_index_width(reference_root, reference_run, output, rows):
     return dict(frames=len(rows),files=len(rows),compared_bytes=compared,exact=True)
 
 
-def check_failure(mode,code,stdout,stderr):
+def check_failure(mode,code,stdout,stderr,allocations=8,frame_prefix='SCENE_FRAME '):
     generate.require(code==1 and f'INJECT {mode}\n' in stderr,'missing injected failure')
     generate.require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'failure validation error')
-    generate.require('SCENE_FRAME ' not in stdout,'failed frame reported success')
+    generate.require(frame_prefix not in stdout and 'drained' not in stdout,'failed frame reported success')
     if mode in ('unknown','wait'):
         generate.require('refusing unsafe teardown' in stderr and 'TEARDOWN ' not in stderr,'unknown completion released resources')
     else:
-        generate.require(stderr.count('TEARDOWN arena\n')==1 and stderr.count('TEARDOWN memory\n')==8
+        generate.require(stderr.count('TEARDOWN arena\n')==1 and stderr.count('TEARDOWN memory\n')==allocations
                          and stderr.count('TEARDOWN device\n')==1,'known rejection did not release resources')
         generate.require(stderr.index('TEARDOWN arena\n')<stderr.index('TEARDOWN memory\n')<stderr.index('TEARDOWN device\n'),
                          'unsafe teardown order')

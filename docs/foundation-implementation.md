@@ -1415,7 +1415,9 @@ explicit backing, image views/transitions and arena/timeline lifetimes for the
 existing matched-native fresh-recording scene. Generated typed interfaces and the
 independent foundation SDK handoff also cover this scene and its one/two-slot
 reset/replay caller, including generated control-pointer interfaces and failure
-cleanup checks. Separate range/frontier/timing workflows remain unmigrated.
+cleanup checks. The [range/count/identity fresh-recording caller](foundation-indexed-ranges.md)
+also uses explicit arenas and native argument/count spans; sustained range replay,
+per-draw scopes and argument/timing workflows remain unmigrated.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

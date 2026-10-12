@@ -46,7 +46,9 @@ def identity_image(reference,width,height,capacity,strategy):
     return bytes(result)
 
 
-def check_log(stdout,stderr,capacity,strategy,device,identity=False,public=False):
+def check_log(stdout,stderr,capacity,strategy,device,identity=False,public=False,foundation=False):
+    if foundation:
+        require(public and rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=1,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require(('Public' if public else 'Native')+' indexed frontier drained' in stdout,'missing drain marker')
     require(rows(stdout,'DEVICE ')==[device],'wrong device')
@@ -72,10 +74,16 @@ def check_log(stdout,stderr,capacity,strategy,device,identity=False,public=False
     # One-shot public controls use the existing bounded device cache. The 512
     # individual-call case exceeds its 256-step admission bound; this is NOT the
     # caller-owned reset/replay timing policy and must not hide pool churn.
-    uncached=public and strategy=='single' and capacity==512
-    require(hot['vkCreateCommandPool']==hot['vkDestroyCommandPool']==(8 if not public or uncached else 0),'wrong hot pool policy')
-    require(final['vkQueueWaitIdle']==0 and final['vkResetCommandPool']==(1 if uncached else 9 if public else 0) and
-            final['vkCreateCommandPool']==final['vkDestroyCommandPool']==(9 if not public or uncached else 1),'wrong pool/idle policy')
+    if foundation:
+        require(start['vkCreateCommandPool']==start['vkResetCommandPool']==1 and start['vkDestroyCommandPool']==0,'wrong explicit arena setup')
+        require(hot['vkCreateCommandPool']==hot['vkDestroyCommandPool']==0 and hot['vkResetCommandPool']==8,'wrong explicit arena reset policy')
+        require(final['vkQueueWaitIdle']==0 and final['vkResetCommandPool']==9 and
+                final['vkCreateCommandPool']==final['vkDestroyCommandPool']==1,'wrong explicit arena teardown')
+    else:
+        uncached=public and strategy=='single' and capacity==512
+        require(hot['vkCreateCommandPool']==hot['vkDestroyCommandPool']==(8 if not public or uncached else 0),'wrong hot pool policy')
+        require(final['vkQueueWaitIdle']==0 and final['vkResetCommandPool']==(1 if uncached else 9 if public else 0) and
+                final['vkCreateCommandPool']==final['vkDestroyCommandPool']==(9 if not public or uncached else 1),'wrong pool/idle policy')
     wanted=(8*capacity,0,8*capacity,0) if strategy=='single' else (8,0,8*capacity,0) if strategy=='multi' else (0,8,0,8*capacity)
     if strategy=='count-fixed':
         require(not public,'count-fixed is a native diagnostic')

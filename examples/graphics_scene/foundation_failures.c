@@ -1,7 +1,11 @@
 /* Test-only link wrappers: real completion is never fabricated. Failure is
  * injected on the first scene frame, after the initial upload really completes. */
 #define main scene_main
+#ifdef SCENE_FOUNDATION_FRONTIER_FAILURES
+#include "frontier_foundation.c"
+#else
 #include "foundation.c"
+#endif
 #undef main
 static const char *failure;
 static unsigned ends, submits, waits;
@@ -41,6 +45,10 @@ void __wrap_ogpu_next_device_destroy(ogpu_next_device *d) {
     fputs("TEARDOWN device\n",stderr); __real_ogpu_next_device_destroy(d);
 }
 int main(int argc,char **argv) {
+#ifdef SCENE_FOUNDATION_FRONTIER_FAILURES
+    if(argc!=8) return 2;
+#else
     if(argc!=7) return 2;
+#endif
     failure=argv[1]; return scene_main(argc-1,argv+1);
 }

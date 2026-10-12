@@ -106,5 +106,24 @@ class FrontierTests(unittest.TestCase):
                 with self.assertRaises((ValueError,RuntimeError)):
                     f.check_log(out,err((start,end,final)),capacity,strategy,device,public=True)
 
+    def test_foundation_explicit_arena_policy(self):
+        for capacity in (1,64,512):
+            for strategy in f.STRATEGIES:
+                out,err,device,counts,_=self.fixture(capacity,strategy)
+                out=out.replace('Native indexed','Public indexed')+'PUBLIC_SCENE {"foundation":1,"index_bytes":4,"gpu_generated":true}\n'
+                start,end,final=counts
+                start.update(vkDestroyCommandPool=0,vkResetCommandPool=1)
+                end.update(vkCreateCommandPool=1,vkDestroyCommandPool=0,vkResetCommandPool=9)
+                final.update(vkCreateCommandPool=1,vkDestroyCommandPool=1,vkResetCommandPool=9)
+                f.check_log(out,err(),capacity,strategy,device,public=True,foundation=True)
+                for row in range(3):
+                    for key in ('vkCreateCommandPool','vkDestroyCommandPool','vkResetCommandPool','vkQueueWaitIdle'):
+                        changed=copy.deepcopy(counts);changed[row][key]+=1
+                        with self.assertRaises(ValueError):
+                            f.check_log(out,err(changed),capacity,strategy,device,public=True,foundation=True)
+                for bad in (out.replace('"foundation":1','"abi":20'),out.replace('"index_bytes":4','"index_bytes":2')):
+                    with self.assertRaises(ValueError):
+                        f.check_log(bad,err(),capacity,strategy,device,public=True,foundation=True)
+
 
 if __name__=='__main__': unittest.main()
