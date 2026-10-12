@@ -1,21 +1,28 @@
-//! Experimental C ABI. Ownership and pointer requirements are defined in include/ogpu.h.
+//! Experimental foundation C interface plus explicitly build-selectable Linux ABI20.
+//! Contracts: include/ogpu_next.h and (legacy/Metal) include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 mod api_types;
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 mod boundary;
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 mod contract;
 #[cfg(target_os = "linux")]
 pub mod foundation;
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 mod shader;
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 pub use api_types::*;
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 pub use shader::{
     OgpuShaderDesc, OgpuSpecializationConstant, SHADER_METALLIB, SHADER_MSL, SHADER_SPIRV,
 };
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "legacy"))]
 mod compute;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "legacy"))]
 mod execution_api;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "legacy"))]
 pub use execution_api::*;
 #[cfg(target_os = "macos")]
 mod metal;
@@ -24,10 +31,11 @@ mod vulkan;
 #[cfg(target_os = "macos")]
 pub use metal::*;
 
-#[cfg(target_os = "linux")]
+use std::ffi::c_char;
+#[cfg(all(target_os = "linux", feature = "legacy"))]
 use std::sync::Arc;
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 use std::{
-    ffi::c_char,
     panic::{catch_unwind, AssertUnwindSafe},
     ptr,
 };
@@ -99,6 +107,7 @@ pub struct OgpuDeviceInfo {
 }
 
 /// Opaque C ownership handle. Device information is immutable after construction.
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 pub struct OgpuProbe {
     devices: Vec<OgpuDeviceInfo>,
     #[cfg(target_os = "linux")]
@@ -113,7 +122,11 @@ pub struct OgpuProbe {
 #[derive(Debug, Clone)]
 struct Error {
     status: OgpuResult,
+    // The shared native loader retains full diagnostics for legacy callers and
+    // Debug tests. Foundation maps only status across its allocation-free FFI.
+    #[allow(dead_code)]
     vk: i32,
+    #[allow(dead_code)]
     message: String,
 }
 
@@ -133,6 +146,7 @@ impl Error {
             message: format!("{operation}: VkResult {vk}"),
         }
     }
+    #[cfg(any(feature = "legacy", target_os = "macos"))]
     fn diagnostic(&self) -> OgpuError {
         let mut result = OgpuError {
             vulkan_result: self.vk,
@@ -154,12 +168,14 @@ impl Error {
     }
 }
 
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 fn boundary(f: impl FnOnce() -> OgpuResult) -> OgpuResult {
     catch_unwind(AssertUnwindSafe(f)).unwrap_or(INTERNAL_ERROR)
 }
 
 /// # Safety
 /// See `ogpu_probe_create` in include/ogpu.h. Outputs must be valid and non-overlapping.
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_probe_create(
     version: u32,
@@ -236,6 +252,7 @@ pub unsafe extern "C" fn ogpu_probe_create(
 
 /// # Safety
 /// `probe` must be NULL or a live handle returned by create, with no concurrent users.
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_probe_destroy(probe: *mut OgpuProbe) {
     if !probe.is_null() {
@@ -249,6 +266,7 @@ pub unsafe extern "C" fn ogpu_probe_destroy(probe: *mut OgpuProbe) {
 
 /// # Safety
 /// See include/ogpu.h: a live probe and writable, non-overlapping output are required.
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_probe_device_count(
     probe: *const OgpuProbe,
@@ -268,6 +286,7 @@ pub unsafe extern "C" fn ogpu_probe_device_count(
 
 /// # Safety
 /// See include/ogpu.h: a live probe and writable, non-overlapping output are required.
+#[cfg(any(feature = "legacy", target_os = "macos"))]
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_probe_device_info(
     probe: *const OgpuProbe,
@@ -290,7 +309,7 @@ pub unsafe extern "C" fn ogpu_probe_device_info(
     })
 }
 
-#[cfg(test)]
+#[cfg(all(test, any(feature = "legacy", target_os = "macos")))]
 mod tests {
     use super::*;
 

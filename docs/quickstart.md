@@ -66,12 +66,15 @@ cross-commit compatibility. See [support](support.md) and [upgrade/rollback poli
 
 ## Explicit legacy access
 
-`--legacy` additionally packages `ogpu.h`, `ogpu.pc` and the ABI20 examples.
+`--legacy` additionally builds the ABI20 runtime and packages `ogpu.h`, `ogpu.pc`
+and the ABI20 examples.
 Legacy shader generation must explicitly pass `--api installed`. The default
 package deliberately lacks those files, so an old consumer cannot silently link
 against another SDK profile. `--foundation` remains accepted as a no-op spelling
 for existing scripts; it no longer adds legacy files.
 
-See the [legacy guide](legacy-sdk.md) for the old workflow. The shared library
-still contains ABI20 implementation code used by remaining in-tree/Metal consumers;
-default packaging cutover is not proof that this runtime weight has been removed.
+See the [legacy guide](legacy-sdk.md) for the old workflow. Default Linux SDK builds
+use `--no-default-features` and omit ABI20 execution/probe exports. `--legacy` enables
+the Cargo `legacy` feature. Plain Cargo builds retain that feature for remaining
+in-tree consumers; native Metal remains unchanged. Neither profile translates one
+API into the other. The manifest records the actual Cargo feature selection.

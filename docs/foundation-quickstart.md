@@ -167,6 +167,15 @@ foundation examples and default shader-tool regeneration/mutation. Radeon also
 passes the explicit `--legacy` package's compute, two-slot resource-reuse,
 draw-range and indexed-scene checks with explicit legacy shader generation.
 Host tests verify both package manifests/file graphs and early rejection of an
-absent legacy profile. The library still includes ABI20 for remaining in-tree
-and Metal consumers; this checkpoint changes distribution defaults, not runtime
-code removal or the supported hardware set.
+absent legacy profile. A subsequent build-profile split also omits ABI20 execution
+and probe code/exports from the default Linux SDK: `--no-default-features` builds
+foundation alone, while `--legacy` selects the `legacy` Cargo feature. Plain Cargo
+defaults retain it for in-tree users; Metal remains unchanged. Neither this split
+nor the distribution cutover expands the supported hardware set.
+
+The foundation-only runtime passes 46 ordinary tests and all 16 opt-in GPU tests
+on each local driver. Both drivers also pass the five relocated SDK consumers and
+shader regeneration/mutation checks. The explicit legacy package passes Radeon
+compute, resource-reuse, draw-range and indexed-scene acceptance. Package checks
+verify the actual shared library's profile: foundation exports always present,
+no ABI20 exports in the default SDK, both APIs in an explicit legacy build.

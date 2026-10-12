@@ -14,10 +14,13 @@ attestation. A dirty build identifies modified files, not a reproducible release
 The default foundation SDK has its own `ogpu-foundation.pc` and manifest
 entry. Its revision-1 structures remain mutable across source commits. Require
 exact commit/header/library/artifact matching; the legacy ABI number below does
-not govern foundation compatibility. `--legacy` additionally packages ABI20;
-the manifest records `default_api` and `legacy_sdk`. No header/package alias
-silently translates one API into the other. Shared ABI20 runtime code remains
-until its remaining consumers have migrated or retired.
+not govern foundation compatibility. `--legacy` additionally builds/packages ABI20;
+the manifest records `default_api`, `legacy_sdk`, `cargo_default_features` and
+`cargo_features`. No header/package alias silently translates one API into the other.
+The default Linux SDK omits legacy execution/probe code and exports; it builds with
+`--no-default-features`. Explicit legacy packages enable only the `legacy` feature.
+Plain Cargo defaults still include legacy for in-tree consumers, and native Metal
+is unchanged. Removing that remaining source is a separate migration/retirement task.
 
 The legacy C ABI number changes for incompatible public layout/signature/behavior changes.
 It is a rejection guard at `ogpu_probe_create`, not a loader symbol-version scheme,

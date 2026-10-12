@@ -21,6 +21,10 @@ class InstallerTests(unittest.TestCase):
                 prefix=root/'sdk'
                 package=dict(id='ogpu',name='ogpu',version='0.1.0',license='MIT',source=None)
                 def fake_run(*args,**kwargs):
+                    if args[1] in ('build','metadata'):
+                        self.assertIn('--no-default-features',args)
+                        self.assertEqual('--features' in args,legacy)
+                        if legacy:self.assertEqual(args[args.index('--features')+1],'legacy')
                     if args[1]=='build':value=json.dumps(dict(reason='compiler-artifact',target=dict(name='ogpu'),filenames=[str(library)]))
                     elif args[1]=='metadata':value=json.dumps(dict(packages=[package],resolve=dict(nodes=[dict(id='ogpu',deps=[])])))
                     elif args[1]=='rev-parse':value='a'*40
@@ -32,6 +36,8 @@ class InstallerTests(unittest.TestCase):
                 manifest=json.loads((prefix/'share/ogpu/manifest.json').read_text())
                 self.assertEqual(manifest['default_api'],'foundation');self.assertEqual(manifest['legacy_sdk'],legacy)
                 self.assertEqual('abi' in manifest,legacy)
+                self.assertFalse(manifest['cargo_default_features'])
+                self.assertEqual(manifest['cargo_features'],['legacy'] if legacy else [])
                 self.assertEqual(manifest['foundation']['revision'],1)
                 for path in ('include/ogpu_next.h','lib/pkgconfig/ogpu-foundation.pc',
                              'share/ogpu/examples/foundation-indexed-ranges/main.c','share/ogpu/tools/sdk_profile.py'):

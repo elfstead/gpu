@@ -31,8 +31,10 @@ def install(prefix, *, legacy=False):
     # Explicit native target and profile; use Cargo's artifact message rather than
     # assuming target/release or accidentally shipping a stale debug library.
     target = "x86_64-unknown-linux-gnu"
+    features = ["legacy"] if legacy else []
+    feature_args = ["--no-default-features"] + (["--features", "legacy"] if legacy else [])
     result = run(cargo, "build", "--locked", "--release", "--target", target,
-                 "-p", "ogpu", "--message-format=json-render-diagnostics", cwd=ROOT, capture_output=True)
+                 "-p", "ogpu", *feature_args, "--message-format=json-render-diagnostics", cwd=ROOT, capture_output=True)
     print(result.stderr, end="", file=sys.stderr)
     artifacts = [json.loads(line) for line in result.stdout.splitlines() if line.startswith("{")]
     libraries = [Path(path) for item in artifacts if item.get("reason") == "compiler-artifact"
@@ -40,7 +42,7 @@ def install(prefix, *, legacy=False):
     if len(libraries) != 1:
         raise ValueError("Cargo did not identify exactly one ogpu shared library")
     metadata = json.loads(run(cargo, "metadata", "--locked", "--format-version", "1",
-                             "--filter-platform", target, cwd=ROOT, capture_output=True).stdout)
+                             "--filter-platform", target, *feature_args, cwd=ROOT, capture_output=True).stdout)
     packages = {p["id"]: p for p in metadata["packages"]}
     nodes = {n["id"]: n for n in metadata["resolve"]["nodes"]}
     package = next(p for p in packages.values() if p["name"] == "ogpu")
@@ -244,6 +246,7 @@ def install(prefix, *, legacy=False):
              for p in sorted(staging.rglob("*")) if p.is_file()}
     manifest = dict(schema=1, revision=revision, source_dirty=dirty, default_api="foundation",
                     version=package["version"], target=target, profile="release",
+                    cargo_default_features=False, cargo_features=features,
                     rustc=run(os.getenv("RUSTC", "rustc"), "--version", capture_output=True).stdout.strip(),
                     dependencies=dependency_record, files_sha256=files,
                     compatibility="Match header/library/artifacts from one revision; no stable ABI promise.",
@@ -264,7 +267,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prefix", required=True, type=Path)
     parser.add_argument("--foundation",action="store_true",help=argparse.SUPPRESS)
-    parser.add_argument("--legacy",action="store_true",help="also package the retired ABI20 header, examples and ogpu.pc")
+    parser.add_argument("--legacy",action="store_true",help="also build ABI20 runtime and package its header, examples and ogpu.pc")
     try:
         args = parser.parse_args()
         install(args.prefix,legacy=args.legacy)

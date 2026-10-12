@@ -125,44 +125,7 @@ fn check(operation: &str, result: vk::VkResult) -> Result<(), Error> {
     }
 }
 
-pub(crate) fn require_baseline(info: &crate::OgpuDeviceInfo) -> Result<(), Error> {
-    if info.vulkan_api_major < 1 || (info.vulkan_api_major == 1 && info.vulkan_api_minor < 4) {
-        return Err(Error::new(UNSUPPORTED, "Execution requires Vulkan 1.4"));
-    }
-    for (supported, name) in [
-        (
-            info.capabilities.buffer_device_address,
-            "bufferDeviceAddress",
-        ),
-        (info.capabilities.compute_queue, "compute queue"),
-        (info.capabilities.timeline_semaphore, "timelineSemaphore"),
-        (info.capabilities.synchronization2, "synchronization2"),
-        (
-            info.capabilities.storage_buffer_16bit_access,
-            "storageBuffer16BitAccess",
-        ),
-        (
-            info.capabilities.descriptor_heap,
-            "VK_EXT_descriptor_heap: descriptorHeap",
-        ),
-        (
-            info.capabilities.device_address_commands,
-            "VK_KHR_device_address_commands: deviceAddressCommands",
-        ),
-        (
-            info.capabilities.shader_untyped_pointers,
-            "VK_KHR_shader_untyped_pointers: shaderUntypedPointers",
-        ),
-    ] {
-        if supported == 0 {
-            return Err(Error::new(
-                UNSUPPORTED,
-                format!("Execution requires {name}"),
-            ));
-        }
-    }
-    Ok(())
-}
+use crate::vulkan::require_baseline;
 
 pub use crate::api_types::OgpuDeviceLimits as DeviceLimits;
 
@@ -1080,60 +1043,6 @@ fn drain(mut wait: impl FnMut() -> vk::VkResult) -> vk::VkResult {
 
 #[cfg(test)]
 mod tests {
-
-    #[test]
-    fn modern_baseline_rejects_each_missing_requirement() {
-        let mut info = crate::OgpuDeviceInfo {
-            name: [0; 256],
-            backend: crate::BACKEND_VULKAN,
-            vendor_id: 0,
-            device_id: 0,
-            device_type: 0,
-            vulkan_api_major: 1,
-            vulkan_api_minor: 4,
-            vulkan_api_patch: 0,
-            capabilities: Default::default(),
-        };
-        let caps = &mut info.capabilities;
-        caps.buffer_device_address = 1;
-        caps.compute_queue = 1;
-        caps.timeline_semaphore = 1;
-        caps.synchronization2 = 1;
-        caps.descriptor_heap = 1;
-        caps.device_address_commands = 1;
-        caps.shader_untyped_pointers = 1;
-        caps.storage_buffer_16bit_access = 1;
-        require_baseline(&info).unwrap();
-        for (field, expected) in [
-            (0, "bufferDeviceAddress"),
-            (1, "compute queue"),
-            (2, "timelineSemaphore"),
-            (3, "synchronization2"),
-            (4, "descriptorHeap"),
-            (5, "deviceAddressCommands"),
-            (6, "shaderUntypedPointers"),
-            (7, "storageBuffer16BitAccess"),
-        ] {
-            let mut absent = info;
-            let c = &mut absent.capabilities;
-            let fields = [
-                &mut c.buffer_device_address,
-                &mut c.compute_queue,
-                &mut c.timeline_semaphore,
-                &mut c.synchronization2,
-                &mut c.descriptor_heap,
-                &mut c.device_address_commands,
-                &mut c.shader_untyped_pointers,
-                &mut c.storage_buffer_16bit_access,
-            ];
-            *fields.into_iter().nth(field).unwrap() = 0;
-            let error = require_baseline(&absent).unwrap_err();
-            assert_eq!(error.status, UNSUPPORTED);
-            assert!(format!("{error:?}").contains(expected));
-        }
-        info.vulkan_api_minor = 3;
-        assert_eq!(require_baseline(&info).unwrap_err().status, UNSUPPORTED);
-    }
     use super::*;
     #[test]
     fn wait_error_does_not_release_pending_resources() {

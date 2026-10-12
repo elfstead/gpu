@@ -16,7 +16,9 @@ lifetimes, both inline/device-root arguments, and a coherent expanded graphics/M
 surface. The default SDK now exposes foundation revision 1 through `ogpu_next.h`
 and `ogpu-foundation.pc`; ABI20 SDK files need explicit `--legacy` installation.
 Only the implemented foundation subset documented below is available; the rest
-remains a proposal. The library still includes ABI20 for remaining consumers.
+remains a proposal. The default Linux SDK now also omits ABI20 runtime code/exports;
+explicit legacy packages and plain Cargo defaults retain it for remaining consumers.
+Native Metal is unchanged and does not yet implement foundation.
 
 Next implement one coordinated tranche: finalize concrete core records/native
 mappings; replace resource/command ownership; add the common graphics/compute
@@ -238,7 +240,8 @@ cases. Its independent SDK source handoff now accompanies GGML's, with separate
 upstream clones and explicit complete/incomplete acceptance receipts. Its historical
 ABI20 adapter/diagnostic suite is now [retired with Git replay instructions](libplacebo-diagnostic-retirement.md);
 native comparisons and foundation correctness checks remain. Other application
-workflows and shared legacy runtime removal are still outstanding. No new performance
+workflows and legacy source retirement are still outstanding. The default Linux SDK
+now excludes that runtime through build-time feature selection. No new performance
 or native Metal parity is claimed.
 
 The [indexed/depth scene migration](foundation-indexed-scene.md) now has a
@@ -267,6 +270,11 @@ instructions](graphics-scene-diagnostic-retirement.md). Replay/range/argument
 correctness runners now select foundation only and their unused ABI20 callers are
 removed. The default SDK and installed shader-tool defaults now select foundation;
 ABI20 packaging/generation requires explicit `--legacy` / `--api installed`.
+The default SDK library also excludes ABI20 execution/probe modules; `--legacy`
+selects that runtime at build time. Manifests record Cargo features and acceptance
+checks inspect actual shared-library exports. The shared native loader/baseline
+predicate no longer depends on legacy execution. Plain Cargo defaults and native
+Metal retain legacy support until their remaining consumers migrate or retire.
 The basic legacy scene and remaining runtime consumers still need retirement; historical
 performance results are not foundation measurements.
 

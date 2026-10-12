@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Relocate an opt-in preview and check independent public-only consumers."""
+"""Relocate the foundation SDK and check independent public-only consumers."""
 import argparse
 import hashlib
 import json
@@ -47,6 +47,15 @@ def main():
             require((installed/name).is_file()==legacy,'legacy packaging mismatch: '+name)
     for relative,digest in manifest["files_sha256"].items():
         require(hashlib.sha256((installed / relative).read_bytes()).hexdigest() == digest,f"installed hash mismatch: {relative}")
+    if 'cargo_features' in manifest:
+        legacy=manifest['legacy_sdk']
+        require(manifest['cargo_default_features'] is False and
+                manifest['cargo_features']==(['legacy'] if legacy else []),'incorrect runtime build profile')
+        symbols=run(['nm','-D','--defined-only',str(installed/'lib/libogpu.so')],quiet=True)
+        exports={line.split()[-1] for line in symbols.splitlines() if line.split()}
+        require('ogpu_next_discovery_create' in exports,'foundation runtime missing')
+        old={name for name in exports if name.startswith('ogpu_') and not name.startswith('ogpu_next_')}
+        require(('ogpu_probe_create' in old) if legacy else not old,'legacy runtime export mismatch')
     temporary = Path(tempfile.mkdtemp(prefix="ogpu-foundation-external-"))
     prefix = temporary / "relocated sdk"; shutil.copytree(installed,prefix)
     print(f"Foundation external artifacts: {temporary}",flush=True)

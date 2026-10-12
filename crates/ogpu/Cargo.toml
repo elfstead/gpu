@@ -13,7 +13,9 @@ crate-type = ["cdylib", "rlib"]
 libloading = "=0.8.9"
 
 [features]
-default = ["spirv-to-msl"]
+default = ["legacy", "spirv-to-msl"]
+# Transitional ABI20 consumers; the default Linux SDK disables these defaults.
+legacy = []
 spirv-to-msl = ["dep:spirv-cross2"]
 
 [target.'cfg(target_os = "linux")'.dependencies]

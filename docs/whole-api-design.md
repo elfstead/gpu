@@ -1,14 +1,16 @@
 # Whole-API design: an explicit foundation, not a workload runtime
 
 Selected design direction, 2026-10-08. **Target design, not a support declaration.**
-The installed interface remains ABI 20. The companion
-[C surface sketch](drafts/ogpu_next.h) is intentionally not installed; only its
-imported source-header subset is implemented and linkable.
+The default Linux SDK now exposes the mutable foundation revision 1; ABI20 is an
+explicit legacy build/package option. The companion [C surface sketch](drafts/ogpu_next.h)
+is intentionally not installed; only its imported `include/ogpu_next.h` subset is
+implemented and linkable. The sketch's additional declarations remain proposals.
 This document supersedes the experiment-by-experiment *design sequence*, not the
 historical results or their evidence limits. The [working plan](plan.md) owns status.
 Implementation now covers the [setup, backing, commands, images, descriptors, compute and offscreen raster boundaries](foundation-implementation.md);
 only declarations in `include/ogpu_next.h` are implemented on Linux. The combined
-sketch imports them and adds the remaining proposal; the installed ABI is unchanged.
+sketch imports them and adds the remaining proposal. Pin a full source revision;
+foundation revision 1 is not a stable ABI promise.
 
 ## Decision in brief
 

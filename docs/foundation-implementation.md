@@ -1411,7 +1411,7 @@ historical installed adapter and diagnostic suite have been
 [retired with Git replay instructions](libplacebo-diagnostic-retirement.md).
 The preview now exports the foundation adapter with independent build/run receipts,
 a separate pinned upstream dependency and relocated-header/runtime checks;
-other application workflows and shared legacy runtime removal remain.
+other application workflows and legacy source retirement remain.
 The [indexed/depth application caller](foundation-indexed-scene.md) now also uses
 explicit backing, image views/transitions and arena/timeline lifetimes for the
 existing matched-native fresh-recording scene. Generated typed interfaces and the
@@ -1430,7 +1430,10 @@ timing suite and ABI20 replay-failure diagnostics are [retired](graphics-scene-d
 their recorded evidence remains. Replay/range/argument correctness selectors now
 use foundation only, with unused ABI20 callers removed. The basic installed scene
 and remaining runtime consumers still need retirement. The default SDK now packages
-foundation only; `--legacy` adds ABI20 files without aliasing either API.
+foundation only and compiles out ABI20 execution/probe modules; `--legacy` builds
+that runtime and adds ABI20 files without aliasing either API. Plain Cargo defaults
+retain `legacy` for remaining in-tree consumers; Metal is unchanged. The package
+manifest records feature selection and installed checks inspect exported symbols.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

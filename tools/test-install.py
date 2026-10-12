@@ -51,6 +51,10 @@ def main():
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
     require('abi' in manifest and manifest.get('legacy_sdk',True),
             'ABI20 is not packaged; install with --legacy or use test-foundation-install.py')
+    symbols=run(['nm','-D','--defined-only',str(installed/'lib/libogpu.so')])
+    exports={line.split()[-1] for line in symbols.splitlines() if line.split()}
+    require('ogpu_probe_create' in exports and 'ogpu_next_discovery_create' in exports,
+            'legacy package must provide both runtime profiles')
     for relative, digest in manifest["files_sha256"].items():
         require(hashlib.sha256((installed / relative).read_bytes()).hexdigest() == digest,
                 f"installed hash mismatch: {relative}")
