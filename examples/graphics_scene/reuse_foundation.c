@@ -1,7 +1,16 @@
 /* One/two-slot reset/replay through explicit foundation lifetimes. */
 #define SCENE_REUSE_CONSUMER
+#ifdef SCENE_RANGE_REUSE
+static unsigned frontier_records,frontier_strategy;
+#define SCENE_DRAW_BYTES (132u+20u*frontier_records)
+#define SCENE_FOUNDATION_FRONTIER
+#endif
 #include "foundation.c"
+#ifdef SCENE_RANGE_REUSE
+#include "range_reuse.h"
+#else
 #include "reuse.h"
+#endif
 typedef struct {
     Scene scene; /* Context/executables borrowed, all other objects owned. */
     ogpu_next_list *list;
@@ -20,7 +29,7 @@ static int slot_create(Slot *slot,Scene *shared,Reuse *r) {
     s->width=r->width; s->height=r->height; s->pixels=(size_t)r->width*r->height*4; s->index_bytes=r->index_bytes;
     NEED(storage(s) && resources(s) && buffer_create(s,CONTROL,REUSE_CONTROL_BYTES,OGPU_NEXT_USAGE_STORAGE,OGPU_NEXT_MEMORY_HOST_VISIBLE));
     s->reuse_root[0]=s->root.vertices; s->reuse_root[1]=s->root.indices; s->reuse_root[2]=s->root.draws;
-    GPU(ogpu_next_memory_address(span(s,CONTROL,GUARD,8),&s->reuse_root[3]));
+    GPU(ogpu_next_memory_address(span(s,CONTROL,GUARD,REUSE_CONTROL_BYTES-2*GUARD),&s->reuse_root[3]));
     if(r->replay) NEED(slot_record(slot,r));
     return 1;
 }

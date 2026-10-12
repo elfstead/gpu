@@ -61,8 +61,34 @@ correctness comparisons, not fresh native timing measurements. Host negative
 tests cover draw identity, profiles, pools/resets and failure receipts. GCC and
 Clang compile the caller warning-clean.
 
-This ports fresh recording of range/count/identity scenes. The sustained one/two-slot
-range replay and per-draw-scope/argument controls still require migration. Generated
+## Slot replay and per-draw scopes
+
+`range_reuse.py --foundation --native REPORT` now uses the same foundation
+slot scheduler as the simpler scene. Each slot owns its backing, control/readback
+memory, arena and timeline; executables are shared and borrowed. Reset records
+after completion; replay records once per slot and changes the mapped control
+between serial uses. `--scopes` selects separate draws with CLEAR then LOAD
+render scopes. Pipeline, index, viewport/scissor and inline bindings survive these
+scope boundaries: foundation binds each once per recording, like the native control.
+No argument-bank cache, hidden rebind or CPU count readback is introduced.
+
+Default is 1,000 frames per case; `--software` selects 64 and `--preflight` 16.
+`--scale` adds 16-frame 1280x720 cases. These are correctness/ownership checks,
+not timing. Traces check both compiled and frame-loop command counts, no hot pool
+creation, per-retired-frame reset and zero replay recording/reset. Actual allocation
+shapes stay stable within each backend; logical requested budgets match native.
+
+`foundation_reuse_failures.py --range-report REPORT` adds the 18 sanitized
+failure cases to either scope policy. All pending slots drain before any slot or
+shared executable is released; unknown acceptance/completion fails closed.
+
+Local bounded acceptance: both drivers pass 4,608 ordinary-range and 1,536
+per-draw-scope frames at 257x193 (counts include native and foundation), plus all
+36 sanitized failure cases per driver across the two policies. This does not
+claim a new 1,000-frame endurance or 720p run. Existing fresh range acceptance
+above remains separate.
+
+Per-draw argument controls still require migration. Generated
 interfaces and independent SDK packaging for this range caller remain separate
 work; the packaged foundation scene currently covers the simpler two-record
 reset/replay workload. Historical performance results, native Metal parity, general

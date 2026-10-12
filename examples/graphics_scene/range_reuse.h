@@ -66,7 +66,8 @@ static int reuse_file(Reuse *r,unsigned frame,const char *suffix,size_t bytes,un
     char path[4096];int n=snprintf(path,sizeof(path),"%s/frame-%u.%s",r->reference,frame,suffix);
     NEED(n>=0 && (size_t)n<sizeof(path));FILE *f=fopen(path,"rb");if(!f) { perror(path);return 0; }
     *out=malloc(bytes);int okay=*out && fread(*out,1,bytes,f)==bytes && fgetc(f)==EOF && !ferror(f);
-    if(fclose(f)) okay=0;return okay;
+    if(fclose(f)) okay=0;
+    return okay;
 }
 static int reuse_reference(Reuse *r) {
     for(unsigned i=0;i<8;++i)

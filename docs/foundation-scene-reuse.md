@@ -86,7 +86,7 @@ dependencies and actual loaded runtime; all four copied preview examples pass
 on both local drivers. The package has no native trace or timing dependency.
 
 The [fresh-recording range/count/identity caller](foundation-indexed-ranges.md)
-now also uses foundation. Next migrate sustained range replay and argument
-controls, retiring historical callers at their last dependency. These remain
+now also uses foundation, including slot replay and per-draw render scopes.
+Next migrate argument controls, retiring historical callers at their last dependency. These remain
 separate ABI20 workflows; this does not complete default SDK cutover or broader
 graphics coverage.

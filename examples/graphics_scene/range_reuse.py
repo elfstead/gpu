@@ -14,14 +14,16 @@ ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
 
 
-def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193,scopes=False,root_pushes=None):
+def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,width=257,height=193,scopes=False,root_pushes=None,foundation=False):
+    require(not foundation or backend=='public','foundation is a public caller')
     require(not scopes or strategy=='single','per-draw scopes preserve separate-call identity only')
     require(f.rows(stdout,'RANGE_SCOPE_POLICY ')==[dict(per_draw=scopes)],'wrong scope policy label')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failed')
     require(backend.title()+' scene reuse drained and checked' in stdout,'missing drain marker')
     require(f.rows(stdout,'DEVICE ')==[device],'wrong device')
     if backend=='public':
-        require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(abi=20,index_bytes=4,gpu_generated=True)],'wrong public profile')
+        profile={'foundation':1} if foundation else {'abi':20}
+        require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**profile,index_bytes=4,gpu_generated=True)],'wrong public profile')
     else:
         require(f.rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'native identity not enabled')
     expected=[]
@@ -60,7 +62,7 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     encodes=summary['encodes']
     require(end['vkCmdDrawIndexedIndirect2KHR']==(0 if strategy=='count' else encodes*draws_per_record)
             and end['vkCmdDrawIndexedIndirectCount2KHR']==(encodes if strategy=='count' else 0),'wrong compiled native range strategy')
-    binds=capacity if scopes and backend=='public' else 1
+    binds=capacity if scopes and backend=='public' and not foundation else 1
     # Argument-bank bytes survive scope boundaries independently of raster bindings.
     root_pushes=1 if root_pushes is None else root_pushes
     require(root_pushes>=1,'invalid root push count')
@@ -72,13 +74,15 @@ def check(stdout,stderr,backend,capacity,strategy,slots,replay,frames,device,wid
     require(end['vkCmdBindIndexBuffer3KHR']==encodes*binds,'wrong compiled index binding count')
     for name in ('vkCmdSetViewport','vkCmdSetScissor'):
         require(hot[name]==recorded*binds and end[name]==encodes*binds,'wrong viewport/scissor reuse')
-    barriers=(8 if backend=='public' else 6)+scope_count-1
-    require(hot['vkCmdPipelineBarrier2']==recorded*barriers and end['vkCmdPipelineBarrier2']==2*slots+encodes*barriers,
+    barriers=(9 if foundation else 8 if backend=='public' else 6)+scope_count-1
+    require(hot['vkCmdPipelineBarrier2']==recorded*barriers and end['vkCmdPipelineBarrier2']==(slots if foundation else 2*slots)+encodes*barriers,
             'wrong attachment/copy dependency count')
-    require(hot['vkCreateCommandPool']==(0 if replay else slots) and hot['vkDestroyCommandPool']==0,'hot pool churn')
+    if foundation:
+        require(start['vkCreateCommandPool']==start['vkResetCommandPool']==slots and start['vkDestroyCommandPool']==0,'wrong explicit slot arenas')
+    require(hot['vkCreateCommandPool']==(0 if replay or foundation else slots) and hot['vkDestroyCommandPool']==0,'hot pool churn')
     require(hot['vkResetCommandPool']==(0 if replay else frames if backend=='public' else frames-slots),'wrong reset policy')
     require(final['vkCreateCommandPool']==final['vkDestroyCommandPool'],'pool leak')
-    require(final['vkResetCommandPool']==end['vkResetCommandPool']+(slots if backend=='public' and replay else 0),
+    require(final['vkResetCommandPool']==end['vkResetCommandPool']+(slots if backend=='public' and replay and not foundation else 0),
             'wrong list-release storage reset count')
     require(all(final[k]==end[k] for k in end if k not in ('phase','vkDestroyCommandPool','vkResetCommandPool')),'unexpected teardown commands')
     allocations=f.rows(stderr,'ALLOCATE ');require(len(allocations)==9*slots,'missing allocation events')
@@ -102,12 +106,14 @@ def main():
     parser.add_argument('--software',action='store_true',help='64 instead of 1000 frames per case')
     parser.add_argument('--scale',action='store_true',help='also 16-frame 720p count/identity cycles on Radeon')
     parser.add_argument('--scopes',action='store_true',help='labelled per-draw CLEAR then LOAD scopes; separate-call strategy only')
+    parser.add_argument('--foundation',action='store_true',help='explicit slot-owned foundation memory, arenas and timelines')
     args=parser.parse_args()
     out=Path(tempfile.mkdtemp(prefix='range-reuse-',dir=ROOT/'target/graphics-scene'))
     print(f'Range reuse evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,scale=args.scale,per_draw_scopes=args.scopes,runs=[],
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
+    report['api']='foundation' if args.foundation else 'installed'
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
@@ -133,18 +139,24 @@ def main():
         for stage,metadata in native['shaders'].items():
             require(digest(directory/(stage+'.spv'))==metadata['sha256'],'changed native shader')
             report['shaders'][stage]=metadata['sha256']
+        if args.foundation:
+            from ranges import inspect_shaders
+            inspect_shaders(directory,out)
         subprocess.run(['cargo','build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
         cc=shlex.split(os.getenv('CC','cc'));report['compiler']=subprocess.check_output([*cc,'--version'],text=True).splitlines()[0]
         common=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DSCENE_RANGE_REUSE','-I'+str(ROOT/'include')]
         if args.scopes:common+=['-DSCENE_RANGE_SCOPES']
         report['builds']={}
         for backend in ('native','public'):
-            command=common+[str(HERE/f'reuse_{backend}.c')]
+            source='reuse_foundation.c' if backend=='public' and args.foundation else f'reuse_{backend}.c'
+            command=common+[str(HERE/source)]
             if backend=='public':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
             else:command+=['-DNATIVE_DRAW_IDENTITY','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
             command+=['-ldl','-o',str(out/backend)];subprocess.run(command,check=True)
             symbols=subprocess.check_output(['nm','-u',str(out/backend)],text=True)
-            require(('ogpu' not in symbols.lower()) if backend=='native' else 'ogpu_command_list_submit' in symbols,'incorrect runtime linkage')
+            require(('ogpu' not in symbols.lower()) if backend=='native' else ('ogpu_next_queue_submit' if args.foundation else 'ogpu_command_list_submit') in symbols,'incorrect runtime linkage')
+            if backend=='public' and args.foundation:
+                require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
             report['builds'][backend]=dict(command=command,sha256=digest(out/backend))
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-shared','-fPIC','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),str(HERE/'reuse_trace.c'),'-ldl','-o',str(out/'trace.so')]
         subprocess.run(command,check=True);report['builds']['trace.so']=dict(command=command,sha256=digest(out/'trace.so'))
@@ -155,7 +167,8 @@ def main():
         report['cpu_tests_sha256']=digest(out/'cpu-tests.txt')
         subprocess.run([sys.executable,'-B',str(HERE/'test_range_reuse.py')],check=True)
         sources=[p for p in HERE.iterdir() if p.suffix in ('.c','.h','.py','.slang')]
-        sources+=list((ROOT/'crates/ogpu/src').glob('*.rs'))+[ROOT/'crates/vulkan-sys/src/bindings.rs',ROOT/'include/ogpu.h']
+        sources+=list((ROOT/'crates/ogpu/src').rglob('*.rs'))+[ROOT/'crates/vulkan-sys/src/bindings.rs',ROOT/'include'/('ogpu_next.h' if args.foundation else 'ogpu.h')]
+        sources+=list((ROOT/'examples/compiler').glob('*.py'))
         sources+=list((ROOT/'examples/learned_image').glob('native*'))+list((ROOT/'examples/learned_image/generated').glob('*.h'))
         sources+=[ROOT/'examples/learned_image'/n for n in ('trace_memory.c','allocation_tracker.h')]
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources) if p.is_file()}
@@ -165,6 +178,7 @@ def main():
                 and not env.get('VK_LOADER_LAYERS_DISABLE'),'select ICD and enable validation/sync')
         env.update(OGPU_TRACE_LOADER=env.get('OGPU_VULKAN_LIBRARY','libvulkan.so.1'),OGPU_VULKAN_LIBRARY=str(out/'trace.so'),OGPU_SCENE_TRACE='1')
         report['environment']={k:env.get(k) for k in ('VK_DRIVER_FILES','VK_ICD_FILENAMES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_TRACE_LOADER')}
+        shapes={}
         for case in cases:
             width,height=case['extent']
             frames=16 if args.preflight or width==1280 else 64 if args.software else 1000
@@ -177,11 +191,16 @@ def main():
                         with (dest/'stdout').open('w') as stdout,(dest/'stderr').open('w') as stderr:
                             execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                         require(execution.returncode==0,f'execution failed: {dest}')
-                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height,args.scopes)
+                        checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height,args.scopes,foundation=args.foundation and backend=='public')
+                        if args.foundation:
+                            key=(backend,width,height,case['capacity'],slots);shape=(checked['allocation_shape'],checked['memory'])
+                            if key in shapes:require(shapes[key]==shape,'allocation shape changed across strategy/recording policy')
+                            else:shapes[key]=shape
                         results.append(checked)
                         report['runs'].append(dict(name=name,backend=backend,extent=[width,height],command=command,device=case['device'],**checked,
                                                   logs={n:digest(dest/n) for n in ('stdout','stderr')}));save()
-                    require(results[0]['allocation_shape']==results[1]['allocation_shape'] and results[0]['memory']==results[1]['memory'],'matched allocation budgets differ')
+                    if args.foundation:require(results[0]['summary']==results[1]['summary'],'logical native/foundation budgets differ')
+                    else:require(results[0]['allocation_shape']==results[1]['allocation_shape'] and results[0]['memory']==results[1]['memory'],'matched allocation budgets differ')
                     print(name.rsplit('-',1)[0]+': matched outputs, budgets and native reset/replay PASS',flush=True)
         report['complete']=True;save();print('Range reuse PASS; timing remains open')
     except Exception as error:report['error']=str(error);save();raise

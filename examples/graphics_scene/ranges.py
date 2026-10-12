@@ -14,6 +14,19 @@ ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
 
 
+def inspect_shaders(directory,out):
+    interfaces={}
+    for name,stage in [('frontier','compute'),('identity.vert','vertex'),('identity.frag','fragment')]:
+        reflected,assembly,binary=f.scene.generate.compile_source(HERE/(name+'.slang'),out/('inspect-'+stage),os.getenv('SLANGC','slangc'),stage)
+        require(binary==(directory/(stage+'.spv')).read_bytes(),'compiler/native shader bytes differ')
+        interfaces[stage]=f.scene.inspect_foundation_shader(reflected,assembly,stage,draw_identity=True)
+        if stage!='fragment':
+            root=reflected['parameters'][0]['type']['elementType']
+            fields=[(field['name'],field['binding']['offset'],field['binding']['size']) for field in root['fields']]
+            require(fields==[('vertices',0,8)]+([('indices',8,8),('draws',16,8),('control',24,8)] if stage=='compute' else []),'wrong foundation root fields')
+    f.scene.generate.stages.link(interfaces['vertex'],interfaces['fragment'])
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',type=Path)
@@ -74,17 +87,7 @@ def main():
         for stage,metadata in native['shaders'].items():
             require(digest(directory/(stage+'.spv'))==metadata['sha256'],'native shader hash mismatch')
             report['shaders'][stage]=metadata['sha256']
-        if args.foundation:
-            interfaces={}
-            for name,stage in [('frontier','compute'),('identity.vert','vertex'),('identity.frag','fragment')]:
-                reflected,assembly,binary=f.scene.generate.compile_source(HERE/(name+'.slang'),out/('inspect-'+stage),os.getenv('SLANGC','slangc'),stage)
-                require(binary==(directory/(stage+'.spv')).read_bytes(),'compiler/native shader bytes differ')
-                interfaces[stage]=f.scene.inspect_foundation_shader(reflected,assembly,stage,draw_identity=True)
-                if stage!='fragment':
-                    root=reflected['parameters'][0]['type']['elementType']
-                    fields=[(field['name'],field['binding']['offset'],field['binding']['size']) for field in root['fields']]
-                    require(fields==[('vertices',0,8)]+([('indices',8,8),('draws',16,8),('control',24,8)] if stage=='compute' else []),'wrong foundation root fields')
-            f.scene.generate.stages.link(interfaces['vertex'],interfaces['fragment'])
+        if args.foundation:inspect_shaders(directory,out)
         env=os.environ.copy()
         require(env.get('VK_DRIVER_FILES') and 'VK_LAYER_KHRONOS_validation' in env.get('VK_INSTANCE_LAYERS','') and env.get('VK_LAYER_VALIDATE_SYNC')=='1'
                 and not env.get('VK_LOADER_LAYERS_DISABLE'),'select one ICD with validation/sync enabled')

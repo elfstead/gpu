@@ -22,13 +22,6 @@ static int write_frame(const char *directory,unsigned frame,const char *suffix,c
 }
 static int run(Scene *s,const char *shaders,const char *output) {
     NEED(context(s,shaders));
-    ogpu_next_graphics_limits limits;
-    ogpu_next_query q=query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS,&limits,1,sizeof(limits));
-    GPU(ogpu_next_device_query(s->device,&q)); NEED(limits.max_indirect_count>=frontier_records+7);
-    /* Multi/count/DrawIndex are foundation raster baseline, not enabled by
-     * inspecting SPIR-V at runtime. The runner checks compiler requirements. */
-    printf("FRONTIER_FEATURES {\"multiDrawIndirect\":true,\"drawIndirectCount\":true,\"maxDrawIndirectCount\":%u}\n",limits.max_indirect_count);
-    puts("DRAW_IDENTITY_FEATURES {\"shaderDrawParameters\":true}");
     NEED(storage(s) && resources(s) && buffer_create(s,CONTROL,144,OGPU_NEXT_USAGE_STORAGE,OGPU_NEXT_MEMORY_HOST_VISIBLE));
     uint64_t requested=2*s->pixels;
     for(unsigned i=0;i<BUFFER_COUNT;++i) requested+=s->sizes[i];

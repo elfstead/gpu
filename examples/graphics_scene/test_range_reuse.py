@@ -7,7 +7,7 @@ import range_reuse as r
 
 class RangeReuseTests(unittest.TestCase):
     def test_parser_matrix_and_corruption(self):
-        for backend,scopes in itertools.product(('native','public'),(False,True)):
+        for (backend,foundation),scopes in itertools.product((('native',False),('public',False),('public',True)),(False,True)):
             for replay in (False,True):
                 for strategy in r.f.STRATEGIES:
                     if scopes and strategy!='single':continue
@@ -27,23 +27,25 @@ class RangeReuseTests(unittest.TestCase):
                         start=dict.fromkeys(names,0);start.update(phase=0,vkQueueSubmit2=slots,
                             vkBeginCommandBuffer=slots*(1+int(replay)),vkEndCommandBuffer=slots*(1+int(replay)),
                             vkCreateCommandPool=slots*(1+int(replay)),vkDestroyCommandPool=slots)
+                        if foundation:start.update(vkCreateCommandPool=slots,vkDestroyCommandPool=0,vkResetCommandPool=slots)
                         def draw_counts(n):
                             return dict(vkCmdDrawIndexedIndirect2KHR=0 if strategy=='count' else n*(capacity if strategy=='single' else 1),
                                         vkCmdDrawIndexedIndirectCount2KHR=n if strategy=='count' else 0,
                                         indexed_records=0 if strategy=='count' else n*capacity,
                                         counted_capacity=n*capacity if strategy=='count' else 0)
                         start.update(draw_counts(slots if replay else 0))
-                        binds=capacity if scopes and backend=='public' else 1
+                        binds=capacity if scopes and backend=='public' and not foundation else 1
                         scope_count=capacity if scopes else 1
-                        barriers=(8 if backend=='public' else 6)+scope_count-1
-                        start['vkCmdPipelineBarrier2']=2*slots
+                        barriers=(9 if foundation else 8 if backend=='public' else 6)+scope_count-1
+                        setup_barriers=1 if foundation else 2
+                        start['vkCmdPipelineBarrier2']=setup_barriers*slots
                         if replay:
                             start.update(vkCmdBindPipeline=slots*(1+binds),vkCmdPushDataEXT=slots*2,vkCmdBindIndexBuffer3KHR=slots*binds,
                                          vkCmdBeginRendering=slots*scope_count,vkCmdEndRendering=slots*scope_count,
-                                         vkCmdSetViewport=slots*binds,vkCmdSetScissor=slots*binds,vkCmdPipelineBarrier2=slots*(2+barriers))
+                                         vkCmdSetViewport=slots*binds,vkCmdSetScissor=slots*binds,vkCmdPipelineBarrier2=slots*(setup_barriers+barriers))
                         hot=dict.fromkeys(names,0);hot['vkQueueSubmit2']=frames
                         if not replay:
-                            hot.update(vkCreateCommandPool=slots,vkResetCommandPool=frames if backend=='public' else frames-slots,
+                            hot.update(vkCreateCommandPool=0 if foundation else slots,vkResetCommandPool=frames if backend=='public' else frames-slots,
                                        vkBeginCommandBuffer=frames,vkEndCommandBuffer=frames,vkCmdBeginRendering=frames*scope_count,vkCmdEndRendering=frames*scope_count,
                                        vkCmdBindPipeline=frames*(1+binds),vkCmdPushDataEXT=frames*2,
                                        vkCmdBindIndexBuffer3KHR=frames*binds,vkCmdPipelineBarrier2=frames*barriers,
@@ -51,24 +53,25 @@ class RangeReuseTests(unittest.TestCase):
                                        **draw_counts(frames))
                         end={k:start[k]+hot[k] for k in names};end['phase']=1
                         final=dict(end,phase=2);final['vkDestroyCommandPool']=final['vkCreateCommandPool']
-                        if backend=='public' and replay:final['vkResetCommandPool']+=slots
+                        if backend=='public' and replay and not foundation:final['vkResetCommandPool']+=slots
                         memory=dict(allocations=9*slots,frees=9*slots,peak_count=9*slots,live_count=0,live_bytes=0,peak_bytes=2000000)
                         def logs():
                             stdout='DEVICE '+json.dumps(device)+'\n'+''.join('RANGE_FRAME '+json.dumps(row)+'\n' for row in rows)
                             stdout+='RANGE_SCOPE_POLICY '+json.dumps(dict(per_draw=scopes))+'\n'
-                            stdout+=('PUBLIC_SCENE '+json.dumps(dict(abi=20,index_bytes=4,gpu_generated=True)) if backend=='public'
+                            profile={'foundation':1} if foundation else {'abi':20}
+                            stdout+=('PUBLIC_SCENE '+json.dumps(dict(**profile,index_bytes=4,gpu_generated=True)) if backend=='public'
                                      else 'DRAW_IDENTITY_FEATURES '+json.dumps(dict(shaderDrawParameters=True)))+'\n'
                             stdout+='RANGE_SUMMARY '+json.dumps(summary)+f'\n{backend.title()} scene reuse drained and checked\n'
                             stderr='MEMORY_SUMMARY '+json.dumps(memory)+'\n'+''.join('COMMAND_COUNTS '+json.dumps(c)+'\n' for c in (start,end,final))
                             stderr+=('ALLOCATE '+json.dumps(dict(bytes=100,type=0))+'\n')*(9*slots)
                             return stdout,stderr
-                        def check():r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes)
+                        def check():r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes,foundation=foundation)
                         check()
                         # Argument-resupply control changes only native pushes,
                         # not pipeline/index/viewport bindings or draw commands.
                         for trace in (start,end,final):
                             trace['vkCmdPushDataEXT']+=(slots if replay else 0 if trace is start else frames)*3
-                        r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes,root_pushes=4)
+                        r.check(*logs(),backend,capacity,strategy,slots,replay,frames,device,width,height,scopes,root_pushes=4,foundation=foundation)
                         with self.assertRaises(ValueError):check()
                         for trace in (start,end,final):
                             trace['vkCmdPushDataEXT']-=(slots if replay else 0 if trace is start else frames)*3

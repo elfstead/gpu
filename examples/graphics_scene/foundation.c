@@ -117,6 +117,13 @@ static int context(Scene *s,const char *directory) {
     printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",info.vendor_id,info.device_id,
         (info.native_api_version>>22)&127,(info.native_api_version>>12)&1023,info.native_api_version&4095);
     printf("PUBLIC_SCENE {\"foundation\":%u,\"index_bytes\":%u,\"gpu_generated\":true}\n",OGPU_NEXT_VERSION,s->index_bytes);
+#ifdef SCENE_FOUNDATION_FRONTIER
+    ogpu_next_graphics_limits graphics_limits;
+    q=query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS,&graphics_limits,1,sizeof(graphics_limits));
+    GPU(ogpu_next_device_query(s->device,&q)); NEED(graphics_limits.max_indirect_count>=frontier_records+7);
+    printf("FRONTIER_FEATURES {\"multiDrawIndirect\":true,\"drawIndirectCount\":true,\"maxDrawIndirectCount\":%u}\n",graphics_limits.max_indirect_count);
+    puts("DRAW_IDENTITY_FEATURES {\"shaderDrawParameters\":true}");
+#endif
 #ifdef SCENE_GENERATED
     (void)directory;
     ogpu_next_feature_info features; ogpu_next_execution_limits limits;
@@ -240,7 +247,12 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
     ogpu_next_attachment color={s->views[0],NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,color_load ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
     ogpu_next_attachment depth={s->views[1],NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,depth_load ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={clear,0}}};
     ogpu_next_render_desc rd={HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,s->width,s->height,1,0,1,0,1,&color,&depth,NULL,{s->rs,s->render_scratch.size}};
-    ogpu_next_render_begin(s->encoder,&rd); ogpu_next_bind_executable(s->encoder,s->raster[pipeline]);
+    ogpu_next_render_begin(s->encoder,&rd);
+#ifdef SCENE_RANGE_SCOPES
+    /* Foundation binding/inline state persists across render scopes. */
+    if(first==0) {
+#endif
+    ogpu_next_bind_executable(s->encoder,s->raster[pipeline]);
     ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)s->width,(float)s->height,0,1,0,0,s->width,s->height};
     ogpu_next_set_graphics_state(s->encoder,&vp.header);
     ogpu_next_bind_indices(s->encoder,span(s,INDICES,GUARD,8*s->index_bytes),s->index_bytes==2 ? OGPU_NEXT_INDEX_U16 : OGPU_NEXT_INDEX_U32);
@@ -250,15 +262,24 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #else
     ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,8,&s->root.vertices);
 #endif
+#ifdef SCENE_RANGE_SCOPES
+    }
+#endif
 #ifdef SCENE_FOUNDATION_FRONTIER
-    (void)first; (void)count;
+    (void)count;
     ogpu_next_indirect draw={span(s,DRAWS,GUARD,20*frontier_records),20,frontier_records,{NULL,0,0}};
+#ifdef SCENE_RANGE_SCOPES
+    draw.arguments=span(s,DRAWS,GUARD+20*first,20); draw.maximum_count=1;
+    ogpu_next_draw_indexed_indirect(s->encoder,&draw);
+#else
+    (void)first;
     if(frontier_strategy==2) draw.count=span(s,DRAWS,GUARD+20*frontier_records,4);
     if(frontier_strategy) ogpu_next_draw_indexed_indirect(s->encoder,&draw);
     else for(unsigned i=0;i<frontier_records;++i) {
         draw.arguments=span(s,DRAWS,GUARD+20*i,20); draw.maximum_count=1;
         ogpu_next_draw_indexed_indirect(s->encoder,&draw);
     }
+#endif
 #else
     for(unsigned i=0;i<count;++i) {
         ogpu_next_indirect draw={span(s,DRAWS,GUARD+20*((first+i)%2),20),20,1,{NULL,0,0}};
@@ -308,6 +329,15 @@ static void commands(Scene *s,unsigned mode) {
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_INDEX_INPUT|OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_INDIRECT,
         OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_INDEX_READ|OGPU_NEXT_ACCESS_SHADER_READ|OGPU_NEXT_ACCESS_INDIRECT_READ);
     transition(s,0,1); transition(s,1,1);
+#ifdef SCENE_RANGE_SCOPES
+    (void)mode;
+    for(unsigned i=0;i<frontier_records;++i) {
+        if(i) dependency(s,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,
+            OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_DEPTH_WRITE,
+            OGPU_NEXT_ACCESS_COLOR_READ|OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_DEPTH_READ|OGPU_NEXT_ACCESS_DEPTH_WRITE);
+        pass(s,0,i!=0,i!=0,1,i,1);
+    }
+#else
     if(mode>=6 && mode<=8) {
         pass(s,0,0,0,1,1,1);
         dependency(s,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,
@@ -315,6 +345,7 @@ static void commands(Scene *s,unsigned mode) {
             OGPU_NEXT_ACCESS_COLOR_READ|OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_DEPTH_READ|OGPU_NEXT_ACCESS_DEPTH_WRITE);
         pass(s,0,mode!=7,mode!=8,1,0,1);
     } else pass(s,mode>=2 && mode<=4 ? mode-1 : 0,0,0,mode==5 ? 0 : 1,mode>=1 && mode<=4,2);
+#endif
     for(unsigned i=0;i<2;++i) {
         transition(s,i,0);
         ogpu_next_image_copy copy={{i ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{s->width,s->height,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
