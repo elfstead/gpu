@@ -60,7 +60,7 @@ def main():
         sources=[HERE/n for n in ('reuse_foundation.c','foundation.c','reuse.h','reuse_cpu_trace.h','reuse_foundation_failures.c',
                                  'foundation_reuse_failures.py','reuse.py','run.py')]
         sources += [ROOT/'include/ogpu_next.h',ROOT/'examples/learned_image/allocation_tracker.h']
-        if args.range_report:sources += [HERE/n for n in ('range_reuse.h','range_reuse.py','frontier.py','ranges.py')]
+        if args.range_report:sources += [HERE/n for n in ('range_reuse.h','range_reuse.py','frontier.py','ranges.py','range_oracle.py')]
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sources}
         command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O1','-g','-Wall','-Wextra','-Werror',
             '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(ROOT/'include'),str(HERE/'reuse_foundation_failures.c'),
@@ -68,6 +68,7 @@ def main():
         command += ['-Wl,--wrap=ogpu_next_'+n for n in ('memory_flush','commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy')]
         if old.get('generated'):
             command += ['-DSCENE_GENERATED','-I'+str(HERE)]
+            report['sources']['examples/graphics_scene/handoff.py']=digest(HERE/'handoff.py')
             report['sources'].update({str(p.relative_to(ROOT)):digest(p) for p in HERE.glob('foundation_*.generated.h')})
         report['generated']=bool(old.get('generated'))
         if args.range_report:
@@ -93,6 +94,13 @@ def main():
         for stage in ('compute','vertex','fragment'):
             expected=old['shaders'][stage] if args.range_report else old['shaders']['16-'+stage]['sha256']
             require(digest(shader_dir/(stage+'.spv'))==expected,'shader changed')
+            if old.get('generated'):
+                from handoff import binary
+                header=('scene_range_prepare' if args.range_report else 'scene_reuse_prepare16') if stage=='compute' else (
+                    'scene_identity_pair' if args.range_report else 'scene_pair')
+                symbol=header if stage=='compute' else header+'_'+stage
+                require(binary((HERE/f'foundation_{header}.generated.h').read_text(),symbol)==(shader_dir/(stage+'.spv')).read_bytes(),
+                        'generated failure shader differs from accepted reference')
         env=dict(os.environ,ASAN_OPTIONS='detect_leaks=0',UBSAN_OPTIONS='halt_on_error=1',OGPU_SCENE_TRACE='1',
                  OGPU_TRACE_LOADER=old['environment']['OGPU_TRACE_LOADER'],OGPU_VULKAN_LIBRARY=str(base/'trace.so'))
         require(env.get('VK_DRIVER_FILES') and 'VK_LAYER_KHRONOS_validation' in env.get('VK_INSTANCE_LAYERS','')

@@ -1423,8 +1423,10 @@ inline updates with native-matched byte/count traces. Call-time snapshot and par
 consumers also preserve exact native output/update ranges, while rejecting poisoned
 recordings before submission. Generated range/identity interfaces and the independent
 range SDK now pass on both local drivers, with self-contained baseline, count,
-one/two-slot reset/replay and persistent-scope binding checks. Historical timing/control
-retirement remains separate work.
+one/two-slot reset/replay and persistent-scope binding checks. The old range/argument
+timing suite and ABI20 replay-failure diagnostics are [retired](graphics-scene-diagnostic-retirement.md);
+their recorded evidence remains. Installed correctness selectors and default SDK
+cutover remain separate work.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

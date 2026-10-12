@@ -48,23 +48,22 @@ class ArgumentReuseTests(unittest.TestCase):
                         with self.assertRaises(ValueError):a.check_arguments(*logs(),path,size,capacity,frames)
                         target[key]=original
 
-    def test_build_modes_exclude_diagnostics_from_timing(self):
-        for path in a.PATHS:
-            timed=a.flags(['cc'],64,path,timing=True)
-            self.assertNotIn('-DSCENE_ARGUMENT_DIAGNOSTICS',timed)
-            self.assertNotIn('-DSCENE_RANGE_REUSE',timed)
-            self.assertEqual('-DRANGE_NATIVE' in timed,not path.startswith('public'))
-            self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in timed,a.resupply(path))
-            self.assertEqual('-DSCENE_ARGUMENT_CURRENT' in timed,path=='public-current')
+    def test_build_modes(self):
+        for path in a.PATHS+a.FOUNDATION_PATHS:
+            opts=a.flags(['cc'],64,path)
+            self.assertNotIn('-DSCENE_ARGUMENT_DIAGNOSTICS',opts)
+            self.assertIn('-DSCENE_RANGE_REUSE',opts)
+            self.assertEqual('-DNATIVE_DRAW_IDENTITY' in opts,not a.public_path(path))
+            self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in opts,a.resupply(path))
+            self.assertEqual('-DSCENE_ARGUMENT_CURRENT' in opts,path=='public-current')
             self.assertIn('-DSCENE_ARGUMENT_DIAGNOSTICS',a.flags(['cc'],64,path,diagnostic=True))
 
-    def test_foundation_has_no_legacy_current_or_timing_policy(self):
+    def test_foundation_has_no_legacy_current_policy(self):
         for path in ('foundation-once','foundation-resupply'):
             opts=a.flags(['cc'],64,path,diagnostic=True)
             self.assertNotIn('-DSCENE_ARGUMENT_CURRENT',opts)
             self.assertFalse(any('Vulkan-Headers' in p for p in opts))
             self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in opts,path=='foundation-resupply')
-            with self.assertRaises(ValueError):a.flags(['cc'],64,path,timing=True)
 
 
 if __name__=='__main__':unittest.main()

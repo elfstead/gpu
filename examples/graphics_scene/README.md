@@ -27,6 +27,10 @@ also exports `foundation-indexed-ranges`: independent fresh/count/identity/repla
 scope acceptance without a checkout, compiler or earlier reports.
 Historical defaults remain selectable; retirement of their remaining legacy
 dependencies is separate work.
+The old range/argument timing suite and ABI20 replay-failure runner are
+[retired with Git replay instructions](../../docs/graphics-scene-diagnostic-retirement.md).
+Recorded results and native correctness controls remain; this does not remove the
+default installed scene or claim new foundation timing.
 
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,
@@ -133,10 +137,9 @@ each slot's root stays constant. Full output, memory budgets, root supply counts
 native pushes and order traces are checked. Use `--frames 16` for preflight,
 default 64 or `--frames 992` for sustained complete cycles; `--build-only` does
 not execute a GPU. The references must be clean same-driver reports.
-`argument_timing.py --correctness REPORT [--preflight]` consumes that evidence
-and measures the three paths with host phase boundaries. See the
-[protocol and limitations](../../docs/argument-reuse-plan.md#matched-reuse-controls-and-timing-protocol).
-CPU tests are `test_argument_reuse.py` and `test_argument_timing.py`.
+The historical argument timing runner is retired; use the
+[replay instructions](../../docs/graphics-scene-diagnostic-retirement.md) for its
+recorded protocol. Current CPU gates are `test_argument_reuse.py`.
 
 `argument_patch.py --snapshots SNAPSHOT_REPORT [--build-only]` isolates one
 four-byte scalar update inside the observable 64/256-byte roots. Native full,
@@ -189,16 +192,11 @@ bytes, traced allocation bytes and command-object counts are reported separately
 private driver command-memory size remains unknown. Two unretired receipts are
 not a claim of physical GPU overlap. Keep validation/tracing out of future timing.
 
-`reuse_failures.py --reuse-report PATH/TO/accepted-reuse/report.json` builds a
-diagnostic public consumer with ASan/UBSan and explicit counting of its own C
-allocations. A test-only interposer rejects HOST writes during first/second slot
-setup, before the first frame and while the other slot has an accepted submission.
-Reset and replay both include success controls. Expected failure exits must not
-accept output, and every counted consumer/native allocation and command pool must
-be released. This directly probes cleanup around the retained Clang leak warning;
-it does not disable the warning or claim exhaustive allocation-failure coverage.
-LeakSanitizer stays disabled; CPU counting covers these C sources, not all library
-allocations. Fault injection never invents GPU completion or device loss.
+The ABI20 HOST-write failure runner is retired. Current foundation failure checks
+use `foundation_reuse_failures.py --reuse-report REPORT` or `--range-report REPORT`;
+see [ownership and failure coverage](../../docs/foundation-scene-reuse.md). Their
+sticky recording-error and unknown-submission contracts are intentionally different
+from the old runtime; historical faults are not relabelled as foundation results.
 ## Native indexed frontier
 
 `frontier.py` checks a stronger native Vulkan control before timing or public-API
@@ -282,16 +280,11 @@ checks compiled replay bindings as well as hot recording deltas. The
 [counted→fixed driver regression](../../docs/draw-count-followup.md) remains a
 separate strict test; these scenes do not mix count/fixed operations in one scope.
 
-`range_timing.py --correctness PATH/report.json` requires a clean sustained
-Radeon range-reuse report matching current source/runtime/shader hashes. It runs
-three rotated process rounds, each with a drained 100-frame warmup and 1,000
-samples. GPU readback copies stay in every frame; full CPU byte checking happens
-after each window for all final slots. See the [metric definitions and scope](../../docs/indexed-depth-performance-plan.md#first-timing-increment-grouped-gpu-copy-complete).
-`--preflight` relaxes provenance for development and uses only 16 samples/one
-round; such a report is not timing acceptance. No software timing is claimed.
-Use matching `--scale` and/or `--scopes` on correctness and timing runs. Full
-timing always uses 1,000 samples per process, including 720p; scope and extent
-labels are validated explicitly and never pooled with grouped small controls.
+The old grouped/per-draw-scope timing driver is retired. Its
+[metric definitions and recorded scope](../../docs/indexed-depth-performance-plan.md#first-timing-increment-grouped-gpu-copy-complete)
+remain historical evidence; use the separate-worktree
+[replay instructions](../../docs/graphics-scene-diagnostic-retirement.md), not the
+current foundation correctness runner, to reproduce it.
 
 ### Generated installed scene
 

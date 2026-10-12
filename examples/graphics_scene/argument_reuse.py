@@ -40,19 +40,16 @@ def recolor(data,size):
     return bytes(result)
 
 
-def flags(cc,size,path,diagnostic=False,timing=False):
-    require(not timing or not path.startswith('foundation'),'foundation timing is not implemented')
+def flags(cc,size,path,diagnostic=False):
     result=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',
         '-DSCENE_ARGUMENT_REUSE','-DSCENE_ARGUMENT_ROOT',f'-DSCENE_RASTER_BYTES={size}','-I'+str(ROOT/'include')]
-    if not timing:result+=['-DSCENE_RANGE_REUSE']
-    else:result+=['-DSCENE_ARGUMENT_PROFILE']
+    result+=['-DSCENE_RANGE_REUSE']
     if diagnostic:result+=['-DSCENE_ARGUMENT_DIAGNOSTICS']
     if resupply(path):result+=['-DSCENE_ARGUMENT_RESUPPLY']
     if path=='public-current':result+=['-DSCENE_ARGUMENT_CURRENT']
     if not public_path(path):
         result+=['-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
-        if not timing:result+=['-DNATIVE_DRAW_IDENTITY']
-        if timing:result+=['-DRANGE_NATIVE']
+        result+=['-DNATIVE_DRAW_IDENTITY']
     return result
 
 

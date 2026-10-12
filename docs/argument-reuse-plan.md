@@ -1,5 +1,11 @@
 # Per-operation arguments: explicit reuse audit
 
+Historical audit: the current foundation exposes inline updates independently of
+draw/dispatch and already passes snapshot/resupply/partial-update controls. Its
+[migration status](foundation-indexed-ranges.md) supersedes the next-step language
+below. The old timing tools are [retired with replay instructions](graphics-scene-diagnostic-retirement.md);
+their recorded results and protocol remain unchanged.
+
 Selected 2026-10-04 after the [scope/scale measurements](graphics-scope-scale-results.md).
 The [installed-scene handoff](graphics-scene-handoff-results.md) and the controls
 below are now accepted. Updated 2026-10-06: [recording-local byte-range updates](recording-arguments-prototype.md)

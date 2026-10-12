@@ -117,7 +117,7 @@ Application allocation, bounds, retirement, synchronization and numerical policy
 remain caller-owned; generated layouts are not safe resource-lifetime tracking.
 
 Maintainer checks: `python3 tools/test-foundation-install.py --prefix ...` copies
-the preview to a fresh space-containing prefix, builds all four examples outside
+the preview to a fresh space-containing prefix, builds all five examples outside
 the checkout, checks header dependencies and the actual linked library, rejects a
 missing Vulkan loader, and runs GPU acceptance. `--no-gpu` retains build/link and
 failure-path checks. `--shader-check` additionally reproduces both generated

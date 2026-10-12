@@ -1,7 +1,4 @@
 #define SCENE_REUSE_CONSUMER
-#ifdef SCENE_CPU_TRACE
-#include "reuse_cpu_trace.h"
-#endif
 #ifdef SCENE_RANGE_REUSE
 #define FRONTIER_REUSE
 #include "frontier_public.c"
@@ -52,17 +49,8 @@ static int slot_submit(Slot *slot, Reuse *r, unsigned frame) {
 #endif
     if(r->replay) GPU(ogpu_command_list_submit(slot->list,&s->completion,&s->error));
     else {
-#ifdef SCENE_ARGUMENT_PROFILE
-        double record_start=argument_clock();
-#endif
         NEED(slot_record(slot,r));
-#ifdef SCENE_ARGUMENT_PROFILE
-        argument_record_ms=argument_clock()-record_start;double submit_start=argument_clock();
-#endif
         GPU(ogpu_batch_submit(s->batch,&s->completion,&s->error));
-#ifdef SCENE_ARGUMENT_PROFILE
-        argument_submit_ms=argument_clock()-submit_start;
-#endif
         ogpu_batch_destroy(s->batch);s->batch=NULL;
     }
     slot->frame=frame;reuse_submitted(r);return 1;
@@ -77,10 +65,7 @@ static int slot_observe(Slot *slot, Reuse *r) {
     GPU(ogpu_buffer_read(slot->control,0,control,sizeof(control),&s->error));
     return reuse_check(r,slot->frame,s->cpu,mesh,control);
 }
-#ifndef SCENE_REUSE_MAIN
-#define SCENE_REUSE_MAIN main
-#endif
-int SCENE_REUSE_MAIN(int argc, char **argv) {
+int main(int argc, char **argv) {
     Reuse r={0};Scene context={0};Slot slots[2]={0};int okay=0;
     if(!reuse_config(&r,argc,argv) || !reuse_reference(&r)) goto done;
     if(!r.slots || r.slots>2 || r.frames<r.slots) goto done;
@@ -105,8 +90,5 @@ done:
         ogpu_buffer_destroy(slots[i].control);ogpu_recording_storage_destroy(slots[i].storage);
     }
     scene_destroy_context(&context);reuse_free(&r);
-#ifdef SCENE_CPU_TRACE
-    scene_cpu_summary();
-#endif
     if(okay) puts("Public scene reuse drained and checked");return !okay;
 }

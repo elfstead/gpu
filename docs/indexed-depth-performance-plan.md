@@ -1,5 +1,11 @@
 # Indexed scene reuse and native-performance gate
 
+Historical protocol: [foundation scene/range migration](foundation-indexed-ranges.md)
+now covers these ownership and semantic controls. The old timing tools are
+[retired with Git replay instructions](graphics-scene-diagnostic-retirement.md).
+The current [roadmap](plan.md) supersedes the next-step language below; preserved
+ABI19/20 measurements are not foundation measurements.
+
 Selected 2026-09-30 after the [matched scene](graphics-scene-public-results.md)
 and [contract matrix](indexed-depth-contract-results.md). This is the next
 experiment. Its [slot/replay correctness increment](graphics-scene-reuse-results.md)

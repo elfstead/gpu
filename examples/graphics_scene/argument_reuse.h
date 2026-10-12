@@ -3,14 +3,6 @@
 #define SCENE_ARGUMENT_REUSE_H
 #include <stdint.h>
 #include <string.h>
-#ifdef SCENE_ARGUMENT_PROFILE
-#include <time.h>
-static double argument_record_ms,argument_submit_ms;
-static double argument_clock(void) {
-    struct timespec now;if(clock_gettime(CLOCK_MONOTONIC,&now)) abort();
-    return now.tv_sec*1000.0+now.tv_nsec/1000000.0;
-}
-#endif
 static unsigned argument_reverse;
 #ifdef SCENE_ARGUMENT_DIAGNOSTICS
 static uint64_t argument_calls,argument_bytes;

@@ -182,6 +182,7 @@ incomplete receipt. Host mutation tests reject corrupt profiles, count/slot
 sequences, budgets, image/depth/geometry/count bytes and guards. Native trace and
 fault-injection checks remain separate; this package does not claim to measure them.
 
-Legacy-control retirement remains. Historical performance results, native Metal
+The old timing/failure diagnostics are now [retired with replay instructions](graphics-scene-diagnostic-retirement.md);
+remaining installed correctness selectors still await cutover. Historical performance results, native Metal
 parity, general graphics completeness and default SDK cutover are not established
 by this handoff.
