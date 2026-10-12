@@ -120,9 +120,12 @@ Maintainer checks: `python3 tools/test-foundation-install.py --prefix ...` copie
 the preview to a fresh space-containing prefix, builds all five examples outside
 the checkout, checks header dependencies and the actual linked library, rejects a
 missing Vulkan loader, and runs GPU acceptance. `--no-gpu` retains build/link and
-failure-path checks. `--shader-check` additionally reproduces both generated
-interfaces and tests stale-header rejection plus changed-root/local-size execution
-using only the installed compiler tools. This is a local dependency-boundary test,
+failure-path checks. `--shader-check` additionally reproduces the simple compute/
+graphics and range/identity interfaces. It tests stale-header rejection, changed
+compute roots/local sizes and reordered range roots using only the installed
+compiler tools. Reordered range roots keep the host C unchanged and rerun the
+full fresh/count/replay/scope matrix, with exact pre/post-regeneration output hashes.
+This is a local dependency-boundary test,
 not a sandbox proof against malicious example code or an external adoption claim.
 
 Add `--ggml-source /path/to/pinned/ggml` to the maintainer test to check the packaged

@@ -105,6 +105,46 @@ def main():
                 run(generator,cwd=app,env=shader_env)
                 run([sys.executable,"-B","build.py"],cwd=app,env=env)
                 if not args.no_gpu: run(["./consumer"],cwd=app,env=env)
+        if args.shader_check and label=="indexed-ranges":
+            shader_env=dict(env,SLANGC=os.getenv("SLANGC","slangc"))
+            generator=[str(prefix / "bin/ogpu-shader"),"--api","foundation","--source","frontier.slang",
+                       "--output","foundation_scene_range_prepare.generated.h","--build-dir","shader-build",
+                       "--name","scene_range_prepare","--stage","compute"]
+            pair=[str(prefix / "bin/ogpu-graphics"),"--api","foundation","--vertex-source","identity.vert.slang",
+                  "--fragment-source","identity.frag.slang","--output","foundation_scene_identity_pair.generated.h",
+                  "--build-dir","identity-build","--name","scene_identity_pair"]
+            run([*generator,"--check"],cwd=app,env=shader_env)
+            run([*pair,"--check"],cwd=app,env=shader_env)
+            source=app / "frontier.slang";original=source.read_text()
+            changed=original.replace("float* vertices; uint* indices; uint* draws; uint* control;",
+                                     "uint* control; uint* draws; uint* indices; float* vertices;")
+            require(changed!=original,"range mutation did not reorder root")
+            # Host C remains unchanged: generated named fields, not a guessed
+            # byte layout, supply all four addresses in their new positions.
+            host_hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in app.glob("*.c")}
+            source.write_text(changed)
+            stale=subprocess.run([*generator,"--check"],cwd=app,env=shader_env,capture_output=True,text=True,timeout=120)
+            require(stale.returncode!=0 and "stale generated interface" in stale.stderr,"stale range header accepted")
+            run(generator,cwd=app,env=shader_env)
+            run([sys.executable,"-B","build.py"],cwd=app,env=env)
+            require(host_hashes=={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in app.glob("*.c")},"range regeneration changed host source")
+            if not args.no_gpu:
+                previous={p.resolve() for p in app.glob("run-*/report.json")}
+                run([sys.executable,"-B","run.py"],cwd=app,env=env)
+                receipts=[json.loads(p.read_text()) for p in app.glob("run-*/report.json") if p.resolve() not in previous]
+                require(len(receipts)==1 and receipts[0]['complete'] and len(receipts[0]['runs'])==9
+                        and len(receipts[0]['reuse_runs'])==48,"incomplete regenerated range matrix")
+                before=complete[0];after=receipts[0]
+                require(after['sdk']==before['sdk'],"regenerated range runtime identity changed")
+                require(after['sources']['foundation_scene_range_prepare.generated.h']!=
+                        before['sources']['foundation_scene_range_prepare.generated.h'],"range generated layout did not change")
+                for old,new in zip(before['runs'],after['runs']):
+                    require((old['extent'],old['capacity'],old['strategy'],old['device'])==
+                            (new['extent'],new['capacity'],new['strategy'],new['device']),"regenerated range case changed")
+                    require({k:v for k,v in old['files'].items() if k.endswith(('.images','.geometry'))}==
+                            {k:v for k,v in new['files'].items() if k.endswith(('.images','.geometry'))},"regenerated range output changed")
+            print("Independent range root regeneration preserves host source"+
+                  (" BUILD ONLY" if args.no_gpu else " and checked output PASS"),flush=True)
     if args.ggml_source:
         app = temporary / "independent ggml"
         shutil.copytree(prefix / "share/ogpu/examples/foundation-ggml",app)

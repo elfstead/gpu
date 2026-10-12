@@ -182,6 +182,15 @@ incomplete receipt. Host mutation tests reject corrupt profiles, count/slot
 sequences, budgets, image/depth/geometry/count bytes and guards. Native trace and
 fault-injection checks remain separate; this package does not claim to measure them.
 
+The maintainer install check's optional `--shader-check` also regenerates the
+installed range compute and identity stage-pair interfaces, deliberately reverses
+the four compute-root fields, rejects the stale header, then regenerates/rebuilds
+without changing any host C. The complete fresh/replay/scope matrix must still
+pass, and every fresh image/geometry hash must match the original layout. Runtime
+identity must stay fixed while the generated header hash changes. Both local
+drivers pass this external regeneration check; it does not relax pointer lifetime
+or synchronization responsibilities.
+
 The old timing/failure diagnostics are now [retired with replay instructions](graphics-scene-diagnostic-retirement.md);
 remaining installed correctness selectors still await cutover. Historical performance results, native Metal
 parity, general graphics completeness and default SDK cutover are not established

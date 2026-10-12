@@ -17,6 +17,19 @@ the OGPU checkout, or earlier local evidence. Checked-in generated headers conta
 shader binaries and typed argument/requirement metadata; `.slang` sources are
 provided for inspection and optional regeneration with the SDK compiler tools.
 
+For example, regenerate the compute interface with:
+
+```sh
+ogpu-shader --api foundation --source frontier.slang \
+  --output foundation_scene_range_prepare.generated.h --build-dir shader-build \
+  --name scene_range_prepare --stage compute
+```
+
+Add `--check` to reject a stale header without replacing it. Reordering the four
+root fields does not require host C changes: the caller uses generated named
+fields. Rebuild and rerun acceptance after any shader/interface edit; typed layout
+does not establish address bounds, synchronization or resource lifetime.
+
 The runner first checks a 30-frame analytic color/depth baseline, then all nine
 1/64/512-record single/multi/count cases (72 frames). Replay/reset compares every
 output byte with these accepted results in one/two caller-owned slots. Sixteen
