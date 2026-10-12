@@ -23,7 +23,9 @@ def main():
     g.require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
     build=args.build_dir or ROOT/'target/compiler-scene';compiler=os.getenv('SLANGC','slangc')
     artifacts={}
-    for name,source in (('scene_prepare','prepare.slang'),('scene_prepare16','prepare16.slang')):
+    compute=[('scene_prepare','prepare.slang'),('scene_prepare16','prepare16.slang')]
+    if args.api=='foundation':compute += [('scene_reuse_prepare','prepare_reuse.slang'),('scene_reuse_prepare16','prepare_reuse16.slang')]
+    for name,source in compute:
         path=HERE/source
         reflection,assembly,binary=g.compile_source(path,build/name,compiler)
         artifacts[name]=g.header(reflection,assembly,binary,path.read_bytes(),name,api=args.api)
@@ -39,6 +41,10 @@ def main():
     subprocess.run([*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
         '-I'+str(ROOT/'include'),'-I'+str(HERE),str(HERE/('foundation_generated.c' if args.api=='foundation' else 'generated.c')),
         '-L'+str(library),'-Wl,-rpath,'+str(library),'-logpu','-o',str(build/('scene-foundation' if args.api=='foundation' else 'scene'))],check=True)
+    if args.api=='foundation':
+        subprocess.run([*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
+            '-I'+str(ROOT/'include'),'-I'+str(HERE),str(HERE/'reuse_foundation_generated.c'),
+            '-L'+str(library),'-Wl,-rpath,'+str(library),'-logpu','-ldl','-o',str(build/'reuse-foundation')],check=True)
     print(f'Generated {args.api} indexed/depth scene build PASS; output acceptance is separate')
 
 

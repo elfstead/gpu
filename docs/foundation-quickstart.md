@@ -27,11 +27,12 @@ Copy any of these entire directories to an application directory outside the rep
   caller, frozen model and independent scalar reference.
 - `share/ogpu/examples/foundation-indexed-scene`: generated compute/graphics
   interfaces, GPU-generated UINT32/UINT16 indexed geometry and depth/split-render
-  modes, with analytic, guard, A/B/A and cross-width checks.
+  modes, with analytic, guard, A/B/A, cross-width and one/two-slot reset/replay checks.
 
 Run `python3 build.py` in the copied directory. Run `./consumer` for compute or
 graphics; run `python3 run.py` for learned-image or indexed-scene acceptance.
-Indexed-scene checks 30 frames per index width at 257x193 (`--scale` adds 1280x720);
+Indexed-scene checks 30 fresh frames per index width plus 32 reset/replay cases
+(256 frames) at 257x193 (`--scale` adds 1280x720);
 see its packaged README. Learned-image
 generates its own deterministic A/B inputs and FP64 references, then checks 12
 normal/diagnostic resident/end-to-end A/B/A frames. It preserves logs and an explicit
@@ -143,3 +144,7 @@ consumers pass on both local drivers, including 30 scene frames per index width,
 exact cross-width images, public-only dependency checks and missing-loader
 rejection. The scene's in-tree native comparison also passes the unchanged
 analytic/geometry/guard gates; see [its checkpoint](foundation-indexed-scene.md).
+Generated control-pointer reset/replay is now included in the copied example;
+both local drivers pass all 32 cases, with public-only dependency and loaded-runtime
+checks for both executables. In-tree matching native traces and sanitized failure
+controls remain separate from the SDK package; see [replay coverage](foundation-scene-reuse.md).

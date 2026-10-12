@@ -105,15 +105,17 @@ def main():
     parser.add_argument('--software',action='store_true',help='64 frames instead of 1000')
     parser.add_argument('--scale',action='store_true',help='also 8-frame 720p A/B/empty/A per-slot checks')
     parser.add_argument('--foundation',action='store_true',help='select explicit foundation ownership for the public caller')
+    parser.add_argument('--generated',action='store_true',help='select generated foundation control-pointer interfaces')
     parser.add_argument('--reference32',type=Path)
     parser.add_argument('--reference16',type=Path)
     args=parser.parse_args()
+    if args.generated:args.foundation=True
     base=ROOT/'target/graphics-scene';base.mkdir(parents=True,exist_ok=True)
     dest=Path(tempfile.mkdtemp(prefix='reuse-',dir=base));print(f'Reuse evidence: {dest}',flush=True)
     report=dict(schema=1,complete=False,scope='matched indexed scene reuse correctness; no timing or full M4 acceptance',
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),runs=[],references={},
-                preflight=args.preflight,software=args.software,scale=args.scale,api='foundation' if args.foundation else 'installed')
+                preflight=args.preflight,software=args.software,scale=args.scale,api='foundation' if args.foundation else 'installed',generated=args.generated)
     def save(): (dest/'report.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
     save()
     try:
@@ -127,6 +129,9 @@ def main():
         sources += [ROOT/'include'/('ogpu_next.h' if args.foundation else 'ogpu.h'),ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources)}
         report['shaders']={}
+        if args.generated:
+            subprocess.run([sys.executable,'-B',str(HERE/'generated.py'),'--api','foundation','--check','--build-dir',str(dest/'generated')],check=True)
+            from handoff import binary as embedded_binary
         for bits in (16,32):
             artifacts=dest/f'shaders{bits}';artifacts.mkdir()
             interfaces={}
@@ -141,14 +146,18 @@ def main():
                     require(fields==expected and scene.generate.uniform_size(root)==(32 if stage=='compute' else 8,8),'root layout mismatch')
                 if stage=='compute': require(reflected['entryPoints'][0]['threadGroupSize']==[8,1,1],'wrong workgroup')
                 (artifacts/(stage+'.spv')).write_bytes(binary)
+                if args.generated:
+                    name=('scene_reuse_prepare16' if bits==16 else 'scene_reuse_prepare') if stage=='compute' else 'scene_pair_'+stage
+                    header=name if stage=='compute' else 'scene_pair'
+                    require(embedded_binary((HERE/f'foundation_{header}.generated.h').read_text(),name)==binary,'generated/native shader mismatch')
                 report['shaders'][f'{bits}-{stage}']=dict(sha256=digest(artifacts/(stage+'.spv')),reflection=reflected)
             if args.foundation: scene.generate.stages.link(interfaces['vertex'],interfaces['fragment'])
         subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
-        common=[*compiler,'-std=c11','-O2','-Wall','-Wextra','-Werror','-I'+str(ROOT/'include')]
+        common=[*compiler,'-std=c11','-O2','-Wall','-Wextra','-Werror','-I'+str(ROOT/'include'),'-I'+str(HERE)]
         native_includes=['-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
         report['builds']={}
         for backend in ('native','public'):
-            source=HERE/('reuse_foundation.c' if args.foundation and backend=='public' else f'reuse_{backend}.c')
+            source=HERE/(('reuse_foundation_generated.c' if args.generated else 'reuse_foundation.c') if args.foundation and backend=='public' else f'reuse_{backend}.c')
             command=common+(native_includes if backend=='native' else [])+[str(source)]
             if backend=='public': command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
             command+=['-ldl','-o',str(dest/backend)];subprocess.run(command,check=True)
@@ -160,7 +169,7 @@ def main():
                 require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
                             if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports installed API')
             report['builds'][backend]=dict(command=command,sha256=digest(dest/backend))
-            baseline=HERE/('foundation.c' if args.foundation and backend=='public' else f'{backend}.c')
+            baseline=HERE/(('foundation_generated.c' if args.generated else 'foundation.c') if args.foundation and backend=='public' else f'{backend}.c')
             baseline_command=[str(baseline) if word==str(source) else
                               str(dest/f'baseline-{backend}') if word==str(dest/backend) else word for word in command]
             subprocess.run(baseline_command,check=True)

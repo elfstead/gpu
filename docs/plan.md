@@ -246,8 +246,9 @@ completion lifetimes. Its generated typed-interface caller and independent SDK
 handoff now accompany the raw matched control; native/analytic gates remain
 unchanged. [One/two-slot reset/replay](foundation-scene-reuse.md) now also executes
 through explicit slot-owned memory, arenas and timelines, with native command
-traces and failure cleanup checks. Its generated handoff and the separate range/
-frontier workflows still need migration; historical
+traces and failure cleanup checks. Generated control-pointer interfaces now match
+native shader bytes, and the independent SDK handoff runs the full bounded
+reset/replay matrix. Separate range/frontier workflows still need migration; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

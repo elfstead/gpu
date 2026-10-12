@@ -57,13 +57,14 @@ def main():
         app = temporary / ("independent "+label)
         shutil.copytree(prefix / ("share/ogpu/examples/foundation-"+label),app)
         run([sys.executable,"-B","build.py"],cwd=app,env=env)
-        dependencies = [Path(p).resolve() for p in shlex.split((app / "consumer.d").read_text().replace("\\\n",""))[1:]]
-        require(prefix / "include/ogpu_next.h" in dependencies,"preview header missing")
-        require(all(p.is_relative_to(prefix) or p.is_relative_to(app) for p in dependencies),"source/header escaped installed graph")
-        require(not any("vulkan" in p.name.lower() or p.name == "ogpu.h" for p in dependencies),"consumer imported legacy/native headers")
-        linked = run(["ldd","./consumer"],cwd=app,env=env)
-        selected = next((line.split("=>",1)[1].rsplit(" (",1)[0].strip() for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")),None)
-        require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so","wrong runtime resolved")
+        for binary in (("consumer","reuse") if label=="indexed-scene" else ("consumer",)):
+            dependencies = [Path(p).resolve() for p in shlex.split((app / (binary+".d")).read_text().replace("\\\n",""))[1:]]
+            require(prefix / "include/ogpu_next.h" in dependencies,"preview header missing")
+            require(all(p.is_relative_to(prefix) or p.is_relative_to(app) for p in dependencies),"source/header escaped installed graph")
+            require(not any("vulkan" in p.name.lower() or p.name == "ogpu.h" for p in dependencies),"consumer imported legacy/native headers")
+            linked = run(["ldd","./"+binary],cwd=app,env=env)
+            selected = next((line.split("=>",1)[1].rsplit(" (",1)[0].strip() for line in linked.splitlines() if line.strip().startswith("libogpu.so =>")),None)
+            require(selected is not None and Path(selected).resolve() == prefix / "lib/libogpu.so","wrong runtime resolved")
         missing = dict(env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
         scripted = label in ("learned-image","indexed-scene")
         command = [sys.executable,"-B","run.py"] if scripted else ["./consumer"]
@@ -78,6 +79,7 @@ def main():
             if scripted:
                 complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
                 require(len(complete) == 1 and len(complete[0]["runs"]) == 2,"missing completed handoff receipt")
+                if label=="indexed-scene":require(len(complete[0]["reuse_runs"])==32,"missing replay matrix")
                 require(complete[0]["sdk"]["revision"] == manifest["revision"] and
                         complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"handoff identity mismatch")
         if args.shader_check and label in ("compute","graphics"):

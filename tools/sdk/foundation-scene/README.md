@@ -18,6 +18,14 @@ Default extent is 257x193; `--scale` additionally runs 1280x720. There is no CPU
 readback between geometry generation and drawing. Memory placement, views,
 transitions, recording storage and timeline completion are application-owned.
 
+The build produces `consumer` (fresh recording) and `reuse` (reset/replay).
+After accepting each width's fresh outputs, the runner checks eight A/B/empty/A
+frames for every combination of four render modes, one/two slots and reset/replay.
+That adds 32 cases / 256 frames by default, compared byte-for-byte with the freshly
+accepted images, geometry and guards. Replay records once per slot; reset records
+after completion. Mapped control-pointer arguments change between submissions.
+Each slot owns its memory, arena and timeline; no CPU readback precedes drawing.
+
 Fresh `run-*` directories retain outputs, logs, source/binary/runtime hashes and
 complete/incomplete receipts, including failures. Validation layers must be
 provided and enabled by the caller; these scripts do not install them. Match the

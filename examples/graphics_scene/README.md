@@ -5,12 +5,15 @@ The [foundation migration](../../docs/foundation-indexed-scene.md) adds
 explicit memory, views, arena/timeline ownership and dependencies. It also checks
 recording/submission failure and unknown-completion teardown. `--public` alone
 still selects the historical installed caller described below; the separate
-reuse/frontier controls have not yet migrated. `--generated` selects the generated
+range/frontier controls have not yet migrated. `--generated` selects the generated
 foundation caller with identical native shader bytes; the opt-in SDK exports its
 independent handoff as `foundation-indexed-scene`.
 
 `reuse.py --foundation` now selects the explicit one/two-slot reset/replay caller;
 see its [migration and failure checks](../../docs/foundation-scene-reuse.md).
+`reuse.py --generated` adds compiler-generated control-pointer roots and exact
+native shader-byte checks. The independent preview package includes both fresh
+recording and replay/reset acceptance without requiring Rust or Slang.
 The historical default and the separate range/frontier controls are unchanged.
 
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart

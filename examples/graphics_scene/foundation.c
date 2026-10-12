@@ -5,12 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(SCENE_GENERATED) && defined(SCENE_REUSE_CONSUMER)
-#error Reuse needs a control-pointer shader interface, not the fresh-frame generated roots
-#endif
 #ifdef SCENE_GENERATED
+#ifdef SCENE_REUSE_CONSUMER
+#include <foundation_scene_reuse_prepare.generated.h>
+#include <foundation_scene_reuse_prepare16.generated.h>
+#else
 #include <foundation_scene_prepare.generated.h>
 #include <foundation_scene_prepare16.generated.h>
+#endif
 #include <foundation_scene_pair.generated.h>
 #endif
 #define HEADER(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
@@ -101,7 +103,11 @@ static int context(Scene *s,const char *directory) {
     ogpu_next_queue_request request={s->domain,1,0.5f};
     uint64_t required=OGPU_NEXT_FEATURE_RASTER;
 #ifdef SCENE_GENERATED
+#ifdef SCENE_REUSE_CONSUMER
+    required=scene_pair_required_features | (s->index_bytes==2 ? scene_reuse_prepare16_required_features : scene_reuse_prepare_required_features);
+#else
     required=scene_pair_required_features | (s->index_bytes==2 ? scene_prepare16_required_features : scene_prepare_required_features);
+#endif
 #endif
     ogpu_next_device_desc dd={HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,required};
     GPU(ogpu_next_device_create(adapter,&dd,&s->device)); s->queue=ogpu_next_device_queue(s->device,s->domain,0); NEED(s->queue);
@@ -113,12 +119,21 @@ static int context(Scene *s,const char *directory) {
     ogpu_next_feature_info features; ogpu_next_execution_limits limits;
     q=query(OGPU_NEXT_QUERY_FEATURES,&features,1,sizeof(features)); GPU(ogpu_next_device_query(s->device,&q));
     q=query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); GPU(ogpu_next_device_query(s->device,&q));
-    NEED(scene_pair_compatible(&features,&limits) && (s->index_bytes==2 ? scene_prepare16_compatible(&features,&limits) : scene_prepare_compatible(&features,&limits)));
+    NEED(scene_pair_compatible(&features,&limits));
+#ifdef SCENE_REUSE_CONSUMER
+    NEED(s->index_bytes==2 ? scene_reuse_prepare16_compatible(&features,&limits) : scene_reuse_prepare_compatible(&features,&limits));
+    ogpu_next_shader shaders[3]; shaders[0]=s->index_bytes==2 ? scene_reuse_prepare16_shader() : scene_reuse_prepare_shader(); scene_pair_shaders(&shaders[1]);
+    const ogpu_next_shader_requirements *compute_req=s->index_bytes==2 ? &scene_reuse_prepare16_requirements : &scene_reuse_prepare_requirements;
+    uint32_t compute_bytes=s->index_bytes==2 ? scene_reuse_prepare16_push_size : scene_reuse_prepare_push_size;
+#else
+    NEED(s->index_bytes==2 ? scene_prepare16_compatible(&features,&limits) : scene_prepare_compatible(&features,&limits));
     ogpu_next_shader shaders[3]; shaders[0]=s->index_bytes==2 ? scene_prepare16_shader() : scene_prepare_shader(); scene_pair_shaders(&shaders[1]);
     const ogpu_next_shader_requirements *compute_req=s->index_bytes==2 ? &scene_prepare16_requirements : &scene_prepare_requirements;
+    uint32_t compute_bytes=s->index_bytes==2 ? scene_prepare16_push_size : scene_prepare_push_size;
+#endif
     ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,shaders,NULL,0,&compute_req->header,NULL,0,0};
     printf("GENERATED_SCENE {\"compute_push_bytes\":%u,\"vertex_push_bytes\":%u}\n",
-        s->index_bytes==2 ? scene_prepare16_push_size : scene_prepare_push_size,scene_pair_push_size);
+        compute_bytes,scene_pair_push_size);
 #else
     NEED(shader_read(s,0,directory,"compute.spv") && shader_read(s,1,directory,"vertex.spv") && shader_read(s,2,directory,"fragment.spv"));
     /* Metadata is checked against compiler reflection by run.py. Same native
@@ -249,7 +264,19 @@ static void commands(Scene *s,unsigned mode) {
     dependency(s,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ|OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_SHADER_WRITE);
     ogpu_next_bind_executable(s->encoder,s->prepare);
 #ifdef SCENE_REUSE_CONSUMER
+#ifdef SCENE_GENERATED
+    if(s->index_bytes==2) {
+        const Scene_reuse_prepare16Arguments args={.arg_vertices=s->reuse_root[0],.arg_indices=s->reuse_root[1],
+            .arg_draws=s->reuse_root[2],.arg_control=s->reuse_root[3]};
+        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    } else {
+        const Scene_reuse_prepareArguments args={.arg_vertices=s->reuse_root[0],.arg_indices=s->reuse_root[1],
+            .arg_draws=s->reuse_root[2],.arg_control=s->reuse_root[3]};
+        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    }
+#else
     ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(s->reuse_root),s->reuse_root);
+#endif
 #elif defined(SCENE_GENERATED)
     if(s->index_bytes==2) {
         const Scene_prepare16Arguments args={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,

@@ -70,7 +70,8 @@ including typed shader artifacts and the existing analytic/cross-width oracle.
 Copy it outside the checkout, run `python3 build.py`, then `python3 run.py`.
 Only C11, Python and pkg-config plus the installed preview are needed; no Rust,
 Slang, Vulkan headers or native-reference source is required by that consumer.
-The default handoff checks both widths at 257x193; `--scale` adds 1280x720. Fresh
+The default handoff checks both widths at 257x193, followed by 32 one/two-slot
+reset/replay cases; `--scale` adds 1280x720. Fresh
 complete/incomplete receipts record source/executable/runtime identity. Relocation
 checks exercise public-only header dependencies, actual loaded-library selection
 and incomplete missing-loader reports. The shared acceptance code takes an explicit
@@ -78,8 +79,9 @@ foundation profile; it cannot accept an installed-ABI log as foundation evidence
 
 This ports the fresh-recording scene and its generated handoff. The subsequent
 [reset/replay caller](foundation-scene-reuse.md) also migrates one/two-slot reuse;
-its generated handoff, separate range/frontier and timing controls still retain
-migration work. Retire redundant historical controls at their last dependency,
+its generated control-pointer interfaces and independent handoff are included.
+Separate range/frontier and timing controls still retain migration work.
+Retire redundant historical controls at their last dependency,
 then finish default SDK cutover. No native Metal or second physical GPU result is claimed.
 
 ## Local checkpoint — 2026-10-12

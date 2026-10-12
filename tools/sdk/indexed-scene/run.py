@@ -52,6 +52,20 @@ def check_files(directory,width,height,bits,frames):
     return checks
 
 
+def check_reuse(stdout,stderr,device,bits,mode,slots,replay,width,height):
+    require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'reuse validation failure')
+    require('Public scene reuse drained and checked' in stdout,'reuse did not drain')
+    require(rows(stdout,'DEVICE ')==[device],'reuse device mismatch')
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=1,index_bytes=bits//8,gpu_generated=True)],'wrong reuse profile')
+    require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated reuse profile')
+    frames=[dict(frame=f,slot=f%slots,generation=f//slots,phase=int(f//slots%4==1),empty=int(f//slots%4==2)) for f in range(8)]
+    require(rows(stdout,'REUSE_FRAME ')==frames,'reuse frame/slot/generation mismatch')
+    summary=dict(frames=8,slots=slots,mode=mode,index_bytes=bits//8,replay=int(replay),
+        encodes=slots if replay else 8,peak_unretired=slots,requested_bytes=slots*(width*height*16+1816))
+    require(rows(stdout,'REUSE_SUMMARY ')==[summary],'reuse ownership/recording summary mismatch')
+    return summary
+
+
 def main(foundation=False):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scale',action='store_true',help='also 1280x720; default 257x193')
@@ -71,6 +85,8 @@ def main(foundation=False):
             require(version==1,'unsupported foundation revision')
             libdir=Path(subprocess.check_output([pkg,'--variable=libdir',package],text=True).strip())
             report['sdk']=dict(revision=report['revision'],runtime_sha256=digest(libdir/'libogpu.so'))
+            report['reuse_runs']=[]
+            report['reuse_executable_sha256']=digest(HERE/'reuse')
         report['sources']={p.name:digest(p) for p in sorted(HERE.iterdir()) if p.is_file() and p.suffix in ('.c','.h','.py','.slang')}
         executable=HERE/('consumer' if foundation else 'scene')
         report['executable_sha256']=digest(executable)
@@ -94,6 +110,22 @@ def main(foundation=False):
                 report['runs'].append(dict(directory=dest.name,extent=[width,height],index_bytes=bits//8,device=device,command=command,
                     checks=checks,files={p.name:digest(p) for p in sorted(dest.iterdir()) if p.is_file()}))
                 save();print(f'{width}x{height} UINT{bits}: 30 analytic/geometry/guard/repeat frames PASS',flush=True)
+                if foundation:
+                    # Replay compares every byte to the freshly recorded output
+                    # already accepted above, including raster edges and guards.
+                    for mode in (0,6,7,8):
+                        for slots in (1,2):
+                            for replay in (False,True):
+                                strategy='replay' if replay else 'reset'
+                                case=out/f'reuse-{width}x{height}-{bits}-{mode}-{slots}-{strategy}';case.mkdir()
+                                command=[str(HERE/'reuse'),str(width),str(height),'-',str(dest),'8',str(mode),str(slots),strategy,str(bits)]
+                                executed=subprocess.run(command,capture_output=True,text=True,timeout=300)
+                                (case/'stdout').write_text(executed.stdout);(case/'stderr').write_text(executed.stderr)
+                                require(executed.returncode==0,'reuse execution failed: '+str(case))
+                                summary=check_reuse(executed.stdout,executed.stderr,device,bits,mode,slots,replay,width,height)
+                                report['reuse_runs'].append(dict(directory=case.name,command=command,summary=summary,
+                                    files={p.name:digest(p) for p in case.iterdir()}));save()
+                    print(f'{width}x{height} UINT{bits}: all one/two-slot reset/replay modes PASS',flush=True)
         report['complete']=True;save()
         print('Generated foundation indexed/depth scene PASS' if foundation else 'Installed generated indexed/depth scene PASS',flush=True)
     except Exception as error:report['error']=str(error);save();raise

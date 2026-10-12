@@ -32,6 +32,11 @@ per consumer/configuration at 257x193; `--software` selects 64. `--scale` adds
 eight-frame per-slot checks at 1280x720; `--preflight` is development-only eight-frame
 coverage. `--check` builds and runs host checks without a GPU. There are no timing runs.
 
+`--generated` selects foundation ownership plus compiler-generated typed
+control-pointer roots and shader requirements. It checks the generated artifacts
+for staleness and exact shader-byte equality with native before running the same
+matrix. `foundation_reuse_failures.py` preserves this choice from its input receipt.
+
 Native command tracing proves replay does not record or reset pools in the frame
 loop. Foundation creates all pools during setup; reset allocates no per-frame pools
 and resets once per collected frame. Each slot has nine live GPU allocations, all
@@ -59,6 +64,27 @@ widths and tested extents. Strict GCC/Clang builds and host negative tests pass.
 Reports retain source hashes and development status; no throughput comparison,
 native Metal or second physical GPU result is claimed.
 
-Next migrate the replay shader interfaces and independent handoff. Counted/range
-frontiers and argument/timing controls remain separate ABI20 workflows; this does
-not complete default SDK cutover or broader graphics coverage.
+The generated variant additionally passes 4,096 matched frames on each driver,
+including native command traces, plus all 18 sanitized failure cases. This is
+bounded interface/caller regression coverage, not a repeat of the 1,000-frame run.
+
+## Independent handoff
+
+The opt-in `foundation-indexed-scene` SDK example now builds both a fresh-recording
+`consumer` and a `reuse` executable. Both use generated artifacts and only the
+public foundation header/library. C11, Python and pkg-config suffice; neither
+Slang nor Rust is needed in the copied consumer directory.
+
+`python3 run.py` first independently accepts 30 fresh frames per index width,
+then compares replay/reset outputs against those accepted files. Both widths,
+four modes, one/two slots and both strategies give 32 cases / 256 reuse frames
+at 257x193. `--scale` repeats the complete set at 1280x720. Complete/incomplete
+receipts retain source, executable, runtime and output/log hashes. Host negative
+tests reject changed profiles, frame order, slot/generation, recording budgets
+and missing drain gates. Relocation checks verify both executables' public-only
+dependencies and actual loaded runtime; all four copied preview examples pass
+on both local drivers. The package has no native trace or timing dependency.
+
+Next migrate counted/range frontiers and argument controls, retiring historical
+callers at their last dependency. These remain separate ABI20 workflows; this
+does not complete default SDK cutover or broader graphics coverage.

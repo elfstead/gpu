@@ -168,7 +168,7 @@ def install(prefix, foundation=False):
         copy(ROOT / "examples/learned_image" / name, f"{reuse}/{name}")
     if foundation:
         # Explicit preview opt-in; never silently replace the ABI-20 consumer.
-        for name in ("foundation-ggml.md","foundation-libplacebo.md","foundation-indexed-scene.md"):
+        for name in ("foundation-ggml.md","foundation-libplacebo.md","foundation-indexed-scene.md","foundation-scene-reuse.md"):
             copy(ROOT / "docs" / name,f"share/ogpu/{name}")
         for label, files in {
             "foundation-compute": [("examples/compiler/foundation.c","main.c"),
@@ -179,7 +179,9 @@ def install(prefix, foundation=False):
                 ("examples/compiler/stage_fragment.slang","stage_fragment.slang"),
                 ("examples/compiler/foundation-pattern.generated.h","foundation-pattern.generated.h")],
             "foundation-indexed-scene": [("examples/graphics_scene/foundation_generated.c","main.c"),
+                ("examples/graphics_scene/reuse_foundation_generated.c","reuse_main.c"),
                 *[("examples/graphics_scene/"+n,n) for n in ("foundation.c","oracle.py",
+                    "reuse_foundation.c","reuse.h","foundation_scene_reuse_prepare.generated.h","foundation_scene_reuse_prepare16.generated.h",
                     "foundation_scene_prepare.generated.h","foundation_scene_prepare16.generated.h","foundation_scene_pair.generated.h")],
                 ("tools/sdk/indexed-scene/run.py","scene_checks.py"),
                 ("tools/sdk/foundation-scene/run.py","run.py"),
@@ -192,7 +194,8 @@ def install(prefix, foundation=False):
         }.items():
             for source,destination in files:
                 copy(ROOT / source,f"share/ogpu/examples/{label}/{destination}")
-            copy(ROOT / "tools/sdk/foundation/build.py",f"share/ogpu/examples/{label}/build.py")
+            builder="tools/sdk/foundation-scene/build.py" if label=="foundation-indexed-scene" else "tools/sdk/foundation/build.py"
+            copy(ROOT / builder,f"share/ogpu/examples/{label}/build.py")
         ggml = "share/ogpu/examples/foundation-ggml"
         for name in ("CMakeLists.txt","backend.cpp","backend.h","runtime-foundation.h","runtime-installed.h",
                      "mnist.cpp","lifecycle.cpp","matrix-check.cpp","foundation-check.cpp","convert-weights.cpp",

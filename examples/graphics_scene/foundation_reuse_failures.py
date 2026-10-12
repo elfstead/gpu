@@ -62,6 +62,10 @@ def main():
             '-fsanitize=address,undefined','-fno-omit-frame-pointer','-I'+str(ROOT/'include'),str(HERE/'reuse_foundation_failures.c'),
             '-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-ldl','-o',str(out/'consumer')]
         command += ['-Wl,--wrap=ogpu_next_'+n for n in ('memory_flush','commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy')]
+        if old.get('generated'):
+            command += ['-DSCENE_GENERATED','-I'+str(HERE)]
+            report['sources'].update({str(p.relative_to(ROOT)):digest(p) for p in HERE.glob('foundation_*.generated.h')})
+        report['generated']=bool(old.get('generated'))
         subprocess.run(command,check=True);report['build']=dict(command=command,sha256=digest(out/'consumer'))
         require(digest(ROOT/'target/release/libogpu.so')==old['runtime_sha256'],'runtime changed')
         require(digest(base/'trace.so')==old['builds']['trace']['sha256'],'trace changed')
