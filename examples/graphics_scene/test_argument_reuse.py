@@ -29,11 +29,11 @@ class ArgumentReuseTests(unittest.TestCase):
             with self.assertRaises(ValueError):a.recolor(bad,8)
 
     def test_supplied_and_native_bytes_are_distinct(self):
-        for path in a.PATHS:
+        for path in set(a.PATHS+a.FOUNDATION_PATHS):
             for size in a.snapshot.SIZES:
                 for capacity in (1,64,512):
                     frames=16;calls=frames*(capacity if a.resupply(path) else 1)
-                    pushes=capacity if path=='native-resupply' else 1
+                    pushes=capacity if path in ('native-resupply','foundation-resupply') else 1
                     policy=dict(bytes=size,reverse_alternating=True,resupply=a.resupply(path))
                     supplied=dict(calls=calls,bytes=calls*size)
                     traces=[dict(phase=0,push_bytes=0,forward=0,backward=0,other=0)]+[
@@ -57,6 +57,14 @@ class ArgumentReuseTests(unittest.TestCase):
             self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in timed,a.resupply(path))
             self.assertEqual('-DSCENE_ARGUMENT_CURRENT' in timed,path=='public-current')
             self.assertIn('-DSCENE_ARGUMENT_DIAGNOSTICS',a.flags(['cc'],64,path,diagnostic=True))
+
+    def test_foundation_has_no_legacy_current_or_timing_policy(self):
+        for path in ('foundation-once','foundation-resupply'):
+            opts=a.flags(['cc'],64,path,diagnostic=True)
+            self.assertNotIn('-DSCENE_ARGUMENT_CURRENT',opts)
+            self.assertFalse(any('Vulkan-Headers' in p for p in opts))
+            self.assertEqual('-DSCENE_ARGUMENT_RESUPPLY' in opts,path=='foundation-resupply')
+            with self.assertRaises(ValueError):a.flags(['cc'],64,path,timing=True)
 
 
 if __name__=='__main__':unittest.main()

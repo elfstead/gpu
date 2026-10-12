@@ -5,7 +5,7 @@ The [foundation migration](../../docs/foundation-indexed-scene.md) adds
 explicit memory, views, arena/timeline ownership and dependencies. It also checks
 recording/submission failure and unknown-completion teardown. `--public` alone
 still selects the historical installed caller described below; the separate
-argument controls have not yet migrated. `--generated` selects the generated
+snapshot/partial-word controls have not yet migrated. `--generated` selects the generated
 foundation caller with identical native shader bytes; the opt-in SDK exports its
 independent handoff as `foundation-indexed-scene`.
 
@@ -18,7 +18,9 @@ recording and replay/reset acceptance without requiring Rust or Slang.
 see [ownership and acceptance](../../docs/foundation-indexed-ranges.md).
 `range_reuse.py --foundation` also selects explicit one/two-slot range replay;
 `--scopes` preserves bindings across per-draw CLEAR/LOAD scopes.
-The historical defaults and separate argument controls are unchanged.
+`argument_reuse.py --foundation` compares explicit bind-once/resupply with native
+push counts/bytes and changing draw order, without runtime argument deduplication.
+The historical defaults and separate snapshot/partial-word controls are unchanged.
 
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,

@@ -30,6 +30,9 @@ static int slot_create(Slot *slot,Scene *shared,Reuse *r) {
     NEED(storage(s) && resources(s) && buffer_create(s,CONTROL,REUSE_CONTROL_BYTES,OGPU_NEXT_USAGE_STORAGE,OGPU_NEXT_MEMORY_HOST_VISIBLE));
     s->reuse_root[0]=s->root.vertices; s->reuse_root[1]=s->root.indices; s->reuse_root[2]=s->root.draws;
     GPU(ogpu_next_memory_address(span(s,CONTROL,GUARD,REUSE_CONTROL_BYTES-2*GUARD),&s->reuse_root[3]));
+#ifdef SCENE_ARGUMENT_REUSE
+    argument_prepare(s->argument_root,s->root.vertices);
+#endif
     if(r->replay) NEED(slot_record(slot,r));
     return 1;
 }
@@ -37,6 +40,9 @@ static int slot_submit(Slot *slot,Reuse *r,unsigned frame) {
     Scene *s=&slot->scene; NEED(!s->pending && s->serial<UINT64_MAX);
     reuse_control(s->maps[CONTROL].data,reuse_variant(frame/r->slots));
     GPU(ogpu_next_memory_flush(span(s,CONTROL,0,REUSE_CONTROL_BYTES)));
+#ifdef SCENE_ARGUMENT_REUSE
+    argument_reverse=(frame/r->slots)%2;
+#endif
     if(!r->replay) NEED(slot_record(slot,r));
     ogpu_next_sync_point signal={{s->done,++s->serial},OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit={HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&slot->list,NULL,&signal,s->ss,s->submit_scratch.size};

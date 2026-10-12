@@ -252,7 +252,9 @@ reset/replay matrix. [Fixed/count/DrawIndex fresh recording](foundation-indexed-
 also uses explicit foundation ownership with unchanged native identities and
 count clamping. One/two-slot range reset/replay and per-draw render scopes also
 run through foundation, preserving bindings across scopes with explicit arena
-retirement and failure cleanup. Per-draw argument workflows still need migration; historical
+retirement and failure cleanup. Explicit argument bind-once/resupply also matches
+native push counts/bytes and changing draw order, without runtime deduplication.
+Call-time snapshot/partial-word consumers and range SDK packaging still need migration; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

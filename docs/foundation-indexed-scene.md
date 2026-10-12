@@ -81,8 +81,8 @@ This ports the fresh-recording scene and its generated handoff. The subsequent
 [reset/replay caller](foundation-scene-reuse.md) also migrates one/two-slot reuse;
 its generated control-pointer interfaces and independent handoff are included.
 The [fresh range/count/identity caller](foundation-indexed-ranges.md) is also
-migrated, including slot reset/replay and per-draw scopes; argument/timing controls
-still retain migration work.
+migrated, including slot reset/replay, per-draw scopes and explicit argument
+bind-once/resupply. Snapshot/partial-word consumers and timing controls still retain migration work.
 Retire redundant historical controls at their last dependency,
 then finish default SDK cutover. No native Metal or second physical GPU result is claimed.
 

@@ -15,10 +15,18 @@ import range_reuse as reuse
 ROOT,HERE=f.ROOT,f.HERE
 require,digest=f.require,f.digest
 PATHS=('native-once','native-resupply','public','public-current')
+FOUNDATION_PATHS=('native-once','native-resupply','foundation-once','foundation-resupply')
+
+
+def public_path(path):return path.startswith(('public','foundation'))
+
+
+def pushes_per_record(path,capacity):
+    return capacity if path in ('native-resupply','foundation-resupply') else 1
 
 
 def resupply(path):
-    return path in ('native-resupply','public')
+    return path in ('native-resupply','public','foundation-resupply')
 
 
 def recolor(data,size):
@@ -33,6 +41,7 @@ def recolor(data,size):
 
 
 def flags(cc,size,path,diagnostic=False,timing=False):
+    require(not timing or not path.startswith('foundation'),'foundation timing is not implemented')
     result=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',
         '-DSCENE_ARGUMENT_REUSE','-DSCENE_ARGUMENT_ROOT',f'-DSCENE_RASTER_BYTES={size}','-I'+str(ROOT/'include')]
     if not timing:result+=['-DSCENE_RANGE_REUSE']
@@ -40,7 +49,7 @@ def flags(cc,size,path,diagnostic=False,timing=False):
     if diagnostic:result+=['-DSCENE_ARGUMENT_DIAGNOSTICS']
     if resupply(path):result+=['-DSCENE_ARGUMENT_RESUPPLY']
     if path=='public-current':result+=['-DSCENE_ARGUMENT_CURRENT']
-    if not path.startswith('public'):
+    if not public_path(path):
         result+=['-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
         if not timing:result+=['-DNATIVE_DRAW_IDENTITY']
         if timing:result+=['-DRANGE_NATIVE']
@@ -48,12 +57,12 @@ def flags(cc,size,path,diagnostic=False,timing=False):
 
 
 def check_arguments(stdout,stderr,path,size,capacity,frames):
-    require(path in PATHS and size in snapshot.SIZES and capacity in (1,64,512)
+    require(path in PATHS+FOUNDATION_PATHS and size in snapshot.SIZES and capacity in (1,64,512)
             and frames>=16 and frames%16==0,'invalid argument control')
     require(f.rows(stdout,'ARGUMENT_POLICY ')==[dict(bytes=size,reverse_alternating=True,resupply=resupply(path))],'wrong argument policy')
     supplied=frames*(capacity if resupply(path) else 1)
     require(f.rows(stdout,'ARGUMENT_INPUT ')==[dict(calls=supplied,bytes=supplied*size)],'wrong supplied root accounting')
-    pushes=capacity if path=='native-resupply' else 1
+    pushes=pushes_per_record(path,capacity)
     trace=f.rows(stderr,'ARGUMENT_COMMANDS ')
     expected=[dict(phase=0,push_bytes=0,forward=0,backward=0,other=0)]+[
         dict(phase=phase,push_bytes=frames*(32+pushes*size),forward=frames//2*(capacity-1),
@@ -64,8 +73,11 @@ def check_arguments(stdout,stderr,path,size,capacity,frames):
 
 def check(stdout,stderr,path,size,capacity,slots,frames,device):
     arguments=check_arguments(stdout,stderr,path,size,capacity,frames)
-    pushes=capacity if path=='native-resupply' else 1
-    result=reuse.check(stdout,stderr,'public' if path.startswith('public') else 'native',capacity,'single',slots,False,frames,device,root_pushes=pushes)
+    pushes=pushes_per_record(path,capacity)
+    result=reuse.check(stdout,stderr,'public' if public_path(path) else 'native',capacity,'single',slots,False,frames,device,root_pushes=pushes,foundation=path.startswith('foundation'))
+    if path.startswith('foundation'):
+        limits=f.rows(stdout,'ARGUMENT_LIMIT ')
+        require(len(limits)==1 and limits[0]['max_push_data_bytes']>=size,'missing foundation inline limit')
     result.update(arguments)
     return result
 
@@ -112,21 +124,39 @@ def prepare(native_path,snapshot_path,out):
     return device,sizes,limits[0]
 
 
+def inspect_foundation(out,sizes,snapshot_path):
+    for size in sizes:
+        interfaces={}
+        for stage,source in [('compute',HERE/'frontier.slang'),('vertex',snapshot_path.resolve().parent/str(size)/'vertex.slang'),('fragment',HERE/'identity.frag.slang')]:
+            reflected,assembly,binary=f.scene.generate.compile_source(source,out/str(size)/('inspect-'+stage),os.getenv('SLANGC','slangc'),stage)
+            require(binary==(out/str(size)/(stage+'.spv')).read_bytes(),'foundation/native argument shader mismatch')
+            interfaces[stage]=f.scene.inspect_foundation_shader(reflected,assembly,stage,draw_identity=True,raster_bytes=size)
+            if stage!='fragment':
+                fields=[(x['name'],x['binding']['offset'],x['binding']['size']) for x in reflected['parameters'][0]['type']['elementType']['fields']]
+                expected=[('vertices',0,8)]+([('indices',8,8),('draws',16,8),('control',24,8)] if stage=='compute' else [('payload',8,size-8)] if size>8 else [])
+                require(fields==expected,'foundation argument root fields differ')
+        f.scene.generate.stages.link(interfaces['vertex'],interfaces['fragment'])
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',required=True,type=Path)
     parser.add_argument('--snapshots',required=True,type=Path)
     parser.add_argument('--frames',type=int,choices=(16,64,992),default=64)
     parser.add_argument('--build-only',action='store_true')
+    parser.add_argument('--foundation',action='store_true',help='compare native and explicit foundation bind-once/resupply, without runtime deduplication')
     args=parser.parse_args();require(args.frames%16==0,'frames must complete two-slot eight-generation cycles')
     out=Path(tempfile.mkdtemp(prefix='argument-reuse-',dir=ROOT/'target/graphics-scene'));print(f'Argument reuse evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,build_only=args.build_only,frames=args.frames,scope=__doc__,runs=[],builds={},
         revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
+    paths=FOUNDATION_PATHS if args.foundation else PATHS
+    report['api']='foundation' if args.foundation else 'installed'
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
         device,sizes,limit=prepare(args.native,args.snapshots,out)
+        if args.foundation:inspect_foundation(out,sizes,args.snapshots)
         report.update(device=device,sizes=sizes,limit=limit,unsupported=[n for n in snapshot.SIZES if n not in sizes],
             native=dict(path=str(args.native.resolve()),sha256=digest(args.native)),
             snapshots=dict(path=str(args.snapshots.resolve()),sha256=digest(args.snapshots)))
@@ -136,15 +166,17 @@ def main():
         cc=shlex.split(os.getenv('CC','cc'));report['compiler']=subprocess.check_output([*cc,'--version'],text=True).splitlines()[0]
         report['sources']={}
         for size in sizes:
-            for path in PATHS:
-                opts=flags(cc,size,path,diagnostic=True);source=HERE/('reuse_public.c' if path.startswith('public') else 'reuse_native.c')
+            for path in paths:
+                opts=flags(cc,size,path,diagnostic=True);source=HERE/('reuse_foundation.c' if path.startswith('foundation') else 'reuse_public.c' if public_path(path) else 'reuse_native.c')
                 command=opts+[str(source),'-ldl']
-                if path.startswith('public'):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
+                if public_path(path):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
                 command+=['-o',str(out/str(size)/path)];subprocess.run(command,check=True)
                 deps=subprocess.check_output([*opts,'-MM',str(source)],text=True)
                 for p in shlex.split(deps.replace('\\\n','').split(':',1)[1]):report['sources'][str(Path(p).resolve())]=digest(Path(p))
                 symbols=subprocess.check_output(['nm','-u',str(out/str(size)/path)],text=True)
-                require(('ogpu' not in symbols.lower()) if not path.startswith('public') else 'ogpu_batch_draw_indexed_indirect' in symbols,'wrong linkage')
+                require(('ogpu' not in symbols.lower()) if not public_path(path) else ('ogpu_next_draw_indexed_indirect' if args.foundation else 'ogpu_batch_draw_indexed_indirect') in symbols,'wrong linkage')
+                if path.startswith('foundation'):
+                    require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
                 if path=='public-current':require('ogpu_batch_set_arguments' in symbols and 'ogpu_batch_draw_indexed_indirect_current' in symbols,'missing candidate linkage')
                 report['builds'][f'{size}-{path}']=dict(command=command,sha256=digest(out/str(size)/path))
         command=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DSCENE_ARGUMENT_TRACE','-shared','-fPIC',
@@ -154,7 +186,7 @@ def main():
                                       '-MM',str(HERE/'reuse_trace.c')],text=True)
         for p in shlex.split(deps.replace('\\\n','').split(':',1)[1]):report['sources'][str(Path(p).resolve())]=digest(Path(p))
         for p in (Path(__file__),HERE/'range_reuse.py',HERE/'argument_snapshot.py',HERE/'reuse_trace.c',
-                  HERE/'frontier.py',HERE/'reuse.py',HERE/'oracle.py'):
+                  HERE/'frontier.py',HERE/'reuse.py',HERE/'run.py',HERE/'oracle.py',*list((ROOT/'examples/compiler').glob('*.py'))):
             report['sources'][str(p.resolve())]=digest(p)
         report['references']={str(p.relative_to(out)):digest(p) for size in sizes for p in (out/str(size)).rglob('*') if p.suffix in ('.spv','.images','.geometry')}
         save()
@@ -168,7 +200,7 @@ def main():
                 for capacity in (1,64,512):
                     for slots in (1,2):
                         matched=[]
-                        for path in PATHS:
+                        for path in paths:
                             folder=out/f'{size}-{capacity}-{slots}-{path}';folder.mkdir()
                             command=[str(out/str(size)/path),'257','193',str(out/str(size)),str(out/str(size)/str(capacity)),
                                 str(args.frames),str(slots),'reset',str(capacity),'single']
@@ -179,11 +211,13 @@ def main():
                             matched.append(checked)
                             report['runs'].append(dict(bytes=size,capacity=capacity,slots=slots,path=path,command=command,**checked,
                                 logs={str(p.relative_to(out)):digest(p) for p in folder.iterdir()}));save()
-                        for value in matched[1:]:
-                            require(value['allocation_shape']==matched[0]['allocation_shape'] and value['memory']==matched[0]['memory'],
-                                    'allocation budget/lifetime mismatch')
+                        for i,value in enumerate(matched):
+                            reference=matched[2] if args.foundation and i>=2 else matched[0]
+                            require(value['allocation_shape']==reference['allocation_shape'] and value['memory']==reference['memory'],
+                                    'allocation shape/lifetime mismatch within backend')
+                            require(value['summary']==matched[0]['summary'],'logical allocation/recording budget mismatch')
                         print(f'{size}-byte / {capacity} draws / {slots} slots: full outputs, allocation budgets, supplied bytes and native pushes/order PASS',flush=True)
-        report['complete']=True;save();print('Argument reuse '+('BUILD ONLY' if args.build_only else 'PASS; timing/contract selection remains open'))
+        report['complete']=True;save();print('Argument reuse '+('BUILD ONLY' if args.build_only else 'foundation explicit policies PASS; no timing claim' if args.foundation else 'PASS; timing/contract selection remains open'))
     except Exception as error:report['error']=str(error);save();raise
 
 

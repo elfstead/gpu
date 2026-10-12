@@ -20,10 +20,10 @@ import oracle
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def inspect_foundation_shader(reflection,assembly,stage,draw_identity=False):
+def inspect_foundation_shader(reflection,assembly,stage,draw_identity=False,raster_bytes=8):
     """Prove the handwritten executable metadata against the compiled artifact."""
     fields,size,alignment,local,requirements=generate.inspect(reflection,assembly)
-    generate.require(size=={'compute':32,'vertex':8,'fragment':0}[stage], 'foundation root size mismatch')
+    generate.require(size=={'compute':32,'vertex':raster_bytes,'fragment':0}[stage], 'foundation root size mismatch')
     generate.require(local==([8,1,1] if stage=='compute' else []),'foundation local size mismatch')
     wanted={'compute_queue' if stage=='compute' else 'graphics_queue'}
     if stage!='fragment': wanted.add('buffer_device_address')

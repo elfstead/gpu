@@ -8,6 +8,13 @@
 #ifndef SCENE_DRAW_BYTES
 #define SCENE_DRAW_BYTES 168u
 #endif
+#ifndef SCENE_RASTER_BYTES
+#define SCENE_RASTER_BYTES 8u
+#endif
+#ifdef SCENE_ARGUMENT_REUSE
+#include "argument_reuse.h"
+_Static_assert(SCENE_RASTER_BYTES>=8 && SCENE_RASTER_BYTES<=4096 && SCENE_RASTER_BYTES%8==0,"argument fixture root extent");
+#endif
 #ifdef SCENE_GENERATED
 #ifdef SCENE_REUSE_CONSUMER
 #include <foundation_scene_reuse_prepare.generated.h>
@@ -46,6 +53,9 @@ typedef struct {
     size_t pixels;
     int pending;
     SceneRoot root;
+#ifdef SCENE_ARGUMENT_REUSE
+    uint64_t argument_root[SCENE_RASTER_BYTES/8];
+#endif
 #ifdef SCENE_REUSE_CONSUMER
     uint64_t reuse_root[4];
 #endif
@@ -124,6 +134,12 @@ static int context(Scene *s,const char *directory) {
     printf("FRONTIER_FEATURES {\"multiDrawIndirect\":true,\"drawIndirectCount\":true,\"maxDrawIndirectCount\":%u}\n",graphics_limits.max_indirect_count);
     puts("DRAW_IDENTITY_FEATURES {\"shaderDrawParameters\":true}");
 #endif
+#ifdef SCENE_ARGUMENT_REUSE
+    ogpu_next_execution_limits argument_limits;
+    q=query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&argument_limits,1,sizeof(argument_limits));
+    GPU(ogpu_next_device_query(s->device,&q)); NEED(argument_limits.max_inline_size>=SCENE_RASTER_BYTES);
+    printf("ARGUMENT_LIMIT {\"max_push_data_bytes\":%" PRIu64 "}\n",argument_limits.max_inline_size);
+#endif
 #ifdef SCENE_GENERATED
     (void)directory;
     ogpu_next_feature_info features; ogpu_next_execution_limits limits;
@@ -149,7 +165,7 @@ static int context(Scene *s,const char *directory) {
     /* Metadata is checked against compiler reflection by run.py. Same native
      * shader bytes as the Vulkan control, with no runtime shader inspection. */
     ogpu_next_argument_interface compute={HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),32,0,NULL};
-    ogpu_next_argument_interface raster={HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,0,NULL};
+    ogpu_next_argument_interface raster={HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),SCENE_RASTER_BYTES,0,NULL};
     ogpu_next_shader shaders[]={
         {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{s->code[0],s->code_size[0]},"main",&compute.header,NULL,NULL},
         {OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,{s->code[1],s->code_size[1]},"main",&raster.header,NULL,NULL},
@@ -256,7 +272,12 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
     ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)s->width,(float)s->height,0,1,0,0,s->width,s->height};
     ogpu_next_set_graphics_state(s->encoder,&vp.header);
     ogpu_next_bind_indices(s->encoder,span(s,INDICES,GUARD,8*s->index_bytes),s->index_bytes==2 ? OGPU_NEXT_INDEX_U16 : OGPU_NEXT_INDEX_U32);
-#ifdef SCENE_GENERATED
+#ifdef SCENE_ARGUMENT_REUSE
+#ifndef SCENE_ARGUMENT_RESUPPLY
+    ARGUMENT_SUPPLIED();
+    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,s->argument_root);
+#endif
+#elif defined(SCENE_GENERATED)
     const Scene_pair_vertexArguments args={.arg_vertices=s->root.vertices};
     ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(args),&args);
 #else
@@ -268,7 +289,17 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #ifdef SCENE_FOUNDATION_FRONTIER
     (void)count;
     ogpu_next_indirect draw={span(s,DRAWS,GUARD,20*frontier_records),20,frontier_records,{NULL,0,0}};
-#ifdef SCENE_RANGE_SCOPES
+#ifdef SCENE_ARGUMENT_REUSE
+    (void)first;
+    for(unsigned i=0;i<frontier_records;++i) {
+        draw.arguments=span(s,DRAWS,GUARD+20*argument_index(i,frontier_records),20); draw.maximum_count=1;
+#ifdef SCENE_ARGUMENT_RESUPPLY
+        ARGUMENT_SUPPLIED();
+        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,s->argument_root);
+#endif
+        ogpu_next_draw_indexed_indirect(s->encoder,&draw);
+    }
+#elif defined(SCENE_RANGE_SCOPES)
     draw.arguments=span(s,DRAWS,GUARD+20*first,20); draw.maximum_count=1;
     ogpu_next_draw_indexed_indirect(s->encoder,&draw);
 #else

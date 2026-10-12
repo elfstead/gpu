@@ -88,16 +88,39 @@ per-draw-scope frames at 257x193 (counts include native and foundation), plus al
 claim a new 1,000-frame endurance or 720p run. Existing fresh range acceptance
 above remains separate.
 
-Per-draw argument controls still require migration. Their small fixed payload
+## Explicit argument reuse and resupply
+
+`argument_reuse.py --foundation --native REPORT --snapshots SNAPSHOTS` now
+compares native-once/native-resupply with foundation-once/foundation-resupply.
+All paths change the forward/reverse draw order between recordings, check full
+images/geometry/guards, and use the same 8/64/256-byte observable payloads. The
+pointer and every scalar word affect output. One/two slots, 1/64/512 separate
+draws and 64 frames per case give 4,608 frames per driver including native.
+Both local drivers pass that complete matrix.
+
+Foundation exposes the choice directly: bind-once calls `set_inline` once per
+recording; resupply calls it before every draw. Native traces verify exact push
+counts and byte totals, including forward/reverse draw order. The runtime does
+not compare argument bytes or deduplicate caller requests. Both policies keep
+pipeline/index/viewport binding counts unchanged. Logical budgets match native;
+actual allocation shapes match between policies within each backend. No command
+storage is created in the frame loop. This demonstrates mapping and semantics,
+not throughput parity or a preference for resupplying unchanged data.
+
+The small fixed payload
 shader now uses Slang's [ForceUnroll](https://shader-slang.org/stdlib-reference/attributes/forceunroll-05.html)
 so the compiler adapter can prove constant push-array indices before emitting
 metadata. The adapter still rejects unproven loop-carried uniformity; this is not
 a restriction on native shaders accepted by the foundation API. Fresh snapshot
 references must be generated for the changed fixture; historical looped-shader
-receipts and timings are not silently reclassified as this artifact.
+receipts and timings are not silently reclassified as this artifact. New clean
+native/ABI20 snapshot references pass at `5a43b6e` on both drivers. Foundation
+recompiles and inspects the exact same binaries, including full root layout,
+required features, stage linkage and device inline-size limits.
 
-Generated
-interfaces and independent SDK packaging for this range caller remain separate
+Call-time snapshot/partial-word-update consumers still need their foundation
+migration; this bind-once/resupply run does not claim their separate acceptance.
+Generated interfaces and independent SDK packaging for this range caller remain separate
 work; the packaged foundation scene currently covers the simpler two-record
 reset/replay workload. Historical performance results, native Metal parity, general
 graphics completeness and default SDK cutover are not established by this step.

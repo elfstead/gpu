@@ -57,6 +57,11 @@ class ComparisonTests(unittest.TestCase):
                 self.assertEqual(runner.inspect_foundation_shader({},'','vertex',identity),fields.io)
                 with self.assertRaisesRegex(ValueError,'requirements changed'):
                     runner.inspect_foundation_shader({},'','vertex',not identity)
+        for size in (64,256):
+            with patch.object(runner.generate,'inspect',return_value=(fields,size,8,[],basic+['shader_draw_parameters'])):
+                self.assertEqual(runner.inspect_foundation_shader({},'','vertex',True,size),fields.io)
+                with self.assertRaisesRegex(ValueError,'root size mismatch'):
+                    runner.inspect_foundation_shader({},'','vertex',True)
 
     def test_index_width_comparison(self):
         with tempfile.TemporaryDirectory() as directory:
