@@ -27,13 +27,25 @@ def inspect_shaders(directory,out):
     f.scene.generate.stages.link(interfaces['vertex'],interfaces['fragment'])
 
 
+def inspect_generated(directory,out):
+    subprocess.run([sys.executable,'-B',str(HERE/'generated.py'),'--api','foundation','--check','--build-dir',str(out/'generated')],check=True)
+    from handoff import binary
+    for stage in ('compute','vertex','fragment'):
+        header='scene_range_prepare' if stage=='compute' else 'scene_identity_pair'
+        symbol=header if stage=='compute' else header+'_'+stage
+        require(binary((HERE/f'foundation_{header}.generated.h').read_text(),symbol)==(directory/(stage+'.spv')).read_bytes(),
+                'generated/native range shader mismatch')
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native',type=Path)
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--foundation',action='store_true',help='explicit foundation ownership, no ABI20 runtime policy')
+    parser.add_argument('--generated',action='store_true',help='typed foundation range/identity interfaces')
     parser.add_argument('--scale',action='store_true',help='also 1280x720; requires a matching scaled native acceptance')
     args=parser.parse_args()
+    if args.generated:args.foundation=True
     base=ROOT/'target/graphics-scene';base.mkdir(parents=True,exist_ok=True)
     out=Path(tempfile.mkdtemp(prefix='ranges-',dir=base));print(f'Public range evidence: {out}',flush=True)
     report=dict(schema=1,abi=20,complete=False,scope=__doc__,runs=[],
@@ -41,6 +53,7 @@ def main():
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],text=True,cwd=ROOT)))
     report['api']='foundation' if args.foundation else 'installed'
     report['scale']=args.scale
+    report['generated']=args.generated
     if args.foundation: del report['abi'];report['foundation']=1
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
@@ -48,7 +61,8 @@ def main():
         require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
         subprocess.run(['cargo','build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
         cc=shlex.split(os.getenv('CC','cc'));report['cc']=subprocess.check_output([*cc,'--version'],text=True).splitlines()[0]
-        includes=['-I'+str(ROOT/'include')]
+        includes=['-I'+str(ROOT/'include'),'-I'+str(HERE)]
+        if args.generated:includes+=['-DSCENE_GENERATED']
         common=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror',*includes]
         report['builds']={}
         for name,command in [
@@ -88,6 +102,7 @@ def main():
             require(digest(directory/(stage+'.spv'))==metadata['sha256'],'native shader hash mismatch')
             report['shaders'][stage]=metadata['sha256']
         if args.foundation:inspect_shaders(directory,out)
+        if args.generated:inspect_generated(directory,out)
         env=os.environ.copy()
         require(env.get('VK_DRIVER_FILES') and 'VK_LAYER_KHRONOS_validation' in env.get('VK_INSTANCE_LAYERS','') and env.get('VK_LAYER_VALIDATE_SYNC')=='1'
                 and not env.get('VK_LOADER_LAYERS_DISABLE'),'select one ICD with validation/sync enabled')
@@ -117,6 +132,7 @@ def main():
             stdout=(dest/'stdout').read_text();stderr=(dest/'stderr').read_text()
             profile={'foundation':1} if args.foundation else {'abi':20}
             require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**profile,index_bytes=4,gpu_generated=True)],'wrong public API/profile')
+            if args.generated:require(f.rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
             checked=f.check_log(stdout,stderr,capacity,strategy,case['device'],True,True,args.foundation)
             if args.foundation:
                 requested=width*height*16+1232+2*(132+20*capacity)+max(256,132+20*capacity)

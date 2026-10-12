@@ -7,6 +7,7 @@ static unsigned frontier_records, frontier_strategy;
 #include <dlfcn.h>
 
 static int mark(unsigned phase) {
+    if(!getenv("OGPU_SCENE_TRACE")) return 1;
     const char *path=getenv("OGPU_VULKAN_LIBRARY"); NEED(path && getenv("OGPU_SCENE_TRACE"));
     void *library=dlopen(path,RTLD_NOW|RTLD_LOCAL); NEED(library);
     void (*snapshot)(unsigned)=(void (*)(unsigned))dlsym(library,"scene_trace_snapshot");

@@ -107,13 +107,16 @@ def main():
     parser.add_argument('--scale',action='store_true',help='also 16-frame 720p count/identity cycles on Radeon')
     parser.add_argument('--scopes',action='store_true',help='labelled per-draw CLEAR then LOAD scopes; separate-call strategy only')
     parser.add_argument('--foundation',action='store_true',help='explicit slot-owned foundation memory, arenas and timelines')
+    parser.add_argument('--generated',action='store_true',help='typed foundation range/identity interfaces')
     args=parser.parse_args()
+    if args.generated:args.foundation=True
     out=Path(tempfile.mkdtemp(prefix='range-reuse-',dir=ROOT/'target/graphics-scene'))
     print(f'Range reuse evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,scope=__doc__,preflight=args.preflight,software=args.software,scale=args.scale,per_draw_scopes=args.scopes,runs=[],
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
     report['api']='foundation' if args.foundation else 'installed'
+    report['generated']=args.generated
     def save(): (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
@@ -142,6 +145,9 @@ def main():
         if args.foundation:
             from ranges import inspect_shaders
             inspect_shaders(directory,out)
+        if args.generated:
+            from ranges import inspect_generated
+            inspect_generated(directory,out)
         subprocess.run(['cargo','build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
         cc=shlex.split(os.getenv('CC','cc'));report['compiler']=subprocess.check_output([*cc,'--version'],text=True).splitlines()[0]
         common=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DSCENE_RANGE_REUSE','-I'+str(ROOT/'include')]
@@ -150,6 +156,7 @@ def main():
         for backend in ('native','public'):
             source='reuse_foundation.c' if backend=='public' and args.foundation else f'reuse_{backend}.c'
             command=common+[str(HERE/source)]
+            if args.generated and backend=='public':command+=['-DSCENE_GENERATED','-I'+str(HERE)]
             if backend=='public':command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
             else:command+=['-DNATIVE_DRAW_IDENTITY','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
             command+=['-ldl','-o',str(out/backend)];subprocess.run(command,check=True)
@@ -191,6 +198,8 @@ def main():
                         with (dest/'stdout').open('w') as stdout,(dest/'stderr').open('w') as stderr:
                             execution=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                         require(execution.returncode==0,f'execution failed: {dest}')
+                        if args.generated and backend=='public':
+                            require(f.rows((dest/'stdout').read_text(),'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
                         checked=check((dest/'stdout').read_text(),(dest/'stderr').read_text(),backend,case['capacity'],case['strategy'],slots,policy=='replay',frames,case['device'],width,height,args.scopes,foundation=args.foundation and backend=='public')
                         if args.foundation:
                             key=(backend,width,height,case['capacity'],slots);shape=(checked['allocation_shape'],checked['memory'])

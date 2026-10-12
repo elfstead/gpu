@@ -25,11 +25,14 @@ def main():
     artifacts={}
     compute=[('scene_prepare','prepare.slang'),('scene_prepare16','prepare16.slang')]
     if args.api=='foundation':compute += [('scene_reuse_prepare','prepare_reuse.slang'),('scene_reuse_prepare16','prepare_reuse16.slang')]
+    if args.api=='foundation':compute += [('scene_range_prepare','frontier.slang')]
     for name,source in compute:
         path=HERE/source
         reflection,assembly,binary=g.compile_source(path,build/name,compiler)
         artifacts[name]=g.header(reflection,assembly,binary,path.read_bytes(),name,api=args.api)
     artifacts['scene_pair']=link_graphics.header(HERE/'scene.vert.slang',HERE/'scene.frag.slang',build/'pair',compiler,'scene_pair',api=args.api)
+    if args.api=='foundation':
+        artifacts['scene_identity_pair']=link_graphics.header(HERE/'identity.vert.slang',HERE/'identity.frag.slang',build/'identity',compiler,'scene_identity_pair',api=args.api)
     for name,content in artifacts.items():
         path=HERE/(('foundation_' if args.api=='foundation' else '')+name+'.generated.h')
         if args.check:g.require(path.read_text()==content,'stale scene artifact: '+name)
@@ -45,6 +48,12 @@ def main():
         subprocess.run([*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
             '-I'+str(ROOT/'include'),'-I'+str(HERE),str(HERE/'reuse_foundation_generated.c'),
             '-L'+str(library),'-Wl,-rpath,'+str(library),'-logpu','-ldl','-o',str(build/'reuse-foundation')],check=True)
+        for source,name,extra in [('frontier_foundation_generated.c','frontier-foundation',[]),
+                                  ('range_foundation_generated.c','range-foundation',[]),
+                                  ('range_foundation_generated.c','range-scopes-foundation',['-DSCENE_RANGE_SCOPES'])]:
+            subprocess.run([*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',*extra,
+                '-I'+str(ROOT/'include'),'-I'+str(HERE),str(HERE/source),
+                '-L'+str(library),'-Wl,-rpath,'+str(library),'-logpu','-ldl','-o',str(build/name)],check=True)
     print(f'Generated {args.api} indexed/depth scene build PASS; output acceptance is separate')
 
 

@@ -1,6 +1,7 @@
 import copy
 import json
 import unittest
+import struct
 import frontier as f
 
 
@@ -51,9 +52,9 @@ class FrontierTests(unittest.TestCase):
                     mesh=f.mesh_expected(frame,strategy)
                     self.assertEqual(len(mesh),548+20*capacity)
                     self.assertEqual(mesh[-64:],f.oracle.GUARD)
-                    self.assertEqual(mesh[-68:-64],f.struct.pack('<I',frame['active']))
+                    self.assertEqual(mesh[-68:-64],struct.pack('<I',frame['active']))
                     expected=6 if strategy=='count' or frame['active'] else 0
-                    self.assertEqual(f.struct.unpack_from('<I',mesh,480)[0],expected)
+                    self.assertEqual(struct.unpack_from('<I',mesh,480)[0],expected)
 
     def test_count_followup_requires_both_native_commands(self):
         out,err,device,counts,_=self.fixture(64,'count')

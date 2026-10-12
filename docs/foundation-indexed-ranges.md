@@ -63,6 +63,15 @@ Clang compile the caller warning-clean.
 
 ## Slot replay and per-draw scopes
 
+`ranges.py --generated` and `range_reuse.py --generated` select typed foundation
+interfaces generated from the range compute and DrawIndex raster shaders. Their
+embedded SPIR-V must match the accepted native binaries exactly. Generated
+requirements drive device/executable checks, and generated root structures supply
+the inline bytes; no runtime reflection or policy is introduced. Both local
+drivers pass the nine fresh cases and the full bounded 16-frame reset/replay
+matrix, including per-draw scopes (1,536 native/foundation frames per driver).
+This is not a new endurance or timing run.
+
 `range_reuse.py --foundation --native REPORT` now uses the same foundation
 slot scheduler as the simpler scene. Each slot owns its backing, control/readback
 memory, arena and timeline; executables are shared and borrowed. Reset records
@@ -149,7 +158,7 @@ Clean foundation snapshot reports can now seed the argument-reuse controls witho
 requiring a new ABI20 execution. Historical installed controls remain explicitly
 selectable while their remaining consumers/diagnostics are audited for retirement.
 
-Generated interfaces and independent SDK packaging for this range caller remain separate
+Independent SDK packaging for this generated range caller remains separate
 work; the packaged foundation scene currently covers the simpler two-record
 reset/replay workload. Historical performance results, native Metal parity, general
 graphics completeness and default SDK cutover are not established by this step.
