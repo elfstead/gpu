@@ -13,24 +13,33 @@ import argument_snapshot as s
 ROOT,HERE=s.ROOT,s.HERE
 require,digest=s.require,s.digest
 PATHS=('native-full','native-partial','public','public-partial')
+FOUNDATION_PATHS=('native-full','native-partial','foundation-full','foundation-partial')
+
+
+def public_path(path):return path.startswith(('public','foundation'))
 
 
 def updates(path,size):
-    require(path in PATHS and size in (64,256),'invalid partial update case')
+    require(path in PATHS+FOUNDATION_PATHS and size in (64,256),'invalid partial update case')
     result=[]
     for frame in range(4):
         result.extend([dict(offset=0,bytes=32),dict(offset=0,bytes=size)])
-        if path=='native-full' or (path=='public' and frame==2):result.append(dict(offset=0,bytes=size))
-        elif path in ('native-partial','public-partial') and frame==2:result.append(dict(offset=size-4,bytes=4))
+        if path in ('native-full','foundation-full') or (path=='public' and frame==2):result.append(dict(offset=0,bytes=size))
+        elif path in ('native-partial','public-partial','foundation-partial') and frame==2:result.append(dict(offset=size-4,bytes=4))
     return result
 
 
 def check_trace(stdout,stderr,path,size):
-    require(s.f.rows(stdout,'ARGUMENT_PATCH_POLICY ')==[dict(single_word=True,native_partial=path=='native-partial')],'wrong patch policy')
+    policy={'foundation_partial':path=='foundation-partial'} if path.startswith('foundation') else {'native_partial':path=='native-partial'}
+    require(s.f.rows(stdout,'ARGUMENT_PATCH_POLICY ')==[dict(single_word=True,**policy)],'wrong patch policy')
     wanted=updates(path,size);require(s.f.rows(stderr,'ARGUMENT_PUSH ')==wanted,'wrong actual native update ranges')
     commands=s.f.rows(stderr,'COMMAND_COUNTS ')
     require(len(commands)==1 and commands[0]['phase']==2,'missing final command accounting')
     c=commands[0]
+    if path.startswith('foundation'):
+        expected=dict(vkCreateCommandPool=1,vkDestroyCommandPool=1,vkResetCommandPool=10,
+                      vkBeginCommandBuffer=10,vkEndCommandBuffer=2,vkQueueSubmit2=2)
+        require(all(c[k]==v for k,v in expected.items()),'invalid recordings reached submission or arena policy changed')
     require(c['vkCmdPushDataEXT']==len(wanted) and c['vkCmdDrawIndexedIndirect2KHR']==c['indexed_records']==8
             and c['vkCmdDrawIndexedIndirectCount2KHR']==c['counted_capacity']==c['vkQueueWaitIdle']==0
             and c['vkCmdBeginRendering']==c['vkCmdEndRendering']==4,'wrong draw/scope/idle accounting')
@@ -45,11 +54,13 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--snapshots',required=True,type=Path)
     parser.add_argument('--build-only',action='store_true')
+    parser.add_argument('--foundation',action='store_true',help='explicit full/partial inline updates without argument caching')
     args=parser.parse_args()
     out=Path(tempfile.mkdtemp(prefix='argument-patch-',dir=ROOT/'target/graphics-scene'));print(f'Argument patch evidence: {out}',flush=True)
     report=dict(schema=1,complete=False,build_only=args.build_only,scope=__doc__,runs=[],builds={},sources={},
         revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)))
+    paths=FOUNDATION_PATHS if args.foundation else PATHS;report['api']='foundation' if args.foundation else 'installed'
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
     save()
     try:
@@ -84,19 +95,23 @@ def main():
             for stage in ('compute','vertex','fragment'):
                 path=shaders/(stage+'.spv');h=reference['shaders'][str(size)][stage]['sha256']
                 require(digest(path)==h,'changed reference artifact');report['shaders'][str(size)][stage]=h
+            if args.foundation:s.inspect_foundation_artifacts(shaders,size,out/str(size))
             results=[];budgets=[]
-            for path in PATHS:
+            for path in paths:
                 folder=out/f'{size}-{path}';folder.mkdir()
                 flags=[*cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DARGUMENT_PATCH_PAYLOAD',
                        f'-DSCENE_RASTER_BYTES={size}','-I'+str(ROOT/'include')]
-                if not path.startswith('public'):flags+=['-DARGUMENT_NATIVE','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
+                if not public_path(path):flags+=['-DARGUMENT_NATIVE','-I'+str(ROOT/'vendor/Vulkan-Headers/include'),'-I'+str(ROOT/'examples/learned_image/generated')]
                 if path=='native-partial':flags+=['-DARGUMENT_NATIVE_PARTIAL']
                 if path=='public-partial':flags+=['-DARGUMENT_PUBLIC_PARTIAL']
-                command=flags+[str(HERE/'argument_snapshot.c'),'-ldl']
-                if path.startswith('public'):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
-                command+=['-o',str(folder/'probe')];subprocess.run(command,check=True);dependencies(flags,HERE/'argument_snapshot.c')
+                if path=='foundation-partial':flags+=['-DARGUMENT_FOUNDATION_PARTIAL']
+                source=HERE/('argument_foundation.c' if path.startswith('foundation') else 'argument_snapshot.c')
+                command=flags+[str(source),'-ldl']
+                if public_path(path):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
+                command+=['-o',str(folder/'probe')];subprocess.run(command,check=True);dependencies(flags,source)
                 symbols=subprocess.check_output(['nm','-u',str(folder/'probe')],text=True)
-                require('ogpu' not in symbols.lower() if not path.startswith('public') else 'ogpu_batch_draw_indexed_indirect' in symbols,'wrong linkage')
+                require('ogpu' not in symbols.lower() if not public_path(path) else ('ogpu_next_set_inline' if args.foundation else 'ogpu_batch_draw_indexed_indirect') in symbols,'wrong linkage')
+                if path.startswith('foundation'):require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
                 if path=='public-partial':require('ogpu_batch_set_arguments' in symbols and 'ogpu_batch_draw_indexed_indirect_current' in symbols,'missing candidate linkage')
                 report['builds'][folder.name]=dict(command=command,sha256=digest(folder/'probe'))
                 if args.build_only:continue
@@ -105,7 +120,7 @@ def main():
                     result=subprocess.run(command,env=env,stdout=stdout,stderr=stderr,timeout=300)
                 require(result.returncode==0,'partial-update execution failed: '+str(folder))
                 stdout,stderr=(folder/'stdout').read_text(),(folder/'stderr').read_text()
-                limit,device=s.check_log(stdout,stderr,'public' if path.startswith('public') else 'native',size)
+                limit,device=s.check_log(stdout,stderr,'foundation' if path.startswith('foundation') else 'public' if public_path(path) else 'native',size)
                 matches=[r for r in reference['runs'] if r['bytes']==size and r['backend']==('public' if path.startswith('public') else 'native')]
                 require(len(matches)==1 and matches[0]['device']==device and matches[0]['limit']==limit,'reference device/limit mismatch')
                 data=(folder/'snapshots.images').read_bytes();checks=s.check(data,size,single_word=True)
@@ -115,9 +130,11 @@ def main():
                     files={p.name:digest(p) for p in folder.iterdir() if p.is_file()}));save()
             if not args.build_only:
                 require(all(data==results[0] for data in results),'native/public full/partial output mismatch')
-                require(all(b['memory']==budgets[0]['memory'] and b['allocation_shape']==budgets[0]['allocation_shape'] for b in budgets),'allocation budget mismatch')
+                for i,budget in enumerate(budgets):
+                    base=budgets[2] if args.foundation and i>=2 else budgets[0]
+                    require(budget['memory']==base['memory'] and budget['allocation_shape']==base['allocation_shape'],'allocation shape differs within backend')
                 print(f'{size}-byte roots: full/4-byte partial/public output, update-range and allocation checks PASS',flush=True)
-        for p in (Path(__file__),HERE/'argument_snapshot.py',HERE/'oracle.py'):report['sources'][str(p.resolve())]=digest(p)
+        for p in (Path(__file__),HERE/'argument_snapshot.py',HERE/'run.py',HERE/'oracle.py',*list((ROOT/'examples/compiler').glob('*.py'))):report['sources'][str(p.resolve())]=digest(p)
         report['complete']=True;save();print('Argument partial-update '+('BUILD ONLY' if args.build_only else 'PASS; not timing'))
     except Exception as error:report['error']=str(error);save();raise
 

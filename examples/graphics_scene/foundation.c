@@ -30,7 +30,11 @@ _Static_assert(SCENE_RASTER_BYTES>=8 && SCENE_RASTER_BYTES<=4096 && SCENE_RASTER
 #define GPU(x) do { ogpu_next_status status_=(x); if(status_!=OGPU_NEXT_OK) { \
     fprintf(stderr,"%s: status=%" PRId32 "\n",#x,status_); return 0; } } while(0)
 enum { GUARD=64 };
-enum { VERTICES, INDICES, DRAWS, UPLOAD, READBACK, GEOMETRY, CONTROL, BUFFER_COUNT };
+enum { VERTICES, INDICES, DRAWS, UPLOAD, READBACK, GEOMETRY, CONTROL,
+#ifdef SCENE_ARGUMENT_SNAPSHOT
+    ALTERNATE, ARCHIVE,
+#endif
+    BUFFER_COUNT };
 typedef struct { uint64_t vertices, indices, draws; uint32_t phase, empty; } SceneRoot;
 _Static_assert(sizeof(SceneRoot)==32 && offsetof(SceneRoot,phase)==24,"compute layout");
 _Static_assert(sizeof(ogpu_next_draw_indexed_arguments)==20,"indirect layout");
@@ -61,6 +65,9 @@ typedef struct {
 #endif
     void *code[3]; uint64_t code_size[3];
 } Scene;
+#ifdef SCENE_ARGUMENT_SNAPSHOT
+static void snapshot_draw(Scene *s);
+#endif
 static ogpu_next_query query(uint32_t kind,void *data,uint32_t count,uint32_t size) {
     return (ogpu_next_query){HEADER(ogpu_next_query,kind),data,count,0,size,0};
 }
@@ -134,7 +141,7 @@ static int context(Scene *s,const char *directory) {
     printf("FRONTIER_FEATURES {\"multiDrawIndirect\":true,\"drawIndirectCount\":true,\"maxDrawIndirectCount\":%u}\n",graphics_limits.max_indirect_count);
     puts("DRAW_IDENTITY_FEATURES {\"shaderDrawParameters\":true}");
 #endif
-#ifdef SCENE_ARGUMENT_REUSE
+#if defined(SCENE_ARGUMENT_REUSE) || defined(SCENE_ARGUMENT_SNAPSHOT)
     ogpu_next_execution_limits argument_limits;
     q=query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&argument_limits,1,sizeof(argument_limits));
     GPU(ogpu_next_device_query(s->device,&q)); NEED(argument_limits.max_inline_size>=SCENE_RASTER_BYTES);
@@ -243,10 +250,14 @@ static int resources(Scene *s) {
         GPU(ogpu_next_view_create(s->images[i],&vd,&s->views[i]));
     }
     uint64_t usage=OGPU_NEXT_USAGE_STORAGE|OGPU_NEXT_USAGE_COPY_SRC|OGPU_NEXT_USAGE_COPY_DST;
+    uint64_t readback_usage=OGPU_NEXT_USAGE_COPY_DST;
+#ifdef SCENE_ARGUMENT_SNAPSHOT
+    readback_usage|=OGPU_NEXT_USAGE_COPY_SRC;
+#endif
     NEED(buffer_create(s,VERTICES,256,usage,OGPU_NEXT_MEMORY_LOCAL) && buffer_create(s,INDICES,160,usage|OGPU_NEXT_USAGE_INDEX,OGPU_NEXT_MEMORY_LOCAL)
         && buffer_create(s,DRAWS,SCENE_DRAW_BYTES,usage|OGPU_NEXT_USAGE_INDIRECT,OGPU_NEXT_MEMORY_LOCAL)
         && buffer_create(s,UPLOAD,SCENE_DRAW_BYTES>256 ? SCENE_DRAW_BYTES : 256,OGPU_NEXT_USAGE_COPY_SRC,OGPU_NEXT_MEMORY_HOST_VISIBLE)
-        && buffer_create(s,READBACK,2*s->pixels+4*GUARD,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE)
+        && buffer_create(s,READBACK,2*s->pixels+4*GUARD,readback_usage,OGPU_NEXT_MEMORY_HOST_VISIBLE)
         && buffer_create(s,GEOMETRY,416+SCENE_DRAW_BYTES,OGPU_NEXT_USAGE_COPY_DST,OGPU_NEXT_MEMORY_HOST_VISIBLE));
     GPU(ogpu_next_memory_address(span(s,VERTICES,GUARD,128),&s->root.vertices));
     GPU(ogpu_next_memory_address(span(s,INDICES,GUARD,32),&s->root.indices)); GPU(ogpu_next_memory_address(span(s,DRAWS,GUARD,SCENE_DRAW_BYTES-2*GUARD),&s->root.draws));
@@ -272,7 +283,9 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
     ogpu_next_viewport_state vp={HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)s->width,(float)s->height,0,1,0,0,s->width,s->height};
     ogpu_next_set_graphics_state(s->encoder,&vp.header);
     ogpu_next_bind_indices(s->encoder,span(s,INDICES,GUARD,8*s->index_bytes),s->index_bytes==2 ? OGPU_NEXT_INDEX_U16 : OGPU_NEXT_INDEX_U32);
-#ifdef SCENE_ARGUMENT_REUSE
+#ifdef SCENE_ARGUMENT_SNAPSHOT
+    /* The snapshot fixture supplies bytes immediately before each draw. */
+#elif defined(SCENE_ARGUMENT_REUSE)
 #ifndef SCENE_ARGUMENT_RESUPPLY
     ARGUMENT_SUPPLIED();
     ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,s->argument_root);
@@ -286,7 +299,10 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #ifdef SCENE_RANGE_SCOPES
     }
 #endif
-#ifdef SCENE_FOUNDATION_FRONTIER
+#ifdef SCENE_ARGUMENT_SNAPSHOT
+    (void)first; (void)count;
+    snapshot_draw(s);
+#elif defined(SCENE_FOUNDATION_FRONTIER)
     (void)count;
     ogpu_next_indirect draw={span(s,DRAWS,GUARD,20*frontier_records),20,frontier_records,{NULL,0,0}};
 #ifdef SCENE_ARGUMENT_REUSE

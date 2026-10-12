@@ -1419,8 +1419,10 @@ cleanup checks. The [range/count/identity fresh-recording caller](foundation-ind
 also uses explicit arenas and native argument/count spans. Its one/two-slot
 reset/replay and per-draw scopes now preserve bindings across scopes and expose
 caller-owned retirement. Argument bind-once/resupply now maps directly to explicit
-inline updates with native-matched byte/count traces; call-time snapshot/partial-word
-consumers and timing workflows remain unmigrated.
+inline updates with native-matched byte/count traces. Call-time snapshot and partial-word
+consumers also preserve exact native output/update ranges, while rejecting poisoned
+recordings before submission. Range SDK packaging and historical timing/control
+retirement remain separate work.
 The existing setup policy in ABI 20 is temporary migration weight and should be
 removed at consumer cutover, not maintained as a fallback backend. Native connection
 loading and the modern-baseline predicate are shared; no old `Rc` device, internal

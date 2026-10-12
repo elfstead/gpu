@@ -23,6 +23,7 @@ static void set_arguments(unsigned changed) {
     uint64_t address=changed ? alternate_address : ordinary_address;
 #endif
     memcpy(arguments.bytes,&address,8);
+#if SCENE_RASTER_BYTES > 8
     for(unsigned i=0;i<(SCENE_RASTER_BYTES-8)/4;++i) {
         uint32_t delta=changed;
 #ifdef ARGUMENT_PATCH_PAYLOAD
@@ -31,6 +32,7 @@ static void set_arguments(unsigned changed) {
         uint32_t value=i+1+delta;
         memcpy(arguments.bytes+8+4*i,&value,4);
     }
+#endif
 }
 
 #ifdef ARGUMENT_NATIVE

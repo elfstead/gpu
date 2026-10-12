@@ -118,8 +118,37 @@ native/ABI20 snapshot references pass at `5a43b6e` on both drivers. Foundation
 recompiles and inspects the exact same binaries, including full root layout,
 required features, stage linkage and device inline-size limits.
 
-Call-time snapshot/partial-word-update consumers still need their foundation
-migration; this bind-once/resupply run does not claim their separate acceptance.
+## Call-time snapshots and partial words
+
+`argument_snapshot.py --foundation` now compares the foundation snapshot caller
+with direct Vulkan at 8/64/256 bytes. Four outputs preserve equal/equal/changed/equal
+values in one recording. The host argument array is poisoned immediately after
+each `set_inline`, before even recording its draw, then zeroed before submission.
+Changed pointers and every payload word remain observable. Both drivers pass
+full native byte equality and the independent color/depth/guard oracle.
+
+Foundation errors are sticky recording errors, not ABI20's recoverable draw
+rejections. This fixture deliberately makes eight misaligned inline updates in
+eight separate recordings, requires `commands_end` to reject each with no list,
+resets the arena, then records valid work. It does not retry within a poisoned
+encoder or pretend the two error contracts are identical.
+
+`argument_patch.py --foundation --snapshots CLEAN_REPORT` compares native and
+foundation full updates with explicit four-byte updates at 64/256 bytes. The changed
+word affects only color; pointer/geometry/depth remain unchanged. Full foundation
+updates emit eight full raster pushes, while partial mode emits four full roots
+and one four-byte update. Native traces check exact offsets and byte counts, eight
+draws, four scopes, ten balanced allocations, one arena and only two submissions
+(initial upload and valid work). Rejected recordings never reach a native end or
+submission. Both drivers pass all four strategies for both sizes; this is not timing.
+The five foundation C variants (three snapshot sizes and two partial-update sizes)
+also execute under ASan/UBSan on both drivers, with no validation/synchronization
+errors. LeakSanitizer is disabled; this is not a runtime-wide sanitizer claim.
+
+Clean foundation snapshot reports can now seed the argument-reuse controls without
+requiring a new ABI20 execution. Historical installed controls remain explicitly
+selectable while their remaining consumers/diagnostics are audited for retirement.
+
 Generated interfaces and independent SDK packaging for this range caller remain separate
 work; the packaged foundation scene currently covers the simpler two-record
 reset/replay workload. Historical performance results, native Metal parity, general

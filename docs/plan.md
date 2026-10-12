@@ -254,7 +254,9 @@ count clamping. One/two-slot range reset/replay and per-draw render scopes also
 run through foundation, preserving bindings across scopes with explicit arena
 retirement and failure cleanup. Explicit argument bind-once/resupply also matches
 native push counts/bytes and changing draw order, without runtime deduplication.
-Call-time snapshot/partial-word consumers and range SDK packaging still need migration; historical
+Call-time snapshot and four-byte partial-update consumers now also pass native
+byte/range checks, with sticky invalid recordings rejected before submission.
+Generated range interfaces/SDK packaging and legacy-control retirement remain; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

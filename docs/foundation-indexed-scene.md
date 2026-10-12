@@ -82,7 +82,8 @@ This ports the fresh-recording scene and its generated handoff. The subsequent
 its generated control-pointer interfaces and independent handoff are included.
 The [fresh range/count/identity caller](foundation-indexed-ranges.md) is also
 migrated, including slot reset/replay, per-draw scopes and explicit argument
-bind-once/resupply. Snapshot/partial-word consumers and timing controls still retain migration work.
+bind-once/resupply, call-time snapshots and partial-word updates. Generated range
+interfaces/SDK packaging and historical control/timing retirement remain.
 Retire redundant historical controls at their last dependency,
 then finish default SDK cutover. No native Metal or second physical GPU result is claimed.
 

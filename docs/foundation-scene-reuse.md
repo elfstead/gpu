@@ -88,6 +88,7 @@ on both local drivers. The package has no native trace or timing dependency.
 The [fresh-recording range/count/identity caller](foundation-indexed-ranges.md)
 now also uses foundation, including slot replay and per-draw render scopes.
 Argument bind-once/resupply also matches native through explicit inline updates.
-Next migrate snapshot/partial-word controls, retiring historical callers at their last dependency. These remain
-separate ABI20 workflows; this does not complete default SDK cutover or broader
+Snapshot/partial-word controls now also pass foundation/native byte and update-range
+checks. Next package generated range interfaces and retire historical callers at
+their last dependency. This does not complete default SDK cutover or broader
 graphics coverage.

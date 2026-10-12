@@ -101,7 +101,8 @@ def prepare(native_path,snapshot_path,out):
         require(run['device']==device,'snapshot/reference device mismatch');limits.append(run['limit']['max_push_data_bytes'])
     require(len(limits)>=2 and len(set(limits))==1,'inconsistent snapshot limits')
     sizes=[n for n in snapshot.SIZES if n<=limits[0]]
-    require({(r['bytes'],r['backend']) for r in snap['runs']}=={(n,b) for n in sizes for b in ('native','public')},'incomplete supported snapshot matrix')
+    snapshot_public='foundation' if snap.get('api')=='foundation' else 'public'
+    require({(r['bytes'],r['backend']) for r in snap['runs']}=={(n,b) for n in sizes for b in ('native',snapshot_public)},'incomplete supported snapshot matrix')
     serial=Path(serials[(257,193)]['directory'])
     for capacity,case in cases.items():
         for frame in f.frames(capacity):

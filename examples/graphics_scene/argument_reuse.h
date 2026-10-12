@@ -20,9 +20,11 @@ static uint64_t argument_calls,argument_bytes;
 #endif
 static void argument_prepare(uint64_t *root,uint64_t address) {
     memcpy(root,&address,8);
+#if SCENE_RASTER_BYTES > 8
     for(unsigned i=0;i<(SCENE_RASTER_BYTES-8)/4;++i) {
         uint32_t value=i+1;memcpy((unsigned char *)root+8+4*i,&value,4);
     }
+#endif
 }
 static unsigned argument_index(unsigned i,unsigned capacity) {
     return argument_reverse ? capacity-1-i : i;
