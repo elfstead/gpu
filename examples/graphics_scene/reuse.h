@@ -48,7 +48,8 @@ static int reuse_file(const char *directory, unsigned mode, unsigned frame, cons
     FILE *f=fopen(path,"rb"); if(!f) { perror(path); return 0; }
     *out=malloc(bytes);
     int okay=*out && fread(*out,1,bytes,f)==bytes && fgetc(f)==EOF && !ferror(f);
-    if(fclose(f)) okay=0; return okay;
+    if(fclose(f)) okay=0;
+    return okay;
 }
 static int reuse_reference(Reuse *r) {
     for(unsigned i=0;i<3;++i) {

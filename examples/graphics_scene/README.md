@@ -9,6 +9,10 @@ reuse/frontier controls have not yet migrated. `--generated` selects the generat
 foundation caller with identical native shader bytes; the opt-in SDK exports its
 independent handoff as `foundation-indexed-scene`.
 
+`reuse.py --foundation` now selects the explicit one/two-slot reset/replay caller;
+see its [migration and failure checks](../../docs/foundation-scene-reuse.md).
+The historical default and the separate range/frontier controls are unchanged.
+
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,
 allocation sizes, guarded GPU-generated data and scene modes. Existing native

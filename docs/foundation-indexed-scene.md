@@ -76,11 +76,11 @@ checks exercise public-only header dependencies, actual loaded-library selection
 and incomplete missing-loader reports. The shared acceptance code takes an explicit
 foundation profile; it cannot accept an installed-ABI log as foundation evidence.
 
-This ports the fresh-recording scene and its generated handoff, not the separate
-range/frontier/reuse and timing controls. Those still retain ABI20 dependencies.
-Next migrate useful replay/application workflows and retire redundant historical
-controls, then finish default SDK cutover. No native Metal or second physical GPU
-result is claimed.
+This ports the fresh-recording scene and its generated handoff. The subsequent
+[reset/replay caller](foundation-scene-reuse.md) also migrates one/two-slot reuse;
+its generated handoff, separate range/frontier and timing controls still retain
+migration work. Retire redundant historical controls at their last dependency,
+then finish default SDK cutover. No native Metal or second physical GPU result is claimed.
 
 ## Local checkpoint — 2026-10-12
 

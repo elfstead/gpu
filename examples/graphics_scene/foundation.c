@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(SCENE_GENERATED) && defined(SCENE_REUSE_CONSUMER)
+#error Reuse needs a control-pointer shader interface, not the fresh-frame generated roots
+#endif
 #ifdef SCENE_GENERATED
 #include <foundation_scene_prepare.generated.h>
 #include <foundation_scene_prepare16.generated.h>
@@ -15,7 +18,7 @@
 #define GPU(x) do { ogpu_next_status status_=(x); if(status_!=OGPU_NEXT_OK) { \
     fprintf(stderr,"%s: status=%" PRId32 "\n",#x,status_); return 0; } } while(0)
 enum { GUARD=64 };
-enum { VERTICES, INDICES, DRAWS, UPLOAD, READBACK, GEOMETRY, BUFFER_COUNT };
+enum { VERTICES, INDICES, DRAWS, UPLOAD, READBACK, GEOMETRY, CONTROL, BUFFER_COUNT };
 typedef struct { uint64_t vertices, indices, draws; uint32_t phase, empty; } SceneRoot;
 _Static_assert(sizeof(SceneRoot)==32 && offsetof(SceneRoot,phase)==24,"compute layout");
 _Static_assert(sizeof(ogpu_next_draw_indexed_arguments)==20,"indirect layout");
@@ -38,6 +41,9 @@ typedef struct {
     size_t pixels;
     int pending;
     SceneRoot root;
+#ifdef SCENE_REUSE_CONSUMER
+    uint64_t reuse_root[4];
+#endif
     void *code[3]; uint64_t code_size[3];
 } Scene;
 static ogpu_next_query query(uint32_t kind,void *data,uint32_t count,uint32_t size) {
@@ -141,6 +147,9 @@ static int context(Scene *s,const char *directory) {
         gs.depth_test=i!=1; gs.depth_write=i!=2; gs.depth_compare=i==3 ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_LESS;
         GPU(ogpu_next_executable_create(s->device,&ed,&s->raster[i]));
     }
+    return 1;
+}
+static int storage(Scene *s) {
     GPU(ogpu_next_barrier_scratch_requirements(0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(1,&s->render_scratch));
     GPU(ogpu_next_submit_scratch_requirements(1,0,1,&s->submit_scratch));
     NEED(s->barrier_scratch.alignment<=_Alignof(max_align_t) && s->render_scratch.alignment<=_Alignof(max_align_t) && s->submit_scratch.alignment<=_Alignof(max_align_t));
@@ -229,16 +238,19 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
     }
     ogpu_next_render_end(s->encoder);
 }
+#ifndef SCENE_REUSE_CONSUMER
 static int write_output(const char *directory,unsigned mode,unsigned frame,const char *suffix,const void *bytes,size_t count) {
     char path[4096]; int n=snprintf(path,sizeof(path),"%s/mode-%u-frame-%u.%s",directory,mode,frame,suffix); NEED(n>=0 && n<(int)sizeof(path));
     FILE *f=fopen(path,"wb"); if(!f) { perror(path); return 0; }
     int okay=fwrite(bytes,1,count,f)==count && !ferror(f); if(fclose(f)) okay=0; return okay;
 }
-static int frame(Scene *s,unsigned mode,unsigned frame,const char *directory) {
-    NEED(begin(s)); s->root.phase=frame==1; s->root.empty=mode==9;
+#endif
+static void commands(Scene *s,unsigned mode) {
     dependency(s,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ|OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_SHADER_WRITE);
     ogpu_next_bind_executable(s->encoder,s->prepare);
-#ifdef SCENE_GENERATED
+#ifdef SCENE_REUSE_CONSUMER
+    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(s->reuse_root),s->reuse_root);
+#elif defined(SCENE_GENERATED)
     if(s->index_bytes==2) {
         const Scene_prepare16Arguments args={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
             .arg_draws=s->root.draws,.arg_phase=s->root.phase,.arg_empty=s->root.empty};
@@ -271,23 +283,31 @@ static int frame(Scene *s,unsigned mode,unsigned frame,const char *directory) {
     uint64_t offset=0;
     for(unsigned i=VERTICES;i<=DRAWS;++i) { ogpu_next_copy_memory(s->encoder,span(s,GEOMETRY,offset,s->sizes[i]),span(s,i,0,s->sizes[i])); offset+=s->sizes[i]; }
     dependency(s,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ);
+}
+#ifndef SCENE_REUSE_CONSUMER
+static int frame(Scene *s,unsigned mode,unsigned frame,const char *directory) {
+    NEED(begin(s)); s->root.phase=frame==1; s->root.empty=mode==9; commands(s,mode);
     NEED(submit_wait(s));
     GPU(ogpu_next_memory_invalidate(span(s,READBACK,0,s->sizes[READBACK]))); GPU(ogpu_next_memory_invalidate(span(s,GEOMETRY,0,584)));
     NEED(write_output(directory,mode,frame,"images",s->maps[READBACK].data,s->sizes[READBACK]) && write_output(directory,mode,frame,"geometry",s->maps[GEOMETRY].data,584));
     printf("SCENE_FRAME {\"mode\":%u,\"phase\":%u,\"frame\":%u}\n",mode,frame==1,frame); return 1;
 }
-static void destroy(Scene *s) {
+#endif
+static void destroy_resources(Scene *s) {
     if(s->pending) { fputs("Unknown foundation scene completion; refusing unsafe teardown\n",stderr); _Exit(EXIT_FAILURE); }
     if(s->encoder) ogpu_next_commands_cancel(s->encoder);
     ogpu_next_arena_destroy(s->arena); ogpu_next_timeline_destroy(s->done);
-    for(unsigned i=0;i<4;++i) ogpu_next_executable_destroy(s->raster[i]);
-    ogpu_next_executable_destroy(s->prepare);
     for(unsigned i=0;i<2;++i) { ogpu_next_view_destroy(s->views[i]); ogpu_next_image_destroy(s->images[i]); ogpu_next_memory_destroy(s->backing[i]); }
-    for(unsigned i=0;i<BUFFER_COUNT;++i) ogpu_next_memory_destroy(s->buffers[i]);
-    ogpu_next_device_destroy(s->device); ogpu_next_discovery_destroy(s->discovery);
-    for(unsigned i=0;i<3;++i) free(s->code[i]);
+    for(unsigned i=0;i<BUFFER_COUNT;++i) if(s->buffers[i]) ogpu_next_memory_destroy(s->buffers[i]);
     free(s->bs); free(s->rs); free(s->ss);
 }
+static void destroy_context(Scene *s) {
+    for(unsigned i=0;i<4;++i) ogpu_next_executable_destroy(s->raster[i]);
+    ogpu_next_executable_destroy(s->prepare);
+    ogpu_next_device_destroy(s->device); ogpu_next_discovery_destroy(s->discovery);
+    for(unsigned i=0;i<3;++i) free(s->code[i]);
+}
+#ifndef SCENE_REUSE_CONSUMER
 int main(int argc,char **argv) {
     if(argc!=5 && argc!=6) return 1;
     Scene s={.index_bytes=4}; int okay=0;
@@ -297,9 +317,12 @@ int main(int argc,char **argv) {
     else if(!strcmp(argv[1],"1280") && !strcmp(argv[2],"720")) { s.width=1280; s.height=720; }
     else return 1;
     s.pixels=(size_t)s.width*s.height*4;
-    if(!context(&s,argv[3]) || !resources(&s)) goto done;
+    if(!context(&s,argv[3]) || !storage(&s) || !resources(&s)) goto done;
     for(unsigned mode=0;mode<10;++mode) for(unsigned f=0;f<3;++f) if(!frame(&s,mode,f,argv[4])) goto done;
     okay=1;
 done:
-    destroy(&s); if(okay) puts("Public indexed/depth frames drained; CPU oracle must independently accept outputs"); return !okay;
+    destroy_resources(&s); destroy_context(&s);
+    if(okay) puts("Public indexed/depth frames drained; CPU oracle must independently accept outputs");
+    return !okay;
 }
+#endif
