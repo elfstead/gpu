@@ -54,3 +54,18 @@ complete/incomplete status in fresh `run-*` directories, including failed runs.
 Enable `VK_LAYER_KHRONOS_validation` and synchronization validation when installed
 to collect validated evidence. This handoff uses local tools/driver caches; it is
 not a clean-machine, universal-binary or outside-adoption claim.
+
+For separate cost observations, after correctness acceptance:
+
+```sh
+env -u VK_INSTANCE_LAYERS -u VK_LAYER_VALIDATE_SYNC \
+    VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation \
+    VK_DRIVER_FILES=/path/to/selected/icd.json python3 measure.py
+```
+
+This measures both placements (or choose `--placement device`), records every
+sample and SDK/source/device identity, and reruns numerical checks outside timed
+intervals. Nine samples of ten synchronous graph calls follow two warmups. Costs
+include graph preflight/record/submit/wait/reset, not transfer or GPU-only timing.
+Allocation bytes exclude runtime objects, CPU tokens and transfer staging. No
+native-performance equivalence or model-quality guarantee follows from these data.

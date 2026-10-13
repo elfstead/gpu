@@ -221,7 +221,7 @@ def install(prefix, *, legacy=False):
                  "dataset.sha256","fixtures/mnist-fc-f32.gguf","fixtures/SHA256SUMS","fixtures/README.md",
                  "shaders/element.comp.spv","shaders/matrix.comp.spv","shaders/matrix-f16.comp.spv","shaders/block.comp.spv","shaders/matrix-q8.comp.spv"):
         copy(ROOT / "integrations/ggml" / name,f"{ggml}/{name}")
-    for name in ("build.py","run.py","README.md"):
+    for name in ("build.py","run.py","measure.py","README.md"):
         copy(ROOT / "tools/sdk/ggml" / name,f"{ggml}/{name}")
     placebo = "share/ogpu/examples/foundation-libplacebo"
     for name in ("backend.c","backend.h","backend-tests.c","consumer.c","stream.c","perf.c",

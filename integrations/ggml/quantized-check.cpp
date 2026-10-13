@@ -153,6 +153,7 @@ int main(int argc,char **argv) {
         size_t end=0;auto index=std::stoul(argv[2],&end);require(end==std::strlen(argv[2])&&index<=UINT32_MAX,"bad device index");
         const uint16_t endian=1;require(*reinterpret_cast<const unsigned char *>(&endian)==1,"fixture requires little endian");
         OgpuGgmlSession session(uint32_t(index),argv[1],placement=="host"?OgpuGgmlMemory::Host:OgpuGgmlMemory::Device,OgpuGgmlProfile::QuantizedLinear);
+        std::printf("ML_DEVICE %s\n",session.device_description());
         const int shapes[][3]={{32,1,1},{32,11,3},{64,13,17},{96,17,5},{256,128,64}};
         for (const auto &shape:shapes) for (auto type:{GGML_TYPE_F32,GGML_TYPE_F16,GGML_TYPE_Q8_0})
             check(session,shape[0],shape[1],shape[2],type,timing);

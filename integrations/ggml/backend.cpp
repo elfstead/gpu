@@ -394,6 +394,7 @@ struct OgpuGgmlSession::Impl {
 };
 uint64_t OgpuGgmlSession::dispatch_count() const { return impl->state->dispatches; }
 OgpuGgmlStats OgpuGgmlSession::stats() const { return impl->state->stats; }
+const char *OgpuGgmlSession::device_description() const { return impl->state->description.c_str(); }
 
 OgpuGgmlSession::~OgpuGgmlSession() {
     if (impl->state.use_count() != 1) {

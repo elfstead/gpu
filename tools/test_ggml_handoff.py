@@ -4,10 +4,14 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 sys.dont_write_bytecode = True
 spec = importlib.util.spec_from_file_location("handoff",Path(__file__).parent / "sdk/ggml/run.py")
 handoff = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(handoff)
+spec = importlib.util.spec_from_file_location("measure",Path(__file__).parent / "sdk/ggml/measure.py")
+measure = importlib.util.module_from_spec(spec)
+with patch.dict(sys.modules,{'run':handoff}): spec.loader.exec_module(measure)
 
 
 class DigestTests(unittest.TestCase):
@@ -62,6 +66,27 @@ class QuantizedReceiptTests(unittest.TestCase):
                     '\n'.join(lines[1:]),valid+'\n'+lines[-1]):
             with self.subTest(bad=bad[:80]):
                 with self.assertRaises(ValueError):handoff.verify_quantized(bad,'device')
+
+
+class MeasurementTests(unittest.TestCase):
+    def test_complete_and_malformed(self):
+        for kind,shapes,precisions in (
+            ('transformer',((1,1,1),(13,29,3),(13,29,17),(64,128,16),(65,129,17)),('f32','f16')),
+            ('linear',((32,1,1),(32,11,3),(64,13,17),(96,17,5),(256,128,64)),('f32','f16','q8'))):
+            lines=[]
+            keys=('d','h','t') if kind=='transformer' else ('k','m','n')
+            for shape in shapes:
+                for precision in precisions:
+                    identity=f'kind={kind} '+ ' '.join(f'{key}={value}' for key,value in zip(keys,shape))+f' precision={precision}'
+                    lines.extend([f'ml_samples {identity} per_graph_ms=1,2,3,4,5,6,7,8,9',
+                        f'ml_timing {identity} warmups=2 samples=9 iterations=10 min_ms=1 median_ms=5 max_ms=9 items_per_s={shape[2]*200} allocation_bytes=2000 weight_bytes=1000'])
+            valid='\n'.join(lines)
+            self.assertEqual(len(measure.verify_timing(valid,kind)),len(shapes)*len(precisions))
+            for bad in ('',valid.replace('median_ms=5','median_ms=4',1),valid.replace('items_per_s=200','items_per_s=201',1),
+                        valid.replace('1,2,3,4,5,6,7,8,9','1,2,3,4,5,6,7,8,nan',1),
+                        valid.replace('samples=9','samples=8',1),'\n'.join(lines[1:]),valid+'\n'+lines[-1]):
+                with self.subTest(kind=kind,bad=bad[:80]):
+                    with self.assertRaises(ValueError):measure.verify_timing(bad,kind)
 
 
 if __name__ == "__main__": unittest.main()

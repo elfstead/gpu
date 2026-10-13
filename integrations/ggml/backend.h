@@ -24,6 +24,7 @@ class OgpuGgmlSession {
     OgpuGgmlSession &operator=(const OgpuGgmlSession &) = delete;
     uint64_t dispatch_count() const;
     OgpuGgmlStats stats() const;
+    const char *device_description() const;
 
   private:
     struct Impl;

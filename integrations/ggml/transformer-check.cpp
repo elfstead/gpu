@@ -220,6 +220,7 @@ int main(int argc,char **argv) {
         const std::string placement=argv[3];require(placement=="host"||placement=="device","bad placement");
         size_t end=0;auto index=std::stoul(argv[2],&end);require(end==std::strlen(argv[2])&&index<=UINT32_MAX,"bad device index");
         OgpuGgmlSession session(uint32_t(index),argv[1],placement=="host"?OgpuGgmlMemory::Host:OgpuGgmlMemory::Device,OgpuGgmlProfile::Transformer);
+        std::printf("ML_DEVICE %s\n",session.device_description());
         const int shapes[][3]={{1,1,1},{13,29,3},{13,29,17},{64,128,16},{65,129,17}};
         for (const auto &shape:shapes) {
             const auto f32=check(session,shape[0],shape[1],shape[2],false,timing);
