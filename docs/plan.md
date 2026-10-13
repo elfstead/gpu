@@ -24,12 +24,20 @@ The coordinated tranche has implemented the core records/native mappings,
 explicit resource/command ownership and common graphics/compute surface described
 below. The foundation SDK is now default and runs independently of legacy
 execution. Next advance the remaining M4 textured/mipmapped/blended scene and M5
-transformer/quantized-linear consumer integration against this surface; retire
+transformer/quantized-linear consumer integration against this surface; the
+[integrated textured scene brief](textured-scene-plan.md) fixes the next graphics
+workload, independent oracle and numerical gates before execution. Retire
 remaining legacy callers as their workflows move over. Commit at dependency
 boundaries, without requiring a separate benchmark campaign to justify each
 structurally useful capability. Optional specialized hardware modules still need
 concrete extension specifications and implementation. None of this marks M4/M5,
 native Metal parity or the full combined surface sketch complete.
+
+The integrated textured consumer now runs all six mip/view/filter/blend cases
+through the existing foundation on both local drivers, with exact geometry,
+independent pixel/depth checks, A/B/A updates and four failure-lifetime controls.
+Its direct-Vulkan comparison and independent SDK handoff are the next M4 tasks;
+the old untextured native evidence does not establish them.
 
 Implementation started: [foundation implementation](foundation-implementation.md) now has
 concrete query records, explicit queue creation, independent timeline handles,

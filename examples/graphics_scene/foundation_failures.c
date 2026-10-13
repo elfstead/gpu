@@ -3,6 +3,8 @@
 #define main scene_main
 #ifdef SCENE_FOUNDATION_FRONTIER_FAILURES
 #include "frontier_foundation.c"
+#elif defined(SCENE_TEXTURE_FAILURES)
+#include "textured.c"
 #else
 #include "foundation.c"
 #endif
@@ -47,6 +49,8 @@ void __wrap_ogpu_next_device_destroy(ogpu_next_device *d) {
 int main(int argc,char **argv) {
 #ifdef SCENE_FOUNDATION_FRONTIER_FAILURES
     if(argc!=8) return 2;
+#elif defined(SCENE_TEXTURE_FAILURES)
+    if(argc!=5) return 2;
 #else
     if(argc!=7) return 2;
 #endif

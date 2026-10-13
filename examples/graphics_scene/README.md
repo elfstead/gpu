@@ -1,5 +1,13 @@
 # M4 matched indexed/depth scene
 
+The next [integrated textured scene](../../docs/textured-scene-plan.md) is
+`textured.py`: GPU-generated indexed/depth geometry plus mipmapped sampling,
+restricted image views, blending and viewport/scissor changes. `--check` builds
+and tests its oracle without a GPU; normal execution checks the foundation
+consumer's image/geometry/guard and failure receipts, with `--scale` adding 720p.
+Its direct-Vulkan comparison is still pending; do not relabel these results as
+matched-native or complete M4 acceptance.
+
 The [foundation migration](../../docs/foundation-indexed-scene.md) adds
 `run.py --public` (also accepted as `--foundation`), with the same native shaders and acceptance gates but
 explicit memory, views, arena/timeline ownership and dependencies. It also checks

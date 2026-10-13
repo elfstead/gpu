@@ -62,8 +62,8 @@ branches and their unused hooks in `public.c` are removed. Use checkpoint
 timing suite). Native controls and historical receipt parsing remain unchanged;
 the build helper explicitly rejects retired `public`/`public-current` targets.
 
-`public.c` and its generated headers still support the installed basic indexed
-scene and `run.py --public`. The ABI20 SDK/runtime has other consumers too. Do
+`public.c` and its generated headers still support the explicit legacy SDK scene,
+but no longer `run.py --public`. The ABI20 SDK/runtime has other consumers too. Do
 not remove shared old runtime code until those consumers are migrated or retired.
 
 Cutover verification: both local drivers pass all six default runners without

@@ -12,6 +12,13 @@ two permanent runtimes. Earlier source-only receipts below describe their checkp
 
 ## Implemented setup
 
+The [integrated M4 textured consumer](textured-scene-plan.md) now exercises
+GPU-generated indexed/depth geometry together with mipmapped sampling, restricted
+views, filtering, blending and viewport/scissor changes through the existing API.
+Both local drivers pass its initial independent pixel/geometry/guard and teardown
+checks. Direct-Vulkan comparison and independent SDK export remain; this is not
+a new runtime feature, performance result or complete M4 acceptance.
+
 - Immutable discovery snapshot with borrowed adapter handles. Created devices
   retain the native connection, not discovery or a global current context.
 - Concrete versioned records for identity, queue domains/counts/granularity,

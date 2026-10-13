@@ -27,7 +27,16 @@ _Static_assert(SCENE_RASTER_BYTES>=8 && SCENE_RASTER_BYTES<=4096 && SCENE_RASTER
 #include <foundation_scene_prepare.generated.h>
 #include <foundation_scene_prepare16.generated.h>
 #endif
+#ifdef SCENE_TEXTURE_CONSUMER
+#include <textured_scene.generated.h>
+#define scene_pair_required_features textured_scene_required_features
+#define scene_pair_compatible textured_scene_compatible
+#define scene_pair_shaders textured_scene_shaders
+#define scene_pair_requirements textured_scene_requirements
+#define scene_pair_push_size textured_scene_push_size
+#else
 #include <foundation_scene_pair.generated.h>
+#endif
 #endif
 #endif
 #define HEADER(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
@@ -201,6 +210,10 @@ static int context(Scene *s,const char *directory) {
 #endif
     GPU(ogpu_next_executable_create(s->device,&ed,&s->prepare));
     ogpu_next_color_state color={OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
+#ifdef SCENE_TEXTURE_CONSUMER
+    color.blend=1; color.src_color=OGPU_NEXT_BLEND_SRC_ALPHA;
+    color.dst_color=color.dst_alpha=OGPU_NEXT_BLEND_ONE_MINUS_SRC_ALPHA;
+#endif
     ogpu_next_graphics_state gs={HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,
         OGPU_NEXT_FRONT_CCW,1,1,&color,OGPU_NEXT_D32_FLOAT,1,1,OGPU_NEXT_COMPARE_LESS,{0},0,{0},{0},NULL,NULL,0,0};
 #ifdef SCENE_GENERATED
@@ -214,8 +227,13 @@ static int context(Scene *s,const char *directory) {
 #endif
     ed.kind=OGPU_NEXT_EXECUTABLE_GRAPHICS; ed.shader_count=2; ed.shaders=&shaders[1]; ed.static_state=&gs.header;
     ed.dynamic_state=OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR;
+#ifdef SCENE_TEXTURE_CONSUMER
+    for(unsigned i=0;i<2;++i) {
+        gs.depth_test=gs.depth_write=i==0;
+#else
     for(unsigned i=0;i<4;++i) {
         gs.depth_test=i!=1; gs.depth_write=i!=2; gs.depth_compare=i==3 ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_LESS;
+#endif
         GPU(ogpu_next_executable_create(s->device,&ed,&s->raster[i]));
     }
     return 1;
@@ -293,6 +311,7 @@ static int resources(Scene *s) {
     dependency(s,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_READ);
     return submit_wait(s);
 }
+#ifndef SCENE_TEXTURE_CONSUMER
 static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float clear,unsigned first,unsigned count) {
     ogpu_next_attachment color={s->views[0],NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,color_load ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
     ogpu_next_attachment depth={s->views[1],NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,depth_load ? OGPU_NEXT_LOAD : OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={clear,0}}};
@@ -362,6 +381,7 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #endif
     ogpu_next_render_end(s->encoder);
 }
+#endif
 #ifndef SCENE_REUSE_CONSUMER
 static int write_output(const char *directory,unsigned mode,unsigned frame,const char *suffix,const void *bytes,size_t count) {
     char path[4096]; int n=snprintf(path,sizeof(path),"%s/mode-%u-frame-%u.%s",directory,mode,frame,suffix); NEED(n>=0 && n<(int)sizeof(path));
@@ -369,6 +389,7 @@ static int write_output(const char *directory,unsigned mode,unsigned frame,const
     int okay=fwrite(bytes,1,count,f)==count && !ferror(f); if(fclose(f)) okay=0; return okay;
 }
 #endif
+#ifndef SCENE_TEXTURE_CONSUMER
 static void commands(Scene *s,unsigned mode) {
     dependency(s,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ|OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_SHADER_WRITE);
     ogpu_next_bind_executable(s->encoder,s->prepare);
@@ -445,6 +466,7 @@ static int frame(Scene *s,unsigned mode,unsigned frame,const char *directory) {
     printf("SCENE_FRAME {\"mode\":%u,\"phase\":%u,\"frame\":%u}\n",mode,frame==1,frame); return 1;
 }
 #endif
+#endif /* !SCENE_TEXTURE_CONSUMER */
 static void destroy_resources(Scene *s) {
     if(s->pending) { fputs("Unknown foundation scene completion; refusing unsafe teardown\n",stderr); _Exit(EXIT_FAILURE); }
     if(s->encoder) ogpu_next_commands_cancel(s->encoder);
@@ -459,7 +481,7 @@ static void destroy_context(Scene *s) {
     ogpu_next_device_destroy(s->device); ogpu_next_discovery_destroy(s->discovery);
     for(unsigned i=0;i<3;++i) free(s->code[i]);
 }
-#ifndef SCENE_REUSE_CONSUMER
+#if !defined(SCENE_REUSE_CONSUMER) && !defined(SCENE_TEXTURE_CONSUMER)
 int main(int argc,char **argv) {
     if(argc!=5 && argc!=6) return 1;
     Scene s={.index_bytes=4}; int okay=0;
