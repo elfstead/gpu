@@ -46,6 +46,13 @@ unchanged. Historical plans describe their then-current workflow; the current
 
 ## Remaining cutover
 
+The basic `run.py --public` now selects foundation too; `--foundation` is an
+alias and `--generated` selects its typed interfaces. The runner has no ABI20
+execution branch. `generated.py` defaults to foundation; explicit `--api installed`
+still builds the optional legacy SDK's `public.c`/`generated.c` sources. Both
+generation profiles choose their Cargo runtime features explicitly. Historical
+raw ABI20 scene execution remains reproducible from `ea1e9cc` and earlier commits.
+
 Follow-up cutover (2026-10-13): `reuse.py`, `ranges.py`, `range_reuse.py`,
 `argument_snapshot.py`, `argument_reuse.py` and `argument_patch.py` now execute
 foundation unconditionally. `--foundation` remains a harmless compatibility

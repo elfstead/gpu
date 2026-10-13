@@ -1,11 +1,10 @@
 # M4 matched indexed/depth scene
 
 The [foundation migration](../../docs/foundation-indexed-scene.md) adds
-`run.py --foundation`, with the same native shaders and acceptance gates but
+`run.py --public` (also accepted as `--foundation`), with the same native shaders and acceptance gates but
 explicit memory, views, arena/timeline ownership and dependencies. It also checks
-recording/submission failure and unknown-completion teardown. `--public` alone
-still selects the historical installed caller described below. `--generated` selects the generated
-foundation caller with identical native shader bytes; the opt-in SDK exports its
+recording/submission failure and unknown-completion teardown. `--generated` selects the generated
+foundation caller with identical native shader bytes; the default SDK exports its
 independent handoff as `foundation-indexed-scene`.
 
 `reuse.py --foundation` now selects the explicit one/two-slot reset/replay caller;
@@ -28,12 +27,15 @@ scope acceptance without a checkout, compiler or earlier reports.
 The six replay/range/argument runners now select foundation unconditionally;
 `--foundation` is accepted only as a compatibility spelling. Their old ABI20
 callers and unused branches are removed, not retained as fallbacks. Historical
-receipt parsers remain for old evidence. The basic `run.py --public` and installed
-generated scene are still ABI20 until SDK cutover.
+receipt parsers remain for old evidence. The basic `run.py --public` now also selects
+foundation, with no ABI20 branch; both raw and generated paths build the runtime
+without legacy features. Plain `run.py` still checks the native control alone.
+`generated.py` defaults to foundation; explicit `--api installed` retains generation
+for the optional legacy SDK. `public.c`/`generated.c` remain only for that workflow.
 The old range/argument timing suite and ABI20 replay-failure runner are
 [retired with Git replay instructions](../../docs/graphics-scene-diagnostic-retirement.md).
 Recorded results and native correctness controls remain; this does not remove the
-default installed scene or claim new foundation timing.
+explicit legacy SDK scene or claim new foundation timing.
 
 The direct Vulkan control links only libc/libdl. Its ABI-19 public counterpart
 includes only `ogpu.h` and standard C headers. Both use identical shader binaries,
@@ -293,11 +295,12 @@ remain historical evidence; use the separate-worktree
 [replay instructions](../../docs/graphics-scene-diagnostic-retirement.md), not the
 current foundation correctness runner, to reproduce it.
 
-### Generated installed scene
+### Generated scene and explicit legacy compatibility
 
 `python3 examples/graphics_scene/generated.py [--check]` generates/verifies the
-UINT16/UINT32 compute headers and checked graphics pair, then builds `generated.c`.
-It selects the typed-root branch of the same public renderer. The installed
+foundation compute/graphics headers and builds its fresh, replay and range consumers.
+`--api installed` explicitly selects the historical UINT16/UINT32 headers and
+`generated.c` instead. An SDK built with `tools/install.py --legacy` includes the
 `share/ogpu/examples/indexed-scene` directory includes everything needed for C11/
 pkg-config/Python consumption, without Slang, Vulkan headers or a checkout.
 Run its `build.py --output scene` and `run.py`; see its README for regeneration.

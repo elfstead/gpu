@@ -1,8 +1,10 @@
 # Foundation indexed/depth scene
 
 The matched scene now has a public-only `ogpu_next.h` caller alongside the
-unchanged direct Vulkan reference and historical installed-API caller. Select it
-with `python3 examples/graphics_scene/run.py --foundation` (`--public` is implied).
+unchanged direct Vulkan reference. Select it with
+`python3 examples/graphics_scene/run.py --public` (`--foundation` remains an alias).
+The runner no longer selects ABI20; its raw/generated public paths build without
+legacy runtime features. Historical ABI20 sources remain for the explicit legacy SDK.
 `--check` compiles and runs host oracle/runner checks without using a GPU;
 `--scale` includes 1280x720. Shader compilation needs the existing pinned Slang
 toolchain and SPIRV-Tools. Execution needs one selected ICD and synchronization
@@ -10,7 +12,8 @@ validation, just as the original control does.
 
 `--generated` implies `--foundation` and selects compiler-generated typed roots,
 capability checks, executable requirements and the linked graphics argument bank.
-`generated.py --api foundation --check` reproduces the committed headers. The
+`generated.py --check` defaults to foundation and reproduces the committed headers;
+legacy SDK regeneration must explicitly select `--api installed`. The
 acceptance runner rejects stale generated files and requires their embedded SPIR-V
 to match the native control byte-for-byte. Independent runs use separate compiler
 output directories.

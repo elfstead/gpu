@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the native M4 reference, optionally matched against ABI20 or foundation."""
+"""Validate the native M4 reference, optionally matched against foundation."""
 import argparse
 import hashlib
 import json
@@ -71,18 +71,22 @@ def check_failure(mode,code,stdout,stderr,allocations=8,frame_prefix='SCENE_FRAM
                          'unsafe teardown order')
 
 
-def main():
+def arguments(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
     parser.add_argument('--scale',action='store_true')
-    parser.add_argument('--public',action='store_true',help='also build/run public API consumer and require exact native agreement')
-    parser.add_argument('--foundation',action='store_true',help='use the foundation consumer (implies --public)')
-    parser.add_argument('--generated',action='store_true',help='use checked generated foundation interfaces (implies --foundation)')
+    parser.add_argument('--public',action='store_true',help='also build/run foundation and require exact native agreement')
+    parser.add_argument('--foundation',action='store_true',help=argparse.SUPPRESS)
+    parser.add_argument('--generated',action='store_true',help='use checked generated foundation interfaces (implies --public)')
     parser.add_argument('--index16',action='store_true',help='generate and bind UINT16 instead of UINT32 indices')
     parser.add_argument('--reference32',type=Path,help='accepted matched UINT32 report; required for UINT16 GPU acceptance')
-    args=parser.parse_args()
-    if args.generated: args.foundation=True
-    if args.foundation: args.public=True
+    args=parser.parse_args(argv)
+    if args.foundation or args.generated: args.public=True
+    return args
+
+
+def main():
+    args=arguments()
     build=ROOT/'target/graphics-scene';build.mkdir(parents=True,exist_ok=True)
     dest=Path(tempfile.mkdtemp(prefix='matched-' if args.public else 'native-',dir=build))
     print(f'Scene evidence: {dest}',flush=True)
@@ -92,7 +96,7 @@ def main():
                 revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                 dirty=bool(subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True)),runs=[],shaders={},
                 environment={k:os.getenv(k) for k in ('VK_DRIVER_FILES','VK_INSTANCE_LAYERS','VK_LAYER_VALIDATE_SYNC','OGPU_VULKAN_LIBRARY')})
-    report['api']='foundation' if args.foundation else 'installed' if args.public else 'native'
+    report['api']='foundation' if args.public else 'native'
     report['generated']=args.generated
     report['toolchain']=dict(slang=generate.VERSION,cc=subprocess.check_output([*shlex.split(os.getenv('CC','cc')),'--version'],text=True).splitlines()[0],
                              python=sys.version.split()[0])
@@ -113,12 +117,12 @@ def main():
         sources += [ROOT/'examples/learned_image'/name for name in ('native.c','native_workload.h','extent.h')]
         sources += list((ROOT/'examples/learned_image/generated').glob('*.h'))
         sources += list((ROOT/'examples/compiler').glob('*.py'))
-        sources += [ROOT/'include'/('ogpu_next.h' if args.foundation else 'ogpu.h'),ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
+        sources += [ROOT/'include/ogpu_next.h',ROOT/'vendor/Vulkan-Headers/include/vulkan/vulkan_core.h']
         report['sources']={str(p.relative_to(ROOT)):digest(p) for p in sorted(sources)}
         interfaces={}
         for name,stage in [('prepare16' if args.index16 else 'prepare','compute'),('scene.vert','vertex'),('scene.frag','fragment')]:
             reflection,assembly,binary=generate.compile_source(HERE/(name+'.slang'),dest/stage,os.getenv('SLANGC','slangc'),stage)
-            if args.foundation: interfaces[stage]=inspect_foundation_shader(reflection,assembly,stage)
+            if args.public: interfaces[stage]=inspect_foundation_shader(reflection,assembly,stage)
             if stage=='compute':
                 generate.require(reflection['entryPoints'][0]['threadGroupSize']==[8,1,1],'wrong workgroup')
             if stage!='fragment':
@@ -130,7 +134,7 @@ def main():
             # This uses the native compiler, not inspect()/header()'s installed subset.
             (dest/(stage+'.spv')).write_bytes(binary)
             report['shaders'][stage]=dict(sha256=digest(dest/(stage+'.spv')),reflection=reflection)
-        if args.foundation: generate.stages.link(interfaces['vertex'],interfaces['fragment'])
+        if args.public: generate.stages.link(interfaces['vertex'],interfaces['fragment'])
         if args.generated:
             subprocess.run([sys.executable,'-B',str(HERE/'generated.py'),'--api','foundation','--check','--build-dir',str(dest/'generated')],check=True)
             # Both consumers must execute the exact same shader bytes, including
@@ -152,32 +156,30 @@ def main():
         executables={'native':binary}
         if args.public:
             generate.require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
-            subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
+            subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu','--no-default-features'],cwd=ROOT,check=True)
             public=dest/'public'
-            public_source=HERE/('foundation_generated.c' if args.generated else 'foundation.c' if args.foundation else 'public.c')
+            public_source=HERE/('foundation_generated.c' if args.generated else 'foundation.c')
             public_command=[*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
                             '-I'+str(ROOT/'include'),'-I'+str(HERE),str(public_source),'-L'+str(ROOT/'target/release'),
                             '-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu','-o',str(public)]
             subprocess.run(public_command,check=True)
             symbols=subprocess.check_output(['nm','-u',str(public)],text=True)
-            draw_symbol='ogpu_next_draw_indexed_indirect' if args.foundation else 'ogpu_batch_draw_indexed_indirect'
+            draw_symbol='ogpu_next_draw_indexed_indirect'
             generate.require(draw_symbol in symbols and not any(
                 line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split()),'public consumer boundary mismatch')
-            if args.foundation:
-                generate.require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
-                                     if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports installed API')
+            generate.require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
+                                 if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports installed API')
             report['public']=dict(executable_sha256=digest(public),compile_command=public_command,
                                   runtime_sha256=digest(ROOT/'target/release/libogpu.so'),
-                                  **({'foundation':1} if args.foundation else {'abi':20}))
+                                  foundation=1)
             executables['public']=public
-            if args.foundation:
-                failure_command=[part.replace(str(public_source),str(HERE/'foundation_failures.c')).replace(str(public),str(dest/'failures'))
-                                 for part in public_command]
-                if args.generated: failure_command += ['-DSCENE_GENERATED']
-                failure_command += ['-Wl,--wrap=ogpu_next_'+name for name in
-                                    ('commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy','device_destroy')]
-                subprocess.run(failure_command,check=True)
-                report['failure_control']=dict(compile_command=failure_command,executable_sha256=digest(dest/'failures'),runs=[])
+            failure_command=[part.replace(str(public_source),str(HERE/'foundation_failures.c')).replace(str(public),str(dest/'failures'))
+                             for part in public_command]
+            if args.generated: failure_command += ['-DSCENE_GENERATED']
+            failure_command += ['-Wl,--wrap=ogpu_next_'+name for name in
+                                ('commands_end','queue_submit','timeline_wait','arena_destroy','memory_destroy','device_destroy')]
+            subprocess.run(failure_command,check=True)
+            report['failure_control']=dict(compile_command=failure_command,executable_sha256=digest(dest/'failures'),runs=[])
         subprocess.run([sys.executable,'-B',str(HERE/'test_oracle.py')],check=True)
         subprocess.run([sys.executable,'-B',str(HERE/'test_runner.py')],check=True)
         if args.check:
@@ -189,7 +191,7 @@ def main():
         if args.public:
             environment['LD_LIBRARY_PATH']=str(ROOT/'target/release')+':'+environment.get('LD_LIBRARY_PATH','')
             report['public']['LD_LIBRARY_PATH']=environment['LD_LIBRARY_PATH']
-        if args.foundation:
+        if args.public:
             for mode in ('end','submit','unknown','wait'):
                 output=dest/('failure-'+mode);output.mkdir()
                 failed=subprocess.run([str(dest/'failures'),mode,'257','193',str(dest),str(output),'16' if args.index16 else '32'],
@@ -211,7 +213,7 @@ def main():
                 if backend=='public':
                     context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
                     expected_context=dict(index_bytes=report['index_bytes'],gpu_generated=True,
-                                          **({'foundation':1} if args.foundation else {'abi':20}))
+                                          foundation=1)
                     generate.require(context==[expected_context],'wrong public scene configuration')
                     if args.generated:
                         generated=[json.loads(line.removeprefix('GENERATED_SCENE ')) for line in stdout.splitlines() if line.startswith('GENERATED_SCENE ')]

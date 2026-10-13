@@ -1428,8 +1428,10 @@ range SDK now pass on both local drivers, with self-contained baseline, count,
 one/two-slot reset/replay and persistent-scope binding checks. The old range/argument
 timing suite and ABI20 replay-failure diagnostics are [retired](graphics-scene-diagnostic-retirement.md);
 their recorded evidence remains. Replay/range/argument correctness selectors now
-use foundation only, with unused ABI20 callers removed. The basic installed scene
-and remaining runtime consumers still need retirement. The default SDK now packages
+use foundation only, with unused ABI20 callers removed. The basic scene runner now
+also uses foundation for `--public`, including failure checks, and scene generation
+defaults to foundation. Its ABI20 sources remain for the optional legacy SDK; other
+runtime consumers still need retirement. The default SDK now packages
 foundation only and compiles out ABI20 execution/probe modules; `--legacy` builds
 that runtime and adds ABI20 files without aliasing either API. Plain Cargo defaults
 retain `legacy` for remaining in-tree consumers; Metal is unchanged. The package

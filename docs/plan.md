@@ -20,12 +20,16 @@ remains a proposal. The default Linux SDK now also omits ABI20 runtime code/expo
 explicit legacy packages and plain Cargo defaults retain it for remaining consumers.
 Native Metal is unchanged and does not yet implement foundation.
 
-Next implement one coordinated tranche: finalize concrete core records/native
-mappings; replace resource/command ownership; add the common graphics/compute
-surface; migrate consumers and SDK; perform consolidated verification. Commit at
-dependency boundaries, without requiring a separate benchmark campaign to justify
-each structurally useful capability. Optional specialized hardware modules have
-explicit scope but still need concrete extension specifications and implementation.
+The coordinated tranche has implemented the core records/native mappings,
+explicit resource/command ownership and common graphics/compute surface described
+below. The foundation SDK is now default and runs independently of legacy
+execution. Next advance the remaining M4 textured/mipmapped/blended scene and M5
+transformer/quantized-linear consumer integration against this surface; retire
+remaining legacy callers as their workflows move over. Commit at dependency
+boundaries, without requiring a separate benchmark campaign to justify each
+structurally useful capability. Optional specialized hardware modules still need
+concrete extension specifications and implementation. None of this marks M4/M5,
+native Metal parity or the full combined surface sketch complete.
 
 Implementation started: [foundation implementation](foundation-implementation.md) now has
 concrete query records, explicit queue creation, independent timeline handles,
@@ -223,8 +227,9 @@ serialized replay timing have a checked handoff; setup recording and per-frame
 host phases are separate. This is instrumentation validation, not a matched-native
 performance comparison. The default SDK exports the implemented foundation header
 and public-only consumers through its own pkg-config entry. Legacy ABI20 files
-are opt-in, not aliases or fallback translation. Remaining in-tree consumers and
-the native Metal path still need cutover before removing old Vulkan policy weight.
+are opt-in, not aliases or fallback translation. Old Vulkan policy is excluded
+from the default SDK binary. Remaining in-tree consumers and the native Metal
+path still need cutover before the legacy source can be retired entirely.
 The [GGML foundation migration](foundation-ggml.md) now selects explicit memory,
 persistent mappings, one queue/timeline and reusable recording storage on Linux.
 The pinned graph/shaders/numerical gates are unchanged; graph preflight and alias
@@ -275,7 +280,9 @@ selects that runtime at build time. Manifests record Cargo features and acceptan
 checks inspect actual shared-library exports. The shared native loader/baseline
 predicate no longer depends on legacy execution. Plain Cargo defaults and native
 Metal retain legacy support until their remaining consumers migrate or retire.
-The basic legacy scene and remaining runtime consumers still need retirement; historical
+The basic scene runner now also defaults to foundation for `--public`, and scene
+generation defaults to foundation; legacy generation is explicit. Its ABI20 source
+remains for the optional legacy SDK. Remaining legacy runtime consumers still need retirement; historical
 performance results are not foundation measurements.
 
 M1–M3 results stand. M4/M5 become consumers of this coordinated foundation work,

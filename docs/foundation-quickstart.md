@@ -179,3 +179,11 @@ shader regeneration/mutation checks. The explicit legacy package passes Radeon
 compute, resource-reuse, draw-range and indexed-scene acceptance. Package checks
 verify the actual shared library's profile: foundation exports always present,
 no ABI20 exports in the default SDK, both APIs in an explicit legacy build.
+
+Clean-runtime checkpoint `ea1e9cc` also passes the independent GGML and libplacebo
+handoffs against that foundation-only library on Radeon and llvmpipe. Each builds
+from its own pinned upstream clone, resolves the relocated runtime and checks
+missing-loader failure receipts. Radeon additionally passes GGML's full MNIST
+dataset with FP32 and FP16 weights; llvmpipe covers matrix/lifetime cases, not that
+full dataset. These are dependency-isolation/correctness checks, not new timing,
+broader graph support or Metal evidence.

@@ -4,6 +4,7 @@ from pathlib import Path
 import unittest
 import struct
 import handoff
+import generated
 
 path=Path(__file__).resolve().parents[2]/'tools/sdk/indexed-scene/run.py'
 spec=importlib.util.spec_from_file_location('installed_scene',path)
@@ -11,6 +12,11 @@ scene=importlib.util.module_from_spec(spec);spec.loader.exec_module(scene)
 
 
 class InstalledSceneTests(unittest.TestCase):
+    def test_generation_defaults_to_foundation(self):
+        self.assertEqual(generated.arguments([]).api,'foundation')
+        self.assertEqual(generated.arguments(['--api','installed']).api,'installed')
+        self.assertEqual(generated.arguments(['--api','foundation']).api,'foundation')
+
     def test_reuse_receipt_rejections(self):
         device=dict(vendor=4098,device=29471,api=[1,4,354])
         for bits in (16,32):

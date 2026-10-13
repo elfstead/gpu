@@ -11,6 +11,14 @@ runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_public_profile_selection(self):
+        self.assertFalse(runner.arguments([]).public)
+        for flags in (['--public'],['--foundation'],['--generated'],['--public','--generated']):
+            with self.subTest(flags=flags):
+                args=runner.arguments(flags)
+                self.assertTrue(args.public)
+                self.assertEqual(args.generated,'--generated' in flags)
+
     def test_failure_receipts(self):
         for mode in ('end','submit','unknown','wait'):
             known=mode in ('end','submit')

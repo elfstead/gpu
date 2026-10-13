@@ -14,12 +14,16 @@ import generate as g
 import link_graphics
 
 
-def main():
+def arguments(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check',action='store_true')
-    parser.add_argument('--api',choices=('installed','foundation'),default='installed')
+    parser.add_argument('--api',choices=('installed','foundation'),default='foundation',help='foundation by default; installed is explicit ABI20 compatibility')
     parser.add_argument('--build-dir',type=Path,help='isolated output directory for concurrent acceptance runs')
-    args=parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def main():
+    args=arguments()
     g.require(not os.getenv('CARGO_TARGET_DIR'),'leave CARGO_TARGET_DIR unset')
     build=args.build_dir or ROOT/'target/compiler-scene';compiler=os.getenv('SLANGC','slangc')
     artifacts={}
@@ -39,7 +43,8 @@ def main():
         else:path.write_text(content)
     subprocess.run([sys.executable,'-B',str(HERE/'test_generated_runner.py')],check=True)
     subprocess.run([sys.executable,'-B',str(HERE/'test_oracle.py')],check=True)
-    subprocess.run(['cargo','build','--locked','--release','-p','ogpu'],cwd=ROOT,check=True)
+    subprocess.run([os.getenv('CARGO','cargo'),'build','--locked','--release','-p','ogpu','--no-default-features',
+                    *(['--features','legacy'] if args.api=='installed' else [])],cwd=ROOT,check=True)
     library=ROOT/'target/release'
     subprocess.run([*shlex.split(os.getenv('CC','cc')),'-std=c11','-O2','-Wall','-Wextra','-Werror',
         '-I'+str(ROOT/'include'),'-I'+str(HERE),str(HERE/('foundation_generated.c' if args.api=='foundation' else 'generated.c')),
