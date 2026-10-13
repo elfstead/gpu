@@ -78,8 +78,12 @@ its workload recording path. Its two prepared raster states select opaque depth
 and transparent overlay; textures, views, heap placement, descriptors, transitions
 and per-frame retirement are caller-owned. No new runtime/API code is needed.
 Receipts identify source/generated/runtime/executable hashes, driver, per-case
-checks and incomplete failures. These first runs use a dirty implementation tree;
-they are not clean-release or installed-SDK receipts.
+checks and incomplete failures. Clean commit `8cb2253` subsequently passes all 54
+frames on Radeon (including 720p) and 36 on llvmpipe, plus four failure cases each.
+Local receipts are `target/graphics-scene/textured-f9xq681g/report.json` (Radeon)
+and `textured-79swqvea/report.json` (llvmpipe); both record `dirty=false` and
+`complete=true`. GCC and Clang strict C checks and all current scene host tests
+also pass. This is not installed-SDK acceptance or a published release.
 
 Next add the direct-Vulkan rendering of these exact shader artifacts and states,
 then export an independent SDK source handoff. Neither is established by the CPU
