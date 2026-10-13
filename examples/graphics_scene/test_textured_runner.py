@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import tempfile
+import struct
 import unittest
 from unittest.mock import patch
 
@@ -10,6 +11,40 @@ runner=importlib.util.module_from_spec(spec);spec.loader.exec_module(runner)
 
 
 class ReceiptTests(unittest.TestCase):
+    def test_native_comparison_includes_all_pixels_and_guards(self):
+        with tempfile.TemporaryDirectory() as directory:
+            a=Path(directory)/'native';b=Path(directory)/'public';a.mkdir();b.mkdir()
+            image=runner.texture.GUARD+bytes([30,40,50,255])*4+runner.texture.GUARD*2+struct.pack('<4f',1,1,.25,.75)+runner.texture.GUARD
+            for mode in range(6):
+                for frame in range(3):
+                    for folder in (a,b):
+                        stem=folder/f'mode-{mode}-frame-{frame}'
+                        stem.with_suffix('.images').write_bytes(image)
+                        stem.with_suffix('.geometry').write_bytes(b'geometry')
+                        stem.with_suffix('.texture').write_bytes(b'texture')
+            self.assertEqual(runner.compare_outputs(a,b,2,2),dict(frames=18,pixels=72,max_color_byte_delta=0,exact=True))
+            path=b/'mode-0-frame-0.images'
+            for amount,okay in ((1,True),(2,True),(3,False)):
+                changed=bytearray(image);changed[64]+=amount;path.write_bytes(changed)
+                if okay:
+                    result=runner.compare_outputs(a,b,2,2)
+                    self.assertEqual(result['max_color_byte_delta'],amount);self.assertFalse(result['exact'])
+                else:
+                    with self.assertRaises(ValueError):runner.compare_outputs(a,b,2,2)
+            for offset in (0,len(image)-1):
+                changed=bytearray(image);changed[offset]^=255;path.write_bytes(changed)
+                with self.assertRaises(ValueError):runner.compare_outputs(a,b,2,2)
+            for depth in (float('nan'),float('inf'),.5):
+                changed=bytearray(image);struct.pack_into('<f',changed,208,depth);path.write_bytes(changed)
+                with self.assertRaises(ValueError):runner.compare_outputs(a,b,2,2)
+            path.write_bytes(image[:-1])
+            with self.assertRaises(ValueError):runner.compare_outputs(a,b,2,2)
+            path.write_bytes(image)
+            for suffix in ('geometry','texture'):
+                changed=b/('mode-0-frame-0.'+suffix);changed.write_bytes(b'bad')
+                with self.assertRaises(ValueError):runner.compare_outputs(a,b,2,2)
+                changed.write_bytes(suffix.encode())
+
     def test_complete_and_mutated_artifacts(self):
         with tempfile.TemporaryDirectory() as directory:
             folder=Path(directory)

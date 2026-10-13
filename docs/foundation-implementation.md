@@ -16,7 +16,8 @@ The [integrated M4 textured consumer](textured-scene-plan.md) now exercises
 GPU-generated indexed/depth geometry together with mipmapped sampling, restricted
 views, filtering, blending and viewport/scissor changes through the existing API.
 Both local drivers pass its initial independent pixel/geometry/guard and teardown
-checks. Direct-Vulkan comparison and independent SDK export remain; this is not
+checks. Its direct-Vulkan control now compares identical shader artifacts and
+all output pixels; independent SDK export remains. This is not
 a new runtime feature, performance result or complete M4 acceptance.
 
 - Immutable discovery snapshot with borrowed adapter handles. Created devices

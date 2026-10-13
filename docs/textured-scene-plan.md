@@ -85,10 +85,31 @@ and `textured-79swqvea/report.json` (llvmpipe); both record `dirty=false` and
 `complete=true`. GCC and Clang strict C checks and all current scene host tests
 also pass. This is not installed-SDK acceptance or a published release.
 
-Next add the direct-Vulkan rendering of these exact shader artifacts and states,
-then export an independent SDK source handoff. Neither is established by the CPU
-oracle or by the older untextured native comparison. M4 remains open until the
-integrated native comparison and remaining acceptance gates pass.
+The runner now also builds an independent direct-Vulkan consumer. It extracts
+the exact graphics SPIR-V embedded in the generated public pair and uses the
+checked compute artifact. Native recording creates its own mipmapped image,
+descriptor heaps, sampler/image descriptors, blend/depth pipelines and copies;
+it never calls or links OGPU. Both outputs undergo the CPU/geometry/upload gates,
+then a complete native/public comparison that includes the oracle's excluded
+edge/filter-tie bands. Comparison permits the predeclared two-byte color and
+1e-6 depth limits, and separately records whether every output byte is identical.
+Malformed extents, guard corruption, nonfinite depth and differences beyond the
+tolerances are covered by negative host tests.
+
+The inherited native loader/allocation fixture is shared only with other direct
+controls. Its generated legacy host data declarations do not call OGPU. Native
+color/depth attachments stay in GENERAL layout; foundation uses explicit
+attachment/copy layouts. Descriptor reserved ranges obey queried native alignment,
+not an assumed correspondence with heap-base alignment. These paths test output
+correctness with the same shaders/draw/state/texture inputs, not identical driver
+call costs or throughput. The independent SDK handoff is the next acceptance step;
+the earlier foundation-only 720p result is not native-matched 720p evidence.
+
+Initial native-matched runs pass both 257x193 and 640x360 on Radeon and llvmpipe:
+36 frames per path/driver, both independently accepted, with every image byte
+identical across paths and exact geometry/texture bytes. All four foundation
+failure controls still pass. These development receipts are dirty-source results;
+clean matching and the independent package remain separate checkpoints.
 Presentation remains a separate platform-boundary task; Metal is not inferred
 from Vulkan execution. This consumer does not establish implicit-LOD derivatives,
 anisotropic quality, sRGB blending, compressed texture support or streaming residency.

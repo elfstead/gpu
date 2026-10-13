@@ -61,6 +61,13 @@ static int scene_raster(Scene *s, unsigned mode, const char *directory) {
     VkPipelineDepthStencilStateCreateInfo depth = {.sType=VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
         .depthTestEnable=mode != 1, .depthWriteEnable=mode != 2, .depthCompareOp=mode == 3 ? VK_COMPARE_OP_ALWAYS : VK_COMPARE_OP_LESS};
     VkPipelineColorBlendAttachmentState attachment = {.colorWriteMask=15};
+#ifdef SCENE_TEXTURE_NATIVE
+    depth.depthTestEnable=depth.depthWriteEnable=mode==0;
+    attachment.blendEnable=VK_TRUE;
+    attachment.srcColorBlendFactor=VK_BLEND_FACTOR_SRC_ALPHA;
+    attachment.dstColorBlendFactor=attachment.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    attachment.srcAlphaBlendFactor=VK_BLEND_FACTOR_ONE;
+#endif
     VkPipelineColorBlendStateCreateInfo blend = {.sType=VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, .attachmentCount=1, .pAttachments=&attachment};
     VkDynamicState states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamic = {.sType=VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, .dynamicStateCount=2, .pDynamicStates=states};
@@ -115,6 +122,7 @@ static void scene_transition(Scene *s) {
     s->n->vkCmdPipelineBarrier2(s->batch.command, &dep);
 }
 
+#ifndef SCENE_TEXTURE_NATIVE
 static int scene_pass(Scene *s, unsigned pipeline, int color_load, int depth_load, float clear,
                       unsigned first, unsigned count) {
     Native *n=s->n; NativeBatch *b=&s->batch; NativeProgram *p=&s->raster[pipeline];
@@ -229,6 +237,7 @@ static int scene_frame(Scene *s, unsigned mode, unsigned phase, unsigned frame, 
 }
 
 #endif
+#endif /* !SCENE_TEXTURE_NATIVE */
 static int scene_create_context(Scene *s, const char *directory) {
     s->n=&s->owned;
     Native *n=s->n; NEED(native_create(n));
@@ -237,7 +246,11 @@ static int scene_create_context(Scene *s, const char *directory) {
     s->draw_indexed=(PFN_vkCmdDrawIndexedIndirect2KHR)get(n->instance,"vkCmdDrawIndexedIndirect2KHR");
     NEED(s->bind_index && s->draw_indexed);
     NEED(scene_shader(n,&s->prepare,2,directory,"compute.spv"));
+#ifdef SCENE_TEXTURE_NATIVE
+    for(unsigned i=0;i<2;++i) NEED(scene_raster(s,i,directory));
+#else
     for(unsigned i=0;i<4;++i) NEED(scene_raster(s,i,directory));
+#endif
     return 1;
 }
 static int scene_create_resources(Scene *s) {
@@ -267,7 +280,7 @@ static void scene_destroy_context(Scene *s) {
     for(unsigned i=0;i<4;++i) native_program_destroy(n,&s->raster[i]);
     native_program_destroy(n,&s->prepare); native_destroy(n);
 }
-#ifndef SCENE_REUSE_CONSUMER
+#if !defined(SCENE_REUSE_CONSUMER) && !defined(SCENE_TEXTURE_NATIVE)
 int main(int argc, char **argv) {
     if(argc!=5 && argc!=6) { fprintf(stderr,"Usage: native width height shaders output-directory [16|32]\n"); return 1; }
     Scene s={.index_bytes=4};

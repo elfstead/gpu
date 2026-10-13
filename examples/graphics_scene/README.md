@@ -4,9 +4,9 @@ The next [integrated textured scene](../../docs/textured-scene-plan.md) is
 `textured.py`: GPU-generated indexed/depth geometry plus mipmapped sampling,
 restricted image views, blending and viewport/scissor changes. `--check` builds
 and tests its oracle without a GPU; normal execution checks the foundation
-consumer's image/geometry/guard and failure receipts, with `--scale` adding 720p.
-Its direct-Vulkan comparison is still pending; do not relabel these results as
-matched-native or complete M4 acceptance.
+consumer's image/geometry/guard and failure receipts against an independent
+direct-Vulkan render using the same shader bytes, with `--scale` adding 720p.
+Independent SDK acceptance remains; these are correctness results, not timing.
 
 The [foundation migration](../../docs/foundation-indexed-scene.md) adds
 `run.py --public` (also accepted as `--foundation`), with the same native shaders and acceptance gates but
