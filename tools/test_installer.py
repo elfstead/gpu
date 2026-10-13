@@ -40,7 +40,9 @@ class InstallerTests(unittest.TestCase):
                 self.assertEqual(manifest['cargo_features'],['legacy'] if legacy else [])
                 self.assertEqual(manifest['foundation']['revision'],1)
                 for path in ('include/ogpu_next.h','lib/pkgconfig/ogpu-foundation.pc',
-                             'share/ogpu/examples/foundation-indexed-ranges/main.c','share/ogpu/tools/sdk_profile.py'):
+                             'share/ogpu/examples/foundation-indexed-ranges/main.c','share/ogpu/tools/sdk_profile.py',
+                             'share/ogpu/examples/foundation-textured-scene/main.c',
+                             'share/ogpu/examples/foundation-textured-scene/textured_scene.generated.h'):
                     self.assertTrue((prefix/path).is_file(),path)
                 for path in ('include/ogpu.h','lib/pkgconfig/ogpu.pc','share/ogpu/examples/indexed-scene/main.c',
                              'share/ogpu/examples/resource-reuse/main.c','share/ogpu/examples/transform/main.c'):

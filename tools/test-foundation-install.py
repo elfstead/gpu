@@ -70,7 +70,7 @@ def main():
     if manifest.get('default_api')=='foundation' and not manifest['legacy_sdk']:
         absent=subprocess.run([pkg,'--exists','ogpu'],env=env,capture_output=True,text=True,timeout=30)
         require(absent.returncode!=0,'foundation-only package exposed legacy pkg-config name')
-    for label in ("compute","graphics","learned-image","indexed-scene","indexed-ranges"):
+    for label in ("compute","graphics","learned-image","indexed-scene","indexed-ranges","textured-scene"):
         app = temporary / ("independent "+label)
         shutil.copytree(prefix / ("share/ogpu/examples/foundation-"+label),app)
         run([sys.executable,"-B","build.py"],cwd=app,env=env)
@@ -87,7 +87,7 @@ def main():
             require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
                         if line.split() and line.split()[-1].startswith('ogpu_')),'foundation consumer imported legacy API')
         missing = dict(env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
-        scripted = label in ("learned-image","indexed-scene","indexed-ranges")
+        scripted = label in ("learned-image","indexed-scene","indexed-ranges","textured-scene")
         command = [sys.executable,"-B","run.py"] if scripted else ["./consumer"]
         failed = subprocess.run(command,cwd=app,env=missing,capture_output=True,text=True,timeout=60)
         require(failed.returncode != 0,"missing loader succeeded")
@@ -101,6 +101,7 @@ def main():
                 complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
                 require(len(complete) == 1 and len(complete[0]["runs"]) == (9 if label=="indexed-ranges" else 2),"missing completed handoff receipt")
                 if label=="indexed-scene":require(len(complete[0]["reuse_runs"])==32,"missing replay matrix")
+                if label=="textured-scene":require(all(len(r['checks'])==18 for r in complete[0]['runs']),'missing textured cases')
                 if label=="indexed-ranges":
                     require(len(complete[0]['baseline'])==1 and len(complete[0]['baseline'][0]['checks'])==30
                             and len(complete[0]['reuse_runs'])==48,'missing range baseline/replay matrix')
@@ -169,6 +170,35 @@ def main():
                             {k:v for k,v in new['files'].items() if k.endswith(('.images','.geometry'))},"regenerated range output changed")
             print("Independent range root regeneration preserves host source"+
                   (" BUILD ONLY" if args.no_gpu else " and checked output PASS"),flush=True)
+        if args.shader_check and label=='textured-scene':
+            shader_env=dict(env,SLANGC=os.getenv('SLANGC','slangc'))
+            generator=[str(prefix/'bin/ogpu-graphics'),'--native-heaps','--vertex-source','textured.vert.slang',
+                '--fragment-source','textured.frag.slang','--name','textured_scene','--output','textured_scene.generated.h',
+                '--build-dir','shader-build']
+            run([*generator,'--check'],cwd=app,env=shader_env)
+            host_hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in app.glob('*.c')}
+            for name in ('textured.vert.slang','textured.frag.slang'):
+                source=app/name;original=source.read_text()
+                changed=original.replace('float* vertices; uint image; uint samplerIndex; float lod; uint overlay;',
+                    'uint overlay; float lod; uint samplerIndex; uint image; float* vertices;')
+                require(changed!=original,'texture mutation did not reorder root');source.write_text(changed)
+            stale=subprocess.run([*generator,'--check'],cwd=app,env=shader_env,capture_output=True,text=True,timeout=120)
+            require(stale.returncode!=0 and 'stale generated graphics pair' in stale.stderr,'stale textured pair accepted')
+            run(generator,cwd=app,env=shader_env);run([sys.executable,'-B','build.py'],cwd=app,env=env)
+            require(host_hashes=={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in app.glob('*.c')},'texture regeneration changed host source')
+            if not args.no_gpu:
+                previous={p.resolve() for p in app.glob('run-*/report.json')}
+                run([sys.executable,'-B','run.py'],cwd=app,env=env)
+                receipts=[json.loads(p.read_text()) for p in app.glob('run-*/report.json') if p.resolve() not in previous]
+                require(len(receipts)==1 and receipts[0]['complete'] and len(receipts[0]['runs'])==2,'incomplete regenerated texture matrix')
+                before=complete[0];after=receipts[0]
+                require(before['sdk']==after['sdk'],'texture runtime identity changed')
+                require(before['sources']['textured_scene.generated.h']!=after['sources']['textured_scene.generated.h'],'texture layout did not change')
+                for old,new in zip(before['runs'],after['runs']):
+                    require(old['extent']==new['extent'] and old['device']==new['device'],'regenerated texture case changed')
+                    require({k:v for k,v in old['files'].items() if k.endswith(('.images','.geometry','.texture'))}==
+                            {k:v for k,v in new['files'].items() if k.endswith(('.images','.geometry','.texture'))},'regenerated texture outputs changed')
+            print('Independent textured root regeneration preserves host source'+(' BUILD ONLY' if args.no_gpu else ' and checked output PASS'),flush=True)
     if args.ggml_source:
         app = temporary / "independent ggml"
         shutil.copytree(prefix / "share/ogpu/examples/foundation-ggml",app)

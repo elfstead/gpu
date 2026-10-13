@@ -17,7 +17,8 @@ GPU-generated indexed/depth geometry together with mipmapped sampling, restricte
 views, filtering, blending and viewport/scissor changes through the existing API.
 Both local drivers pass its initial independent pixel/geometry/guard and teardown
 checks. Its direct-Vulkan control now compares identical shader artifacts and
-all output pixels; independent SDK export remains. This is not
+all output pixels; the default SDK also exports this sixth independent consumer.
+Its compiler handoff checks root reordering with unchanged host code. This is not
 a new runtime feature, performance result or complete M4 acceptance.
 
 - Immutable discovery snapshot with borrowed adapter handles. Created devices

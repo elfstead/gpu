@@ -6,7 +6,10 @@ restricted image views, blending and viewport/scissor changes. `--check` builds
 and tests its oracle without a GPU; normal execution checks the foundation
 consumer's image/geometry/guard and failure receipts against an independent
 direct-Vulkan render using the same shader bytes, with `--scale` adding 720p.
-Independent SDK acceptance remains; these are correctness results, not timing.
+The SDK also supplies `foundation-textured-scene`: copied C11/Python consumers
+build without Rust/Slang/Vulkan headers and check their own outputs. The installer
+test also reorders and regenerates shader roots without changing host code.
+These are correctness results, not timing or presentation acceptance.
 
 The [foundation migration](../../docs/foundation-indexed-scene.md) adds
 `run.py --public` (also accepted as `--foundation`), with the same native shaders and acceptance gates but

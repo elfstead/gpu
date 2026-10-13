@@ -102,14 +102,38 @@ color/depth attachments stay in GENERAL layout; foundation uses explicit
 attachment/copy layouts. Descriptor reserved ranges obey queried native alignment,
 not an assumed correspondence with heap-base alignment. These paths test output
 correctness with the same shaders/draw/state/texture inputs, not identical driver
-call costs or throughput. The independent SDK handoff is the next acceptance step;
-the earlier foundation-only 720p result is not native-matched 720p evidence.
+call costs or throughput. The earlier foundation-only 720p result is not
+native-matched 720p evidence; clean integrated acceptance remains pending.
 
 Initial native-matched runs pass both 257x193 and 640x360 on Radeon and llvmpipe:
 36 frames per path/driver, both independently accepted, with every image byte
 identical across paths and exact geometry/texture bytes. All four foundation
 failure controls still pass. These development receipts are dirty-source results;
 clean matching and the independent package remain separate checkpoints.
+
+## Independent SDK source handoff
+
+The default SDK now includes `share/ogpu/examples/foundation-textured-scene` with
+the public C caller, generated SPIR-V/interface header, shader sources and shared
+independent output checks. Copy the whole directory outside the checkout, set
+`PKG_CONFIG_PATH` to the installed SDK, then run `python3 build.py` and
+`python3 run.py`. C11/Python/pkg-config suffice; no checkout, Cargo, Slang or Vulkan
+headers are required. Runs record SDK/runtime/header/source/executable identity,
+device, complete/incomplete state and all 36 frame checks. `--scale` adds 720p.
+
+The maintainer test relocates this sixth example, checks its compiler dependency
+graph, imported symbols and resolved runtime, and requires a missing-loader error
+to leave an incomplete receipt with no accepted runs. `--shader-check` uses the
+installed graphics compiler helper to check the supplied header, reorder all root
+fields in both stages, reject the stale interface, regenerate and rebuild unchanged
+host code. The repeated outputs must remain byte-identical. This establishes a
+typed-interface/source-package boundary, not portable binaries or third-party adoption.
+The development package passes all six independent consumers and the textured
+root-regeneration/output-equivalence check on Radeon and llvmpipe, with validation
+and synchronization validation enabled. Host-only receipt tests also reject
+missing/duplicate identities, incomplete frame logs, validation failures and oracle
+failures; a failed second extent preserves the first result but never marks the
+whole run complete. These are dirty-source checks pending a clean package receipt.
 Presentation remains a separate platform-boundary task; Metal is not inferred
 from Vulkan execution. This consumer does not establish implicit-LOD derivatives,
 anisotropic quality, sRGB blending, compressed texture support or streaming residency.

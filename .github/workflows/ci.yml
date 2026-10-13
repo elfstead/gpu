@@ -27,6 +27,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config python3 cmake ninja-build
       - run: python3 -B tools/test_installer.py
       - run: python3 -B tools/test_foundation_handoff.py
+      - run: python3 -B tools/test_textured_handoff.py
       - run: python3 -B tools/test_sdk_profile.py
       - run: python3 -B tools/test_ggml_handoff.py
       - run: python3 -B tools/test_libplacebo_handoff.py

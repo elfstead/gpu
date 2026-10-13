@@ -37,8 +37,10 @@ The integrated textured consumer now runs all six mip/view/filter/blend cases
 through the existing foundation on both local drivers, with exact geometry,
 independent pixel/depth checks, A/B/A updates and four failure-lifetime controls.
 Its new direct-Vulkan control uses identical shader bytes and compares all output
-pixels, independently of the analytic oracle's edge exclusions. The independent
-SDK handoff is next; this does not refresh historical timing measurements.
+pixels, independently of the analytic oracle's edge exclusions. The sixth independent
+SDK example passes relocation, ordinary builds and shader-root regeneration with
+unchanged host code on both drivers. Clean integrated acceptance (including matched
+720p on Radeon) is next; this does not refresh historical timing measurements.
 
 Implementation started: [foundation implementation](foundation-implementation.md) now has
 concrete query records, explicit queue creation, independent timeline handles,
