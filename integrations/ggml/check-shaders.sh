@@ -31,3 +31,13 @@ if rg 'RelaxedPrecision|OpGroupNonUniform|OpAtomic' <<< "$assembly"; then
     echo 'Unexpected reduced precision/subgroup/atomic transformer requirement' >&2; exit 1
 fi
 echo 'GGML transformer FP32 workgroup/root contract PASS'
+assembly=$(spirv-dis "$shaders/matrix-q8.comp.spv")
+capabilities=$(rg 'OpCapability' <<< "$assembly" | awk '{print $2}' | sort)
+expected=$(printf '%s\n' PhysicalStorageBufferAddresses Shader StorageBuffer16BitAccess)
+test "$capabilities" = "$expected" || { echo "Unexpected Q8 capabilities: $capabilities" >&2; exit 1; }
+rg -q 'OpLoad %ushort .* Aligned 2' <<< "$assembly"
+rg -q 'UnpackHalf2x16' <<< "$assembly"
+if rg 'RelaxedPrecision|OpGroupNonUniform|OpAtomic|Op[US]Dot' <<< "$assembly"; then
+    echo 'Unexpected Q8 precision/subgroup/atomic/dot requirement' >&2; exit 1
+fi
+echo 'GGML Q8_0 packed-storage/FP32 contract PASS'

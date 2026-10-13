@@ -34,7 +34,7 @@ static_assert(sizeof(Root) == 40 && offsetof(Root, a) == 0 && offsetof(Root, b) 
 struct State : std::enable_shared_from_this<State> {
     gpu::Runtime runtime;
     Kernel matrix = gpu::empty_kernel(), element = gpu::empty_kernel(), matrix_f16 = gpu::empty_kernel();
-    Kernel block = gpu::empty_kernel();
+    Kernel block = gpu::empty_kernel(), matrix_q8 = gpu::empty_kernel();
     OgpuGgmlProfile profile = OgpuGgmlProfile::Mnist;
     uint64_t dispatches = 0;
     OgpuGgmlMemory memory = OgpuGgmlMemory::Device;
@@ -101,7 +101,7 @@ size_t offset(Allocation &a, const ggml_tensor *t, size_t off, size_t size) {
 uint64_t address(const ggml_tensor *t) {
     auto &a = allocation(t->buffer);
     const uint64_t result = a.address + offset(a, t, 0, ggml_nbytes(t));
-    if (result % (t->type == GGML_TYPE_F16 ? 2 : 4) != 0)
+    if (result % (t->type == GGML_TYPE_F16 || t->type == GGML_TYPE_Q8_0 ? 2 : 4) != 0)
         throw std::runtime_error("unaligned tensor address");
     return result;
 }
@@ -228,6 +228,11 @@ bool transpose_profile(const ggml_tensor *t) {
            t->ne[0] == a->ne[1] && t->ne[1] == a->ne[0] && t->ne[2] == 1 && t->ne[3] == 1 &&
            t->nb[0] == a->nb[1] && t->nb[1] == a->nb[0] && t->nb[2] == a->nb[2] && t->nb[3] == a->nb[3];
 }
+bool q8_profile(const ggml_tensor *t) {
+    return t && t->type == GGML_TYPE_Q8_0 && !t->view_src && ggml_is_contiguous(t) &&
+           t->ne[0] >= 32 && t->ne[0] <= 1024 && t->ne[0] % 32 == 0 &&
+           t->ne[1] > 0 && t->ne[1] <= 1024 && t->ne[2] == 1 && t->ne[3] == 1;
+}
 float parameter(const ggml_tensor *t, size_t index) {
     float value;
     std::memcpy(&value,reinterpret_cast<const char *>(t->op_params)+index*sizeof(float),sizeof(value));
@@ -236,8 +241,16 @@ float parameter(const ggml_tensor *t, size_t index) {
 bool supports_op(ggml_backend_dev_t dev, const ggml_tensor *t) {
     if (!t) return false;
     const bool transformer = static_cast<State *>(dev->context)->profile == OgpuGgmlProfile::Transformer;
+    const bool quantized = static_cast<State *>(dev->context)->profile == OgpuGgmlProfile::QuantizedLinear;
     // In particular, softmax sinks must not be silently ignored.
     for (int i = 2; i < GGML_MAX_SRC; ++i) if (t->src[i]) return false;
+    if (quantized) {
+        if (t->op == GGML_OP_NONE) return tensor_profile(t,true) || q8_profile(t);
+        const auto *a=t->src[0],*b=t->src[1];
+        return t->op == GGML_OP_MUL_MAT && tensor_profile(t) &&
+               (tensor_profile(a,true) || q8_profile(a)) && tensor_profile(b) &&
+               a->ne[0] == b->ne[0] && t->ne[0] == a->ne[1] && t->ne[1] == b->ne[1];
+    }
     if (transformer && t->op == GGML_OP_TRANSPOSE) return !t->src[1] && transpose_profile(t);
     if (!tensor_profile(t, t && t->op == GGML_OP_NONE))
         return false;
@@ -323,7 +336,8 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
                 root.b = address(t->src[1]);
                 root.k = static_cast<uint32_t>(t->src[0]->ne[0]);
                 groups = ((root.m + 7) / 8) * ((root.n + 7) / 8);
-                kernel = t->src[0]->type == GGML_TYPE_F16 ? &state->matrix_f16 : &state->matrix;
+                kernel = t->src[0]->type == GGML_TYPE_Q8_0 ? &state->matrix_q8 :
+                         t->src[0]->type == GGML_TYPE_F16 ? &state->matrix_f16 : &state->matrix;
             } else if (t->op == GGML_OP_ADD) {
                 root.b = address(t->src[1]);
                 root.operation = 1;
@@ -394,11 +408,11 @@ OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMe
     if (ggml_backend_reg_by_name("OGPU"))
         throw std::runtime_error("OGPU backend already registered");
     auto &state = impl->state;
-    if (profile != OgpuGgmlProfile::Mnist && profile != OgpuGgmlProfile::Transformer)
+    if (profile != OgpuGgmlProfile::Mnist && profile != OgpuGgmlProfile::Transformer && profile != OgpuGgmlProfile::QuantizedLinear)
         throw std::runtime_error("unknown GGML consumer profile");
 #if !OGPU_GGML_FOUNDATION
     if (profile != OgpuGgmlProfile::Mnist)
-        throw std::runtime_error("transformer profile requires foundation");
+        throw std::runtime_error("expanded ML profiles require foundation");
 #endif
     state->profile = profile;
     state->memory = memory;
@@ -412,6 +426,11 @@ OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMe
     state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv",0);
     if (profile == OgpuGgmlProfile::Transformer)
         state->block = load_kernel(*state,std::string(shaders)+"/block.comp.spv",256);
+    if (profile == OgpuGgmlProfile::QuantizedLinear) {
+        if (ggml_blck_size(GGML_TYPE_Q8_0) != 32 || ggml_type_size(GGML_TYPE_Q8_0) != 34)
+            throw std::runtime_error("unexpected Q8_0 layout");
+        state->matrix_q8 = load_kernel(*state,std::string(shaders)+"/matrix-q8.comp.spv",512);
+    }
 
     device.context = state.get();
     buffer_type.context = state.get();

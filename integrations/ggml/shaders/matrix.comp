@@ -1,6 +1,9 @@
 #version 460
 #extension GL_EXT_buffer_reference : require
-#ifdef F16_WEIGHTS
+#ifdef Q8_WEIGHTS
+#extension GL_EXT_shader_16bit_storage : require
+layout(buffer_reference, std430, buffer_reference_align = 2) readonly buffer Weights { uint16_t v[]; };
+#elif defined(F16_WEIGHTS)
 #extension GL_EXT_shader_16bit_storage : require
 layout(buffer_reference, std430, buffer_reference_align = 2) readonly buffer Weights { float16_t v[]; };
 #else
@@ -15,6 +18,16 @@ layout(push_constant, std430) uniform Root {
 } r;
 shared float a_tile[64];
 shared float b_tile[64];
+#ifdef Q8_WEIGHTS
+float weight(uint index) {
+    uint block = (index / 32u) * 17u;
+    float scale = unpackHalf2x16(uint(r.a.v[block])).x;
+    uint pair = uint(r.a.v[block + 1u + (index % 32u) / 2u]);
+    uint bits = (pair >> ((index % 2u) * 8u)) & 255u;
+    int quant = bits >= 128u ? int(bits) - 256 : int(bits);
+    return scale * float(quant);
+}
+#endif
 void main() {
     uint lane = gl_LocalInvocationID.x, x = lane % 8u, y = lane / 8u;
     uint tiles_m = (r.m + 7u) / 8u;
@@ -23,7 +36,11 @@ void main() {
     float sum = 0.0;
     for (uint base = 0; base < r.k; base += 8u) {
         // GGML contiguous A[K,M], B[K,N], C[M,N], first dimension fastest.
+#ifdef Q8_WEIGHTS
+        a_tile[y * 8u + x] = m < r.m && base + y < r.k ? weight(m * r.k + base + y) : 0.0;
+#else
         a_tile[y * 8u + x] = m < r.m && base + y < r.k ? float(r.a.v[m * r.k + base + y]) : 0.0;
+#endif
         b_tile[y * 8u + x] = n < r.n && base + x < r.k ? r.b.v[n * r.k + base + x] : 0.0;
         barrier();
         for (uint j = 0; j < 8u; ++j) sum += a_tile[j * 8u + x] * b_tile[y * 8u + j];

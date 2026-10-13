@@ -45,4 +45,23 @@ class TransformerReceiptTests(unittest.TestCase):
                 with self.assertRaises(ValueError):handoff.verify_transformer(bad,'device')
 
 
+class QuantizedReceiptTests(unittest.TestCase):
+    def test_complete_and_malformed(self):
+        lines=[]
+        for k,m,n in ((32,1,1),(32,11,3),(64,13,17),(96,17,5),(256,128,64)):
+            for p in ('f32','f16','q8'):
+                size=k*m*4 if p=='f32' else k*m*2 if p=='f16' else k*m//32*34
+                lines.append(f'quantized_linear k={k} m={m} n={n} precision={p} phases=3 dispatches=3 rejected=10 retry=1 '
+                             f'max_error=0 max_drift=0 error_bound_ratio=0 allocation_bytes={size+1024} weight_bytes={size} PASS')
+        lines.append('Quantized linear profile placement=device cases=15 PASS; no acceleration claim')
+        valid='\n'.join(lines)
+        self.assertEqual(len(handoff.verify_quantized(valid,'device')),15)
+        for bad in ('',valid.replace('precision=q8','precision=f32'),valid.replace('error_bound_ratio=0','error_bound_ratio=1.01',1),
+                    valid.replace('max_error=0','max_error=nan',1),valid.replace('weight_bytes=128','weight_bytes=127',1),
+                    valid.replace('rejected=10','rejected=9',1),valid.replace('placement=device','placement=host'),
+                    '\n'.join(lines[1:]),valid+'\n'+lines[-1]):
+            with self.subTest(bad=bad[:80]):
+                with self.assertRaises(ValueError):handoff.verify_quantized(bad,'device')
+
+
 if __name__ == "__main__": unittest.main()

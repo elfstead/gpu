@@ -12,6 +12,23 @@ needed. Rebuild its shader with
 `check-shaders.sh` verifies the workgroup/root/capability contract. No transformer
 Metal or general GGML coverage is implied.
 
+The same runner also checks the separate `QuantizedLinear` profile: F32/F16/Q8_0
+weights with F32 activations/accumulation, all five linear shapes, A/B/A inputs,
+two-byte weight alignment, allocation guards and ten rejection/retry controls.
+See the [quantized contract](../../docs/quantized-linear-plan.md). Q8_0 decodes on
+the GPU from its 34-byte blocks; there is no pre-expanded weight buffer or optional
+Int8 arithmetic requirement. Build its supplied shader with
+`glslc --target-env=vulkan1.2 -DQ8_WEIGHTS=1 integrations/ggml/shaders/matrix.comp -o integrations/ggml/shaders/matrix-q8.comp.spv`.
+
+Both `ogpu-ggml-transformer-check` and `ogpu-ggml-quantized-check` accept an optional
+`--timing` after `shaders device-index placement`. Unset `VK_INSTANCE_LAYERS` and
+`VK_LAYER_VALIDATE_SYNC`, and set `VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation`.
+They retain correctness checks, then report nine samples of ten synchronous graph
+calls after two warmups, without transfers inside timed intervals. These are host
+wall costs including recording/wait/reset, not GPU-only times or native parity.
+Allocation bytes exclude runtime objects, host GGML tokens and transfer staging;
+weight bytes describe tensor payload. Use separate validation runs for acceptance.
+
 A pinned GGML backend adapter for the upstream fully connected MNIST forward
 graph. Read the [brief and API decisions](../../docs/consumer-ggml.md) first.
 This is not a general GGML backend or a replacement for `mnist-eval`'s full

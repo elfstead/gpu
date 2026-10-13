@@ -3,6 +3,7 @@
 #include "ggml-backend.h"
 #include "ggml-alloc.h"
 #include "ggml.h"
+#include "timing.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -52,7 +53,7 @@ static Values probabilities(const Values &a,int t,float scale) {
     return p;
 }
 
-static std::vector<float> check(OgpuGgmlSession &session,int d,int h,int t,bool half) {
+static std::vector<float> check(OgpuGgmlSession &session,int d,int h,int t,bool half,bool timing) {
     Context ctx(ggml_init({4<<20,nullptr,true}),ggml_free);
     Backend backend(ggml_backend_init_by_name("OGPU",nullptr),ggml_backend_free);
     require(bool(ctx)&&bool(backend),"transformer setup failed");
@@ -199,6 +200,12 @@ static std::vector<float> check(OgpuGgmlSession &session,int d,int h,int t,bool 
     require(ggml_backend_graph_compute(backend.get(),graph)==GGML_STATUS_SUCCESS,"valid retry failed");
     std::vector<float> retry(actual.at("Y").size());ggml_backend_tensor_get(y,retry.data(),0,ggml_nbytes(y));
     require(retry==actual.at("Y"),"retry changed output");
+    if (timing) {
+        size_t bytes=0;for (const auto &name:weights) bytes+=ggml_nbytes(tensors.at(name));
+        time_graph(session,backend.get(),graph,"kind=transformer d="+std::to_string(d)+" h="+std::to_string(h)+
+            " t="+std::to_string(t)+" precision="+(half?"f16":"f32"),15,t,ggml_backend_buffer_get_size(buffer.get()),bytes);
+        ggml_backend_tensor_get(y,retry.data(),0,ggml_nbytes(y));require(retry==actual.at("Y"),"timed output changed");
+    }
     for (const auto &[name,error]:errors)
         std::printf("transformer_error d=%d h=%d t=%d precision=%s tensor=%s max_abs=%.9g\n",d,h,t,half?"f16":"f32",name.c_str(),error);
     std::printf("transformer d=%d h=%d t=%d precision=%s phases=3 dispatches=45 rejected=11 retry=15 allocation_bytes=%zu PASS\n",
@@ -207,15 +214,16 @@ static std::vector<float> check(OgpuGgmlSession &session,int d,int h,int t,bool 
 }
 
 int main(int argc,char **argv) {
-    if (argc!=4) return 2;
+    if (argc!=4 && argc!=5) return 2;
     try {
+        const bool timing=timing_requested(argc,argv);
         const std::string placement=argv[3];require(placement=="host"||placement=="device","bad placement");
         size_t end=0;auto index=std::stoul(argv[2],&end);require(end==std::strlen(argv[2])&&index<=UINT32_MAX,"bad device index");
         OgpuGgmlSession session(uint32_t(index),argv[1],placement=="host"?OgpuGgmlMemory::Host:OgpuGgmlMemory::Device,OgpuGgmlProfile::Transformer);
         const int shapes[][3]={{1,1,1},{13,29,3},{13,29,17},{64,128,16},{65,129,17}};
         for (const auto &shape:shapes) {
-            const auto f32=check(session,shape[0],shape[1],shape[2],false);
-            const auto f16=check(session,shape[0],shape[1],shape[2],true);
+            const auto f32=check(session,shape[0],shape[1],shape[2],false,timing);
+            const auto f16=check(session,shape[0],shape[1],shape[2],true,timing);
             double drift=0;for (size_t i=0;i<f32.size();++i) drift=std::max(drift,std::abs(double(f32[i])-f16[i]));
             std::printf("transformer_weight_drift d=%d h=%d t=%d max_abs=%.9g\n",shape[0],shape[1],shape[2],drift);
         }

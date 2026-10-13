@@ -56,3 +56,25 @@ claim of optimal kernels or general Vulkan parity. Local matched native graphics
 evidence does not certify these ML kernels. Record untested hardware profiles and
 remaining optimization opportunities explicitly; do not start Metal implementation
 as part of this milestone.
+
+## Implementation checkpoint
+
+The QuantizedLinear adapter and shader now implement this layout directly, without
+an expanded-weight buffer or optional arithmetic feature. All 15 shape/precision
+cases pass in HOST/DEVICE placement on Radeon and llvmpipe, including guards,
+unchanged weights, A/B/A and ten rejection/retry cases. The -128/127 sentinel is
+part of the stored-weight oracle, not a claim that the regular quantizer emits -128.
+Singleton dimensions have no meaningful unused stride; the malformed-layout test
+uses a non-singleton block dimension when necessary rather than rejecting a legal
+GGML singleton layout. Existing transformer, lifecycle and mixed-matrix checks pass.
+
+`run-transformer.sh` now covers both M5 consumers. The SDK runner requires all 15
+linear results per placement, including exact weight payload, finite error/drift,
+arithmetic-bound ratio, dispatch/rejection/retry counts and completion marker.
+Negative host tests reject incomplete or malformed receipts. SPIR-V inspection
+requires only Shader, PhysicalStorageBufferAddresses and StorageBuffer16BitAccess;
+no reduced precision, subgroup, atomics or integer dot-product instructions.
+
+Both consumer executables implement opt-in `--timing`; validation must be disabled
+explicitly. Clean-package acceptance and actual cost observations follow this
+implementation checkpoint; it does not itself complete M5.

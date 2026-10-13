@@ -52,6 +52,23 @@ def verify_transformer(text,placement):
     return dict(cases=cases,errors=errors,weight_drift=drift)
 
 
+def verify_quantized(text,placement):
+    rows=[dict(field.split('=',1) for field in line.split()[1:] if '=' in field)
+          for line in text.splitlines() if line.startswith('quantized_linear ') and line.endswith(' PASS')]
+    shapes=[(32,1,1),(32,11,3),(64,13,17),(96,17,5),(256,128,64)]
+    expected=[(str(k),str(m),str(n),p) for k,m,n in shapes for p in ('f32','f16','q8')]
+    require([(r.get('k'),r.get('m'),r.get('n'),r.get('precision')) for r in rows]==expected,'missing/duplicate quantized shape')
+    for row in rows:
+        require(all(row.get(k)==v for k,v in dict(phases='3',dispatches='3',rejected='10',retry='1').items()),'incomplete quantized gates')
+        require(all(math.isfinite(float(row[k])) and float(row[k])>=0 for k in ('max_error','max_drift','error_bound_ratio'))
+                and float(row['error_bound_ratio'])<=1,'invalid quantized error')
+        weights=int(row['k'])*int(row['m']);precision=row['precision']
+        expected_bytes=weights*4 if precision=='f32' else weights*2 if precision=='f16' else weights//32*34
+        require(int(row['weight_bytes'])==expected_bytes and int(row['allocation_bytes'])>expected_bytes,'wrong quantized storage receipt')
+    require(text.count(f'Quantized linear profile placement={placement} cases=15 PASS;')==1,'missing quantized completion')
+    return rows
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir",type=Path,help="optional already downloaded/extracted MNIST test data")
@@ -97,7 +114,9 @@ def main():
             require(sum(line.startswith("mixed_matrix ") and line.endswith(" PASS") for line in text.splitlines()) == 2,"missing matrix gates")
             text = execute(placement+"-transformer","ogpu-ggml-transformer-check",HERE / "shaders","0",placement)
             transformer=verify_transformer(text,placement)
-            report["runs"].append(dict(placement=placement,lifecycle=True,matrix_cases=2,transformer=transformer)); save()
+            text = execute(placement+"-quantized","ogpu-ggml-quantized-check",HERE / "shaders","0",placement)
+            quantized=verify_quantized(text,placement)
+            report["runs"].append(dict(placement=placement,lifecycle=True,matrix_cases=2,transformer=transformer,quantized=quantized)); save()
         if args.data_dir:
             data = args.data_dir.resolve()
             verify_data(data,(HERE / "dataset.sha256").read_text())
@@ -112,7 +131,7 @@ def main():
                 require(len(gates) == 6,"missing full-dataset gates")
                 report["runs"].append(dict(precision=precision,placement="device",full_dataset=gates)); save()
         report["complete"] = True; save()
-        print("Independent foundation GGML handoff PASS"+("; transformer and both full-dataset precision modes" if args.data_dir else "; transformer/matrix/lifetime"))
+        print("Independent foundation GGML handoff PASS"+("; transformer/quantized and both full-dataset precision modes" if args.data_dir else "; transformer/quantized/matrix/lifetime"))
     except Exception as error:
         report["error"] = str(error); save(); raise
 
