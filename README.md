@@ -4,7 +4,7 @@ A minimal, open GPU interface for graphics, compute, and machine learning, built
 
 Start with [the current design](docs/design.md), [working status](docs/plan.md),
 and the [development roadmap](docs/roadmap.md).
-The [whole-API proposal](docs/whole-api-design.md) describes the next foundation revision.
+The [whole-API design](docs/whole-api-design.md) describes the foundation and its remaining target surface.
 To use the runtime from your own application, see the [Linux quickstart](docs/quickstart.md).
 The default SDK exposes the [experimental foundation interface](docs/foundation-quickstart.md);
 ABI20 packaging requires explicit legacy selection.
@@ -13,10 +13,11 @@ for the experimental compatibility boundary.
 For a reproducible starting point, see the [experimental source/SDK checkpoint](docs/release-checkpoint.md).
 The [experiment ledger](docs/experiments.md) records the supporting evidence.
 
-The Rust/C prototype supports address-based compute on native Metal and Vulkan, and
-[offscreen graphics](docs/graphics.md) on Vulkan, in shared asynchronous batches.
+The Rust/C prototype implements explicit memory, queues, command storage, compute
+and offscreen graphics through the Linux/Vulkan foundation. Native Metal 4 compute
+remains on the older interface; foundation migration is the next milestone.
 See [building and testing](docs/development.md) and the [Metal backend](docs/metal.md).
-Bounded integrations run [GGML's MNIST classifier](integrations/ggml/README.md)
+Bounded integrations run [GGML MNIST, transformer and quantized-linear consumers](integrations/ggml/README.md)
 and [libplacebo compute/raster processing](integrations/libplacebo/README.md)
 through the public runtime API. A [learned-image application](examples/learned_image/README.md)
 combines denoising, resize/color processing and offscreen rendering in one GPU

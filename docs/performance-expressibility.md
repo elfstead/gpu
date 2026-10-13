@@ -3,6 +3,12 @@
 Selected 2026-09-19 after M1. This is a standing design gate, not a claim that
 the existing API passes it or a replacement for M1's accepted measurements.
 
+Consolidated 2026-10-13: the fundamental question below still applies. The initial
+P1–P7 restriction table and subsequent experiment sequence describe historical
+ABI20-era candidates, not today's foundation. Use the
+[completed contract review](core-contract-review.md) for current native mappings,
+removed restrictions and remaining gaps. No historical timing is recertified here.
+
 ## Fundamental question
 
 For the same workload, hardware, correctness requirements and resource/latency

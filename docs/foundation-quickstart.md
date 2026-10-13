@@ -66,8 +66,11 @@ The preview also includes `share/ogpu/examples/foundation-ggml`. Copy that direc
 then follow its README: `python3 build.py --ggml-source /path/to/pinned/ggml` and
 `python3 run.py`. This example additionally needs Git, C/C++17, CMake, Ninja and
 Python 3.11+, plus the pinned upstream source (not an OGPU checkout). The default
-run validates HOST/DEVICE mixed-precision matrices, lifetime violations and
-recording-error recovery; it does not claim full MNIST acceptance.
+run validates HOST/DEVICE transformer intermediates, F32/F16/Q8_0 linear cases,
+mixed-precision matrices, lifetime violations and recording-error recovery; it
+does not run the full MNIST dataset. See [M5 acceptance](m5-results.md). The
+packaged `measure.py` is a separate opt-in, non-validation host-wall observation,
+not a native-performance benchmark.
 
 `python3 run.py --data-dir /path/to/extracted-mnist` adds both F32/F16 full-dataset
 inference against unchanged CPU references. No data downloads, training, Rust
@@ -124,7 +127,7 @@ Application allocation, bounds, retirement, synchronization and numerical policy
 remain caller-owned; generated layouts are not safe resource-lifetime tracking.
 
 Maintainer checks: `python3 tools/test-foundation-install.py --prefix ...` copies
-the preview to a fresh space-containing prefix, builds all five examples outside
+the preview to a fresh space-containing prefix, builds all six small examples outside
 the checkout, checks header dependencies and the actual linked library, rejects a
 missing Vulkan loader, and runs GPU acceptance. `--no-gpu` retains build/link and
 failure-path checks. `--shader-check` additionally reproduces the simple compute/
@@ -139,9 +142,13 @@ Add `--ggml-source /path/to/pinned/ggml` to the maintainer test to check the pac
 adapter as well. The test makes a separate local upstream clone, verifies compiler
 dependencies contain the relocated public header and no OGPU checkout files,
 checks the actual loaded library and incomplete missing-loader receipt, and runs
-matrix/lifetime acceptance. `--ggml-data /path/to/extracted-mnist` additionally
+transformer/quantized/matrix/lifetime acceptance. `--ggml-data /path/to/extracted-mnist` additionally
 selects the full dataset gates. Those optional prerequisites do not burden the
-five smaller consumer checks.
+six smaller consumer checks.
+
+Current complete consumer acceptance includes the [M4 textured scene](textured-scene-plan.md#clean-m4-offscreen-acceptance)
+and [M5 ML profiles](m5-results.md). The dated checkpoint chronology below retains
+its original counts and evidence, not current limits on packaged examples.
 
 Local acceptance (2026-10-11): Radeon/RADV and llvmpipe pass all three copied
 consumers with synchronization validation, header/runtime identity checks and

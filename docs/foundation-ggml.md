@@ -130,9 +130,14 @@ rejects unsupported masks/sinks, nonfinite parameters, layouts and ownership bef
 recording any node. Ordinary operations retain the original MNIST behavior.
 
 All ten shape/precision cases pass in HOST/DEVICE placement on both local drivers
-in development, with every intermediate independently checked and no transfer
+in the [clean M5 acceptance](m5-results.md), with every intermediate independently checked and no transfer
 between nodes. The block uses no subgroup operation or optional arithmetic feature;
 only baseline FP32 and storage-only FP16 weights. The new SPIR-V gate checks the
 40-byte root, 64-invocation local size, baseline capabilities and absence of reduced
-precision. This is not INT8, performance acceptance, native Metal validation or
-completion of M5; clean SDK acceptance remains a separate checkpoint.
+precision. The separate explicit QuantizedLinear profile adds Q8_0 weights with
+FP32 accumulation and five linear shapes, including two-byte alignment, guards,
+representation-error bounds and ten rejection/retry controls. It does not change
+default MNIST behavior or automatically quantize the transformer. Both profiles
+now pass clean SDK acceptance on both drivers; separate Radeon host-wall observations
+record the bounded cost/storage/error tradeoffs. This completes M5, not a general
+LLM backend, tuned performance, hardware matrix acceleration or native Metal parity.

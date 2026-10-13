@@ -1,5 +1,11 @@
 # Native Metal 4 backend
 
+Current boundary, 2026-10-13: this is the legacy ABI20 source path; native results
+below remain the earlier ABI12 acceptance. The Linux foundation has since replaced
+its ownership/command model and does not yet exist on Metal. See the
+[M6 entry handoff](m6-entry.md). No new Metal implementation or validation follows
+from M4/M5 completion. The ABI17 status below is historical, not today's C header.
+
 Status reconciled 2026-09-28 on `master`; the common boundary is **ABI 17**.
 Native acceptance below remains the 2026-09-16 **ABI-12** result, not a current
 Mac validation. Use matching headers, library and callers. This is an experimental

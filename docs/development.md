@@ -1,19 +1,24 @@
 # Building the prototype
 
-Start with the [two-consumer checkpoint](checkpoint.md) for the shortest ordered
-build/acceptance path and its clean-checkout evidence. This page is the detailed
+Start with the [foundation quickstart](foundation-quickstart.md) for the current
+build/acceptance path. The [two-consumer checkpoint](checkpoint.md) preserves its
+historical clean-checkout evidence. This page is the detailed
 command and regeneration reference, not a requirement to run every historical
 experiment before using the runtime.
 
-The runtime has a Rust Vulkan backend on Linux x86-64 and a native Metal compute
-backend on macOS arm64 behind the same small C ABI. Metal accepts native MSL and
+The current Linux foundation uses `ogpu_next.h`; macOS arm64 Metal compute still
+uses the legacy `ogpu.h` interface. Metal accepts native MSL and
 metallib, with optional in-process SPIR-V translation (disable with
 `--no-default-features`). See [native acceptance and remaining work](metal.md).
 The Vulkan runtime does not use ash or Vulkanalia. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. The ABI is experimental, not a specification of the eventual
-execution interface. The current ABI is 16; rebuild callers with this checkout's
-header, library and shaders after updating from an earlier checkpoint.
+execution interface. The legacy ABI is 20; foundation revision 1 is mutable and
+requires exact source/header/library/artifact matching. Default SDK builds exclude
+legacy, while plain Cargo defaults retain it. Rebuild callers after updating.
+The older commands below name their historical consumer/runtime workflows; they
+are not all prerequisites for foundation use. See [M5 acceptance](m5-results.md)
+and [consolidation](core-contract-review.md) for current verification.
 
 The [capability contract](execution-capabilities.md) separates probe support from
 enabled execution features and exact image support. `gpu_compute_image_sampling`

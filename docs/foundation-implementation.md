@@ -10,6 +10,13 @@ SDK profile. Foundation packaging is default; `--legacy` adds ABI20 files explic
 This is a migration boundary, not
 two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
+Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
+and [M5 transformer/quantized linear](m5-results.md) are complete. The
+[contract review](core-contract-review.md) records retained native strategies and
+explicit remaining gaps. M6 is next, not started. Dated record sizes/test counts
+and “source-only” language below describe their development checkpoints; the public
+header and default SDK own today's exact layouts, not those historical values.
+
 ## Implemented setup
 
 The [integrated M4 textured consumer](textured-scene-plan.md) now exercises
@@ -19,7 +26,8 @@ Both local drivers pass its initial independent pixel/geometry/guard and teardow
 checks. Its direct-Vulkan control now compares identical shader artifacts and
 all output pixels; the default SDK also exports this sixth independent consumer.
 Its compiler handoff checks root reordering with unchanged host code. This is not
-a new runtime feature, performance result or complete M4 acceptance.
+a new runtime feature or performance result; subsequent clean M4 acceptance includes
+720p native matching on Radeon and the independent SDK on both local drivers.
 
 - Immutable discovery snapshot with borrowed adapter handles. Created devices
   retain the native connection, not discovery or a global current context.
@@ -1385,18 +1393,22 @@ stage vocabulary when the requested scope lowers to one supported native stage b
   adoption, successful destruction and sticky injected device loss. These are
   controlled failure checks, not a claim of actual device loss or hosted CI execution.
 
-No timing campaign, GPU queue-overlap claim, real device-loss event, Metal support,
-or new SDK support follows. Hardware execution requires sandbox-external GPU access;
+Those foundational fixture results alone supply no timing campaign, GPU queue-overlap
+claim, real device-loss event, Metal support or SDK acceptance. Subsequent consumer
+SDK and bounded M5 cost results are linked above. Hardware execution requires sandbox-external GPU access;
 the initial sandboxed Radeon discovery failed, then passed with that access.
 
-## Next implementation work
+## Current gaps and migration chronology
 
-Broader graphics and compute/argument profiles, richer query facilities and consumer
-cutover as the coordinated tranche proceeds. Graphics is usable offscreen, not a
-complete graphics contract or a completed M4 consumer. Presentation remains separate.
-Pipeline binaries, set/binding-to-address mappings and broader generated interface
-integration remain explicit work; the current compute slice does not close the whole
-foundation. The [first generated compute caller](compiler-workflow.md#foundation-migration-checkpoint--2026-10-11)
+M4/M5 and [contract consolidation](core-contract-review.md) are complete; native
+Metal foundation is next. Mixed backing, native interop, pipeline binaries,
+dynamic shared launch, specialized execution modules and broader generated
+interfaces remain explicit surface work. Presentation remains separate. None of
+the bounded consumers closes the entire target foundation.
+
+The chronology below preserves successive cutovers; intermediate “still need
+migration” statements are superseded by the later default-SDK result and current
+plan. The [first generated compute caller](compiler-workflow.md#foundation-migration-checkpoint--2026-10-11)
 now passes original/reordered layouts on both local drivers using source-only records;
 the [graphics linker follow-up](compiler-workflow.md#graphics-follow-up) also passes
 72 checked offscreen frames per local driver. The subsequent

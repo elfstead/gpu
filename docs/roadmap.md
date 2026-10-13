@@ -4,6 +4,10 @@ Proposed 2026-09-18; M1 completed 2026-09-19. The [working plan](plan.md) owns c
 this document owns the sequence and coverage of the remaining project work.
 Sequence revised 2026-10-08: the [whole-API design](whole-api-design.md) selects a
 coordinated foundation revision before completing the remaining M4/M5 consumers.
+As of 2026-10-13, M4/M5 and [foundation-contract consolidation](core-contract-review.md)
+are complete for their declared scopes. The next implementation is
+[M6](m6-entry.md), not yet started; the per-milestone briefs below preserve their
+original deliverables rather than reopening completed gates.
 This is a concrete plan, not authorization to publish releases, provision machines
 or coordinate native testing. The foundation can be implemented across the
 milestone boundaries below; each capability does not need its own research gate.
@@ -39,13 +43,13 @@ compatibility are not completed by those results.
 | Foundation revision — Whole-API contract and implementation | Explicit lifetimes, placement, concurrency, queues/timelines, argument alternatives and coherent graphics/ML capability surface | [Setup/backing/commands/images/descriptors, compute and offscreen raster implemented](foundation-implementation.md): prepared executables and caller-owned caches, inline/device-root arguments, mixed heaps, draw variants, multisampling/color resolves, depth/stencil, explicit queries and image copies; broader profiles and consumer cutover remain |
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | Offscreen complete at `43bb9f0`; [native-matched and independent SDK acceptance](textured-scene-plan.md#clean-m4-offscreen-acceptance); presentation separate |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
-| M6 — Mixed-workload Metal parity | Same learned-image application, generated native interfaces, render/readback and common contract tests | M2; native execution conditional on an available Mac validation window |
+| Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
+| M6 — Mixed-workload Metal parity | Foundation migration, same learned-image application, generated native interfaces and common lifetime/contract tests | Next, not started: [entry handoff](m6-entry.md); native execution needs a Mac |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | First [local preparation checkpoint](release-checkpoint.md) complete 2026-09-28; refresh after M4–M6; publication/adoption separate |
 
-Default local order: **M1 → M2 → M3 → M7 first checkpoint → foundation revision
-with M4/M5 integration → refreshed SDK checkpoint**.
-M6 can run after M2 when native validation becomes available; it does not block
-the Linux sequence or an explicitly Vulkan-scoped experimental release.
+Current order: **completed M1–M5/foundation → completed contract consolidation →
+M6 handoff/migration → refreshed M7**. A Vulkan-scoped experimental package does
+not require Metal acceptance; native validation remains a separate evidence track.
 No calendar estimates are assigned by this document.
 Each milestone ends in a committed result and decision, not another open-ended
 list of experiments.
@@ -176,10 +180,10 @@ existing M1 outputs remain valid. Publish the supported subset and restrictions.
 Native Metal generation is M6, not inferred from SPIR-V success here.
 
 Accepted [language direction and evidence](language-direction.md) complete M2.
-The workgroup/subgroup compiler probes intentionally do not widen the installed
-profile. M5 must first add public subgroup capability discovery and explicit
-requirement checks if its selected algorithms use those operations; accelerated
-matrix support is not inferred from the ordinary FP32 tiled probe.
+The original workgroup/subgroup compiler probes did not widen the legacy installed
+profile. Foundation now exposes explicit subgroup queries/requirements and matrix
+tuple discovery. M5 deliberately uses ordinary workgroup FP32/storage16; its
+consumer acceptance is not accelerated matrix or general subgroup acceptance.
 
 This decision point prevents the initial language ambition from being silently
 replaced by a runtime, while also avoiding a new frontend merely to rename Slang.
@@ -350,16 +354,18 @@ and an entry criterion; adding one requires selecting its consumer and acceptanc
 | New source language | M2 decision; a frontend only if a concrete expressiveness/tooling gap warrants it |
 | Structured arguments, heap interfaces, graphics linking | M2, then the varying subset exercised by M4 |
 | Replay and allocation assistance | M3 measurement/contract decision; application helpers first |
-| Concurrent host recording / multiple queues | Deferred until M1/M3 isolates recording/overlap limits and a two-queue control shows an opportunity; require cross-queue and failure/lifetime tests |
-| Timed waits / cancellation | Timed wait only with an interactive responsiveness consumer; timeout must not imply retirement. Cancellation/recovery is a separate semantic decision |
+| Concurrent host recording / multiple queues | Implemented in foundation; parallel host workers and Radeon cross-family transfer pass. Actual overlap benefit and broader topology/hazard evidence remain open |
+| Timed waits / cancellation | Timeline timeout/poll and recording cancellation are implemented. Timeout/cancellation do not retire pending GPU work; GPU cancellation/recovery remains a separate semantic decision |
 | External memory/import-export | Deferred until an actual media, window-system or other-runtime interoperability consumer; ownership/device matching and native synchronization are acceptance requirements |
 | Multi-device execution/communication | Deferred; needs a selected workload and multiple real devices. Never a prerequisite for current local milestones |
-| More formats, arrays, 3D textures, MSAA | M4 defines extension points; implement each when the selected scene/volume/antialiasing consumer needs it, not as a full format enumeration sweep |
+| More formats, arrays, 3D textures, MSAA | Foundation implements explicit image profiles, mip/layer/cube/3D shapes, format queries and multisample/resolve paths. Exact-profile support and consumer verification are distinct; compressed/multiplanar and broader usage combinations remain open |
+| Mixed backing, virtual memory and residency | Linear spans and placed/aliased images exist; mixed buffer/image backing, VM/sparse maps and explicit residency modules remain unimplemented. Specify native placement/ordering rules before claiming the strategies |
+| Generated commands and richer artifact/launch profiles | Ordinary indirect/count execution exists; GPU-generated command topology, dynamic shared launch, pipeline binaries and extension-table negotiation remain unimplemented, not implicit fallbacks |
 | Presentation | Separate M4 follow-on; native window-system testing required |
 | Ray tracing / mesh and other specialized stages | Deferred, not first-version requirements; needs a concrete renderer and suitable hardware |
 | General GGML backend / GPU training | M5 remains bounded inference. Broader operator coverage or forward/backward/optimizer training is a separate consumer milestone, not a new host tensor API |
-| Hardware matrix acceleration / wider numeric types | M5 requirements plus actual support/shape evidence; untested hardware paths stay unaccepted |
-| Fine profiling / capture-replay / GPU debugging | M3 adds labels/lifetime traces; per-region profiling follows unresolved measured costs. Full address-aware capture/debugging is a separate tooling project |
+| Hardware matrix acceleration / wider numeric types | Foundation has numeric/atomic/dot/subgroup/matrix requirement profiles and available local execution checks. Unsupported hardware tuples/modes stay unaccepted; M5 scalar Q8 is not acceleration |
+| Fine profiling / capture-replay / GPU debugging | Foundation exposes explicit timestamp/occlusion/statistics pools. Consumer logs exist; foundation native labels and full address-aware capture/debugging remain separate tooling work |
 | Windows and other platform builds | Deferred until a platform-specific build/loader/consumer acceptance lane can be maintained; public C does not imply tested platform support |
 | macOS installation/package support | After M6 artifact workflow, or a separately selected compute-only packaging pass; native install/link tests required |
 | Portable binary bundles | M7 starts source/local-build distribution; bundles need a chosen libc/deployment policy and tests on that target, not repackaged Nix binaries |

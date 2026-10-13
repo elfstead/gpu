@@ -5,12 +5,39 @@ explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
-This table preserves the **legacy ABI20** support boundary, especially native
-Metal. For the default Linux/Vulkan foundation, see the
-[SDK guide](foundation-quickstart.md) and [implemented surface](foundation-implementation.md).
-Foundation adds explicit memory/queues/arenas, richer raster/query and numerical
-profiles, but not native Metal parity. Default packaging does not make those
-features available through ABI20 or change Metal support in this table.
+## Default Linux/Vulkan foundation
+
+| Area | Implemented / verified boundary | Not implied |
+|---|---|---|
+| Ownership and concurrency | Explicit memory types/backing/spans, image placement, independent queues/timelines and object-local host concurrency | Mixed buffer/image backing, imported resources, measured GPU overlap or real noncoherent hardware |
+| Commands and arguments | Caller-owned arenas, primary/secondary lists, explicit replay, inline updates and address roots, ranged/split/ownership dependencies | Device-generated topology, arbitrary replay emulation on other backends, automatic retention or hidden waits |
+| Graphics/images | Offscreen indexed/depth/stencil, mips/views/filtering/blending, broader static/dynamic state, multisample/resolve and query profiles | Presentation, complete Vulkan graphics coverage, ray/mesh/video or universal format support |
+| Executables/numerics | SPIR-V preparation/caches, explicit feature/local/shared/subgroup requirements, scalar/atomic/dot and queried matrix profiles | All optional hardware execution, dynamic shared launch, portable pipeline binaries or runtime reflection |
+| Compiler and consumers | Pinned generated Slang interfaces; M4 native-matched scene; M5 transformer/Q8_0; bounded GGML/libplacebo and learned-image | General LLM/training, arbitrary Slang, general safe Rust wrapper, tuned GEMM or universal native-performance parity |
+| Distribution | Revision-pinned local-build SDK; six small examples plus separately pinned upstream adapters | Stable ABI, portable binary bundle, clean-machine coverage or actual third-party adoption |
+| Metal | Existing legacy Metal 4 compute only; M6 entry handoff prepared | Any foundation or mixed-workload native Metal acceptance |
+
+Foundation uses the modern Vulkan/address/descriptor baseline and explicit optional
+feature requests, including unified image layouts and FP16 arithmetic. Query the
+enabled device and exact image/executable requirements; baseline storage16 does
+not imply FP16 arithmetic, subgroup or matrix support. See the
+[SDK guide](foundation-quickstart.md), [implemented surface](foundation-implementation.md)
+and [contract dispositions](core-contract-review.md) for exact contracts and gaps.
+
+Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.4 and llvmpipe
+26.2.1. M4 and M5 pass their declared scope. The full C fixture passes on Radeon;
+llvmpipe retains the explicit combined-depth/stencil-copy exclusion and the
+historical native-reproduced counted-to-fixed failure. Software is not another
+physical vendor. No real device loss, noncoherent physical GPU, broader vendor or
+current Metal validation is claimed. Rust 1.85 remains the declared minimum;
+current local runs use Rust 1.98.1. Hosted CI configuration is not a hosted result.
+
+## Legacy ABI20 support history
+
+The following table and paragraphs describe the older interface, especially the
+remaining Metal path. Their single-queue/whole-device-serialization and narrow
+graphics limits do **not** apply to foundation. This is retained migration context,
+not the default SDK contract.
 
 | Area | Linux x86-64 / Vulkan | macOS arm64 / Metal |
 |---|---|---|

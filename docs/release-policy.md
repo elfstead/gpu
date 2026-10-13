@@ -68,7 +68,9 @@ Preparing a clean commit, test receipt or CI definition is not publishing/taggin
 a release, provisioning a runner or requesting external testing. Those are separate
 actions. No external adoption or remote CI result may be inferred from local tests.
 
-API alternatives remain welcome when they better meet project goals. M1–M3 bound
-the current evidence; broader physical GPU/memory coverage, substantial graphics/ML
-consumers, Metal parity and the open native-performance expressibility questions
-remain prerequisites for stronger promises, not reasons to freeze the interface now.
+API alternatives remain welcome when they better meet project goals. M1–M5 now
+establish bounded consumers and the foundation contract has a
+[consolidated disposition](core-contract-review.md). Broader physical GPU/memory
+coverage, native Metal foundation evidence, independent adoption and unresolved
+native-strategy gaps remain prerequisites for stronger promises, not reasons to
+freeze the interface now.
