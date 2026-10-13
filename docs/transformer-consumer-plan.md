@@ -1,5 +1,9 @@
 # M5 bounded transformer consumer
 
+Completed with the separate quantized-linear profile; [M5 acceptance and cost observations](m5-results.md)
+own the final result. The initial contract and development checkpoint below are
+retained as chronology, not open work.
+
 Selected 2026-10-13, before implementation. Use the pinned GGML checkout already
 used by MNIST. The application owns its graph, tensor placement, precision choice
 and synchronization. No tensor operation or graph scheduler enters OGPU's C API.

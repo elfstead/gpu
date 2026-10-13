@@ -1,5 +1,8 @@
 # M5 signed-INT8 linear variant
 
+Completed: [clean M5 acceptance, numerical and cost observations](m5-results.md).
+The contract and development checkpoint below preserve the pre-execution gates.
+
 Selected 2026-10-13 before implementation. This is a separate GGML linear consumer,
 not automatic quantization of the transformer or a new public tensor API.
 
