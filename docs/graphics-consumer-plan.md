@@ -1,5 +1,11 @@
 # M4: deterministic offscreen scene
 
+Offscreen brief completed 2026-10-13 at clean `43bb9f0`, against the explicit
+foundation. The [integrated textured result](textured-scene-plan.md#clean-m4-offscreen-acceptance)
+owns current acceptance. The slice ordering and "next" instructions below are
+historical; the whole-foundation revision superseded serial API experiments.
+Presentation and general performance portability are not completed by this result.
+
 Selected after the first M7 local preparation checkpoint. The first native control
 is [accepted at `5da5aaf`](graphics-scene-native-results.md) on 2026-09-29; the
 [ABI-18 migration](indexed-depth-migration.md) implements the public indexed/depth

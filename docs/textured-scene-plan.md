@@ -137,3 +137,40 @@ whole run complete. These are dirty-source checks pending a clean package receip
 Presentation remains a separate platform-boundary task; Metal is not inferred
 from Vulkan execution. This consumer does not establish implicit-LOD derivatives,
 anisotropic quality, sRGB blending, compressed texture support or streaming residency.
+
+## Clean M4 offscreen acceptance
+
+Completed 2026-10-13 at `43bb9f023d18620aad40edf58ca87a2cec44ff6a`, before
+M5 changes. Both native-matched reports record `dirty=false`, `complete=true`:
+
+- Radeon: `target/graphics-scene/textured-ke0pvzj_/report.json`, 54 frames per
+  path at 257x193, 640x360 and 1280x720.
+- llvmpipe: `target/graphics-scene/textured-oi_6ysc_/report.json`, 36 frames per
+  path at the first two extents.
+
+Every native/foundation image byte agrees, including CPU-oracle-excluded edges;
+geometry, texture bytes and all guards agree exactly. Independent CPU checks and
+all four foundation failure controls pass on both drivers. No threshold changed.
+
+The SDK built from the same clean commit at `/tmp/ogpu-textured-sdk-clean` passes
+all six relocated consumers on both drivers, including unchanged learned-image
+results and indexed/range reset/replay checks. The textured example passes 36
+frames before and after shader-root reordering with unchanged C host code and
+identical output bytes. Runtime/header identity and isolated compiler dependencies
+are checked; missing-loader failure remains incomplete. Local full SDK logs:
+`/tmp/ogpu-textured-sdk-clean-radv.log` and `...-lvp.log`. These paths are local
+evidence, not downloadable artifacts; the commands above reproduce the scene and
+`tools/test-foundation-install.py --prefix ... --shader-check` reproduces the handoff.
+
+Fresh foundation tests pass 40 ordinary foundation-specific tests and all 16 GPU
+tests per driver, covering malformed image/view/descriptor/executable descriptions,
+atomic rejection, ownership and failure cleanup. Vulkan and synchronization
+validation are enabled throughout acceptance; no diagnostic is accepted as success.
+
+Decision: retain the existing explicit foundation shape for this workload. The
+consumer adds no runtime API or hidden scheduling, waits, texture allocation or
+descriptor registry. Native indexed draws, depth/blend/filtering, GPU-generated
+inputs and caller-selected reuse remain expressible. This closes the bounded M4
+offscreen consumer, not general Vulkan performance parity, a new timing campaign,
+the known unrelated llvmpipe counted-to-fixed/D32S8 failures, presentation or Metal.
+Move to the [M5 transformer and quantized-linear consumer](transformer-consumer-plan.md).

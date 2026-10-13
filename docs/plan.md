@@ -23,14 +23,14 @@ Native Metal is unchanged and does not yet implement foundation.
 The coordinated tranche has implemented the core records/native mappings,
 explicit resource/command ownership and common graphics/compute surface described
 below. The foundation SDK is now default and runs independently of legacy
-execution. Next advance the remaining M4 textured/mipmapped/blended scene and M5
-transformer/quantized-linear consumer integration against this surface; the
-[integrated textured scene brief](textured-scene-plan.md) fixes the next graphics
-workload, independent oracle and numerical gates before execution. Retire
+execution. M4's bounded offscreen scene is complete at clean `43bb9f0`;
+advance M5 transformer/quantized-linear consumer integration against this surface.
+The [transformer brief](transformer-consumer-plan.md) fixes shapes, independent
+intermediate oracles and numerical gates before execution. Retire
 remaining legacy callers as their workflows move over. Commit at dependency
 boundaries, without requiring a separate benchmark campaign to justify each
 structurally useful capability. Optional specialized hardware modules still need
-concrete extension specifications and implementation. None of this marks M4/M5,
+concrete extension specifications and implementation. None of this marks M5,
 native Metal parity or the full combined surface sketch complete.
 
 The integrated textured consumer now runs all six mip/view/filter/blend cases
@@ -39,8 +39,11 @@ independent pixel/depth checks, A/B/A updates and four failure-lifetime controls
 Its new direct-Vulkan control uses identical shader bytes and compares all output
 pixels, independently of the analytic oracle's edge exclusions. The sixth independent
 SDK example passes relocation, ordinary builds and shader-root regeneration with
-unchanged host code on both drivers. Clean integrated acceptance (including matched
-720p on Radeon) is next; this does not refresh historical timing measurements.
+unchanged host code on both drivers. Clean integrated acceptance includes matched
+720p on Radeon, with byte-identical native/foundation images at all extents,
+fresh rejection/lifetime tests and learned-image/reuse regressions. See the
+[acceptance receipt](textured-scene-plan.md#clean-m4-offscreen-acceptance).
+This does not refresh historical timing measurements or establish presentation.
 
 Implementation started: [foundation implementation](foundation-implementation.md) now has
 concrete query records, explicit queue creation, independent timeline handles,
@@ -542,7 +545,14 @@ minimum-Rust, current Metal or independent-adoption claim follows.
    requirements and minimal reproduction, then record the candidate's evidence
    and remaining limitations. Tagging, publishing or external outreach is separate.
 
-## Active milestone: M4 — substantial offscreen graphics
+## Completed milestone: M4 — substantial offscreen graphics
+
+The selected offscreen brief is complete at clean `43bb9f0`; see the
+[integrated result](textured-scene-plan.md#clean-m4-offscreen-acceptance).
+The chronology below preserves earlier API decisions and measurements, not open
+instructions to rerun superseded ABI-20 experiments. M5 is now the active consumer
+milestone. Performance portability, presentation and stable compatibility are not
+implied by M4 completion.
 
 Follow the [bounded scene brief](graphics-consumer-plan.md): indexed geometry and
 depth first, then mips/views, blending/viewport/scissor and generated stage
@@ -617,11 +627,12 @@ host gap to either unavoidable API cost or backend overhead.
 The [ABI-20 implementation checkpoint](recording-arguments-checkpoint.md) records
 76,032 clean correctness frames, installed-consumer success, the unresolved
 timing discrepancy, and the subsequent recording-time snapshot-reuse correction.
-Its fresh timing/acceptance remains the immediate next step; M4 is not complete.
-Diagnostic correctness is not performance acceptance.
-Structural evidence may justify the decision before timing. After that, finish
-M4's mip/view/blend slices; begin M5 with explicit executable capability and
-numerical requirements before its dependent kernels.
+That checkpoint left fresh timing/acceptance open. The subsequent whole-foundation
+revision selected independent argument updates and explicit ownership structurally;
+the old ABI-20 timing instruction is superseded, not retroactively passed.
+Diagnostic correctness is not general performance acceptance. M4's integrated
+mip/view/blend slice now passes through the foundation; M5 begins with explicit
+executable capability and numerical requirements before its dependent kernels.
 Preserve native strategy choices; GPU-heavy parity alone does not approve the API.
 Existing devices suffice.
 
