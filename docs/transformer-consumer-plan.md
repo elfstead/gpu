@@ -72,3 +72,29 @@ variant with explicitly specified scales/layout/error policy, then integrate
 the broader consumer into the independent SDK. Throughput/memory/error tradeoffs
 and independent handoff remain M5 gates; the first block result alone does not
 complete M5. Hardware matrix acceleration and Metal acceptance remain separate.
+
+## First implementation checkpoint
+
+The opt-in `OgpuGgmlProfile::Transformer` now executes the entire block through
+the foundation, retaining the default MNIST profile and rejecting transformer
+selection in legacy builds. The new workgroup shader adds row RMSNorm/softmax,
+residual addition and explicit transpose materialization. Existing tiled F32/F16
+matrix kernels and ReLU remain unchanged. No runtime or public C API change.
+
+`bash integrations/ggml/run-transformer.sh target/ggml-source` builds the selected
+public runtime and consumer, checks SPIR-V capabilities/root offsets/workgroup
+size, then runs both placements without model downloads. All five shapes in both
+precision modes pass on Radeon and llvmpipe in development: every intermediate,
+probability row, exact transpose, A/B/A output, unchanged input/weight bytes and
+bounded staging. Eleven invalid-parameter/layout/alias cases per shape/precision
+reject before dispatch, preserve every intermediate and permit a valid retry.
+There are 15 dispatches per valid block, no uploads/downloads or staging growth
+inside a graph. F16-vs-F32 final-output drift is reported, not an acceptance
+threshold or permission to choose reduced precision automatically.
+
+The SDK now includes this consumer in its default HOST/DEVICE GGML checks. Its
+receipt parser requires all 150 intermediate error summaries, all ten case results,
+the five precision-drift records and a complete marker per placement; host tests
+reject missing/duplicated/malformed results. Clean independent-package acceptance
+is still pending at this development checkpoint. No timing, INT8, matrix hardware
+or Metal result follows from it.

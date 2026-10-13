@@ -25,7 +25,12 @@ fallback and is not selected by this build script.
 
 The default run checks HOST/DEVICE odd-sized FP16-storage/FP32-arithmetic matrices,
 two-byte transfers, rejected operations, repeated session initialization, forbidden
-live-child teardown, and local recording failure/recovery. It does **not** run the
+live-child teardown, and local recording failure/recovery. It also runs the opt-in
+foundation transformer profile: five (width, hidden width, sequence length) shapes
+in F32/F16-weight modes, A/B/A reuse, all 15 intermediates against an independent
+FP64 reference, and 11 invalid-graph/retry controls. These deterministic fixtures
+need no downloaded model. The profile is single-head, bidirectional, pre-RMSNorm
+attention plus residual/ReLU feed-forward, not a general LLM backend. It does **not** run the
 MNIST dataset by default. To additionally execute all six direct/scheduled batch
 configurations for both F32 and F16 weights:
 

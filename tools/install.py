@@ -216,10 +216,10 @@ def install(prefix, *, legacy=False):
         if label=="foundation-indexed-ranges":builder="tools/sdk/foundation-ranges/build.py"
         copy(ROOT / builder,f"share/ogpu/examples/{label}/build.py")
     ggml = "share/ogpu/examples/foundation-ggml"
-    for name in ("CMakeLists.txt","backend.cpp","backend.h","runtime-foundation.h","runtime-installed.h",
+    for name in ("CMakeLists.txt","backend.cpp","backend.h","runtime-foundation.h","runtime-installed.h","transformer-check.cpp",
                  "mnist.cpp","lifecycle.cpp","matrix-check.cpp","foundation-check.cpp","convert-weights.cpp",
                  "dataset.sha256","fixtures/mnist-fc-f32.gguf","fixtures/SHA256SUMS","fixtures/README.md",
-                 "shaders/element.comp.spv","shaders/matrix.comp.spv","shaders/matrix-f16.comp.spv"):
+                 "shaders/element.comp.spv","shaders/matrix.comp.spv","shaders/matrix-f16.comp.spv","shaders/block.comp.spv"):
         copy(ROOT / "integrations/ggml" / name,f"{ggml}/{name}")
     for name in ("build.py","run.py","README.md"):
         copy(ROOT / "tools/sdk/ggml" / name,f"{ggml}/{name}")

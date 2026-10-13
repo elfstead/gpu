@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -33,6 +34,8 @@ static_assert(sizeof(Root) == 40 && offsetof(Root, a) == 0 && offsetof(Root, b) 
 struct State : std::enable_shared_from_this<State> {
     gpu::Runtime runtime;
     Kernel matrix = gpu::empty_kernel(), element = gpu::empty_kernel(), matrix_f16 = gpu::empty_kernel();
+    Kernel block = gpu::empty_kernel();
+    OgpuGgmlProfile profile = OgpuGgmlProfile::Mnist;
     uint64_t dispatches = 0;
     OgpuGgmlMemory memory = OgpuGgmlMemory::Device;
     OgpuGgmlStats stats;
@@ -218,21 +221,45 @@ bool tensor_profile(const ggml_tensor *t, bool half = false) {
            !t->view_src && ggml_is_contiguous(t) && t->ne[0] > 0 &&
            t->ne[0] <= 1024 && t->ne[1] > 0 && t->ne[1] <= 1024 && t->ne[2] == 1 && t->ne[3] == 1;
 }
-bool supports_op(ggml_backend_dev_t, const ggml_tensor *t) {
+bool transpose_profile(const ggml_tensor *t) {
+    if (!t || t->op != GGML_OP_TRANSPOSE || !tensor_profile(t->src[0])) return false;
+    const auto *a = t->src[0];
+    return t->type == GGML_TYPE_F32 && t->view_src == a && t->view_offs == 0 &&
+           t->ne[0] == a->ne[1] && t->ne[1] == a->ne[0] && t->ne[2] == 1 && t->ne[3] == 1 &&
+           t->nb[0] == a->nb[1] && t->nb[1] == a->nb[0] && t->nb[2] == a->nb[2] && t->nb[3] == a->nb[3];
+}
+float parameter(const ggml_tensor *t, size_t index) {
+    float value;
+    std::memcpy(&value,reinterpret_cast<const char *>(t->op_params)+index*sizeof(float),sizeof(value));
+    return value;
+}
+bool supports_op(ggml_backend_dev_t dev, const ggml_tensor *t) {
+    if (!t) return false;
+    const bool transformer = static_cast<State *>(dev->context)->profile == OgpuGgmlProfile::Transformer;
+    // In particular, softmax sinks must not be silently ignored.
+    for (int i = 2; i < GGML_MAX_SRC; ++i) if (t->src[i]) return false;
+    if (transformer && t->op == GGML_OP_TRANSPOSE) return !t->src[1] && transpose_profile(t);
     if (!tensor_profile(t, t && t->op == GGML_OP_NONE))
         return false;
     if (t->op == GGML_OP_NONE)
         return true;
     const auto *a = t->src[0];
     const auto *b = t->src[1];
+    if (transformer && t->op == GGML_OP_CONT)
+        return !b && transpose_profile(a) && ggml_are_same_shape(t,a);
     if (!tensor_profile(a, t->op == GGML_OP_MUL_MAT))
         return false;
     if (t->op == GGML_OP_UNARY)
-        return ggml_get_unary_op(t) == GGML_UNARY_OP_RELU && ggml_are_same_shape(t, a);
+        return !b && ggml_get_unary_op(t) == GGML_UNARY_OP_RELU && ggml_are_same_shape(t, a);
+    if (transformer && t->op == GGML_OP_RMS_NORM)
+        return !b && ggml_are_same_shape(t,a) && std::isfinite(parameter(t,0)) && parameter(t,0) > 0;
+    if (transformer && t->op == GGML_OP_SOFT_MAX)
+        return !b && ggml_are_same_shape(t,a) && std::isfinite(parameter(t,0)) && parameter(t,1) == 0;
     if (!tensor_profile(b))
         return false;
     if (t->op == GGML_OP_ADD)
-        return ggml_are_same_shape(t, a) && b->ne[0] == t->ne[0] && b->ne[1] == 1;
+        return ggml_are_same_shape(t, a) && b->ne[0] == t->ne[0] &&
+               (b->ne[1] == 1 || (transformer && b->ne[1] == t->ne[1]));
     if (t->op == GGML_OP_MUL_MAT)
         return a->ne[0] == b->ne[0] && t->ne[0] == a->ne[1] && t->ne[1] == b->ne[1];
     return false;
@@ -252,6 +279,11 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
             if (!supports_op(&state->device_interface, t))
                 throw std::runtime_error("unsupported graph operation/type/layout");
             (void)owned_address(t);
+            if (t->op == GGML_OP_TRANSPOSE) {
+                if (owned_address(t) != owned_address(t->src[0]) || t->buffer != t->src[0]->buffer)
+                    throw std::runtime_error("invalid transpose storage alias");
+                continue;
+            }
             if (t->op != GGML_OP_NONE) {
                 for (int source_index = 0; source_index < 2; ++source_index) {
                     const auto *source = t->src[source_index];
@@ -276,7 +308,7 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
         uint64_t dispatches = 0;
         for (int i = 0; i < ggml_graph_n_nodes(graph); ++i) {
             const auto *t = ggml_graph_node(graph, i);
-            if (t->op == GGML_OP_NONE)
+            if (t->op == GGML_OP_NONE || t->op == GGML_OP_TRANSPOSE)
                 continue;
             // Include READ -> WRITE for allocator reuse, and prior submissions.
             state->runtime.barrier(true);
@@ -295,6 +327,16 @@ ggml_status graph_compute(ggml_backend_t backend, ggml_cgraph *graph) {
             } else if (t->op == GGML_OP_ADD) {
                 root.b = address(t->src[1]);
                 root.operation = 1;
+                root.k = static_cast<uint32_t>(ggml_nelements(t->src[1]));
+                if (state->profile == OgpuGgmlProfile::Transformer) kernel = &state->block;
+            } else if (t->op == GGML_OP_RMS_NORM || t->op == GGML_OP_SOFT_MAX) {
+                root.operation = t->op == GGML_OP_RMS_NORM ? 2 : 3;
+                std::memcpy(&root.k,t->op_params,sizeof(root.k));
+                groups = root.n;
+                kernel = &state->block;
+            } else if (t->op == GGML_OP_CONT) {
+                root.operation = 4;
+                kernel = &state->block;
             }
             state->runtime.dispatch(*kernel,groups,&root,sizeof(root));
             ++dispatches;
@@ -347,11 +389,18 @@ OgpuGgmlSession::~OgpuGgmlSession() {
     ggml_backend_unload(&impl->state->registration);
 }
 
-OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMemory memory)
+OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMemory memory, OgpuGgmlProfile profile)
     : impl(std::make_unique<Impl>()) {
     if (ggml_backend_reg_by_name("OGPU"))
         throw std::runtime_error("OGPU backend already registered");
     auto &state = impl->state;
+    if (profile != OgpuGgmlProfile::Mnist && profile != OgpuGgmlProfile::Transformer)
+        throw std::runtime_error("unknown GGML consumer profile");
+#if !OGPU_GGML_FOUNDATION
+    if (profile != OgpuGgmlProfile::Mnist)
+        throw std::runtime_error("transformer profile requires foundation");
+#endif
+    state->profile = profile;
     state->memory = memory;
     auto &device = state->device_interface;
     auto &buffer_type = state->buffer_type;
@@ -361,6 +410,8 @@ OgpuGgmlSession::OgpuGgmlSession(uint32_t index, const char *shaders, OgpuGgmlMe
     state->matrix = load_kernel(*state, std::string(shaders) + "/matrix.comp.spv",512);
     state->matrix_f16 = load_kernel(*state, std::string(shaders) + "/matrix-f16.comp.spv",512);
     state->element = load_kernel(*state, std::string(shaders) + "/element.comp.spv",0);
+    if (profile == OgpuGgmlProfile::Transformer)
+        state->block = load_kernel(*state,std::string(shaders)+"/block.comp.spv",256);
 
     device.context = state.get();
     buffer_type.context = state.get();

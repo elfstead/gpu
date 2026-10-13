@@ -1,4 +1,16 @@
-# GGML MNIST consumer
+# Bounded GGML consumers
+
+The default MNIST profile below is joined by an explicitly selected,
+foundation-only [M5 transformer profile](../../docs/transformer-consumer-plan.md).
+Run `bash integrations/ggml/run-transformer.sh target/ggml-source` for HOST/DEVICE
+checks of all five shapes, both weight precisions, all intermediate CPU oracles,
+repeated inputs and rejected graphs. It needs the pinned source and supplied
+shaders, not MNIST data or downloaded weights. The default SDK's GGML handoff also
+runs this matrix. No subgroup operation, half arithmetic or matrix hardware is
+needed. Rebuild its shader with
+`glslc --target-env=vulkan1.2 integrations/ggml/shaders/block.comp -o integrations/ggml/shaders/block.comp.spv`;
+`check-shaders.sh` verifies the workgroup/root/capability contract. No transformer
+Metal or general GGML coverage is implied.
 
 A pinned GGML backend adapter for the upstream fully connected MNIST forward
 graph. Read the [brief and API decisions](../../docs/consumer-ggml.md) first.
@@ -11,7 +23,7 @@ adds FP16 matrix weights with FP32 activations and arithmetic; F32 remains the c
 Linux now builds the explicit [foundation path](../../docs/foundation-ggml.md)
 by default. The installed-API path remains an explicit build-time migration
 control and the existing macOS path. It is never selected as a runtime fallback.
-The opt-in SDK also includes a [standalone source handoff](../../docs/foundation-ggml.md#independent-source-handoff)
+The default SDK also includes a [standalone source handoff](../../docs/foundation-ggml.md#independent-source-handoff)
 using installed headers/library and a separately supplied pinned GGML checkout.
 
 ## Reproduce

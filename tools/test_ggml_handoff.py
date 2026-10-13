@@ -24,4 +24,25 @@ class DigestTests(unittest.TestCase):
             with self.assertRaises(ValueError): handoff.verify_data(data,"\n".join(rows))
 
 
+class TransformerReceiptTests(unittest.TestCase):
+    def test_complete_and_malformed(self):
+        lines=[]
+        for d,h,t in ((1,1,1),(13,29,3),(13,29,17),(64,128,16),(65,129,17)):
+            for precision in ('f32','f16'):
+                base=f'd={d} h={h} t={t} precision={precision}'
+                lines.extend(f'transformer_error {base} tensor={name} max_abs=0' for name in
+                    ('N','Q','K','V','scores','P','Vt','A','O','R','NR','up','relu','down','Y'))
+                lines.append(f'transformer {base} phases=3 dispatches=45 rejected=11 retry=15 allocation_bytes=1024 PASS')
+            lines.append(f'transformer_weight_drift d={d} h={h} t={t} max_abs=0.001')
+        lines.append('Transformer profile placement=device cases=10 PASS; no timing claim')
+        valid='\n'.join(lines)
+        self.assertEqual(len(handoff.verify_transformer(valid,'device')['cases']),10)
+        for bad in ('',valid.replace('tensor=Y','tensor=N'),valid.replace('max_abs=0','max_abs=nan',1),
+                    valid.replace('rejected=11','rejected=10',1),valid.replace('dispatches=45','dispatches=44',1),
+                    valid.replace('precision=f16','precision=f32'),valid.replace('placement=device','placement=host'),
+                    '\n'.join(lines[1:]),valid+'\n'+lines[-1]):
+            with self.subTest(bad=bad[:80]):
+                with self.assertRaises(ValueError):handoff.verify_transformer(bad,'device')
+
+
 if __name__ == "__main__": unittest.main()

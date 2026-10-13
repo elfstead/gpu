@@ -85,21 +85,22 @@ unchanged destination bytes. A two-byte copy changes exactly its selected bytes.
 It tests the adapter's local-error recovery and arena retirement, not fault-injected
 device loss; fatal submit/wait failure remains deliberate consumer policy.
 
-The default installed SDK, libplacebo adapter and other legacy workflows remain
-separate migration work. The installed helper can be removed when its migration
+The default SDK and libplacebo adapter have since moved to foundation. Remaining
+legacy workflows are tracked separately. The installed helper can be removed when its migration
 control is no longer needed and Metal has a validated foundation implementation.
 This checkpoint does not retire ABI 20 or claim native Metal parity.
 
 ## Independent source handoff
 
-The opt-in preview installer also exports this adapter and its tests as
+The default installer also exports this adapter and its tests as
 `share/ogpu/examples/foundation-ggml`, with supplied SPIR-V and frozen model.
 `build.py --ggml-source ...` gets the public header/library from `ogpu-foundation.pc`
 and builds only C/C++ consumer/upstream code. CMake's `OGPU_INCLUDE_DIR` and
 `OGPU_LIBRARY` parameters make this boundary explicit; the in-tree runner pins both
 to its freshly built checkout, while the copied wrapper pins them to the SDK.
 
-The standalone runner checks HOST/DEVICE matrix and lifecycle cases by default;
+The standalone runner checks HOST/DEVICE matrix, lifecycle and the new bounded
+[transformer profile](transformer-consumer-plan.md) by default;
 `--data-dir` explicitly adds both full-dataset precision modes. It validates input
 digests, preserves partial logs and complete/incomplete receipts, and records
 SDK/header/library, executable and source hashes. It downloads/trains nothing and
@@ -118,3 +119,20 @@ A no-GPU hosted CI lane builds the same exported source graph and checks failure
 handling without shader tools or MNIST downloads. It is configured, not remotely
 executed by this checkpoint. Local package builds used available dependencies and
 driver/tool caches; these results do not establish clean-machine portability.
+
+## M5 profile expansion
+
+The explicit foundation-only transformer selection adds full-shape residual ADD,
+RMSNorm, finite-scale unmasked softmax and a tightly checked 2D transpose/CONT pair.
+Metadata-only transpose borrows exactly its source storage; CONT materializes it
+with an ordinary shader. Reductions reject input/output aliasing. Graph preflight
+rejects unsupported masks/sinks, nonfinite parameters, layouts and ownership before
+recording any node. Ordinary operations retain the original MNIST behavior.
+
+All ten shape/precision cases pass in HOST/DEVICE placement on both local drivers
+in development, with every intermediate independently checked and no transfer
+between nodes. The block uses no subgroup operation or optional arithmetic feature;
+only baseline FP32 and storage-only FP16 weights. The new SPIR-V gate checks the
+40-byte root, 64-invocation local size, baseline capabilities and absence of reduced
+precision. This is not INT8, performance acceptance, native Metal validation or
+completion of M5; clean SDK acceptance remains a separate checkpoint.

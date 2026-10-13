@@ -45,6 +45,14 @@ fresh rejection/lifetime tests and learned-image/reuse regressions. See the
 [acceptance receipt](textured-scene-plan.md#clean-m4-offscreen-acceptance).
 This does not refresh historical timing measurements or establish presentation.
 
+M5's [first transformer block](transformer-consumer-plan.md#first-implementation-checkpoint)
+now passes all five shapes in F32/F16-weight modes on both local drivers and both
+HOST/DEVICE placements. All 15 intermediates, A/B/A reuse and invalid-graph retry
+are checked without a public API addition. Next accept its clean independent SDK
+handoff, add the separately specified signed-INT8 linear variant, and record the
+bounded throughput/memory/error tradeoffs. No general LLM backend or M5 completion
+is claimed by the first block.
+
 Implementation started: [foundation implementation](foundation-implementation.md) now has
 concrete query records, explicit queue creation, independent timeline handles,
 explicit memory backing/ranges with persistent mapping and cache visibility,

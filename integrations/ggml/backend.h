@@ -4,6 +4,8 @@
 #include <memory>
 
 enum class OgpuGgmlMemory { Host, Device };
+// Consumer profiles, not device capabilities. The wider profile is foundation-only.
+enum class OgpuGgmlProfile { Mnist, Transformer };
 struct OgpuGgmlStats {
     uint64_t uploads = 0, downloads = 0, upload_bytes = 0, download_bytes = 0;
     uint64_t staging_allocations = 0;
@@ -15,7 +17,8 @@ struct OgpuGgmlStats {
 class OgpuGgmlSession {
   public:
     OgpuGgmlSession(uint32_t device_index, const char *shader_directory,
-                    OgpuGgmlMemory memory = OgpuGgmlMemory::Device);
+                    OgpuGgmlMemory memory = OgpuGgmlMemory::Device,
+                    OgpuGgmlProfile profile = OgpuGgmlProfile::Mnist);
     ~OgpuGgmlSession();
     OgpuGgmlSession(const OgpuGgmlSession &) = delete;
     OgpuGgmlSession &operator=(const OgpuGgmlSession &) = delete;
