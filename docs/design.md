@@ -93,8 +93,9 @@ tensor/graph scheduling or texture-allocation policy.
 
 The default Linux SDK exports foundation only; explicit `--legacy` packaging and
 plain Cargo defaults preserve ABI20 for remaining callers. Native Metal 4 compute
-belongs to that older interface and does not implement foundation. M6 is the next
-backend migration/native-validation task, not a claim of current parity.
+belongs to that older interface and does not implement foundation. The
+[plan](plan.md) schedules Linux presentation before M6's backend migration and
+native validation; neither is a claim of current support.
 
 See [support](support.md), [quickstart](foundation-quickstart.md), and
 [upgrade policy](release-policy.md). The [ABI20 design history](design-abi20.md)

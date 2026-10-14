@@ -1,8 +1,9 @@
 # M6 entry handoff: Metal foundation
 
-Ready to start after M5 and the [contract consolidation](core-contract-review.md),
-2026-10-13. **No M6 implementation has started at this handoff.**
-The user requested a stop here. A Mac is not available in this environment;
+Updated 2026-10-15. M5 and the [contract consolidation](core-contract-review.md)
+are complete; [P1 presentation](presentation-plan.md) now precedes this migration.
+**No M6 implementation has started.** The earlier requested stop at this handoff
+is complete. A Mac is not available in this environment;
 Linux compilation/mocks cannot supply native acceptance.
 
 ## Starting point
@@ -43,6 +44,13 @@ Linux compilation/mocks cannot supply native acceptance.
    and explicit dependencies. Add the heap-image sampling consumer next. Validate
    changed interfaces, A/B/A, reuse, rejection and teardown on a Mac. Keep optional
    timestamps separately queried; no window/presentation dependency is needed.
+5. **Map presentation and run the interactive consumer.** Implement the optional
+   P1 boundary with native Metal drawable/layer integration. Window/input handling
+   remains external. Specify drawable acquisition, backpressure, image lifetime,
+   render completion versus presentation completion, format negotiation and
+   resize behavior without pretending Vulkan swapchain semantics are universal.
+   Validate multiple frames in flight, resize/minimize/restore and safe teardown
+   on a Mac. Offscreen tests remain independent of a display.
 
 Batch the native work into a coherent handoff. Use the same semantic fixtures and
 CPU oracles, but native artifacts and explicitly documented backend profiles.
@@ -51,12 +59,15 @@ M5's numerical profiles on Metal until their own native tests pass.
 
 ## Completion and subsequent work
 
-M6 closes only with native mixed-workload, generated-interface and lifetime/reuse
-acceptance. Without a Mac, implementation can be prepared but the result remains
-unvalidated. No hardware acquisition or external coordination is implied.
+M6 closes only with native mixed-workload, generated-interface, lifetime/reuse
+and interactive presentation acceptance. Without a Mac, implementation can be
+prepared but the result remains unvalidated. No hardware acquisition or external
+coordination is implied.
 
-M7's next refresh then consolidates the package/support/upgrade boundary and seeks
-real independent integration evidence when authorized. Presentation, mixed backing,
-native interop/VM and specialized stages remain tracked surface work, not silently
-implemented by M6. No release publication, stable ABI or universal performance
-claim follows from reaching this handoff.
+M7 is an ongoing package/support/upgrade track, with independent integration
+evidence sought when authorized. M8–M11 schedule the remaining hardware families;
+see the [roadmap](roadmap.md#scheduled-hardware-coverage). Pull explicit residency
+or interop prerequisites into M6 if the native mapping needs them, without claiming
+the whole M10 package. When Mac validation is unavailable, leave M6 acceptance
+open and continue useful Linux work. No release publication, stable ABI or
+universal performance claim follows from this handoff.

@@ -15,7 +15,8 @@ The [experiment ledger](docs/experiments.md) records the supporting evidence.
 
 The Rust/C prototype implements explicit memory, queues, command storage, compute
 and offscreen graphics through the Linux/Vulkan foundation. Native Metal 4 compute
-remains on the older interface; foundation migration is the next milestone.
+remains on the older interface; Linux presentation is next, followed by Metal
+foundation migration.
 See [building and testing](docs/development.md) and the [Metal backend](docs/metal.md).
 Bounded integrations run [GGML MNIST, transformer and quantized-linear consumers](integrations/ggml/README.md)
 and [libplacebo compute/raster processing](integrations/libplacebo/README.md)

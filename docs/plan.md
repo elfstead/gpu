@@ -1,8 +1,10 @@
 # Working status and next milestone
 
-Updated 2026-10-13. **M1–M5 and foundation-contract consolidation are complete for
-their declared scope. We are at the start of M6; no Metal foundation migration
-has been started.** Work stops here as requested.
+Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
+their declared scope. Next is P1: presentation and an interactive Linux consumer,
+before M6 Metal foundation. Neither P1 nor M6 implementation has started.**
+The earlier stop at the M6 entry checkpoint is complete; this revision schedules
+the remaining work without claiming implementation or native validation.
 
 The [current design](design.md) describes the model; the
 [implemented surface](foundation-implementation.md) gives exact profiles and
@@ -34,7 +36,16 @@ per driver and the public-C fixture on Radeon. llvmpipe retains its explicit
 combined depth/stencil copy/readback exclusion. One Radeon plus llvmpipe is not
 cross-vendor physical coverage.
 
-## Next: M6 Metal foundation
+## Next: P1 presentation and an interactive consumer
+
+Follow the [presentation brief](presentation-plan.md): optional native-surface and
+swapchain integration, explicit acquire/render/present dependencies, and a small
+interactive Linux scene with multiple frames in flight and resize/minimize
+handling. Window creation and input remain in an external library. Specify the
+native-interoperability boundary alongside presentation; full external-memory
+implementation is not a prerequisite. No display availability is assumed.
+
+## Then: M6 Metal foundation
 
 Follow the [M6 entry handoff](m6-entry.md):
 
@@ -44,6 +55,8 @@ Follow the [M6 entry handoff](m6-entry.md):
    waits, retained resource graphs or Vulkan-shaped emulation.
 3. Generate native executable interfaces and run the mixed learned-image and
    heap-image fixtures with native lifetime/reuse/error validation on a Mac.
+4. Map P1 presentation to Metal and run the interactive consumer, preserving
+   explicit drawable availability and presentation synchronization semantics.
 
 Existing Metal 4 compute remains the legacy path with earlier native evidence,
 not current foundation parity. No Mac is available here. A coherent implementation
@@ -65,7 +78,7 @@ cost observations need no downloaded model. Full MNIST testing remains opt-in
 with separately supplied data. Our isolated builds are not third-party adoption,
 clean-machine coverage or portable binary distribution.
 
-## Open horizon and stabilization
+## Scheduled hardware coverage and stabilization
 
 The [contract review](core-contract-review.md#remaining-fundamental-surface-gaps)
 keeps mixed buffer/image backing, imported/raw-address resources, VM/residency,
@@ -74,7 +87,23 @@ graphics/video/ray/presentation facilities visible. Some numerical/format profil
 are implemented but lack matching physical hardware. No gap is approved as a
 permanent restriction merely because M4/M5 did not exercise it.
 
-After M6, refresh M7's source/install/upgrade/support evidence. Independent adopters,
+The [roadmap](roadmap.md#scheduled-hardware-coverage) assigns implementation batches:
+
+- M8: advanced raster and GPU-driven execution, including task/mesh and generated commands.
+- M9: ray queries, acceleration structures and ray pipelines.
+- M10: mixed backing, native interoperability, virtual/sparse memory and residency.
+- M11: advanced compute/numerical execution and video encode/decode profiles.
+
+This is the default order after M6, not a ban on pulling prerequisites forward:
+Metal residency or imported presentation resources belong earlier when needed.
+Missing hardware blocks native acceptance of a profile, not its specification or
+implementable backend work. Track specified, implemented and natively validated
+status separately; no emulation or passing skip substitutes for native evidence.
+
+M7's source/install/upgrade/support refresh is an ongoing packaging track, not the
+end of functional development and not conditional on completing M8–M11. If Mac
+validation is unavailable, keep M6 incomplete and proceed with local hardware
+coverage work rather than waiting idle. Independent adopters,
 additional physical GPUs, native Metal validation and real-loss/noncoherent evidence
 remain separate tracks; no new hardware, outreach, publication or stable ABI promise
 is authorized by this plan. General safe Rust wrappers and debugging/capture tools

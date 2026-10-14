@@ -1,0 +1,69 @@
+# P1: presentation and an interactive Linux consumer
+
+Scheduled 2026-10-15, before M6. **Not implemented or natively validated.**
+M4's offscreen acceptance remains complete. P1 supplies a missing application
+boundary; it does not turn OGPU into a windowing library or game engine.
+
+## Contract and implementation batch
+
+1. Specify an optional, versioned presentation interface and implement the narrow
+   extension negotiation needed to discover it. Headless device creation must
+   remain independent of surfaces. Query native surface/queue compatibility;
+   never assume queue zero can present. Select one Linux window-system path after
+   inspecting the available display and windowing dependencies; record that choice
+   before implementation. Do not claim all Linux window systems from one path.
+2. Accept typed native window/display handles supplied by an external window/input
+   library or application. Define owned versus borrowed lifetimes. Expose surface
+   capabilities, image format/color space, extent, image count and present-mode
+   selection explicitly; do not insert a hidden frame scheduler or pacing policy.
+3. Define acquisition outcomes, timeout/nonblocking behavior and explicit GPU
+   dependencies. Acquired images use ordinary OGPU rendering operations with
+   documented ownership/state boundaries. Keep render completion, image reuse and
+   presentation completion distinct. Expose native limitations honestly; do not
+   promise timeline presentation semantics that require hidden host waits.
+4. Implement present, resize/recreation, out-of-date/suboptimal outcomes, suspended
+   zero-extent windows, surface loss and teardown. Define how acquired but unused
+   images are retired and when old swapchain resources may be destroyed. No
+   per-frame device-idle wait, mandatory CPU pixel readback or implicit copy path.
+5. Specify the accompanying native interop boundary: device/queue identity,
+   owned/borrowed objects, image states, imported synchronization and handoff rules.
+   Existing presenters must eventually be able to share resources without CPU
+   readback. Full external-memory/import/export implementation belongs to M10;
+   pull a subset forward only if the chosen native path actually needs it.
+6. Adapt the textured scene into a small interactive consumer with camera/input,
+   caller-managed multiple frames in flight and bounded reusable storage. Package
+   its source and dependency/build instructions with the experimental SDK.
+
+## Acceptance and remaining proof
+
+- On the selected real Linux display path: render a textured/depth/blended scene,
+  interact, resize repeatedly, minimize/restore, and close with work in flight.
+  Exercise available present modes and explicitly report unsupported modes.
+- Verify acquire/present ownership and synchronization under native validation;
+  cover nonblocking/timeout and recreation outcomes with deterministic tests where
+  possible. Injected tests are not proof of actual surface/device-loss recovery.
+- Inspect the steady-state path for hidden waits, copies, per-frame allocation
+  and forced serialization. The application controls frames in flight. Reuse
+  existing offscreen image checks; no broad new benchmarking campaign is required
+  before implementing the straightforward native mapping.
+- Check incompatible surface/queue choices, invalid lifetimes and format requests
+  to the extent the trusted C boundary can diagnose them. Document caller-owned
+  safety obligations rather than claiming comprehensive pointer/lifetime safety.
+- Run the installed interactive consumer independently of the source tree. Record
+  exact compositor/window system, driver and modes; distinguish visible interactive
+  acceptance from headless tests or a virtual display.
+
+No display is assumed available. Contract, implementation and headless lifecycle
+tests can proceed without it; native presentation acceptance stays open. Do not
+add a CPU display fallback to manufacture completion. M6 maps the same concepts
+to Metal with explicit native differences, not Vulkan-shaped emulation.
+
+## Scope boundaries
+
+Input, audio, assets, scene management and window creation remain consumer/library
+responsibilities. HDR/color-management breadth, additional window systems and
+advanced presentation timing need separately declared profiles and evidence; the
+API must leave room for them without claiming their implementation in P1. Mesh
+shaders and ray tracing are not prerequisites for this consumer. P1 completion is
+a practical experimental Linux game-rendering path, not production readiness or
+a stable ABI promise.

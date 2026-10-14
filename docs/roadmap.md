@@ -5,9 +5,10 @@ this document owns the sequence and coverage of the remaining project work.
 Sequence revised 2026-10-08: the [whole-API design](whole-api-design.md) selects a
 coordinated foundation revision before completing the remaining M4/M5 consumers.
 As of 2026-10-13, M4/M5 and [foundation-contract consolidation](core-contract-review.md)
-are complete for their declared scopes. The next implementation is
-[M6](m6-entry.md), not yet started; the per-milestone briefs below preserve their
-original deliverables rather than reopening completed gates.
+are complete for their declared scopes. Sequence revised 2026-10-15: next is
+[P1 presentation](presentation-plan.md), followed by [M6](m6-entry.md), now including
+presentation. Neither has started. M8–M11 below schedule the remaining hardware
+families; completed M1–M5 gates are not reopened.
 This is a concrete plan, not authorization to publish releases, provision machines
 or coordinate native testing. The foundation can be implemented across the
 milestone boundaries below; each capability does not need its own research gate.
@@ -44,12 +45,21 @@ compatibility are not completed by those results.
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | Offscreen complete at `43bb9f0`; [native-matched and independent SDK acceptance](textured-scene-plan.md#clean-m4-offscreen-acceptance); presentation separate |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
-| M6 — Mixed-workload Metal parity | Foundation migration, same learned-image application, generated native interfaces and common lifetime/contract tests | Next, not started: [entry handoff](m6-entry.md); native execution needs a Mac |
-| M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | First [local preparation checkpoint](release-checkpoint.md) complete 2026-09-28; refresh after M4–M6; publication/adoption separate |
+| P1 — Presentation and interactive graphics | Optional presentation boundary, Linux window integration and an interactive multi-frame scene | Next, not started: [brief](presentation-plan.md); real display acceptance separate from headless tests |
+| M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | After P1, not started: [entry handoff](m6-entry.md); native execution needs a Mac |
+| M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
+| M8 — Advanced raster and GPU-driven execution | Task/mesh, generated commands and explicit advanced raster profiles | Scheduled after M6; native profile execution needs supporting hardware |
+| M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
+| M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
+| M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |
 
-Current order: **completed M1–M5/foundation → completed contract consolidation →
-M6 handoff/migration → refreshed M7**. A Vulkan-scoped experimental package does
-not require Metal acceptance; native validation remains a separate evidence track.
+Current implementation order: **completed M1–M5/foundation and consolidation →
+P1 → M6 → M8 → M9 → M10 → M11**, with **M7 an ongoing packaging/adoption track**,
+not the end of functional development. Prerequisites can move earlier without
+claiming the entire later milestone. Missing Mac or feature hardware must not
+stall useful local work: keep native acceptance open and advance the next
+implementable batch. A Vulkan-scoped experimental package does not require Metal
+or M8–M11 acceptance; native validation remains a separate evidence track.
 No calendar estimates are assigned by this document.
 Each milestone ends in a committed result and decision, not another open-ended
 list of experiments.
@@ -256,11 +266,11 @@ specified, allocation reuse and compute-written inputs remain valid, and the
 learned-image path has no regression. No generic fixed-function state object
 copied wholesale from Vulkan is assumed as the final design.
 
-**Presentation follow-on:** design a separate platform boundary, then implement
-one Linux window-system path when the local environment permits native testing.
-Test acquire/present, resize, minimization and out-of-date/recreation behavior.
-Headless environments do not block offscreen acceptance, but cannot establish
-presentation support. Do not add native window concepts to the compute core.
+**Presentation follow-on:** now scheduled as [P1](presentation-plan.md), before
+M6. Implement one Linux window-system path and an interactive consumer; native
+display testing is an acceptance requirement, not a prerequisite for design or
+implementation. Offscreen M4 remains complete. Native window concepts stay out of
+the compute core.
 
 ## M5 — Implement a broader, still bounded ML consumer
 
@@ -291,8 +301,8 @@ are explicit, and throughput/memory/error tradeoffs are recorded. No automatic
 selection of reduced precision merely because a device capability bit is true.
 
 **Accelerated matrix profile:** specify shape/type/subgroup/layout requirements
-and variant selection using this workload. Implement and accept a hardware matrix
-variant only when supported hardware is available for real execution. The local
+and variant selection using this workload. M11 schedules implementation of the
+hardware matrix consumer; native acceptance requires supported hardware. The local
 Radeon's lack of exposed cooperative-matrix support cannot be fixed by host API
 design; mocks are rejection tests, not acceleration evidence.
 
@@ -310,13 +320,24 @@ is universal. Keep source semantics common where possible, artifact metadata
 backend-specific where necessary. Preserve explicit ownership and native Metal 4
 encoding rather than mimicking Vulkan internals.
 
+Then map the [P1 presentation contract](presentation-plan.md) to native Metal
+drawable/layer behavior and run the interactive consumer on a Mac. Window/input
+creation remains external; acquisition and presentation completion must retain
+their native semantics. Pull explicit residency/interop prerequisites forward
+from M10 where needed, without treating that as whole-package acceptance.
+
 **Done when:** native Mac execution passes the same fixtures, reuse/error tests
-and generated-interface mutations. Linux type checks/mocks can prepare a handoff
+and generated-interface mutations, plus interactive multi-frame presentation,
+resize/minimize/restore and safe teardown. Linux type checks/mocks can prepare a handoff
 but leave this milestone incomplete. Batch native validation into a coherent
 handoff when a Mac is available; do not request a round trip per small change.
 Any subsequent M4 feature claims require their own native acceptance.
 
 ## M7 — Experimental release, then stabilization evidence
+
+M7 is an ongoing track refreshed after P1, M6 and later capability batches. It is
+not a claim that the full hardware coverage roadmap is finished. Publication and
+stabilization remain separate decisions.
 
 After M1–M3, prepare a Vulkan-scoped source release candidate with the working SDK,
 installation/upgrade instructions, current compiler requirements, examples,
@@ -344,10 +365,107 @@ The [core-contract review](core-contract-review.md) is an explicit prerequisite
 to considering that decision, not an additional claim made by experimental M7
 packaging. Native Metal and broader hardware evidence remain independently scoped.
 
-## Explicit coverage of the remaining horizon
+## Scheduled hardware coverage
 
-These items are not forgotten or implicitly prerequisites. Each has a disposition
-and an entry criterion; adding one requires selecting its consumer and acceptance.
+M8–M11 are planned implementation batches, not implemented features. Each begins
+with an exact native mapping and profile list, then implements the coherent API,
+backend and compiler/artifact changes together. Consumers verify integration;
+they are not prerequisites to implementing an already understood native strategy.
+Use structural cost analysis first; measure when a lowering or tradeoff is uncertain,
+not as a mandatory research gate for each operation. No silent emulation, hidden
+scheduler or mandatory resource walk may substitute for a missing native mechanism.
+
+Track each profile as **specified / implemented / natively validated**, with
+backend/device scope. A batch can reach an implementation checkpoint while native
+acceptance remains open. Unsupported local hardware is neither a passing skip nor
+a reason to leave the contract indefinitely undesigned. Do not label a milestone
+fully complete until its declared native acceptance passes; continue other work
+when only unavailable external hardware remains. No hardware acquisition is implied.
+
+### M8 — Advanced raster and GPU-driven execution
+
+**Deliver:** task/mesh executable stages and direct/indirect/count launch paths;
+explicit GPU-generated command layouts, executable selection, preparation/storage
+and execution; capability-specific multiview, shading-rate, tile-local/input-
+attachment and pass-continuation strategies. Audit remaining vertex-fetch,
+tessellation and geometry-stage gaps and implement native profiles where absent.
+Add compressed-texture format/copy/sampling profiles with explicit block layout
+and usage queries, rather than assuming every native format combination works.
+Expose materially different native strategies explicitly, without duplicating
+equivalent mechanisms merely to match another API's naming.
+
+**Consumer:** a GPU-culled scene with generated draw/mesh work, plus small raster
+fixtures for the additional profiles. A conventional draw path can be a separately
+selected control, not automatic mesh emulation.
+
+**Acceptance:** generated artifacts and stage linking; GPU-generated count/identity
+and bounds; exact preparation/execution dependencies and lifetimes; image checks
+for supported raster profiles. Inspect lowering for CPU readback or forced per-draw
+host work. Local execution covers supported profiles; unsupported mesh/generated
+command features retain explicit native-test debt.
+
+### M9 — Ray tracing
+
+**Deliver:** acceleration-structure requirements, caller-controlled backing and
+scratch, build/update/copy/compaction and query operations; shader ray queries;
+ray executable groups, shader tables, and direct/indirect trace profiles. Keep ray
+queries independently usable without a ray pipeline. Preserve native capability
+differences rather than assuming every backend implements every execution model.
+
+**Consumer:** a deterministic scene using both inline ray queries and a ray-pipeline
+variant where supported, including geometry updates and compacted structures.
+
+**Acceptance:** hit/miss and instance/geometry identity against a CPU reference;
+build-to-trace, update and compaction dependencies; scratch/table alignment and
+lifetime rules; malformed/unsupported profile rejection. Inspect the lowering for
+hidden builds, allocations or CPU traversal. No software tracing fallback counts
+as hardware acceptance. Pull M10 backing/interop prerequisites forward if needed.
+
+### M10 — Memory and interoperability
+
+**Deliver:** mixed buffer/image backing where native placement allows it; typed
+owned/borrowed device/resource handles; external memory and synchronization
+import/export with device identity and initial/final state contracts; virtual
+address reservation, map/unmap/access, sparse image binding and explicit residency
+profiles. Audit raw-address command endpoints so foreign resources are not forced
+through unnecessary allocation or registration strategies.
+
+**Consumers:** an external native presenter or GPU producer sharing resources with
+OGPU without CPU readback, plus sparse/virtual resource streaming and residency
+fixtures. Pull subsets earlier for P1, Metal or advanced execution as needed.
+
+**Acceptance:** zero-copy handoff with explicit synchronization, ownership and
+teardown; aliasing/map/unmap ordering; external-handle ownership/error paths;
+bounded streaming reuse and native residency behavior. Separate OS/handle types
+and hardware profiles in results. Multi-device peer execution remains a distinct
+consumer/validation track, not inferred from single-device import/export.
+
+### M11 — Advanced compute and media
+
+**Compute deliverables:** richer shared-memory/launch profiles, cooperative or
+cluster/device-enqueue execution where native APIs support it, pipeline artifact/
+binary interfaces, and remaining numerical/subgroup/matrix profiles. Extend
+generated artifact requirements and implement a hardware matrix variant of the
+bounded ML consumer with explicit layout, accumulation and numerical permissions.
+Do not add host tensor operators or an automatic precision selector to the core.
+
+**Media deliverables:** explicit codec/session capabilities, plane-aware images,
+bitstream ranges, parameter/reference records, decode/encode operations and status
+queries. Select and document the initial codec/profile set in the implementation
+brief from native mappings; no universal codec promise. Use M10 sharing for external
+media integration where needed.
+
+**Acceptance:** compute outputs versus declared numerical bounds and launch/
+artifact contract tests, with actual native acceleration distinguished from scalar
+controls. For media, deterministic bitstreams and reference-frame checks for decode,
+declared quality/error checks for lossy encode, explicit reference-picture lifetime
+and synchronization tests. Compute and media are separate acceptance subprofiles;
+neither blocks implementing the other, and neither becomes a core device prerequisite.
+
+## Coverage assignments and remaining horizon
+
+Scheduled capabilities below refer to the batches above. Other items retain an
+explicit entry criterion; they are not silently included in milestone completion.
 
 | Gap | Planned treatment / entry criterion |
 |---|---|
@@ -356,15 +474,15 @@ and an entry criterion; adding one requires selecting its consumer and acceptanc
 | Replay and allocation assistance | M3 measurement/contract decision; application helpers first |
 | Concurrent host recording / multiple queues | Implemented in foundation; parallel host workers and Radeon cross-family transfer pass. Actual overlap benefit and broader topology/hazard evidence remain open |
 | Timed waits / cancellation | Timeline timeout/poll and recording cancellation are implemented. Timeout/cancellation do not retire pending GPU work; GPU cancellation/recovery remains a separate semantic decision |
-| External memory/import-export | Deferred until an actual media, window-system or other-runtime interoperability consumer; ownership/device matching and native synchronization are acceptance requirements |
+| External memory/import-export | M10; boundary design in P1, prerequisite subsets earlier when needed; ownership/device matching and native synchronization required |
 | Multi-device execution/communication | Deferred; needs a selected workload and multiple real devices. Never a prerequisite for current local milestones |
-| More formats, arrays, 3D textures, MSAA | Foundation implements explicit image profiles, mip/layer/cube/3D shapes, format queries and multisample/resolve paths. Exact-profile support and consumer verification are distinct; compressed/multiplanar and broader usage combinations remain open |
-| Mixed backing, virtual memory and residency | Linear spans and placed/aliased images exist; mixed buffer/image backing, VM/sparse maps and explicit residency modules remain unimplemented. Specify native placement/ordering rules before claiming the strategies |
-| Generated commands and richer artifact/launch profiles | Ordinary indirect/count execution exists; GPU-generated command topology, dynamic shared launch, pipeline binaries and extension-table negotiation remain unimplemented, not implicit fallbacks |
-| Presentation | Separate M4 follow-on; native window-system testing required |
-| Ray tracing / mesh and other specialized stages | Deferred, not first-version requirements; needs a concrete renderer and suitable hardware |
+| More formats, arrays, 3D textures, MSAA | Existing image shapes/resolve profiles remain; M8 adds compressed texture and advanced raster format/usage coverage, M11 multiplanar media profiles. Query exact native combinations; no universal format claim |
+| Mixed backing, virtual memory and residency | M10, with required subsets pulled into M6 or other consumers; explicit native placement/ordering, no hidden migration |
+| Generated commands and richer artifact/launch profiles | M8 generated topology; M11 richer launch and binaries; P1 implements the narrow optional-extension negotiation prerequisite |
+| Presentation | P1 Linux before M6; M6 Metal; real window-system acceptance required |
+| Ray tracing / mesh and other specialized stages | M8 mesh/advanced raster, M9 rays, M11 video; implementation scheduled independently of hardware availability, native acceptance remains mandatory for support claims |
 | General GGML backend / GPU training | M5 remains bounded inference. Broader operator coverage or forward/backward/optimizer training is a separate consumer milestone, not a new host tensor API |
-| Hardware matrix acceleration / wider numeric types | Foundation has numeric/atomic/dot/subgroup/matrix requirement profiles and available local execution checks. Unsupported hardware tuples/modes stay unaccepted; M5 scalar Q8 is not acceleration |
+| Hardware matrix acceleration / wider numeric types | M11 extends existing requirements/discovery to remaining execution profiles and a hardware matrix consumer. Unsupported tuples stay unaccepted; M5 scalar Q8 is not acceleration |
 | Fine profiling / capture-replay / GPU debugging | Foundation exposes explicit timestamp/occlusion/statistics pools. Consumer logs exist; foundation native labels and full address-aware capture/debugging remain separate tooling work |
 | Windows and other platform builds | Deferred until a platform-specific build/loader/consumer acceptance lane can be maintained; public C does not imply tested platform support |
 | macOS installation/package support | After M6 artifact workflow, or a separately selected compute-only packaging pass; native install/link tests required |
@@ -377,8 +495,11 @@ completion debts. Higher-level libraries can implement their own policies on top
 
 ## Working discipline
 
-- One active implementation milestone with a short brief and predeclared gates.
-  Later rows are planning, not permission for unrelated backend/API changes.
+- One coherent active implementation batch with explicit acceptance. Pull needed
+  prerequisites forward and record the change; do not serialize every capability
+  behind a separate experiment. Missing external validation leaves acceptance open,
+  not all further implementation blocked. Later rows remain scoped plans, not
+  permission for unrelated actions or publication.
 - Commit coherent implementation steps and acceptance records. If gates fail,
   retain the failed result and discuss semantic/tolerance changes explicitly.
 - Keep the installed consumer and existing bounded applications as regressions;
