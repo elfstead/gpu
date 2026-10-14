@@ -20,6 +20,9 @@ Linux compilation/mocks cannot supply native acceptance.
   renamed into a backend trait. Foundation currently lives under Linux-specific
   modules; separate genuinely common record validation from native execution as
   implementation requires, without generalizing unproven backend assumptions.
+- P1 first establishes native Rust operations below the C adapters. Extend that
+  common host contract for Metal; do not create a second Rust wrapper routed
+  through C or duplicate operation policy in each language boundary.
 
 ## First implementation tranche, when resumed
 

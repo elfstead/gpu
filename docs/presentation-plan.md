@@ -1,10 +1,32 @@
 # P1: presentation and an interactive Linux consumer
 
-Scheduled 2026-10-15, before M6. **Not implemented or natively validated.**
+Scheduled 2026-10-15, before M6. **Opening work: native Rust core extraction;
+presentation is not implemented or natively validated.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
 ## Contract and implementation batch
+
+### Opening step: first-class native Rust, then presentation
+
+Extract a public native Rust interface implementing the same foundation contract
+below the C ABI. C entry points adapt arguments/results and contain panics; Rust
+callers do not route through them. Keep backend representations private and share
+operation validation/execution rather than maintaining two implementations.
+
+Use typed handles, slices and Results where appropriate, with explicit unsafe
+GPU-lifetime/address/synchronization obligations. No mandatory reference counting,
+resource retention, automatic waits, scheduler or additional allocation is added.
+This is not a fully safe convenience wrapper or an ABI stabilization project.
+
+Move the existing surface in coherent batches, preserving C behavior and tests.
+Add a standalone native Rust consumer covering explicit resource lifetimes,
+submission and errors; verify that its calls bypass C adapters. Then expose new
+presentation operations through both interfaces and write the interactive consumer
+in Rust. Subsequent hardware milestones extend Rust and C together. M6 builds on
+this shared contract rather than treating the C boundary as the runtime core.
+
+### Presentation implementation
 
 1. Specify an optional, versioned presentation interface and implement the narrow
    extension negotiation needed to discover it. Headless device creation must
@@ -30,12 +52,15 @@ boundary; it does not turn OGPU into a windowing library or game engine.
    Existing presenters must eventually be able to share resources without CPU
    readback. Full external-memory/import/export implementation belongs to M10;
    pull a subset forward only if the chosen native path actually needs it.
-6. Adapt the textured scene into a small interactive consumer with camera/input,
+6. Adapt the textured scene into a small interactive Rust consumer with camera/input,
    caller-managed multiple frames in flight and bounded reusable storage. Package
    its source and dependency/build instructions with the experimental SDK.
 
 ## Acceptance and remaining proof
 
+- Native Rust and C exercise the shared core; existing C rejection/output semantics
+  and GPU regressions remain intact. Verify the standalone Rust consumer, document
+  unsafe obligations, and inspect for extra allocations, retention and waits.
 - On the selected real Linux display path: render a textured/depth/blended scene,
   interact, resize repeatedly, minimize/restore, and close with work in flight.
   Exercise available present modes and explicitly report unsupported modes.

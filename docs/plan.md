@@ -2,7 +2,8 @@
 
 Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
-before M6 Metal foundation. Neither P1 nor M6 implementation has started.**
+before M6 Metal foundation. P1 opens with native Rust core extraction; presentation
+and M6 implementation have not started.**
 The earlier stop at the M6 entry checkpoint is complete; this revision schedules
 the remaining work without claiming implementation or native validation.
 
@@ -38,7 +39,11 @@ cross-vendor physical coverage.
 
 ## Next: P1 presentation and an interactive consumer
 
-Follow the [presentation brief](presentation-plan.md): optional native-surface and
+Follow the [presentation brief](presentation-plan.md). First extract the shared
+native Rust core below the C adapters, preserve C behavior, and add a standalone
+Rust consumer with explicit lifetime/submission/error handling. No additional
+retention, scheduling or waits; a general safe wrapper is a separate project.
+Then implement optional native-surface and
 swapchain integration, explicit acquire/render/present dependencies, and a small
 interactive Linux scene with multiple frames in flight and resize/minimize
 handling. Window creation and input remain in an external library. Specify the
@@ -107,7 +112,8 @@ coverage work rather than waiting idle. Independent adopters,
 additional physical GPUs, native Metal validation and real-loss/noncoherent evidence
 remain separate tracks; no new hardware, outreach, publication or stable ABI promise
 is authorized by this plan. General safe Rust wrappers and debugging/capture tools
-are additional work, not implicit properties of a Rust implementation.
+are additional work, not implicit properties of a Rust implementation. The native
+low-level Rust interface is scheduled in P1 and does not depend on a safe wrapper.
 
 ## History
 

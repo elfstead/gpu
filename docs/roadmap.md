@@ -7,7 +7,8 @@ coordinated foundation revision before completing the remaining M4/M5 consumers.
 As of 2026-10-13, M4/M5 and [foundation-contract consolidation](core-contract-review.md)
 are complete for their declared scopes. Sequence revised 2026-10-15: next is
 [P1 presentation](presentation-plan.md), followed by [M6](m6-entry.md), now including
-presentation. Neither has started. M8–M11 below schedule the remaining hardware
+presentation. P1 opens with extraction of the native Rust core below the C ABI;
+presentation and M6 have not started. M8–M11 below schedule the remaining hardware
 families; completed M1–M5 gates are not reopened.
 This is a concrete plan, not authorization to publish releases, provision machines
 or coordinate native testing. The foundation can be implemented across the
@@ -45,7 +46,7 @@ compatibility are not completed by those results.
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | Offscreen complete at `43bb9f0`; [native-matched and independent SDK acceptance](textured-scene-plan.md#clean-m4-offscreen-acceptance); presentation separate |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
-| P1 — Presentation and interactive graphics | Optional presentation boundary, Linux window integration and an interactive multi-frame scene | Next, not started: [brief](presentation-plan.md); real display acceptance separate from headless tests |
+| P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Opening work: [brief](presentation-plan.md); real display acceptance separate from headless tests |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | After P1, not started: [entry handoff](m6-entry.md); native execution needs a Mac |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
 | M8 — Advanced raster and GPU-driven execution | Task/mesh, generated commands and explicit advanced raster profiles | Scheduled after M6; native profile execution needs supporting hardware |
@@ -267,7 +268,8 @@ learned-image path has no regression. No generic fixed-function state object
 copied wholesale from Vulkan is assumed as the final design.
 
 **Presentation follow-on:** now scheduled as [P1](presentation-plan.md), before
-M6. Implement one Linux window-system path and an interactive consumer; native
+M6. First extract the native Rust core and validate both host interfaces; then
+implement one Linux window-system path and an interactive Rust consumer; native
 display testing is an acceptance requirement, not a prerequisite for design or
 implementation. Offscreen M4 remains complete. Native window concepts stay out of
 the compute core.
@@ -480,6 +482,7 @@ explicit entry criterion; they are not silently included in milestone completion
 | Mixed backing, virtual memory and residency | M10, with required subsets pulled into M6 or other consumers; explicit native placement/ordering, no hidden migration |
 | Generated commands and richer artifact/launch profiles | M8 generated topology; M11 richer launch and binaries; P1 implements the narrow optional-extension negotiation prerequisite |
 | Presentation | P1 Linux before M6; M6 Metal; real window-system acceptance required |
+| Native Rust host interface | P1 opening refactor: shared core below C adapters, typed zero-policy interface and standalone Rust consumer; subsequent milestones extend both host interfaces |
 | Ray tracing / mesh and other specialized stages | M8 mesh/advanced raster, M9 rays, M11 video; implementation scheduled independently of hardware availability, native acceptance remains mandatory for support claims |
 | General GGML backend / GPU training | M5 remains bounded inference. Broader operator coverage or forward/backward/optimizer training is a separate consumer milestone, not a new host tensor API |
 | Hardware matrix acceleration / wider numeric types | M11 extends existing requirements/discovery to remaining execution profiles and a hardware matrix consumer. Unsupported tuples stay unaccepted; M5 scalar Q8 is not acceleration |
