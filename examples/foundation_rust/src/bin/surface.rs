@@ -1,4 +1,4 @@
-//! Bounded hidden-window setup probe; no rendering or presentation acceptance.
+//! Hidden-window setup probe, or bounded two-window lifecycle with --present.
 //! GLFW is an application dependency, not part of the OGPU implementation.
 use libloading::Library;
 use ogpu::foundation::{rust as gpu, types::*};
@@ -6,6 +6,8 @@ use std::{
     ffi::{c_char, c_void, CStr},
     ptr,
 };
+#[path = "../presentation.rs"]
+mod presentation;
 
 struct Window {
     handle: *mut c_void,
@@ -16,6 +18,21 @@ struct Window {
     _library: Library,
 }
 impl Window {
+    fn show_and_poll(&self) {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(*mut c_void)>(b"glfwShowWindow\0")
+                .unwrap()(self.handle);
+            self.poll();
+        }
+    }
+    fn poll(&self) {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn()>(b"glfwPollEvents\0")
+                .unwrap()();
+        }
+    }
     fn create() -> Self {
         // Deliberate executable-library selection, never accept untrusted paths.
         let path = std::env::var_os("OGPU_GLFW_LIBRARY").unwrap_or_else(|| "libglfw.so.3".into());
@@ -81,7 +98,7 @@ impl Window {
             owner.handle = create(
                 320,
                 240,
-                c"OGPU surface setup probe".as_ptr(),
+                c"OGPU presentation probe".as_ptr(),
                 ptr::null_mut(),
                 ptr::null_mut(),
             );
@@ -343,5 +360,14 @@ pub fn run() {
     );
 }
 fn main() {
-    run();
+    if std::env::args().any(|arg| arg == "--present") {
+        // On uncertain execution failure, exit without unwinding GPU/native-window
+        // owners. This probe is not a general application's recovery framework.
+        if let Err(status) = unsafe { presentation::run() } {
+            eprintln!("presentation probe failed: {status}");
+            std::process::exit(1);
+        }
+    } else {
+        run();
+    }
 }

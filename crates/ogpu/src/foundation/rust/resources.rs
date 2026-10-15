@@ -170,11 +170,17 @@ destroy!(
     ExecutableCacheHandle,
     "Exclude all cache preparation/merge/export calls."
 );
-destroy!(
-    image_destroy,
-    ImageHandle,
-    "All image views must already be destroyed; backing remains independently owned."
-);
+/// Destroy an owned image; a borrowed swapchain image is unchanged.
+/// # Safety
+/// Image/device are live; all owned-image uses and views are retired/destroyed.
+/// Borrowed images are released only by destroying their parent swapchain.
+pub unsafe fn image_destroy(image: ImageHandle) {
+    if !unsafe { image.get() }.is_borrowed() {
+        unsafe {
+            drop(Box::from_raw(image.as_raw()));
+        }
+    }
+}
 destroy!(
     view_destroy,
     ViewHandle,

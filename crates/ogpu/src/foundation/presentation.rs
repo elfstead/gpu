@@ -94,6 +94,15 @@ impl Drop for Surface {
     }
 }
 impl Surface {
+    pub(super) fn native_handle(
+        &self,
+        instance: &Arc<Instance>,
+    ) -> Result<vk::VkSurfaceKHR, Status> {
+        if !Arc::ptr_eq(&self.instance, instance) {
+            return Err(INVALID);
+        }
+        Ok(self.handle)
+    }
     pub(super) unsafe fn create(
         adapter: &Adapter,
         desc: &WaylandSurfaceDesc,
@@ -389,7 +398,7 @@ fn validate_query(q: &Query) -> Result<(), Status> {
 
 // Unlike plain output arrays, extensible Vulkan records need sType/pNext
 // initialized for every element before the driver sees them. Bound retries.
-fn enumerate<T: Copy>(
+pub(super) fn enumerate<T: Copy>(
     initial: T,
     call: impl FnMut(*mut u32, *mut T) -> vk::VkResult,
 ) -> Result<Vec<T>, Status> {

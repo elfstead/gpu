@@ -37,12 +37,12 @@ typedef struct ogpu_next_image_barrier ogpu_next_image_barrier;
 typedef int32_t ogpu_next_status;
 enum {
     OGPU_NEXT_OK = 0, OGPU_NEXT_NOT_READY = 1, OGPU_NEXT_TIMEOUT = 2,
-    OGPU_NEXT_COMPILE_REQUIRED = 3,
+    OGPU_NEXT_COMPILE_REQUIRED = 3, OGPU_NEXT_SUBOPTIMAL = 4,
     OGPU_NEXT_INVALID = -1, OGPU_NEXT_UNSUPPORTED = -2,
     OGPU_NEXT_OUT_OF_MEMORY = -3, OGPU_NEXT_DEVICE_LOST = -4,
     OGPU_NEXT_CAPACITY = -5, OGPU_NEXT_BACKEND_ERROR = -6,
     OGPU_NEXT_VERSION_MISMATCH = -7, OGPU_NEXT_INTERNAL_ERROR = -8,
-    OGPU_NEXT_SURFACE_LOST = -9
+    OGPU_NEXT_SURFACE_LOST = -9, OGPU_NEXT_OUT_OF_DATE = -10
 };
 typedef uint64_t ogpu_next_address;
 typedef uint64_t ogpu_next_stages;
@@ -1550,7 +1550,8 @@ enum {
     OGPU_NEXT_STATE_UNDEFINED = 0, OGPU_NEXT_STATE_GENERAL = 1,
     OGPU_NEXT_STATE_COPY_SRC = 2, OGPU_NEXT_STATE_COPY_DST = 3,
     OGPU_NEXT_STATE_SHADER_READ = 4, OGPU_NEXT_STATE_COLOR_ATTACHMENT = 5,
-    OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT = 6, OGPU_NEXT_STATE_DEPTH_STENCIL_READ = 7
+    OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT = 6, OGPU_NEXT_STATE_DEPTH_STENCIL_READ = 7,
+    OGPU_NEXT_STATE_PRESENT = 8 /* Borrowed swapchain images only; never elided. */
 };
 struct ogpu_next_image_barrier {
     ogpu_next_image *image;
@@ -1730,7 +1731,7 @@ void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_ima
  * or event loop; they must belong together and outlive surface_destroy. The
  * wl_surface must not already have another Vulkan surface. OGPU owns only the
  * native GPU surface and retains its instance independently of discovery. All
- * swapchains must be destroyed before the surface (swapchains not exposed yet).
+ * swapchains must be destroyed before the surface.
  * Serialize surface/native-window lifecycle and obey the window library's thread
  * rules. Destruction accepts NULL and never waits; create clears its output on
  * failure. Surfaces may be queried by any adapter in the SAME discovery, not by
@@ -1772,10 +1773,12 @@ void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_ima
 typedef struct ogpu_next_surface ogpu_next_surface;
 typedef struct ogpu_next_binary ogpu_next_binary;
 typedef struct ogpu_next_fence ogpu_next_fence;
+typedef struct ogpu_next_swapchain ogpu_next_swapchain;
 enum {
     OGPU_NEXT_PRESENTATION_WAYLAND = 1u,
     OGPU_NEXT_WAYLAND_SURFACE_DESC = 125,
     OGPU_NEXT_BINARY_SUBMIT_DESC = 126,
+    OGPU_NEXT_SWAPCHAIN_DESC = 127, OGPU_NEXT_PRESENT_DESC = 128,
     OGPU_NEXT_QUERY_SURFACE_CAPABILITIES = 1000,
     OGPU_NEXT_QUERY_SURFACE_FORMATS = 1001,
     OGPU_NEXT_QUERY_SURFACE_PRESENT_MODES = 1002,
@@ -1846,8 +1849,8 @@ typedef struct ogpu_next_binary_submit_desc {
  * OK or TIMEOUT (or errors). reset is explicit and never waits; it requires no
  * pending signal or other host access and may reset an idle unsignaled fence.
  * A signaled fence retires only the native operation associated with it, not
- * unrelated rendering, scanout or image reacquisition. This tranche implements
- * lifecycle/status operations; acquire/present will associate native signals.
+ * unrelated rendering, scanout or image reacquisition. Acquire and present may
+ * associate native signals; caller explicitly resets before reuse.
  * Device must outlive its binaries/fences and all uses. Independent objects may
  * be used concurrently; poll/wait on one fence may also run concurrently. Reset
  * and destruction exclude all other host access, and pending uses must be retired
@@ -1855,6 +1858,80 @@ typedef struct ogpu_next_binary_submit_desc {
  * Destroy accepts NULL and never waits. Creation clears output on failure. Fence timeout is not
  * completion and does not change ownership or permit destruction of pending work.
  */
+/* Exact caller-selected creation; no clamp, implicit queue or fallback. Surface,
+ * device and borrowed native window outlive the chain. PRESENTATION must be enabled.
+ * format is an OGPU format; color_space/transform/alpha/present_mode are native
+ * profile tokens. Initial profile supports modes 0..3, ordinary non-protected,
+ * non-mutable-format images and no scaling; other profiles remain explicit gaps.
+ * domain_count=0 selects exclusive sharing; >=2 unique domains selects concurrent.
+ * mode_count=0 uses base capabilities. A nonempty compatible list includes
+ * present_mode and selects per-mode limits for every listed mode. Runtime mode
+ * switching is not yet implemented. min_image_count is a minimum, not exact count.
+ * Creation may query/allocate/retry. Once native creation names old_swapchain,
+ * that chain is retired EVEN ON FAILURE. Preflight rejection makes no native call;
+ * no unconditional rollback promise. Retired chains may still present previously
+ * acquired images, but must not acquire again. Destroy never waits.
+ *
+ * swapchain_images: capacity=0 writes count only; short capacity writes count and
+ * CAPACITY, never a partial array. Other failures preserve outputs. Returned image
+ * pointers borrow the chain and stay stable until its destruction. No independent
+ * backing: image_bind/dedicated memory creation reject them; image_destroy is a
+ * no-op. Views are independently owned and must be destroyed before the chain.
+ * Ordinary image commands apply only while acquired with ordered dependencies.
+ * STATE_PRESENT is a real transition, including with UNIFIED_IMAGES enabled.
+ */
+typedef struct ogpu_next_swapchain_desc {
+    ogpu_next_record header;
+    ogpu_next_surface *surface;
+    ogpu_next_swapchain *old_swapchain;
+    uint32_t format, color_space, extent[2], layer_count, min_image_count;
+    uint64_t usage;
+    uint32_t transform, alpha, present_mode, clipped, domain_count, mode_count;
+    const uint32_t *domains, *modes;
+} ogpu_next_swapchain_desc;
+/* acquire: at least one binary/fence, same device, idle and unsignaled. Exclusive
+ * chain/acquisition-object host access. Caller obeys native acquired-count and
+ * forward-progress limits, especially for timeout_ns=UINT64_MAX. OK/SUBOPTIMAL
+ * writes an acquired index and schedules native signals; all other outcomes
+ * preserve index. NOT_READY/TIMEOUT do not acquire; OUT_OF_DATE/SURFACE_LOST remain
+ * distinct. Wait for acquisition before accessing/releasing the image.
+ * release: nonempty unique acquired indices; all acquisition and device uses
+ * completed, exclusive chain access. Does not consume an acquisition binary or
+ * change image layout. Consume that binary separately or destroy after retirement.
+ */
+typedef struct ogpu_next_present_image {
+    ogpu_next_swapchain *swapchain;
+    uint32_t index, reserved; /* reserved=0 */
+    ogpu_next_fence *fence; /* optional, idle and unsignaled */
+} ogpu_next_present_image;
+/* queue_present lowers the entire batch to ONE native present. No hot allocation,
+ * hidden wait/submission, implicit ownership transfer or transition. image_count>0;
+ * waits may be empty only when caller otherwise orders rendering appropriately.
+ * Same-device objects, surface-supported queue; queue access externally synchronized.
+ * Images must be acquired, STATE_PRESENT and owned by this queue family or shared.
+ * No duplicate swapchains, binary waits or non-NULL fences. Caller tracks pending
+ * state; no quadratic scan. Native present may itself block; no nonblocking promise.
+ * scratch follows present_scratch_requirements(wait_count,image_count), writable
+ * and disjoint from inputs/results. results may be NULL or image_count writable
+ * statuses. Preflight errors preserve results and enqueue nothing. After the native
+ * call, results reports per-chain statuses (BACKEND_ERROR if native left unspecified).
+ * OK/SUBOPTIMAL mean queued, not displayed. OUT_OF_DATE/SURFACE_LOST may still
+ * enqueue semaphore waits and fence signals; do NOT treat every error as rejection.
+ * Native OOM guarantees unchanged resource/synchronization state; other unexpected
+ * errors require conservative recovery, not blind reuse. Timeout is not retirement.
+ * A present fence permits native payload/semaphore retirement, not scanout completion
+ * or reacquisition. Any signaled fence in a batch retires its shared wait semaphores;
+ * chain destruction requires all its presentation obligations plus independent
+ * render/acquire uses retired. Fence omission leaves retirement proof to the caller.
+ */
+typedef struct ogpu_next_present_desc {
+    ogpu_next_record header;
+    uint32_t wait_count, image_count;
+    ogpu_next_binary *const *waits;
+    const ogpu_next_present_image *images;
+    ogpu_next_status *results;
+    ogpu_next_host_span scratch;
+} ogpu_next_present_desc;
 typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*discovery_create)(uint32_t platforms, ogpu_next_discovery **);
     ogpu_next_status (*adapter_support)(const ogpu_next_adapter *, ogpu_next_presentation_support *);
@@ -1869,6 +1946,13 @@ typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*fence_poll)(const ogpu_next_fence *);
     ogpu_next_status (*fence_wait)(const ogpu_next_fence *, uint64_t timeout_ns);
     ogpu_next_status (*fence_reset)(ogpu_next_fence *);
+    ogpu_next_status (*swapchain_create)(ogpu_next_device *, const ogpu_next_swapchain_desc *, ogpu_next_swapchain **);
+    void (*swapchain_destroy)(ogpu_next_swapchain *);
+    ogpu_next_status (*swapchain_images)(const ogpu_next_swapchain *, uint32_t capacity, ogpu_next_image **, uint32_t *count);
+    ogpu_next_status (*acquire)(ogpu_next_swapchain *, uint64_t timeout_ns, ogpu_next_binary *, ogpu_next_fence *, uint32_t *index);
+    ogpu_next_status (*release)(ogpu_next_swapchain *, uint32_t count, const uint32_t *indices);
+    ogpu_next_status (*present_scratch_requirements)(uint32_t waits, uint32_t images, ogpu_next_host_requirements *);
+    ogpu_next_status (*queue_present)(ogpu_next_queue *, const ogpu_next_present_desc *);
 } ogpu_next_presentation_functions;
 ogpu_next_status ogpu_next_presentation_api(uint32_t version, uint32_t byte_size, ogpu_next_presentation_functions *);
 #ifdef __cplusplus

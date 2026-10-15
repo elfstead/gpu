@@ -35,8 +35,8 @@ impl Drop for Binary {
 }
 
 pub struct Fence {
-    device: *const Device,
-    handle: vk::VkFence,
+    pub(super) device: *const Device,
+    pub(super) handle: vk::VkFence,
 }
 impl Fence {
     pub(in crate::foundation) fn create(d: &Device, signaled: bool) -> Result<Box<Self>, Status> {

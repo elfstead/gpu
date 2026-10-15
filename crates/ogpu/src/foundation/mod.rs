@@ -23,6 +23,7 @@ pub use native::Executable;
 pub use native::ExecutableCache;
 pub use native::Memory;
 pub use native::QueryPool;
+pub use native::Swapchain;
 pub use native::{Arena, List, Split};
 pub use native::{Binary, Fence};
 pub use native::{Device, Queue, Timeline};

@@ -61,6 +61,10 @@ pub use queries::QueryPool;
 #[path = "presentation_sync.rs"]
 mod presentation_sync;
 pub use presentation_sync::{Binary, Fence};
+#[path = "swapchain.rs"]
+mod swapchain;
+pub(in crate::foundation) use swapchain::present_scratch;
+pub use swapchain::Swapchain;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -190,6 +194,9 @@ fn status(result: vk::VkResult) -> Result<(), Status> {
     match result {
         vk::VkResult_VK_SUCCESS => Ok(()),
         vk::VkResult_VK_NOT_READY => Err(NOT_READY),
+        vk::VkResult_VK_SUBOPTIMAL_KHR => Err(SUBOPTIMAL),
+        vk::VkResult_VK_ERROR_OUT_OF_DATE_KHR => Err(OUT_OF_DATE),
+        vk::VkResult_VK_ERROR_SURFACE_LOST_KHR => Err(SURFACE_LOST),
         vk::VkResult_VK_TIMEOUT => Err(TIMEOUT),
         vk::VkResult_VK_PIPELINE_COMPILE_REQUIRED => Err(COMPILE_REQUIRED),
         vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY | vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY => {

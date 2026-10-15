@@ -1,6 +1,89 @@
 //! Optional native presentation setup. No window ownership or scheduling.
 use super::*;
 
+/// Create exactly the requested swapchain. Cold path; may allocate/query/retry.
+/// # Safety
+/// Device, surface and any old swapchain are live and externally synchronized.
+/// Surface/native window/device outlive the chain. All nested arrays are readable.
+/// Once native creation is attempted, the old chain is retired even on failure.
+pub unsafe fn swapchain_create(
+    device: DeviceHandle,
+    desc: &SwapchainDesc,
+) -> Result<SwapchainHandle> {
+    Ok(SwapchainHandle(NonNull::from(Box::leak(unsafe {
+        super::super::Swapchain::create(device.get(), desc)?
+    }))))
+}
+/// # Safety
+/// All render, acquisition and presentation uses are retired and views destroyed.
+/// Parent device/surface remain live; destroy once. No implicit wait. All borrowed
+/// image tokens become invalid, including previously recorded references.
+pub unsafe fn swapchain_destroy(chain: SwapchainHandle) {
+    unsafe {
+        drop(Box::from_raw(chain.as_raw()));
+    }
+}
+/// Query count with an empty slice, otherwise fill the whole borrowed-image array.
+/// On CAPACITY only count changes. No allocation or native call.
+/// # Safety
+/// Chain/device are live and output storage is disjoint. Borrowed images must not
+/// be rebound; image_destroy is a no-op. Use only acquired images with ordered
+/// acquire dependencies; retire all uses/views before destroying the chain.
+pub unsafe fn swapchain_images(
+    chain: SwapchainHandle,
+    out: &mut [*mut super::super::Image],
+    count_out: &mut u32,
+) -> Result<()> {
+    unsafe {
+        chain
+            .get()
+            .images(count(out.len())?, out.as_mut_ptr(), count_out)
+    }
+}
+/// Return (image index, suboptimal). No usable index is returned on timeout/error.
+/// # Safety
+/// Exclusive chain/acquire-object host access; chain is non-retired. At least one
+/// same-device unsignaled binary/fence is supplied, with no pending uses. Caller
+/// obeys native forward-progress/acquired-count limits (including infinite timeout).
+/// Success schedules signals; wait on them before using or releasing the image.
+pub unsafe fn acquire(
+    chain: SwapchainHandle,
+    timeout_ns: u64,
+    binary: Option<BinaryHandle>,
+    fence: Option<FenceHandle>,
+) -> Result<(u32, bool)> {
+    unsafe {
+        chain.get().acquire(
+            timeout_ns,
+            binary.map_or(std::ptr::null_mut(), |b| b.as_raw()),
+            fence.map_or(std::ptr::null_mut(), |f| f.as_raw()),
+        )
+    }
+}
+/// Release acquired images without presenting or changing their layout.
+/// # Safety
+/// Exclusive chain host access. Indices are unique and acquired; all acquisition
+/// and device uses have completed. Release does not consume a binary signal:
+/// caller separately consumes it or destroys it after its signal retires.
+pub unsafe fn release(chain: SwapchainHandle, indices: &[u32]) -> Result<()> {
+    unsafe { chain.get() }.release(indices)
+}
+pub fn present_scratch_requirements(waits: u32, images: u32) -> Result<HostRequirements> {
+    native::present_scratch(waits, images)
+}
+/// Batch presentation in one native call; true means suboptimal, not failure.
+/// # Safety
+/// Live same-device queue/objects and readable records; queue access is exclusive.
+/// Each image is acquired, in STATE_PRESENT, owned by this queue family (or shared),
+/// with all writes ordered by the supplied binary waits. No duplicate swapchains,
+/// waits or non-null fences; fences are idle/unsignaled. Scratch and optional
+/// per-image results are writable, mutually disjoint and disjoint from inputs.
+/// OUT_OF_DATE/SURFACE_LOST can still enqueue waits/retirement signals; an error is
+/// not proof that nothing was submitted. Retire render and present uses separately.
+pub unsafe fn queue_present(queue: QueueHandle, desc: &PresentDesc) -> Result<bool> {
+    unsafe { queue.get().present(desc) }
+}
+
 /// Create an unsignaled native binary semaphore. No WSI enabling is required.
 /// # Safety
 /// Device is live and outlives the semaphore and every pending use.

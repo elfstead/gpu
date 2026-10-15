@@ -2,8 +2,9 @@
 
 Scheduled 2026-10-15, before M6. **Native Rust operation extraction and optional
 Wayland surface setup, device enabling, mode queries, binary submission dependencies
-and fence lifecycle implemented; swapchain execution and interactive presentation
-are not yet implemented or natively validated.**
+and fence lifecycle implemented. Swapchain acquire/present/release has bounded
+two-window native acceptance; the interactive scene and resize/minimize acceptance
+remain next.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
@@ -54,9 +55,14 @@ Binary dependencies now extend ordinary single/batched submissions through
 caller-owned scratch, without timeline bridges; fence lifecycle is implemented.
 The [synchronization receipt](results/p1-binary-synchronization-2026-10-15.md)
 records real headless handoffs and injected native-call/rejection checks.
-Swapchains, acquire/present signal association and presentation retirement remain
-next. The table is mutable and will grow with implemented operations, not advertise
-null/unimplemented functions.
+Swapchain ownership, borrowed-image protections, acquire/present signal association,
+batched presentation and unused-image release now pass the
+[bounded live lifecycle](results/p1-swapchain-lifecycle-2026-10-15.md), including
+old-chain replacement. This is a serial clear/present probe, not the planned
+textured scene, multi-frame scheduler or resize/minimize acceptance. Native FIFO
+presentation stalled in the two-window probe; explicit MAILBOX completes on both
+drivers. The consumer selects the mode, never the runtime. The table is mutable
+and grows with implemented operations, not null/unimplemented functions.
 
 ### Opening step: first-class native Rust, then presentation
 

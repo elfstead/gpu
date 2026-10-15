@@ -8,6 +8,7 @@ pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
 pub const TIMEOUT: Status = 2;
 pub const COMPILE_REQUIRED: Status = 3;
+pub const SUBOPTIMAL: Status = 4;
 pub const INVALID: Status = -1;
 pub const UNSUPPORTED: Status = -2;
 pub const OUT_OF_MEMORY: Status = -3;
@@ -17,10 +18,14 @@ pub const BACKEND_ERROR: Status = -6;
 pub const VERSION_MISMATCH: Status = -7;
 pub const INTERNAL_ERROR: Status = -8;
 pub const SURFACE_LOST: Status = -9;
+pub const OUT_OF_DATE: Status = -10;
 pub const PRESENTATION_WAYLAND: u32 = 1;
 pub const PRESENTATION: u64 = 1 << 57;
 pub const WAYLAND_SURFACE_DESC: u32 = 125;
 pub const BINARY_SUBMIT_DESC: u32 = 126;
+pub const SWAPCHAIN_DESC: u32 = 127;
+pub const PRESENT_DESC: u32 = 128;
+pub const STATE_PRESENT: u32 = 8;
 pub const SURFACE_CAPABILITIES: u32 = 1000;
 pub const SURFACE_FORMATS: u32 = 1001;
 pub const SURFACE_PRESENT_MODES: u32 = 1002;
@@ -81,6 +86,45 @@ pub struct PresentationSupport {
     pub swapchain: u32,
     pub swapchain_maintenance: u32,
 }
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SwapchainDesc {
+    pub header: Record,
+    pub surface: *mut super::Surface,
+    pub old_swapchain: *mut super::Swapchain,
+    pub format: u32,
+    pub color_space: u32,
+    pub extent: [u32; 2],
+    pub layer_count: u32,
+    pub min_image_count: u32,
+    pub usage: u64,
+    pub transform: u32,
+    pub alpha: u32,
+    pub present_mode: u32,
+    pub clipped: u32,
+    pub domain_count: u32,
+    pub mode_count: u32,
+    pub domains: *const u32,
+    pub modes: *const u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PresentImage {
+    pub swapchain: *mut super::Swapchain,
+    pub index: u32,
+    pub reserved: u32,
+    pub fence: *mut super::Fence,
+}
+#[repr(C)]
+pub struct PresentDesc {
+    pub header: Record,
+    pub wait_count: u32,
+    pub image_count: u32,
+    pub waits: *const *mut super::Binary,
+    pub images: *const PresentImage,
+    pub results: *mut Status,
+    pub scratch: HostSpan,
+}
 /// Optional C function table. Native Rust callers use rust::presentation operations.
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -109,6 +153,35 @@ pub struct PresentationApi {
     pub fence_poll: Option<unsafe extern "C" fn(*const super::Fence) -> Status>,
     pub fence_wait: Option<unsafe extern "C" fn(*const super::Fence, u64) -> Status>,
     pub fence_reset: Option<unsafe extern "C" fn(*mut super::Fence) -> Status>,
+    pub swapchain_create: Option<
+        unsafe extern "C" fn(
+            *mut Device,
+            *const SwapchainDesc,
+            *mut *mut super::Swapchain,
+        ) -> Status,
+    >,
+    pub swapchain_destroy: Option<unsafe extern "C" fn(*mut super::Swapchain)>,
+    pub swapchain_images: Option<
+        unsafe extern "C" fn(
+            *const super::Swapchain,
+            u32,
+            *mut *mut super::Image,
+            *mut u32,
+        ) -> Status,
+    >,
+    pub acquire: Option<
+        unsafe extern "C" fn(
+            *mut super::Swapchain,
+            u64,
+            *mut super::Binary,
+            *mut super::Fence,
+            *mut u32,
+        ) -> Status,
+    >,
+    pub release: Option<unsafe extern "C" fn(*mut super::Swapchain, u32, *const u32) -> Status>,
+    pub present_scratch_requirements:
+        Option<unsafe extern "C" fn(u32, u32, *mut HostRequirements) -> Status>,
+    pub queue_present: Option<unsafe extern "C" fn(*mut Queue, *const PresentDesc) -> Status>,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -151,6 +224,7 @@ pub const VIEW_2D: u32 = 2;
 pub const IMAGE_COPY_SRC: u64 = 1;
 pub const IMAGE_COPY_DST: u64 = 2;
 pub const IMAGE_SAMPLED: u64 = 4;
+pub const IMAGE_COLOR_ATTACHMENT: u64 = 16;
 pub const ASPECT_COLOR: u32 = 1;
 pub const STATE_UNDEFINED: u32 = 0;
 pub const STATE_GENERAL: u32 = 1;

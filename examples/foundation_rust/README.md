@@ -26,8 +26,8 @@ through native Rust, including malformed executable/view/descriptor requests.
 Headless synchronization phases mix binary and timeline dependencies, including a
 two-batch fill/copy handoff carried only by the binary semaphore. They check A/B/A
 data, rejected-submit retry, explicit reuse after retirement and initial-signaled/
-unsignaled fence poll/wait/reset/destruction (`NATIVE_RUST_SYNC_PASS`). Fence signal
-association through acquisition/presentation remains unimplemented.
+unsignaled fence poll/wait/reset/destruction (`NATIVE_RUST_SYNC_PASS`). The separate
+windowed probe below exercises acquisition/presentation signal association.
 
 Handles are non-owning, pointer-sized values. Copying/dropping them neither retains
 nor frees anything; destruction is explicit and unsafe. The consumer performs
@@ -78,3 +78,30 @@ cargo test -p ogpu --no-default-features --test presentation -- --ignored --noca
 
 Headless regressions can explicitly select `--lib --test native_rust` when using
 `--ignored`; they still need no window system. The default binary remains headless.
+
+## Bounded live presentation probe
+
+```sh
+OGPU_GLFW_LIBRARY=/path/to/libglfw.so.3 timeout --kill-after=2s 30s cargo run \
+  --manifest-path examples/foundation_rust/Cargo.toml --locked --bin surface -- --present
+```
+
+This opens two small Wayland windows, selects MAILBOX explicitly, and clears/presents
+eight two-swapchain batches. It checks borrowed-image/view protections, acquire
+binaries, separate render timelines and present fences, replacement of both chains,
+unused-image release after acquisition retirement and independent binary consumption,
+and scratch-failure retry. Submission/presentation scratch and entry storage are
+reused. The fixture serially retires frames; it is not a multi-frame scheduler,
+textured scene, resize/minimize or visual/scanout correctness test.
+
+`PRESENTATION_PASS` reports the bounded lifecycle and whether unified image layouts
+were enabled. No implicit fallback: MAILBOX must be supported. Native FIFO stalled
+inside presentation in the initial two-window run, consistent with compositor
+throttling; the cause is not conclusively diagnosed. Native present may block,
+and event-loop/mode policy belongs to the application. The ignored integration
+test uses GNU `timeout` to bound the entire Cargo/consumer process group.
+
+On uncertain GPU errors this executable exits without tearing down potentially
+pending objects/native windows. Ordinary successful teardown explicitly retires
+all work; no wait-on-drop or device-idle teardown is introduced into OGPU.
+See the [receipt](../../docs/results/p1-swapchain-lifecycle-2026-10-15.md).

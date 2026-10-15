@@ -153,7 +153,8 @@ fn copy_bounds(
     Ok(())
 }
 
-struct Prepared {
+#[derive(Clone)]
+pub(super) struct Prepared {
     info: vk::VkImageCreateInfo,
     formats: Vec<vk::VkFormat>,
     domains: Vec<u32>,
@@ -186,6 +187,7 @@ pub struct Image {
     requirements: vk::VkMemoryRequirements,
     dedicated: vk::VkMemoryDedicatedRequirements,
     bound: Cell<bool>,
+    borrowed: bool,
 }
 pub struct View {
     device: *const Device,
@@ -196,7 +198,7 @@ pub struct View {
 }
 
 impl Device {
-    unsafe fn prepare_image(&self, desc: &ImageDesc) -> Result<Prepared, Status> {
+    pub(super) unsafe fn prepare_image(&self, desc: &ImageDesc) -> Result<Prepared, Status> {
         self.ready()?;
         desc.header.validate::<ImageDesc>(IMAGE_DESC)?;
         if desc.flags & !7 != 0 {
@@ -405,6 +407,20 @@ impl Device {
     }
 }
 impl Image {
+    pub(super) fn from_swapchain(d: &Device, handle: vk::VkImage, prepared: Prepared) -> Self {
+        Self {
+            device: d,
+            handle,
+            prepared,
+            requirements: Default::default(),
+            dedicated: Default::default(),
+            bound: Cell::new(true),
+            borrowed: true,
+        }
+    }
+    pub(in crate::foundation) fn is_borrowed(&self) -> bool {
+        self.borrowed
+    }
     pub(in crate::foundation) unsafe fn create(
         d: &Device,
         desc: &ImageDesc,
@@ -427,6 +443,7 @@ impl Image {
             requirements,
             dedicated,
             bound: Cell::new(false),
+            borrowed: false,
         }))
     }
     pub(in crate::foundation) unsafe fn bind(&self, placement: Span) -> Result<(), Status> {
@@ -532,7 +549,12 @@ impl Image {
             7 if usage & (4 | 32 | 128) != 0 && aspects != 1 => {
                 Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
             }
-            _ => Err(if state <= 7 { INVALID } else { UNSUPPORTED }),
+            STATE_PRESENT if self.borrowed => Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
+            _ => Err(if state <= STATE_PRESENT {
+                INVALID
+            } else {
+                UNSUPPORTED
+            }),
         }
     }
     pub(super) fn barrier(
@@ -887,6 +909,9 @@ impl Image {
 }
 impl Drop for Image {
     fn drop(&mut self) {
+        if self.borrowed {
+            return;
+        }
         let d = unsafe { &*self.device };
         unsafe {
             (d.f.vkDestroyImage.unwrap())(d.handle, self.handle, ptr::null());

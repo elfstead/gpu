@@ -57,6 +57,7 @@ handle!(SplitHandle, Split);
 handle!(SurfaceHandle, Surface);
 handle!(BinaryHandle, Binary);
 handle!(FenceHandle, Fence);
+handle!(SwapchainHandle, Swapchain);
 
 mod commands;
 mod presentation;

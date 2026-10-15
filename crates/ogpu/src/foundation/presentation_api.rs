@@ -1,6 +1,14 @@
 //! Thin optional C presentation table, backed by the native Rust operations.
 use super::*;
 
+unsafe fn description<'a, T>(pointer: *const T, kind: u32) -> Result<&'a T, Status> {
+    if pointer.is_null() {
+        return Err(INVALID);
+    }
+    unsafe { pointer.cast::<Record>().read() }.validate::<T>(kind)?;
+    Ok(unsafe { &*pointer })
+}
+
 /// Get the exact revision's table, without loading Vulkan or accessing a display.
 /// # Safety
 /// Out points to writable, aligned, disjoint storage of byte_size bytes. Failure
@@ -35,6 +43,13 @@ pub unsafe extern "C" fn ogpu_next_presentation_api(
             fence_poll: Some(fence_poll),
             fence_wait: Some(fence_wait),
             fence_reset: Some(fence_reset),
+            swapchain_create: Some(swapchain_create),
+            swapchain_destroy: Some(swapchain_destroy),
+            swapchain_images: Some(swapchain_images),
+            acquire: Some(acquire),
+            release: Some(release),
+            present_scratch_requirements: Some(present_scratch_requirements),
+            queue_present: Some(queue_present),
         });
     }
     OK
@@ -208,6 +223,115 @@ unsafe extern "C" fn fence_reset(fence: *mut Fence) -> Status {
     })
 }
 
+unsafe extern "C" fn swapchain_create(
+    device: *mut Device,
+    desc: *const SwapchainDesc,
+    out: *mut *mut Swapchain,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let desc = unsafe { description(desc, SWAPCHAIN_DESC)? };
+        let chain = unsafe { rust::swapchain_create(device, desc)? };
+        unsafe {
+            out.write(chain.as_raw());
+        }
+        Ok(())
+    })
+}
+unsafe extern "C" fn swapchain_destroy(chain: *mut Swapchain) {
+    if let Some(chain) = unsafe { rust::SwapchainHandle::from_raw(chain) } {
+        unsafe {
+            rust::swapchain_destroy(chain);
+        }
+    }
+}
+unsafe extern "C" fn swapchain_images(
+    chain: *const Swapchain,
+    capacity: u32,
+    out: *mut *mut Image,
+    count: *mut u32,
+) -> Status {
+    boundary(|| {
+        unsafe { chain.as_ref() }
+            .ok_or(INVALID)
+            .and_then(|chain| unsafe { chain.images(capacity, out, count) })
+    })
+}
+unsafe extern "C" fn acquire(
+    chain: *mut Swapchain,
+    timeout: u64,
+    binary: *mut Binary,
+    fence: *mut Fence,
+    out: *mut u32,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let chain = unsafe { rust::SwapchainHandle::from_raw(chain) }.ok_or(INVALID)?;
+        let (index, suboptimal) = unsafe {
+            rust::acquire(
+                chain,
+                timeout,
+                rust::BinaryHandle::from_raw(binary),
+                rust::FenceHandle::from_raw(fence),
+            )?
+        };
+        unsafe {
+            out.write(index);
+        }
+        if suboptimal {
+            Err(SUBOPTIMAL)
+        } else {
+            Ok(())
+        }
+    })
+}
+unsafe extern "C" fn release(chain: *mut Swapchain, count: u32, indices: *const u32) -> Status {
+    boundary(|| {
+        let chain = unsafe { rust::SwapchainHandle::from_raw(chain) }.ok_or(INVALID)?;
+        if count == 0 || indices.is_null() {
+            return Err(INVALID);
+        }
+        std::alloc::Layout::array::<u32>(count as usize).map_err(|_| INVALID)?;
+        let indices = unsafe { std::slice::from_raw_parts(indices, count as usize) };
+        unsafe { rust::release(chain, indices) }
+    })
+}
+unsafe extern "C" fn present_scratch_requirements(
+    waits: u32,
+    images: u32,
+    out: *mut HostRequirements,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let req = rust::present_scratch_requirements(waits, images)?;
+        unsafe {
+            out.write(req);
+        }
+        Ok(())
+    })
+}
+unsafe extern "C" fn queue_present(queue: *mut Queue, desc: *const PresentDesc) -> Status {
+    boundary(|| {
+        let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
+        let desc = unsafe { description(desc, PRESENT_DESC)? };
+        if unsafe { rust::queue_present(queue, desc)? } {
+            Err(SUBOPTIMAL)
+        } else {
+            Ok(())
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -228,6 +352,13 @@ mod tests {
             fence_poll: None,
             fence_wait: None,
             fence_reset: None,
+            swapchain_create: None,
+            swapchain_destroy: None,
+            swapchain_images: None,
+            acquire: None,
+            release: None,
+            present_scratch_requirements: None,
+            queue_present: None,
         };
         let mut table = empty;
         for (version, size, expected) in [
@@ -251,6 +382,13 @@ mod tests {
             assert!(table.surface_mode_query.is_none());
             assert!(table.binary_create.is_none() && table.binary_destroy.is_none());
             assert!(table.fence_create.is_none() && table.fence_destroy.is_none());
+            assert!(table.swapchain_create.is_none() && table.swapchain_destroy.is_none());
+            assert!(
+                table.swapchain_images.is_none()
+                    && table.acquire.is_none()
+                    && table.release.is_none()
+            );
+            assert!(table.present_scratch_requirements.is_none() && table.queue_present.is_none());
             assert!(
                 table.fence_poll.is_none()
                     && table.fence_wait.is_none()
@@ -271,6 +409,11 @@ mod tests {
         assert!(table.surface_mode_query.is_some());
         assert!(table.binary_create.is_some() && table.binary_destroy.is_some());
         assert!(table.fence_create.is_some() && table.fence_destroy.is_some());
+        assert!(table.swapchain_create.is_some() && table.swapchain_destroy.is_some());
+        assert!(
+            table.swapchain_images.is_some() && table.acquire.is_some() && table.release.is_some()
+        );
+        assert!(table.present_scratch_requirements.is_some() && table.queue_present.is_some());
         assert!(
             table.fence_poll.is_some() && table.fence_wait.is_some() && table.fence_reset.is_some()
         );

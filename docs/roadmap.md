@@ -8,8 +8,9 @@ As of 2026-10-13, M4/M5 and [foundation-contract consolidation](core-contract-re
 are complete for their declared scopes. Sequence revised 2026-10-15: next is
 [P1 presentation](presentation-plan.md), followed by [M6](m6-entry.md), now including
 presentation. P1 opens with extraction of the native Rust core below the C ABI;
-native Rust, optional Wayland setup, device enabling and mode queries are implemented, while
-swapchain execution and M6 have not started. M8–M11 below schedule the remaining hardware
+native Rust, optional Wayland setup and bounded swapchain lifecycle execution are
+implemented. The textured interactive scene remains next; M6 has not started.
+M8–M11 below schedule the remaining hardware
 families; completed M1–M5 gates are not reopened.
 This is a concrete plan, not authorization to publish releases, provision machines
 or coordinate native testing. The foundation can be implemented across the
@@ -47,7 +48,7 @@ compatibility are not completed by those results.
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | Offscreen complete at `43bb9f0`; [native-matched and independent SDK acceptance](textured-scene-plan.md#clean-m4-offscreen-acceptance); presentation separate |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
-| P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust core, Wayland setup/device enabling/mode queries, binary submissions and fence lifecycle pass; [swapchains and interactive presentation next](presentation-plan.md) |
+| P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust and bounded two-window swapchain lifecycle pass; [textured interactive scene, frames in flight and resize/minimize next](presentation-plan.md) |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | After P1, not started: [entry handoff](m6-entry.md); native execution needs a Mac |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
 | M8 — Advanced raster and GPU-driven execution | Task/mesh, generated commands and explicit advanced raster profiles | Scheduled after M6; native profile execution needs supporting hardware |

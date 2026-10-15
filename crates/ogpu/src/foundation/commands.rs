@@ -522,7 +522,7 @@ pub(in crate::foundation) fn barrier_scratch(
         alignment: layout.align() as u64,
     })
 }
-fn scratch(
+pub(super) fn scratch(
     pointer: *mut c_void,
     size: u64,
     requirements: HostRequirements,
@@ -537,7 +537,7 @@ fn scratch(
     }
     Ok(pointer.cast())
 }
-unsafe fn slice<'a, T>(pointer: *const T, count: u32) -> Result<&'a [T], Status> {
+pub(super) unsafe fn slice<'a, T>(pointer: *const T, count: u32) -> Result<&'a [T], Status> {
     array_layout::<T>(count)?;
     if count == 0 {
         return Ok(&[]);

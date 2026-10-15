@@ -4,8 +4,9 @@ Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
 before M6 Metal foundation. P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
-dependencies are implemented, with reusable fence lifecycle operations. Swapchain
-execution and M6 implementation have not started.**
+dependencies are implemented. Borrowed swapchain images and acquire/present/release
+now pass a bounded two-window lifecycle probe. The interactive scene remains next;
+M6 implementation has not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -62,8 +63,8 @@ compile-check C/Rust operation correspondence and the no-C-call boundary. Broade
 graphics/query/secondary execution relies on existing shared-backend/C tests, not
 independent Rust-consumer acceptance for every operation. Some descriptions still
 use versioned records/raw nested pointers; no fully safe wrapper or generated Rust
-shader layout coverage is claimed. No C ABI revision is changed. Next: P1's native
-presentation execution through both APIs.
+shader layout coverage is claimed. Foundation revision 1 remains mutable; pin the
+matching header, runtime and Rust source, including the growing presentation table.
 
 The [P1 mapping](presentation-contract.md) now selects Wayland/external GLFW and
 KHR swapchain maintenance with distinct render/presentation retirement. Optional
@@ -76,21 +77,28 @@ remain visible. Headless setup is unchanged. See the
 [setup receipt](results/p1-surface-setup-2026-10-15.md) and
 [device/mode-query follow-up](results/p1-presentation-profile-2026-10-15.md).
 
-Current checks: 54 host unit plus two host surface-coverage tests, 18 headless GPU
-unit tests plus native Rust consumer per driver, the separate Wayland setup probe
-per driver, strict Clippy, 1,084 C/Rust ABI layout values, and the full C fixture on
+Current checks: 55 host unit plus two host surface-coverage tests, 19 headless GPU
+unit tests plus native Rust consumer per driver, separate Wayland setup and live
+presentation probes per driver, strict Clippy, 1,122 C/Rust ABI layout values, and the full C fixture on
 Radeon. Presentation enabling now uses the ordinary device feature mask; no window
 or implicit queue choice is required. Per-mode image-count/scaling/compatibility
 queries preserve the caller's strategy: local FIFO/IMMEDIATE need at least three
 images, MAILBOX four. These counts require matching explicit mode-list creation.
 Binary dependencies now share ordinary single/batched submission and caller-owned
 scratch with timelines, without hidden bridge submissions. Reusable fences expose
-create/poll/wait/reset/destroy; native acquire/present signal association remains
-unimplemented. The headless Rust consumer checks real binary fill/copy handoffs;
+create/poll/wait/reset/destroy, with native acquire/present signal association.
+The headless Rust consumer checks real binary fill/copy handoffs;
 injected C-path tests verify lowering and rejection before any native submission.
 See the [synchronization receipt](results/p1-binary-synchronization-2026-10-15.md).
-Next: borrowed swapchain images, acquire/present and presentation retirement. No
-swapchain, frame presentation, resize/minimize or interactive acceptance yet.
+The [live lifecycle receipt](results/p1-swapchain-lifecycle-2026-10-15.md) covers
+borrowed-image protections, two-swapchain batch presentation, explicit render and
+presentation retirement, old-chain replacement and unused-image release. The probe
+selects MAILBOX explicitly: native FIFO presentation stalled with two windows;
+compositor throttling is suspected, not a proven driver diagnosis. No fallback is
+hidden in OGPU. llvmpipe also executes presentation transitions with unified layouts.
+Next: the textured interactive Rust consumer, multiple frames in flight and actual
+resize/minimize/restore handling. No interactive, scanout, real-loss recovery or
+cross-family presentation acceptance yet; M6 remains after P1.
 
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
 consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on
