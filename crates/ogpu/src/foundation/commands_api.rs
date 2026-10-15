@@ -15,10 +15,10 @@ pub unsafe extern "C" fn ogpu_next_split_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        let split = Split::create(d)?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let split = unsafe { rust::split_create(d)? };
         unsafe {
-            out.write(Box::into_raw(split));
+            out.write(split.as_raw());
         }
         Ok(())
     })
@@ -27,9 +27,9 @@ pub unsafe extern "C" fn ogpu_next_split_create(
 /// NULL or uniquely owned split, live parent device, no recorded future/pending use.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_split_destroy(split: *mut Split) {
-    if !split.is_null() {
+    if let Some(split) = unsafe { rust::SplitHandle::from_raw(split) } {
         unsafe {
-            drop(Box::from_raw(split));
+            rust::split_destroy(split);
         }
     }
 }
@@ -74,7 +74,7 @@ pub unsafe extern "C" fn ogpu_next_split_scratch_requirements(
 ) -> Status {
     boundary(|| {
         let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
-        *out = native::split_scratch(count)?;
+        *out = rust::split_scratch_requirements(count)?;
         Ok(())
     })
 }
@@ -311,7 +311,7 @@ pub unsafe extern "C" fn ogpu_next_submit_batch_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let requirements = native::submit_batch_scratch(count)?;
+        let requirements = rust::submit_batch_scratch_requirements(count)?;
         unsafe {
             out.write(requirements);
         }
@@ -329,8 +329,8 @@ pub unsafe extern "C" fn ogpu_next_queue_submit_batch(
     scratch: HostSpan,
 ) -> Status {
     boundary(|| {
-        let queue = unsafe { queue.as_ref() }.ok_or(INVALID)?;
-        unsafe { queue.submit_batch(count, descs, scratch) }
+        let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
+        unsafe { rust::queue_submit_batch_raw(queue, count, descs, scratch) }
     })
 }
 /// # Safety
@@ -344,7 +344,7 @@ pub unsafe extern "C" fn ogpu_next_execute_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let value = native::execute_scratch(count)?;
+        let value = rust::execute_scratch_requirements(count)?;
         unsafe {
             out.write(value);
         }
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn ogpu_next_inheritance_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let value = native::inheritance_scratch(count)?;
+        let value = rust::inheritance_scratch_requirements(count)?;
         unsafe {
             out.write(value);
         }
@@ -413,11 +413,10 @@ pub unsafe extern "C" fn ogpu_next_query_pool_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let pool = QueryPool::create(unsafe { device.as_ref() }.ok_or(INVALID)?, unsafe {
-            description(desc, QUERY_POOL_DESC)?
-        })?;
+        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let pool = unsafe { rust::query_pool_create(device, description(desc, QUERY_POOL_DESC)?)? };
         unsafe {
-            out.write(Box::into_raw(pool));
+            out.write(pool.as_raw());
         }
         Ok(())
     })
@@ -426,9 +425,9 @@ pub unsafe extern "C" fn ogpu_next_query_pool_create(
 /// No recorded future/pending/host use and live device. NULL allowed. Never waits.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_query_pool_destroy(pool: *mut QueryPool) {
-    if !pool.is_null() {
+    if let Some(pool) = unsafe { rust::QueryPoolHandle::from_raw(pool) } {
         unsafe {
-            drop(Box::from_raw(pool));
+            rust::query_pool_destroy(pool);
         }
     }
 }
@@ -524,7 +523,7 @@ pub unsafe extern "C" fn ogpu_next_render_scratch_requirements(
             return Err(INVALID);
         }
         unsafe {
-            out.write(native::render_scratch(colors)?);
+            out.write(rust::render_scratch_requirements(colors)?);
         }
         Ok(())
     })
@@ -583,7 +582,7 @@ pub unsafe extern "C" fn ogpu_next_vertex_scratch_requirements(
             return Err(INVALID);
         }
         unsafe {
-            out.write(native::vertex_scratch(count)?);
+            out.write(rust::vertex_scratch_requirements(count)?);
         }
         Ok(())
     })

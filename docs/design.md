@@ -81,10 +81,12 @@ wrappers may offer a narrower safe subset, but mandatory ownership tracking,
 deferred deletion and wait-on-drop are not restored in the core. No general safe
 Rust wrapper or portable device-loss recovery protocol is implemented yet.
 
-P1 is extracting a first-class native Rust interface below the C adapters, not a
-Rust wrapper that calls C. `foundation::rust` currently covers discovery, device,
-memory, timeline, arena and transfer/submission operations; broader extraction is
-in progress. Typed handles carry no implicit ownership or drop behavior. Rust
+P1 exposes a first-class native Rust interface below the C adapters, not a
+Rust wrapper that calls C. `foundation::rust` has equivalents for the currently
+exported C operations, including execution, images, descriptors, rendering, queries
+and synchronization. Some arguments retain versioned records and trusted nested
+pointers; surface coverage is not a fully safe or stabilized Rust API. Typed
+handles carry no implicit ownership or drop behavior. Rust
 returns Results and propagates panics; the C boundary adapts outputs/status and
 contains panics. Both use the same operation validation and recording-error state.
 See the [native Rust consumer](../examples/foundation_rust/README.md).

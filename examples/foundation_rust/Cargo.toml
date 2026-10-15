@@ -2,6 +2,7 @@
 name = "ogpu-native-rust-consumer"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.85"
 publish = false
 
 # Deliberately independent of the repository workspace and its dev dependencies.

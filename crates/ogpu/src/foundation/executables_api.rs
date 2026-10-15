@@ -16,11 +16,11 @@ pub unsafe extern "C" fn ogpu_next_executable_cache_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let device = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
         let desc = unsafe { native::executable_record(desc.cast(), EXECUTABLE_CACHE_DESC)? };
-        let cache = unsafe { ExecutableCache::create(device, desc)? };
+        let cache = unsafe { rust::executable_cache_create(device, desc)? };
         unsafe {
-            out.write(Box::into_raw(cache));
+            out.write(cache.as_raw());
         }
         Ok(())
     })
@@ -33,7 +33,13 @@ pub unsafe extern "C" fn ogpu_next_executable_cache_data(
     size: *mut usize,
     data: *mut std::ffi::c_void,
 ) -> Status {
-    boundary(|| unsafe { cache.as_ref().ok_or(INVALID)?.data(size, data) })
+    boundary(|| unsafe {
+        rust::executable_cache_data_raw(
+            rust::ExecutableCacheHandle::from_raw(cache).ok_or(INVALID)?,
+            size,
+            data,
+        )
+    })
 }
 /// # Safety
 /// Live caches and source array; exclusive destination, no source mutation/destruction.
@@ -43,15 +49,21 @@ pub unsafe extern "C" fn ogpu_next_executable_cache_merge(
     count: u32,
     sources: *const *mut ExecutableCache,
 ) -> Status {
-    boundary(|| unsafe { destination.as_ref().ok_or(INVALID)?.merge(count, sources) })
+    boundary(|| unsafe {
+        rust::executable_cache_merge_raw(
+            rust::ExecutableCacheHandle::from_raw(destination).ok_or(INVALID)?,
+            count,
+            sources,
+        )
+    })
 }
 /// # Safety
 /// Live device; exclusive destruction excludes all cache calls and preparation.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_executable_cache_destroy(cache: *mut ExecutableCache) {
-    if !cache.is_null() {
+    if let Some(cache) = unsafe { rust::ExecutableCacheHandle::from_raw(cache) } {
         unsafe {
-            drop(Box::from_raw(cache));
+            rust::executable_cache_destroy(cache);
         }
     }
 }
@@ -71,11 +83,11 @@ pub unsafe extern "C" fn ogpu_next_executable_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
         let desc = unsafe { native::executable_record(desc.cast(), EXECUTABLE_DESC)? };
-        let executable = unsafe { Executable::create(d, desc)? };
+        let executable = unsafe { rust::executable_create(d, desc)? };
         unsafe {
-            out.write(Box::into_raw(executable));
+            out.write(executable.as_raw());
         }
         Ok(())
     })
@@ -84,9 +96,9 @@ pub unsafe extern "C" fn ogpu_next_executable_create(
 /// No recorded future/pending use; live device, exclusive destruction. Never waits.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_executable_destroy(executable: *mut Executable) {
-    if !executable.is_null() {
+    if let Some(executable) = unsafe { rust::ExecutableHandle::from_raw(executable) } {
         unsafe {
-            drop(Box::from_raw(executable));
+            rust::executable_destroy(executable);
         }
     }
 }

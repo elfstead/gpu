@@ -4,7 +4,8 @@
 //! not retain or destroy a resource. Explicit unsafe destruction never waits.
 //! GPU-address validity, asynchronous lifetime and object-local synchronization
 //! remain caller obligations, as specified in `include/ogpu_next.h`.
-//! Records currently reuse `types`; further surface extraction is in progress.
+//! Records reuse `types`, including trusted nested metadata and address pointers.
+//! Rust and C share backend validation/execution and recording-error state.
 use super::types::*;
 use super::{native, Adapter, Discovery, Instance};
 use std::{ptr::NonNull, sync::Arc};
@@ -47,6 +48,21 @@ handle!(TimelineHandle, Timeline);
 handle!(QueueHandle, Queue);
 handle!(ArenaHandle, Arena);
 handle!(ListHandle, List);
+handle!(ImageHandle, Image);
+handle!(ViewHandle, View);
+handle!(ExecutableHandle, Executable);
+handle!(ExecutableCacheHandle, ExecutableCache);
+handle!(QueryPoolHandle, QueryPool);
+handle!(SplitHandle, Split);
+
+mod commands;
+mod resources;
+pub use commands::*;
+pub use resources::*;
+
+fn count(len: usize) -> Result<u32> {
+    u32::try_from(len).map_err(|_| CAPACITY)
+}
 
 /// Discover immutable adapters. This owner may be dropped normally; created
 /// devices independently retain the loader/instance, not a borrowed adapter.

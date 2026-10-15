@@ -17,11 +17,11 @@ pub unsafe extern "C" fn ogpu_next_image_limits_query(
     out: *mut ImageLimits,
 ) -> Status {
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device.cast_mut()) }.ok_or(INVALID)?;
         if out.is_null() {
             return Err(INVALID);
         }
-        let limits = d.image_limits(unsafe { description(profile, IMAGE_PROFILE)? })?;
+        let limits = unsafe { rust::image_limits_query(d, description(profile, IMAGE_PROFILE)?)? };
         unsafe {
             out.write(limits);
         }
@@ -37,9 +37,9 @@ pub unsafe extern "C" fn ogpu_next_image_requirements(
     out: *mut Requirements,
 ) -> Status {
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device.cast_mut()) }.ok_or(INVALID)?;
         let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
-        unsafe { d.image_requirements(description(desc, IMAGE_DESC)?, out) }
+        unsafe { rust::image_requirements(d, description(desc, IMAGE_DESC)?, out) }
     })
 }
 /// # Safety
@@ -57,10 +57,10 @@ pub unsafe extern "C" fn ogpu_next_image_create_unbound(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        let image = unsafe { Image::create(d, description(desc, IMAGE_DESC)?)? };
+        let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let image = unsafe { rust::image_create_unbound(d, description(desc, IMAGE_DESC)?)? };
         unsafe {
-            out.write(Box::into_raw(image));
+            out.write(image.as_raw());
         }
         Ok(())
     })
@@ -81,11 +81,10 @@ pub unsafe extern "C" fn ogpu_next_image_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        let image = unsafe { Image::create(d, description(desc, IMAGE_DESC)?)? };
+        let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let image = unsafe { rust::image_create(d, description(desc, IMAGE_DESC)?, placement)? };
         unsafe {
-            image.bind(placement)?;
-            out.write(Box::into_raw(image));
+            out.write(image.as_raw());
         }
         Ok(())
     })
@@ -94,10 +93,11 @@ pub unsafe extern "C" fn ogpu_next_image_create(
 /// Unbound live image, exclusive host access, and placement that outlives its uses.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_image_bind(image: *mut Image, placement: Span) -> Status {
-    boundary(|| {
-        unsafe { image.as_ref() }
-            .ok_or(INVALID)
-            .and_then(|i| unsafe { i.bind(placement) })
+    boundary(|| unsafe {
+        rust::image_bind(
+            rust::ImageHandle::from_raw(image).ok_or(INVALID)?,
+            placement,
+        )
     })
 }
 /// # Safety
@@ -115,10 +115,10 @@ pub unsafe extern "C" fn ogpu_next_memory_create_dedicated_image(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let image = unsafe { image.as_ref() }.ok_or(INVALID)?;
-        let memory = image.dedicated_memory(memory_type)?;
+        let image = unsafe { rust::ImageHandle::from_raw(image) }.ok_or(INVALID)?;
+        let memory = unsafe { rust::memory_create_dedicated_image(image, memory_type)? };
         unsafe {
-            out.write(Box::into_raw(memory));
+            out.write(memory.as_raw());
         }
         Ok(())
     })
@@ -127,9 +127,9 @@ pub unsafe extern "C" fn ogpu_next_memory_create_dedicated_image(
 /// No remaining views or recorded/pending uses, and live device. NULL permitted.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_image_destroy(image: *mut Image) {
-    if !image.is_null() {
+    if let Some(image) = unsafe { rust::ImageHandle::from_raw(image) } {
         unsafe {
-            drop(Box::from_raw(image));
+            rust::image_destroy(image);
         }
     }
 }
@@ -148,10 +148,10 @@ pub unsafe extern "C" fn ogpu_next_view_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let image = unsafe { image.as_ref() }.ok_or(INVALID)?;
-        let view = View::create(image, unsafe { description(desc, VIEW_DESC)? })?;
+        let image = unsafe { rust::ImageHandle::from_raw(image) }.ok_or(INVALID)?;
+        let view = unsafe { rust::view_create(image, description(desc, VIEW_DESC)?)? };
         unsafe {
-            out.write(Box::into_raw(view));
+            out.write(view.as_raw());
         }
         Ok(())
     })
@@ -160,9 +160,9 @@ pub unsafe extern "C" fn ogpu_next_view_create(
 /// No recorded/pending uses; parent image/device remain live. NULL permitted.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_view_destroy(view: *mut View) {
-    if !view.is_null() {
+    if let Some(view) = unsafe { rust::ViewHandle::from_raw(view) } {
         unsafe {
-            drop(Box::from_raw(view));
+            rust::view_destroy(view);
         }
     }
 }

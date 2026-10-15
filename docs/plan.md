@@ -2,7 +2,7 @@
 
 Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
-before M6 Metal foundation. P1 native Rust core extraction is in progress; presentation
+before M6 Metal foundation. P1's initial native Rust operation extraction is complete; presentation
 and M6 implementation have not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
@@ -50,16 +50,20 @@ handling. Window creation and input remain in an external library. Specify the
 native-interoperability boundary alongside presentation; full external-memory
 implementation is not a prerequisite. No display availability is assumed.
 
-First native Rust tranche implemented: discovery and typed adapter views,
-device/memory/timeline handles, arenas, fill/copy/barriers and slice-based
-submission now have native Rust operations below the C adapters. The standalone
-[Rust consumer](../examples/foundation_rust/README.md) exercises explicit lifetime,
-A/B/A reuse, errors and retry. Extraction of executable/image/descriptor and the
-remaining command surface is next, before presentation. Some nested descriptions
-still use the existing versioned records/raw pointers; this is not yet the whole
-native Rust surface or a fully safe wrapper. No C ABI revision is changed.
+Native Rust equivalents now cover every currently exported foundation C operation:
+setup/resources, prepared executables/caches, descriptors/images, recording,
+raster, queries, split dependencies and submissions. Both interfaces share backend
+validation/execution and recording error handling; native Rust never calls C.
+The standalone [Rust consumer](../examples/foundation_rust/README.md) exercises
+resource/compute/image A/B/A, explicit lifetime, errors and retry. Two host tests
+compile-check C/Rust operation correspondence and the no-C-call boundary. Broader
+graphics/query/secondary execution relies on existing shared-backend/C tests, not
+independent Rust-consumer acceptance for every operation. Some descriptions still
+use versioned records/raw nested pointers; no fully safe wrapper or generated Rust
+shader layout coverage is claimed. No C ABI revision is changed. Next: P1's native
+presentation mapping and selected Linux window path, exposed through both APIs.
 
-Opening-tranche checks: 48 host tests, 17 GPU unit tests plus the native Rust
+Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
 consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on
 both drivers, full public-C foundation fixture on Radeon, and strict Clippy.
 GPU runs use Khronos synchronization validation. This is one physical GPU plus

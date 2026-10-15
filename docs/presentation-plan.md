@@ -1,26 +1,33 @@
 # P1: presentation and an interactive Linux consumer
 
-Scheduled 2026-10-15, before M6. **Opening work: native Rust core extraction;
+Scheduled 2026-10-15, before M6. **Native Rust operation extraction implemented;
 presentation is not implemented or natively validated.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
 ## Current implementation checkpoint
 
-The opening tranche exposes `ogpu::foundation::rust`: discovery/typed adapter
-views, device, memory, timelines, arenas, transfer commands and slice-based
-submission. Those operations bypass C entry points; C adapters share their
-implementation. Handles are transparent non-owning tokens with explicit unsafe
-destruction, no additional retention or waits. Descriptions still reuse some
-versioned records and raw nested pointers. Executable/image/descriptor and broader
-command extraction remain before presentation; no full native-Rust parity claim.
+`ogpu::foundation::rust` now has equivalents for every current foundation C
+operation: setup/resources, executable/cache preparation, descriptors/images,
+recording/raster, queries, split dependencies and submission. Both languages share
+backend validation/execution and recording-error state; Rust bypasses C entry
+points. Handles are transparent non-owning tokens with explicit unsafe destruction,
+no additional retention or waits. Some descriptions retain versioned records and
+raw nested pointers. Operation coverage is not complete ergonomic typing, a safe
+wrapper, generated Rust shader interfaces or native evidence for every Rust call.
 
 The [standalone Cargo consumer](../examples/foundation_rust/README.md) is separate
 from the workspace, uses public Rust only, and checks A/B/A fill/copy output,
 malformed creation, poisoned recording, timeout and insufficient-scratch retry.
+It now also checks direct/indirect compute with specialization, independent root/
+inline updates, cache export/import/merge, image binding/views, descriptor encoding
+and A/B/A image clear/readback. Broader raster/query/secondary/split execution is
+covered by existing shared-backend/C fixtures, not this Rust consumer.
 It is not yet an installed Rust SDK package or independent third-party adoption.
 
-Opening-tranche local validation (2026-10-15): 48 host tests; 17 GPU unit tests
+Expanded-tranche local validation (2026-10-15): 48 host unit tests plus two host
+integration tests for compile-checked C/Rust surface correspondence and absence of
+C adapter calls; 17 GPU unit tests
 and one native Rust integration test on Radeon RX 5700 XT/RADV and llvmpipe;
 standalone Cargo consumer on both drivers; full C foundation fixture on Radeon;
 strict Clippy for all foundation targets. Synchronization validation enabled.

@@ -1,6 +1,7 @@
 //! Standalone native Rust consumer: no C entry-point calls or private backend API.
 use ogpu::foundation::{rust as gpu, types::*};
 use std::{ffi::CStr, ptr};
+mod extended;
 
 fn dependency(before: u64, after: u64, read: u64, write: u64) -> Dependency {
     Dependency {
@@ -32,7 +33,7 @@ pub fn run() -> gpu::Result<()> {
     println!("NATIVE_RUST_DEVICE={}", name.to_string_lossy());
     let domain = gpu::adapter_queues(adapter)
         .iter()
-        .find(|q| q.count > 0 && q.flags & (TRANSFER | COMPUTE | GRAPHICS) != 0)
+        .find(|q| q.count > 0 && q.flags & COMPUTE != 0)
         .ok_or(UNSUPPORTED)?
         .domain;
     let requests = [QueueRequest {
@@ -51,9 +52,9 @@ pub fn run() -> gpu::Result<()> {
         let queue = gpu::device_queue(device, domain, 0).ok_or(INVALID)?;
         let mut desc = MemoryDesc {
             header: Record::new::<MemoryDesc>(MEMORY_DESC),
-            size: 512,
+            size: 4096,
             alignment: 4,
-            usage: USAGE_COPY_SRC | USAGE_COPY_DST,
+            usage: USAGE_COPY_SRC | USAGE_COPY_DST | USAGE_STORAGE | USAGE_INDIRECT,
             memory_type: 0,
             kind: MEMORY_LINEAR,
             concurrent_domains: ptr::null(),
@@ -75,7 +76,7 @@ pub fn run() -> gpu::Result<()> {
         malformed.alignment = 3;
         assert_eq!(gpu::memory_create(device, &malformed), Err(INVALID));
         let memory = gpu::memory_create(device, &desc)?;
-        let mapping = gpu::memory_map(memory.span(0, 512))?;
+        let mapping = gpu::memory_map(memory.span(0, 4096))?;
         assert_ne!(gpu::memory_address(memory.span(0, 512))?, 0);
         let timeline = gpu::timeline_create(device, 0)?;
         assert_eq!(gpu::timeline_wait(timeline, 1, 0), Err(TIMEOUT));
@@ -171,6 +172,14 @@ pub fn run() -> gpu::Result<()> {
             }
             gpu::arena_reset(arena)?;
         }
+        extended::run(extended::Context {
+            device,
+            queue,
+            arena,
+            timeline,
+            memory,
+            mapping,
+        })?;
         gpu::arena_destroy(arena);
         gpu::timeline_destroy(timeline);
         gpu::memory_unmap(memory);

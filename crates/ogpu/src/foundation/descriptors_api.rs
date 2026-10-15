@@ -13,7 +13,7 @@ pub unsafe extern "C" fn ogpu_next_descriptor_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let requirements = native::descriptor_scratch(kind, count)?;
+        let requirements = rust::descriptor_scratch_requirements(kind, count)?;
         unsafe {
             out.write(requirements);
         }
@@ -30,10 +30,14 @@ pub unsafe extern "C" fn ogpu_next_write_resource_descriptors(
     outputs: *const HostSpan,
     scratch: HostSpan,
 ) -> Status {
-    boundary(|| {
-        unsafe { device.as_ref() }
-            .ok_or(INVALID)
-            .and_then(|d| unsafe { d.write_resources(count, inputs, outputs, scratch) })
+    boundary(|| unsafe {
+        rust::write_resource_descriptors_raw(
+            rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+            count,
+            inputs,
+            outputs,
+            scratch,
+        )
     })
 }
 /// # Safety
@@ -46,9 +50,13 @@ pub unsafe extern "C" fn ogpu_next_write_sampler_descriptors(
     outputs: *const HostSpan,
     scratch: HostSpan,
 ) -> Status {
-    boundary(|| {
-        unsafe { device.as_ref() }
-            .ok_or(INVALID)
-            .and_then(|d| unsafe { d.write_samplers(count, inputs, outputs, scratch) })
+    boundary(|| unsafe {
+        rust::write_sampler_descriptors_raw(
+            rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+            count,
+            inputs,
+            outputs,
+            scratch,
+        )
     })
 }
