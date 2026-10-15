@@ -146,6 +146,14 @@ fn native_surface_covers_current_c_operations() {
     let _ = gpu::surface_destroy;
     let _ = gpu::surface_query;
     let _ = gpu::surface_mode_query;
+    let _ = gpu::binary_create;
+    let _ = gpu::binary_destroy;
+    let _ = gpu::fence_create;
+    let _ = gpu::fence_destroy;
+    let _ = gpu::fence_poll;
+    let _ = gpu::fence_wait;
+    let _ = gpu::fence_reset;
+    let _ = gpu::queue_submit_with_binary;
     let header = include_str!("../../../include/ogpu_next.h");
     let declared: BTreeSet<_> = header
         .split("ogpu_next_")
@@ -178,7 +186,14 @@ fn native_surface_covers_current_c_operations() {
             "surface_wayland_create",
             "surface_destroy",
             "surface_query",
-            "surface_mode_query"
+            "surface_mode_query",
+            "binary_create",
+            "binary_destroy",
+            "fence_create",
+            "fence_destroy",
+            "fence_poll",
+            "fence_wait",
+            "fence_reset",
         ]),
         "extend native Rust coverage when the optional table grows"
     );
@@ -198,6 +213,7 @@ fn native_operations_do_not_call_c_adapters() {
         include_str!("../src/foundation/rust/presentation.rs"),
         include_str!("../../../examples/foundation_rust/src/main.rs"),
         include_str!("../../../examples/foundation_rust/src/extended.rs"),
+        include_str!("../../../examples/foundation_rust/src/synchronization.rs"),
     ] {
         // Unit tests intentionally compare a C entry point; production does not.
         let production = source.split("#[cfg(test)]").next().unwrap();

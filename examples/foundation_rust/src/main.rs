@@ -2,6 +2,7 @@
 use ogpu::foundation::{rust as gpu, types::*};
 use std::{ffi::CStr, ptr};
 mod extended;
+mod synchronization;
 
 fn dependency(before: u64, after: u64, read: u64, write: u64) -> Dependency {
     Dependency {
@@ -180,6 +181,7 @@ pub fn run() -> gpu::Result<()> {
             memory,
             mapping,
         })?;
+        synchronization::run(device, queue, domain, memory, mapping)?;
         gpu::arena_destroy(arena);
         gpu::timeline_destroy(timeline);
         gpu::memory_unmap(memory);

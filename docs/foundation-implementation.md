@@ -18,7 +18,10 @@ before M6. Native Rust equivalents for the current C operations are implemented,
 with a resource/compute/image consumer and compile-checked surface correspondence;
 optional Wayland surface setup, explicit device enabling and mode queries have
 [bounded native acceptance](results/p1-presentation-profile-2026-10-15.md).
-Swapchain execution and M6 have not started. Dated record sizes/test counts
+Explicit binary submission dependencies and reusable fence lifecycle now have
+[headless acceptance](results/p1-binary-synchronization-2026-10-15.md) through Rust
+and C, with no hidden timeline bridge. Swapchain execution and M6 have not started.
+Dated record sizes/test counts
 and “source-only” language below describe their development checkpoints; the public
 header and default SDK own today's exact layouts, not those historical values.
 

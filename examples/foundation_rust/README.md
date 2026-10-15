@@ -23,6 +23,11 @@ roots, partial inline updates, direct/indirect dispatch and guarded CPU-referenc
 output checks. Cache export/import/merge, dedicated image placement, views,
 descriptor/sampler encoding, explicit transitions and clear/readback are exercised
 through native Rust, including malformed executable/view/descriptor requests.
+Headless synchronization phases mix binary and timeline dependencies, including a
+two-batch fill/copy handoff carried only by the binary semaphore. They check A/B/A
+data, rejected-submit retry, explicit reuse after retirement and initial-signaled/
+unsignaled fence poll/wait/reset/destruction (`NATIVE_RUST_SYNC_PASS`). Fence signal
+association through acquisition/presentation remains unimplemented.
 
 Handles are non-owning, pointer-sized values. Copying/dropping them neither retains
 nor frees anything; destruction is explicit and unsafe. The consumer performs
@@ -72,4 +77,4 @@ cargo test -p ogpu --no-default-features --test presentation -- --ignored --noca
 ```
 
 Headless regressions can explicitly select `--lib --test native_rust` when using
-`--ignored`; they still need no window system. The default binary is unchanged.
+`--ignored`; they still need no window system. The default binary remains headless.

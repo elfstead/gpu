@@ -3,8 +3,9 @@
 Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
 before M6 Metal foundation. P1's native Rust operation extraction and opt-in
-Wayland surface setup, explicit device enabling and mode queries are implemented; swapchain execution and M6
-implementation have not started.**
+Wayland surface setup, explicit device enabling, mode queries and binary submission
+dependencies are implemented, with reusable fence lifecycle operations. Swapchain
+execution and M6 implementation have not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -75,14 +76,20 @@ remain visible. Headless setup is unchanged. See the
 [setup receipt](results/p1-surface-setup-2026-10-15.md) and
 [device/mode-query follow-up](results/p1-presentation-profile-2026-10-15.md).
 
-Current checks: 53 host unit plus two host surface-coverage tests, 17 headless GPU
+Current checks: 54 host unit plus two host surface-coverage tests, 18 headless GPU
 unit tests plus native Rust consumer per driver, the separate Wayland setup probe
-per driver, strict Clippy, 1,068 C/Rust ABI layout values, and the full C fixture on
+per driver, strict Clippy, 1,084 C/Rust ABI layout values, and the full C fixture on
 Radeon. Presentation enabling now uses the ordinary device feature mask; no window
 or implicit queue choice is required. Per-mode image-count/scaling/compatibility
 queries preserve the caller's strategy: local FIFO/IMMEDIATE need at least three
 images, MAILBOX four. These counts require matching explicit mode-list creation.
-Next: borrowed swapchain images, binary submission dependencies and present retirement. No
+Binary dependencies now share ordinary single/batched submission and caller-owned
+scratch with timelines, without hidden bridge submissions. Reusable fences expose
+create/poll/wait/reset/destroy; native acquire/present signal association remains
+unimplemented. The headless Rust consumer checks real binary fill/copy handoffs;
+injected C-path tests verify lowering and rejection before any native submission.
+See the [synchronization receipt](results/p1-binary-synchronization-2026-10-15.md).
+Next: borrowed swapchain images, acquire/present and presentation retirement. No
 swapchain, frame presentation, resize/minimize or interactive acceptance yet.
 
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust

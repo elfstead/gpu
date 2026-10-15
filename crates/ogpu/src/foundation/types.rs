@@ -5,6 +5,7 @@ use std::ffi::{c_char, c_void};
 pub const VERSION: u32 = 1;
 pub type Status = i32;
 pub const OK: Status = 0;
+pub const NOT_READY: Status = 1;
 pub const TIMEOUT: Status = 2;
 pub const COMPILE_REQUIRED: Status = 3;
 pub const INVALID: Status = -1;
@@ -19,6 +20,7 @@ pub const SURFACE_LOST: Status = -9;
 pub const PRESENTATION_WAYLAND: u32 = 1;
 pub const PRESENTATION: u64 = 1 << 57;
 pub const WAYLAND_SURFACE_DESC: u32 = 125;
+pub const BINARY_SUBMIT_DESC: u32 = 126;
 pub const SURFACE_CAPABILITIES: u32 = 1000;
 pub const SURFACE_FORMATS: u32 = 1001;
 pub const SURFACE_PRESENT_MODES: u32 = 1002;
@@ -99,6 +101,28 @@ pub struct PresentationApi {
     pub surface_mode_query: Option<
         unsafe extern "C" fn(*const Adapter, *const super::Surface, u32, *mut Query) -> Status,
     >,
+    pub binary_create: Option<unsafe extern "C" fn(*mut Device, *mut *mut super::Binary) -> Status>,
+    pub binary_destroy: Option<unsafe extern "C" fn(*mut super::Binary)>,
+    pub fence_create:
+        Option<unsafe extern "C" fn(*mut Device, u32, *mut *mut super::Fence) -> Status>,
+    pub fence_destroy: Option<unsafe extern "C" fn(*mut super::Fence)>,
+    pub fence_poll: Option<unsafe extern "C" fn(*const super::Fence) -> Status>,
+    pub fence_wait: Option<unsafe extern "C" fn(*const super::Fence, u64) -> Status>,
+    pub fence_reset: Option<unsafe extern "C" fn(*mut super::Fence) -> Status>,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BinaryPoint {
+    pub binary: *mut super::Binary,
+    pub stages: u64,
+}
+#[repr(C)]
+pub struct BinarySubmitDesc {
+    pub header: Record,
+    pub wait_count: u32,
+    pub signal_count: u32,
+    pub waits: *const BinaryPoint,
+    pub signals: *const BinaryPoint,
 }
 // Names shared with ogpu_next.h for native Rust resource/transfer callers.
 pub const MEMORY_HOST_VISIBLE: u32 = 2;
@@ -966,6 +990,15 @@ pub struct SubmitDesc {
     pub signals: *const SyncPoint,
     pub scratch: *mut c_void,
     pub scratch_size: u64,
+}
+impl SubmitDesc {
+    pub(super) fn validate_header(mut header: Record) -> Result<(), Status> {
+        // Only this root permits a chain; the backend validates the complete
+        // supported extension before any native submission. All other records
+        // retain their strict next=NULL contract.
+        header.next = std::ptr::null();
+        header.validate::<Self>(SUBMIT_DESC)
+    }
 }
 #[repr(C)]
 pub struct MemoryBarrier {

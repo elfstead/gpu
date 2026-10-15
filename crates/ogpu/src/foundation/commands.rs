@@ -479,6 +479,15 @@ fn submit_layout(lists: u32, waits: u32, signals: u32) -> Result<(Layout, usize,
         .map_err(|_| INVALID)?;
     Ok((layout.pad_to_align(), wait_offset, signal_offset))
 }
+unsafe fn binary_submission<'a>(header: &Record) -> Result<Option<&'a BinarySubmitDesc>, Status> {
+    if header.next.is_null() {
+        return Ok(None);
+    }
+    // Read and validate only the header first: short/unknown extensions must not
+    // be dereferenced as a full description. No chains or repeated records yet.
+    unsafe { header.next.read() }.validate::<BinarySubmitDesc>(BINARY_SUBMIT_DESC)?;
+    Ok(Some(unsafe { &*header.next.cast::<BinarySubmitDesc>() }))
+}
 pub(in crate::foundation) fn submit_batch_scratch(count: u32) -> Result<HostRequirements, Status> {
     let layout = array_layout::<vk::VkSubmitInfo2>(count)?;
     Ok(HostRequirements {
@@ -1465,16 +1474,34 @@ impl Queue {
         desc: &SubmitDesc,
     ) -> Result<vk::VkSubmitInfo2, Status> {
         let device = ptr::from_ref(d);
-        desc.header.validate::<SubmitDesc>(SUBMIT_DESC)?;
+        SubmitDesc::validate_header(desc.header)?;
+        let binary = unsafe { binary_submission(&desc.header)? };
+        let wait_count = desc
+            .wait_count
+            .checked_add(binary.map_or(0, |b| b.wait_count))
+            .ok_or(INVALID)?;
+        let signal_count = desc
+            .signal_count
+            .checked_add(binary.map_or(0, |b| b.signal_count))
+            .ok_or(INVALID)?;
+        let (binary_waits, binary_signals) = match binary {
+            Some(b) => unsafe {
+                (
+                    slice(b.waits, b.wait_count)?,
+                    slice(b.signals, b.signal_count)?,
+                )
+            },
+            None => (&[][..], &[][..]),
+        };
         let lists = unsafe { slice(desc.lists, desc.list_count)? };
         let waits = unsafe { slice(desc.waits, desc.wait_count)? };
         let signals = unsafe { slice(desc.signals, desc.signal_count)? };
         let (_, wait_offset, signal_offset) =
-            submit_layout(desc.list_count, desc.wait_count, desc.signal_count)?;
+            submit_layout(desc.list_count, wait_count, signal_count)?;
         let storage = scratch(
             desc.scratch,
             desc.scratch_size,
-            submit_scratch(desc.list_count, desc.wait_count, desc.signal_count)?,
+            submit_scratch(desc.list_count, wait_count, signal_count)?,
         )?;
         let commands = storage.cast::<vk::VkCommandBufferSubmitInfo>();
         // wrapping_add permits NULL for zero-size scratch; those pointers aren't accessed.
@@ -1503,7 +1530,10 @@ impl Queue {
                 commands.add(i).write(info);
             }
         }
-        for (points, target) in [(waits, native_waits), (signals, native_signals)] {
+        for (points, binaries, target) in [
+            (waits, binary_waits, native_waits),
+            (signals, binary_signals, native_signals),
+        ] {
             for (i, point) in points.iter().enumerate() {
                 let timeline = unsafe { point.point.timeline.as_ref() }.ok_or(INVALID)?;
                 if timeline.device != device {
@@ -1520,14 +1550,30 @@ impl Queue {
                     target.add(i).write(info);
                 }
             }
+            for (i, point) in binaries.iter().enumerate() {
+                let binary = unsafe { point.binary.as_ref() }.ok_or(INVALID)?;
+                if binary.device != device {
+                    return Err(INVALID);
+                }
+                let info = vk::VkSemaphoreSubmitInfo {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                    semaphore: binary.handle,
+                    value: 0,
+                    stageMask: stages(d, self.domain, point.stages, true)?,
+                    ..Default::default()
+                };
+                unsafe {
+                    target.add(points.len() + i).write(info);
+                }
+            }
         }
         Ok(vk::VkSubmitInfo2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
             commandBufferInfoCount: desc.list_count,
             pCommandBufferInfos: commands,
-            waitSemaphoreInfoCount: desc.wait_count,
+            waitSemaphoreInfoCount: wait_count,
             pWaitSemaphoreInfos: native_waits,
-            signalSemaphoreInfoCount: desc.signal_count,
+            signalSemaphoreInfoCount: signal_count,
             pSignalSemaphoreInfos: native_signals,
             ..Default::default()
         })
@@ -1569,6 +1615,39 @@ unsafe fn consume_submit(desc: &SubmitDesc) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn binary_extensions_validate_before_full_record_access() {
+        use super::*;
+        let mut root = Record::new::<SubmitDesc>(SUBMIT_DESC);
+        assert!(unsafe { binary_submission(&root) }.unwrap().is_none());
+        let short = Record::new::<Record>(BINARY_SUBMIT_DESC);
+        root.next = &short;
+        assert!(matches!(unsafe { binary_submission(&root) }, Err(INVALID)));
+        let unknown = Record::new::<Record>(u32::MAX);
+        root.next = &unknown;
+        assert!(matches!(
+            unsafe { binary_submission(&root) },
+            Err(UNSUPPORTED)
+        ));
+        let mut extra = BinarySubmitDesc {
+            header: Record::new::<BinarySubmitDesc>(BINARY_SUBMIT_DESC),
+            wait_count: 0,
+            signal_count: 0,
+            waits: ptr::null(),
+            signals: ptr::null(),
+        };
+        root.next = &extra.header;
+        assert!(unsafe { binary_submission(&root) }.unwrap().is_some());
+        assert_eq!(SubmitDesc::validate_header(root), Ok(()));
+        assert_eq!(root.validate::<SubmitDesc>(SUBMIT_DESC), Err(INVALID));
+        extra.header.next = &short;
+        root.next = &extra.header;
+        assert!(matches!(unsafe { binary_submission(&root) }, Err(INVALID)));
+        extra.header.next = ptr::null();
+        extra.header.flags = 1;
+        root.next = &extra.header;
+        assert!(matches!(unsafe { binary_submission(&root) }, Err(INVALID)));
+    }
     #[test]
     fn indirect_ranges_preserve_native_stride_rules() {
         use super::*;

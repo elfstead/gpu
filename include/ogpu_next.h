@@ -83,8 +83,9 @@ enum {
     OGPU_NEXT_RENDER_INHERITANCE = 122, OGPU_NEXT_IMAGE_PROFILE = 123,
     OGPU_NEXT_RASTER_OPTIONS = 124
 };
-/* Version 1 records require exact byte_size, flags=0 and next=NULL. Unknown
- * kinds/versions are UNSUPPORTED, not ignored. Later versions may add chains.
+/* Version 1 records require exact byte_size, flags=0 and next=NULL unless an
+ * operation explicitly permits an extension (currently SUBMIT_DESC permits one
+ * BINARY_SUBMIT_DESC). Unknown kinds/versions are UNSUPPORTED, not ignored.
  * Query capacity=0 obtains count with OK and no data access. Otherwise capacity
  * must fit the entire result: CAPACITY writes count but no array elements.
  * element_size must exactly match the record type, even for count-only queries.
@@ -1769,9 +1770,12 @@ void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_ima
  */
 #define OGPU_NEXT_FEATURE_PRESENTATION UINT64_C(144115188075855872)
 typedef struct ogpu_next_surface ogpu_next_surface;
+typedef struct ogpu_next_binary ogpu_next_binary;
+typedef struct ogpu_next_fence ogpu_next_fence;
 enum {
     OGPU_NEXT_PRESENTATION_WAYLAND = 1u,
     OGPU_NEXT_WAYLAND_SURFACE_DESC = 125,
+    OGPU_NEXT_BINARY_SUBMIT_DESC = 126,
     OGPU_NEXT_QUERY_SURFACE_CAPABILITIES = 1000,
     OGPU_NEXT_QUERY_SURFACE_FORMATS = 1001,
     OGPU_NEXT_QUERY_SURFACE_PRESENT_MODES = 1002,
@@ -1804,6 +1808,53 @@ typedef struct ogpu_next_surface_scaling {
 typedef struct ogpu_next_presentation_support {
     uint32_t swapchain, swapchain_maintenance;
 } ogpu_next_presentation_support;
+/* Explicit native synchronization, also usable on headless devices: neither
+ * PRESENTATION nor a surface is needed to create these objects. No implicit
+ * frame ring, retention, host wait, state tracking or timeline conversion.
+ * binary_create returns an unsignaled binary semaphore. Signals must target an
+ * unsignaled binary; one ordered wait consumes each signal. The caller proves
+ * valid pending signals/waits and retirement before reuse/destruction. A render
+ * timeline signal does not by itself retire a presentation wait on a binary.
+ * There is no binary host signal/reset/poll/wait operation.
+ *
+ * Chain ONE binary_submit_desc through submit_desc.header.next. Its own next=NULL,
+ * flags=0. Counts/arrays below ADD to the root's timeline waits/signals, preserving
+ * individual stage masks. submit_scratch_requirements receives COMBINED counts
+ * (timeline+binary), not merely the root's counts. Batch submission allows this
+ * extension independently on every description, with distinct caller scratch.
+ * Zero counts allow NULL arrays; nonzero counts require readable arrays. Scratch
+ * must remain disjoint from descriptions, inputs and other active scratch spans.
+ * Invalid descriptions/capacity fail before a native submission and do not
+ * consume any synchronization or one-shot lists. Native failures retain the
+ * existing queue-submit uncertainty rules; failure is not proof of retirement.
+ * Every referenced object belongs to the queue's device. Semaphore stage masks
+ * obey the existing submit rules; native binary semaphore values are zero.
+ * No duplicate binary appears within one wait array or within one signal array;
+ * native pending/order rules apply across batches. No quadratic duplicate scan.
+ * Single submit lowers once; a batch lowers once with the original submit count.
+ */
+typedef struct ogpu_next_binary_point {
+    ogpu_next_binary *binary;
+    ogpu_next_stages stages;
+} ogpu_next_binary_point;
+typedef struct ogpu_next_binary_submit_desc {
+    ogpu_next_record header;
+    uint32_t wait_count, signal_count;
+    const ogpu_next_binary_point *waits, *signals;
+} ogpu_next_binary_submit_desc;
+/* fence_create accepts signaled=0 or 1. poll returns OK or NOT_READY; wait returns
+ * OK or TIMEOUT (or errors). reset is explicit and never waits; it requires no
+ * pending signal or other host access and may reset an idle unsignaled fence.
+ * A signaled fence retires only the native operation associated with it, not
+ * unrelated rendering, scanout or image reacquisition. This tranche implements
+ * lifecycle/status operations; acquire/present will associate native signals.
+ * Device must outlive its binaries/fences and all uses. Independent objects may
+ * be used concurrently; poll/wait on one fence may also run concurrently. Reset
+ * and destruction exclude all other host access, and pending uses must be retired
+ * before destruction. Queue access/reuse obeys the usual external synchronization.
+ * Destroy accepts NULL and never waits. Creation clears output on failure. Fence timeout is not
+ * completion and does not change ownership or permit destruction of pending work.
+ */
 typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*discovery_create)(uint32_t platforms, ogpu_next_discovery **);
     ogpu_next_status (*adapter_support)(const ogpu_next_adapter *, ogpu_next_presentation_support *);
@@ -1811,6 +1862,13 @@ typedef struct ogpu_next_presentation_functions {
     void (*surface_destroy)(ogpu_next_surface *);
     ogpu_next_status (*surface_query)(const ogpu_next_adapter *, const ogpu_next_surface *, ogpu_next_query *);
     ogpu_next_status (*surface_mode_query)(const ogpu_next_adapter *, const ogpu_next_surface *, uint32_t mode, ogpu_next_query *);
+    ogpu_next_status (*binary_create)(ogpu_next_device *, ogpu_next_binary **);
+    void (*binary_destroy)(ogpu_next_binary *);
+    ogpu_next_status (*fence_create)(ogpu_next_device *, uint32_t signaled, ogpu_next_fence **);
+    void (*fence_destroy)(ogpu_next_fence *);
+    ogpu_next_status (*fence_poll)(const ogpu_next_fence *);
+    ogpu_next_status (*fence_wait)(const ogpu_next_fence *, uint64_t timeout_ns);
+    ogpu_next_status (*fence_reset)(ogpu_next_fence *);
 } ogpu_next_presentation_functions;
 ogpu_next_status ogpu_next_presentation_api(uint32_t version, uint32_t byte_size, ogpu_next_presentation_functions *);
 #ifdef __cplusplus

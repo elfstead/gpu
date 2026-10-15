@@ -1,13 +1,13 @@
 # P1 native presentation mapping
 
 Selected 2026-10-15. **Partial implementation; swapchain execution remains design.**
-Native Rust extraction, optional Wayland surface setup, device enabling and mode
-queries are implemented.
+Native Rust extraction, optional Wayland surface setup, device enabling, mode
+queries, binary submission dependencies and fence lifecycle are implemented.
 The [public header](../include/ogpu_next.h) owns exact implemented records; the
 remaining operation model below is not a claim of working frame presentation.
 
 Current checkpoint: pinned Vulkan 1.4.357 WSI/fence declarations plus the new public
-setup records pass C/Rust ABI comparison (1,068 layout values). The versioned C
+setup/synchronization records pass C/Rust ABI comparison (1,084 layout values). The versioned C
 table and native Rust operations enable the optional instance profile, create/
 destroy borrowed Wayland surfaces and query live capabilities, formats, modes,
 queue support and swapchain-maintenance availability. The bounded GLFW hidden-window
@@ -17,8 +17,9 @@ probe passes with validation on Radeon and llvmpipe. See the
 Ordinary device creation now enables PRESENTATION explicitly, without a surface
 or implicit queue choice. Omitting that bit leaves the device headless, even under
 WSI-enabled discovery. Its availability includes the discovery's instance profile;
-headless discovery cannot enable it retroactively. No swapchain is created yet;
-synchronization remains next. Adapter
+headless discovery cannot enable it retroactively. No swapchain is created yet.
+Binary submission and fence lifecycle have separate
+[headless acceptance](results/p1-binary-synchronization-2026-10-15.md). Adapter
 profile availability is queryable without a window, including through headless
 discovery; surface-dependent queries are separate.
 
@@ -82,11 +83,22 @@ additional frame scheduling. See
 | Unused acquisition | Explicit release after all image use is retired. Releasing the image does not by itself consume/reset a signaled acquisition semaphore; define separate synchronization retirement/reset/replacement rules. |
 | Replacement/teardown | Explicit out-of-date, minimized/zero-extent and surface-loss handling. Retain old-chain resources until their own work/presentation obligations are retired. Native failure after naming an old swapchain can retire it even without a replacement; do not promise unconditional rollback. |
 
-The setup records exist in the public header; submission-extension representation
-and swapchain borrowing checks remain implementation work, not a frozen ABI. Expose
-binary synchronization as an explicit optional native mechanism, not by pretending
-that a timeline value is acceptable everywhere. Keep caller choice of synchronization
-objects separate from swapchain-image indexing or an implicit frame ring.
+The setup and binary-submission records exist in the public header; swapchain
+borrowing checks remain implementation work, not a frozen ABI. `BinarySubmitDesc`
+chains once to a `SubmitDesc`, adding binary waits/signals to its timelines.
+Scratch sizing uses combined counts, preserves individual stage masks and lowers
+one single/batched call to one native call with the original batch boundaries.
+There is no extra allocation, state mirror, retention or timeline bridge on this
+submission path. Binary creation and fence lifecycle also work on headless devices;
+putting these operations in the presentation table does not require WSI enabling.
+Caller choice of synchronization objects remains separate from swapchain-image
+indexing or an implicit frame ring.
+
+Binary pending-state validity, signal consumption and retirement remain caller
+obligations. Fence lifecycle currently supports initial state, poll/wait, explicit
+reset and destruction; acquisition/presentation will add native signal association.
+Fence poll/wait may run concurrently; reset/destruction exclude other host accesses
+and pending signals. No fence signal currently demonstrates presentation retirement.
 
 The distinction between queue completion and present semaphore reuse is required by
 the [Vulkan semaphore reuse guidance](https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html).

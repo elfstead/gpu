@@ -297,7 +297,11 @@ pub unsafe extern "C" fn ogpu_next_queue_submit(
 ) -> Status {
     boundary(|| {
         let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
-        unsafe { rust::queue_submit_record(queue, description(desc, SUBMIT_DESC)?) }
+        if desc.is_null() {
+            return Err(INVALID);
+        }
+        SubmitDesc::validate_header(unsafe { desc.cast::<Record>().read() })?;
+        unsafe { rust::queue_submit_record(queue, &*desc) }
     })
 }
 /// # Safety

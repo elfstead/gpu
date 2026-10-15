@@ -58,6 +58,9 @@ use rendering::samples;
 #[path = "queries.rs"]
 mod queries;
 pub use queries::QueryPool;
+#[path = "presentation_sync.rs"]
+mod presentation_sync;
+pub use presentation_sync::{Binary, Fence};
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -79,6 +82,11 @@ macro_rules! functions {
     };
 }
 functions! {
+    vkCreateFence: PFN_vkCreateFence,
+    vkDestroyFence: PFN_vkDestroyFence,
+    vkGetFenceStatus: PFN_vkGetFenceStatus,
+    vkWaitForFences: PFN_vkWaitForFences,
+    vkResetFences: PFN_vkResetFences,
     vkGetPhysicalDeviceQueueFamilyProperties: PFN_vkGetPhysicalDeviceQueueFamilyProperties,
     vkGetPhysicalDeviceMemoryProperties: PFN_vkGetPhysicalDeviceMemoryProperties,
     vkGetPhysicalDeviceMemoryProperties2: PFN_vkGetPhysicalDeviceMemoryProperties2,
@@ -181,6 +189,7 @@ functions! {
 fn status(result: vk::VkResult) -> Result<(), Status> {
     match result {
         vk::VkResult_VK_SUCCESS => Ok(()),
+        vk::VkResult_VK_NOT_READY => Err(NOT_READY),
         vk::VkResult_VK_TIMEOUT => Err(TIMEOUT),
         vk::VkResult_VK_PIPELINE_COMPILE_REQUIRED => Err(COMPILE_REQUIRED),
         vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY | vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY => {

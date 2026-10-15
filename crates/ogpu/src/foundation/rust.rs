@@ -55,6 +55,8 @@ handle!(ExecutableCacheHandle, ExecutableCache);
 handle!(QueryPoolHandle, QueryPool);
 handle!(SplitHandle, Split);
 handle!(SurfaceHandle, Surface);
+handle!(BinaryHandle, Binary);
+handle!(FenceHandle, Fence);
 
 mod commands;
 mod presentation;

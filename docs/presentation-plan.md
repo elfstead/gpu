@@ -1,8 +1,9 @@
 # P1: presentation and an interactive Linux consumer
 
 Scheduled 2026-10-15, before M6. **Native Rust operation extraction and optional
-Wayland surface setup, device enabling and mode queries implemented; swapchain execution and interactive
-presentation are not yet implemented or natively validated.**
+Wayland surface setup, device enabling, mode queries, binary submission dependencies
+and fence lifecycle implemented; swapchain execution and interactive presentation
+are not yet implemented or natively validated.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
@@ -49,8 +50,13 @@ Explicit device enabling now uses the ordinary PRESENTATION feature bit, indepen
 of surface/queue selection. Mode-specific capabilities, scaling and compatible-mode
 lists are queried without a scheduling or fallback policy; see the
 [follow-up receipt](results/p1-presentation-profile-2026-10-15.md).
-Swapchains, binary submission dependencies and presentation retirement remain next. The table is mutable and
-will grow with implemented operations, not advertise null/unimplemented functions.
+Binary dependencies now extend ordinary single/batched submissions through
+caller-owned scratch, without timeline bridges; fence lifecycle is implemented.
+The [synchronization receipt](results/p1-binary-synchronization-2026-10-15.md)
+records real headless handoffs and injected native-call/rejection checks.
+Swapchains, acquire/present signal association and presentation retirement remain
+next. The table is mutable and will grow with implemented operations, not advertise
+null/unimplemented functions.
 
 ### Opening step: first-class native Rust, then presentation
 
