@@ -1,7 +1,7 @@
 # P1: presentation and an interactive Linux consumer
 
 Scheduled 2026-10-15, before M6. **Native Rust operation extraction and optional
-Wayland surface setup/queries implemented; swapchain execution and interactive
+Wayland surface setup, device enabling and mode queries implemented; swapchain execution and interactive
 presentation are not yet implemented or natively validated.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
@@ -45,8 +45,11 @@ acceptance on Radeon and llvmpipe. The external GLFW consumer runs on its proces
 main thread. Headless setup remains independent; query failures preserve output
 and no unsupported format is silently removed. See the
 [setup receipt](results/p1-surface-setup-2026-10-15.md).
-Device enabling, per-present-mode capabilities, swapchains, binary submission
-dependencies and presentation retirement remain next. The table is mutable and
+Explicit device enabling now uses the ordinary PRESENTATION feature bit, independently
+of surface/queue selection. Mode-specific capabilities, scaling and compatible-mode
+lists are queried without a scheduling or fallback policy; see the
+[follow-up receipt](results/p1-presentation-profile-2026-10-15.md).
+Swapchains, binary submission dependencies and presentation retirement remain next. The table is mutable and
 will grow with implemented operations, not advertise null/unimplemented functions.
 
 ### Opening step: first-class native Rust, then presentation

@@ -17,11 +17,14 @@ pub const VERSION_MISMATCH: Status = -7;
 pub const INTERNAL_ERROR: Status = -8;
 pub const SURFACE_LOST: Status = -9;
 pub const PRESENTATION_WAYLAND: u32 = 1;
+pub const PRESENTATION: u64 = 1 << 57;
 pub const WAYLAND_SURFACE_DESC: u32 = 125;
 pub const SURFACE_CAPABILITIES: u32 = 1000;
 pub const SURFACE_FORMATS: u32 = 1001;
 pub const SURFACE_PRESENT_MODES: u32 = 1002;
 pub const SURFACE_QUEUES: u32 = 1003;
+pub const SURFACE_SCALING: u32 = 1004;
+pub const SURFACE_COMPATIBLE_MODES: u32 = 1005;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -56,6 +59,16 @@ pub struct SurfaceFormat {
 }
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SurfaceScaling {
+    pub scaling: u32,
+    pub gravity_x: u32,
+    pub gravity_y: u32,
+    pub reserved: u32,
+    pub min_extent: [u32; 2],
+    pub max_extent: [u32; 2],
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct SurfaceQueue {
     pub domain: u32,
     pub supported: u32,
@@ -83,6 +96,9 @@ pub struct PresentationApi {
     pub surface_destroy: Option<unsafe extern "C" fn(*mut super::Surface)>,
     pub surface_query:
         Option<unsafe extern "C" fn(*const Adapter, *const super::Surface, *mut Query) -> Status>,
+    pub surface_mode_query: Option<
+        unsafe extern "C" fn(*const Adapter, *const super::Surface, u32, *mut Query) -> Status,
+    >,
 }
 // Names shared with ogpu_next.h for native Rust resource/transfer callers.
 pub const MEMORY_HOST_VISIBLE: u32 = 2;

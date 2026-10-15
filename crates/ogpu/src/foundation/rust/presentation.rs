@@ -46,7 +46,22 @@ pub unsafe fn surface_query(
     surface: SurfaceHandle,
     query: *mut Query,
 ) -> Result<()> {
-    unsafe { surface.get().query(adapter, query) }
+    unsafe { surface.get().query(adapter, None, query) }
+}
+
+/// Query a supported native present mode's capabilities, scaling or compatible
+/// modes. Mode-specific image counts require the matching explicit mode list at
+/// swapchain creation; they are not a substitute for the unqualified query.
+/// # Safety
+/// Same live surface/native-window, query storage and host synchronization rules
+/// as surface_query. This cold query may allocate; it never waits for GPU work.
+pub unsafe fn surface_mode_query(
+    adapter: &Adapter,
+    surface: SurfaceHandle,
+    mode: u32,
+    query: *mut Query,
+) -> Result<()> {
+    unsafe { surface.get().query(adapter, Some(mode), query) }
 }
 
 /// # Safety

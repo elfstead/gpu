@@ -47,6 +47,8 @@ promised. It is not yet packaged by the C SDK installer.
 `--bin surface` is a separate, bounded hidden-window probe. It dynamically loads
 external GLFW 3.4, explicitly selects Wayland and borrows its native display/surface.
 GLFW remains an application dependency; OGPU has no GLFW or Wayland-library link.
+Before creating a window it creates/destroys devices with presentation disabled
+and explicitly enabled through the ordinary feature mask, checking reported state.
 Use a trusted GLFW path if it is not on the system loader path:
 
 ```sh
@@ -57,9 +59,10 @@ OGPU_GLFW_LIBRARY=/path/to/libglfw.so.3 cargo run \
 This needs a live Wayland session and the optional presentation instance profile
 in [the P1 contract](../../docs/presentation-contract.md). It runs the window
 lifecycle on the process's main thread, checks surface capabilities, exact format/
-color-space and present-mode lists, queue compatibility, swapchain-maintenance
+color-space and present-mode lists, per-mode image counts/scaling/compatibility,
+queue compatibility, swapchain-maintenance
 availability, rejection/output semantics, and instance lifetime after discovery
-destruction. It does **not** create a presentation-enabled device or swapchain,
+destruction. It does **not** create a swapchain,
 render, present, or test interactive behavior. `SURFACE_SETUP_PASS` means only
 surface setup/query acceptance. The ignored integration test launches this
 standalone executable (rather than running GLFW on a Rust test worker):

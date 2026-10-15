@@ -1,18 +1,24 @@
 # P1 native presentation mapping
 
 Selected 2026-10-15. **Partial implementation; swapchain execution remains design.**
-Native Rust extraction and optional Wayland surface setup/queries are implemented.
+Native Rust extraction, optional Wayland surface setup, device enabling and mode
+queries are implemented.
 The [public header](../include/ogpu_next.h) owns exact implemented records; the
 remaining operation model below is not a claim of working frame presentation.
 
 Current checkpoint: pinned Vulkan 1.4.357 WSI/fence declarations plus the new public
-setup records pass C/Rust ABI comparison (1,043 layout values). The versioned C
+setup records pass C/Rust ABI comparison (1,068 layout values). The versioned C
 table and native Rust operations enable the optional instance profile, create/
 destroy borrowed Wayland surfaces and query live capabilities, formats, modes,
 queue support and swapchain-maintenance availability. The bounded GLFW hidden-window
 probe passes with validation on Radeon and llvmpipe. See the
-[receipt](results/p1-surface-setup-2026-10-15.md). No swapchain or presentation-enabled
-device is created yet; device enabling and synchronization remain next. Adapter
+[initial receipt](results/p1-surface-setup-2026-10-15.md) and
+[device/mode follow-up](results/p1-presentation-profile-2026-10-15.md).
+Ordinary device creation now enables PRESENTATION explicitly, without a surface
+or implicit queue choice. Omitting that bit leaves the device headless, even under
+WSI-enabled discovery. Its availability includes the discovery's instance profile;
+headless discovery cannot enable it retroactively. No swapchain is created yet;
+synchronization remains next. Adapter
 profile availability is queryable without a window, including through headless
 discovery; surface-dependent queries are separate.
 
@@ -21,8 +27,14 @@ storage and retry changing counts, without GPU waits. They preserve output on
 failure (CAPACITY changes count only). Unsupported native formats/usage bits remain
 visible alongside their representable OGPU values. This Vulkan profile exposes
 native color-space/mode/transform/alpha numeric tokens, not a false universal Metal
-contract. Per-present-mode capabilities and scaling/compatibility remain to add
-with swapchains; current capabilities are the base, unqualified native query.
+contract. `surface_query` gives base, unqualified capabilities;
+`surface_mode_query` gives a supported mode's image-count bounds, scaling/gravity
+and compatible-mode list. Mode-specific counts require the explicit matching
+mode-list strategy at swapchain creation; see
+[native per-mode semantics](https://docs.vulkan.org/refpages/latest/refpages/source/VkSurfacePresentModeKHR.html).
+Compatibility output can truncate without VK_INCOMPLETE, so enumeration reserves
+a spare element and retries full arrays before reporting a complete OGPU result;
+see the [native output contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkSurfacePresentModeCompatibilityKHR.html).
 
 ## First platform and native baseline
 

@@ -104,6 +104,14 @@ impl Drop for Window {
     }
 }
 struct Surface(gpu::SurfaceHandle);
+struct Device(gpu::DeviceHandle);
+impl Drop for Device {
+    fn drop(&mut self) {
+        unsafe {
+            gpu::device_destroy(self.0);
+        }
+    }
+}
 impl Drop for Surface {
     fn drop(&mut self) {
         unsafe {
@@ -116,6 +124,14 @@ fn query<T: Copy + Default>(
     surface: gpu::SurfaceHandle,
     kind: u32,
 ) -> Vec<T> {
+    query_mode(adapter, surface, None, kind)
+}
+fn query_mode<T: Copy + Default>(
+    adapter: &ogpu::foundation::Adapter,
+    surface: gpu::SurfaceHandle,
+    mode: Option<u32>,
+    kind: u32,
+) -> Vec<T> {
     let mut q = Query {
         header: Record::new::<Query>(kind),
         data: ptr::null_mut(),
@@ -124,13 +140,19 @@ fn query<T: Copy + Default>(
         element_size: size_of::<T>() as u32,
         reserved: 0,
     };
-    unsafe { gpu::surface_query(adapter, surface, &mut q) }.unwrap();
+    let call = |q: &mut Query| unsafe {
+        match mode {
+            Some(mode) => gpu::surface_mode_query(adapter, surface, mode, q),
+            None => gpu::surface_query(adapter, surface, q),
+        }
+    };
+    call(&mut q).unwrap();
     // A real application retries count/capacity races. Bound this probe as well.
     for _ in 0..8 {
         let mut values = vec![T::default(); q.count as usize];
         q.capacity = q.count;
         q.data = values.as_mut_ptr().cast();
-        match unsafe { gpu::surface_query(adapter, surface, &mut q) } {
+        match call(&mut q) {
             Ok(()) => {
                 values.truncate(q.count as usize);
                 return values;
@@ -143,12 +165,41 @@ fn query<T: Copy + Default>(
 }
 
 pub fn run() {
-    let window = Window::create();
     let discovery = gpu::discover_presentation(PRESENTATION_WAYLAND).unwrap();
     let adapter = gpu::adapters(&discovery)
         .iter()
         .find(|a| gpu::adapter_features(a).baseline_supported != 0)
         .expect("modern foundation adapter");
+    // Feature enabling is ordinary device creation, before any native window.
+    // No presentation queue is implicitly selected; this setup-only device runs
+    // no GPU work and can be destroyed immediately.
+    assert_ne!(gpu::adapter_features(adapter).available & PRESENTATION, 0);
+    let queue = gpu::adapter_queues(adapter)
+        .iter()
+        .find(|q| q.flags & 2 != 0)
+        .unwrap();
+    let requests = [QueueRequest {
+        domain: queue.domain,
+        count: 1,
+        priority: 1.0,
+    }];
+    for features in [0, PRESENTATION] {
+        let device = Device(gpu::device_create(adapter, &requests, features).unwrap());
+        let mut info = FeatureInfo::default();
+        let mut q = Query {
+            header: Record::new::<Query>(FEATURES),
+            data: ptr::from_mut(&mut info).cast(),
+            capacity: 1,
+            count: 0,
+            element_size: size_of::<FeatureInfo>() as u32,
+            reserved: 0,
+        };
+        unsafe { gpu::device_query(device.0, &mut q) }.unwrap();
+        assert_eq!(info.enabled, features);
+        assert_ne!(info.available & PRESENTATION, 0);
+        drop(device);
+    }
+    let window = Window::create();
     let desc = WaylandSurfaceDesc {
         header: Record::new::<WaylandSurfaceDesc>(WAYLAND_SURFACE_DESC),
         display: window.display,
@@ -165,6 +216,36 @@ pub fn run() {
     assert!(caps[0].min_image_count > 0);
     assert!(formats.iter().any(|f| f.format != 0));
     assert!(modes.contains(&2)); // Native FIFO baseline.
+    for &mode in &modes {
+        let per_mode: Vec<SurfaceCapabilities> =
+            query_mode(adapter, surface.0, Some(mode), SURFACE_CAPABILITIES);
+        let scaling: Vec<SurfaceScaling> =
+            query_mode(adapter, surface.0, Some(mode), SURFACE_SCALING);
+        let compatible: Vec<u32> =
+            query_mode(adapter, surface.0, Some(mode), SURFACE_COMPATIBLE_MODES);
+        assert_eq!(per_mode.len(), 1);
+        assert_eq!(scaling.len(), 1);
+        assert!(compatible.contains(&mode));
+        assert!(compatible.iter().all(|m| modes.contains(m)));
+        if compatible.len() > 1 {
+            let mut value = u32::MAX;
+            let mut q = Query {
+                header: Record::new::<Query>(SURFACE_COMPATIBLE_MODES),
+                data: ptr::from_mut(&mut value).cast(),
+                capacity: 1,
+                count: 91,
+                element_size: size_of::<u32>() as u32,
+                reserved: 0,
+            };
+            assert_eq!(
+                unsafe { gpu::surface_mode_query(adapter, surface.0, mode, &mut q) },
+                Err(CAPACITY)
+            );
+            assert_eq!(q.count as usize, compatible.len());
+            assert_eq!(value, u32::MAX);
+        }
+        println!("SURFACE_MODE mode={mode} min_images={} max_images={} scaling={scaling:?} compatible={compatible:?}", per_mode[0].min_image_count, per_mode[0].max_image_count);
+    }
     assert_eq!(
         support,
         PresentationSupport {
@@ -205,8 +286,43 @@ pub fn run() {
         Err(INVALID)
     );
     assert_eq!(q.count, 91);
+    q.header.kind = SURFACE_CAPABILITIES;
+    q.element_size = size_of::<SurfaceCapabilities>() as u32;
+    q.capacity = 0;
+    assert_eq!(
+        unsafe { gpu::surface_mode_query(adapter, surface.0, u32::MAX, &mut q) },
+        Err(UNSUPPORTED)
+    );
+    assert_eq!(q.count, 91);
+    q.header.kind = SURFACE_SCALING;
+    q.element_size = size_of::<SurfaceScaling>() as u32;
+    assert_eq!(
+        unsafe { gpu::surface_query(adapter, surface.0, &mut q) },
+        Err(UNSUPPORTED)
+    );
+    q.header.kind = SURFACE_FORMATS;
+    q.element_size = size_of::<SurfaceFormat>() as u32;
+    assert_eq!(
+        unsafe { gpu::surface_mode_query(adapter, surface.0, modes[0], &mut q) },
+        Err(UNSUPPORTED)
+    );
+    assert_eq!(q.count, 91);
     let headless = gpu::discover().unwrap();
     let other = &gpu::adapters(&headless)[0];
+    assert_eq!(gpu::adapter_features(other).available & PRESENTATION, 0);
+    let headless_queue = gpu::adapter_queues(other)
+        .iter()
+        .find(|q| q.flags & 2 != 0)
+        .unwrap();
+    let requests = [QueueRequest {
+        domain: headless_queue.domain,
+        count: 1,
+        priority: 1.0,
+    }];
+    assert_eq!(
+        gpu::device_create(other, &requests, PRESENTATION),
+        Err(UNSUPPORTED)
+    );
     let _ = gpu::presentation_support(other).unwrap(); // No window/WSI opt-in needed.
     assert_eq!(
         unsafe { gpu::surface_query(other, surface.0, &mut q) },
@@ -222,7 +338,9 @@ pub fn run() {
     drop(discovery);
     drop(surface);
     drop(window);
-    println!("SURFACE_SETUP_PASS no_swapchain=1 no_render=1 no_present=1");
+    println!(
+        "SURFACE_SETUP_PASS device_enable=1 mode_queries=1 no_swapchain=1 no_render=1 no_present=1"
+    );
 }
 fn main() {
     run();

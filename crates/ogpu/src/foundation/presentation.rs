@@ -42,13 +42,17 @@ fn status(result: vk::VkResult) -> Result<(), Status> {
 }
 
 pub(super) fn support(adapter: &Adapter) -> Result<PresentationSupport, Status> {
-    let swapchain = adapter
-        .instance
-        .supports_extension(adapter.physical, c"VK_KHR_swapchain")
+    support_native(&adapter.instance, adapter.physical)
+}
+pub(super) fn support_native(
+    instance: &Instance,
+    physical: vk::VkPhysicalDevice,
+) -> Result<PresentationSupport, Status> {
+    let swapchain = instance
+        .supports_extension(physical, c"VK_KHR_swapchain")
         .map_err(loader_error)?;
-    let maintenance = adapter
-        .instance
-        .supports_extension(adapter.physical, c"VK_KHR_swapchain_maintenance1")
+    let maintenance = instance
+        .supports_extension(physical, c"VK_KHR_swapchain_maintenance1")
         .map_err(loader_error)?;
     let mut features = vk::VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
@@ -57,14 +61,14 @@ pub(super) fn support(adapter: &Adapter) -> Result<PresentationSupport, Status> 
     if maintenance {
         // SAFETY: the generated PFN matches the named core query. Does not need WSI enabling.
         let get: vk::PFN_vkGetPhysicalDeviceFeatures2 =
-            unsafe { std::mem::transmute(adapter.instance.proc(c"vkGetPhysicalDeviceFeatures2")) };
+            unsafe { std::mem::transmute(instance.proc(c"vkGetPhysicalDeviceFeatures2")) };
         let mut f = vk::VkPhysicalDeviceFeatures2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
             pNext: ptr::from_mut(&mut features).cast(),
             ..Default::default()
         };
         unsafe {
-            get.ok_or(BACKEND_ERROR)?(adapter.physical, &mut f);
+            get.ok_or(BACKEND_ERROR)?(physical, &mut f);
         }
     }
     Ok(PresentationSupport {
@@ -125,7 +129,12 @@ impl Surface {
         }))
     }
 
-    pub(super) unsafe fn query(&self, adapter: &Adapter, query: *mut Query) -> Result<(), Status> {
+    pub(super) unsafe fn query(
+        &self,
+        adapter: &Adapter,
+        mode: Option<u32>,
+        query: *mut Query,
+    ) -> Result<(), Status> {
         if !Arc::ptr_eq(&self.instance, &adapter.instance) || query.is_null() {
             return Err(INVALID);
         }
@@ -133,9 +142,23 @@ impl Surface {
         header.validate::<Query>(header.kind)?;
         let q = unsafe { &mut *query };
         validate_query(q)?;
+        if mode.is_some() {
+            if !matches!(
+                header.kind,
+                SURFACE_CAPABILITIES | SURFACE_SCALING | SURFACE_COMPATIBLE_MODES
+            ) {
+                return Err(UNSUPPORTED);
+            }
+        } else if matches!(header.kind, SURFACE_SCALING | SURFACE_COMPATIBLE_MODES) {
+            return Err(UNSUPPORTED);
+        }
         if matches!(
             header.kind,
-            SURFACE_CAPABILITIES | SURFACE_FORMATS | SURFACE_PRESENT_MODES
+            SURFACE_CAPABILITIES
+                | SURFACE_FORMATS
+                | SURFACE_PRESENT_MODES
+                | SURFACE_SCALING
+                | SURFACE_COMPATIBLE_MODES
         ) {
             // Vulkan requires physical-device surface support before these queries.
             // Do not issue invalid native calls for a non-presenting adapter.
@@ -159,15 +182,97 @@ impl Surface {
                 return Err(UNSUPPORTED);
             }
         }
+        if let Some(mode) = mode {
+            let modes = enumerate(0u32, |count, data| unsafe {
+                (self.f.vkGetPhysicalDeviceSurfacePresentModesKHR.unwrap())(
+                    adapter.physical,
+                    self.handle,
+                    count,
+                    data,
+                )
+            })?;
+            if !modes.contains(&mode) {
+                return Err(UNSUPPORTED);
+            }
+        }
+        let mode_info = vk::VkSurfacePresentModeKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_KHR,
+            presentMode: mode.unwrap_or(0),
+            ..Default::default()
+        };
         let info = vk::VkPhysicalDeviceSurfaceInfo2KHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+            pNext: if mode.is_some() {
+                ptr::from_ref(&mode_info).cast()
+            } else {
+                ptr::null()
+            },
             surface: self.handle,
-            ..Default::default()
         };
         // Stage native results before copy_out: failures (including enumeration
         // races) never partially overwrite the caller's storage or count.
         unsafe {
             match header.kind {
+                SURFACE_SCALING => {
+                    let mut scaling = vk::VkSurfacePresentScalingCapabilitiesKHR {
+                        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SURFACE_PRESENT_SCALING_CAPABILITIES_KHR,
+                        ..Default::default()
+                    };
+                    let mut caps = vk::VkSurfaceCapabilities2KHR {
+                        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+                        pNext: ptr::from_mut(&mut scaling).cast(),
+                        ..Default::default()
+                    };
+                    status(
+                        (self.f.vkGetPhysicalDeviceSurfaceCapabilities2KHR.unwrap())(
+                            adapter.physical,
+                            &info,
+                            &mut caps,
+                        ),
+                    )?;
+                    copy_out(
+                        q,
+                        &[SurfaceScaling {
+                            scaling: scaling.supportedPresentScaling,
+                            gravity_x: scaling.supportedPresentGravityX,
+                            gravity_y: scaling.supportedPresentGravityY,
+                            reserved: 0,
+                            min_extent: [
+                                scaling.minScaledImageExtent.width,
+                                scaling.minScaledImageExtent.height,
+                            ],
+                            max_extent: [
+                                scaling.maxScaledImageExtent.width,
+                                scaling.maxScaledImageExtent.height,
+                            ],
+                        }],
+                    )
+                }
+                SURFACE_COMPATIBLE_MODES => {
+                    // This native output chain does not report VK_INCOMPLETE on
+                    // truncation. Reserve a spare element and retry a full array.
+                    let modes = enumerate_impl(0u32, true, |count, data| {
+                        let mut compatible = vk::VkSurfacePresentModeCompatibilityKHR {
+                            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SURFACE_PRESENT_MODE_COMPATIBILITY_KHR,
+                            presentModeCount: *count,
+                            pPresentModes: data,
+                            ..Default::default()
+                        };
+                        let mut caps = vk::VkSurfaceCapabilities2KHR {
+                            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+                            pNext: ptr::from_mut(&mut compatible).cast(),
+                            ..Default::default()
+                        };
+                        let result = (self.f.vkGetPhysicalDeviceSurfaceCapabilities2KHR.unwrap())(
+                            adapter.physical,
+                            &info,
+                            &mut caps,
+                        );
+                        *count = compatible.presentModeCount;
+                        result
+                    })?;
+                    copy_out(q, &modes)
+                }
                 SURFACE_CAPABILITIES => {
                     let mut caps = vk::VkSurfaceCapabilities2KHR {
                         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
@@ -272,6 +377,8 @@ fn validate_query(q: &Query) -> Result<(), Status> {
         SURFACE_FORMATS => size_of::<SurfaceFormat>(),
         SURFACE_PRESENT_MODES => size_of::<u32>(),
         SURFACE_QUEUES => size_of::<SurfaceQueue>(),
+        SURFACE_SCALING => size_of::<SurfaceScaling>(),
+        SURFACE_COMPATIBLE_MODES => size_of::<u32>(),
         _ => return Err(UNSUPPORTED),
     };
     if q.reserved != 0 || q.element_size as usize != size || (q.capacity != 0 && q.data.is_null()) {
@@ -284,6 +391,13 @@ fn validate_query(q: &Query) -> Result<(), Status> {
 // initialized for every element before the driver sees them. Bound retries.
 fn enumerate<T: Copy>(
     initial: T,
+    call: impl FnMut(*mut u32, *mut T) -> vk::VkResult,
+) -> Result<Vec<T>, Status> {
+    enumerate_impl(initial, false, call)
+}
+fn enumerate_impl<T: Copy>(
+    initial: T,
+    unmarked_truncation: bool,
     mut call: impl FnMut(*mut u32, *mut T) -> vk::VkResult,
 ) -> Result<Vec<T>, Status> {
     for _ in 0..8 {
@@ -295,6 +409,9 @@ fn enumerate<T: Copy>(
         status(r)?;
         if count == 0 {
             return Ok(Vec::new());
+        }
+        if unmarked_truncation {
+            count = count.checked_add(1).ok_or(CAPACITY)?;
         }
         let mut values = Vec::new();
         values
@@ -309,6 +426,9 @@ fn enumerate<T: Copy>(
         if count as usize > values.len() {
             return Err(INTERNAL_ERROR);
         }
+        if unmarked_truncation && count as usize == values.len() {
+            continue;
+        }
         values.truncate(count as usize);
         return Ok(values);
     }
@@ -318,6 +438,40 @@ fn enumerate<T: Copy>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compatibility_enumeration_retries_unmarked_truncation() {
+        let mut calls = 0;
+        let values = enumerate_impl(0u32, true, |count, data| unsafe {
+            calls += 1;
+            if data.is_null() {
+                *count = if calls == 1 { 1 } else { 2 };
+                return vk::VkResult_VK_SUCCESS;
+            }
+            if calls == 2 {
+                assert_eq!(*count, 2);
+                *data = 1;
+                *data.add(1) = 2;
+                // Full output with SUCCESS is ambiguous: retry, not partial success.
+            } else {
+                assert_eq!(*count, 3);
+                *data = 2;
+                *data.add(1) = 1;
+                *count = 2;
+            }
+            vk::VkResult_VK_SUCCESS
+        })
+        .unwrap();
+        assert_eq!(calls, 4);
+        assert_eq!(values, [2, 1]);
+        let result = enumerate_impl(0u32, true, |count, data| unsafe {
+            if data.is_null() {
+                *count = 1;
+            }
+            vk::VkResult_VK_SUCCESS
+        });
+        assert_eq!(result, Err(BACKEND_ERROR));
+    }
 
     #[test]
     fn surface_enumeration_initializes_records_and_retries_growth() {
@@ -366,6 +520,8 @@ mod tests {
             (SURFACE_FORMATS, size_of::<SurfaceFormat>()),
             (SURFACE_PRESENT_MODES, 4),
             (SURFACE_QUEUES, size_of::<SurfaceQueue>()),
+            (SURFACE_SCALING, size_of::<SurfaceScaling>()),
+            (SURFACE_COMPATIBLE_MODES, size_of::<u32>()),
         ] {
             let mut q = Query {
                 header: Record::new::<Query>(kind),

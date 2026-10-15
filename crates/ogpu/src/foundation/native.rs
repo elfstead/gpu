@@ -524,6 +524,12 @@ pub(super) fn snapshot(
         }
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
+    if instance.wayland_enabled() {
+        let support = super::presentation::support_native(instance, physical)?;
+        if support.swapchain != 0 && support.swapchain_maintenance != 0 {
+            features.available |= PRESENTATION;
+        }
+    }
     Ok(Snapshot {
         cache_uuid,
         info: AdapterInfo {
@@ -634,6 +640,9 @@ impl Device {
         requests: &[QueueRequest],
         enabled: u64,
     ) -> Result<Box<Self>, Status> {
+        if enabled & PRESENTATION != 0 && !adapter.instance.wayland_enabled() {
+            return Err(UNSUPPORTED);
+        }
         let mut snapshot = adapter.snapshot.clone();
         snapshot.features.enabled = enabled;
         snapshot.features.device_scope = 1;
@@ -812,9 +821,22 @@ impl Device {
         if enabled & COOPERATIVE_MATRIX != 0 {
             extensions.push(c"VK_KHR_cooperative_matrix".as_ptr());
         }
+        let presentation = vk::VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
+            pNext: ptr::from_ref(&draw_parameters).cast_mut().cast(),
+            swapchainMaintenance1: 1,
+        };
+        if enabled & PRESENTATION != 0 {
+            extensions.push(c"VK_KHR_swapchain".as_ptr());
+            extensions.push(c"VK_KHR_swapchain_maintenance1".as_ptr());
+        }
         let create = vk::VkDeviceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            pNext: ptr::from_ref(&draw_parameters).cast(),
+            pNext: if enabled & PRESENTATION != 0 {
+                ptr::from_ref(&presentation).cast()
+            } else {
+                ptr::from_ref(&draw_parameters).cast()
+            },
             pEnabledFeatures: &features,
             queueCreateInfoCount: queue_infos.len() as u32,
             pQueueCreateInfos: queue_infos.as_ptr(),

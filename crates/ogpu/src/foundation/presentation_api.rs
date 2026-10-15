@@ -27,6 +27,7 @@ pub unsafe extern "C" fn ogpu_next_presentation_api(
             surface_wayland_create: Some(surface_wayland_create),
             surface_destroy: Some(surface_destroy),
             surface_query: Some(surface_query),
+            surface_mode_query: Some(surface_mode_query),
         });
     }
     OK
@@ -108,6 +109,22 @@ unsafe extern "C" fn surface_query(
     })
 }
 
+unsafe extern "C" fn surface_mode_query(
+    adapter: *const Adapter,
+    surface: *const Surface,
+    mode: u32,
+    query: *mut Query,
+) -> Status {
+    boundary(|| unsafe {
+        rust::surface_mode_query(
+            adapter.as_ref().ok_or(INVALID)?,
+            rust::SurfaceHandle::from_raw(surface.cast_mut()).ok_or(INVALID)?,
+            mode,
+            query,
+        )
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,6 +137,7 @@ mod tests {
             surface_wayland_create: None,
             surface_destroy: None,
             surface_query: None,
+            surface_mode_query: None,
         };
         let mut table = empty;
         for (version, size, expected) in [
@@ -140,6 +158,7 @@ mod tests {
             assert!(table.surface_wayland_create.is_none());
             assert!(table.surface_destroy.is_none());
             assert!(table.surface_query.is_none());
+            assert!(table.surface_mode_query.is_none());
         }
         assert_eq!(
             unsafe {
@@ -152,6 +171,7 @@ mod tests {
         assert!(table.surface_wayland_create.is_some());
         assert!(table.surface_destroy.is_some());
         assert!(table.surface_query.is_some());
+        assert!(table.surface_mode_query.is_some());
         let mut support = PresentationSupport {
             swapchain: 99,
             swapchain_maintenance: 99,

@@ -145,6 +145,7 @@ fn native_surface_covers_current_c_operations() {
     let _ = gpu::surface_wayland_create;
     let _ = gpu::surface_destroy;
     let _ = gpu::surface_query;
+    let _ = gpu::surface_mode_query;
     let header = include_str!("../../../include/ogpu_next.h");
     let declared: BTreeSet<_> = header
         .split("ogpu_next_")
@@ -176,7 +177,8 @@ fn native_surface_covers_current_c_operations() {
             "adapter_support",
             "surface_wayland_create",
             "surface_destroy",
-            "surface_query"
+            "surface_query",
+            "surface_mode_query"
         ]),
         "extend native Rust coverage when the optional table grows"
     );

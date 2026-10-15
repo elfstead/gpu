@@ -88,7 +88,8 @@ enum {
  * Query capacity=0 obtains count with OK and no data access. Otherwise capacity
  * must fit the entire result: CAPACITY writes count but no array elements.
  * element_size must exactly match the record type, even for count-only queries.
- * Except OK/CAPACITY, queries leave all outputs unchanged. No query allocates.
+ * Except OK/CAPACITY, queries leave all outputs unchanged. Immutable adapter/device
+ * snapshot queries do not allocate; optional live queries state any exceptions.
  */
 typedef struct ogpu_next_query {
     ogpu_next_record header;
@@ -1706,6 +1707,12 @@ void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_nex
 void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_image_state, const ogpu_next_subresources *, const ogpu_next_clear_value *);
 
 /* Optional presentation setup (mutable revision 1; no swapchain runtime yet).
+ * PRESENTATION is an optional ordinary device_create feature bit. It is available
+ * only through an opt-in presentation discovery AND a supporting physical adapter.
+ * Requesting it enables VK_KHR_swapchain and KHR swapchainMaintenance1, but creates
+ * no surface, picks no queue and acquires no images. It is independent of RASTER.
+ * Omitting it leaves even a WSI-enabled discovery's device headless. Physical
+ * support can still be queried through adapter_support on a headless discovery.
  * Table lookup does not load Vulkan or access a display. Exact version and table
  * byte size are required; failures preserve the table. Plain discovery_create
  * stays headless and does not require WSI. The table's discovery_create enables
@@ -1747,8 +1754,20 @@ void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_ima
  * max_image_count=0 means unbounded; current_extent=UINT32_MAX means caller-sized.
  * image_usage contains representable OGPU image bits; native_image_usage keeps
  * all native bits. The selected device profile will require both swapchain and
- * maintenance; no device enabling operation is exposed in this checkpoint.
+ * maintenance, enabled only when device_create explicitly requests PRESENTATION.
+ *
+ * surface_mode_query accepts a supported native present mode and only CAPABILITIES,
+ * SCALING (surface_scaling) or COMPATIBLE_MODES (uint32_t[]). It rejects unsupported
+ * modes and preserves the same output/error contract. Mode-specific image counts
+ * require an explicit matching native mode list at swapchain creation; they must
+ * not be used with an unqualified creation strategy. COMPATIBLE_MODES reports
+ * native mode switching without recreation; it does not enable switching or choose
+ * an allowed list. SCALING/gravity are native VkPresentScalingFlagsKHR and
+ * VkPresentGravityFlagsKHR masks, including zero for unavailable capabilities.
+ * Scaling ONE_TO_ONE=1, ASPECT_RATIO_STRETCH=2, STRETCH=4; gravity MIN=1, MAX=2,
+ * CENTERED=4. No implicit image scaling, extent clamping or fallback policy.
  */
+#define OGPU_NEXT_FEATURE_PRESENTATION UINT64_C(144115188075855872)
 typedef struct ogpu_next_surface ogpu_next_surface;
 enum {
     OGPU_NEXT_PRESENTATION_WAYLAND = 1u,
@@ -1756,7 +1775,9 @@ enum {
     OGPU_NEXT_QUERY_SURFACE_CAPABILITIES = 1000,
     OGPU_NEXT_QUERY_SURFACE_FORMATS = 1001,
     OGPU_NEXT_QUERY_SURFACE_PRESENT_MODES = 1002,
-    OGPU_NEXT_QUERY_SURFACE_QUEUES = 1003
+    OGPU_NEXT_QUERY_SURFACE_QUEUES = 1003,
+    OGPU_NEXT_QUERY_SURFACE_SCALING = 1004,
+    OGPU_NEXT_QUERY_SURFACE_COMPATIBLE_MODES = 1005
 };
 typedef struct ogpu_next_wayland_surface_desc {
     ogpu_next_record header;
@@ -1776,6 +1797,10 @@ typedef struct ogpu_next_surface_format {
 typedef struct ogpu_next_surface_queue {
     uint32_t domain, supported;
 } ogpu_next_surface_queue;
+typedef struct ogpu_next_surface_scaling {
+    uint32_t scaling, gravity_x, gravity_y, reserved;
+    uint32_t min_extent[2], max_extent[2];
+} ogpu_next_surface_scaling;
 typedef struct ogpu_next_presentation_support {
     uint32_t swapchain, swapchain_maintenance;
 } ogpu_next_presentation_support;
@@ -1785,6 +1810,7 @@ typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*surface_wayland_create)(const ogpu_next_adapter *, const ogpu_next_wayland_surface_desc *, ogpu_next_surface **);
     void (*surface_destroy)(ogpu_next_surface *);
     ogpu_next_status (*surface_query)(const ogpu_next_adapter *, const ogpu_next_surface *, ogpu_next_query *);
+    ogpu_next_status (*surface_mode_query)(const ogpu_next_adapter *, const ogpu_next_surface *, uint32_t mode, ogpu_next_query *);
 } ogpu_next_presentation_functions;
 ogpu_next_status ogpu_next_presentation_api(uint32_t version, uint32_t byte_size, ogpu_next_presentation_functions *);
 #ifdef __cplusplus
