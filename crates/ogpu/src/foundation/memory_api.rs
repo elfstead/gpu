@@ -19,10 +19,10 @@ pub unsafe extern "C" fn ogpu_next_memory_requirements(
     out: *mut Requirements,
 ) -> Status {
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device.cast_mut()) }.ok_or(INVALID)?;
         let desc = unsafe { description(desc)? };
         let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
-        unsafe { d.memory_requirements(desc, out) }
+        unsafe { rust::memory_requirements(d, desc, out) }
     })
 }
 /// # Safety
@@ -40,11 +40,11 @@ pub unsafe extern "C" fn ogpu_next_memory_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
         let desc = unsafe { description(desc)? };
-        let memory = unsafe { Memory::create(d, desc)? };
+        let memory = unsafe { rust::memory_create(d, desc)? };
         unsafe {
-            out.write(Box::into_raw(memory));
+            out.write(memory.as_raw());
         }
         Ok(())
     })
@@ -53,9 +53,9 @@ pub unsafe extern "C" fn ogpu_next_memory_create(
 /// No views, recorded or pending uses may remain; device is live. Null is allowed.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_memory_destroy(memory: *mut Memory) {
-    if !memory.is_null() {
+    if let Some(memory) = unsafe { rust::MemoryHandle::from_raw(memory) } {
         unsafe {
-            drop(Box::from_raw(memory));
+            rust::memory_destroy(memory);
         }
     }
 }
@@ -67,8 +67,7 @@ pub unsafe extern "C" fn ogpu_next_memory_address(span: Span, out: *mut u64) -> 
         return INVALID;
     }
     boundary(|| {
-        let m = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
-        let address = m.address(span.offset, span.size)?;
+        let address = unsafe { rust::memory_address(span)? };
         unsafe {
             out.write(address);
         }
@@ -83,8 +82,7 @@ pub unsafe extern "C" fn ogpu_next_memory_map(span: Span, out: *mut Mapping) -> 
         return INVALID;
     }
     boundary(|| {
-        let m = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
-        let mapping = m.map(span.offset, span.size)?;
+        let mapping = unsafe { rust::memory_map(span)? };
         unsafe {
             out.write(mapping);
         }
@@ -95,27 +93,21 @@ pub unsafe extern "C" fn ogpu_next_memory_map(span: Span, out: *mut Mapping) -> 
 /// See include/ogpu_next.h. No view/cache user may race this operation. Null allowed.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_memory_unmap(memory: *mut Memory) {
-    if let Some(memory) = unsafe { memory.as_ref() } {
-        memory.unmap();
+    if let Some(memory) = unsafe { rust::MemoryHandle::from_raw(memory) } {
+        unsafe {
+            rust::memory_unmap(memory);
+        }
     }
 }
 /// # Safety
 /// Caller orders CPU/GPU access including neighboring bytes in cache atoms.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_memory_flush(span: Span) -> Status {
-    boundary(|| {
-        unsafe { span.memory.as_ref() }
-            .ok_or(INVALID)?
-            .cache(span.offset, span.size, true)
-    })
+    boundary(|| unsafe { rust::memory_flush(span) })
 }
 /// # Safety
 /// Caller orders CPU/GPU access including neighboring bytes in cache atoms.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_memory_invalidate(span: Span) -> Status {
-    boundary(|| {
-        unsafe { span.memory.as_ref() }
-            .ok_or(INVALID)?
-            .cache(span.offset, span.size, false)
-    })
+    boundary(|| unsafe { rust::memory_invalidate(span) })
 }

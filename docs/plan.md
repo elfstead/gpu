@@ -2,10 +2,10 @@
 
 Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
-before M6 Metal foundation. P1 opens with native Rust core extraction; presentation
+before M6 Metal foundation. P1 native Rust core extraction is in progress; presentation
 and M6 implementation have not started.**
-The earlier stop at the M6 entry checkpoint is complete; this revision schedules
-the remaining work without claiming implementation or native validation.
+The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
+implemented or natively validated unless explicitly reported below.
 
 The [current design](design.md) describes the model; the
 [implemented surface](foundation-implementation.md) gives exact profiles and
@@ -49,6 +49,21 @@ interactive Linux scene with multiple frames in flight and resize/minimize
 handling. Window creation and input remain in an external library. Specify the
 native-interoperability boundary alongside presentation; full external-memory
 implementation is not a prerequisite. No display availability is assumed.
+
+First native Rust tranche implemented: discovery and typed adapter views,
+device/memory/timeline handles, arenas, fill/copy/barriers and slice-based
+submission now have native Rust operations below the C adapters. The standalone
+[Rust consumer](../examples/foundation_rust/README.md) exercises explicit lifetime,
+A/B/A reuse, errors and retry. Extraction of executable/image/descriptor and the
+remaining command surface is next, before presentation. Some nested descriptions
+still use the existing versioned records/raw pointers; this is not yet the whole
+native Rust surface or a fully safe wrapper. No C ABI revision is changed.
+
+Opening-tranche checks: 48 host tests, 17 GPU unit tests plus the native Rust
+consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on
+both drivers, full public-C foundation fixture on Radeon, and strict Clippy.
+GPU runs use Khronos synchronization validation. This is one physical GPU plus
+software evidence, not cross-vendor or Metal acceptance; no new timing claim.
 
 ## Then: M6 Metal foundation
 

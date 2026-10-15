@@ -5,6 +5,28 @@ presentation is not implemented or natively validated.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
+## Current implementation checkpoint
+
+The opening tranche exposes `ogpu::foundation::rust`: discovery/typed adapter
+views, device, memory, timelines, arenas, transfer commands and slice-based
+submission. Those operations bypass C entry points; C adapters share their
+implementation. Handles are transparent non-owning tokens with explicit unsafe
+destruction, no additional retention or waits. Descriptions still reuse some
+versioned records and raw nested pointers. Executable/image/descriptor and broader
+command extraction remain before presentation; no full native-Rust parity claim.
+
+The [standalone Cargo consumer](../examples/foundation_rust/README.md) is separate
+from the workspace, uses public Rust only, and checks A/B/A fill/copy output,
+malformed creation, poisoned recording, timeout and insufficient-scratch retry.
+It is not yet an installed Rust SDK package or independent third-party adoption.
+
+Opening-tranche local validation (2026-10-15): 48 host tests; 17 GPU unit tests
+and one native Rust integration test on Radeon RX 5700 XT/RADV and llvmpipe;
+standalone Cargo consumer on both drivers; full C foundation fixture on Radeon;
+strict Clippy for all foundation targets. Synchronization validation enabled.
+The unwind test checks Rust propagation, C containment and first-error retention.
+No runtime performance measurement, new hardware or presentation support is claimed.
+
 ## Contract and implementation batch
 
 ### Opening step: first-class native Rust, then presentation

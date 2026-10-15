@@ -12,6 +12,7 @@ pub use descriptors_api::*;
 pub use executables_api::*;
 pub use images_api::*;
 pub use memory_api::*;
+pub mod rust;
 pub mod types;
 use crate::vulkan::Instance;
 pub use native::Executable;
@@ -149,18 +150,9 @@ pub unsafe extern "C" fn ogpu_next_discovery_create(
         return VERSION_MISMATCH;
     }
     boundary(|| {
-        let instance = Arc::new(Instance::new().map_err(loader_error)?);
-        let physical = instance.physical_devices().map_err(loader_error)?;
-        let mut adapters = Vec::with_capacity(physical.len());
-        for device in physical {
-            adapters.push(Adapter {
-                snapshot: native::snapshot(&instance, device)?,
-                instance: instance.clone(),
-                physical: device,
-            });
-        }
+        let discovery = rust::discover()?;
         unsafe {
-            out.write(Box::into_raw(Box::new(Discovery { adapters })));
+            out.write(Box::into_raw(discovery));
         }
         Ok(())
     })
@@ -199,7 +191,7 @@ pub unsafe extern "C" fn ogpu_next_adapter_query(
     adapter: *const Adapter,
     query: *mut Query,
 ) -> Status {
-    boundary(|| unsafe { adapter.as_ref().ok_or(INVALID)?.snapshot.query(query) })
+    boundary(|| unsafe { rust::adapter_query(adapter.as_ref().ok_or(INVALID)?, query) })
 }
 /// # Safety
 /// Live adapter, readable description/arrays, writable output; see include/ogpu_next.h.
@@ -231,16 +223,9 @@ pub unsafe extern "C" fn ogpu_next_device_create(
         }
         let requests =
             unsafe { std::slice::from_raw_parts(desc.queues, desc.queue_request_count as usize) };
-        validate_requests(&adapter.snapshot.queues, requests)?;
-        validate_feature_dependencies(desc.required_features)?;
-        if adapter.snapshot.features.baseline_supported == 0
-            || desc.required_features & !adapter.snapshot.features.available != 0
-        {
-            return Err(UNSUPPORTED);
-        }
-        let device = Device::create(adapter, requests, desc.required_features)?;
+        let device = rust::device_create(adapter, requests, desc.required_features)?;
         unsafe {
-            out.write(Box::into_raw(device));
+            out.write(device.as_raw());
         }
         Ok(())
     })
@@ -252,7 +237,12 @@ pub unsafe extern "C" fn ogpu_next_device_query(
     device: *const Device,
     query: *mut Query,
 ) -> Status {
-    boundary(|| unsafe { device.as_ref().ok_or(INVALID)?.snapshot.query(query) })
+    boundary(|| unsafe {
+        rust::device_query(
+            rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+            query,
+        )
+    })
 }
 /// # Safety
 /// Live device and trusted query/output storage; explicit live sampling, not a snapshot query.
@@ -261,7 +251,12 @@ pub unsafe extern "C" fn ogpu_next_memory_budget_query(
     device: *const Device,
     query: *mut Query,
 ) -> Status {
-    boundary(|| unsafe { device.as_ref().ok_or(INVALID)?.memory_budget_query(query) })
+    boundary(|| unsafe {
+        rust::memory_budget_query(
+            rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+            query,
+        )
+    })
 }
 /// # Safety
 /// Device is null or live. Returned queue is borrowed; see include/ogpu_next.h.
@@ -271,17 +266,17 @@ pub unsafe extern "C" fn ogpu_next_device_queue(
     domain: u32,
     index: u32,
 ) -> *mut Queue {
-    unsafe { device.as_ref() }
-        .and_then(|d| d.queue(domain, index))
-        .map_or(ptr::null_mut(), |q| ptr::from_ref(q).cast_mut())
+    unsafe { rust::DeviceHandle::from_raw(device.cast_mut()) }
+        .and_then(|d| unsafe { rust::device_queue(d, domain, index) })
+        .map_or(ptr::null_mut(), |q| q.as_raw())
 }
 /// # Safety
 /// No children/pending operations may remain. Null is allowed. Never waits.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_device_destroy(device: *mut Device) {
-    if !device.is_null() {
+    if let Some(device) = unsafe { rust::DeviceHandle::from_raw(device) } {
         unsafe {
-            drop(Box::from_raw(device));
+            rust::device_destroy(device);
         }
     }
 }
@@ -300,10 +295,10 @@ pub unsafe extern "C" fn ogpu_next_timeline_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let device = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        let timeline = Timeline::create(device, initial)?;
+        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let timeline = unsafe { rust::timeline_create(device, initial)? };
         unsafe {
-            out.write(Box::into_raw(timeline));
+            out.write(timeline.as_raw());
         }
         Ok(())
     })
@@ -312,9 +307,9 @@ pub unsafe extern "C" fn ogpu_next_timeline_create(
 /// No pending operations/access may remain. Null is allowed. Never waits.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_timeline_destroy(timeline: *mut Timeline) {
-    if !timeline.is_null() {
+    if let Some(timeline) = unsafe { rust::TimelineHandle::from_raw(timeline) } {
         unsafe {
-            drop(Box::from_raw(timeline));
+            rust::timeline_destroy(timeline);
         }
     }
 }
@@ -329,8 +324,9 @@ pub unsafe extern "C" fn ogpu_next_timeline_poll(
         return INVALID;
     }
     boundary(|| {
-        let timeline = unsafe { timeline.as_ref() }.ok_or(INVALID)?;
-        let completed = timeline.poll()?;
+        let timeline =
+            unsafe { rust::TimelineHandle::from_raw(timeline.cast_mut()) }.ok_or(INVALID)?;
+        let completed = unsafe { rust::timeline_poll(timeline)? };
         unsafe {
             out.write(completed);
         }
@@ -341,20 +337,23 @@ pub unsafe extern "C" fn ogpu_next_timeline_poll(
 /// Point's timeline and device remain live through the wait; see include/ogpu_next.h.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_timeline_wait(point: Point, timeout_ns: u64) -> Status {
-    boundary(|| {
-        unsafe { point.timeline.as_ref() }
-            .ok_or(INVALID)?
-            .wait(point.value, timeout_ns)
+    boundary(|| unsafe {
+        rust::timeline_wait(
+            rust::TimelineHandle::from_raw(point.timeline).ok_or(INVALID)?,
+            point.value,
+            timeout_ns,
+        )
     })
 }
 /// # Safety
 /// Caller orders monotonic values against all host/GPU signals; see include/ogpu_next.h.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_timeline_signal_host(point: Point) -> Status {
-    boundary(|| {
-        unsafe { point.timeline.as_ref() }
-            .ok_or(INVALID)?
-            .signal(point.value)
+    boundary(|| unsafe {
+        rust::timeline_signal(
+            rust::TimelineHandle::from_raw(point.timeline).ok_or(INVALID)?,
+            point.value,
+        )
     })
 }
 

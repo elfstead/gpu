@@ -13,8 +13,9 @@ two permanent runtimes. Earlier source-only receipts below describe their checkp
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and
-explicit remaining gaps. The 2026-10-15 plan schedules [P1 presentation](presentation-plan.md)
-before M6; neither implementation has started. Dated record sizes/test counts
+explicit remaining gaps. The 2026-10-15 plan schedules [P1 native Rust and presentation](presentation-plan.md)
+before M6. The first native Rust resource/transfer tranche is implemented;
+presentation and M6 have not started. Dated record sizes/test counts
 and “source-only” language below describe their development checkpoints; the public
 header and default SDK own today's exact layouts, not those historical values.
 

@@ -1,0 +1,11 @@
+[package]
+name = "ogpu-native-rust-consumer"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Deliberately independent of the repository workspace and its dev dependencies.
+[workspace]
+
+[dependencies]
+ogpu = { path = "../../crates/ogpu", default-features = false }

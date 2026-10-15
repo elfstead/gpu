@@ -8,6 +8,8 @@ The [whole-API design](docs/whole-api-design.md) describes the foundation and it
 To use the runtime from your own application, see the [Linux quickstart](docs/quickstart.md).
 The default SDK exposes the [experimental foundation interface](docs/foundation-quickstart.md);
 ABI20 packaging requires explicit legacy selection.
+The [native Rust consumer](examples/foundation_rust/README.md) demonstrates the
+first extracted Rust resource/transfer interface below the C ABI.
 See the [support matrix](docs/support.md) and [upgrade policy](docs/release-policy.md)
 for the experimental compatibility boundary.
 For a reproducible starting point, see the [experimental source/SDK checkpoint](docs/release-checkpoint.md).

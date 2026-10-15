@@ -2,6 +2,10 @@
 
 The foundation is a mutable, revision-pinned low-level contract, **not** ABI 20 or
 a stabilized replacement for it. The normal installer now selects foundation.
+For native Rust use, the [standalone Cargo consumer](../examples/foundation_rust/README.md)
+demonstrates the first extracted resource/transfer interface below the C ABI.
+It uses a source dependency, not the C SDK installer; broader Rust surface
+extraction is still in progress. The installation instructions below are for C.
 To export the implemented `ogpu_next_*` surface and public-only
 source examples, build a new installation from your selected commit:
 

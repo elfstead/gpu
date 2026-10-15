@@ -81,6 +81,14 @@ wrappers may offer a narrower safe subset, but mandatory ownership tracking,
 deferred deletion and wait-on-drop are not restored in the core. No general safe
 Rust wrapper or portable device-loss recovery protocol is implemented yet.
 
+P1 is extracting a first-class native Rust interface below the C adapters, not a
+Rust wrapper that calls C. `foundation::rust` currently covers discovery, device,
+memory, timeline, arena and transfer/submission operations; broader extraction is
+in progress. Typed handles carry no implicit ownership or drop behavior. Rust
+returns Results and propagates panics; the C boundary adapts outputs/status and
+contains panics. Both use the same operation validation and recording-error state.
+See the [native Rust consumer](../examples/foundation_rust/README.md).
+
 ## Implemented scope and evidence
 
 Linux foundation implements explicit resource/command ownership, compute,

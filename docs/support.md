@@ -15,6 +15,7 @@ all hardware that might work.
 | Executables/numerics | SPIR-V preparation/caches, explicit feature/local/shared/subgroup requirements, scalar/atomic/dot and queried matrix profiles | All optional hardware execution, dynamic shared launch, portable pipeline binaries or runtime reflection |
 | Compiler and consumers | Pinned generated Slang interfaces; M4 native-matched scene; M5 transformer/Q8_0; bounded GGML/libplacebo and learned-image | General LLM/training, arbitrary Slang, general safe Rust wrapper, tuned GEMM or universal native-performance parity |
 | Distribution | Revision-pinned local-build SDK; six small examples plus separately pinned upstream adapters | Stable ABI, portable binary bundle, clean-machine coverage or actual third-party adoption |
+| Native Rust | First shared-core resource/transfer/submission tranche and standalone Cargo consumer; C delegates to the same operations | Complete Rust surface, fully safe wrapper, crates.io release or stable Rust API |
 | Metal | Existing legacy Metal 4 compute only; M6 entry handoff prepared | Any foundation or mixed-workload native Metal acceptance |
 
 Foundation uses the modern Vulkan/address/descriptor baseline and explicit optional

@@ -157,10 +157,10 @@ pub unsafe extern "C" fn ogpu_next_arena_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        let arena = Arena::create(d, unsafe { description(desc, ARENA_DESC)? })?;
+        let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let arena = unsafe { rust::arena_create(d, description(desc, ARENA_DESC)?)? };
         unsafe {
-            out.write(Box::into_raw(arena));
+            out.write(arena.as_raw());
         }
         Ok(())
     })
@@ -169,27 +169,31 @@ pub unsafe extern "C" fn ogpu_next_arena_create(
 /// Exclusive arena/pool host access; existing slot handles remain borrowed.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_arena_reserve(arena: *mut Arena, count: u32) -> Status {
-    boundary(|| unsafe { arena.as_mut() }.ok_or(INVALID)?.reserve(count))
+    boundary(|| unsafe {
+        rust::arena_reserve(rust::ArenaHandle::from_raw(arena).ok_or(INVALID)?, count)
+    })
 }
 /// # Safety
 /// No pending use; excludes every list/encoder/pool access. Invalidates all handles.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_arena_reset(arena: *mut Arena) -> Status {
-    boundary(|| unsafe { arena.as_mut() }.ok_or(INVALID)?.reset(false))
+    boundary(|| unsafe { rust::arena_reset(rust::ArenaHandle::from_raw(arena).ok_or(INVALID)?) })
 }
 /// # Safety
 /// Same exclusion/lifetime requirements as reset.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_arena_trim(arena: *mut Arena, count: u32) -> Status {
-    boundary(|| unsafe { arena.as_mut() }.ok_or(INVALID)?.trim(count))
+    boundary(|| unsafe {
+        rust::arena_trim(rust::ArenaHandle::from_raw(arena).ok_or(INVALID)?, count)
+    })
 }
 /// # Safety
 /// No pending or host uses; live parent device. NULL permitted. Never waits.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_arena_destroy(arena: *mut Arena) {
-    if !arena.is_null() {
+    if let Some(arena) = unsafe { rust::ArenaHandle::from_raw(arena) } {
         unsafe {
-            drop(Box::from_raw(arena));
+            rust::arena_destroy(arena);
         }
     }
 }
@@ -208,10 +212,10 @@ pub unsafe extern "C" fn ogpu_next_commands_begin(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let arena = unsafe { arena.as_mut() }.ok_or(INVALID)?;
-        let encoder = arena.begin(unsafe { description(desc, RECORDING_DESC)? })?;
+        let arena = unsafe { rust::ArenaHandle::from_raw(arena) }.ok_or(INVALID)?;
+        let encoder = unsafe { rust::commands_begin(arena, description(desc, RECORDING_DESC)?)? };
         unsafe {
-            out.write(encoder);
+            out.write(encoder.as_raw());
         }
         Ok(())
     })
@@ -227,9 +231,10 @@ pub unsafe extern "C" fn ogpu_next_commands_end(encoder: *mut List, out: *mut *m
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        unsafe { encoder.as_ref() }.ok_or(INVALID)?.end()?;
+        let encoder =
+            unsafe { rust::commands_end(rust::ListHandle::from_raw(encoder).ok_or(INVALID)?)? };
         unsafe {
-            out.write(encoder);
+            out.write(encoder.as_raw());
         }
         Ok(())
     })
@@ -238,8 +243,10 @@ pub unsafe extern "C" fn ogpu_next_commands_end(encoder: *mut List, out: *mut *m
 /// Live recording slot, exclusive pool access. NULL permitted.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_commands_cancel(encoder: *mut List) {
-    if let Some(encoder) = unsafe { encoder.as_ref() } {
-        encoder.cancel();
+    if let Some(encoder) = unsafe { rust::ListHandle::from_raw(encoder) } {
+        unsafe {
+            rust::commands_cancel(encoder);
+        }
     }
 }
 /// # Safety
@@ -255,7 +262,7 @@ pub unsafe extern "C" fn ogpu_next_submit_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let requirements = native::submit_scratch(lists, waits, signals)?;
+        let requirements = rust::submit_scratch_requirements(lists, waits, signals)?;
         unsafe {
             out.write(requirements);
         }
@@ -274,7 +281,7 @@ pub unsafe extern "C" fn ogpu_next_barrier_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let requirements = native::barrier_scratch(memory_count, image_count)?;
+        let requirements = rust::barrier_scratch_requirements(memory_count, image_count)?;
         unsafe {
             out.write(requirements);
         }
@@ -289,8 +296,8 @@ pub unsafe extern "C" fn ogpu_next_queue_submit(
     desc: *const SubmitDesc,
 ) -> Status {
     boundary(|| {
-        let queue = unsafe { queue.as_ref() }.ok_or(INVALID)?;
-        unsafe { queue.submit(description(desc, SUBMIT_DESC)?) }
+        let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
+        unsafe { rust::queue_submit_record(queue, description(desc, SUBMIT_DESC)?) }
     })
 }
 /// # Safety
@@ -376,9 +383,19 @@ pub unsafe extern "C" fn ogpu_next_execute_lists(
         encode(encoder, |e| e.execute(count, lists, scratch));
     }
 }
-unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>) {
-    if let Some(encoder) = unsafe { encoder.as_ref() } {
-        encoder.poison(boundary(|| f(encoder)));
+pub(super) unsafe fn encode(encoder: *mut List, f: impl FnOnce(&List) -> Result<(), Status>) {
+    unsafe {
+        native_encode(encoder, |handle| rust::encode(handle, f));
+    }
+}
+unsafe fn native_encode(encoder: *mut List, f: impl FnOnce(rust::ListHandle)) {
+    if let Some(handle) = unsafe { rust::ListHandle::from_raw(encoder) } {
+        // The native encoder poisons on errors/unwind; C additionally contains
+        // panics. No duplicate poison bookkeeping or C call on the Rust path.
+        let _ = boundary(|| {
+            f(handle);
+            Ok(())
+        });
     }
 }
 /// # Safety
@@ -681,7 +698,7 @@ pub unsafe extern "C" fn ogpu_next_dispatch_indirect(
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_copy_memory(encoder: *mut List, dst: Span, src: Span) {
     unsafe {
-        encode(encoder, |e| e.copy(dst, src));
+        native_encode(encoder, |handle| rust::copy_memory(handle, dst, src));
     }
 }
 /// # Safety
@@ -689,7 +706,7 @@ pub unsafe extern "C" fn ogpu_next_copy_memory(encoder: *mut List, dst: Span, sr
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_fill_memory(encoder: *mut List, dst: Span, pattern: u32) {
     unsafe {
-        encode(encoder, |e| e.fill(dst, pattern));
+        native_encode(encoder, |handle| rust::fill_memory(handle, dst, pattern));
     }
 }
 /// # Safety
@@ -697,6 +714,7 @@ pub unsafe extern "C" fn ogpu_next_fill_memory(encoder: *mut List, dst: Span, pa
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_barrier(encoder: *mut List, dep: *const Dependency) {
     unsafe {
+        // Decode the C record inside shared recording error handling.
         encode(encoder, |e| e.barrier(description(dep, DEPENDENCY)?));
     }
 }
