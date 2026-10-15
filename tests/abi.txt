@@ -156,6 +156,17 @@ const VK_ACCESS_2_SHADER_WRITE_BIT
 const32 VK_QUEUE_FAMILY_IGNORED
 vk VkPhysicalDeviceMemoryProperties2 sType pNext memoryProperties
 vk VkPhysicalDeviceMemoryBudgetPropertiesEXT sType pNext heapBudget heapUsage
+# P1 optional Wayland/presentation native ABI, not implemented public WSI support.
+vk VkWaylandSurfaceCreateInfoKHR sType pNext flags display surface
+vk VkPhysicalDeviceSurfaceInfo2KHR sType pNext surface
+vk VkSurfaceCapabilities2KHR sType pNext surfaceCapabilities
+vk VkSurfaceFormat2KHR sType pNext surfaceFormat
+vk VkSwapchainCreateInfoKHR sType pNext flags surface minImageCount imageFormat imageColorSpace imageExtent imageArrayLayers imageUsage imageSharingMode queueFamilyIndexCount pQueueFamilyIndices preTransform compositeAlpha presentMode clipped oldSwapchain
+vk VkPresentInfoKHR sType pNext waitSemaphoreCount pWaitSemaphores swapchainCount pSwapchains pImageIndices pResults
+vk VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR sType pNext swapchainMaintenance1
+vk VkSwapchainPresentFenceInfoKHR sType pNext swapchainCount pFences
+vk VkReleaseSwapchainImagesInfoKHR sType pNext swapchain imageIndexCount pImageIndices
+vk VkFenceCreateInfo sType pNext flags
 api OgpuIndirectRange buffer offset stride_bytes max_draw_count count_buffer count_offset
 vk VkPhysicalDeviceShaderDrawParametersFeatures sType pNext shaderDrawParameters
 vk VkDrawIndirectCount2InfoKHR sType pNext addressRange addressFlags countAddressRange countAddressFlags maxDrawCount

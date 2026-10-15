@@ -36,6 +36,12 @@ No runtime performance measurement, new hardware or presentation support is clai
 
 ## Contract and implementation batch
 
+The [native presentation mapping](presentation-contract.md) selects Wayland with
+external GLFW window/input handling and the KHR swapchain-maintenance profile.
+Local Radeon extension/feature discovery is confirmed; surface/window execution
+is not. Generated WSI declarations reproduce and pass C/Rust ABI comparison;
+opt-in setup, exact public records and native retirement paths remain to implement.
+
 ### Opening step: first-class native Rust, then presentation
 
 Extract a public native Rust interface implementing the same foundation contract

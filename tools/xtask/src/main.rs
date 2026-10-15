@@ -51,9 +51,11 @@ fn check_headers(root: &Path) -> Result {
 fn bindings(root: &Path, check: bool) -> Result {
     check_headers(root)?;
     let mut builder = bindgen::Builder::default()
-        .header(
-            root.join("vendor/Vulkan-Headers/include/vulkan/vulkan_core.h")
-                .to_string_lossy(),
+        // Wayland header uses only opaque wl_display/wl_surface declarations;
+        // generating WSI ABI does not introduce a libwayland build/runtime link.
+        .header_contents(
+            "ogpu-vulkan.h",
+            "#include <vulkan/vulkan_core.h>\n#include <vulkan/vulkan_wayland.h>\n",
         )
         .clang_arg(format!(
             "-I{}",
@@ -116,7 +118,7 @@ fn abi(root: &Path) -> Result {
     let target = root.join("target");
     let scratch = target.join("abi");
     fs::create_dir_all(&scratch)?;
-    let mut c = String::from("#include <stddef.h>\n#include <stdio.h>\n#include <vulkan/vulkan_core.h>\n#include \"ogpu.h\"\nint main(void) {\n");
+    let mut c = String::from("#include <stddef.h>\n#include <stdio.h>\n#include <vulkan/vulkan_core.h>\n#include <vulkan/vulkan_wayland.h>\n#include \"ogpu.h\"\nint main(void) {\n");
     let mut rust = String::from("fn main() {\n");
     for line in fs::read_to_string(root.join("tests/abi.txt"))?.lines() {
         if line.is_empty() || line.starts_with('#') {

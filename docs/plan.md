@@ -63,6 +63,13 @@ use versioned records/raw nested pointers; no fully safe wrapper or generated Ru
 shader layout coverage is claimed. No C ABI revision is changed. Next: P1's native
 presentation mapping and selected Linux window path, exposed through both APIs.
 
+The [P1 mapping](presentation-contract.md) now selects Wayland/external GLFW and
+KHR swapchain maintenance with distinct render/presentation retirement. Local
+Radeon supports the queried extension/feature baseline; no window or swapchain
+execution is accepted yet. Generated WSI declarations reproduce and pass C/Rust
+ABI comparison (1,009 layout values); optional setup, public records and runtime
+implementation remain next.
+
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
 consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on
 both drivers, full public-C foundation fixture on Radeon, and strict Clippy.

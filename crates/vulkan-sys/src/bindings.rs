@@ -2705,6 +2705,10 @@ pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_NONE_KHR: VkImageAspectFlagBits 
 pub const VkImageAspectFlagBits_VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM: VkImageAspectFlagBits = 2147483647;
 pub type VkImageAspectFlagBits = ::std::os::raw::c_uint;
 pub type VkImageAspectFlags = VkFlags;
+pub const VkFenceCreateFlagBits_VK_FENCE_CREATE_SIGNALED_BIT: VkFenceCreateFlagBits = 1;
+pub const VkFenceCreateFlagBits_VK_FENCE_CREATE_FLAG_BITS_MAX_ENUM: VkFenceCreateFlagBits = 2147483647;
+pub type VkFenceCreateFlagBits = ::std::os::raw::c_uint;
+pub type VkFenceCreateFlags = VkFlags;
 pub type VkSemaphoreCreateFlags = VkFlags;
 pub type VkQueryPoolCreateFlags = VkFlags;
 pub type VkQueryPipelineStatisticFlags = VkFlags;
@@ -4381,6 +4385,38 @@ const _: () = {
         "Offset of field: VkMemoryRequirements::memoryTypeBits",
     ][::std::mem::offset_of!(VkMemoryRequirements, memoryTypeBits) - 16usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkFenceCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkFenceCreateFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkFenceCreateInfo"][::std::mem::size_of::<VkFenceCreateInfo>() - 24usize];
+    [
+        "Alignment of VkFenceCreateInfo",
+    ][::std::mem::align_of::<VkFenceCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkFenceCreateInfo::sType",
+    ][::std::mem::offset_of!(VkFenceCreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkFenceCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkFenceCreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkFenceCreateInfo::flags",
+    ][::std::mem::offset_of!(VkFenceCreateInfo, flags) - 16usize];
+};
+impl Default for VkFenceCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkSemaphoreCreateInfo {
@@ -6347,6 +6383,13 @@ pub type PFN_vkCreateDevice = ::std::option::Option<
 pub type PFN_vkDestroyDevice = ::std::option::Option<
     unsafe extern "C" fn(device: VkDevice, pAllocator: *const VkAllocationCallbacks),
 >;
+pub type PFN_vkEnumerateInstanceExtensionProperties = ::std::option::Option<
+    unsafe extern "C" fn(
+        pLayerName: *const ::std::os::raw::c_char,
+        pPropertyCount: *mut u32,
+        pProperties: *mut VkExtensionProperties,
+    ) -> VkResult,
+>;
 pub type PFN_vkEnumerateDeviceExtensionProperties = ::std::option::Option<
     unsafe extern "C" fn(
         physicalDevice: VkPhysicalDevice,
@@ -6437,6 +6480,40 @@ pub type PFN_vkGetImageMemoryRequirements = ::std::option::Option<
         image: VkImage,
         pMemoryRequirements: *mut VkMemoryRequirements,
     ),
+>;
+pub type PFN_vkCreateFence = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkFenceCreateInfo,
+        pAllocator: *const VkAllocationCallbacks,
+        pFence: *mut VkFence,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyFence = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        fence: VkFence,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkResetFences = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        fenceCount: u32,
+        pFences: *const VkFence,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetFenceStatus = ::std::option::Option<
+    unsafe extern "C" fn(device: VkDevice, fence: VkFence) -> VkResult,
+>;
+pub type PFN_vkWaitForFences = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        fenceCount: u32,
+        pFences: *const VkFence,
+        waitAll: VkBool32,
+        timeout: u64,
+    ) -> VkResult,
 >;
 pub type PFN_vkCreateSemaphore = ::std::option::Option<
     unsafe extern "C" fn(
@@ -10465,6 +10542,495 @@ impl Default for VkPipelineCreateFlags2CreateInfo {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkSurfaceKHR_T {
+    _unused: [u8; 0],
+}
+pub type VkSurfaceKHR = *mut VkSurfaceKHR_T;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_IMMEDIATE_KHR: VkPresentModeKHR = 0;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_MAILBOX_KHR: VkPresentModeKHR = 1;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_FIFO_KHR: VkPresentModeKHR = 2;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_FIFO_RELAXED_KHR: VkPresentModeKHR = 3;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR: VkPresentModeKHR = 1000111000;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR: VkPresentModeKHR = 1000111001;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_FIFO_LATEST_READY_KHR: VkPresentModeKHR = 1000361000;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_FIFO_LATEST_READY_EXT: VkPresentModeKHR = 1000361000;
+pub const VkPresentModeKHR_VK_PRESENT_MODE_MAX_ENUM_KHR: VkPresentModeKHR = 2147483647;
+pub type VkPresentModeKHR = ::std::os::raw::c_uint;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: VkColorSpaceKHR = 0;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT: VkColorSpaceKHR = 1000104001;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT: VkColorSpaceKHR = 1000104002;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT: VkColorSpaceKHR = 1000104003;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT: VkColorSpaceKHR = 1000104004;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_BT709_LINEAR_EXT: VkColorSpaceKHR = 1000104005;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_BT709_NONLINEAR_EXT: VkColorSpaceKHR = 1000104006;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_BT2020_LINEAR_EXT: VkColorSpaceKHR = 1000104007;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_HDR10_ST2084_EXT: VkColorSpaceKHR = 1000104008;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_DOLBYVISION_EXT: VkColorSpaceKHR = 1000104009;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_HDR10_HLG_EXT: VkColorSpaceKHR = 1000104010;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_ADOBERGB_LINEAR_EXT: VkColorSpaceKHR = 1000104011;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT: VkColorSpaceKHR = 1000104012;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_PASS_THROUGH_EXT: VkColorSpaceKHR = 1000104013;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT: VkColorSpaceKHR = 1000104014;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_DISPLAY_NATIVE_AMD: VkColorSpaceKHR = 1000213000;
+pub const VkColorSpaceKHR_VK_COLORSPACE_SRGB_NONLINEAR_KHR: VkColorSpaceKHR = 0;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_DCI_P3_LINEAR_EXT: VkColorSpaceKHR = 1000104003;
+pub const VkColorSpaceKHR_VK_COLOR_SPACE_MAX_ENUM_KHR: VkColorSpaceKHR = 2147483647;
+pub type VkColorSpaceKHR = ::std::os::raw::c_uint;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 1;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 2;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 4;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 8;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 16;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 32;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 64;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 128;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_INHERIT_BIT_KHR: VkSurfaceTransformFlagBitsKHR = 256;
+pub const VkSurfaceTransformFlagBitsKHR_VK_SURFACE_TRANSFORM_FLAG_BITS_MAX_ENUM_KHR: VkSurfaceTransformFlagBitsKHR = 2147483647;
+pub type VkSurfaceTransformFlagBitsKHR = ::std::os::raw::c_uint;
+pub type VkSurfaceTransformFlagsKHR = VkFlags;
+pub const VkCompositeAlphaFlagBitsKHR_VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR: VkCompositeAlphaFlagBitsKHR = 1;
+pub const VkCompositeAlphaFlagBitsKHR_VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR: VkCompositeAlphaFlagBitsKHR = 2;
+pub const VkCompositeAlphaFlagBitsKHR_VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR: VkCompositeAlphaFlagBitsKHR = 4;
+pub const VkCompositeAlphaFlagBitsKHR_VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR: VkCompositeAlphaFlagBitsKHR = 8;
+pub const VkCompositeAlphaFlagBitsKHR_VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR: VkCompositeAlphaFlagBitsKHR = 2147483647;
+pub type VkCompositeAlphaFlagBitsKHR = ::std::os::raw::c_uint;
+pub type VkCompositeAlphaFlagsKHR = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfaceCapabilitiesKHR {
+    pub minImageCount: u32,
+    pub maxImageCount: u32,
+    pub currentExtent: VkExtent2D,
+    pub minImageExtent: VkExtent2D,
+    pub maxImageExtent: VkExtent2D,
+    pub maxImageArrayLayers: u32,
+    pub supportedTransforms: VkSurfaceTransformFlagsKHR,
+    pub currentTransform: VkSurfaceTransformFlagBitsKHR,
+    pub supportedCompositeAlpha: VkCompositeAlphaFlagsKHR,
+    pub supportedUsageFlags: VkImageUsageFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSurfaceCapabilitiesKHR",
+    ][::std::mem::size_of::<VkSurfaceCapabilitiesKHR>() - 52usize];
+    [
+        "Alignment of VkSurfaceCapabilitiesKHR",
+    ][::std::mem::align_of::<VkSurfaceCapabilitiesKHR>() - 4usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::minImageCount",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, minImageCount) - 0usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::maxImageCount",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, maxImageCount) - 4usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::currentExtent",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, currentExtent) - 8usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::minImageExtent",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, minImageExtent) - 16usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::maxImageExtent",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, maxImageExtent) - 24usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::maxImageArrayLayers",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, maxImageArrayLayers) - 32usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::supportedTransforms",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, supportedTransforms) - 36usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::currentTransform",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, currentTransform) - 40usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::supportedCompositeAlpha",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, supportedCompositeAlpha)
+        - 44usize];
+    [
+        "Offset of field: VkSurfaceCapabilitiesKHR::supportedUsageFlags",
+    ][::std::mem::offset_of!(VkSurfaceCapabilitiesKHR, supportedUsageFlags) - 48usize];
+};
+impl Default for VkSurfaceCapabilitiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfaceFormatKHR {
+    pub format: VkFormat,
+    pub colorSpace: VkColorSpaceKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkSurfaceFormatKHR"][::std::mem::size_of::<VkSurfaceFormatKHR>() - 8usize];
+    [
+        "Alignment of VkSurfaceFormatKHR",
+    ][::std::mem::align_of::<VkSurfaceFormatKHR>() - 4usize];
+    [
+        "Offset of field: VkSurfaceFormatKHR::format",
+    ][::std::mem::offset_of!(VkSurfaceFormatKHR, format) - 0usize];
+    [
+        "Offset of field: VkSurfaceFormatKHR::colorSpace",
+    ][::std::mem::offset_of!(VkSurfaceFormatKHR, colorSpace) - 4usize];
+};
+impl Default for VkSurfaceFormatKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkDestroySurfaceKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        instance: VkInstance,
+        surface: VkSurfaceKHR,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkGetPhysicalDeviceSurfaceSupportKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        queueFamilyIndex: u32,
+        surface: VkSurfaceKHR,
+        pSupported: *mut VkBool32,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetPhysicalDeviceSurfacePresentModesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        surface: VkSurfaceKHR,
+        pPresentModeCount: *mut u32,
+        pPresentModes: *mut VkPresentModeKHR,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSwapchainKHR_T {
+    _unused: [u8; 0],
+}
+pub type VkSwapchainKHR = *mut VkSwapchainKHR_T;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR: VkSwapchainCreateFlagBitsKHR = 1;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_PROTECTED_BIT_KHR: VkSwapchainCreateFlagBitsKHR = 2;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_MUTABLE_FORMAT_BIT_KHR: VkSwapchainCreateFlagBitsKHR = 4;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_PRESENT_TIMING_BIT_EXT: VkSwapchainCreateFlagBitsKHR = 512;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_PRESENT_ID_2_BIT_KHR: VkSwapchainCreateFlagBitsKHR = 64;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_PRESENT_WAIT_2_BIT_KHR: VkSwapchainCreateFlagBitsKHR = 128;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_KHR: VkSwapchainCreateFlagBitsKHR = 8;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_BIT_EXT: VkSwapchainCreateFlagBitsKHR = 256;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_DEFERRED_MEMORY_ALLOCATION_BIT_EXT: VkSwapchainCreateFlagBitsKHR = 8;
+pub const VkSwapchainCreateFlagBitsKHR_VK_SWAPCHAIN_CREATE_FLAG_BITS_MAX_ENUM_KHR: VkSwapchainCreateFlagBitsKHR = 2147483647;
+pub type VkSwapchainCreateFlagBitsKHR = ::std::os::raw::c_uint;
+pub type VkSwapchainCreateFlagsKHR = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSwapchainCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkSwapchainCreateFlagsKHR,
+    pub surface: VkSurfaceKHR,
+    pub minImageCount: u32,
+    pub imageFormat: VkFormat,
+    pub imageColorSpace: VkColorSpaceKHR,
+    pub imageExtent: VkExtent2D,
+    pub imageArrayLayers: u32,
+    pub imageUsage: VkImageUsageFlags,
+    pub imageSharingMode: VkSharingMode,
+    pub queueFamilyIndexCount: u32,
+    pub pQueueFamilyIndices: *const u32,
+    pub preTransform: VkSurfaceTransformFlagBitsKHR,
+    pub compositeAlpha: VkCompositeAlphaFlagBitsKHR,
+    pub presentMode: VkPresentModeKHR,
+    pub clipped: VkBool32,
+    pub oldSwapchain: VkSwapchainKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSwapchainCreateInfoKHR",
+    ][::std::mem::size_of::<VkSwapchainCreateInfoKHR>() - 104usize];
+    [
+        "Alignment of VkSwapchainCreateInfoKHR",
+    ][::std::mem::align_of::<VkSwapchainCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::flags",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, flags) - 16usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::surface",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, surface) - 24usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::minImageCount",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, minImageCount) - 32usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::imageFormat",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, imageFormat) - 36usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::imageColorSpace",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, imageColorSpace) - 40usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::imageExtent",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, imageExtent) - 44usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::imageArrayLayers",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, imageArrayLayers) - 52usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::imageUsage",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, imageUsage) - 56usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::imageSharingMode",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, imageSharingMode) - 60usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::queueFamilyIndexCount",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, queueFamilyIndexCount) - 64usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::pQueueFamilyIndices",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, pQueueFamilyIndices) - 72usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::preTransform",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, preTransform) - 80usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::compositeAlpha",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, compositeAlpha) - 84usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::presentMode",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, presentMode) - 88usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::clipped",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, clipped) - 92usize];
+    [
+        "Offset of field: VkSwapchainCreateInfoKHR::oldSwapchain",
+    ][::std::mem::offset_of!(VkSwapchainCreateInfoKHR, oldSwapchain) - 96usize];
+};
+impl Default for VkSwapchainCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPresentInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub waitSemaphoreCount: u32,
+    pub pWaitSemaphores: *const VkSemaphore,
+    pub swapchainCount: u32,
+    pub pSwapchains: *const VkSwapchainKHR,
+    pub pImageIndices: *const u32,
+    pub pResults: *mut VkResult,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of VkPresentInfoKHR"][::std::mem::size_of::<VkPresentInfoKHR>() - 64usize];
+    [
+        "Alignment of VkPresentInfoKHR",
+    ][::std::mem::align_of::<VkPresentInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkPresentInfoKHR::sType",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkPresentInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPresentInfoKHR::waitSemaphoreCount",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, waitSemaphoreCount) - 16usize];
+    [
+        "Offset of field: VkPresentInfoKHR::pWaitSemaphores",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, pWaitSemaphores) - 24usize];
+    [
+        "Offset of field: VkPresentInfoKHR::swapchainCount",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, swapchainCount) - 32usize];
+    [
+        "Offset of field: VkPresentInfoKHR::pSwapchains",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, pSwapchains) - 40usize];
+    [
+        "Offset of field: VkPresentInfoKHR::pImageIndices",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, pImageIndices) - 48usize];
+    [
+        "Offset of field: VkPresentInfoKHR::pResults",
+    ][::std::mem::offset_of!(VkPresentInfoKHR, pResults) - 56usize];
+};
+impl Default for VkPresentInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCreateSwapchainKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkSwapchainCreateInfoKHR,
+        pAllocator: *const VkAllocationCallbacks,
+        pSwapchain: *mut VkSwapchainKHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroySwapchainKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        swapchain: VkSwapchainKHR,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkGetSwapchainImagesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        swapchain: VkSwapchainKHR,
+        pSwapchainImageCount: *mut u32,
+        pSwapchainImages: *mut VkImage,
+    ) -> VkResult,
+>;
+pub type PFN_vkAcquireNextImageKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        swapchain: VkSwapchainKHR,
+        timeout: u64,
+        semaphore: VkSemaphore,
+        fence: VkFence,
+        pImageIndex: *mut u32,
+    ) -> VkResult,
+>;
+pub type PFN_vkQueuePresentKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        queue: VkQueue,
+        pPresentInfo: *const VkPresentInfoKHR,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceSurfaceInfo2KHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub surface: VkSurfaceKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceSurfaceInfo2KHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceSurfaceInfo2KHR>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceSurfaceInfo2KHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceSurfaceInfo2KHR>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSurfaceInfo2KHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSurfaceInfo2KHR, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceSurfaceInfo2KHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSurfaceInfo2KHR, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSurfaceInfo2KHR::surface",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSurfaceInfo2KHR, surface) - 16usize];
+};
+impl Default for VkPhysicalDeviceSurfaceInfo2KHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfaceCapabilities2KHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub surfaceCapabilities: VkSurfaceCapabilitiesKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSurfaceCapabilities2KHR",
+    ][::std::mem::size_of::<VkSurfaceCapabilities2KHR>() - 72usize];
+    [
+        "Alignment of VkSurfaceCapabilities2KHR",
+    ][::std::mem::align_of::<VkSurfaceCapabilities2KHR>() - 8usize];
+    [
+        "Offset of field: VkSurfaceCapabilities2KHR::sType",
+    ][::std::mem::offset_of!(VkSurfaceCapabilities2KHR, sType) - 0usize];
+    [
+        "Offset of field: VkSurfaceCapabilities2KHR::pNext",
+    ][::std::mem::offset_of!(VkSurfaceCapabilities2KHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSurfaceCapabilities2KHR::surfaceCapabilities",
+    ][::std::mem::offset_of!(VkSurfaceCapabilities2KHR, surfaceCapabilities) - 16usize];
+};
+impl Default for VkSurfaceCapabilities2KHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfaceFormat2KHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub surfaceFormat: VkSurfaceFormatKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSurfaceFormat2KHR",
+    ][::std::mem::size_of::<VkSurfaceFormat2KHR>() - 24usize];
+    [
+        "Alignment of VkSurfaceFormat2KHR",
+    ][::std::mem::align_of::<VkSurfaceFormat2KHR>() - 8usize];
+    [
+        "Offset of field: VkSurfaceFormat2KHR::sType",
+    ][::std::mem::offset_of!(VkSurfaceFormat2KHR, sType) - 0usize];
+    [
+        "Offset of field: VkSurfaceFormat2KHR::pNext",
+    ][::std::mem::offset_of!(VkSurfaceFormat2KHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSurfaceFormat2KHR::surfaceFormat",
+    ][::std::mem::offset_of!(VkSurfaceFormat2KHR, surfaceFormat) - 16usize];
+};
+impl Default for VkSurfaceFormat2KHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pSurfaceInfo: *const VkPhysicalDeviceSurfaceInfo2KHR,
+        pSurfaceCapabilities: *mut VkSurfaceCapabilities2KHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetPhysicalDeviceSurfaceFormats2KHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        pSurfaceInfo: *const VkPhysicalDeviceSurfaceInfo2KHR,
+        pSurfaceFormatCount: *mut u32,
+        pSurfaceFormats: *mut VkSurfaceFormat2KHR,
+    ) -> VkResult,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderBfloat16FeaturesKHR {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -11066,6 +11632,392 @@ impl Default for VkPhysicalDeviceShaderUntypedPointersFeaturesKHR {
         }
     }
 }
+pub type VkPresentScalingFlagsKHR = VkFlags;
+pub type VkPresentGravityFlagsKHR = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfacePresentModeKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub presentMode: VkPresentModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSurfacePresentModeKHR",
+    ][::std::mem::size_of::<VkSurfacePresentModeKHR>() - 24usize];
+    [
+        "Alignment of VkSurfacePresentModeKHR",
+    ][::std::mem::align_of::<VkSurfacePresentModeKHR>() - 8usize];
+    [
+        "Offset of field: VkSurfacePresentModeKHR::sType",
+    ][::std::mem::offset_of!(VkSurfacePresentModeKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSurfacePresentModeKHR::pNext",
+    ][::std::mem::offset_of!(VkSurfacePresentModeKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSurfacePresentModeKHR::presentMode",
+    ][::std::mem::offset_of!(VkSurfacePresentModeKHR, presentMode) - 16usize];
+};
+impl Default for VkSurfacePresentModeKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfacePresentScalingCapabilitiesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub supportedPresentScaling: VkPresentScalingFlagsKHR,
+    pub supportedPresentGravityX: VkPresentGravityFlagsKHR,
+    pub supportedPresentGravityY: VkPresentGravityFlagsKHR,
+    pub minScaledImageExtent: VkExtent2D,
+    pub maxScaledImageExtent: VkExtent2D,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSurfacePresentScalingCapabilitiesKHR",
+    ][::std::mem::size_of::<VkSurfacePresentScalingCapabilitiesKHR>() - 48usize];
+    [
+        "Alignment of VkSurfacePresentScalingCapabilitiesKHR",
+    ][::std::mem::align_of::<VkSurfacePresentScalingCapabilitiesKHR>() - 8usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::sType",
+    ][::std::mem::offset_of!(VkSurfacePresentScalingCapabilitiesKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::pNext",
+    ][::std::mem::offset_of!(VkSurfacePresentScalingCapabilitiesKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::supportedPresentScaling",
+    ][::std::mem::offset_of!(
+        VkSurfacePresentScalingCapabilitiesKHR, supportedPresentScaling
+    ) - 16usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::supportedPresentGravityX",
+    ][::std::mem::offset_of!(
+        VkSurfacePresentScalingCapabilitiesKHR, supportedPresentGravityX
+    ) - 20usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::supportedPresentGravityY",
+    ][::std::mem::offset_of!(
+        VkSurfacePresentScalingCapabilitiesKHR, supportedPresentGravityY
+    ) - 24usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::minScaledImageExtent",
+    ][::std::mem::offset_of!(
+        VkSurfacePresentScalingCapabilitiesKHR, minScaledImageExtent
+    ) - 28usize];
+    [
+        "Offset of field: VkSurfacePresentScalingCapabilitiesKHR::maxScaledImageExtent",
+    ][::std::mem::offset_of!(
+        VkSurfacePresentScalingCapabilitiesKHR, maxScaledImageExtent
+    ) - 36usize];
+};
+impl Default for VkSurfacePresentScalingCapabilitiesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSurfacePresentModeCompatibilityKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub presentModeCount: u32,
+    pub pPresentModes: *mut VkPresentModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSurfacePresentModeCompatibilityKHR",
+    ][::std::mem::size_of::<VkSurfacePresentModeCompatibilityKHR>() - 32usize];
+    [
+        "Alignment of VkSurfacePresentModeCompatibilityKHR",
+    ][::std::mem::align_of::<VkSurfacePresentModeCompatibilityKHR>() - 8usize];
+    [
+        "Offset of field: VkSurfacePresentModeCompatibilityKHR::sType",
+    ][::std::mem::offset_of!(VkSurfacePresentModeCompatibilityKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSurfacePresentModeCompatibilityKHR::pNext",
+    ][::std::mem::offset_of!(VkSurfacePresentModeCompatibilityKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSurfacePresentModeCompatibilityKHR::presentModeCount",
+    ][::std::mem::offset_of!(VkSurfacePresentModeCompatibilityKHR, presentModeCount)
+        - 16usize];
+    [
+        "Offset of field: VkSurfacePresentModeCompatibilityKHR::pPresentModes",
+    ][::std::mem::offset_of!(VkSurfacePresentModeCompatibilityKHR, pPresentModes)
+        - 24usize];
+};
+impl Default for VkSurfacePresentModeCompatibilityKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub swapchainMaintenance1: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR",
+    ][::std::mem::size_of::<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR",
+    ][::std::mem::align_of::<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR::swapchainMaintenance1",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR, swapchainMaintenance1
+    ) - 16usize];
+};
+impl Default for VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSwapchainPresentFenceInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub swapchainCount: u32,
+    pub pFences: *const VkFence,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSwapchainPresentFenceInfoKHR",
+    ][::std::mem::size_of::<VkSwapchainPresentFenceInfoKHR>() - 32usize];
+    [
+        "Alignment of VkSwapchainPresentFenceInfoKHR",
+    ][::std::mem::align_of::<VkSwapchainPresentFenceInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentFenceInfoKHR::sType",
+    ][::std::mem::offset_of!(VkSwapchainPresentFenceInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSwapchainPresentFenceInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkSwapchainPresentFenceInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentFenceInfoKHR::swapchainCount",
+    ][::std::mem::offset_of!(VkSwapchainPresentFenceInfoKHR, swapchainCount) - 16usize];
+    [
+        "Offset of field: VkSwapchainPresentFenceInfoKHR::pFences",
+    ][::std::mem::offset_of!(VkSwapchainPresentFenceInfoKHR, pFences) - 24usize];
+};
+impl Default for VkSwapchainPresentFenceInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSwapchainPresentModesCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub presentModeCount: u32,
+    pub pPresentModes: *const VkPresentModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSwapchainPresentModesCreateInfoKHR",
+    ][::std::mem::size_of::<VkSwapchainPresentModesCreateInfoKHR>() - 32usize];
+    [
+        "Alignment of VkSwapchainPresentModesCreateInfoKHR",
+    ][::std::mem::align_of::<VkSwapchainPresentModesCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentModesCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkSwapchainPresentModesCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSwapchainPresentModesCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkSwapchainPresentModesCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentModesCreateInfoKHR::presentModeCount",
+    ][::std::mem::offset_of!(VkSwapchainPresentModesCreateInfoKHR, presentModeCount)
+        - 16usize];
+    [
+        "Offset of field: VkSwapchainPresentModesCreateInfoKHR::pPresentModes",
+    ][::std::mem::offset_of!(VkSwapchainPresentModesCreateInfoKHR, pPresentModes)
+        - 24usize];
+};
+impl Default for VkSwapchainPresentModesCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSwapchainPresentModeInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub swapchainCount: u32,
+    pub pPresentModes: *const VkPresentModeKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSwapchainPresentModeInfoKHR",
+    ][::std::mem::size_of::<VkSwapchainPresentModeInfoKHR>() - 32usize];
+    [
+        "Alignment of VkSwapchainPresentModeInfoKHR",
+    ][::std::mem::align_of::<VkSwapchainPresentModeInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentModeInfoKHR::sType",
+    ][::std::mem::offset_of!(VkSwapchainPresentModeInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSwapchainPresentModeInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkSwapchainPresentModeInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentModeInfoKHR::swapchainCount",
+    ][::std::mem::offset_of!(VkSwapchainPresentModeInfoKHR, swapchainCount) - 16usize];
+    [
+        "Offset of field: VkSwapchainPresentModeInfoKHR::pPresentModes",
+    ][::std::mem::offset_of!(VkSwapchainPresentModeInfoKHR, pPresentModes) - 24usize];
+};
+impl Default for VkSwapchainPresentModeInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkSwapchainPresentScalingCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub scalingBehavior: VkPresentScalingFlagsKHR,
+    pub presentGravityX: VkPresentGravityFlagsKHR,
+    pub presentGravityY: VkPresentGravityFlagsKHR,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkSwapchainPresentScalingCreateInfoKHR",
+    ][::std::mem::size_of::<VkSwapchainPresentScalingCreateInfoKHR>() - 32usize];
+    [
+        "Alignment of VkSwapchainPresentScalingCreateInfoKHR",
+    ][::std::mem::align_of::<VkSwapchainPresentScalingCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentScalingCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkSwapchainPresentScalingCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkSwapchainPresentScalingCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkSwapchainPresentScalingCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkSwapchainPresentScalingCreateInfoKHR::scalingBehavior",
+    ][::std::mem::offset_of!(VkSwapchainPresentScalingCreateInfoKHR, scalingBehavior)
+        - 16usize];
+    [
+        "Offset of field: VkSwapchainPresentScalingCreateInfoKHR::presentGravityX",
+    ][::std::mem::offset_of!(VkSwapchainPresentScalingCreateInfoKHR, presentGravityX)
+        - 20usize];
+    [
+        "Offset of field: VkSwapchainPresentScalingCreateInfoKHR::presentGravityY",
+    ][::std::mem::offset_of!(VkSwapchainPresentScalingCreateInfoKHR, presentGravityY)
+        - 24usize];
+};
+impl Default for VkSwapchainPresentScalingCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkReleaseSwapchainImagesInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub swapchain: VkSwapchainKHR,
+    pub imageIndexCount: u32,
+    pub pImageIndices: *const u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkReleaseSwapchainImagesInfoKHR",
+    ][::std::mem::size_of::<VkReleaseSwapchainImagesInfoKHR>() - 40usize];
+    [
+        "Alignment of VkReleaseSwapchainImagesInfoKHR",
+    ][::std::mem::align_of::<VkReleaseSwapchainImagesInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkReleaseSwapchainImagesInfoKHR::sType",
+    ][::std::mem::offset_of!(VkReleaseSwapchainImagesInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkReleaseSwapchainImagesInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkReleaseSwapchainImagesInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkReleaseSwapchainImagesInfoKHR::swapchain",
+    ][::std::mem::offset_of!(VkReleaseSwapchainImagesInfoKHR, swapchain) - 16usize];
+    [
+        "Offset of field: VkReleaseSwapchainImagesInfoKHR::imageIndexCount",
+    ][::std::mem::offset_of!(VkReleaseSwapchainImagesInfoKHR, imageIndexCount)
+        - 24usize];
+    [
+        "Offset of field: VkReleaseSwapchainImagesInfoKHR::pImageIndices",
+    ][::std::mem::offset_of!(VkReleaseSwapchainImagesInfoKHR, pImageIndices) - 32usize];
+};
+impl Default for VkReleaseSwapchainImagesInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkReleaseSwapchainImagesKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pReleaseInfo: *const VkReleaseSwapchainImagesInfoKHR,
+    ) -> VkResult,
+>;
 pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT16_KHR: VkComponentTypeKHR = 0;
 pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT32_KHR: VkComponentTypeKHR = 1;
 pub const VkComponentTypeKHR_VK_COMPONENT_TYPE_FLOAT64_KHR: VkComponentTypeKHR = 2;
@@ -12311,4 +13263,72 @@ impl Default for VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT {
             s.assume_init()
         }
     }
+}
+pub type VkWaylandSurfaceCreateFlagsKHR = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkWaylandSurfaceCreateInfoKHR {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkWaylandSurfaceCreateFlagsKHR,
+    pub display: *mut wl_display,
+    pub surface: *mut wl_surface,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkWaylandSurfaceCreateInfoKHR",
+    ][::std::mem::size_of::<VkWaylandSurfaceCreateInfoKHR>() - 40usize];
+    [
+        "Alignment of VkWaylandSurfaceCreateInfoKHR",
+    ][::std::mem::align_of::<VkWaylandSurfaceCreateInfoKHR>() - 8usize];
+    [
+        "Offset of field: VkWaylandSurfaceCreateInfoKHR::sType",
+    ][::std::mem::offset_of!(VkWaylandSurfaceCreateInfoKHR, sType) - 0usize];
+    [
+        "Offset of field: VkWaylandSurfaceCreateInfoKHR::pNext",
+    ][::std::mem::offset_of!(VkWaylandSurfaceCreateInfoKHR, pNext) - 8usize];
+    [
+        "Offset of field: VkWaylandSurfaceCreateInfoKHR::flags",
+    ][::std::mem::offset_of!(VkWaylandSurfaceCreateInfoKHR, flags) - 16usize];
+    [
+        "Offset of field: VkWaylandSurfaceCreateInfoKHR::display",
+    ][::std::mem::offset_of!(VkWaylandSurfaceCreateInfoKHR, display) - 24usize];
+    [
+        "Offset of field: VkWaylandSurfaceCreateInfoKHR::surface",
+    ][::std::mem::offset_of!(VkWaylandSurfaceCreateInfoKHR, surface) - 32usize];
+};
+impl Default for VkWaylandSurfaceCreateInfoKHR {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCreateWaylandSurfaceKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        instance: VkInstance,
+        pCreateInfo: *const VkWaylandSurfaceCreateInfoKHR,
+        pAllocator: *const VkAllocationCallbacks,
+        pSurface: *mut VkSurfaceKHR,
+    ) -> VkResult,
+>;
+pub type PFN_vkGetPhysicalDeviceWaylandPresentationSupportKHR = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        queueFamilyIndex: u32,
+        display: *mut wl_display,
+    ) -> VkBool32,
+>;
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct wl_display {
+    pub _address: u8,
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct wl_surface {
+    pub _address: u8,
 }
