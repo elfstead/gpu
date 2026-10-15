@@ -137,7 +137,14 @@ fn native_surface_covers_current_c_operations() {
         "discovery_adapter",
         "discovery_destroy",
         "timeline_signal_host",
+        // C-only table lookup; compile-check its native operations below.
+        "presentation_api",
     ]);
+    let _ = gpu::discover_presentation;
+    let _ = gpu::presentation_support;
+    let _ = gpu::surface_wayland_create;
+    let _ = gpu::surface_destroy;
+    let _ = gpu::surface_query;
     let header = include_str!("../../../include/ogpu_next.h");
     let declared: BTreeSet<_> = header
         .split("ogpu_next_")
@@ -151,14 +158,42 @@ fn native_surface_covers_current_c_operations() {
         covered, declared,
         "update both host interfaces for a new operation"
     );
+    let presentation_table: BTreeSet<_> = header
+        .split("typedef struct ogpu_next_presentation_functions {")
+        .nth(1)
+        .unwrap()
+        .split("} ogpu_next_presentation_functions;")
+        .next()
+        .unwrap()
+        .split("(*")
+        .skip(1)
+        .map(|tail| tail.split(')').next().unwrap())
+        .collect();
+    assert_eq!(
+        presentation_table,
+        BTreeSet::from([
+            "discovery_create",
+            "adapter_support",
+            "surface_wayland_create",
+            "surface_destroy",
+            "surface_query"
+        ]),
+        "extend native Rust coverage when the optional table grows"
+    );
 }
 
 #[test]
 fn native_operations_do_not_call_c_adapters() {
+    // This application legitimately calls GLFW's C API, but never OGPU's C ABI.
+    assert!(
+        !include_str!("../../../examples/foundation_rust/src/bin/surface.rs")
+            .contains("ogpu_next_")
+    );
     for source in [
         include_str!("../src/foundation/rust.rs"),
         include_str!("../src/foundation/rust/resources.rs"),
         include_str!("../src/foundation/rust/commands.rs"),
+        include_str!("../src/foundation/rust/presentation.rs"),
         include_str!("../../../examples/foundation_rust/src/main.rs"),
         include_str!("../../../examples/foundation_rust/src/extended.rs"),
     ] {

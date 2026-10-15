@@ -145,6 +145,7 @@ dependencies = [
 name = "ogpu-native-rust-consumer"
 version = "0.1.0"
 dependencies = [
+ "libloading",
  "ogpu",
 ]
 

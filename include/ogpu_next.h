@@ -41,7 +41,8 @@ enum {
     OGPU_NEXT_INVALID = -1, OGPU_NEXT_UNSUPPORTED = -2,
     OGPU_NEXT_OUT_OF_MEMORY = -3, OGPU_NEXT_DEVICE_LOST = -4,
     OGPU_NEXT_CAPACITY = -5, OGPU_NEXT_BACKEND_ERROR = -6,
-    OGPU_NEXT_VERSION_MISMATCH = -7, OGPU_NEXT_INTERNAL_ERROR = -8
+    OGPU_NEXT_VERSION_MISMATCH = -7, OGPU_NEXT_INTERNAL_ERROR = -8,
+    OGPU_NEXT_SURFACE_LOST = -9
 };
 typedef uint64_t ogpu_next_address;
 typedef uint64_t ogpu_next_stages;
@@ -1703,6 +1704,89 @@ void ogpu_next_blit_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_i
 void ogpu_next_copy_to_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_span src, const ogpu_next_image_copy *);
 void ogpu_next_copy_from_image(ogpu_next_encoder *, ogpu_next_span dst, ogpu_next_image *src, const ogpu_next_image_copy *);
 void ogpu_next_clear_image(ogpu_next_encoder *, ogpu_next_image *, ogpu_next_image_state, const ogpu_next_subresources *, const ogpu_next_clear_value *);
+
+/* Optional presentation setup (mutable revision 1; no swapchain runtime yet).
+ * Table lookup does not load Vulkan or access a display. Exact version and table
+ * byte size are required; failures preserve the table. Plain discovery_create
+ * stays headless and does not require WSI. The table's discovery_create enables
+ * exactly PRESENTATION_WAYLAND (other selections return UNSUPPORTED), requiring
+ * Vulkan KHR surface/Wayland/get_surface_capabilities2/surface_maintenance1.
+ * This enables no device extension and chooses no queue or window. adapter_support
+ * queries physical-device profile availability without a window, even on a
+ * headless discovery. It may allocate temporary native enumeration storage;
+ * failure leaves its output unchanged. Availability does not enable the instance
+ * or device profile. Use ordinary
+ * discovery_count/adapter/destroy with the resulting owner.
+ *
+ * surface_wayland_create borrows a live wl_display and wl_surface, not the window
+ * or event loop; they must belong together and outlive surface_destroy. The
+ * wl_surface must not already have another Vulkan surface. OGPU owns only the
+ * native GPU surface and retains its instance independently of discovery. All
+ * swapchains must be destroyed before the surface (swapchains not exposed yet).
+ * Serialize surface/native-window lifecycle and obey the window library's thread
+ * rules. Destruction accepts NULL and never waits; create clears its output on
+ * failure. Surfaces may be queried by any adapter in the SAME discovery, not by
+ * a separately created discovery even for the same physical GPU.
+ *
+ * surface_query is explicitly a LIVE COLD-PATH query: unlike immutable adapter
+ * queries it may allocate temporary enumeration storage and retry count changes.
+ * It performs no GPU wait. The usual count/capacity/output-atomicity contract
+ * applies. Capabilities can change immediately; success is not a future guarantee.
+ * Query data schemas: CAPABILITIES->surface_capabilities (one), FORMATS->surface_format,
+ * PRESENT_MODES->uint32_t, QUEUES->surface_queue (all adapter domains).
+ * Unknown queries unsupported.
+ *
+ * This first profile is explicitly Vulkan Wayland: color_space, present-mode,
+ * transform and alpha tokens use VkColorSpaceKHR/VkPresentModeKHR/
+ * VkSurfaceTransformFlagBitsKHR/VkCompositeAlphaFlagBitsKHR numeric values. No
+ * Vulkan headers are needed. SRGB_NONLINEAR=0; present IMMEDIATE=0, MAILBOX=1,
+ * FIFO=2, FIFO_RELAXED=3; transform IDENTITY=1; alpha OPAQUE=1. These are exact
+ * native capability tokens, not promises of Metal equivalents or HDR support.
+ * format is an OGPU format or 0 if not representable; native_format always keeps
+ * the original VkFormat value. No formats are silently removed/substituted.
+ * max_image_count=0 means unbounded; current_extent=UINT32_MAX means caller-sized.
+ * image_usage contains representable OGPU image bits; native_image_usage keeps
+ * all native bits. The selected device profile will require both swapchain and
+ * maintenance; no device enabling operation is exposed in this checkpoint.
+ */
+typedef struct ogpu_next_surface ogpu_next_surface;
+enum {
+    OGPU_NEXT_PRESENTATION_WAYLAND = 1u,
+    OGPU_NEXT_WAYLAND_SURFACE_DESC = 125,
+    OGPU_NEXT_QUERY_SURFACE_CAPABILITIES = 1000,
+    OGPU_NEXT_QUERY_SURFACE_FORMATS = 1001,
+    OGPU_NEXT_QUERY_SURFACE_PRESENT_MODES = 1002,
+    OGPU_NEXT_QUERY_SURFACE_QUEUES = 1003
+};
+typedef struct ogpu_next_wayland_surface_desc {
+    ogpu_next_record header;
+    void *display, *surface;
+} ogpu_next_wayland_surface_desc;
+typedef struct ogpu_next_surface_capabilities {
+    uint32_t min_image_count, max_image_count;
+    uint32_t current_extent[2], min_extent[2], max_extent[2];
+    uint32_t max_layers, supported_transforms, current_transform, supported_alpha;
+    uint64_t image_usage;
+    uint32_t native_image_usage, reserved;
+} ogpu_next_surface_capabilities;
+typedef struct ogpu_next_surface_format {
+    ogpu_next_format format;
+    uint32_t native_format, color_space, reserved;
+} ogpu_next_surface_format;
+typedef struct ogpu_next_surface_queue {
+    uint32_t domain, supported;
+} ogpu_next_surface_queue;
+typedef struct ogpu_next_presentation_support {
+    uint32_t swapchain, swapchain_maintenance;
+} ogpu_next_presentation_support;
+typedef struct ogpu_next_presentation_functions {
+    ogpu_next_status (*discovery_create)(uint32_t platforms, ogpu_next_discovery **);
+    ogpu_next_status (*adapter_support)(const ogpu_next_adapter *, ogpu_next_presentation_support *);
+    ogpu_next_status (*surface_wayland_create)(const ogpu_next_adapter *, const ogpu_next_wayland_surface_desc *, ogpu_next_surface **);
+    void (*surface_destroy)(ogpu_next_surface *);
+    ogpu_next_status (*surface_query)(const ogpu_next_adapter *, const ogpu_next_surface *, ogpu_next_query *);
+} ogpu_next_presentation_functions;
+ogpu_next_status ogpu_next_presentation_api(uint32_t version, uint32_t byte_size, ogpu_next_presentation_functions *);
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,75 @@ pub const CAPACITY: Status = -5;
 pub const BACKEND_ERROR: Status = -6;
 pub const VERSION_MISMATCH: Status = -7;
 pub const INTERNAL_ERROR: Status = -8;
+pub const SURFACE_LOST: Status = -9;
+pub const PRESENTATION_WAYLAND: u32 = 1;
+pub const WAYLAND_SURFACE_DESC: u32 = 125;
+pub const SURFACE_CAPABILITIES: u32 = 1000;
+pub const SURFACE_FORMATS: u32 = 1001;
+pub const SURFACE_PRESENT_MODES: u32 = 1002;
+pub const SURFACE_QUEUES: u32 = 1003;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WaylandSurfaceDesc {
+    pub header: Record,
+    pub display: *mut c_void,
+    pub surface: *mut c_void,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SurfaceCapabilities {
+    pub min_image_count: u32,
+    pub max_image_count: u32,
+    pub current_extent: [u32; 2],
+    pub min_extent: [u32; 2],
+    pub max_extent: [u32; 2],
+    pub max_layers: u32,
+    pub supported_transforms: u32,
+    pub current_transform: u32,
+    pub supported_alpha: u32,
+    pub image_usage: u64,
+    pub native_image_usage: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SurfaceFormat {
+    pub format: u32,
+    pub native_format: u32,
+    pub color_space: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SurfaceQueue {
+    pub domain: u32,
+    pub supported: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct PresentationSupport {
+    pub swapchain: u32,
+    pub swapchain_maintenance: u32,
+}
+/// Optional C function table. Native Rust callers use rust::presentation operations.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PresentationApi {
+    pub discovery_create: Option<unsafe extern "C" fn(u32, *mut *mut Discovery) -> Status>,
+    pub adapter_support:
+        Option<unsafe extern "C" fn(*const Adapter, *mut PresentationSupport) -> Status>,
+    pub surface_wayland_create: Option<
+        unsafe extern "C" fn(
+            *const Adapter,
+            *const WaylandSurfaceDesc,
+            *mut *mut super::Surface,
+        ) -> Status,
+    >,
+    pub surface_destroy: Option<unsafe extern "C" fn(*mut super::Surface)>,
+    pub surface_query:
+        Option<unsafe extern "C" fn(*const Adapter, *const super::Surface, *mut Query) -> Status>,
+}
 // Names shared with ogpu_next.h for native Rust resource/transfer callers.
 pub const MEMORY_HOST_VISIBLE: u32 = 2;
 pub const MEMORY_COHERENT: u32 = 4;

@@ -2,8 +2,9 @@
 
 Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
-before M6 Metal foundation. P1's initial native Rust operation extraction is complete; presentation
-and M6 implementation have not started.**
+before M6 Metal foundation. P1's native Rust operation extraction and opt-in
+Wayland surface setup/query path are implemented; swapchain execution and M6
+implementation have not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -61,14 +62,24 @@ graphics/query/secondary execution relies on existing shared-backend/C tests, no
 independent Rust-consumer acceptance for every operation. Some descriptions still
 use versioned records/raw nested pointers; no fully safe wrapper or generated Rust
 shader layout coverage is claimed. No C ABI revision is changed. Next: P1's native
-presentation mapping and selected Linux window path, exposed through both APIs.
+presentation execution through both APIs.
 
 The [P1 mapping](presentation-contract.md) now selects Wayland/external GLFW and
-KHR swapchain maintenance with distinct render/presentation retirement. Local
-Radeon supports the queried extension/feature baseline; no window or swapchain
-execution is accepted yet. Generated WSI declarations reproduce and pass C/Rust
-ABI comparison (1,009 layout values); optional setup, public records and runtime
-implementation remain next.
+KHR swapchain maintenance with distinct render/presentation retirement. Optional
+instance setup, a versioned C table/native Rust equivalents, borrowed Wayland
+surfaces and live capability/format/mode/queue queries now work. The bounded
+external-GLFW hidden-window probe passes on Radeon and llvmpipe with validation;
+it checks headless rejection, cross-instance rejection and surface lifetime after
+discovery destruction. Native values outside OGPU's current format/usage vocabulary
+remain visible. Headless setup is unchanged. See the
+[setup receipt](results/p1-surface-setup-2026-10-15.md).
+
+Current checks: 52 host unit plus two host surface-coverage tests, 17 headless GPU
+unit tests plus native Rust consumer per driver, the separate Wayland setup probe
+per driver, strict Clippy, 1,043 C/Rust ABI layout values, and the full C fixture on
+Radeon. Next: explicit device enabling, per-present-mode capabilities, borrowed
+swapchain images, binary submission dependencies and present retirement. No
+swapchain, frame presentation, resize/minimize or interactive acceptance yet.
 
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
 consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on

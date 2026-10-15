@@ -1,7 +1,8 @@
 # P1: presentation and an interactive Linux consumer
 
-Scheduled 2026-10-15, before M6. **Native Rust operation extraction implemented;
-presentation is not implemented or natively validated.**
+Scheduled 2026-10-15, before M6. **Native Rust operation extraction and optional
+Wayland surface setup/queries implemented; swapchain execution and interactive
+presentation are not yet implemented or natively validated.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
@@ -38,9 +39,15 @@ No runtime performance measurement, new hardware or presentation support is clai
 
 The [native presentation mapping](presentation-contract.md) selects Wayland with
 external GLFW window/input handling and the KHR swapchain-maintenance profile.
-Local Radeon extension/feature discovery is confirmed; surface/window execution
-is not. Generated WSI declarations reproduce and pass C/Rust ABI comparison;
-opt-in setup, exact public records and native retirement paths remain to implement.
+Opt-in instance setup, a versioned C table/native Rust operations, borrowed Wayland
+surfaces and live capability/format/mode/queue queries now have bounded hidden-window
+acceptance on Radeon and llvmpipe. The external GLFW consumer runs on its process's
+main thread. Headless setup remains independent; query failures preserve output
+and no unsupported format is silently removed. See the
+[setup receipt](results/p1-surface-setup-2026-10-15.md).
+Device enabling, per-present-mode capabilities, swapchains, binary submission
+dependencies and presentation retirement remain next. The table is mutable and
+will grow with implemented operations, not advertise null/unimplemented functions.
 
 ### Opening step: first-class native Rust, then presentation
 

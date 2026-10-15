@@ -75,6 +75,7 @@ pub(crate) struct Instance {
     get: GetProc,
     destroy: Destroy,
     api_version: u32,
+    wayland: bool,
     _library: Library,
 }
 
@@ -95,6 +96,12 @@ impl Drop for Instance {
 }
 
 impl Instance {
+    pub(crate) fn handle(&self) -> vk::VkInstance {
+        self.handle
+    }
+    pub(crate) fn wayland_enabled(&self) -> bool {
+        self.wayland
+    }
     pub(crate) fn supports_extension(
         &self,
         device: vk::VkPhysicalDevice,
@@ -129,6 +136,9 @@ impl Instance {
         })
     }
     pub(crate) fn new() -> Result<Self, Error> {
+        Self::with_wayland(false)
+    }
+    pub(crate) fn with_wayland(wayland: bool) -> Result<Self, Error> {
         // Deliberate developer override. Treat it like any executable/library search path:
         // callers must not accept it from an untrusted party.
         let path =
@@ -186,13 +196,49 @@ impl Instance {
             apiVersion: api_version,
             ..Default::default()
         };
+        let mut names = Vec::new();
+        if wayland {
+            let extensions = command!(
+                get,
+                ptr::null_mut(),
+                "vkEnumerateInstanceExtensionProperties",
+                vk::PFN_vkEnumerateInstanceExtensionProperties
+            );
+            let available = enumerate(
+                "vkEnumerateInstanceExtensionProperties",
+                |count, data| unsafe { extensions(ptr::null(), count, data) },
+            )?;
+            for name in [
+                c"VK_KHR_surface",
+                c"VK_KHR_wayland_surface",
+                c"VK_KHR_get_surface_capabilities2",
+                c"VK_KHR_surface_maintenance1",
+            ] {
+                if !available
+                    .iter()
+                    .any(|e| name_matches(&e.extensionName, name))
+                {
+                    return Err(Error::new(
+                        UNSUPPORTED,
+                        format!("Presentation requires {name:?}"),
+                    ));
+                }
+                names.push(name.as_ptr());
+            }
+        }
         let info = vk::VkInstanceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             pApplicationInfo: &app,
+            enabledExtensionCount: names.len() as u32,
+            ppEnabledExtensionNames: if names.is_empty() {
+                ptr::null()
+            } else {
+                names.as_ptr()
+            },
             ..Default::default()
         };
         let mut handle = ptr::null_mut();
-        // SAFETY: initialized structures and valid lifetimes; no extensions/layers requested.
+        // SAFETY: initialized structures and live names; only advertised extensions requested.
         check("vkCreateInstance", unsafe {
             create(&info, ptr::null(), &mut handle)
         })?;
@@ -201,6 +247,7 @@ impl Instance {
             get,
             destroy,
             api_version,
+            wayland,
             _library: library,
         })
     }

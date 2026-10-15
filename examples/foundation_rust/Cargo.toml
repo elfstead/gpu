@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.85"
 publish = false
+default-run = "ogpu-native-rust-consumer"
 
 # Deliberately independent of the repository workspace and its dev dependencies.
 [workspace]
 
 [dependencies]
+libloading = "=0.8.9"
 ogpu = { path = "../../crates/ogpu", default-features = false }

@@ -118,7 +118,7 @@ fn abi(root: &Path) -> Result {
     let target = root.join("target");
     let scratch = target.join("abi");
     fs::create_dir_all(&scratch)?;
-    let mut c = String::from("#include <stddef.h>\n#include <stdio.h>\n#include <vulkan/vulkan_core.h>\n#include <vulkan/vulkan_wayland.h>\n#include \"ogpu.h\"\nint main(void) {\n");
+    let mut c = String::from("#include <stddef.h>\n#include <stdio.h>\n#include <vulkan/vulkan_core.h>\n#include <vulkan/vulkan_wayland.h>\n#include \"ogpu.h\"\n#include \"ogpu_next.h\"\nint main(void) {\n");
     let mut rust = String::from("fn main() {\n");
     for line in fs::read_to_string(root.join("tests/abi.txt"))?.lines() {
         if line.is_empty() || line.starts_with('#') {
@@ -141,21 +141,28 @@ fn abi(root: &Path) -> Result {
             ));
             continue;
         }
+        let c_name = if namespace == "next" {
+            words.next().ok_or("missing foundation C type")?
+        } else {
+            name
+        };
         let ty = format!(
             "{}::{name}",
             if namespace == "vk" {
                 "ogpu_vulkan_sys"
+            } else if namespace == "next" {
+                "ogpu::foundation::types"
             } else {
                 "ogpu"
             }
         );
         c.push_str(&format!(
-            "printf(\"{name} %zu %zu\\n\", sizeof({name}), _Alignof({name}));\n"
+            "printf(\"{name} %zu %zu\\n\", sizeof({c_name}), _Alignof({c_name}));\n"
         ));
         rust.push_str(&format!("println!(\"{name} {{}} {{}}\", std::mem::size_of::<{ty}>(), std::mem::align_of::<{ty}>());\n"));
         for field in words {
             c.push_str(&format!(
-                "printf(\"{name}.{field} %zu\\n\", offsetof({name}, {field}));\n"
+                "printf(\"{name}.{field} %zu\\n\", offsetof({c_name}, {field}));\n"
             ));
             let rust_field = if field == "type" { "type_" } else { field };
             rust.push_str(&format!(

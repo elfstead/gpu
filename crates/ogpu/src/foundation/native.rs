@@ -35,6 +35,11 @@ pub(super) use commands::{
 pub use commands::{Arena, List, Split};
 #[path = "images.rs"]
 mod images;
+pub(super) fn image_format_id(format: vk::VkFormat) -> u32 {
+    (1..=19)
+        .find(|&id| images::format(id).is_ok_and(|v| v.native == format))
+        .unwrap_or(0)
+}
 pub use images::{Image, View};
 #[path = "descriptors.rs"]
 mod descriptors;

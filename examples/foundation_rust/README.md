@@ -1,7 +1,7 @@
 # Native Rust foundation consumer
 
 This standalone Cargo package uses `ogpu::foundation::rust` directly, below the C
-ABI. It needs the same modern Linux/Vulkan baseline as the foundation SDK, but no
+ABI. The default compute/image executable needs the same modern Linux/Vulkan baseline as the foundation SDK, but no
 C compiler, C bindings, shader compiler or window system. Compute uses the existing
 checked-in `examples/shaders/foundation-compute.comp.spv` artifact (embedded at
 build time), whose source is `foundation-compute.slang` in the same directory.
@@ -41,3 +41,32 @@ Some descriptions use versioned records and raw embedded pointers from
 remain possible follow-ups. This example explicitly asserts its known root layout.
 No fully safe wrapper, extra allocation/retention layer or implicit scheduling is
 promised. It is not yet packaged by the C SDK installer.
+
+## Optional Wayland surface probe
+
+`--bin surface` is a separate, bounded hidden-window probe. It dynamically loads
+external GLFW 3.4, explicitly selects Wayland and borrows its native display/surface.
+GLFW remains an application dependency; OGPU has no GLFW or Wayland-library link.
+Use a trusted GLFW path if it is not on the system loader path:
+
+```sh
+OGPU_GLFW_LIBRARY=/path/to/libglfw.so.3 cargo run \
+  --manifest-path examples/foundation_rust/Cargo.toml --locked --bin surface
+```
+
+This needs a live Wayland session and the optional presentation instance profile
+in [the P1 contract](../../docs/presentation-contract.md). It runs the window
+lifecycle on the process's main thread, checks surface capabilities, exact format/
+color-space and present-mode lists, queue compatibility, swapchain-maintenance
+availability, rejection/output semantics, and instance lifetime after discovery
+destruction. It does **not** create a presentation-enabled device or swapchain,
+render, present, or test interactive behavior. `SURFACE_SETUP_PASS` means only
+surface setup/query acceptance. The ignored integration test launches this
+standalone executable (rather than running GLFW on a Rust test worker):
+
+```sh
+cargo test -p ogpu --no-default-features --test presentation -- --ignored --nocapture
+```
+
+Headless regressions can explicitly select `--lib --test native_rust` when using
+`--ignored`; they still need no window system. The default binary is unchanged.

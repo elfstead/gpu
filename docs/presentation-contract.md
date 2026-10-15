@@ -1,25 +1,39 @@
 # P1 native presentation mapping
 
-Selected 2026-10-15. **Implementation design, not an implemented public contract.**
-The initial native Rust operation extraction is complete; P1 presentation remains
-in progress. This records the next coherent implementation batch and assumptions.
+Selected 2026-10-15. **Partial implementation; swapchain execution remains design.**
+Native Rust extraction and optional Wayland surface setup/queries are implemented.
+The [public header](../include/ogpu_next.h) owns exact implemented records; the
+remaining operation model below is not a claim of working frame presentation.
 
-Prerequisite checkpoint: pinned Vulkan 1.4.357 Wayland/swapchain/fence declarations
-are generated and reproduce exactly; C/Rust ABI checks pass for 1,009 layout
-values, including the added WSI records. Foundation host tests still pass (48 unit
-plus two surface-coverage integration tests). This does not enable WSI extensions
-or implement any public presentation operation. No window has been opened yet.
+Current checkpoint: pinned Vulkan 1.4.357 WSI/fence declarations plus the new public
+setup records pass C/Rust ABI comparison (1,043 layout values). The versioned C
+table and native Rust operations enable the optional instance profile, create/
+destroy borrowed Wayland surfaces and query live capabilities, formats, modes,
+queue support and swapchain-maintenance availability. The bounded GLFW hidden-window
+probe passes with validation on Radeon and llvmpipe. See the
+[receipt](results/p1-surface-setup-2026-10-15.md). No swapchain or presentation-enabled
+device is created yet; device enabling and synchronization remain next. Adapter
+profile availability is queryable without a window, including through headless
+discovery; surface-dependent queries are separate.
+
+Queries are explicitly cold-path: dynamic enumeration can allocate temporary
+storage and retry changing counts, without GPU waits. They preserve output on
+failure (CAPACITY changes count only). Unsupported native formats/usage bits remain
+visible alongside their representable OGPU values. This Vulkan profile exposes
+native color-space/mode/transform/alpha numeric tokens, not a false universal Metal
+contract. Per-present-mode capabilities and scaling/compatibility remain to add
+with swapchains; current capabilities are the base, unqualified native query.
 
 ## First platform and native baseline
 
 Use **Wayland** for the first Linux path. The current environment reports a
 Wayland session with a live `wayland-1` socket (and XWayland); GLFW 3.4 libraries
-are installed. The consumer will use a Wayland-enabled GLFW build with no OpenGL
+are installed. The setup consumer uses a Wayland-enabled GLFW build with no OpenGL
 context, obtaining borrowed `wl_display` and `wl_surface` handles via
 [GLFW native access](https://www.glfw.org/docs/latest/group__native.html).
 OGPU does not depend on GLFW or own its event loop. No X11 fallback is selected;
-unsupported/missing Wayland is explicit. Library availability and socket existence
-are not a successful window/surface or interactive acceptance test.
+unsupported/missing Wayland is explicit. A successful hidden-window surface probe
+is not interactive presentation acceptance.
 
 Require `VK_KHR_surface`, `VK_KHR_wayland_surface`,
 `VK_KHR_get_surface_capabilities2`, `VK_KHR_surface_maintenance1`,
@@ -28,10 +42,13 @@ Use the KHR maintenance path, not an old-swapchain retirement workaround or
 automatic EXT compatibility branch. Headless discovery/device use must keep its
 existing baseline and must not require any WSI extensions.
 
-A read-only local Vulkan query on 2026-10-15 reports all of these extension names
-and `swapchainMaintenance1 = true` on Radeon RX 5700 XT/RADV. The query created no
-window or surface. No surface format, present mode, queue compatibility, successful
-swapchain, compositor behavior or llvmpipe WSI acceptance is inferred from that.
+The initial read-only query reported these extension names and
+`swapchainMaintenance1 = true` on Radeon RX 5700 XT/RADV. The subsequent real
+surface probe confirms queue support and live capability/format/mode results on
+Radeon and llvmpipe. Neither result proves a successful swapchain or compositor
+presentation. Capability/format/mode queries first check physical-device surface
+support, as required by the
+[native capability-query contract](https://docs.vulkan.org/refpages/latest/refpages/source/vkGetPhysicalDeviceSurfaceCapabilities2KHR.html).
 
 The maintenance requirement supplies explicit resource-retirement fences and
 release of unused acquired images; these are useful native operations, not
@@ -53,8 +70,8 @@ additional frame scheduling. See
 | Unused acquisition | Explicit release after all image use is retired. Releasing the image does not by itself consume/reset a signaled acquisition semaphore; define separate synchronization retirement/reset/replacement rules. |
 | Replacement/teardown | Explicit out-of-date, minimized/zero-extent and surface-loss handling. Retain old-chain resources until their own work/presentation obligations are retired. Native failure after naming an old swapchain can retire it even without a replacement; do not promise unconditional rollback. |
 
-The exact C/Rust records, submission-extension representation and borrowing checks
-are the first implementation work, not a frozen ABI in this document. Expose
+The setup records exist in the public header; submission-extension representation
+and swapchain borrowing checks remain implementation work, not a frozen ABI. Expose
 binary synchronization as an explicit optional native mechanism, not by pretending
 that a timeline value is acceptable everywhere. Keep caller choice of synchronization
 objects separate from swapchain-image indexing or an implicit frame ring.

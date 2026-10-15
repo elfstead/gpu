@@ -54,10 +54,13 @@ handle!(ExecutableHandle, Executable);
 handle!(ExecutableCacheHandle, ExecutableCache);
 handle!(QueryPoolHandle, QueryPool);
 handle!(SplitHandle, Split);
+handle!(SurfaceHandle, Surface);
 
 mod commands;
+mod presentation;
 mod resources;
 pub use commands::*;
+pub use presentation::*;
 pub use resources::*;
 
 fn count(len: usize) -> Result<u32> {
@@ -68,6 +71,9 @@ fn count(len: usize) -> Result<u32> {
 /// devices independently retain the loader/instance, not a borrowed adapter.
 pub fn discover() -> Result<Box<Discovery>> {
     let instance = Arc::new(Instance::new().map_err(super::loader_error)?);
+    discover_instance(instance)
+}
+fn discover_instance(instance: Arc<Instance>) -> Result<Box<Discovery>> {
     let physical = instance.physical_devices().map_err(super::loader_error)?;
     let mut adapters = Vec::with_capacity(physical.len());
     for device in physical {
