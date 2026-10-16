@@ -398,9 +398,12 @@ ASTC LDR vocabularies, exact block sizes/edge-mip/pitch rules, view compatibilit
 native enabling and sampled artifacts together. Execute supported profiles locally;
 keep other hardware acceptance open. No automatic decompression or RGBA expansion.
 Audit extension-specific ordinary/packed formats alongside advanced raster.
-Include independent typed-extended and formatless storage-image shader enabling
-with compiler requirements/artifacts; physical STORAGE format support alone is
-not evidence that every image shader capability is enabled.
+The [storage-image follow-up](results/foundation-storage-images-2026-10-16.md) also
+pulls forward extended typed and formatless shader metadata plus independent
+per-format read/write permissions. No new device enables are needed on our Vulkan
+baseline. Typed storage uses STORAGE support and compatible shader/view formats;
+formatless operations also require their corresponding read/write format flags.
+The bounded 2D compiler profile is not every dimensional/atomic storage profile.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths;
 explicit GPU-generated command layouts, executable selection, preparation/storage

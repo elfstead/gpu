@@ -396,6 +396,23 @@ pub struct FloatControls {
 }
 pub const IMAGE_PROFILE: u32 = 123;
 pub const RASTER_OPTIONS: u32 = 124;
+/// Image-tiling capability bits returned by format discovery. These are physical
+/// per-format facts, not device enables or promises about image profile tuples.
+pub mod format_features {
+    pub const SAMPLED: u64 = 1;
+    pub const STORAGE: u64 = 2;
+    pub const STORAGE_ATOMIC: u64 = 4;
+    pub const COLOR: u64 = 8;
+    pub const BLEND: u64 = 16;
+    pub const DEPTH_STENCIL: u64 = 32;
+    pub const BLIT_SRC: u64 = 64;
+    pub const BLIT_DST: u64 = 128;
+    pub const FILTER_LINEAR: u64 = 256;
+    pub const COPY_SRC: u64 = 512;
+    pub const COPY_DST: u64 = 1024;
+    pub const STORAGE_READ_WITHOUT_FORMAT: u64 = 2048;
+    pub const STORAGE_WRITE_WITHOUT_FORMAT: u64 = 4096;
+}
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
 pub struct FormatInfo {

@@ -71,7 +71,7 @@ class HeapTests(unittest.TestCase):
         for old, new in ((" 2D 2 0 0 1 Unknown", " 3D 2 0 0 1 Unknown"),
                          (" 2D 2 0 0 1 Unknown", " 2D 2 1 0 1 Unknown"),
                          (" 2D 2 0 0 1 Unknown", " 2D 2 0 1 1 Unknown"),
-                         ("OpTypeFloat 32", "OpTypeFloat 16"), (" Rgba8", " Rgba16f")):
+                         ("OpTypeFloat 32", "OpTypeFloat 16"), (" Rgba8", " R64ui")):
             self.assertIn(old, assembly); self.reject(assembly.replace(old, new))
 
     def test_descriptor_stride(self):

@@ -126,6 +126,7 @@ vkCmdClearColorImage
 vkCmdClearDepthStencilImage
 vkWriteResourceDescriptorsEXT
 vkGetPhysicalDeviceFormatProperties
+vkGetPhysicalDeviceFormatProperties2
 vkWriteSamplerDescriptorsEXT
 vkCmdBindResourceHeapEXT
 vkCmdBindSamplerHeapEXT

@@ -358,6 +358,15 @@ Rust exposes matching constants in `foundation::types::image_formats`. Integer,
 normalized, scaled, sRGB and floating-point representations are not conflated.
 The [format expansion receipt](results/foundation-formats-2026-10-16.md) records
 capability-scoped execution and remaining proof, not universal device support.
+Format discovery uses native 64-bit format properties and exposes independent
+`FORMAT_STORAGE_READ_WITHOUT_FORMAT` / `FORMAT_STORAGE_WRITE_WITHOUT_FORMAT`
+permissions in each image-tiling mask (native Rust: `types::format_features`).
+These are not device enables. Typed extended storage uses STORAGE support and
+compatible shader/view formats on this baseline; formatless reads/writes additionally
+need their respective flags. Generated foundation interfaces report per-kind
+unions of the format flags actually used, separately from shader device features.
+No shader parsing, descriptor inspection or new checks are added to dispatch.
+See the [storage-image contract and evidence](results/foundation-storage-images-2026-10-16.md).
 1D/2D/3D and array/cube views and ordinary
 multisample images are implemented subject to exact native support. Optional
 2D views of 3D slices, multisampled storage, extended usage, compressed

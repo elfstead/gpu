@@ -123,6 +123,11 @@ Before returning to P1 packaging, the requested ordinary/packed format foundatio
 batch is now implemented: 118 explicit IDs with shared native/Rust metadata,
 aspect/numeric-aware validation and capability-sized consumer enumeration.
 See [format coverage and evidence](results/foundation-formats-2026-10-16.md).
+The [storage-image follow-up](results/foundation-storage-images-2026-10-16.md) now
+adds independent per-format formatless read/write flags and compiler-generated
+format requirements, with typed/formatless normalized, signed, unsigned and float
+2D execution. These are format permissions, not new coarse device enables. Return
+to P1 isolated Rust-consumer packaging and the human acceptance checklist next.
 This does not complete M8: block compression remains its own coherent image/copy/
 view/sampling batch, alongside mesh/GPU-driven work. Plane-aware formats remain
 M11, pullable earlier independently of codecs; no conversion fallback is planned.

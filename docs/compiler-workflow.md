@@ -82,7 +82,38 @@ locations; existing offline stage checks still apply. `--check` reproduces heade
 and compiles every variant without GPU execution. This is not graphics-write,
 mesh-stage, Metal, installed-SDK or substantial application acceptance.
 
-## Question and bounded consumer
+## Storage-image follow-up — 2026-10-16
+
+Foundation output now accepts the 39 SPIR-V typed storage formats with 32-bit
+float/signed/unsigned shader scalars, and Unknown-format storage reads/writes in
+the bounded non-array, non-MS 2D native-heap profile. Sampled 2D images may also
+use 32-bit signed/unsigned scalars (compiler vocabulary, not new sampled GPU
+acceptance). Legacy output retains its previous image subset and rejects these
+new kinds/capabilities explicitly. Other capabilities still fail closed.
+
+Generated `<artifact>_<storage-kind>_format_features` macros describe a union over
+that descriptor kind's operations, not per-index provenance or device features.
+The application checks selected view formats and exact image profiles separately;
+the generated `compatible()` helper checks only device/static limits. A union may
+overstate requirements for a particular index if different indices of one kind
+serve different operations; it is not a runtime API restriction or an ownership
+inference. No flags grant incompatible numeric classes or bypass native texel
+component rules. Typed kinds also retain their explicit SPIR-V format identity.
+
+Slang emits both formatless capabilities even for read-only or write-only use.
+The adapter therefore checks actual `OpImageRead`/`OpImageWrite` operations and
+rejects unexamined storage descriptor flows (including typed image-atomic texel
+pointers) rather than guessing their format requirements. Extended
+typed formats need no extra device gate on the modern Vulkan baseline. The
+[receipt](results/foundation-storage-images-2026-10-16.md) records native rules,
+16 execution variants and the remaining evidence boundaries.
+
+```sh
+python3 -B examples/compiler/storage_workflow.py --check  # compiler, C build, rejection tests
+python3 -B examples/compiler/storage_workflow.py          # also execute supported image profiles
+```
+
+## Original question and bounded consumer
 
 Can a compiler supply the mechanical host/shader interface while leaving memory
 ownership, synchronization and semantic policy with the application?

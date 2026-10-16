@@ -165,6 +165,13 @@ typedef struct ogpu_next_memory_limits {
 #define OGPU_NEXT_FORMAT_FILTER_LINEAR UINT64_C(256)
 #define OGPU_NEXT_FORMAT_COPY_SRC UINT64_C(512)
 #define OGPU_NEXT_FORMAT_COPY_DST UINT64_C(1024)
+/* Independent per-format permissions for storage shaders declaring an unknown
+ * image format, not device enables. Also require STORAGE, a matching numeric
+ * class and native texel component rules. Typed storage needs STORAGE and a
+ * compatible shader format; there is no separate extended-formats device gate
+ * on this baseline. */
+#define OGPU_NEXT_FORMAT_STORAGE_READ_WITHOUT_FORMAT UINT64_C(2048)
+#define OGPU_NEXT_FORMAT_STORAGE_WRITE_WITHOUT_FORMAT UINT64_C(4096)
 #define OGPU_NEXT_FORMAT_BUFFER_VERTEX UINT64_C(1)
 #define OGPU_NEXT_FORMAT_BUFFER_UNIFORM_TEXEL UINT64_C(2)
 #define OGPU_NEXT_FORMAT_BUFFER_STORAGE_TEXEL UINT64_C(4)

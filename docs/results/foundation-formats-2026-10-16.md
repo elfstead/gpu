@@ -111,11 +111,14 @@ above; it is not a default runtime fallback.
 
 Transfer/view acceptance does not prove sampling, every integer/packed render
 output, blending, vertex fetch, storage shaders or multisample use for every new
-format. Those uses still obey exact capabilities and shader requirements; in
-particular, `shaderStorageImageExtendedFormats` and formatless image shader
-capabilities are not enabled by this catalog expansion. Additional shader-profile
-enabling and matching compiler artifacts remain work, not implied by a physical
-STORAGE format bit. No new performance or Metal execution claim.
+format. Those uses still obey exact capabilities and shader requirements.
+Correction from the [storage-image follow-up](foundation-storage-images-2026-10-16.md):
+the initial receipt incorrectly described extended/formatless shader capabilities
+as missing device enables. On our Vulkan baseline no such extra enables are needed.
+Typed storage needs the corresponding STORAGE format support; formatless reads and
+writes additionally need their independent per-format flags, now exposed by that
+follow-up alongside matching compiler metadata/artifacts. No new performance or
+Metal execution claim.
 
 The [roadmap](../roadmap.md#scheduled-hardware-coverage) now makes the remaining
 batches explicit: M8 block compression (BC, ETC2/EAC, ASTC LDR), including block-aware

@@ -62,7 +62,10 @@ def inspect(reflection, assembly, name="transform"):
                     "DescriptorHeapEXT": "descriptor_heap",
                     "UntypedPointersKHR": "shader_untyped_pointers",
                     "Float16": "shader_float16",
-                    "DrawParameters": "shader_draw_parameters"}
+                    "DrawParameters": "shader_draw_parameters",
+                    "StorageImageExtendedFormats": "storage_image_extended_formats",
+                    "StorageImageReadWithoutFormat": "storage_image_read_without_format",
+                    "StorageImageWriteWithoutFormat": "storage_image_write_without_format"}
     require(set(caps) <= requirements.keys() and "Shader" in caps,
             "unmapped or missing capability")
     draw_identity = bool(re.search(r"OpDecorate %\S+ BuiltIn DrawIndex\b", assembly))
@@ -98,7 +101,7 @@ def inspect(reflection, assembly, name="transform"):
             definitions[match[1]] = match[2].split()
     check_push_indices(definitions)
     if stage != "compute": stages.check_writes(definitions, assembly)
-    heap_ids, resources = heaps.inspect(definitions, assembly, native_heaps)
+    heap_ids, resources, image_requirements = heaps.inspect(definitions, assembly, native_heaps)
     variables = [(key, value) for key, value in definitions.items()
                  if value[0] in ("OpVariable", "OpUntypedVariableKHR")]
     require(all(key in heap_ids or v[2] in ("Input", "Output", "PushConstant", "Function") for key, v in variables),
@@ -131,6 +134,7 @@ def inspect(reflection, assembly, name="transform"):
         root, struct_id, definitions, assembly, reflection.get("ogpuPointeeLayouts", {}), physical, name)
     require((size, alignment) == (checked_size, checked_alignment), "root size/alignment mismatch")
     result.resources = resources
+    result.image_requirements = image_requirements
     result.io = io
     return result, size, alignment, local, sorted(requirements[c] for c in set(caps))
 
@@ -139,6 +143,12 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     require(re.fullmatch(r"[a-z][a-z0-9_]*", name), "unsupported artifact name")
     require(api in ("installed", "foundation"), "unsupported target API")
     fields, size, alignment, local, requirements = inspect(reflection, assembly, name)
+    if api == "installed":
+        require(not any(r.startswith("storage_image_") for r in requirements),
+                "new storage image capabilities require the foundation API")
+        require(set(getattr(fields, "resources", [])) <=
+                {"sampler", "sampled_image_2d_float", "storage_image_2d_rgba8"},
+                "new heap image kinds require the foundation API")
     stage = reflection["entryPoints"][0]["stage"]
     type_name = name[0].upper() + name[1:] + "Arguments"
     guard = "OGPU_GENERATED_" + name.upper() + ("_FOUNDATION_H" if api == "foundation" else "_H")
@@ -160,6 +170,14 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
                   " * Sampled float images do not imply a particular view format. */"]
         for resource in fields.resources:
             lines.append(f"enum {{ {name}_uses_{resource} = 1 }};")
+    if api == "foundation" and getattr(fields, "image_requirements", {}):
+        lines += ["/* Per-kind union of storage format flags used by this artifact, not device features.",
+                  " * Check selected view formats separately; compatibility() below does not do this.",
+                  " * Unknown formats still require matching numeric class and native component rules.",
+                  " * These flags do not infer per-index access, ownership, bounds or synchronization. */"]
+        for kind, flags in fields.image_requirements.items():
+            lines.append(f"#define {name}_{kind}_format_features (" + " | ".join(
+                "OGPU_NEXT_FORMAT_" + flag for flag in flags) + ")")
     if fields:
         lines += layouts.struct_lines(type_name, fields, size, alignment, root=True)
     if local:
@@ -192,7 +210,9 @@ def foundation_records(name, size, local, requirements, stage="compute"):
     requirements. A stage-capable created queue is selected by the application,
     not by this artifact helper. Do not infer pointee ownership or root-slot policy.
     """
-    baseline = {"compute_queue", "buffer_device_address", "descriptor_heap", "shader_untyped_pointers"}
+    baseline = {"compute_queue", "buffer_device_address", "descriptor_heap", "shader_untyped_pointers",
+                "storage_image_extended_formats", "storage_image_read_without_format",
+                "storage_image_write_without_format"}
     optional = {"shader_float16": "OGPU_NEXT_FEATURE_FLOAT16", "graphics_queue": "OGPU_NEXT_FEATURE_RASTER",
                 "shader_draw_parameters": "OGPU_NEXT_FEATURE_RASTER"}
     require(set(requirements) <= baseline | optional.keys(), "unmapped foundation requirement")

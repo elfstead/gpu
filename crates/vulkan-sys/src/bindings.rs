@@ -7120,6 +7120,40 @@ impl Default for VkPhysicalDeviceProperties2 {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkFormatProperties2 {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub formatProperties: VkFormatProperties,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkFormatProperties2",
+    ][::std::mem::size_of::<VkFormatProperties2>() - 32usize];
+    [
+        "Alignment of VkFormatProperties2",
+    ][::std::mem::align_of::<VkFormatProperties2>() - 8usize];
+    [
+        "Offset of field: VkFormatProperties2::sType",
+    ][::std::mem::offset_of!(VkFormatProperties2, sType) - 0usize];
+    [
+        "Offset of field: VkFormatProperties2::pNext",
+    ][::std::mem::offset_of!(VkFormatProperties2, pNext) - 8usize];
+    [
+        "Offset of field: VkFormatProperties2::formatProperties",
+    ][::std::mem::offset_of!(VkFormatProperties2, formatProperties) - 16usize];
+};
+impl Default for VkFormatProperties2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceMemoryProperties2 {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -7383,6 +7417,13 @@ pub type PFN_vkGetPhysicalDeviceProperties2 = ::std::option::Option<
     unsafe extern "C" fn(
         physicalDevice: VkPhysicalDevice,
         pProperties: *mut VkPhysicalDeviceProperties2,
+    ),
+>;
+pub type PFN_vkGetPhysicalDeviceFormatProperties2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        physicalDevice: VkPhysicalDevice,
+        format: VkFormat,
+        pFormatProperties: *mut VkFormatProperties2,
     ),
 >;
 pub type PFN_vkGetPhysicalDeviceMemoryProperties2 = ::std::option::Option<
@@ -8735,6 +8776,10 @@ pub const VK_ACCESS_2_DATA_GRAPH_WRITE_BIT_ARM: VkAccessFlagBits2 = 281474976710
 pub const VK_ACCESS_2_MEMORY_DECOMPRESSION_READ_BIT_EXT: VkAccessFlagBits2 = 36028797018963968;
 pub const VK_ACCESS_2_MEMORY_DECOMPRESSION_WRITE_BIT_EXT: VkAccessFlagBits2 = 72057594037927936;
 pub type VkSubmitFlags = VkFlags;
+pub type VkFormatFeatureFlags2 = VkFlags64;
+pub type VkFormatFeatureFlagBits2 = VkFlags64;
+pub const VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT: VkFormatFeatureFlagBits2 = 2147483648;
+pub const VK_FORMAT_FEATURE_2_STORAGE_WRITE_WITHOUT_FORMAT_BIT: VkFormatFeatureFlagBits2 = 4294967296;
 pub const VkRenderingFlagBits_VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT: VkRenderingFlagBits = 1;
 pub const VkRenderingFlagBits_VK_RENDERING_SUSPENDING_BIT: VkRenderingFlagBits = 2;
 pub const VkRenderingFlagBits_VK_RENDERING_RESUMING_BIT: VkRenderingFlagBits = 4;
@@ -9359,6 +9404,48 @@ const _: () = {
     ][::std::mem::offset_of!(VkCopyImageInfo2, pRegions) - 48usize];
 };
 impl Default for VkCopyImageInfo2 {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkFormatProperties3 {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub linearTilingFeatures: VkFormatFeatureFlags2,
+    pub optimalTilingFeatures: VkFormatFeatureFlags2,
+    pub bufferFeatures: VkFormatFeatureFlags2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkFormatProperties3",
+    ][::std::mem::size_of::<VkFormatProperties3>() - 40usize];
+    [
+        "Alignment of VkFormatProperties3",
+    ][::std::mem::align_of::<VkFormatProperties3>() - 8usize];
+    [
+        "Offset of field: VkFormatProperties3::sType",
+    ][::std::mem::offset_of!(VkFormatProperties3, sType) - 0usize];
+    [
+        "Offset of field: VkFormatProperties3::pNext",
+    ][::std::mem::offset_of!(VkFormatProperties3, pNext) - 8usize];
+    [
+        "Offset of field: VkFormatProperties3::linearTilingFeatures",
+    ][::std::mem::offset_of!(VkFormatProperties3, linearTilingFeatures) - 16usize];
+    [
+        "Offset of field: VkFormatProperties3::optimalTilingFeatures",
+    ][::std::mem::offset_of!(VkFormatProperties3, optimalTilingFeatures) - 24usize];
+    [
+        "Offset of field: VkFormatProperties3::bufferFeatures",
+    ][::std::mem::offset_of!(VkFormatProperties3, bufferFeatures) - 32usize];
+};
+impl Default for VkFormatProperties3 {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

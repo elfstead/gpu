@@ -162,6 +162,7 @@ functions! {
     vkCmdDrawIndirectCount2KHR: PFN_vkCmdDrawIndirectCount2KHR,
     vkCmdDrawIndexedIndirectCount2KHR: PFN_vkCmdDrawIndexedIndirectCount2KHR,
     vkGetPhysicalDeviceFormatProperties: PFN_vkGetPhysicalDeviceFormatProperties,
+    vkGetPhysicalDeviceFormatProperties2: PFN_vkGetPhysicalDeviceFormatProperties2,
     vkCreateQueryPool: PFN_vkCreateQueryPool,
     vkDestroyQueryPool: PFN_vkDestroyQueryPool,
     vkCmdResetQueryPool: PFN_vkCmdResetQueryPool,

@@ -1,6 +1,45 @@
 """Bounded native heap interface checks; no ownership or index-range inference."""
 import re
 
+# SPIR-V storage formats with 32-bit shader scalars. These names describe shader
+# formats, not a promise that every device supports a corresponding view format.
+STORAGE_FORMATS = {
+    **dict.fromkeys(("Rgba32f", "Rgba16f", "R32f", "Rgba8", "Rgba8Snorm", "Rg32f",
+                     "Rg16f", "R11fG11fB10f", "R16f", "Rgba16", "Rgb10A2", "Rg16",
+                     "Rg8", "R16", "R8", "Rgba16Snorm", "Rg16Snorm", "Rg8Snorm",
+                     "R16Snorm", "R8Snorm"), "float"),
+    **dict.fromkeys(("Rgba32i", "Rgba16i", "Rgba8i", "R32i", "Rg32i", "Rg16i", "Rg8i",
+                     "R16i", "R8i"), "sint"),
+    **dict.fromkeys(("Rgba32ui", "Rgba16ui", "Rgba8ui", "R32ui", "Rgb10a2ui", "Rg32ui",
+                     "Rg16ui", "Rg8ui", "R16ui", "R8ui"), "uint"),
+}
+
+
+def storage_requirements(definitions, assembly, resources):
+    """Per-kind union of format flags, not descriptor-index/lifetime inference.
+
+    Storage descriptors may only flow directly into reads/writes in this
+    adapter profile. No guessed dataflow through calls, phi nodes or texel pointers.
+    Capabilities alone overstate requirements in pinned Slang (it emits both).
+    """
+    result = {kind: {"STORAGE"} for kind in resources.values() if kind.startswith("storage_image_")}
+    loaded = {identity: resources[value[1]] for identity, value in definitions.items()
+              if value[0] == "OpLoad" and value[1] in resources
+              and resources[value[1]].startswith("storage_image_")}
+    for line in assembly.splitlines():
+        tokens = line.split()
+        if not tokens: continue
+        instruction = tokens[2:] if len(tokens) > 2 and tokens[1] == "=" else tokens
+        for identity in loaded.keys() & set(instruction[1:]):
+            kind = loaded[identity]
+            if instruction[0] == "OpImageRead" and len(instruction) >= 4 and instruction[2] == identity:
+                if "_unknown_" in kind: result[kind].add("STORAGE_READ_WITHOUT_FORMAT")
+            elif instruction[0] == "OpImageWrite" and len(instruction) >= 4 and instruction[1] == identity:
+                if "_unknown_" in kind: result[kind].add("STORAGE_WRITE_WITHOUT_FORMAT")
+            else:
+                require(instruction[0] in ("OpName", "OpDecorate"), "unsupported storage descriptor flow")
+    return {kind: sorted(flags) for kind, flags in sorted(result.items())}
+
 
 def require(condition, message):
     if not condition:
@@ -33,11 +72,18 @@ def inspect(definitions, assembly, enabled):
             require(value == ["OpTypeSampler"], "unsupported sampler type")
             resources[identity] = "sampler"
         elif value[0] == "OpTypeImage":
-            require(len(value) == 8 and definitions.get(value[1]) == ["OpTypeFloat", "32"]
-                    and value[2:6] == ["2D", "2", "0", "0"], "unsupported heap image type")
-            kind = {("1", "Unknown"): "sampled_image_2d_float",
-                    ("2", "Rgba8"): "storage_image_2d_rgba8"}.get(tuple(value[6:]))
-            require(kind is not None, "unsupported heap image format/use")
+            require(len(value) == 8 and value[2:6] == ["2D", "2", "0", "0"],
+                    "unsupported heap image type")
+            scalar = {("OpTypeFloat", "32"): "float", ("OpTypeInt", "32", "1"): "sint",
+                      ("OpTypeInt", "32", "0"): "uint"}.get(tuple(definitions.get(value[1], [])))
+            require(scalar is not None, "unsupported heap image scalar")
+            use, fmt = value[6:]
+            if use == "1" and fmt == "Unknown":
+                kind = "sampled_image_2d_" + scalar
+            else:
+                require(use == "2" and (fmt == "Unknown" or STORAGE_FORMATS.get(fmt) == scalar),
+                        "unsupported heap image format/use")
+                kind = "storage_image_2d_" + ("unknown_" + scalar if fmt == "Unknown" else fmt.lower())
             resources[identity] = kind
     used_resources = set()
     for identity, value in definitions.items():
@@ -97,4 +143,4 @@ def inspect(definitions, assembly, enabled):
         if in_function and "=" not in tokens:
             require(not restricted.intersection(tokens), "heap pointer escapes through instruction")
         if "OpFunctionEnd" in tokens: in_function = False
-    return heaps, sorted(set(resources.values()))
+    return heaps, sorted(set(resources.values())), storage_requirements(definitions, assembly, resources)

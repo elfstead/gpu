@@ -1,7 +1,7 @@
 //! Immutable format capabilities and allocation-free image profile queries.
 use super::*;
 
-fn image_features(native: u32) -> u64 {
+fn image_features(native: u64) -> u64 {
     let bits = [
         vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT,
         vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT,
@@ -16,8 +16,18 @@ fn image_features(native: u32) -> u64 {
         vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
     ];
     remap(native, &bits)
+        | if native & vk::VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT != 0 {
+            format_features::STORAGE_READ_WITHOUT_FORMAT
+        } else {
+            0
+        }
+        | if native & vk::VK_FORMAT_FEATURE_2_STORAGE_WRITE_WITHOUT_FORMAT_BIT != 0 {
+            format_features::STORAGE_WRITE_WITHOUT_FORMAT
+        } else {
+            0
+        }
 }
-fn buffer_features(native: u32) -> u64 {
+fn buffer_features(native: u64) -> u64 {
     remap(
         native,
         &[
@@ -28,9 +38,13 @@ fn buffer_features(native: u32) -> u64 {
         ],
     )
 }
-fn remap(native: u32, bits: &[u32]) -> u64 {
+fn remap(native: u64, bits: &[u32]) -> u64 {
     bits.iter().enumerate().fold(0, |mask, (i, bit)| {
-        mask | if native & bit != 0 { 1 << i } else { 0 }
+        mask | if native & u64::from(*bit) != 0 {
+            1 << i
+        } else {
+            0
+        }
     })
 }
 pub(in crate::foundation::native) fn format_snapshot(
@@ -42,9 +56,17 @@ pub(in crate::foundation::native) fn format_snapshot(
         .try_reserve_exact(FORMATS.len())
         .map_err(|_| OUT_OF_MEMORY)?;
     for (index, format) in FORMATS.iter().enumerate() {
-        let mut p = vk::VkFormatProperties::default();
+        let mut p = vk::VkFormatProperties3 {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3,
+            ..Default::default()
+        };
+        let mut query = vk::VkFormatProperties2 {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2,
+            pNext: (&mut p as *mut vk::VkFormatProperties3).cast(),
+            ..Default::default()
+        };
         unsafe {
-            (f.vkGetPhysicalDeviceFormatProperties.unwrap())(physical, format.native, &mut p);
+            (f.vkGetPhysicalDeviceFormatProperties2.unwrap())(physical, format.native, &mut query);
         }
         result.push(FormatInfo {
             format: index as u32 + 1,
@@ -137,6 +159,30 @@ impl Device {
 mod tests {
     use super::*;
     #[test]
+    fn c_and_rust_image_feature_bits_match() {
+        use format_features::*;
+        let header = include_str!("../../../../include/ogpu_next.h");
+        for (name, value) in [
+            ("SAMPLED", SAMPLED),
+            ("STORAGE", STORAGE),
+            ("STORAGE_ATOMIC", STORAGE_ATOMIC),
+            ("COLOR", COLOR),
+            ("BLEND", BLEND),
+            ("DEPTH_STENCIL", DEPTH_STENCIL),
+            ("BLIT_SRC", BLIT_SRC),
+            ("BLIT_DST", BLIT_DST),
+            ("FILTER_LINEAR", FILTER_LINEAR),
+            ("COPY_SRC", COPY_SRC),
+            ("COPY_DST", COPY_DST),
+            ("STORAGE_READ_WITHOUT_FORMAT", STORAGE_READ_WITHOUT_FORMAT),
+            ("STORAGE_WRITE_WITHOUT_FORMAT", STORAGE_WRITE_WITHOUT_FORMAT),
+        ] {
+            assert!(header.contains(&format!(
+                "#define OGPU_NEXT_FORMAT_{name} UINT64_C({value})"
+            )));
+        }
+    }
+    #[test]
     fn catalog_metadata_and_native_roundtrips() {
         use image_formats::*;
         let mut natives = std::collections::BTreeSet::new();
@@ -188,22 +234,25 @@ mod tests {
     fn format_capabilities_keep_tiling_and_buffer_domains_distinct() {
         assert_eq!(image_features(0), 0);
         assert_eq!(buffer_features(0), 0);
-        assert_eq!(image_features(u32::MAX), 2047);
-        assert_eq!(buffer_features(u32::MAX), 15);
+        assert_eq!(image_features(u64::MAX), 8191);
+        assert_eq!(buffer_features(u64::MAX), 15);
+        assert_eq!(image_features(1 << 31), 2048);
+        assert_eq!(image_features(1 << 32), 4096);
+        assert_eq!(buffer_features((1 << 31) | (1 << 32)), 0);
         assert_eq!(
-            image_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_BLIT_DST_BIT),
+            image_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_BLIT_DST_BIT.into()),
             128
         );
         assert_eq!(
-            image_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT),
+            image_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT.into()),
             0
         );
         assert_eq!(
-            buffer_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT),
+            buffer_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT.into()),
             1
         );
         assert_eq!(
-            buffer_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT),
+            buffer_features(vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT.into()),
             0
         );
         assert_eq!(

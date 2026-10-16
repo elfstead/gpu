@@ -32,8 +32,8 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     REQUIRE(q.count == count && memcmp(physical, enabled, count*sizeof(physical[0])) == 0);
     for (uint32_t i = 0; i < count; ++i) {
         REQUIRE(physical[i].format != 0 && physical[i].aspects != 0);
-        REQUIRE((physical[i].optimal_features & ~UINT64_C(2047)) == 0);
-        REQUIRE((physical[i].linear_features & ~UINT64_C(2047)) == 0);
+        REQUIRE((physical[i].optimal_features & ~UINT64_C(8191)) == 0);
+        REQUIRE((physical[i].linear_features & ~UINT64_C(8191)) == 0);
         REQUIRE((physical[i].buffer_features & ~UINT64_C(15)) == 0);
         for (uint32_t j = 0; j < i; ++j) REQUIRE(physical[i].format != physical[j].format);
     }
