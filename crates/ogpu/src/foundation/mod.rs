@@ -4,6 +4,7 @@
 mod commands_api;
 mod descriptors_api;
 mod executables_api;
+mod format_catalog;
 mod images_api;
 mod memory_api;
 mod native;

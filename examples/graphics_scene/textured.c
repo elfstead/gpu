@@ -22,11 +22,16 @@ typedef struct {
 static uint64_t align_up(uint64_t n,uint64_t a) { return (n+a-1)/a*a; }
 static int texture_resources(Textured *t) {
     Scene *s=&t->scene;
-    ogpu_next_format_info formats[64]; ogpu_next_query q=query(OGPU_NEXT_QUERY_FORMATS,formats,64,sizeof(formats[0]));
-    GPU(ogpu_next_device_query(s->device,&q)); int filter=0;
+    ogpu_next_query q=query(OGPU_NEXT_QUERY_FORMATS,NULL,0,sizeof(ogpu_next_format_info));
+    GPU(ogpu_next_device_query(s->device,&q));
+    ogpu_next_format_info *formats=calloc(q.count,sizeof(*formats)); NEED(formats);
+    q.data=formats; q.capacity=q.count;
+    ogpu_next_status format_status=ogpu_next_device_query(s->device,&q);
+    if(format_status!=OGPU_NEXT_OK) { free(formats); GPU(format_status); }
+    int filter=0;
     for(uint32_t i=0;i<q.count;++i) if(formats[i].format==OGPU_NEXT_RGBA8_UNORM)
         filter=(formats[i].optimal_features&OGPU_NEXT_FORMAT_FILTER_LINEAR)!=0;
-    NEED(filter);
+    free(formats); NEED(filter);
     ogpu_next_image_desc id={HEADER(ogpu_next_image_desc,OGPU_NEXT_IMAGE_DESC),OGPU_NEXT_RGBA8_UNORM,
         OGPU_NEXT_IMAGE_2D,4,1,1,{8,8,1},OGPU_NEXT_IMAGE_SAMPLED|OGPU_NEXT_IMAGE_COPY_DST,0,NULL,0,0,NULL};
     uint32_t types[32],type; ogpu_next_requirements req={.compatible_types=types,.compatible_type_capacity=32};

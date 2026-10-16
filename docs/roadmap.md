@@ -390,6 +390,18 @@ when only unavailable external hardware remains. No hardware acquisition is impl
 
 ### M8 — Advanced raster and GPU-driven execution
 
+**Format prerequisite pulled forward (2026-10-16):** the ordinary/packed foundation
+catalog now has 118 formats, with explicit numeric/aspect rules and native-capability
+queries; [bounded evidence and exclusions](results/foundation-formats-2026-10-16.md).
+This is not M8 completion. Its compressed-texture batch must cover BC, ETC2/EAC and
+ASTC LDR vocabularies, exact block sizes/edge-mip/pitch rules, view compatibility,
+native enabling and sampled artifacts together. Execute supported profiles locally;
+keep other hardware acceptance open. No automatic decompression or RGBA expansion.
+Audit extension-specific ordinary/packed formats alongside advanced raster.
+Include independent typed-extended and formatless storage-image shader enabling
+with compiler requirements/artifacts; physical STORAGE format support alone is
+not evidence that every image shader capability is enabled.
+
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths;
 explicit GPU-generated command layouts, executable selection, preparation/storage
 and execution; capability-specific multiview, shading-rate, tile-local/input-
@@ -461,6 +473,12 @@ queries. Select and document the initial codec/profile set in the implementation
 brief from native mappings; no universal codec promise. Use M10 sharing for external
 media integration where needed.
 
+Plane-aware formats (including NV12/P010-style layouts) need per-plane extents,
+copy pitches/aspects, binding and sampling/conversion contracts. They form a coherent
+sub-batch that can move earlier without implementing codecs. M11 also owns remaining
+64-bit-component typed format profiles and their independent shader/vertex/storage
+requirements; existing FP64 arithmetic is not their acceptance evidence.
+
 **Acceptance:** compute outputs versus declared numerical bounds and launch/
 artifact contract tests, with actual native acceleration distinguished from scalar
 controls. For media, deterministic bitstreams and reference-frame checks for decode,
@@ -482,7 +500,7 @@ explicit entry criterion; they are not silently included in milestone completion
 | Timed waits / cancellation | Timeline timeout/poll and recording cancellation are implemented. Timeout/cancellation do not retire pending GPU work; GPU cancellation/recovery remains a separate semantic decision |
 | External memory/import-export | M10; boundary design in P1, prerequisite subsets earlier when needed; ownership/device matching and native synchronization required |
 | Multi-device execution/communication | Deferred; needs a selected workload and multiple real devices. Never a prerequisite for current local milestones |
-| More formats, arrays, 3D textures, MSAA | Existing image shapes/resolve profiles remain; M8 adds compressed texture and advanced raster format/usage coverage, M11 multiplanar media profiles. Query exact native combinations; no universal format claim |
+| More formats, arrays, 3D textures, MSAA | 118 ordinary/packed formats and existing image shapes/resolve profiles implemented; M8 adds block compression and extension-specific raster formats; M11 adds plane-aware media and 64-bit-component profiles. Query exact native combinations; no universal format claim |
 | Mixed backing, virtual memory and residency | M10, with required subsets pulled into M6 or other consumers; explicit native placement/ordering, no hidden migration |
 | Generated commands and richer artifact/launch profiles | M8 generated topology; M11 richer launch and binaries; P1 implements the narrow optional-extension negotiation prerequisite |
 | Presentation | P1 Linux before M6; M6 Metal; real window-system acceptance required |

@@ -811,6 +811,7 @@ static const struct pl_fmt_t formats[] = {
 
 pl_gpu ogpu_pl_create(pl_log log, unsigned index)
 {
+    ogpu_next_format_info *supported = NULL;
     struct pl_gpu_t *gpu = calloc(1, PL_ALIGN_MEM(sizeof(*gpu)) + sizeof(struct backend));
     if (!gpu) return NULL;
     gpu->log = log;
@@ -862,8 +863,11 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     // Check every advertised image profile, and intersect their extent limits.
     const uint32_t image_formats[] = {OGPU_NEXT_RGBA16_UNORM, OGPU_NEXT_RGBA16_FLOAT, OGPU_NEXT_RGBA8_UNORM, OGPU_NEXT_R32_FLOAT};
     uint32_t dimensions[2] = {UINT32_MAX, UINT32_MAX};
-    ogpu_next_format_info supported[32];
-    q = query(OGPU_NEXT_QUERY_FORMATS, supported, 32, sizeof(supported[0]));
+    q = query(OGPU_NEXT_QUERY_FORMATS, NULL, 0, sizeof(*supported));
+    TRY(ogpu_next_device_query(b->device, &q));
+    supported = calloc(q.count, sizeof(*supported));
+    REQUIRE(supported, "format query allocation failed");
+    q.data = supported; q.capacity = q.count;
     TRY(ogpu_next_device_query(b->device, &q));
     for (unsigned i = 0; i < 4; ++i) {
         bool linear = false;
@@ -882,6 +886,7 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
             if (dim == 2) dimensions[dim-1] = PL_MIN(dimensions[dim-1], il.max_extent[1]);
         }
     }
+    free(supported); supported = NULL;
     gpu->glsl = (struct pl_glsl_version) {.version=450, .vulkan=true, .compute=true,
         .max_shmem_size=limits.max_shared_memory, .max_group_threads=limits.max_local_invocations};
     memcpy(gpu->glsl.max_group_size, limits.max_local_size, sizeof(limits.max_local_size));
@@ -917,7 +922,7 @@ fail:
     ogpu_next_timeline_destroy(b->timeline);
     ogpu_next_device_destroy(b->device);
     free(b->scratch.data);
-    free(gpu->formats); free(gpu);
+    free(supported); free(gpu->formats); free(gpu);
     return NULL;
 }
 

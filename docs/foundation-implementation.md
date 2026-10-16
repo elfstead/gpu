@@ -351,13 +351,29 @@ one-shot. No view or GPU command accepts an unbound image. See the native
 and [dedicated-image association](https://docs.vulkan.org/refpages/latest/refpages/source/VkMemoryDedicatedAllocateInfo.html).
 
 Independent views select compatible formats, dimensions, mip/layer/aspect ranges,
-usage subsets and component mappings. The current table covers eighteen common
-uncompressed color/depth/stencil formats. 1D/2D/3D and array/cube views and ordinary
+usage subsets and component mappings. The current table covers 118 uncompressed
+formats: Vulkan 1.0 core color formats with up to 32-bit components, their packed
+variants, and all seven core depth/stencil formats. Existing IDs 1–19 are preserved;
+Rust exposes matching constants in `foundation::types::image_formats`. Integer,
+normalized, scaled, sRGB and floating-point representations are not conflated.
+The [format expansion receipt](results/foundation-formats-2026-10-16.md) records
+capability-scoped execution and remaining proof, not universal device support.
+1D/2D/3D and array/cube views and ordinary
 multisample images are implemented subject to exact native support. Optional
 2D views of 3D slices, multisampled storage, extended usage, compressed
 and multi-planar formats, linear tiling, sparse/external/disjoint images and
 separate depth/stencil layout enabling remain outside this implemented profile.
+64-bit-component and extension-specific formats also remain separate coverage;
+FP64/raw-buffer support does not imply typed FP64 image/vertex support.
 They are not ruled out by the design and are never silently substituted.
+
+Format enumeration is count-queried, not a fixed 19/32-entry contract. Discovery,
+native surface-format translation, view/copy compatibility, integer blit domains,
+integer color sample masks and depth/stencil aspect selection share the catalog.
+Graphics `depth_format` now accepts S8 without declaring a depth attachment;
+depth testing/writes still require a depth aspect. Three-/six-byte texels preserve
+their actual row sizes and address alignment, including both texel and four-byte
+constraints on transfer-only queues. No implicit channel conversion or staging.
 
 Cube-array views now independently enable native `imageCubeArray`, without making
 raster stages a prerequisite. A cube-compatible image can expose any bounded

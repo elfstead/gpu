@@ -117,6 +117,16 @@ both drivers, full public-C foundation fixture on Radeon, and strict Clippy.
 GPU runs use Khronos synchronization validation. This is one physical GPU plus
 software evidence, not cross-vendor or Metal acceptance; no new timing claim.
 
+## Pulled-forward foundation format coverage
+
+Before returning to P1 packaging, the requested ordinary/packed format foundation
+batch is now implemented: 118 explicit IDs with shared native/Rust metadata,
+aspect/numeric-aware validation and capability-sized consumer enumeration.
+See [format coverage and evidence](results/foundation-formats-2026-10-16.md).
+This does not complete M8: block compression remains its own coherent image/copy/
+view/sampling batch, alongside mesh/GPU-driven work. Plane-aware formats remain
+M11, pullable earlier independently of codecs; no conversion fallback is planned.
+
 ## Then: M6 Metal foundation
 
 Follow the [M6 entry handoff](m6-entry.md):

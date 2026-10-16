@@ -33,9 +33,8 @@ fn filtering(src: u32, dst: u32, sf: u32, df: u32, filter: u32) -> Result<vk::Vk
     }
     let source = format(src)?;
     let destination = format(dst)?;
-    // R32_UINT is currently the only integer color format. Add future integer
-    // formats to a shared numeric-class helper when extending the format table.
-    if (src == 11) != (dst == 11)
+    if source.numeric != destination.numeric
+        || source.integer_color() && filter != 0
         || (source.aspects != 1 || destination.aspects != 1) && (src != dst || filter != 0)
     {
         return Err(INVALID);
@@ -179,6 +178,7 @@ mod tests {
     }
     #[test]
     fn blit_format_classes_and_filter_capabilities_are_exact() {
+        use image_formats::*;
         let all = vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_BLIT_SRC_BIT
             | vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_BLIT_DST_BIT
             | vk::VkFormatFeatureFlagBits_VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
@@ -187,6 +187,17 @@ mod tests {
         assert_eq!(filtering(3, 11, all, all, 0), Err(INVALID));
         assert_eq!(filtering(11, 3, all, all, 0), Err(INVALID));
         assert_eq!(filtering(11, 11, all, all, 0), Ok(0));
+        assert_eq!(filtering(R8_UINT, RGBA32_UINT, all, all, 0), Ok(0));
+        assert_eq!(filtering(R8_SINT, RGBA16_SINT, all, all, 0), Ok(0));
+        assert_eq!(filtering(R8_UINT, R8_SINT, all, all, 0), Err(INVALID));
+        assert_eq!(filtering(R8_SINT, R8_UNORM, all, all, 0), Err(INVALID));
+        assert_eq!(filtering(R8_UINT, R8_UINT, all, all, 1), Err(INVALID));
+        assert_eq!(
+            filtering(R8_SNORM, B10G11R11_UFLOAT_PACK32, all, all, 1),
+            Ok(1)
+        );
+        assert_eq!(filtering(S8_UINT, S8_UINT, all, all, 0), Ok(0));
+        assert_eq!(filtering(S8_UINT, R8_UINT, all, all, 0), Err(INVALID));
         assert_eq!(filtering(14, 14, all, all, 0), Ok(0));
         assert_eq!(filtering(14, 13, all, all, 0), Err(INVALID));
         assert_eq!(filtering(14, 14, all, all, 1), Err(INVALID));

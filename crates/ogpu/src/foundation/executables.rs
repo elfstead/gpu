@@ -1041,6 +1041,42 @@ mod tests {
                 let depth_pipeline =
                     unsafe { Executable::create(&profile_device, &depth_desc) }.unwrap();
                 assert_eq!(depth_pipeline.stages, 8);
+                // Stencil-only must declare no native depth attachment and must
+                // not intersect depth sample masks or permit depth operations.
+                let stencil_only = GraphicsState {
+                    depth_format: image_formats::S8_UINT,
+                    depth_test: 0,
+                    depth_write: 0,
+                    stencil_test: 1,
+                    ..depth_only
+                };
+                let stencil_desc = ExecutableDesc {
+                    static_state: &stencil_only.header,
+                    ..depth_desc
+                };
+                let stencil_supported =
+                    profile_device.snapshot.formats.iter().any(|f| {
+                        f.format == image_formats::S8_UINT && f.optimal_features & 32 != 0
+                    });
+                let stencil_pipeline =
+                    unsafe { Executable::create(&profile_device, &stencil_desc) };
+                if stencil_supported {
+                    assert!(stencil_pipeline.is_ok());
+                } else {
+                    assert!(matches!(stencil_pipeline, Err(UNSUPPORTED)));
+                }
+                let invalid_stencil = GraphicsState {
+                    depth_test: 1,
+                    ..stencil_only
+                };
+                let invalid_stencil_desc = ExecutableDesc {
+                    static_state: &invalid_stencil.header,
+                    ..stencil_desc
+                };
+                assert!(matches!(
+                    unsafe { Executable::create(&profile_device, &invalid_stencil_desc) },
+                    Err(INVALID)
+                ));
                 let layer_shader = Shader {
                     code: Bytes {
                         data: layer_code.as_ptr().cast(),

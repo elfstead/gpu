@@ -7,8 +7,11 @@ static int blit_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_timeline *done = NULL;
     void *barrier_scratch = NULL, *submit_scratch = NULL;
     ogpu_next_host_requirements br = {0}, sr = {0};
-    ogpu_next_format_info formats[32];
-    ogpu_next_query fq = query(OGPU_NEXT_QUERY_FORMATS, formats, 32, sizeof(formats[0]));
+    ogpu_next_format_info *formats = NULL;
+    ogpu_next_query fq = query(OGPU_NEXT_QUERY_FORMATS, NULL, 0, sizeof(*formats));
+    TRY(ogpu_next_device_query(device, &fq));
+    formats = calloc(fq.count, sizeof(*formats)); REQUIRE(formats);
+    fq.data = formats; fq.capacity = fq.count;
     TRY(ogpu_next_device_query(device, &fq));
     uint32_t supported = 0;
     for (uint32_t i = 0; i < fq.count; ++i) {
@@ -152,6 +155,7 @@ static int blit_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     printf("Blits pass: reversed/scaled layered BGRA conversion, UNORM-to-float conversion, explicit same-image linear mip generation, narrow barriers, changed-input replay and guards.\n");
     result = EXIT_SUCCESS;
 cleanup:
+    free(formats);
     if (pending) { fprintf(stderr,"Pending blit work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done);
     for (uint32_t i = 0; i < 3; ++i) { ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }

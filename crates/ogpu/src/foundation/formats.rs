@@ -38,15 +38,16 @@ pub(in crate::foundation::native) fn format_snapshot(
     physical: vk::VkPhysicalDevice,
 ) -> Result<Vec<FormatInfo>, Status> {
     let mut result = Vec::new();
-    result.try_reserve_exact(19).map_err(|_| OUT_OF_MEMORY)?;
-    for id in 1..=19 {
-        let format = format(id)?;
+    result
+        .try_reserve_exact(FORMATS.len())
+        .map_err(|_| OUT_OF_MEMORY)?;
+    for (index, format) in FORMATS.iter().enumerate() {
         let mut p = vk::VkFormatProperties::default();
         unsafe {
             (f.vkGetPhysicalDeviceFormatProperties.unwrap())(physical, format.native, &mut p);
         }
         result.push(FormatInfo {
-            format: id,
+            format: index as u32 + 1,
             aspects: format.aspects,
             optimal_features: image_features(p.optimalTilingFeatures),
             linear_features: image_features(p.linearTilingFeatures),
@@ -135,6 +136,54 @@ impl Device {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn catalog_metadata_and_native_roundtrips() {
+        use image_formats::*;
+        let mut natives = std::collections::BTreeSet::new();
+        for (index, f) in FORMATS.iter().enumerate() {
+            assert!(natives.insert(f.native));
+            assert_eq!(
+                crate::foundation::native::image_format_id(f.native),
+                index as u32 + 1
+            );
+            if f.aspects == 1 {
+                assert!(matches!(f.class, 8 | 16 | 24 | 32 | 48 | 64 | 96 | 128));
+                assert_eq!(f.copy_bytes(1), Ok(u64::from(f.class / 8)));
+            } else {
+                assert_eq!(f.numeric, Numeric::DepthStencil);
+            }
+            assert_eq!(f.copy_bytes(0), Err(INVALID));
+            assert_eq!(f.copy_bytes(3), Err(INVALID));
+        }
+        assert_eq!(format(RGB8_UNORM).unwrap().copy_bytes(1), Ok(3));
+        assert_eq!(format(RGB16_FLOAT).unwrap().copy_bytes(1), Ok(6));
+        assert_eq!(format(D16_UNORM_S8_UINT).unwrap().copy_bytes(2), Ok(2));
+        assert_eq!(format(D16_UNORM_S8_UINT).unwrap().copy_bytes(4), Ok(1));
+        assert_eq!(format(X8_D24_UNORM_PACK32).unwrap().copy_bytes(2), Ok(4));
+        assert_eq!(format(S8_UINT).unwrap().copy_bytes(2), Err(INVALID));
+        assert_eq!(format(S8_UINT).unwrap().copy_bytes(4), Ok(1));
+        assert!(format(R32_SINT).unwrap().integer_color());
+        assert!(!format(R8_SSCALED).unwrap().integer_color());
+        assert!(!format(S8_UINT).unwrap().integer_color());
+        assert_eq!(
+            format(A2R10G10B10_UNORM_PACK32).unwrap().class,
+            format(RGBA8_UNORM).unwrap().class
+        );
+        assert!(format(0).is_err());
+        assert!(format(FORMATS.len() as u32 + 1).is_err());
+    }
+    #[test]
+    fn rgb_address_alignment_intersects_transfer_queue_rules() {
+        for bytes in [3, 6, 12] {
+            assert!(copy_address_aligned(12, 1, bytes, 0));
+            assert!(!copy_address_aligned(16, 1, bytes, 0));
+            assert!(!copy_address_aligned(6, 1, bytes, 0));
+        }
+        assert!(copy_address_aligned(3, 1, 3, GRAPHICS));
+        assert!(copy_address_aligned(6, 1, 6, COMPUTE));
+        assert!(!copy_address_aligned(2, 2, 2, GRAPHICS));
+        assert!(copy_address_aligned(4, 4, 1, GRAPHICS));
+    }
     #[test]
     fn format_capabilities_keep_tiling_and_buffer_domains_distinct() {
         assert_eq!(image_features(0), 0);

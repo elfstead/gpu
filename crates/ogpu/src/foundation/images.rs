@@ -9,40 +9,53 @@ mod blits;
 mod formats;
 pub(super) use formats::format_snapshot;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Numeric {
+    // Float-valued shader/blit domain, including normalized, sRGB and scaled
+    // representations; this does not describe their physical storage encoding.
+    Float,
+    Uint,
+    Sint,
+    DepthStencil,
+}
+#[derive(Clone, Copy, Debug)]
 pub(super) struct Format {
     pub(super) native: vk::VkFormat,
     pub(super) aspects: u32,
     class: u32,
+    pub(super) numeric: Numeric,
+    depth_bytes: u64,
 }
-pub(super) fn format(id: u32) -> Result<Format, Status> {
-    let (native, aspects, class) = match id {
-        1 => (vk::VkFormat_VK_FORMAT_R8_UNORM, 1, 8),
-        2 => (vk::VkFormat_VK_FORMAT_R8G8_UNORM, 1, 16),
-        3 => (vk::VkFormat_VK_FORMAT_R8G8B8A8_UNORM, 1, 32),
-        4 => (vk::VkFormat_VK_FORMAT_R8G8B8A8_SRGB, 1, 32),
-        5 => (vk::VkFormat_VK_FORMAT_B8G8R8A8_UNORM, 1, 32),
-        6 => (vk::VkFormat_VK_FORMAT_B8G8R8A8_SRGB, 1, 32),
-        7 => (vk::VkFormat_VK_FORMAT_R16_SFLOAT, 1, 16),
-        8 => (vk::VkFormat_VK_FORMAT_R16G16_SFLOAT, 1, 32),
-        9 => (vk::VkFormat_VK_FORMAT_R16G16B16A16_SFLOAT, 1, 64),
-        10 => (vk::VkFormat_VK_FORMAT_R32_SFLOAT, 1, 32),
-        11 => (vk::VkFormat_VK_FORMAT_R32_UINT, 1, 32),
-        12 => (vk::VkFormat_VK_FORMAT_R32G32B32A32_SFLOAT, 1, 128),
-        13 => (vk::VkFormat_VK_FORMAT_D16_UNORM, 2, 1001),
-        14 => (vk::VkFormat_VK_FORMAT_D32_SFLOAT, 2, 1002),
-        15 => (vk::VkFormat_VK_FORMAT_D24_UNORM_S8_UINT, 6, 1003),
-        16 => (vk::VkFormat_VK_FORMAT_D32_SFLOAT_S8_UINT, 6, 1004),
-        17 => (vk::VkFormat_VK_FORMAT_R32G32_SFLOAT, 1, 64),
-        18 => (vk::VkFormat_VK_FORMAT_R32G32B32_SFLOAT, 1, 96),
-        19 => (vk::VkFormat_VK_FORMAT_R16G16B16A16_UNORM, 1, 64),
-        _ => return Err(UNSUPPORTED),
+impl Format {
+    pub(super) fn integer_color(self) -> bool {
+        matches!(self.numeric, Numeric::Uint | Numeric::Sint)
+    }
+    fn copy_bytes(self, aspect: u32) -> Result<u64, Status> {
+        if aspect & self.aspects == 0 || !aspect.is_power_of_two() {
+            return Err(INVALID);
+        }
+        Ok(match aspect {
+            1 => u64::from(self.class / 8),
+            2 => self.depth_bytes,
+            4 => 1,
+            _ => return Err(INVALID),
+        })
+    }
+}
+macro_rules! define_formats {
+    ($($name:ident = $id:literal => ($native:ident, $aspects:literal, $class:literal, $numeric:ident, $depth:literal),)*) => {
+        pub(super) const FORMATS: &[Format] = &[$(Format {
+            native: vk::$native, aspects: $aspects, class: $class,
+            numeric: Numeric::$numeric, depth_bytes: $depth,
+        },)*];
     };
-    Ok(Format {
-        native,
-        aspects,
-        class,
-    })
+}
+crate::foundation::format_catalog::format_catalog!(define_formats);
+pub(super) fn format(id: u32) -> Result<Format, Status> {
+    FORMATS
+        .get(id.wrapping_sub(1) as usize)
+        .copied()
+        .ok_or(UNSUPPORTED)
 }
 fn usage(value: u64, aspects: u32) -> Result<u32, Status> {
     if value & !255 != 0 {
@@ -121,6 +134,13 @@ fn copy_pitches(
         u32::try_from(slice / row).map_err(|_| UNSUPPORTED)?,
         size,
     ))
+}
+
+fn copy_address_aligned(address: u64, aspect: u32, texel: u64, queue_flags: u32) -> bool {
+    // Both constraints apply on transfer-only queues. max(texel, 4) is wrong
+    // for three/six-byte RGB texels: neither 4 nor 6 is their common alignment.
+    address % if aspect == 1 { texel } else { 4 } == 0
+        && (queue_flags & (GRAPHICS | COMPUTE) != 0 || address % 4 == 0)
 }
 
 fn copy_bounds(
@@ -641,7 +661,9 @@ impl Image {
                 return Err(UNSUPPORTED);
             }
             let value = unsafe { value.depth_stencil };
-            if !value.depth.is_finite() || !(0.0..=1.0).contains(&value.depth) {
+            if range.aspectMask & 2 != 0
+                && (!value.depth.is_finite() || !(0.0..=1.0).contains(&value.depth))
+            {
                 return Err(INVALID);
             }
             let clear = vk::VkClearDepthStencilValue {
@@ -837,15 +859,7 @@ impl Image {
         if r.aspect != 1 && queue.flags & GRAPHICS == 0 {
             return Err(UNSUPPORTED);
         }
-        let texel = if r.aspect == 1 {
-            u64::from(format(desc.format)?.class / 8)
-        } else if r.aspect == 4 {
-            1
-        } else if desc.format == 13 {
-            2
-        } else {
-            4
-        };
+        let texel = format(desc.format)?.copy_bytes(r.aspect)?;
         let (subresource, offset, extent) = self.transfer_region(r, queue.copy_granularity)?;
         let (row_texels, slice_rows, size) = copy_pitches(
             r.extent,
@@ -865,13 +879,7 @@ impl Image {
             span.size,
             if to_image { 1 } else { 2 },
         )?;
-        // Address copies obey the same texel-block / depth-stencil alignment rules.
-        let alignment = if r.aspect != 1 || queue.flags & (GRAPHICS | COMPUTE) == 0 {
-            texel.max(4)
-        } else {
-            texel
-        };
-        if address % alignment != 0 {
+        if !copy_address_aligned(address, r.aspect, texel, queue.flags) {
             return Err(INVALID);
         }
         let region = vk::VkDeviceMemoryImageCopyKHR {

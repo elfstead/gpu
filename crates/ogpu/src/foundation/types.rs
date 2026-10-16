@@ -2,6 +2,26 @@
 use super::{Adapter, Device, Discovery, Queue, Timeline};
 use std::ffi::{c_char, c_void};
 
+/// Backend-independent format IDs, matching the C header. An ID does not imply
+/// device support: query format features and the exact image profile before use.
+pub mod image_formats {
+    macro_rules! declare_formats {
+        ($($name:ident = $id:literal => ($native:ident, $aspects:literal, $class:literal, $numeric:ident, $depth:literal),)*) => {
+            $(pub const $name: u32 = $id;)*
+            #[cfg(test)]
+            #[test]
+            fn c_ids_match_catalog() {
+                let header = include_str!("../../../../include/ogpu_next.h");
+                let mut expected = 1;
+                $(assert_eq!($id, expected); expected += 1;
+                  assert!(header.contains(&format!("OGPU_NEXT_{} = {},", stringify!($name), $id)));)*
+                assert_eq!(expected, 119);
+            }
+        };
+    }
+    crate::foundation::format_catalog::format_catalog!(declare_formats);
+}
+
 pub const VERSION: u32 = 1;
 pub type Status = i32;
 pub const OK: Status = 0;

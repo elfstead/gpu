@@ -204,16 +204,25 @@ pub(super) unsafe fn prepare(
         if c.format == 0 {
             continue;
         }
-        sample_mask &= if c.format == 11 {
+        sample_mask &= if images::format(c.format)?.integer_color() {
             p.integer_color_samples
         } else {
             p.color_samples
         };
     }
-    if state.depth_format != 0 {
+    let aspects = if state.depth_format == 0 {
+        0
+    } else {
+        images::format(state.depth_format)?.aspects
+    };
+    let has_depth = aspects & 2 != 0;
+    let has_stencil = aspects & 4 != 0;
+    if (state.depth_test != 0 || state.depth_write != 0) && !has_depth {
+        return Err(INVALID);
+    }
+    if has_depth {
         sample_mask &= p.depth_samples;
     }
-    let has_stencil = matches!(state.depth_format, 15 | 16);
     if has_stencil {
         sample_mask &= p.stencil_samples;
     }
@@ -357,7 +366,7 @@ pub(super) unsafe fn prepare(
         0
     } else {
         let f = images::format(state.depth_format)?;
-        if f.aspects & 2 == 0 {
+        if f.aspects & 6 == 0 {
             return Err(UNSUPPORTED);
         }
         let mut props = vk::VkFormatProperties::default();
@@ -615,7 +624,7 @@ pub(super) unsafe fn prepare(
         pNext: ptr::from_ref(&flags).cast(),
         colorAttachmentCount: formats.len() as u32,
         pColorAttachmentFormats: formats.as_ptr(),
-        depthAttachmentFormat: depth_format,
+        depthAttachmentFormat: if has_depth { depth_format } else { 0 },
         stencilAttachmentFormat: if has_stencil { depth_format } else { 0 },
         ..Default::default()
     };

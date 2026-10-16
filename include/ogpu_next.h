@@ -463,8 +463,16 @@ void ogpu_next_memory_unmap(ogpu_next_memory *);
 ogpu_next_status ogpu_next_memory_flush(ogpu_next_span);
 ogpu_next_status ogpu_next_memory_invalidate(ogpu_next_span);
 
-/* Image format IDs are OGPU values, not backend enum passthrough. This initial
- * table is a supported subset, not the full format/capability surface. */
+/* Format IDs are OGPU values, not backend enum passthrough. Existing IDs retain
+ * their values. The table covers Vulkan 1.0 core uncompressed formats with up to
+ * 32-bit components, including scaled vertex formats and packed color/depth/stencil.
+ * This vocabulary does NOT imply device support for any usage. Query FORMATS,
+ * then exact image-profile limits/requirements; unsupported combinations reject.
+ * PACK8/16/32 names list components from high to low bits of the packed word,
+ * following the corresponding native format (X = unused, E = shared exponent).
+ * Other color names list components in increasing memory order. No channel
+ * rearrangement, conversion or decompression is implicit. Compressed, multiplanar,
+ * 64-bit-component and extension-specific formats remain separate profiles. */
 enum {
     OGPU_NEXT_R8_UNORM = 1, OGPU_NEXT_RG8_UNORM = 2,
     OGPU_NEXT_RGBA8_UNORM = 3, OGPU_NEXT_RGBA8_SRGB = 4,
@@ -474,7 +482,106 @@ enum {
     OGPU_NEXT_D16_UNORM = 13, OGPU_NEXT_D32_FLOAT = 14,
     OGPU_NEXT_D24_UNORM_S8_UINT = 15, OGPU_NEXT_D32_FLOAT_S8_UINT = 16,
     OGPU_NEXT_RG32_FLOAT = 17, OGPU_NEXT_RGB32_FLOAT = 18,
-    OGPU_NEXT_RGBA16_UNORM = 19
+    OGPU_NEXT_RGBA16_UNORM = 19,
+    OGPU_NEXT_R4G4_UNORM_PACK8 = 20,
+    OGPU_NEXT_R4G4B4A4_UNORM_PACK16 = 21,
+    OGPU_NEXT_B4G4R4A4_UNORM_PACK16 = 22,
+    OGPU_NEXT_R5G6B5_UNORM_PACK16 = 23,
+    OGPU_NEXT_B5G6R5_UNORM_PACK16 = 24,
+    OGPU_NEXT_R5G5B5A1_UNORM_PACK16 = 25,
+    OGPU_NEXT_B5G5R5A1_UNORM_PACK16 = 26,
+    OGPU_NEXT_A1R5G5B5_UNORM_PACK16 = 27,
+    OGPU_NEXT_R8_SNORM = 28,
+    OGPU_NEXT_R8_USCALED = 29,
+    OGPU_NEXT_R8_SSCALED = 30,
+    OGPU_NEXT_R8_UINT = 31,
+    OGPU_NEXT_R8_SINT = 32,
+    OGPU_NEXT_R8_SRGB = 33,
+    OGPU_NEXT_RG8_SNORM = 34,
+    OGPU_NEXT_RG8_USCALED = 35,
+    OGPU_NEXT_RG8_SSCALED = 36,
+    OGPU_NEXT_RG8_UINT = 37,
+    OGPU_NEXT_RG8_SINT = 38,
+    OGPU_NEXT_RG8_SRGB = 39,
+    OGPU_NEXT_RGB8_UNORM = 40,
+    OGPU_NEXT_RGB8_SNORM = 41,
+    OGPU_NEXT_RGB8_USCALED = 42,
+    OGPU_NEXT_RGB8_SSCALED = 43,
+    OGPU_NEXT_RGB8_UINT = 44,
+    OGPU_NEXT_RGB8_SINT = 45,
+    OGPU_NEXT_RGB8_SRGB = 46,
+    OGPU_NEXT_BGR8_UNORM = 47,
+    OGPU_NEXT_BGR8_SNORM = 48,
+    OGPU_NEXT_BGR8_USCALED = 49,
+    OGPU_NEXT_BGR8_SSCALED = 50,
+    OGPU_NEXT_BGR8_UINT = 51,
+    OGPU_NEXT_BGR8_SINT = 52,
+    OGPU_NEXT_BGR8_SRGB = 53,
+    OGPU_NEXT_RGBA8_SNORM = 54,
+    OGPU_NEXT_RGBA8_USCALED = 55,
+    OGPU_NEXT_RGBA8_SSCALED = 56,
+    OGPU_NEXT_RGBA8_UINT = 57,
+    OGPU_NEXT_RGBA8_SINT = 58,
+    OGPU_NEXT_BGRA8_SNORM = 59,
+    OGPU_NEXT_BGRA8_USCALED = 60,
+    OGPU_NEXT_BGRA8_SSCALED = 61,
+    OGPU_NEXT_BGRA8_UINT = 62,
+    OGPU_NEXT_BGRA8_SINT = 63,
+    OGPU_NEXT_A8B8G8R8_UNORM_PACK32 = 64,
+    OGPU_NEXT_A8B8G8R8_SNORM_PACK32 = 65,
+    OGPU_NEXT_A8B8G8R8_USCALED_PACK32 = 66,
+    OGPU_NEXT_A8B8G8R8_SSCALED_PACK32 = 67,
+    OGPU_NEXT_A8B8G8R8_UINT_PACK32 = 68,
+    OGPU_NEXT_A8B8G8R8_SINT_PACK32 = 69,
+    OGPU_NEXT_A8B8G8R8_SRGB_PACK32 = 70,
+    OGPU_NEXT_A2R10G10B10_UNORM_PACK32 = 71,
+    OGPU_NEXT_A2R10G10B10_SNORM_PACK32 = 72,
+    OGPU_NEXT_A2R10G10B10_USCALED_PACK32 = 73,
+    OGPU_NEXT_A2R10G10B10_SSCALED_PACK32 = 74,
+    OGPU_NEXT_A2R10G10B10_UINT_PACK32 = 75,
+    OGPU_NEXT_A2R10G10B10_SINT_PACK32 = 76,
+    OGPU_NEXT_A2B10G10R10_UNORM_PACK32 = 77,
+    OGPU_NEXT_A2B10G10R10_SNORM_PACK32 = 78,
+    OGPU_NEXT_A2B10G10R10_USCALED_PACK32 = 79,
+    OGPU_NEXT_A2B10G10R10_SSCALED_PACK32 = 80,
+    OGPU_NEXT_A2B10G10R10_UINT_PACK32 = 81,
+    OGPU_NEXT_A2B10G10R10_SINT_PACK32 = 82,
+    OGPU_NEXT_R16_UNORM = 83,
+    OGPU_NEXT_R16_SNORM = 84,
+    OGPU_NEXT_R16_USCALED = 85,
+    OGPU_NEXT_R16_SSCALED = 86,
+    OGPU_NEXT_R16_UINT = 87,
+    OGPU_NEXT_R16_SINT = 88,
+    OGPU_NEXT_RG16_UNORM = 89,
+    OGPU_NEXT_RG16_SNORM = 90,
+    OGPU_NEXT_RG16_USCALED = 91,
+    OGPU_NEXT_RG16_SSCALED = 92,
+    OGPU_NEXT_RG16_UINT = 93,
+    OGPU_NEXT_RG16_SINT = 94,
+    OGPU_NEXT_RGB16_UNORM = 95,
+    OGPU_NEXT_RGB16_SNORM = 96,
+    OGPU_NEXT_RGB16_USCALED = 97,
+    OGPU_NEXT_RGB16_SSCALED = 98,
+    OGPU_NEXT_RGB16_UINT = 99,
+    OGPU_NEXT_RGB16_SINT = 100,
+    OGPU_NEXT_RGB16_FLOAT = 101,
+    OGPU_NEXT_RGBA16_SNORM = 102,
+    OGPU_NEXT_RGBA16_USCALED = 103,
+    OGPU_NEXT_RGBA16_SSCALED = 104,
+    OGPU_NEXT_RGBA16_UINT = 105,
+    OGPU_NEXT_RGBA16_SINT = 106,
+    OGPU_NEXT_R32_SINT = 107,
+    OGPU_NEXT_RG32_UINT = 108,
+    OGPU_NEXT_RG32_SINT = 109,
+    OGPU_NEXT_RGB32_UINT = 110,
+    OGPU_NEXT_RGB32_SINT = 111,
+    OGPU_NEXT_RGBA32_UINT = 112,
+    OGPU_NEXT_RGBA32_SINT = 113,
+    OGPU_NEXT_B10G11R11_UFLOAT_PACK32 = 114,
+    OGPU_NEXT_E5B9G9R9_UFLOAT_PACK32 = 115,
+    OGPU_NEXT_X8_D24_UNORM_PACK32 = 116,
+    OGPU_NEXT_S8_UINT = 117,
+    OGPU_NEXT_D16_UNORM_S8_UINT = 118,
 };
 enum { OGPU_NEXT_IMAGE_1D = 1, OGPU_NEXT_IMAGE_2D = 2, OGPU_NEXT_IMAGE_3D = 3 };
 enum { OGPU_NEXT_ASPECT_COLOR = 1, OGPU_NEXT_ASPECT_DEPTH = 2, OGPU_NEXT_ASPECT_STENCIL = 4 };
@@ -1250,9 +1357,11 @@ typedef struct ogpu_next_vertex_input {
  * Supplied shaders provide identical full argument interfaces; root visibility is
  * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
- * Format count may be zero or up to max_colors; format=0 means no depth, otherwise
- * D16/D32 or combined D24S8/D32S8. Combined formats declare both depth and stencil
- * pipeline attachment formats. Stencil testing requires a combined format;
+ * Color format count may be zero or up to max_colors. depth_format selects the
+ * depth/stencil attachment format: 0 means neither, S8 means stencil only, and
+ * depth-only/combined formats declare their actual aspects. No depth attachment
+ * or depth sample-mask restriction is added for S8; depth test/write requires a
+ * depth aspect. Stencil testing requires a stencil aspect;
  * front/back operations, masks and reference are explicit static pipeline state.
  * samples is a single supported count bit (1/2/4/8/16/32/64), selected
  * from the intersection of the corresponding graphics sample masks. Integer

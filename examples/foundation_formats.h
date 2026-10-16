@@ -1,6 +1,7 @@
 /* Physical discovery is distinct from per-description placement requirements. */
 static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_device *device) {
     int result = EXIT_FAILURE;
+    ogpu_next_format_info *physical = NULL, *enabled = NULL, *saved = NULL;
     ogpu_next_float_controls float_physical = {0}, float_device = {0};
     ogpu_next_query fq = query(OGPU_NEXT_QUERY_FLOAT_CONTROLS,NULL,0,sizeof(float_physical));
     TRY(ogpu_next_adapter_query(adapter,&fq)); REQUIRE(fq.count == 1);
@@ -15,16 +16,18 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     REQUIRE(memcmp(&float_device,&float_saved,sizeof(float_device)) == 0);
     printf("Float controls: binary16=%u binary32=%u binary64=%u; denorm independence=%u rounding independence=%u (capabilities, not selected policy).\n",
         float_physical.binary16,float_physical.binary32,float_physical.binary64,float_physical.denorm_independence,float_physical.rounding_independence);
-    ogpu_next_format_info physical[32], enabled[32], saved[32];
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FORMATS, NULL, 0, sizeof(physical[0]));
     TRY(ogpu_next_adapter_query(adapter, &q));
     uint32_t count = q.count;
-    REQUIRE(count > 1 && count <= 32);
-    memset(physical, 0xa5, sizeof(physical)); memcpy(saved, physical, sizeof(physical));
+    REQUIRE(count == 118);
+    size_t bytes = count * sizeof(*physical);
+    physical = malloc(bytes); enabled = malloc(bytes); saved = malloc(bytes);
+    REQUIRE(physical && enabled && saved);
+    memset(physical, 0xa5, bytes); memcpy(saved, physical, bytes);
     q.data = physical; q.capacity = count - 1;
     REQUIRE(ogpu_next_adapter_query(adapter, &q) == OGPU_NEXT_CAPACITY && q.count == count);
-    REQUIRE(memcmp(physical, saved, sizeof(physical)) == 0);
-    q.capacity = 32; TRY(ogpu_next_adapter_query(adapter, &q));
+    REQUIRE(memcmp(physical, saved, bytes) == 0);
+    q.capacity = count; TRY(ogpu_next_adapter_query(adapter, &q));
     q.data = enabled; TRY(ogpu_next_device_query(device, &q));
     REQUIRE(q.count == count && memcmp(physical, enabled, count*sizeof(physical[0])) == 0);
     for (uint32_t i = 0; i < count; ++i) {
@@ -64,5 +67,6 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     printf("Format discovery passes: immutable adapter/device capabilities, capacity atomicity, exact image-profile limits and unchanged failure outputs.\n");
     result = EXIT_SUCCESS;
 cleanup:
+    free(physical); free(enabled); free(saved);
     return result;
 }

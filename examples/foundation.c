@@ -91,6 +91,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_alias.h"
 #include "foundation_cube.h"
 #include "foundation_formats.h"
+#include "foundation_format_matrix.h"
 #include "foundation_split.h"
 #include "foundation_raster_storage.h"
 #include "foundation_mrt.h"
@@ -1052,6 +1053,7 @@ int main(int argc, char **argv) {
     for (uint32_t mode = OGPU_NEXT_ONE_SHOT; mode <= OGPU_NEXT_SIMULTANEOUS_REPLAY; ++mode)
         REQUIRE(split_execution(device, memory_desc, graphics_domain, mode) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
+    REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(dual_source_execution(device,memory_desc,graphics_domain,argv[3],argv[14]) == EXIT_SUCCESS);
     for (uint32_t mode = 0; mode <= 6; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
