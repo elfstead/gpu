@@ -1,4 +1,4 @@
-//! Hidden-window setup probe, or bounded two-window lifecycle with --present.
+//! Wayland setup/lifecycle probes and an interactive or bounded textured scene.
 //! GLFW is an application dependency, not part of the OGPU implementation.
 use libloading::Library;
 use ogpu::foundation::{rust as gpu, types::*};
@@ -8,6 +8,8 @@ use std::{
 };
 #[path = "../presentation.rs"]
 mod presentation;
+#[path = "../scene.rs"]
+mod scene;
 
 struct Window {
     handle: *mut c_void,
@@ -18,6 +20,54 @@ struct Window {
     _library: Library,
 }
 impl Window {
+    fn framebuffer(&self) -> [u32; 2] {
+        let (mut w, mut h) = (0, 0);
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(*mut c_void, *mut i32, *mut i32)>(
+                    b"glfwGetFramebufferSize\0",
+                )
+                .unwrap()(self.handle, &mut w, &mut h);
+        }
+        [w.max(0) as u32, h.max(0) as u32]
+    }
+    fn resize(&self, size: [u32; 2]) {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(*mut c_void, i32, i32)>(b"glfwSetWindowSize\0")
+                .unwrap()(self.handle, size[0] as i32, size[1] as i32);
+        }
+    }
+    fn key(&self, key: i32) -> bool {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(*mut c_void, i32) -> i32>(b"glfwGetKey\0")
+                .unwrap()(self.handle, key)
+                == 1
+        }
+    }
+    fn closing(&self) -> bool {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(*mut c_void) -> i32>(b"glfwWindowShouldClose\0")
+                .unwrap()(self.handle)
+                != 0
+        }
+    }
+    fn request_close(&self) {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(*mut c_void, i32)>(b"glfwSetWindowShouldClose\0")
+                .unwrap()(self.handle, 1);
+        }
+    }
+    fn wait_events(&self) {
+        unsafe {
+            self._library
+                .get::<unsafe extern "C" fn(f64)>(b"glfwWaitEventsTimeout\0")
+                .unwrap()(0.01);
+        }
+    }
     fn show_and_poll(&self) {
         unsafe {
             self._library
@@ -360,6 +410,18 @@ pub fn run() {
     );
 }
 fn main() {
+    if let Some(mode) = std::env::args().find_map(|arg| match arg.as_str() {
+        "--scene" => Some(scene::Mode::Interactive),
+        "--scene-check" => Some(scene::Mode::Check),
+        "--scene-smoke" => Some(scene::Mode::Smoke),
+        _ => None,
+    }) {
+        if let Err(status) = unsafe { scene::run(mode) } {
+            eprintln!("scene failed: {status}; retaining potentially pending resources until process exit");
+            std::process::exit(1);
+        }
+        return;
+    }
     if std::env::args().any(|arg| arg == "--present") {
         // On uncertain execution failure, exit without unwinding GPU/native-window
         // owners. This probe is not a general application's recovery framework.

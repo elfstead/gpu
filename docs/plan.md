@@ -1,12 +1,14 @@
 # Working status and next milestone
 
-Updated 2026-10-15. **M1–M5 and foundation-contract consolidation are complete for
+Updated 2026-10-16. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
 before M6 Metal foundation. P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
 dependencies are implemented. Borrowed swapchain images and acquire/present/release
-now pass a bounded two-window lifecycle probe. The interactive scene remains next;
-M6 implementation has not started.**
+now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
+is implemented; bounded pixel/lifecycle checks pass with three frame slots and
+observed framebuffer resizes. Independent packaging and human interaction/minimize/
+restore acceptance remain; M6 implementation has not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -78,9 +80,11 @@ remain visible. Headless setup is unchanged. See the
 [device/mode-query follow-up](results/p1-presentation-profile-2026-10-15.md).
 
 Current checks: 55 host unit plus two host surface-coverage tests, 19 headless GPU
-unit tests plus native Rust consumer per driver, separate Wayland setup and live
-presentation probes per driver, strict Clippy, 1,122 C/Rust ABI layout values, and the full C fixture on
-Radeon. Presentation enabling now uses the ordinary device feature mask; no window
+unit tests plus native Rust consumer per driver, three Wayland integration tests
+(setup, lifecycle, textured scene) per driver, two standalone scene host tests and
+strict Clippy. The preceding runtime checkpoint passed 1,122 C/Rust ABI layout
+values and the full C fixture on Radeon; this scene adds no runtime/header changes.
+Presentation enabling now uses the ordinary device feature mask; no window
 or implicit queue choice is required. Per-mode image-count/scaling/compatibility
 queries preserve the caller's strategy: local FIFO/IMMEDIATE need at least three
 images, MAILBOX four. These counts require matching explicit mode-list creation.
@@ -96,9 +100,16 @@ presentation retirement, old-chain replacement and unused-image release. The pro
 selects MAILBOX explicitly: native FIFO presentation stalled with two windows;
 compositor throttling is suspected, not a proven driver diagnosis. No fallback is
 hidden in OGPU. llvmpipe also executes presentation transitions with unified layouts.
-Next: the textured interactive Rust consumer, multiple frames in flight and actual
-resize/minimize/restore handling. No interactive, scanout, real-loss recovery or
-cross-family presentation acceptance yet; M6 remains after P1.
+The [interactive scene receipt](results/p1-interactive-scene-2026-10-16.md) now adds
+native Rust indexed/depth/textured/blended rendering, three caller-owned slots,
+observed framebuffer resizing and close with pending slots. Both a guarded pixel
+oracle and the normal no-readback path pass bounded runs on both drivers. Input
+controls are implemented but not human-accepted. Synthetic zero extent exercises
+the suspension branch; Wayland GLFW cannot report iconification or restore a window,
+so actual minimize/restore remains a manual compositor exercise.
+Next: package the Rust consumer and its shader dependencies for an isolated build,
+and supply a human acceptance checklist. No scanout, real-loss recovery or cross-family
+presentation acceptance yet; M6 remains after P1.
 
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
 consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on

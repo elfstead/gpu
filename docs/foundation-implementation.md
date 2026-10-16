@@ -23,7 +23,10 @@ Explicit binary submission dependencies and reusable fence lifecycle now have
 and C, with no hidden timeline bridge. Borrowed swapchain images, acquire/present/
 release and retirement now have [bounded live acceptance](results/p1-swapchain-lifecycle-2026-10-15.md)
 on both drivers, with C failure/lowering checks through the shared backend.
-Interactive scene/resize/minimize acceptance remains; M6 has not started.
+The [native Rust interactive scene](results/p1-interactive-scene-2026-10-16.md)
+now passes bounded pixel/no-readback runs, three-slot reuse, observed framebuffer
+resize and pending-close retirement. Independent packaging and human interaction/
+minimize/restore acceptance remain; M6 has not started.
 Dated record sizes/test counts
 and “source-only” language below describe their development checkpoints; the public
 header and default SDK own today's exact layouts, not those historical values.

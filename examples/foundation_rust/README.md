@@ -39,8 +39,9 @@ The native surface now has equivalents for every currently exported foundation C
 operation, including graphics, queries, split dependencies and secondary lists.
 An integration test compile-checks that correspondence against the C header and
 guards against routing native operations through C entry points. This is operation
-coverage, not a claim that this consumer exercises every operation: raster, query,
+coverage, not a claim that this consumer exercises every operation: query,
 secondary and split execution still rely on the existing shared-backend/C fixtures.
+The windowed scene below exercises indexed/depth/textured/blended raster.
 Some descriptions use versioned records and raw embedded pointers from
 `foundation::types`; ergonomic typed descriptions and generated Rust shader layouts
 remain possible follow-ups. This example explicitly asserts its known root layout.
@@ -105,3 +106,49 @@ On uncertain GPU errors this executable exits without tearing down potentially
 pending objects/native windows. Ordinary successful teardown explicitly retires
 all work; no wait-on-drop or device-idle teardown is introduced into OGPU.
 See the [receipt](../../docs/results/p1-swapchain-lifecycle-2026-10-15.md).
+
+## Interactive textured scene
+
+```sh
+OGPU_GLFW_LIBRARY=/path/to/libglfw.so.3 cargo run \
+  --manifest-path examples/foundation_rust/Cargo.toml --locked --bin surface -- --scene
+```
+
+WASD pans, Q/E zooms, 1–4 selects a mip, Space pauses rendering, Escape closes.
+Two indexed quads use depth testing, mipmapped nearest sampling and a scissored
+alpha-blended overlay. This is an application example, not an engine or a runtime
+frame scheduler. It explicitly chooses MAILBOX and a graphics/present-capable queue,
+RGBA8/BGRA8 UNORM with SDR color space, D32 depth and three reusable frame slots.
+Those are consumer choices, not OGPU requirements or silent backend fallbacks.
+
+Each slot owns its geometry/depth storage, command arena, acquire/render binaries,
+render timeline value and present-retirement fence. Reuse waits only for that slot;
+resize, suspension and normal close explicitly drain all slots. A new swapchain
+generation replaces the old chain after retirement. Zero framebuffer extents and
+Space pause suspend acquisition. Out-of-date/suboptimal causes replacement; uncertain
+errors terminate without freeing potentially pending objects. This does not implement
+surface/device-loss recovery. Normal rendering has no pixel readback, per-frame
+application heap allocation or device-idle wait; native presentation can still block.
+
+`build.rs` embeds the existing M4 SPIR-V arrays from
+`../graphics_scene/textured_scene.generated.h` and checks its known 24-byte argument
+layout against the Rust record. No C/shader compiler or runtime reflection is used.
+Keep that sibling file (and the default compute shader above) when copying this
+package. This narrow bridge is not general generated Rust shader-layout support.
+
+For bounded automated runs, replace `--scene` with:
+
+- `--scene-check`: 18 frames, scripted pan/zoom/mip changes, two observed framebuffer
+  resizes, one synthetic zero-extent suspension, and close with unretired slots.
+  Copies rendered images into per-slot buffers and checks sampled pixels against
+  CPU texture/depth/blend equations, plus guard bytes.
+- `--scene-smoke`: the same lifecycle using the normal no-readback recording path.
+
+Both are included in the ignored `presentation` integration tests above; GNU
+`timeout` bounds subprocesses. `SCENE_PASS` reports application-unretired slots,
+not simultaneous GPU execution or displayed/scanout correctness. Pixel sample and
+replacement counts can vary with compositor sizing. Interactive keyboard input
+is not synthesized by these checks. GLFW on Wayland cannot report iconification
+or restore a minimized window; synthetic zero extent is **not** evidence of actual
+minimize/restore. See [GLFW's window guide](https://www.glfw.org/docs/latest/window_guide.html)
+and the [scene receipt](../../docs/results/p1-interactive-scene-2026-10-16.md).

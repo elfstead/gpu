@@ -3,8 +3,9 @@
 Scheduled 2026-10-15, before M6. **Native Rust operation extraction and optional
 Wayland surface setup, device enabling, mode queries, binary submission dependencies
 and fence lifecycle implemented. Swapchain acquire/present/release has bounded
-two-window native acceptance; the interactive scene and resize/minimize acceptance
-remain next.**
+two-window native acceptance. The interactive textured Rust scene now passes
+bounded three-slot, framebuffer-resize, pixel and no-readback checks; independent
+packaging and human interaction/minimize/restore acceptance remain.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
@@ -63,6 +64,16 @@ textured scene, multi-frame scheduler or resize/minimize acceptance. Native FIFO
 presentation stalled in the two-window probe; explicit MAILBOX completes on both
 drivers. The consumer selects the mode, never the runtime. The table is mutable
 and grows with implemented operations, not null/unimplemented functions.
+
+The [2026-10-16 scene checkpoint](results/p1-interactive-scene-2026-10-16.md) adds
+indexed/depth/mipmapped/blended raster and camera controls through native Rust.
+Three explicit slots separate render retirement from presentation retirement.
+Both local drivers pass 18-frame pixel-checking and no-readback variants, two
+observed framebuffer resizes, synthetic zero-extent suspension and close with
+pending slots. These are not human input or real minimize/restore observations.
+GLFW's Wayland backend cannot report iconification or programmatically restore it;
+manual compositor interaction is the acceptance route, not a fabricated callback.
+Next package the source/shader dependencies independently and provide that checklist.
 
 ### Opening step: first-class native Rust, then presentation
 

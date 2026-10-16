@@ -229,6 +229,8 @@ fn native_operations_do_not_call_c_adapters() {
         include_str!("../../../examples/foundation_rust/src/extended.rs"),
         include_str!("../../../examples/foundation_rust/src/synchronization.rs"),
         include_str!("../../../examples/foundation_rust/src/presentation.rs"),
+        include_str!("../../../examples/foundation_rust/src/scene.rs"),
+        include_str!("../../../examples/foundation_rust/src/scene_resources.rs"),
     ] {
         // Unit tests intentionally compare a C entry point; production does not.
         let production = source.split("#[cfg(test)]").next().unwrap();

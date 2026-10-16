@@ -1,11 +1,12 @@
 # P1 native presentation mapping
 
-Selected 2026-10-15. **Bounded swapchain lifecycle implemented; interactive acceptance remains.**
+Selected 2026-10-15; scene checkpoint 2026-10-16. **Swapchain lifecycle and interactive
+scene implemented; bounded execution passes, human acceptance remains.**
 Native Rust extraction, optional Wayland surface setup, device enabling, mode
 queries, binary submission dependencies, fence lifecycle, swapchain borrowing and
 acquire/present/release are implemented.
 The [public header](../include/ogpu_next.h) owns exact implemented records; the
-remaining scene/resize/minimize work below is not claimed as accepted.
+remaining human interaction/minimize/restore work below is not claimed as accepted.
 
 Current checkpoint: pinned Vulkan 1.4.357 WSI/fence declarations plus the new public
 setup/synchronization/presentation records pass C/Rust ABI comparison (1,122 layout values). The versioned C
@@ -31,7 +32,12 @@ The initial profile supports ordinary non-protected, non-mutable-format swapchai
 native modes 0–3, explicit exclusive/concurrent sharing and optional creation mode
 lists. Scaling, runtime mode switching, shared-present and latest-ready remain
 unimplemented profiles; unsupported choices are not substituted. The current
-consumer serially retires each frame; multi-frame/interactive acceptance remains.
+two-window consumer serially retires each frame. The separate
+[textured scene](results/p1-interactive-scene-2026-10-16.md) now uses three explicit
+slots, observed framebuffer resizing and distinct render/present retirement.
+Bounded pixel and no-readback runs pass; real minimize/restore and human interaction
+remain. GLFW cannot report Wayland iconification, so zero-extent suspension is tested
+synthetically, not represented as a compositor minimize/restore observation.
 
 Queries are explicitly cold-path: dynamic enumeration can allocate temporary
 storage and retry changing counts, without GPU waits. They preserve output on
