@@ -10,8 +10,10 @@ are complete for their declared scopes. Sequence revised 2026-10-15: next is
 presentation. P1 opens with extraction of the native Rust core below the C ABI;
 native Rust, optional Wayland setup and bounded swapchain lifecycle execution are
 implemented. The textured Rust scene passes bounded multi-slot rendering and resize
-checks; packaging and human interaction/minimize/restore acceptance remain. M6 has
-not started.
+checks. As of 2026-10-17, isolated native Rust packaging passes and human checks
+confirm controls, resize, pause and close; resume and real minimize/restore remain
+unverified. M6's [native mapping proposal](m6-native-mapping.md) is drafted;
+foundation backend implementation and native acceptance have not started.
 M8–M11 below schedule the remaining hardware
 families; completed M1–M5 gates are not reopened.
 This is a concrete plan, not authorization to publish releases, provision machines
@@ -50,8 +52,8 @@ compatibility are not completed by those results.
 | M4 — Substantial graphics consumer | Textured scene with depth, indexed geometry, mipmapped sampling and blending; separate presentation boundary | Offscreen complete at `43bb9f0`; [native-matched and independent SDK acceptance](textured-scene-plan.md#clean-m4-offscreen-acceptance); presentation separate |
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
-| P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle and textured three-slot scene/resize checks pass; [independent packaging and human interaction/minimize/restore remain](presentation-plan.md) |
-| M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | After P1, not started: [entry handoff](m6-entry.md); native execution needs a Mac |
+| P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
+| M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md), backend not implemented; native execution needs a Mac |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
 | M8 — Advanced raster and GPU-driven execution | Task/mesh, generated commands and explicit advanced raster profiles | Scheduled after M6; native profile execution needs supporting hardware |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
@@ -313,6 +315,11 @@ Radeon's lack of exposed cooperative-matrix support cannot be fixed by host API
 design; mocks are rejection tests, not acceleration evidence.
 
 ## M6 — Metal parity for a mixed application
+
+The [native mapping proposal](m6-native-mapping.md) supplies the first design
+checkpoint: native argument profiles, explicit residency, conservative one-shot
+scope pending replay guarantees, and native queue/presentation semantics. These
+are design dispositions, not support claims or a completed migration.
 
 Target the learned-image application first, not every Vulkan graphics feature:
 RGBA8 offscreen targets, compute-to-fragment address reads, indirect fullscreen

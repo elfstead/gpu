@@ -25,7 +25,7 @@ No finite suite proves universal native-performance equivalence.
 | Prepared execution/state | Explicit pipeline preparation, independent native caches, fail-if-compilation-required, supported static/dynamic raster state | **No command-time compilation or hidden variant cache.** More dynamic state, pipeline binaries and native artifact forms remain open. Pipeline-cache bytes are not portable binaries. |
 | Numerical/compiler freedom | Trusted SPIR-V plus explicit optional feature/local/shared/subgroup requirements; pinned generated Slang interfaces | **Preserved for declared profiles.** M5 uses baseline storage16/FP32 by explicit choice. Matrix tuple discovery exists, but no local cooperative-matrix execution. Dynamic shared-memory launch is unsupported, not emulated with hidden JIT. |
 | Synchronization/loss | Exact scopes and explicit same-queue split objects, caller retirement, immediate destruction | **No hidden hazard analysis or waits.** Timeout is not retirement; narrow signal is not whole-list completion; unknown submission failure poisons the device. Synthetic failures are not actual device-loss/recovery evidence. |
-| Portability | Common concepts with explicit backend/artifact-specific profiles | **M6 not started.** Existing Metal compute is legacy, not foundation. Do not emulate Vulkan replay/inline semantics or hide Metal residency work to manufacture parity. |
+| Portability | Common concepts with explicit backend/artifact-specific profiles | **M6 mapping proposed, foundation backend not implemented.** See the [native mapping](m6-native-mapping.md). Existing Metal compute is legacy, not foundation. Do not emulate Vulkan replay/inline semantics or hide Metal residency work to manufacture parity. |
 
 ## Code and execution basis
 

@@ -1,8 +1,10 @@
 # M6 entry handoff: Metal foundation
 
-Updated 2026-10-15. M5 and the [contract consolidation](core-contract-review.md)
+Updated 2026-10-17. M5 and the [contract consolidation](core-contract-review.md)
 are complete; [P1 presentation](presentation-plan.md) now precedes this migration.
-**No M6 implementation has started.** The earlier requested stop at this handoff
+**M6 mapping design has started; no foundation backend implementation yet.**
+The [native mapping/profile proposal](m6-native-mapping.md) records the first
+design checkpoint and unresolved guarantees. The earlier requested stop at this handoff
 is complete. A Mac is not available in this environment;
 Linux compilation/mocks cannot supply native acceptance.
 
@@ -24,12 +26,13 @@ Linux compilation/mocks cannot supply native acceptance.
   common host contract for Metal; do not create a second Rust wrapper routed
   through C or duplicate operation policy in each language boundary.
 
-## First implementation tranche, when resumed
+## First implementation tranche
 
-1. **Write the native mapping/profile matrix.** Map placement/mapping, address
+1. **Native mapping/profile matrix: initial draft complete.** The
+   [mapping proposal](m6-native-mapping.md) covers placement/mapping, address
    spaces, command allocator/reset/replay, queues/events, barriers, descriptor
    mutation granularity, prepared artifacts and residency. For each, declare
-   supported exactly, backend-specific alternative, or unsupported. Inline versus
+   candidate native match, backend-specific alternative, or unresolved. Inline versus
    device-root arguments and replay are the important early decisions; no hidden
    root copy, command re-recording or wait may disguise a semantic mismatch.
 2. **Implement the resource/command core.** Explicit memory, queue/timeline and

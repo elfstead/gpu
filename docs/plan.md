@@ -1,8 +1,8 @@
 # Working status and next milestone
 
 Updated 2026-10-17. **M1–M5 and foundation-contract consolidation are complete for
-their declared scope. Next is P1: presentation and an interactive Linux consumer,
-before M6 Metal foundation. P1's native Rust operation extraction and opt-in
+their declared scope. P1 presentation has reached partial human acceptance;
+M6 Metal foundation mapping is now underway. P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
 dependencies are implemented. Borrowed swapchain images and acquire/present/release
 now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
@@ -10,7 +10,8 @@ is implemented; bounded pixel/lifecycle checks pass with three frame slots and
 observed framebuffer resizes. The SDK now packages a self-contained native Rust
 source/consumer/shader bundle and a manual acceptance checklist. Partial human
 checks confirm controls, resize, pause and close; resume and real minimize/restore
-remain unverified. M6 implementation has not started.**
+remain unverified. M6's initial mapping proposal is complete; backend implementation
+and native acceptance have not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -44,7 +45,7 @@ per driver and the public-C fixture on Radeon. llvmpipe retains its explicit
 combined depth/stencil copy/readback exclusion. One Radeon plus llvmpipe is not
 cross-vendor physical coverage.
 
-## Next: P1 presentation and an interactive consumer
+## P1: implemented, partial human acceptance
 
 Follow the [presentation brief](presentation-plan.md). First extract the shared
 native Rust core below the C adapters, preserve C behavior, and add a standalone
@@ -119,9 +120,10 @@ bounded display checks pass on both local drivers; see the
 [packaging receipt](results/p1-rust-package-2026-10-17.md), the bundle README and
 `tools/test-rust-install.py`. Remaining observations stay open in
 [the checklist](presentation-acceptance.md); this compositor has no minimize support.
-Next: the M6 mapping, without blocking on unavailable manual checks.
+The [M6 mapping proposal](m6-native-mapping.md) now records the next design step,
+without blocking on unavailable manual checks.
 No scanout, real-loss recovery or cross-family
-presentation acceptance yet; M6 remains after P1.
+presentation acceptance yet; no full P1 human-acceptance claim.
 
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
 consumer integration test on Radeon and llvmpipe, standalone Cargo consumer on
@@ -144,12 +146,14 @@ This does not complete M8: block compression remains its own coherent image/copy
 view/sampling batch, alongside mesh/GPU-driven work. Plane-aware formats remain
 M11, pullable earlier independently of codecs; no conversion fallback is planned.
 
-## Then: M6 Metal foundation
+## Current: M6 Metal foundation mapping
 
 Follow the [M6 entry handoff](m6-entry.md):
 
-1. Establish exact Metal mappings/profiles, especially arguments, replay,
-   synchronization, placement and residency.
+1. Initial [native mapping/profile proposal](m6-native-mapping.md) complete:
+   native address-binding arguments, conservative one-shot scope pending replay
+   guarantees, explicit residency and precise synchronization/presentation profiles.
+   These are proposed contracts, not implemented support.
 2. Implement the explicit resource/command foundation without hidden copies,
    waits, retained resource graphs or Vulkan-shaped emulation.
 3. Generate native executable interfaces and run the mixed learned-image and
@@ -159,8 +163,9 @@ Follow the [M6 entry handoff](m6-entry.md):
 
 Existing Metal 4 compute remains the legacy path with earlier native evidence,
 not current foundation parity. No Mac is available here. A coherent implementation
-handoff can be prepared when work resumes, but native acceptance cannot be inferred
-from Linux tests. M6 work has not begun in this checkpoint.
+handoff can be prepared here, but native acceptance cannot be inferred from Linux
+tests. Next is the profile/record vocabulary and resource/command implementation
+tranche; unresolved native guarantees remain explicit in the mapping.
 
 ## Packaging and compatibility
 
