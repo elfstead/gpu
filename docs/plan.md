@@ -197,6 +197,17 @@ Next: generated graphics execution and the GPU-culled scene, followed by the
 remaining advanced raster profiles and vertex/index-state token gaps. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 
+## Parallel candidate: native DX12 on Windows
+
+The [DX12 implementation handoff](dx12-candidate-plan.md) is approved for a
+separate `dx12-backend` branch implemented and tested by the Windows agent, then
+returned for review. It is a candidate, not implemented or supported yet. Resolve
+native shader addresses/arguments and descriptor/synchronization profiles first;
+API changes are welcome when they expose a better API alternative. No emulation
+to claim Vulkan parity. Deliver the core, compute/offscreen graphics, then native
+presentation and available advanced profiles with separate evidence. Linux M8
+continues independently; M6 remains deferred. No WebGPU backend is scheduled.
+
 ## Packaging and compatibility
 
 Default Linux installation exports only `ogpu_next.h`, `ogpu-foundation.pc` and

@@ -18,6 +18,9 @@ By user decision on 2026-10-17, defer M6 implementation until a Mac is available
 and proceed to M8, starting with block-compressed textures. M6 stays incomplete.
 M8–M11 below schedule the remaining hardware
 families; completed M1–M5 gates are not reopened.
+The 2026-10-17 [DX12 candidate handoff](dx12-candidate-plan.md) adds a parallel
+Windows-agent implementation branch, followed by native evidence and review.
+It does not replace M6, block local M8 work or declare Windows support in advance.
 This is a concrete plan, not authorization to publish releases, provision machines
 or coordinate native testing. The foundation can be implemented across the
 milestone boundaries below; each capability does not need its own research gate.
@@ -56,6 +59,7 @@ compatibility are not completed by those results.
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
+| DX12 candidate — Parallel native backend | Native Windows foundation, artifact/binding profiles, compute/offscreen graphics, then presentation and available advanced profiles | [Branch implementation handoff](dx12-candidate-plan.md) approved; Windows agent implements/tests, review before merge; no current support claim |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
 | M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and explicit advanced raster profiles | Active while M6 is deferred; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
