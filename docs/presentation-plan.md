@@ -80,7 +80,9 @@ The 2026-10-17 packaging follow-up includes the complete consumer dependency gra
 and [manual acceptance checklist](presentation-acceptance.md). The isolated tester
 builds only copied sources, using cached registry dependencies and a fresh target,
 and optionally runs the headless and bounded display probes. Human acceptance is
-still a separate open item; see [quickstart](foundation-quickstart.md#native-rust-and-the-interactive-wayland-scene).
+still a separate open item. Clean isolated runs pass on both local drivers; see
+the [packaging receipt](results/p1-rust-package-2026-10-17.md) and
+[quickstart](foundation-quickstart.md#native-rust-and-the-interactive-wayland-scene).
 
 ### Opening step: first-class native Rust, then presentation
 

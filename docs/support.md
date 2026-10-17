@@ -1,6 +1,6 @@
 # Current support boundary
 
-Updated 2026-10-13. The default SDK is foundation revision 1; ABI20 packaging is
+Updated 2026-10-17. The default SDK is foundation revision 1; ABI20 packaging is
 explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
@@ -11,11 +11,12 @@ all hardware that might work.
 |---|---|---|
 | Ownership and concurrency | Explicit memory types/backing/spans, image placement, independent queues/timelines and object-local host concurrency | Mixed buffer/image backing, imported resources, measured GPU overlap or real noncoherent hardware |
 | Commands and arguments | Caller-owned arenas, primary/secondary lists, explicit replay, inline updates and address roots, ranged/split/ownership dependencies | Device-generated topology, arbitrary replay emulation on other backends, automatic retention or hidden waits |
-| Graphics/images | Offscreen indexed/depth/stencil, mips/views/filtering/blending, broader static/dynamic state, multisample/resolve and query profiles | Presentation, complete Vulkan graphics coverage, ray/mesh/video or universal format support |
+| Graphics/images | Offscreen indexed/depth/stencil, mips/views/filtering/blending, broader static/dynamic state, multisample/resolve and query profiles | Complete Vulkan graphics coverage, ray/mesh/video or universal format support |
+| Presentation | Optional Wayland surfaces, explicit acquire/present/retirement and bounded three-slot textured scene checks | Human interaction/minimize acceptance, every window system/mode, scanout proof or real-loss recovery |
 | Executables/numerics | SPIR-V preparation/caches, explicit feature/local/shared/subgroup requirements, scalar/atomic/dot and queried matrix profiles | All optional hardware execution, dynamic shared launch, portable pipeline binaries or runtime reflection |
 | Compiler and consumers | Pinned generated Slang interfaces; M4 native-matched scene; M5 transformer/Q8_0; bounded GGML/libplacebo and learned-image | General LLM/training, arbitrary Slang, general safe Rust wrapper, tuned GEMM or universal native-performance parity |
-| Distribution | Revision-pinned local-build SDK; six small examples plus separately pinned upstream adapters | Stable ABI, portable binary bundle, clean-machine coverage or actual third-party adoption |
-| Native Rust | Equivalents for the current C operations; shared-core resource/compute/image standalone consumer, compile-checked surface coverage | Every Rust operation independently executed, fully safe wrapper, fully typed nested records, crates.io release or stable Rust API |
+| Distribution | Revision-pinned local-build SDK; six small C examples, native Rust source/consumer/shader bundle and separately pinned upstream adapters | Stable ABI, portable binary bundle, clean-machine coverage or actual third-party adoption |
+| Native Rust | Equivalents for the current C operations; isolated shared-core resource/compute/image and interactive scene builds/runs, compile-checked surface coverage | Every Rust operation independently executed, fully safe wrapper, fully typed nested records, crates.io release or stable Rust API |
 | Metal | Existing legacy Metal 4 compute only; M6 entry handoff prepared | Any foundation or mixed-workload native Metal acceptance |
 
 Foundation uses the modern Vulkan/address/descriptor baseline and explicit optional

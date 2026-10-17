@@ -112,7 +112,9 @@ The SDK now includes the native Rust consumer, runtime source dependency, pinned
 Cargo.lock, embedded shader inputs and human acceptance checklist under
 `share/ogpu/native-rust`. The isolated checker builds from copied sources with a
 fresh target directory, no SDK shared library and no shader compiler; registry
-dependencies still need fetching or an existing cache. See the bundle README and
+dependencies still need fetching or an existing cache. Clean isolated headless and
+bounded display checks pass on both local drivers; see the
+[packaging receipt](results/p1-rust-package-2026-10-17.md), the bundle README and
 `tools/test-rust-install.py`. Next: record actual interaction/minimize/restore
 observations using [the checklist](presentation-acceptance.md), then the M6 mapping.
 No scanout, real-loss recovery or cross-family
