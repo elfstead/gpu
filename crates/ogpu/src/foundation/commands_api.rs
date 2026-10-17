@@ -639,6 +639,24 @@ pub unsafe extern "C" fn ogpu_next_draw_indexed_indirect(
 /// # Safety
 /// Recording pool exclusion and live executable through recorded/pending use.
 #[no_mangle]
+pub unsafe extern "C" fn ogpu_next_draw_mesh(encoder: *mut List, groups: Extent) {
+    unsafe {
+        encode(encoder, |e| e.draw_mesh(groups));
+    }
+}
+/// # Safety
+/// Valid synchronized GPU argument contents and mesh executable/attachments at execution.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_draw_mesh_indirect(encoder: *mut List, desc: *const Indirect) {
+    unsafe {
+        encode(encoder, |e| {
+            e.draw_mesh_indirect(desc.as_ref().ok_or(INVALID)?)
+        });
+    }
+}
+/// # Safety
+/// Recording pool exclusion and live executable through recorded/pending use.
+#[no_mangle]
 pub unsafe extern "C" fn ogpu_next_bind_executable(
     encoder: *mut List,
     executable: *mut Executable,

@@ -1,4 +1,6 @@
 # Additional pNext feature structures; command parameter types are recursive.
+VkPhysicalDeviceMeshShaderFeaturesEXT
+VkPhysicalDeviceMeshShaderPropertiesEXT
 VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR
 VkSwapchainPresentFenceInfoKHR
 VkSwapchainPresentModeInfoKHR

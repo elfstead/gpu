@@ -41,6 +41,59 @@ pub const SURFACE_LOST: Status = -9;
 pub const OUT_OF_DATE: Status = -10;
 pub const PRESENTATION_WAYLAND: u32 = 1;
 pub const PRESENTATION: u64 = 1 << 57;
+pub const MESH_SHADER: u64 = 1 << 58;
+pub const TASK_SHADER: u64 = 1 << 59;
+pub const MESH_STAGE: u64 = 1 << 20;
+pub const TASK_STAGE: u64 = 1 << 21;
+pub const MESH_LIMITS: u32 = 17;
+pub const MESH_REQUIREMENTS: u32 = 129;
+
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct MeshWorkgroupLimits {
+    pub max_groups: [u32; 3],
+    pub max_total_groups: u32,
+    pub max_local: [u32; 3],
+    pub max_invocations: u32,
+    pub max_shared_memory: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct MeshLimits {
+    pub task: MeshWorkgroupLimits,
+    pub mesh: MeshWorkgroupLimits,
+    pub max_task_payload: u32,
+    pub max_task_payload_shared: u32,
+    pub max_mesh_payload_shared: u32,
+    pub max_mesh_output_memory: u32,
+    pub max_mesh_payload_output: u32,
+    pub max_mesh_output_components: u32,
+    pub max_mesh_output_vertices: u32,
+    pub max_mesh_output_primitives: u32,
+    pub max_mesh_output_layers: u32,
+    pub max_mesh_multiview_views: u32,
+    pub output_vertex_granularity: u32,
+    pub output_primitive_granularity: u32,
+    pub preferred_task_invocations: u32,
+    pub preferred_mesh_invocations: u32,
+    pub preference_flags: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct MeshRequirements {
+    pub header: Record,
+    pub features: u64,
+    pub task_local: [u32; 3],
+    pub task_shared: u32,
+    pub mesh_local: [u32; 3],
+    pub mesh_shared: u32,
+    pub payload_size: u32,
+    pub output_memory: u32,
+    pub output_vertices: u32,
+    pub output_primitives: u32,
+    pub output_components: u32,
+    pub output_layers: u32,
+}
 pub const WAYLAND_SURFACE_DESC: u32 = 125;
 pub const BINARY_SUBMIT_DESC: u32 = 126;
 pub const SWAPCHAIN_DESC: u32 = 127;
@@ -320,6 +373,11 @@ pub const VULKAN_MEMORY_MODEL_DEVICE_SCOPE: u64 = 140737488355328;
 pub const VULKAN_MEMORY_MODEL_CHAINS: u64 = 36028797018963968;
 pub const CUBE_ARRAY: u64 = 72057594037927936;
 pub(super) fn validate_feature_dependencies(required: u64) -> Result<(), Status> {
+    if required & MESH_SHADER != 0 && required & RASTER == 0
+        || required & TASK_SHADER != 0 && required & MESH_SHADER == 0
+    {
+        return Err(INVALID);
+    }
     if required & (VULKAN_MEMORY_MODEL_DEVICE_SCOPE | VULKAN_MEMORY_MODEL_CHAINS) != 0
         && required & VULKAN_MEMORY_MODEL == 0
     {

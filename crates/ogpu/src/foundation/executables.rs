@@ -53,7 +53,7 @@ fn interface(
         return Err(UNSUPPORTED);
     }
     for (i, root) in roots.iter().enumerate() {
-        if root.stages == 0 || root.stages & !(4 | 8 | 16) != 0 {
+        if root.stages == 0 || root.stages & !(4 | 8 | 16 | MESH_STAGE | TASK_STAGE) != 0 {
             return Err(UNSUPPORTED);
         }
         if root.offset % 8 != 0

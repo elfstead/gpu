@@ -38,6 +38,7 @@ fn fixture() -> Snapshot {
         float_controls: FloatControls::default(),
         matrix_tuples: vec![],
         integer_dot: IntegerDotInfo::default(),
+        mesh_limits: MeshLimits::default(),
         formats: vec![],
     }
 }
@@ -71,6 +72,25 @@ fn query_capacity_is_atomic_and_reports_full_count() {
     q.data = output.as_mut_ptr().cast();
     assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
     assert_eq!(output.as_slice(), snapshot.queues);
+}
+#[test]
+fn mesh_limits_are_an_exact_single_record_query() {
+    let mut snapshot = fixture();
+    snapshot.mesh_limits.mesh.max_invocations = 128;
+    let mut output = [MeshLimits::default()];
+    let mut q = query(MESH_LIMITS, &mut output);
+    q.element_size -= 4;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(INVALID));
+    assert_eq!(output[0], MeshLimits::default());
+    q.element_size = size_of::<MeshLimits>() as u32;
+    q.data = ptr::null_mut();
+    q.capacity = 0;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(q.count, 1);
+    q.data = output.as_mut_ptr().cast();
+    q.capacity = 1;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(output[0], snapshot.mesh_limits);
 }
 #[test]
 fn malformed_queries_preserve_outputs() {

@@ -53,6 +53,8 @@ mod rendering;
 pub use executables::Executable;
 #[path = "executable_cache.rs"]
 mod executable_cache;
+#[path = "mesh.rs"]
+mod mesh;
 pub use executable_cache::ExecutableCache;
 pub(super) use rendering::render_scratch;
 use rendering::samples;
@@ -387,6 +389,14 @@ pub(super) fn snapshot(
                 16
             } else {
                 0
+            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_EXT != 0 {
+                MESH_STAGE
+            } else {
+                0
+            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_EXT != 0 {
+                TASK_STAGE
+            } else {
+                0
             })
         };
         subgroup_limits = SubgroupLimits {
@@ -542,6 +552,10 @@ pub(super) fn snapshot(
         }
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
+    let (mesh_features, mesh_limits) = mesh::snapshot(instance, physical, &f)?;
+    if features.available & RASTER != 0 {
+        features.available |= mesh_features;
+    }
     if instance.wayland_enabled() {
         let support = super::presentation::support_native(instance, physical)?;
         if support.swapchain != 0 && support.swapchain_maintenance != 0 {
@@ -612,6 +626,7 @@ pub(super) fn snapshot(
         float_controls,
         matrix_tuples,
         integer_dot,
+        mesh_limits,
         memory_budget_supported: instance
             .supports_extension(physical, c"VK_EXT_memory_budget")
             .map_err(loader_error)?,
@@ -623,6 +638,7 @@ pub struct Device {
     physical: vk::VkPhysicalDevice,
     handle: vk::VkDevice,
     f: Functions,
+    mesh_functions: Option<mesh::MeshFunctions>,
     pub(super) snapshot: Snapshot,
     queues: Vec<Queue>,
     lost: AtomicBool,
@@ -675,6 +691,11 @@ impl Device {
             physical: adapter.physical,
             handle: ptr::null_mut(),
             f: Functions::load(&adapter.instance)?,
+            mesh_functions: if enabled & MESH_SHADER != 0 {
+                Some(mesh::MeshFunctions::load(&adapter.instance)?)
+            } else {
+                None
+            },
             snapshot,
             queues: Vec::new(),
             lost: AtomicBool::new(false),
@@ -848,12 +869,27 @@ impl Device {
             extensions.push(c"VK_KHR_swapchain".as_ptr());
             extensions.push(c"VK_KHR_swapchain_maintenance1".as_ptr());
         }
+        let previous: *const std::ffi::c_void = if enabled & PRESENTATION != 0 {
+            ptr::from_ref(&presentation).cast()
+        } else {
+            ptr::from_ref(&draw_parameters).cast()
+        };
+        let mesh = vk::VkPhysicalDeviceMeshShaderFeaturesEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+            pNext: previous.cast_mut(),
+            meshShader: u32::from(enabled & MESH_SHADER != 0),
+            taskShader: u32::from(enabled & TASK_SHADER != 0),
+            ..Default::default()
+        };
+        if enabled & MESH_SHADER != 0 {
+            extensions.push(c"VK_EXT_mesh_shader".as_ptr());
+        }
         let create = vk::VkDeviceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            pNext: if enabled & PRESENTATION != 0 {
-                ptr::from_ref(&presentation).cast()
+            pNext: if enabled & MESH_SHADER != 0 {
+                ptr::from_ref(&mesh).cast()
             } else {
-                ptr::from_ref(&draw_parameters).cast()
+                previous
             },
             pEnabledFeatures: &features,
             queueCreateInfoCount: queue_infos.len() as u32,

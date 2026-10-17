@@ -54,6 +54,8 @@ fn native_surface_covers_current_c_operations() {
         draw_indexed,
         draw_indexed_indirect,
         draw_indirect,
+        draw_mesh,
+        draw_mesh_indirect,
         executable_cache_create,
         executable_cache_data,
         executable_cache_destroy,

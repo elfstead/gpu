@@ -109,6 +109,24 @@ impl Drop for Module<'_> {
         }
     }
 }
+fn graphics_stages(shaders: &[Shader]) -> Result<u64, Status> {
+    let mut stages = [0; 3];
+    if shaders.len() > stages.len() {
+        return Err(UNSUPPORTED);
+    }
+    for (stage, shader) in stages.iter_mut().zip(shaders) {
+        *stage = u64::from(shader.stage);
+    }
+    let stages = &stages[..shaders.len()];
+    match stages {
+        [8] | [8, 16] => Ok(stages.iter().copied().fold(0, |a, b| a | b)),
+        [MESH_STAGE]
+        | [MESH_STAGE, 16]
+        | [TASK_STAGE, MESH_STAGE]
+        | [TASK_STAGE, MESH_STAGE, 16] => Ok(stages.iter().copied().fold(0, |a, b| a | b)),
+        _ => Err(UNSUPPORTED),
+    }
+}
 pub(super) unsafe fn prepare(
     d: &Device,
     desc: &ExecutableDesc,
@@ -144,22 +162,48 @@ pub(super) unsafe fn prepare(
             stencil.compare = 0;
         }
     }
-    let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
-    if req.features & !d.snapshot.features.enabled != 0 {
+    if !(1..=3).contains(&desc.shader_count) {
         return Err(UNSUPPORTED);
     }
-    if req.local_size != [0; 3] || req.shared_memory != 0 {
-        return Err(INVALID);
-    }
+    let shaders = unsafe { array(desc.shaders, desc.shader_count)? };
+    let stage_mask = graphics_stages(shaders)?;
+    let mesh_pipeline = stage_mask & MESH_STAGE != 0;
+    let mesh_req = if mesh_pipeline {
+        let req = unsafe { record::<MeshRequirements>(desc.requirements, MESH_REQUIREMENTS)? };
+        mesh::requirements(
+            &d.snapshot.mesh_limits,
+            d.snapshot.features.enabled,
+            stage_mask,
+            req,
+        )?;
+        if !state.vertex_input.is_null() {
+            return Err(INVALID);
+        }
+        // Mesh output topology is part of the artifact, not input assembly state.
+        state.topology = 0;
+        Some(req)
+    } else {
+        let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
+        if req.features & !d.snapshot.features.enabled != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if req.local_size != [0; 3] || req.shared_memory != 0 {
+            return Err(INVALID);
+        }
+        None
+    };
     let p = &d.snapshot.graphics_limits;
     let options = if state.raster_options.is_null() {
         RasterOptions::default()
     } else {
         unsafe { *record::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
     };
+    if mesh_pipeline && options.primitive_restart != 0 {
+        return Err(INVALID);
+    }
     raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
     let shader_count = desc.shader_count;
-    if !matches!(shader_count, 1 | 2) || (options.discard != 0 && shader_count != 1) {
+    if options.discard != 0 && stage_mask & 16 != 0 {
         return Err(UNSUPPORTED);
     }
     // Static discard has no fragment-output interface. Attached execution uses
@@ -381,7 +425,6 @@ pub(super) unsafe fn prepare(
         }
         f.native
     };
-    let shaders = unsafe { array(desc.shaders, shader_count)? };
     let mut modules = Vec::new();
     let mut stages = Vec::new();
     let mut specialization_entries = Vec::new();
@@ -390,13 +433,18 @@ pub(super) unsafe fn prepare(
     let mut byte_size = 0;
     let mut subgroup_states = Vec::new();
     subgroup_states
-        .try_reserve_exact(2)
+        .try_reserve_exact(shader_count as usize)
         .map_err(|_| OUT_OF_MEMORY)?;
     for (i, shader) in shaders.iter().enumerate() {
-        if shader.stage != [8, 16][i] || shader.format != 0 {
+        if shader.format != 0 {
             return Err(UNSUPPORTED);
         }
-        subgroup_states.push(unsafe { subgroups::prepare(d, shader, [0; 3])? });
+        let local = mesh_req.map_or([0; 3], |r| match u64::from(shader.stage) {
+            MESH_STAGE => r.mesh_local,
+            TASK_STAGE => r.task_local,
+            _ => [0; 3],
+        });
+        subgroup_states.push(unsafe { subgroups::prepare(d, shader, local)? });
         if shader.code.data.is_null()
             || shader.code.data as usize % 4 != 0
             || shader.code.size < 20
@@ -417,7 +465,10 @@ pub(super) unsafe fn prepare(
             unsafe { record::<ArgumentInterface>(shader.interface_metadata, ARGUMENT_INTERFACE)? };
         let roots = unsafe { array(abi.roots, abi.root_count)? };
         interface(&d.snapshot.execution_limits, abi, roots)?;
-        if roots.iter().any(|r| r.stages & !24 != 0) {
+        if roots
+            .iter()
+            .any(|r| r.stages & !(if mesh_pipeline { stage_mask | 16 } else { 24 }) != 0)
+        {
             return Err(UNSUPPORTED);
         }
         // One shared argument namespace; all supplied stages use the same slot table.
@@ -506,10 +557,12 @@ pub(super) unsafe fn prepare(
             } else {
                 ptr::from_ref(&subgroup_states[i].1).cast()
             },
-            stage: if i == 0 {
-                vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT
-            } else {
-                vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT
+            stage: match u64::from(shader.stage) {
+                8 => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT,
+                16 => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT,
+                MESH_STAGE => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_EXT,
+                TASK_STAGE => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_EXT,
+                _ => unreachable!(),
             },
             module: modules[i].handle,
             pName: shader.entry,
@@ -633,8 +686,12 @@ pub(super) unsafe fn prepare(
         pNext: ptr::from_ref(&rendering).cast(),
         stageCount: shader_count,
         pStages: stages.as_ptr(),
-        pVertexInputState: &vertex,
-        pInputAssemblyState: &assembly,
+        pVertexInputState: if mesh_pipeline { ptr::null() } else { &vertex },
+        pInputAssemblyState: if mesh_pipeline {
+            ptr::null()
+        } else {
+            &assembly
+        },
         pViewportState: &viewport,
         pRasterizationState: &raster,
         pMultisampleState: &multi,
@@ -649,7 +706,7 @@ pub(super) unsafe fn prepare(
         pipeline: ptr::null_mut(),
         byte_size,
         roots: owned_roots,
-        stages: if shader_count == 1 { 8 } else { 24 },
+        stages: stage_mask,
     });
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(
@@ -703,6 +760,57 @@ fn vertex_layout(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn graphics_stage_families_do_not_mix_or_reorder() {
+        for stages in [
+            vec![8],
+            vec![8, 16],
+            vec![MESH_STAGE],
+            vec![MESH_STAGE, 16],
+            vec![TASK_STAGE, MESH_STAGE],
+            vec![TASK_STAGE, MESH_STAGE, 16],
+            vec![],
+            vec![TASK_STAGE],
+            vec![16],
+            vec![8, MESH_STAGE],
+            vec![MESH_STAGE, TASK_STAGE],
+            vec![TASK_STAGE, MESH_STAGE, 8],
+            vec![8, 16, 16],
+            vec![TASK_STAGE, MESH_STAGE, 16, 16],
+        ] {
+            let shaders: Vec<_> = stages
+                .iter()
+                .map(|&stage| Shader {
+                    stage: stage as u32,
+                    format: 0,
+                    code: Bytes {
+                        data: ptr::null(),
+                        size: 0,
+                    },
+                    entry: ptr::null(),
+                    interface_metadata: ptr::null(),
+                    specialization: ptr::null(),
+                    subgroup: ptr::null(),
+                })
+                .collect();
+            let valid = matches!(
+                stages.as_slice(),
+                [8] | [8, 16]
+                    | [MESH_STAGE]
+                    | [MESH_STAGE, 16]
+                    | [TASK_STAGE, MESH_STAGE]
+                    | [TASK_STAGE, MESH_STAGE, 16]
+            );
+            assert_eq!(
+                graphics_stages(&shaders),
+                if valid {
+                    Ok(stages.iter().fold(0, |a, b| a | b))
+                } else {
+                    Err(UNSUPPORTED)
+                }
+            );
+        }
+    }
     #[test]
     fn raster_options_validate_without_normalizing_or_enabling_features() {
         let p = GraphicsLimits {

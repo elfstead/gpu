@@ -33,6 +33,16 @@ header and default SDK own today's exact layouts, not those historical values.
 
 ## Implemented setup
 
+M8 update, 2026-10-17: [native task/mesh shading](results/m8-task-mesh-2026-10-17.md)
+now extends graphics preparation with explicit feature enabling, physical limits,
+trusted specialized-artifact requirements, mesh/task stages and direct/indirect/
+count launches. C and native Rust share the same backend operations. The existing
+argument bytes, heaps, backing and render scopes are reused; no new scene runtime,
+vertex emulation or command-time compilation. Initial execution passes on
+llvmpipe; Radeon reports the feature unavailable. Mesh-specific queries, multiview,
+primitive shading rate, generated command topology and physical mesh-GPU acceptance
+remain separate work. M6 implementation is deferred until a Mac is available.
+
 The [integrated M4 textured consumer](textured-scene-plan.md) now exercises
 GPU-generated indexed/depth geometry together with mipmapped sampling, restricted
 views, filtering, blending and viewport/scissor changes through the existing API.

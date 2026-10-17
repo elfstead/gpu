@@ -54,6 +54,7 @@ struct Snapshot {
     float_controls: FloatControls,
     matrix_tuples: Vec<MatrixTuple>,
     integer_dot: IntegerDotInfo,
+    mesh_limits: MeshLimits,
     formats: Vec<FormatInfo>,
     features: FeatureInfo,
 }
@@ -113,6 +114,7 @@ impl Snapshot {
                 FLOAT_CONTROLS => copy_out(query, std::slice::from_ref(&self.float_controls)),
                 MATRIX_TUPLES => copy_out(query, &self.matrix_tuples),
                 INTEGER_DOT_INFO => copy_out(query, std::slice::from_ref(&self.integer_dot)),
+                MESH_LIMITS => copy_out(query, std::slice::from_ref(&self.mesh_limits)),
                 FORMATS => copy_out(query, &self.formats),
                 _ => Err(UNSUPPORTED),
             }

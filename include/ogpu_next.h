@@ -806,7 +806,7 @@ void ogpu_next_commands_cancel(ogpu_next_encoder *);
  * VERTEX means vertex shader only, not fixed-function input. DEPTH combines
  * EARLY_DEPTH/LATE_DEPTH; VERTEX_INPUT combines INDEX_INPUT/VERTEX_FETCH.
  * Aggregate scopes are choices, never automatically added to narrower scopes.
- * Except COMPUTE/VERTEX/FRAGMENT, these are synchronization-only stage bits. */
+ * Except COMPUTE/VERTEX/FRAGMENT/MESH/TASK, these are synchronization-only bits. */
 #define OGPU_NEXT_STAGE_TRANSFER UINT64_C(2)
 #define OGPU_NEXT_STAGE_COMPUTE UINT64_C(4)
 #define OGPU_NEXT_STAGE_VERTEX UINT64_C(8)
@@ -985,7 +985,7 @@ typedef struct ogpu_next_heap_binding {
  * avoid reservations. Bind requires a graphics/compute queue domain. */
 void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
 
-/* Prepared executable state. This implementation supports compute or vertex with
+/* Prepared executable state. This implementation supports compute, vertex or mesh with
  * optional fragment SPIR-V with native heap/pointer access. Native artifacts, descriptor
  * set-to-heap mappings and launch extensions follow; these
  * are unimplemented profiles, not excluded designs. No runtime shader translation.
@@ -1000,6 +1000,52 @@ typedef struct ogpu_next_execution_limits {
     uint32_t max_groups[3], max_local_size[3], max_local_invocations;
     uint32_t max_shared_memory, argument_flags;
 } ogpu_next_execution_limits;
+/* Optional mesh shading: explicitly enable MESH with RASTER; TASK additionally
+ * requires MESH. No vertex-stage fallback. QUERY_MESH_LIMITS returns physical
+ * limits (zero if the native extension is absent), not implicit enabling. */
+#define OGPU_NEXT_FEATURE_MESH_SHADER UINT64_C(288230376151711744)
+#define OGPU_NEXT_FEATURE_TASK_SHADER UINT64_C(576460752303423488)
+#define OGPU_NEXT_STAGE_MESH UINT64_C(1048576)
+#define OGPU_NEXT_STAGE_TASK UINT64_C(2097152)
+enum { OGPU_NEXT_QUERY_MESH_LIMITS = 17, OGPU_NEXT_MESH_REQUIREMENTS = 129 };
+typedef struct ogpu_next_mesh_workgroup_limits {
+    uint32_t max_groups[3], max_total_groups, max_local[3], max_invocations, max_shared_memory;
+} ogpu_next_mesh_workgroup_limits;
+typedef struct ogpu_next_mesh_limits {
+    ogpu_next_mesh_workgroup_limits task, mesh;
+    uint32_t max_task_payload;
+    uint32_t max_task_payload_shared;
+    uint32_t max_mesh_payload_shared;
+    uint32_t max_mesh_output_memory;
+    uint32_t max_mesh_payload_output;
+    uint32_t max_mesh_output_components;
+    uint32_t max_mesh_output_vertices;
+    uint32_t max_mesh_output_primitives;
+    uint32_t max_mesh_output_layers;
+    uint32_t max_mesh_multiview_views;
+    uint32_t output_vertex_granularity;
+    uint32_t output_primitive_granularity;
+    uint32_t preferred_task_invocations;
+    uint32_t preferred_mesh_invocations;
+    /* Preferences, not constraints: local vertex/primitive output indexing,
+     * compact vertex/primitive output respectively use bits 1,2,4,8. */
+    uint32_t preference_flags, reserved;
+} ogpu_next_mesh_limits;
+/* Mesh graphics replaces SHADER_REQUIREMENTS with this exact record.
+ * Metadata describes the specialized artifact: no runtime shader reflection.
+ * task_local/shared/payload are zero without TASK; mesh_local is nonzero.
+ * Output memory follows native padded output accounting, not packed host bytes.
+ * output_layers is one plus the maximum emitted layer; output topology is in
+ * the artifact. Caller proves metadata/payload producer-consumer agreement.
+ * Multiview, primitive shading rate and mesh-specific queries are not enabled
+ * by MESH/TASK. Their physical limits do not advertise those separate profiles. */
+typedef struct ogpu_next_mesh_requirements {
+    ogpu_next_record header;
+    ogpu_next_features features;
+    uint32_t task_local[3], task_shared, mesh_local[3], mesh_shared;
+    uint32_t payload_size, output_memory, output_vertices, output_primitives;
+    uint32_t output_components, output_layers;
+} ogpu_next_mesh_requirements;
 typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
 typedef struct ogpu_next_root_slot {
     ogpu_next_stages stages;
@@ -1105,8 +1151,8 @@ typedef struct ogpu_next_subgroup_state {
 } ogpu_next_subgroup_state;
 /* Optional per-shader SUBGROUP_STATE; NULL leaves native defaults. operations is
  * the artifact's required operation-group mask, checked against subgroup_limits
- * and stage support. Query stage masks currently represent COMPUTE/VERTEX/FRAGMENT
- * only. QUAD in vertex requires quad_all_stages. No lane-to-invocation mapping is
+ * and stage support. Query stage masks represent COMPUTE/VERTEX/FRAGMENT/MESH/TASK
+ * only. QUAD in vertex/mesh/task requires quad_all_stages. No lane-to-invocation mapping is
  * promised. Lane participation/convergence and actual opcode/type requirements
  * remain compiler/caller contracts, not inferred by runtime SPIR-V reflection.
  * required_size=0 preserves native default; otherwise an exact supported power of
@@ -1203,7 +1249,7 @@ void ogpu_next_executable_destroy(ogpu_next_executable *);
  * Null addresses can be encoded but must not be dereferenced. Address alignment,
  * lifetime, bounds and hazards apply at execution, including every replay.
  * Stage-isolated banks are NOT emulated with hidden copies on this profile.
- * Graphics extends this below: VERTEX/FRAGMENT share the same native bytes,
+ * Graphics extends this below: VERTEX/FRAGMENT/MESH/TASK share the same native bytes,
  * including with compute. A stage mask does not isolate an update from other
  * stages reading the same offsets. Use distinct offsets for independent values.
  */
@@ -1423,7 +1469,14 @@ typedef struct ogpu_next_vertex_input {
  * dynamic_state includes DYNAMIC_VIEWPORT_SCISSOR and any selected supported
  * optional bits (graphics_limits.dynamic_states). requirements local_size/shared_memory=0.
  * Supplied shaders provide identical full argument interfaces; root visibility is
- * VERTEX, FRAGMENT or both. Independent roots use distinct offsets. No reflected
+ * VERTEX, FRAGMENT or both. With MESH_SHADER enabled, the alternative shader order
+ * is MESH then optional FRAGMENT, or TASK/MESH then optional FRAGMENT when
+ * TASK_SHADER is also enabled. Mesh pipelines supply MESH_REQUIREMENTS instead;
+ * vertex_input=NULL, primitive_restart=0, and topology is ignored (the artifact
+ * defines output topology). Their roots name participating MESH/TASK stages and/or
+ * FRAGMENT. All shaders still share one argument interface and byte namespace.
+ * Fragment must be absent with discard for either path. Independent roots use
+ * distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
  * Color format count may be zero or up to max_colors. depth_format selects the
  * depth/stencil attachment format: 0 means neither, S8 means stencil only, and
@@ -1598,6 +1651,20 @@ void ogpu_next_bind_vertices(ogpu_next_encoder *, uint32_t first, uint32_t count
 void ogpu_next_draw_indexed(ogpu_next_encoder *, const ogpu_next_draw_desc *);
 void ogpu_next_draw_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+/* Requires MESH_SHADER and a bound mesh executable, rendering scope and viewport.
+ * Direct dimensions use task limits when TASK is present, otherwise mesh limits;
+ * each axis and their product must fit. Zero-work dimensions are permitted.
+ * Indirect uses the same explicit span/count/stride model above; each wire record
+ * is three uint32_t group counts (12 bytes, identical to ogpu_next_extent).
+ * GPU argument dimensions and task-emitted mesh dimensions must obey queried
+ * limits at execution; OGPU does not read, clamp or rewrite them. Ordinary draw
+ * and indexed draw reject mesh executables; mesh draw rejects vertex executables.
+ * Active vertex/input-assembly/geometry/clipping/tessellation statistics are
+ * incompatible with mesh draws. Fragment/compute statistics and occlusion remain
+ * usable; mesh-specific statistics are not enabled by this profile.
+ */
+void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
+void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
 enum { OGPU_NEXT_QUERY_TIMESTAMP = 1, OGPU_NEXT_QUERY_OCCLUSION = 2, OGPU_NEXT_QUERY_PIPELINE_STATISTICS = 3 };
 enum { OGPU_NEXT_QUERY_PRECISE = 1 };
 #define OGPU_NEXT_STATISTIC_INPUT_VERTICES UINT64_C(1)

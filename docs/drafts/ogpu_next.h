@@ -84,8 +84,9 @@ extern "C" {
  * Independent target blend/write state and indirect base instances are feature enabled.
  * Broader sample/dynamic-vertex-input/tile-local and
  * dynamic-state profiles remain to implement; no hidden dynamic-to-PSO JIT. */
-void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
-void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+/* Task/mesh executable stages, physical limits, explicit feature enabling and
+ * direct/indirect/count mesh draws are imported above. Mesh queries, multiview
+ * and primitive shading rate remain separate profiles. */
 
 /* Timestamp/occlusion/statistics pools and explicit GPU result copies are imported
  * above, including precise occlusion. Performance-counter profiles follow. */

@@ -301,7 +301,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 20) - 1;
+const KNOWN_SCOPES: u64 = (1 << 22) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -312,7 +312,9 @@ const RASTER_SCOPES: u64 = 8
     | LATE_SCOPE
     | INPUT_SCOPE
     | GRAPHICS_SCOPE
-    | PRE_RASTER_SCOPE;
+    | PRE_RASTER_SCOPE
+    | MESH_STAGE
+    | TASK_STAGE;
 
 fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u64, Status> {
     if mask & !KNOWN_SCOPES != 0 {
@@ -352,12 +354,23 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT,
         vk::VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
         vk::VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
+        vk::VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT,
+        vk::VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
+fn stage_features(enabled: u64, mask: u64) -> Result<(), Status> {
+    if mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
+        || mask & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
+    {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
 fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, Status> {
+    stage_features(d.snapshot.features.enabled, mask)?;
     let flags = d
         .snapshot
         .queues
@@ -377,7 +390,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
-    let shaders = 1 | 4 | 8 | 16 | GRAPHICS_SCOPE | PRE_RASTER_SCOPE;
+    let shaders = 1 | 4 | 8 | 16 | GRAPHICS_SCOPE | PRE_RASTER_SCOPE | MESH_STAGE | TASK_STAGE;
     let transfer_read = 1 | 2 | COPY_SCOPE | RESOLVE_SCOPE | BLIT_SCOPE;
     let depth = 1 | 128 | EARLY_SCOPE | LATE_SCOPE | GRAPHICS_SCOPE;
     let allowed = [
@@ -578,10 +591,15 @@ impl List {
         Ok(())
     }
     fn executable(&self, scope: u64) -> Result<&Executable, Status> {
-        self.recording()?;
+        let d = self.recording()?;
+        // Binding already established queue compatibility; only optional stage
+        // enabling is needed here, not a queue-domain search on every byte update.
+        stage_features(d.snapshot.features.enabled, scope)?;
         let p = match scope {
             4 => self.executable.get(),
-            8 | 16 | 24 => self.graphics.get(),
+            value if value != 0 && value & !(8 | 16 | MESH_STAGE | TASK_STAGE) == 0 => {
+                self.graphics.get()
+            }
             _ => return Err(UNSUPPORTED),
         };
         unsafe { p.as_ref() }.ok_or(INVALID)
@@ -1205,7 +1223,9 @@ impl List {
         Ok(())
     }
     fn drawing(&self, indexed: bool) -> Result<&Device, Status> {
-        self.executable(24)?;
+        if self.executable(24)?.stages & MESH_STAGE != 0 {
+            return Err(INVALID);
+        }
         if !self.rendering.get()
             || self.secondary_contents.get()
             || !self.viewport_set.get()
@@ -1214,6 +1234,48 @@ impl List {
             return Err(INVALID);
         }
         Ok(unsafe { &*self.device })
+    }
+    fn mesh_drawing(&self) -> Result<(&Device, &MeshWorkgroupLimits), Status> {
+        let executable = self.executable(MESH_STAGE)?;
+        if executable.stages & MESH_STAGE == 0
+            || !self.rendering.get()
+            || self.secondary_contents.get()
+            || !self.viewport_set.get()
+        {
+            return Err(INVALID);
+        }
+        // Legacy vertex/tessellation/geometry statistics are invalid for mesh draws.
+        if self.active_queries[1]
+            .get()
+            .is_some_and(|q| unsafe { (*q.pool).statistics & (127 | 256 | 512) != 0 })
+        {
+            return Err(INVALID);
+        }
+        let d = unsafe { &*self.device };
+        let limits = if executable.stages & TASK_STAGE != 0 {
+            &d.snapshot.mesh_limits.task
+        } else {
+            &d.snapshot.mesh_limits.mesh
+        };
+        Ok((d, limits))
+    }
+    pub(in crate::foundation) fn draw_mesh(&self, groups: Extent) -> Result<(), Status> {
+        let (d, limits) = self.mesh_drawing()?;
+        mesh::groups(limits, [groups.x, groups.y, groups.z])?;
+        unsafe {
+            (d.mesh_functions
+                .as_ref()
+                .ok_or(UNSUPPORTED)?
+                .direct
+                .unwrap())(self.command, groups.x, groups.y, groups.z)
+        };
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn draw_mesh_indirect(
+        &self,
+        desc: &Indirect,
+    ) -> Result<(), Status> {
+        unsafe { self.record_indirect(desc, DrawKind::Mesh) }
     }
     pub(in crate::foundation) fn draw(&self, draw: &DrawDesc, indexed: bool) -> Result<(), Status> {
         let d = self.drawing(indexed)?;
@@ -1337,11 +1399,27 @@ impl List {
         desc: &Indirect,
         indexed: bool,
     ) -> Result<(), Status> {
-        let d = self.drawing(indexed)?;
+        unsafe {
+            self.record_indirect(
+                desc,
+                if indexed {
+                    DrawKind::Indices
+                } else {
+                    DrawKind::Vertices
+                },
+            )
+        }
+    }
+    unsafe fn record_indirect(&self, desc: &Indirect, kind: DrawKind) -> Result<(), Status> {
+        let (d, record_size) = match kind {
+            DrawKind::Mesh => (self.mesh_drawing()?.0, 12),
+            DrawKind::Indices => (self.drawing(true)?, 20),
+            DrawKind::Vertices => (self.drawing(false)?, 16),
+        };
         if desc.maximum_count > d.snapshot.graphics_limits.max_indirect_count {
             return Err(INVALID);
         }
-        let needed = indirect_size(desc.stride, desc.maximum_count, indexed)?;
+        let needed = indirect_record_size(desc.stride, desc.maximum_count, record_size)?;
         if desc.arguments.size < needed {
             return Err(INVALID);
         }
@@ -1372,12 +1450,13 @@ impl List {
                 drawCount: desc.maximum_count,
                 ..Default::default()
             };
+            let command = match kind {
+                DrawKind::Mesh => d.mesh_functions.as_ref().ok_or(UNSUPPORTED)?.indirect,
+                DrawKind::Indices => d.f.vkCmdDrawIndexedIndirect2KHR,
+                DrawKind::Vertices => d.f.vkCmdDrawIndirect2KHR,
+            };
             unsafe {
-                if indexed {
-                    (d.f.vkCmdDrawIndexedIndirect2KHR.unwrap())(self.command, &info);
-                } else {
-                    (d.f.vkCmdDrawIndirect2KHR.unwrap())(self.command, &info);
-                }
+                command.unwrap()(self.command, &info);
             }
         } else {
             let count = unsafe { &*desc.count.memory };
@@ -1401,20 +1480,30 @@ impl List {
                 maxDrawCount: desc.maximum_count,
                 ..Default::default()
             };
+            let command = match kind {
+                DrawKind::Mesh => d.mesh_functions.as_ref().ok_or(UNSUPPORTED)?.count,
+                DrawKind::Indices => d.f.vkCmdDrawIndexedIndirectCount2KHR,
+                DrawKind::Vertices => d.f.vkCmdDrawIndirectCount2KHR,
+            };
             unsafe {
-                if indexed {
-                    (d.f.vkCmdDrawIndexedIndirectCount2KHR.unwrap())(self.command, &info);
-                } else {
-                    (d.f.vkCmdDrawIndirectCount2KHR.unwrap())(self.command, &info);
-                }
+                command.unwrap()(self.command, &info);
             }
         }
         Ok(())
     }
 }
 
+enum DrawKind {
+    Vertices,
+    Indices,
+    Mesh,
+}
+
+#[cfg(test)]
 fn indirect_size(stride: u32, count: u32, indexed: bool) -> Result<u64, Status> {
-    let record = if indexed { 20 } else { 16 };
+    indirect_record_size(stride, count, if indexed { 20 } else { 16 })
+}
+fn indirect_record_size(stride: u32, count: u32, record: u32) -> Result<u64, Status> {
     if (stride != 0 && (stride < record || stride % 4 != 0)) || (stride == 0 && count > 1) {
         return Err(INVALID);
     }
@@ -1651,6 +1740,10 @@ mod tests {
     #[test]
     fn indirect_ranges_preserve_native_stride_rules() {
         use super::*;
+        assert_eq!(indirect_record_size(0, 1, 12), Ok(12));
+        assert_eq!(indirect_record_size(16, 3, 12), Ok(44));
+        assert_eq!(indirect_record_size(8, 1, 12), Err(INVALID));
+        assert_eq!(indirect_record_size(0, 2, 12), Err(INVALID));
         assert_eq!(indirect_size(0, 0, false), Ok(0));
         assert_eq!(indirect_size(0, 1, false), Ok(16));
         assert_eq!(indirect_size(0, 1, true), Ok(20));
@@ -1956,7 +2049,16 @@ mod tests {
     }
     #[test]
     fn synchronization_scopes_remain_narrow_and_queue_specific() {
+        assert_eq!(stage_features(0, MESH_STAGE), Err(UNSUPPORTED));
+        assert_eq!(stage_features(MESH_SHADER, TASK_STAGE), Err(UNSUPPORTED));
+        assert_eq!(stage_features(MESH_SHADER, MESH_STAGE), Ok(()));
+        assert_eq!(
+            stage_features(MESH_SHADER | TASK_SHADER, MESH_STAGE | TASK_STAGE),
+            Ok(())
+        );
         let exact = [
+            (MESH_STAGE, vk::VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT),
+            (TASK_STAGE, vk::VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT),
             (8, vk::VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT),
             (COPY_SCOPE, vk::VK_PIPELINE_STAGE_2_COPY_BIT),
             (INDEX_SCOPE, vk::VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT),
@@ -1994,7 +2096,7 @@ mod tests {
             stage_mask(TRANSFER, false, COPY_SCOPE | CLEAR_SCOPE, false),
             Ok(vk::VK_PIPELINE_STAGE_2_COPY_BIT | vk::VK_PIPELINE_STAGE_2_CLEAR_BIT)
         );
-        assert_eq!(stage_mask(GRAPHICS, true, 1 << 20, false), Err(UNSUPPORTED));
+        assert_eq!(stage_mask(GRAPHICS, true, 1 << 22, false), Err(UNSUPPORTED));
         assert_eq!(stage_mask(COMPUTE, false, 256, true), Err(INVALID));
         assert_eq!(access(512, 8), Err(INVALID));
         assert_eq!(access(1024, 8), Err(INVALID));
@@ -2006,6 +2108,10 @@ mod tests {
         assert_eq!(access(512, FETCH_SCOPE), Err(INVALID));
         assert_eq!(access(1024, INDEX_SCOPE), Err(INVALID));
         assert_eq!(access(16, FETCH_SCOPE), Err(INVALID));
+        for scope in [MESH_STAGE, TASK_STAGE, MESH_STAGE | TASK_STAGE] {
+            assert_eq!(access(16, scope), Ok(vk::VK_ACCESS_2_SHADER_READ_BIT));
+            assert_eq!(access(32, scope), Ok(vk::VK_ACCESS_2_SHADER_WRITE_BIT));
+        }
         assert_eq!(access(4, CLEAR_SCOPE), Err(INVALID));
         assert_eq!(
             access(8, CLEAR_SCOPE),

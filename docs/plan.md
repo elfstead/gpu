@@ -3,7 +3,7 @@
 Updated 2026-10-17. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. P1 presentation has reached partial human acceptance;
 M6 Metal implementation is deferred until a Mac is available; current work moves
-to M8 block-compressed textures. P1's native Rust operation extraction and opt-in
+to M8 compressed textures and native task/mesh shading. P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
 dependencies are implemented. Borrowed swapchain images and acquire/present/release
 now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
@@ -168,7 +168,7 @@ handoff can be prepared here, but native acceptance cannot be inferred from Linu
 tests. By user decision, defer implementation until a Mac is available. Preserve
 the mapping as design input, not a reason to refactor around untested assumptions.
 
-## Current: M8 block-compressed textures
+## Current: M8 compressed textures and task/mesh shading
 
 The first [compressed-format tranche](results/m8-compressed-formats-2026-10-17.md)
 is implemented: 54 new BC/ETC2/EAC/ASTC LDR IDs, per-aspect copy-block metadata,
@@ -178,8 +178,16 @@ two layers, padded pitches and guards; the requested ETC2/EAC/ASTC profiles are
 unsupported locally. Format query records grow from 32 to 56 bytes; consumers
 must rebuild against matching sources. No implicit decode/transcode or new runtime
 dependency. Remaining compressed scopes are explicit in the receipt.
-Next: advanced raster and GPU-driven/task-mesh work, followed by M9 ray
-tracing. M6 remains incomplete and can resume when native development is possible.
+The [task/mesh tranche](results/m8-task-mesh-2026-10-17.md) now adds explicit
+feature enabling, physical workgroup/payload/output limits, prepared mesh and
+task+mesh executables, and direct/address-based indirect/count draws through C
+and native Rust. llvmpipe passes 896 pixel checks across both stage combinations
+and seven launch/count modes, task payload transport, guards and invalid-input
+rejection. Radeon reports these native features unavailable. This is software
+native execution evidence, not physical mesh-GPU acceptance or a speed claim.
+Next: explicit GPU-generated command layouts/preparation/executable selection,
+then the remaining advanced raster profiles and GPU-culled scene. Ray tracing is
+M9. M6 remains incomplete and can resume when native development is possible.
 
 ## Packaging and compatibility
 

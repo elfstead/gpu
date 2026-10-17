@@ -34,6 +34,8 @@ record!(fn draw(list, draw: &DrawDesc) |e| e.draw(draw, false));
 record!(fn draw_indexed(list, draw: &DrawDesc) |e| e.draw(draw, true));
 record!(fn draw_indirect(list, desc: &Indirect) |e| e.draw_indirect(desc, false));
 record!(fn draw_indexed_indirect(list, desc: &Indirect) |e| e.draw_indirect(desc, true));
+record!(fn draw_mesh(list, groups: Extent) |e| e.draw_mesh(groups));
+record!(fn draw_mesh_indirect(list, desc: &Indirect) |e| e.draw_mesh_indirect(desc));
 record!(fn bind_indices(list, span: Span, kind: u32) |e| e.bind_indices(span, kind));
 record!(fn bind_vertices(list, first: u32, spans: &[Span], scratch: HostSpan) |e| e.bind_vertices(first, count(spans.len())?, spans.as_ptr(), scratch));
 record!(fn set_blend_constants(list, values: &[f32; 4]) |e| e.blend_constants(values));

@@ -11679,6 +11679,18 @@ pub type PFN_vkCmdDrawIndexedIndirectCount2KHR = ::std::option::Option<
         pInfo: *const VkDrawIndirectCount2InfoKHR,
     ),
 >;
+pub type PFN_vkCmdDrawMeshTasksIndirect2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkDrawIndirect2InfoKHR,
+    ),
+>;
+pub type PFN_vkCmdDrawMeshTasksIndirectCount2EXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInfo: *const VkDrawIndirectCount2InfoKHR,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderUntypedPointersFeaturesKHR {
@@ -13351,6 +13363,267 @@ impl Default for VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMeshShaderFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub taskShader: VkBool32,
+    pub meshShader: VkBool32,
+    pub multiviewMeshShader: VkBool32,
+    pub primitiveFragmentShadingRateMeshShader: VkBool32,
+    pub meshShaderQueries: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMeshShaderFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceMeshShaderFeaturesEXT>() - 40usize];
+    [
+        "Alignment of VkPhysicalDeviceMeshShaderFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceMeshShaderFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderFeaturesEXT, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderFeaturesEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::taskShader",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderFeaturesEXT, taskShader)
+        - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::meshShader",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderFeaturesEXT, meshShader)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::multiviewMeshShader",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderFeaturesEXT, multiviewMeshShader)
+        - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::primitiveFragmentShadingRateMeshShader",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderFeaturesEXT, primitiveFragmentShadingRateMeshShader
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderFeaturesEXT::meshShaderQueries",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderFeaturesEXT, meshShaderQueries)
+        - 32usize];
+};
+impl Default for VkPhysicalDeviceMeshShaderFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceMeshShaderPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxTaskWorkGroupTotalCount: u32,
+    pub maxTaskWorkGroupCount: [u32; 3usize],
+    pub maxTaskWorkGroupInvocations: u32,
+    pub maxTaskWorkGroupSize: [u32; 3usize],
+    pub maxTaskPayloadSize: u32,
+    pub maxTaskSharedMemorySize: u32,
+    pub maxTaskPayloadAndSharedMemorySize: u32,
+    pub maxMeshWorkGroupTotalCount: u32,
+    pub maxMeshWorkGroupCount: [u32; 3usize],
+    pub maxMeshWorkGroupInvocations: u32,
+    pub maxMeshWorkGroupSize: [u32; 3usize],
+    pub maxMeshSharedMemorySize: u32,
+    pub maxMeshPayloadAndSharedMemorySize: u32,
+    pub maxMeshOutputMemorySize: u32,
+    pub maxMeshPayloadAndOutputMemorySize: u32,
+    pub maxMeshOutputComponents: u32,
+    pub maxMeshOutputVertices: u32,
+    pub maxMeshOutputPrimitives: u32,
+    pub maxMeshOutputLayers: u32,
+    pub maxMeshMultiviewViewCount: u32,
+    pub meshOutputPerVertexGranularity: u32,
+    pub meshOutputPerPrimitiveGranularity: u32,
+    pub maxPreferredTaskWorkGroupInvocations: u32,
+    pub maxPreferredMeshWorkGroupInvocations: u32,
+    pub prefersLocalInvocationVertexOutput: VkBool32,
+    pub prefersLocalInvocationPrimitiveOutput: VkBool32,
+    pub prefersCompactVertexOutput: VkBool32,
+    pub prefersCompactPrimitiveOutput: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceMeshShaderPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceMeshShaderPropertiesEXT>() - 160usize];
+    [
+        "Alignment of VkPhysicalDeviceMeshShaderPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceMeshShaderPropertiesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderPropertiesEXT, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderPropertiesEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskWorkGroupTotalCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskWorkGroupTotalCount
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskWorkGroupCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskWorkGroupCount
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskWorkGroupInvocations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskWorkGroupInvocations
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskWorkGroupSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskWorkGroupSize
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskPayloadSize",
+    ][::std::mem::offset_of!(VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskPayloadSize)
+        - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskSharedMemorySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskSharedMemorySize
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxTaskPayloadAndSharedMemorySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxTaskPayloadAndSharedMemorySize
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshWorkGroupTotalCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshWorkGroupTotalCount
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshWorkGroupCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshWorkGroupCount
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshWorkGroupInvocations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshWorkGroupInvocations
+    ) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshWorkGroupSize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshWorkGroupSize
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshSharedMemorySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshSharedMemorySize
+    ) - 92usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshPayloadAndSharedMemorySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshPayloadAndSharedMemorySize
+    ) - 96usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshOutputMemorySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshOutputMemorySize
+    ) - 100usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshPayloadAndOutputMemorySize",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshPayloadAndOutputMemorySize
+    ) - 104usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshOutputComponents",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshOutputComponents
+    ) - 108usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshOutputVertices",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshOutputVertices
+    ) - 112usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshOutputPrimitives",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshOutputPrimitives
+    ) - 116usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshOutputLayers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshOutputLayers
+    ) - 120usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxMeshMultiviewViewCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxMeshMultiviewViewCount
+    ) - 124usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::meshOutputPerVertexGranularity",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, meshOutputPerVertexGranularity
+    ) - 128usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::meshOutputPerPrimitiveGranularity",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, meshOutputPerPrimitiveGranularity
+    ) - 132usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxPreferredTaskWorkGroupInvocations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxPreferredTaskWorkGroupInvocations
+    ) - 136usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::maxPreferredMeshWorkGroupInvocations",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, maxPreferredMeshWorkGroupInvocations
+    ) - 140usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::prefersLocalInvocationVertexOutput",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, prefersLocalInvocationVertexOutput
+    ) - 144usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::prefersLocalInvocationPrimitiveOutput",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, prefersLocalInvocationPrimitiveOutput
+    ) - 148usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::prefersCompactVertexOutput",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, prefersCompactVertexOutput
+    ) - 152usize];
+    [
+        "Offset of field: VkPhysicalDeviceMeshShaderPropertiesEXT::prefersCompactPrimitiveOutput",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceMeshShaderPropertiesEXT, prefersCompactPrimitiveOutput
+    ) - 156usize];
+};
+impl Default for VkPhysicalDeviceMeshShaderPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdDrawMeshTasksEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        groupCountX: u32,
+        groupCountY: u32,
+        groupCountZ: u32,
+    ),
+>;
 pub type VkWaylandSurfaceCreateFlagsKHR = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

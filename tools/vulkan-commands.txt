@@ -93,6 +93,9 @@ vkCmdSetStencilReference
 vkCmdSetStencilCompareMask
 vkCmdSetStencilWriteMask
 vkCmdDraw
+vkCmdDrawMeshTasksEXT
+vkCmdDrawMeshTasksIndirect2EXT
+vkCmdDrawMeshTasksIndirectCount2EXT
 vkCmdDrawIndexed
 vkCreateQueryPool
 vkDestroyQueryPool
