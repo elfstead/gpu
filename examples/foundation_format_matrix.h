@@ -138,7 +138,7 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
     TRY(ogpu_next_device_query(device, &q));
     formats = calloc(q.count, sizeof(*formats)); REQUIRE(formats);
     q.data = formats; q.capacity = q.count; TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(q.count == sizeof(cases)/sizeof(cases[0]));
+    REQUIRE(q.count >= sizeof(cases)/sizeof(cases[0]));
     host_desc.size = sizeof(expected); host_desc.alignment = 16;
     host_desc.usage = OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST;
     TRY(ogpu_next_memory_create(device, &host_desc, &host));
@@ -153,9 +153,12 @@ static int format_matrix(ogpu_next_device *device, ogpu_next_memory_desc host_de
     TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     barrier_scratch=malloc(br.size); submit_scratch=malloc(sr.size);
     REQUIRE(barrier_scratch && submit_scratch);
-    for(uint32_t i=0;i<q.count;++i) {
+    for(uint32_t i=0;i<sizeof(cases)/sizeof(cases[0]);++i) {
         uint32_t fmt=cases[i].format, aspects=cases[i].aspects;
         REQUIRE(formats[i].format == fmt);
+        REQUIRE(formats[i].copy_block_extent[0] == 1 && formats[i].copy_block_extent[1] == 1 && formats[i].copy_block_extent[2] == 1);
+        REQUIRE(formats[i].copy_block_bytes[0] == cases[i].bytes && formats[i].copy_block_bytes[1] == cases[i].depth_bytes);
+        REQUIRE(formats[i].copy_block_bytes[2] == ((aspects & OGPU_NEXT_ASPECT_STENCIL) ? 1u : 0u));
         uint64_t features=formats[i].optimal_features;
         uint64_t view_usage=(features&OGPU_NEXT_FORMAT_SAMPLED) ? OGPU_NEXT_IMAGE_SAMPLED :
             (features&OGPU_NEXT_FORMAT_DEPTH_STENCIL) ? OGPU_NEXT_IMAGE_DEPTH_STENCIL_ATTACHMENT :

@@ -157,6 +157,7 @@ const32 VK_QUEUE_FAMILY_IGNORED
 vk VkPhysicalDeviceMemoryProperties2 sType pNext memoryProperties
 vk VkPhysicalDeviceMemoryBudgetPropertiesEXT sType pNext heapBudget heapUsage
 # P1 optional Wayland/presentation native ABI.
+next FormatInfo ogpu_next_format_info format aspects optimal_features linear_features buffer_features copy_block_extent copy_block_bytes
 next WaylandSurfaceDesc ogpu_next_wayland_surface_desc header display surface
 next SurfaceCapabilities ogpu_next_surface_capabilities min_image_count max_image_count current_extent min_extent max_extent max_layers supported_transforms current_transform supported_alpha image_usage native_image_usage reserved
 next SurfaceFormat ogpu_next_surface_format format native_format color_space reserved

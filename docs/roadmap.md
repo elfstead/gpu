@@ -62,8 +62,9 @@ compatibility are not completed by those results.
 | M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
 | M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |
 
-Current implementation order: **completed M1–M5/foundation and consolidation →
-P1 → M6 → M8 → M9 → M10 → M11**, with **M7 an ongoing packaging/adoption track**,
+Current local implementation order: **completed M1–M5/foundation and consolidation →
+P1 (partial human acceptance) → M8 → M9 → M10 → M11**, with **M6 deferred until
+a Mac is available** and **M7 an ongoing packaging/adoption track**,
 not the end of functional development. Prerequisites can move earlier without
 claiming the entire later milestone. Missing Mac or feature hardware must not
 stall useful local work: keep native acceptance open and advance the next
@@ -402,10 +403,12 @@ when only unavailable external hardware remains. No hardware acquisition is impl
 **Format prerequisite pulled forward (2026-10-16):** the ordinary/packed foundation
 catalog now has 118 formats, with explicit numeric/aspect rules and native-capability
 queries; [bounded evidence and exclusions](results/foundation-formats-2026-10-16.md).
-This is not M8 completion. Its compressed-texture batch must cover BC, ETC2/EAC and
-ASTC LDR vocabularies, exact block sizes/edge-mip/pitch rules, view compatibility,
-native enabling and sampled artifacts together. Execute supported profiles locally;
-keep other hardware acceptance open. No automatic decompression or RGBA expansion.
+This is not M8 completion. The [2026-10-17 compressed tranche](results/m8-compressed-formats-2026-10-17.md)
+adds BC, ETC2/EAC and ASTC LDR vocabularies (172 total formats), exact block-aware
+copy pitches/bounds, view compatibility and native sampled artifacts. Both drivers
+execute 16 BC copy/view profiles and two BC1 sampling profiles; the other 38
+requested compressed profiles remain locally unsupported. Broader sampling and
+block reinterpretation remain explicit follow-ups. No automatic decompression or RGBA expansion.
 Audit extension-specific ordinary/packed formats alongside advanced raster.
 The [storage-image follow-up](results/foundation-storage-images-2026-10-16.md) also
 pulls forward extended typed and formatless shader metadata plus independent
@@ -512,7 +515,7 @@ explicit entry criterion; they are not silently included in milestone completion
 | Timed waits / cancellation | Timeline timeout/poll and recording cancellation are implemented. Timeout/cancellation do not retire pending GPU work; GPU cancellation/recovery remains a separate semantic decision |
 | External memory/import-export | M10; boundary design in P1, prerequisite subsets earlier when needed; ownership/device matching and native synchronization required |
 | Multi-device execution/communication | Deferred; needs a selected workload and multiple real devices. Never a prerequisite for current local milestones |
-| More formats, arrays, 3D textures, MSAA | 118 ordinary/packed formats and existing image shapes/resolve profiles implemented; M8 adds block compression and extension-specific raster formats; M11 adds plane-aware media and 64-bit-component profiles. Query exact native combinations; no universal format claim |
+| More formats, arrays, 3D textures, MSAA | 118 ordinary/packed plus 54 compressed formats and existing image shapes/resolve profiles implemented; bounded BC execution, other compressed profiles locally unverified; M8 also audits extension-specific raster formats; M11 adds plane-aware media and 64-bit-component profiles. Query exact native combinations; no universal format claim |
 | Mixed backing, virtual memory and residency | M10, with required subsets pulled into M6 or other consumers; explicit native placement/ordering, no hidden migration |
 | Generated commands and richer artifact/launch profiles | M8 generated topology; M11 richer launch and binaries; P1 implements the narrow optional-extension negotiation prerequisite |
 | Presentation | P1 Linux before M6; M6 Metal; real window-system acceptance required |

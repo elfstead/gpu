@@ -180,6 +180,11 @@ typedef struct ogpu_next_format_info {
     ogpu_next_format format;
     uint32_t aspects;
     uint64_t optimal_features, linear_features, buffer_features;
+    /* Copy footprint, NOT optimal-image allocation size. Extent in texels;
+     * bytes per block independently for COLOR, DEPTH, STENCIL (zero if absent).
+     * Ordinary formats have extent {1,1,1}; compressed formats count whole blocks,
+     * including partial blocks at mip edges. Depth/stencil copies are separate. */
+    uint32_t copy_block_extent[3], copy_block_bytes[3];
 } ogpu_next_format_info;
 typedef struct ogpu_next_image_profile {
     ogpu_next_record header;
@@ -478,7 +483,9 @@ ogpu_next_status ogpu_next_memory_invalidate(ogpu_next_span);
  * PACK8/16/32 names list components from high to low bits of the packed word,
  * following the corresponding native format (X = unused, E = shared exponent).
  * Other color names list components in increasing memory order. No channel
- * rearrangement, conversion or decompression is implicit. Compressed, multiplanar,
+ * rearrangement, conversion or decompression is implicit. BC1-7, ETC2/EAC and
+ * 2D ASTC LDR formats are included, with per-format capability queries (no coarse
+ * compression device-enable requirement). Multiplanar,
  * 64-bit-component and extension-specific formats remain separate profiles. */
 enum {
     OGPU_NEXT_R8_UNORM = 1, OGPU_NEXT_RG8_UNORM = 2,
@@ -589,6 +596,60 @@ enum {
     OGPU_NEXT_X8_D24_UNORM_PACK32 = 116,
     OGPU_NEXT_S8_UINT = 117,
     OGPU_NEXT_D16_UNORM_S8_UINT = 118,
+    OGPU_NEXT_BC1_RGB_UNORM_BLOCK = 119,
+    OGPU_NEXT_BC1_RGB_SRGB_BLOCK = 120,
+    OGPU_NEXT_BC1_RGBA_UNORM_BLOCK = 121,
+    OGPU_NEXT_BC1_RGBA_SRGB_BLOCK = 122,
+    OGPU_NEXT_BC2_UNORM_BLOCK = 123,
+    OGPU_NEXT_BC2_SRGB_BLOCK = 124,
+    OGPU_NEXT_BC3_UNORM_BLOCK = 125,
+    OGPU_NEXT_BC3_SRGB_BLOCK = 126,
+    OGPU_NEXT_BC4_UNORM_BLOCK = 127,
+    OGPU_NEXT_BC4_SNORM_BLOCK = 128,
+    OGPU_NEXT_BC5_UNORM_BLOCK = 129,
+    OGPU_NEXT_BC5_SNORM_BLOCK = 130,
+    OGPU_NEXT_BC6H_UFLOAT_BLOCK = 131,
+    OGPU_NEXT_BC6H_SFLOAT_BLOCK = 132,
+    OGPU_NEXT_BC7_UNORM_BLOCK = 133,
+    OGPU_NEXT_BC7_SRGB_BLOCK = 134,
+    OGPU_NEXT_ETC2_RGB8_UNORM_BLOCK = 135,
+    OGPU_NEXT_ETC2_RGB8_SRGB_BLOCK = 136,
+    OGPU_NEXT_ETC2_RGB8A1_UNORM_BLOCK = 137,
+    OGPU_NEXT_ETC2_RGB8A1_SRGB_BLOCK = 138,
+    OGPU_NEXT_ETC2_RGBA8_UNORM_BLOCK = 139,
+    OGPU_NEXT_ETC2_RGBA8_SRGB_BLOCK = 140,
+    OGPU_NEXT_EAC_R11_UNORM_BLOCK = 141,
+    OGPU_NEXT_EAC_R11_SNORM_BLOCK = 142,
+    OGPU_NEXT_EAC_RG11_UNORM_BLOCK = 143,
+    OGPU_NEXT_EAC_RG11_SNORM_BLOCK = 144,
+    OGPU_NEXT_ASTC_4X4_UNORM_BLOCK = 145,
+    OGPU_NEXT_ASTC_4X4_SRGB_BLOCK = 146,
+    OGPU_NEXT_ASTC_5X4_UNORM_BLOCK = 147,
+    OGPU_NEXT_ASTC_5X4_SRGB_BLOCK = 148,
+    OGPU_NEXT_ASTC_5X5_UNORM_BLOCK = 149,
+    OGPU_NEXT_ASTC_5X5_SRGB_BLOCK = 150,
+    OGPU_NEXT_ASTC_6X5_UNORM_BLOCK = 151,
+    OGPU_NEXT_ASTC_6X5_SRGB_BLOCK = 152,
+    OGPU_NEXT_ASTC_6X6_UNORM_BLOCK = 153,
+    OGPU_NEXT_ASTC_6X6_SRGB_BLOCK = 154,
+    OGPU_NEXT_ASTC_8X5_UNORM_BLOCK = 155,
+    OGPU_NEXT_ASTC_8X5_SRGB_BLOCK = 156,
+    OGPU_NEXT_ASTC_8X6_UNORM_BLOCK = 157,
+    OGPU_NEXT_ASTC_8X6_SRGB_BLOCK = 158,
+    OGPU_NEXT_ASTC_8X8_UNORM_BLOCK = 159,
+    OGPU_NEXT_ASTC_8X8_SRGB_BLOCK = 160,
+    OGPU_NEXT_ASTC_10X5_UNORM_BLOCK = 161,
+    OGPU_NEXT_ASTC_10X5_SRGB_BLOCK = 162,
+    OGPU_NEXT_ASTC_10X6_UNORM_BLOCK = 163,
+    OGPU_NEXT_ASTC_10X6_SRGB_BLOCK = 164,
+    OGPU_NEXT_ASTC_10X8_UNORM_BLOCK = 165,
+    OGPU_NEXT_ASTC_10X8_SRGB_BLOCK = 166,
+    OGPU_NEXT_ASTC_10X10_UNORM_BLOCK = 167,
+    OGPU_NEXT_ASTC_10X10_SRGB_BLOCK = 168,
+    OGPU_NEXT_ASTC_12X10_UNORM_BLOCK = 169,
+    OGPU_NEXT_ASTC_12X10_SRGB_BLOCK = 170,
+    OGPU_NEXT_ASTC_12X12_UNORM_BLOCK = 171,
+    OGPU_NEXT_ASTC_12X12_SRGB_BLOCK = 172,
 };
 enum { OGPU_NEXT_IMAGE_1D = 1, OGPU_NEXT_IMAGE_2D = 2, OGPU_NEXT_IMAGE_3D = 3 };
 enum { OGPU_NEXT_ASPECT_COLOR = 1, OGPU_NEXT_ASPECT_DEPTH = 2, OGPU_NEXT_ASPECT_STENCIL = 4 };
@@ -1765,11 +1826,11 @@ enum { OGPU_NEXT_RESOLVE_NATIVE_COLOR = 1 };
  * disjoint source/destination memory regions, even for distinct aliasing images,
  * and consistent layouts for shared subresources. Same-image disjoint copies
  * are allowed; GENERAL is needed when one subresource is both source/destination.
- * Current copy profile: matching dimensionality/sample counts, uncompressed
- * color formats of equal texel size (raw bits, no conversion), or identical
+ * Current copy profile: matching dimensionality/sample counts, color formats
+ * of equal block size AND block extent (raw bits, no conversion), or identical
  * depth/stencil formats. Offsets, mip/layer bounds and queue granularity checked.
  * Depth/stencil copies currently require a graphics family. 2D-array/3D cross-
- * dimensional mappings, compressed/multiplanar and depth/color reinterpretation
+ * dimensional mappings, unequal-block-extent/multiplanar and depth/color reinterpretation
  * remain profiles to add, not silently staged.
  * Resolve: graphics queue, multisample source, single-sample destination, identical
  * color format with native color-attachment format support. NATIVE_COLOR preserves
@@ -1811,11 +1872,15 @@ void ogpu_next_blit_image(ogpu_next_encoder *, ogpu_next_image *dst, ogpu_next_i
 /* Commands never insert transitions or hazard barriers. Clear requires GENERAL
  * or COPY_DST; copies require GENERAL or the corresponding COPY_SRC/COPY_DST.
  * Single-sample copies support one aspect and explicit mip/layer/subregion bounds.
- * Pitches are bytes: zero means tight, row is a texel multiple, slice is a row
- * multiple. Native queue granularity and address alignment are checked. Row/slice
+ * Pitches are bytes: zero means tight, row is a copy-block-byte multiple, slice
+ * is a block-row-pitch multiple. Partial edge blocks still occupy whole blocks.
+ * Offsets are block-aligned; extents are block multiples or end at the mip edge.
+ * Native queue granularity (in blocks for compressed images) and address alignment
+ * are checked. Row/slice
  * texel counts must fit native uint32 fields; row bytes must fit INT32_MAX.
  * reserved=0. No implicit staging.
- * Color clear needs graphics/compute; depth/stencil clear/copy currently needs a
+ * Compressed clears are UNSUPPORTED, never synthesized. Ordinary color clear
+ * needs graphics/compute; depth/stencil clear/copy currently needs a
  * graphics family. Select the clear-value member matching the image's numeric
  * format (float for normalized/float, uint for unsigned, depth_stencil for depth).
  * Depth clear values must be finite and in [0,1], including stencil-only clears.

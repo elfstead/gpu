@@ -29,7 +29,7 @@ _Static_assert(sizeof(ogpu_next_inheritance) == 64, "inheritance ABI");
 _Static_assert(sizeof(ogpu_next_render_inheritance) == 72, "render inheritance ABI");
 _Static_assert(sizeof(ogpu_next_blit_region) == 40, "blit region ABI");
 _Static_assert(sizeof(ogpu_next_image_blit) == 96, "image blit ABI");
-_Static_assert(sizeof(ogpu_next_format_info) == 32, "format info ABI");
+_Static_assert(sizeof(ogpu_next_format_info) == 56, "format info ABI");
 _Static_assert(sizeof(ogpu_next_image_profile) == 48, "image profile ABI");
 _Static_assert(sizeof(ogpu_next_image_limits) == 32, "image limits ABI");
 _Static_assert(sizeof(ogpu_next_split_dependency) == 16, "split dependency ABI");
@@ -92,6 +92,7 @@ static uint64_t aligned(uint64_t n, uint64_t a) { return (n + a - 1) / a * a; }
 #include "foundation_cube.h"
 #include "foundation_formats.h"
 #include "foundation_format_matrix.h"
+#include "foundation_compressed.h"
 #include "foundation_split.h"
 #include "foundation_raster_storage.h"
 #include "foundation_mrt.h"
@@ -1035,11 +1036,12 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 37);
+    REQUIRE(argc == 38);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
     REQUIRE(compute_domain != UINT32_MAX);
+    REQUIRE(compressed_formats(device,compute_domain,argv[37]) == EXIT_SUCCESS);
     REQUIRE(cube_execution(device,memory_desc,compute_domain,argv[36]) == EXIT_SUCCESS);
     REQUIRE(submission_batches(device, memory_desc, compute_domain) == EXIT_SUCCESS);
     REQUIRE(compute(device, memory_desc, compute_domain, argv[1], 0) == EXIT_SUCCESS);

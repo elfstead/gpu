@@ -19,7 +19,7 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FORMATS, NULL, 0, sizeof(physical[0]));
     TRY(ogpu_next_adapter_query(adapter, &q));
     uint32_t count = q.count;
-    REQUIRE(count == 118);
+    REQUIRE(count == 172);
     size_t bytes = count * sizeof(*physical);
     physical = malloc(bytes); enabled = malloc(bytes); saved = malloc(bytes);
     REQUIRE(physical && enabled && saved);
@@ -28,6 +28,11 @@ static int format_capabilities(const ogpu_next_adapter *adapter, ogpu_next_devic
     REQUIRE(ogpu_next_adapter_query(adapter, &q) == OGPU_NEXT_CAPACITY && q.count == count);
     REQUIRE(memcmp(physical, saved, bytes) == 0);
     q.capacity = count; TRY(ogpu_next_adapter_query(adapter, &q));
+    q.element_size = 32; q.count = 79; /* Previous record layout must not overrun old callers. */
+    memcpy(saved,physical,bytes);
+    REQUIRE(ogpu_next_adapter_query(adapter,&q) == OGPU_NEXT_INVALID && q.count == 79);
+    REQUIRE(memcmp(physical,saved,bytes) == 0);
+    q.element_size = sizeof(*physical);
     q.data = enabled; TRY(ogpu_next_device_query(device, &q));
     REQUIRE(q.count == count && memcmp(physical, enabled, count*sizeof(physical[0])) == 0);
     for (uint32_t i = 0; i < count; ++i) {

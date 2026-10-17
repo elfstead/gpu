@@ -17,7 +17,7 @@ all hardware that might work.
 | Compiler and consumers | Pinned generated Slang interfaces; M4 native-matched scene; M5 transformer/Q8_0; bounded GGML/libplacebo and learned-image | General LLM/training, arbitrary Slang, general safe Rust wrapper, tuned GEMM or universal native-performance parity |
 | Distribution | Revision-pinned local-build SDK; six small C examples, native Rust source/consumer/shader bundle and separately pinned upstream adapters | Stable ABI, portable binary bundle, clean-machine coverage or actual third-party adoption |
 | Native Rust | Equivalents for the current C operations; isolated shared-core resource/compute/image and interactive scene builds/runs, compile-checked surface coverage | Every Rust operation independently executed, fully safe wrapper, fully typed nested records, crates.io release or stable Rust API |
-| Metal | Existing legacy Metal 4 compute only; M6 entry handoff prepared | Any foundation or mixed-workload native Metal acceptance |
+| Metal | Existing legacy Metal 4 compute only; M6 mapping drafted, implementation deferred until a Mac is available | Any foundation or mixed-workload native Metal acceptance |
 
 Foundation uses the modern Vulkan/address/descriptor baseline and explicit optional
 feature requests, including unified image layouts and FP16 arithmetic. Query the

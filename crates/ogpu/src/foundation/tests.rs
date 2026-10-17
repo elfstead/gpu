@@ -223,7 +223,7 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<ArenaDesc>(), 40);
     assert_eq!(size_of::<Inheritance>(), 64);
     assert_eq!(size_of::<RenderInheritance>(), 72);
-    assert_eq!(size_of::<FormatInfo>(), 32);
+    assert_eq!(size_of::<FormatInfo>(), 56);
     assert_eq!(size_of::<ImageProfile>(), 48);
     assert_eq!(size_of::<ImageLimits>(), 32);
     assert_eq!(size_of::<SplitDependency>(), 16);

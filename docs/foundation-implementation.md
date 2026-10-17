@@ -351,13 +351,19 @@ one-shot. No view or GPU command accepts an unbound image. See the native
 and [dedicated-image association](https://docs.vulkan.org/refpages/latest/refpages/source/VkMemoryDedicatedAllocateInfo.html).
 
 Independent views select compatible formats, dimensions, mip/layer/aspect ranges,
-usage subsets and component mappings. The current table covers 118 uncompressed
+usage subsets and component mappings. The current table covers 172 formats: 118 uncompressed
 formats: Vulkan 1.0 core color formats with up to 32-bit components, their packed
-variants, and all seven core depth/stencil formats. Existing IDs 1–19 are preserved;
+variants, all seven core depth/stencil formats, plus 54 BC, ETC2/EAC and 2D ASTC
+LDR formats. Existing IDs are preserved;
 Rust exposes matching constants in `foundation::types::image_formats`. Integer,
 normalized, scaled, sRGB and floating-point representations are not conflated.
 The [format expansion receipt](results/foundation-formats-2026-10-16.md) records
 capability-scoped execution and remaining proof, not universal device support.
+The [compressed-format tranche](results/m8-compressed-formats-2026-10-17.md)
+adds block-aware copies and per-aspect copy-block metadata to format queries.
+`FormatInfo` is now 56 bytes; rebuild revision-pinned consumers. Both local drivers
+execute all 16 BC copy/view profiles and two BC1 sampled profiles; ETC2/EAC and
+ASTC requested profiles are unsupported locally, not emulated.
 Format discovery uses native 64-bit format properties and exposes independent
 `FORMAT_STORAGE_READ_WITHOUT_FORMAT` / `FORMAT_STORAGE_WRITE_WITHOUT_FORMAT`
 permissions in each image-tiling mask (native Rust: `types::format_features`).
@@ -369,8 +375,8 @@ No shader parsing, descriptor inspection or new checks are added to dispatch.
 See the [storage-image contract and evidence](results/foundation-storage-images-2026-10-16.md).
 1D/2D/3D and array/cube views and ordinary
 multisample images are implemented subject to exact native support. Optional
-2D views of 3D slices, multisampled storage, extended usage, compressed
-and multi-planar formats, linear tiling, sparse/external/disjoint images and
+2D views of 3D slices, multisampled storage, extended usage, compressed-to-ordinary
+block reinterpretation views and multi-planar formats, linear tiling, sparse/external/disjoint images and
 separate depth/stencil layout enabling remain outside this implemented profile.
 64-bit-component and extension-specific formats also remain separate coverage;
 FP64/raw-buffer support does not imply typed FP64 image/vertex support.
@@ -430,7 +436,7 @@ are explicit, with no current-layout tracker or automatic initialization. Discar
 only discards contents; it does not remove hazard synchronization. Color and depth/
 stencil clears and address-based memory/image copies preserve caller-specified
 states. Copies expose mip/layer/subregions and byte row/slice pitches; checked
-size arithmetic, queue granularity, texel alignment and native pitch limits prevent
+size arithmetic, block-scaled queue granularity, block alignment and native pitch limits prevent
 invalid encoding. There is no staging allocation, hidden transfer or resource
 retention. See the native [copy-region constraints](https://docs.vulkan.org/refpages/latest/refpages/source/VkCopyDeviceMemoryImageInfoKHR.html).
 
@@ -457,7 +463,8 @@ with full output/guard checks. All resolved source samples have the same known
 color: this proves transfer/region lowering, not per-sample numerical behavior.
 Depth/stencil image-to-image, compatible-format reinterpretation, other dimensions,
 image ownership and nonuniform-sample numerical coverage remain
-to verify. Compressed/multiplanar and cross-dimensional copies remain unimplemented.
+to verify. Compressed copies with equal block extents/sizes are now implemented;
+unequal-block-extent, multiplanar and cross-dimensional copies remain unimplemented.
 Creation support is not a claim of full shader-consumer verification.
 
 The C alias fixture places differently shaped/formatted RGBA8 and R32_UINT images

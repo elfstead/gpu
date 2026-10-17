@@ -170,13 +170,15 @@ the mapping as design input, not a reason to refactor around untested assumption
 
 ## Current: M8 block-compressed textures
 
-Implement a coherent compressed-format tranche: explicit format/block metadata,
-capability queries, block-aware memory/image copies, compatible views and sampled
-execution. Use the existing GPU and software driver; unsupported formats remain
-visible and are not transcoded or decompressed by OGPU. Cover odd image edges,
-small mip levels, padded pitches, arrays and rejection of invalid block regions.
-Native execution evidence is limited to the formats each local driver supports.
-Then proceed to advanced raster and GPU-driven/task-mesh work, followed by M9 ray
+The first [compressed-format tranche](results/m8-compressed-formats-2026-10-17.md)
+is implemented: 54 new BC/ETC2/EAC/ASTC LDR IDs, per-aspect copy-block metadata,
+block-aware memory/image copies, compatible views and native BC1 sampling.
+Both drivers execute all 16 BC copy/view profiles with odd edges, three mips,
+two layers, padded pitches and guards; the requested ETC2/EAC/ASTC profiles are
+unsupported locally. Format query records grow from 32 to 56 bytes; consumers
+must rebuild against matching sources. No implicit decode/transcode or new runtime
+dependency. Remaining compressed scopes are explicit in the receipt.
+Next: advanced raster and GPU-driven/task-mesh work, followed by M9 ray
 tracing. M6 remains incomplete and can resume when native development is possible.
 
 ## Packaging and compatibility

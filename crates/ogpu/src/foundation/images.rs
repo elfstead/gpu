@@ -25,8 +25,13 @@ pub(super) struct Format {
     class: u32,
     pub(super) numeric: Numeric,
     depth_bytes: u64,
+    block_extent: [u32; 3],
+    color_bytes: u64,
 }
 impl Format {
+    fn compressed(self) -> bool {
+        self.block_extent != [1; 3]
+    }
     pub(super) fn integer_color(self) -> bool {
         matches!(self.numeric, Numeric::Uint | Numeric::Sint)
     }
@@ -35,7 +40,7 @@ impl Format {
             return Err(INVALID);
         }
         Ok(match aspect {
-            1 => u64::from(self.class / 8),
+            1 => self.color_bytes,
             2 => self.depth_bytes,
             4 => 1,
             _ => return Err(INVALID),
@@ -43,10 +48,11 @@ impl Format {
     }
 }
 macro_rules! define_formats {
-    ($($name:ident = $id:literal => ($native:ident, $aspects:literal, $class:literal, $numeric:ident, $depth:literal),)*) => {
+    ($($name:ident = $id:literal => ($native:ident, $aspects:literal, $class:literal, $numeric:ident, $depth:literal, ($width:literal, $height:literal, $bytes:literal)),)*) => {
         pub(super) const FORMATS: &[Format] = &[$(Format {
             native: vk::$native, aspects: $aspects, class: $class,
             numeric: Numeric::$numeric, depth_bytes: $depth,
+            block_extent: [$width, $height, 1], color_bytes: $bytes,
         },)*];
     };
 }
@@ -134,6 +140,41 @@ fn copy_pitches(
         u32::try_from(slice / row).map_err(|_| UNSUPPORTED)?,
         size,
     ))
+}
+
+// Public pitches are bytes per block row / block slice. Native row length and
+// image height remain texel counts, including padding beyond an odd mip edge.
+fn block_copy_pitches(
+    e: Extent,
+    layers: u32,
+    format: Format,
+    aspect: u32,
+    row: u64,
+    slice: u64,
+) -> Result<(u32, u32, u64), Status> {
+    let [x, y, z] = format.block_extent;
+    let blocks = Extent {
+        x: e.x.div_ceil(x),
+        y: e.y.div_ceil(y),
+        z: e.z.div_ceil(z),
+    };
+    let (row_blocks, slice_rows, size) =
+        copy_pitches(blocks, layers, format.copy_bytes(aspect)?, row, slice)?;
+    Ok((
+        row_blocks.checked_mul(x).ok_or(UNSUPPORTED)?,
+        slice_rows.checked_mul(y).ok_or(UNSUPPORTED)?,
+        size,
+    ))
+}
+
+fn block_copy_granularity(format: Format, queue: [u32; 3]) -> Result<[u32; 3], Status> {
+    let mut scaled = [0; 3];
+    for i in 0..3 {
+        scaled[i] = queue[i]
+            .checked_mul(format.block_extent[i])
+            .ok_or(UNSUPPORTED)?;
+    }
+    Ok(scaled)
 }
 
 fn copy_address_aligned(address: u64, aspect: u32, texel: u64, queue_flags: u32) -> bool {
@@ -647,6 +688,11 @@ impl Image {
             .ok_or(INVALID)?
             .flags;
         if range.aspectMask == 1 {
+            // Vulkan cannot clear block-compressed images, even if COPY_DST
+            // is supported. Never substitute a compression/upload kernel.
+            if format(self.prepared.desc.format)?.compressed() {
+                return Err(UNSUPPORTED);
+            }
             if flags & (GRAPHICS | COMPUTE) == 0 {
                 return Err(UNSUPPORTED);
             }
@@ -692,7 +738,13 @@ impl Image {
         })?;
         let desc = &self.prepared.desc;
         let full = [desc.extent.x, desc.extent.y, desc.extent.z].map(|v| (v >> r.mip).max(1));
-        copy_bounds(full, r.offset, r.extent, granularity)?;
+        let f = format(desc.format)?;
+        copy_bounds(
+            full,
+            r.offset,
+            r.extent,
+            block_copy_granularity(f, granularity)?,
+        )?;
         Ok((
             vk::VkImageSubresourceLayers {
                 aspectMask: r.aspect,
@@ -751,8 +803,17 @@ impl Image {
         let sf = format(a.format)?;
         let df = format(b.format)?;
         if mode == 0 {
-            if a.sample_count != b.sample_count || sf.class != df.class || sf.aspects != df.aspects
-            {
+            // Cross-block-shape copies need different source/destination texel
+            // extents. Keep this profile explicit rather than scaling silently.
+            if sf.block_extent != df.block_extent {
+                return Err(UNSUPPORTED);
+            }
+            let compatible = if sf.aspects == 1 && df.aspects == 1 {
+                sf.color_bytes == df.color_bytes
+            } else {
+                sf.class == df.class && sf.aspects == df.aspects
+            };
+            if a.sample_count != b.sample_count || !compatible {
                 return Err(INVALID);
             }
             if t.source.aspect != 1 && queue.flags & GRAPHICS == 0 {
@@ -859,12 +920,14 @@ impl Image {
         if r.aspect != 1 && queue.flags & GRAPHICS == 0 {
             return Err(UNSUPPORTED);
         }
-        let texel = format(desc.format)?.copy_bytes(r.aspect)?;
+        let f = format(desc.format)?;
+        let texel = f.copy_bytes(r.aspect)?;
         let (subresource, offset, extent) = self.transfer_region(r, queue.copy_granularity)?;
-        let (row_texels, slice_rows, size) = copy_pitches(
+        let (row_texels, slice_rows, size) = block_copy_pitches(
             r.extent,
             r.layer_count,
-            texel,
+            f,
+            r.aspect,
             copy.row_pitch,
             copy.slice_pitch,
         )?;

@@ -6,7 +6,7 @@ use std::ffi::{c_char, c_void};
 /// device support: query format features and the exact image profile before use.
 pub mod image_formats {
     macro_rules! declare_formats {
-        ($($name:ident = $id:literal => ($native:ident, $aspects:literal, $class:literal, $numeric:ident, $depth:literal),)*) => {
+        ($($name:ident = $id:literal => ($native:ident, $aspects:literal, $class:literal, $numeric:ident, $depth:literal, ($width:literal, $height:literal, $bytes:literal)),)*) => {
             $(pub const $name: u32 = $id;)*
             #[cfg(test)]
             #[test]
@@ -15,7 +15,7 @@ pub mod image_formats {
                 let mut expected = 1;
                 $(assert_eq!($id, expected); expected += 1;
                   assert!(header.contains(&format!("OGPU_NEXT_{} = {},", stringify!($name), $id)));)*
-                assert_eq!(expected, 119);
+                assert_eq!(expected, 173);
             }
         };
     }
@@ -421,6 +421,8 @@ pub struct FormatInfo {
     pub optimal_features: u64,
     pub linear_features: u64,
     pub buffer_features: u64,
+    pub copy_block_extent: [u32; 3],
+    pub copy_block_bytes: [u32; 3],
 }
 #[repr(C)]
 pub struct ImageProfile {

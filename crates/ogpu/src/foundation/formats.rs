@@ -74,6 +74,8 @@ pub(in crate::foundation::native) fn format_snapshot(
             optimal_features: image_features(p.optimalTilingFeatures),
             linear_features: image_features(p.linearTilingFeatures),
             buffer_features: buffer_features(p.bufferFeatures),
+            copy_block_extent: format.block_extent,
+            copy_block_bytes: [1, 2, 4].map(|aspect| format.copy_bytes(aspect).unwrap_or(0) as u32),
         });
     }
     Ok(result)
@@ -193,8 +195,13 @@ mod tests {
                 index as u32 + 1
             );
             if f.aspects == 1 {
-                assert!(matches!(f.class, 8 | 16 | 24 | 32 | 48 | 64 | 96 | 128));
-                assert_eq!(f.copy_bytes(1), Ok(u64::from(f.class / 8)));
+                if f.compressed() {
+                    assert!(f.class >= 2001);
+                    assert!(matches!(f.color_bytes, 8 | 16));
+                } else {
+                    assert!(matches!(f.class, 8 | 16 | 24 | 32 | 48 | 64 | 96 | 128));
+                    assert_eq!(f.copy_bytes(1), Ok(u64::from(f.class / 8)));
+                }
             } else {
                 assert_eq!(f.numeric, Numeric::DepthStencil);
             }
@@ -229,6 +236,64 @@ mod tests {
         assert!(copy_address_aligned(6, 1, 6, COMPUTE));
         assert!(!copy_address_aligned(2, 2, 2, GRAPHICS));
         assert!(copy_address_aligned(4, 4, 1, GRAPHICS));
+    }
+    #[test]
+    fn compressed_block_pitches_edges_and_view_classes() {
+        use image_formats::*;
+        let bc = format(BC1_RGBA_UNORM_BLOCK).unwrap();
+        assert_eq!(bc.block_extent, [4, 4, 1]);
+        assert_eq!(bc.class, format(BC1_RGBA_SRGB_BLOCK).unwrap().class);
+        assert_ne!(bc.class, format(BC1_RGB_UNORM_BLOCK).unwrap().class);
+        assert_ne!(bc.class, format(BC4_UNORM_BLOCK).unwrap().class);
+        let e = Extent { x: 7, y: 5, z: 1 };
+        assert_eq!(block_copy_pitches(e, 2, bc, 1, 0, 0), Ok((8, 8, 64)));
+        assert_eq!(block_copy_pitches(e, 2, bc, 1, 24, 72), Ok((12, 12, 112)));
+        assert_eq!(block_copy_pitches(e, 1, bc, 1, 17, 0), Err(INVALID));
+        assert_eq!(block_copy_pitches(e, 1, bc, 1, 8, 0), Err(INVALID));
+        assert_eq!(block_copy_pitches(e, 1, bc, 1, 24, 25), Err(INVALID));
+        assert_eq!(block_copy_pitches(e, 1, bc, 2, 0, 0), Err(INVALID));
+        let one = Extent { x: 1, y: 1, z: 1 };
+        assert_eq!(block_copy_pitches(one, 1, bc, 1, 0, 0), Ok((4, 4, 8)));
+        let astc = format(ASTC_5X4_UNORM_BLOCK).unwrap();
+        assert_eq!(block_copy_pitches(e, 2, astc, 1, 0, 0), Ok((10, 8, 128)));
+        // Conversion back to native texel units must not wrap.
+        assert_eq!(
+            block_copy_pitches(one, 1, astc, 1, 16, u64::from(u32::MAX) * 16),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(block_copy_granularity(astc, [2, 4, 1]), Ok([10, 16, 1]));
+        assert_eq!(block_copy_granularity(astc, [0; 3]), Ok([0; 3]));
+        assert_eq!(
+            block_copy_granularity(astc, [u32::MAX; 3]),
+            Err(UNSUPPORTED)
+        );
+        let edge = Offset { x: 4, y: 4, z: 0 };
+        assert_eq!(
+            copy_bounds(
+                [7, 5, 1],
+                edge,
+                Extent { x: 3, y: 1, z: 1 },
+                bc.block_extent
+            ),
+            Ok(())
+        );
+        assert_eq!(
+            copy_bounds(
+                [7, 5, 1],
+                edge,
+                Extent { x: 2, y: 1, z: 1 },
+                bc.block_extent
+            ),
+            Err(INVALID)
+        );
+        assert_eq!(
+            copy_bounds([7, 5, 1], Offset { x: 1, ..edge }, one, bc.block_extent),
+            Err(INVALID)
+        );
+        assert_eq!(
+            copy_bounds([1; 3], Offset { x: 0, y: 0, z: 0 }, one, bc.block_extent),
+            Ok(())
+        );
     }
     #[test]
     fn format_capabilities_keep_tiling_and_buffer_domains_distinct() {

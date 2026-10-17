@@ -83,6 +83,7 @@ jobs:
       - run: cargo test --locked
       - run: cargo xtask bindings --check
       - run: cargo xtask abi
+      - run: python3 -B tools/test_format_catalog.py
       - run: cc -std=c11 -Wall -Wextra -Werror -pedantic -Iinclude -fsyntax-only examples/foundation.c
       - run: c++ -std=c++17 -Wall -Wextra -Werror -pedantic -x c++ -fsyntax-only docs/drafts/ogpu_next.h
       - run: cargo xtask mock
