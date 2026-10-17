@@ -42,7 +42,7 @@ Everything else returns `UNSUPPORTED` and is listed under
 | Rust | 1.99.1 `x86_64-pc-windows-msvc` (tests), 1.92.0-nightly `x86_64-unknown-linux-gnu` (regression) |
 | Bindings | `windows =0.62.2`, narrow features (Foundation, Direct3D, Direct3D12, Dxgi, Dxgi.Common, Security, Threading) |
 | Agility markers | `D3D12SDKVersion`/`D3D12SDKPath` exports pinned to Microsoft.Direct3D.D3D12 1.613.1; see [incidents](#incidents-and-fixes) for the deployment status |
-| Shader compilers | Not used in this batch |
+| Shader compilers | Pinned Slang 2026.14.1 and dxc 1.6 (Windows SDK 10.0.22621 redistributable) — used for the argument-profile probes only |
 
 Commands (from a Windows toolchain with the repository visible):
 
@@ -135,10 +135,14 @@ alternative where D3D12 differs, recorded for the reviewer.
 
 ## Open mapping work
 
-- **Shader addresses and arguments (the plan's first decision)** is untouched:
-  no argument/pointer profile is claimed (`argument_flags = 0`,
-  `max_inline_size = 0` until D2 resolves root signatures versus the pointer
-  strategy).
+- **Shader addresses and arguments (the plan's first decision)** now has a
+  [provisional profile](dx12-arguments-profile.md) with compiled probe
+  evidence: root constants and root descriptors map directly, while address
+  arithmetic, nested pointers and GPU-produced references are unsupported on
+  HLSL/DXIL at the toolchain level. The provisional choice is
+  reviewer-reversible; the descriptor-index-plus-offset alternative stays open
+  as a separate profile. Until D2 implements the profile, the snapshot keeps
+  `argument_flags = 0`, `max_inline_size = 0` (no claim).
 - Descriptor/graphics/query/executable records zero their limits in the D1
   snapshot (no claim is made); D2 fills them with honest queries.
 - The `fill` and standalone `clear` commands need descriptor-backed clears;
