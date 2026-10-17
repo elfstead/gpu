@@ -4,8 +4,9 @@ Scheduled 2026-10-15, before M6. **Native Rust operation extraction and optional
 Wayland surface setup, device enabling, mode queries, binary submission dependencies
 and fence lifecycle implemented. Swapchain acquire/present/release has bounded
 two-window native acceptance. The interactive textured Rust scene now passes
-bounded three-slot, framebuffer-resize, pixel and no-readback checks; independent
-packaging and human interaction/minimize/restore acceptance remain.**
+bounded three-slot, framebuffer-resize, pixel and no-readback checks. The SDK now
+packages a relocatable native Rust source/consumer/shader bundle and manual checklist;
+human interaction/minimize/restore acceptance remains.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
@@ -27,7 +28,9 @@ It now also checks direct/indirect compute with specialization, independent root
 inline updates, cache export/import/merge, image binding/views, descriptor encoding
 and A/B/A image clear/readback. Broader raster/query/secondary/split execution is
 covered by existing shared-backend/C fixtures, not this Rust consumer.
-It is not yet an installed Rust SDK package or independent third-party adoption.
+The installer now includes this consumer and its runtime/shader source graph under
+`share/ogpu/native-rust`, with the unchanged consumer Cargo.lock. It is a pinned
+source handoff, not a crates.io release or independent third-party adoption.
 
 Expanded-tranche local validation (2026-10-15): 48 host unit tests plus two host
 integration tests for compile-checked C/Rust surface correspondence and absence of
@@ -73,7 +76,11 @@ observed framebuffer resizes, synthetic zero-extent suspension and close with
 pending slots. These are not human input or real minimize/restore observations.
 GLFW's Wayland backend cannot report iconification or programmatically restore it;
 manual compositor interaction is the acceptance route, not a fabricated callback.
-Next package the source/shader dependencies independently and provide that checklist.
+The 2026-10-17 packaging follow-up includes the complete consumer dependency graph
+and [manual acceptance checklist](presentation-acceptance.md). The isolated tester
+builds only copied sources, using cached registry dependencies and a fresh target,
+and optionally runs the headless and bounded display probes. Human acceptance is
+still a separate open item; see [quickstart](foundation-quickstart.md#native-rust-and-the-interactive-wayland-scene).
 
 ### Opening step: first-class native Rust, then presentation
 

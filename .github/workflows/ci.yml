@@ -63,6 +63,8 @@ jobs:
           git clone --no-checkout https://github.com/ggml-org/ggml.git "$RUNNER_TEMP/ggml"
           git -C "$RUNNER_TEMP/ggml" checkout --detach 7840aaba1989c6deeefede1d77d5aaf8f52b947e
       - run: python3 tools/install.py --prefix "$RUNNER_TEMP/ogpu-foundation"
+      - run: cargo fetch --locked --manifest-path "$RUNNER_TEMP/ogpu-foundation/share/ogpu/native-rust/examples/foundation_rust/Cargo.toml"
+      - run: python3 -B tools/test-rust-install.py --prefix "$RUNNER_TEMP/ogpu-foundation" --no-gpu
       - run: python3 tools/test-foundation-install.py --prefix "$RUNNER_TEMP/ogpu-foundation" --no-gpu --ggml-source "$RUNNER_TEMP/ggml"
   probe:
     runs-on: ubuntu-24.04

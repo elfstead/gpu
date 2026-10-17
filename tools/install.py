@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import rust_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -247,13 +248,14 @@ def install(prefix, *, legacy=False):
         "Name: ogpu-foundation\nDescription: Experimental revision-pinned foundation preview\n"
         f"Version: {package['version']}\n"
         'Libs: -L"${libdir}" -logpu\nCflags: -I"${includedir}"\n')
+    rust_source = rust_bundle.install(ROOT, staging, copy, revision, dirty)
     files = {str(p.relative_to(staging)): hashlib.sha256(p.read_bytes()).hexdigest()
              for p in sorted(staging.rglob("*")) if p.is_file()}
     manifest = dict(schema=1, revision=revision, source_dirty=dirty, default_api="foundation",
                     version=package["version"], target=target, profile="release",
                     cargo_default_features=False, cargo_features=features,
                     rustc=run(os.getenv("RUSTC", "rustc"), "--version", capture_output=True).stdout.strip(),
-                    dependencies=dependency_record, files_sha256=files,
+                    dependencies=dependency_record, files_sha256=files, native_rust=rust_source,
                     compatibility="Match header/library/artifacts from one revision; no stable ABI promise.",
                     binary_scope="Locally built; host libc/toolchain dependencies are not bundled.")
     if legacy: manifest["abi"] = int(abi[1])

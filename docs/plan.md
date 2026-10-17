@@ -1,14 +1,15 @@
 # Working status and next milestone
 
-Updated 2026-10-16. **M1–M5 and foundation-contract consolidation are complete for
+Updated 2026-10-17. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. Next is P1: presentation and an interactive Linux consumer,
 before M6 Metal foundation. P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
 dependencies are implemented. Borrowed swapchain images and acquire/present/release
 now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
 is implemented; bounded pixel/lifecycle checks pass with three frame slots and
-observed framebuffer resizes. Independent packaging and human interaction/minimize/
-restore acceptance remain; M6 implementation has not started.**
+observed framebuffer resizes. The SDK now packages a self-contained native Rust
+source/consumer/shader bundle and a manual acceptance checklist. Human interaction/
+minimize/restore acceptance remains; M6 implementation has not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -107,8 +108,14 @@ oracle and the normal no-readback path pass bounded runs on both drivers. Input
 controls are implemented but not human-accepted. Synthetic zero extent exercises
 the suspension branch; Wayland GLFW cannot report iconification or restore a window,
 so actual minimize/restore remains a manual compositor exercise.
-Next: package the Rust consumer and its shader dependencies for an isolated build,
-and supply a human acceptance checklist. No scanout, real-loss recovery or cross-family
+The SDK now includes the native Rust consumer, runtime source dependency, pinned
+Cargo.lock, embedded shader inputs and human acceptance checklist under
+`share/ogpu/native-rust`. The isolated checker builds from copied sources with a
+fresh target directory, no SDK shared library and no shader compiler; registry
+dependencies still need fetching or an existing cache. See the bundle README and
+`tools/test-rust-install.py`. Next: record actual interaction/minimize/restore
+observations using [the checklist](presentation-acceptance.md), then the M6 mapping.
+No scanout, real-loss recovery or cross-family
 presentation acceptance yet; M6 remains after P1.
 
 Expanded-tranche checks: 48 unit and two host integration tests, 17 GPU unit tests plus the native Rust
@@ -126,8 +133,8 @@ See [format coverage and evidence](results/foundation-formats-2026-10-16.md).
 The [storage-image follow-up](results/foundation-storage-images-2026-10-16.md) now
 adds independent per-format formatless read/write flags and compiler-generated
 format requirements, with typed/formatless normalized, signed, unsigned and float
-2D execution. These are format permissions, not new coarse device enables. Return
-to P1 isolated Rust-consumer packaging and the human acceptance checklist next.
+2D execution. These are format permissions, not new coarse device enables. The
+following P1 checkpoint packages the Rust consumer and human acceptance checklist.
 This does not complete M8: block compression remains its own coherent image/copy/
 view/sampling batch, alongside mesh/GPU-driven work. Plane-aware formats remain
 M11, pullable earlier independently of codecs; no conversion fallback is planned.

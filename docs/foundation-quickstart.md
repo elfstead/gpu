@@ -6,7 +6,8 @@ For native Rust use, the [standalone Cargo consumer](../examples/foundation_rust
 demonstrates resource, compute and image operations below the C ABI. Native Rust
 equivalents exist for the current C surface; some arguments retain raw nested
 records and caller-owned safety obligations. It uses a source dependency, not the
-C SDK installer. The installation instructions below are for C.
+C shared library. The installer also supplies its complete source bundle; see
+the native Rust section below. The first examples below are for C.
 To export the implemented `ogpu_next_*` surface and public-only
 source examples, build a new installation from your selected commit:
 
@@ -113,6 +114,44 @@ clone, public OGPU header/runtime checks, missing-loader and stale-source reject
 and the default GPU acceptance. `--no-gpu` retains build/dependency/failure checks.
 Its shader/compiler dependencies are optional and do not burden the smaller
 preview examples or the ordinary no-GPU CI build.
+
+## Native Rust and the interactive Wayland scene
+
+Copy the entire `share/ogpu/native-rust` directory outside the SDK/repository and
+follow its README. It contains the runtime crates, standalone consumer Cargo.lock,
+embedded shader artifacts and their source. Relative dependencies stay inside the
+bundle; the consumer builds OGPU directly below the C boundary, not through
+`libogpu.so`. Do not mix its handles with a separately loaded C runtime.
+
+```sh
+cargo build --locked --release --manifest-path examples/foundation_rust/Cargo.toml --bins
+./examples/foundation_rust/target/release/ogpu-native-rust-consumer
+OGPU_GLFW_LIBRARY=/path/to/libglfw.so.3 \
+  ./examples/foundation_rust/target/release/surface --scene
+```
+
+Rust/Cargo 1.85+ and a native linker are needed; registry dependencies are pinned,
+not vendored. Fetch them or supply a populated Cargo cache (`--offline`). No shader
+compiler or Vulkan headers are needed. The optional scene needs GLFW 3.4, Wayland,
+the presentation profile and MAILBOX support. Driver/window libraries are external.
+The bundle includes `docs/presentation-acceptance.md` for actual input and compositor
+checks; automated pixel checks do not establish human minimize/restore acceptance.
+
+Maintainer verification:
+
+```sh
+python3 -B tools/test-rust-install.py --prefix /path/to/sdk --no-gpu
+python3 -B tools/test-rust-install.py --prefix /path/to/sdk --presentation
+```
+
+The tester uses an existing Cargo cache **offline**, copies only the source bundle
+to a fresh space-containing directory and builds with a fresh target directory.
+It checks package/input paths, disabled legacy features, link dependencies, host
+tests and missing-loader rejection. Without `--no-gpu` it runs the headless consumer;
+`--presentation` explicitly adds bounded visible windows, missing-GLFW rejection,
+surface/lifecycle/pixel/no-readback checks. Logs and a complete/incomplete receipt
+remain in the printed temporary directory. This is local isolation, not third-party
+adoption, clean-machine or hostile-build sandbox evidence.
 
 ## Optional shader generation
 

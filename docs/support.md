@@ -99,5 +99,9 @@ dependency inference. GPU-address lifetimes and race-free access are caller-owne
 Rust 1.85 is the declared minimum and a configured CI lane; current local acceptance
 uses 1.97.1. Minimum-toolchain and hosted/self-hosted CI results must be reported
 separately from configuration. The install path needs Git, Rust/Cargo, native linker
-and Python 3; copied examples need C11, pkg-config and Python 3. These are not
+and Python 3.11+; copied C examples need C11, pkg-config and Python 3. The packaged
+native Rust consumer instead builds from pinned runtime source with Rust/Cargo,
+a native linker and fetched/cached registry dependencies. No C SDK library,
+Slang or Vulkan headers are needed; windowed execution adds external GLFW 3.4
+and a Wayland desktop. These are not
 bundled tools or a hermetic build environment.

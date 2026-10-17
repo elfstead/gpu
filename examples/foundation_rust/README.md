@@ -46,7 +46,9 @@ Some descriptions use versioned records and raw embedded pointers from
 `foundation::types`; ergonomic typed descriptions and generated Rust shader layouts
 remain possible follow-ups. This example explicitly asserts its known root layout.
 No fully safe wrapper, extra allocation/retention layer or implicit scheduling is
-promised. It is not yet packaged by the C SDK installer.
+promised. The SDK installer packages this consumer and its source/shader dependency
+graph under `share/ogpu/native-rust`; copy that whole bundle and follow its README.
+It builds native Rust directly, not a wrapper around the installed C shared library.
 
 ## Optional Wayland surface probe
 
@@ -152,3 +154,5 @@ is not synthesized by these checks. GLFW on Wayland cannot report iconification
 or restore a minimized window; synthetic zero extent is **not** evidence of actual
 minimize/restore. See [GLFW's window guide](https://www.glfw.org/docs/latest/window_guide.html)
 and the [scene receipt](../../docs/results/p1-interactive-scene-2026-10-16.md).
+Use the [manual acceptance checklist](../../docs/presentation-acceptance.md) to
+record actual input, resize, minimize/restore and close observations separately.

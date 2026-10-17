@@ -13,6 +13,15 @@ spec.loader.exec_module(installer)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_source_bundle_rejects_symlinked_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root/'crates/ogpu/src'
+            source.mkdir(parents=True)
+            (source/'escaped.rs').symlink_to(root/'outside.rs')
+            with self.assertRaisesRegex(ValueError, 'symlink in Rust source bundle'):
+                installer.rust_bundle.install(root, root/'staging', lambda *args: None, 'revision', False)
+
     def test_package_profiles(self):
         # Exercise actual copy/manifest/publication logic without compiling Rust.
         for legacy in (False,True):
@@ -39,6 +48,16 @@ class InstallerTests(unittest.TestCase):
                 self.assertFalse(manifest['cargo_default_features'])
                 self.assertEqual(manifest['cargo_features'],['legacy'] if legacy else [])
                 self.assertEqual(manifest['foundation']['revision'],1)
+                native = prefix / manifest['native_rust']['path']
+                self.assertTrue((native/'examples/foundation_rust/Cargo.lock').is_file())
+                self.assertTrue((native/'examples/graphics_scene/textured_scene.generated.h').is_file())
+                self.assertTrue((native/'examples/shaders/foundation-compute.comp.spv').is_file())
+                self.assertTrue((native/'docs/presentation-acceptance.md').is_file())
+                self.assertFalse((native/'tools/xtask').exists())
+                self.assertFalse((native/'examples/foundation_rust/target').exists())
+                self.assertEqual(json.loads((native/'source.json').read_text())['revision'],manifest['revision'])
+                self.assertEqual((native/'examples/foundation_rust/Cargo.lock').read_bytes(),
+                                 (installer.ROOT/'examples/foundation_rust/Cargo.lock').read_bytes())
                 for path in ('include/ogpu_next.h','lib/pkgconfig/ogpu-foundation.pc',
                              'share/ogpu/examples/foundation-indexed-ranges/main.c','share/ogpu/tools/sdk_profile.py',
                              'share/ogpu/examples/foundation-textured-scene/main.c',
