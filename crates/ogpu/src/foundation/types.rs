@@ -47,6 +47,103 @@ pub const MESH_STAGE: u64 = 1 << 20;
 pub const TASK_STAGE: u64 = 1 << 21;
 pub const MESH_LIMITS: u32 = 17;
 pub const MESH_REQUIREMENTS: u32 = 129;
+pub const GENERATED_COMMANDS: u64 = 1 << 60;
+pub const GENERATED_LIMITS: u32 = 18;
+pub const GENERATED_LAYOUT_DESC: u32 = 130;
+pub const GENERATED_SET_DESC: u32 = 131;
+pub const PREPROCESS_USAGE: u64 = 256;
+pub const PREPROCESS_STAGE: u64 = 1 << 22;
+pub const PREPROCESS_READ: u64 = 1 << 21;
+pub const PREPROCESS_WRITE: u64 = 1 << 22;
+pub const COMPILE_INDIRECT_BINDABLE: u32 = 2;
+pub const GENERATED_EXECUTABLE: u32 = 1;
+pub const GENERATED_INLINE: u32 = 2;
+pub const GENERATED_SEQUENCE_INDEX: u32 = 3;
+pub const GENERATED_DISPATCH: u32 = 4;
+pub const GENERATED_DRAW: u32 = 5;
+pub const GENERATED_DRAW_INDEXED: u32 = 6;
+pub const GENERATED_MESH: u32 = 7;
+pub const GENERATED_DRAW_COUNT: u32 = 8;
+pub const GENERATED_DRAW_INDEXED_COUNT: u32 = 9;
+pub const GENERATED_MESH_COUNT: u32 = 10;
+pub const GENERATED_EXPLICIT_PREPROCESS: u32 = 1;
+pub const GENERATED_UNORDERED: u32 = 2;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct GeneratedLimits {
+    pub stages: u64,
+    pub pipeline_binding_stages: u64,
+    pub tokens: u64,
+    pub max_pipelines: u32,
+    pub max_sequences: u32,
+    pub max_tokens: u32,
+    pub max_token_offset: u32,
+    pub max_stride: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct GeneratedToken {
+    pub kind: u32,
+    pub offset: u32,
+    pub argument_offset: u32,
+    pub argument_size: u32,
+}
+#[repr(C)]
+pub struct GeneratedLayoutDesc {
+    pub header: Record,
+    pub stages: u64,
+    pub flags: u32,
+    pub stride: u32,
+    pub token_count: u32,
+    pub reserved: u32,
+    pub tokens: *const GeneratedToken,
+}
+#[repr(C)]
+pub struct GeneratedSetDesc {
+    pub header: Record,
+    pub initial: *mut super::Executable,
+    pub capacity: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct GeneratedSetWrite {
+    pub index: u32,
+    pub reserved: u32,
+    pub executable: *mut super::Executable,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct GeneratedWork {
+    pub layout: *mut super::GeneratedLayout,
+    pub set: *mut super::GeneratedSet,
+    pub executable: *mut super::Executable,
+    pub max_sequences: u32,
+    pub max_draws: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct GeneratedRequirements {
+    pub size: u64,
+    pub alignment: u64,
+    pub memory_type_bits: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+pub struct GeneratedBatch {
+    pub work: GeneratedWork,
+    pub arguments: Span,
+    pub preprocess: Span,
+    pub count: Span,
+}
+/// Nested-count GPU wire record; address is not an OGPU memory handle.
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct GeneratedDrawCount {
+    pub address: u64,
+    pub stride: u32,
+    pub command_count: u32,
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]

@@ -27,7 +27,7 @@ pub struct Memory {
 }
 
 fn buffer_usage(usage: u64) -> Result<u32, Status> {
-    if usage & !255 != 0 {
+    if usage & !511 != 0 {
         return Err(UNSUPPORTED);
     }
     let bits = [
@@ -39,6 +39,7 @@ fn buffer_usage(usage: u64) -> Result<u32, Status> {
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT,
+        vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT as u32,
     ];
     Ok(bits.iter().enumerate().fold(
         vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -57,9 +58,19 @@ impl Device {
         &self,
         buffer: &vk::VkBufferCreateInfo,
     ) -> (vk::VkMemoryRequirements, vk::VkMemoryDedicatedRequirements) {
+        let mut buffer = *buffer;
+        let usage = vk::VkBufferUsageFlags2CreateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO,
+            usage: u64::from(buffer.usage),
+            ..Default::default()
+        };
+        if usage.usage & vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT != 0 {
+            buffer.pNext = ptr::from_ref(&usage).cast();
+            buffer.usage = 0;
+        }
         let query = vk::VkDeviceBufferMemoryRequirements {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_BUFFER_MEMORY_REQUIREMENTS,
-            pCreateInfo: buffer,
+            pCreateInfo: &buffer,
             ..Default::default()
         };
         let mut dedicated = vk::VkMemoryDedicatedRequirements {
@@ -80,6 +91,11 @@ impl Device {
     unsafe fn prepare_memory(&self, desc: &MemoryDesc) -> Result<Prepared, Status> {
         self.ready()?;
         desc.header.validate::<MemoryDesc>(MEMORY_DESC)?;
+        if desc.usage & PREPROCESS_USAGE != 0
+            && self.snapshot.features.enabled & GENERATED_COMMANDS == 0
+        {
+            return Err(UNSUPPORTED);
+        }
         if desc.size == 0
             || !desc.alignment.is_power_of_two()
             || desc.flags != 0
@@ -271,10 +287,20 @@ impl Memory {
         });
         if desc.kind == 1 {
             let mut buffer = ptr::null_mut();
+            let mut info = p.buffer;
+            let usage = vk::VkBufferUsageFlags2CreateInfo {
+                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO,
+                usage: u64::from(info.usage),
+                ..Default::default()
+            };
+            if usage.usage & vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT != 0 {
+                info.pNext = ptr::from_ref(&usage).cast();
+                info.usage = 0;
+            }
             unsafe {
                 d.result((d.f.vkCreateBuffer.unwrap())(
                     d.handle,
-                    &p.buffer,
+                    &info,
                     ptr::null(),
                     &mut buffer,
                 ))?;
@@ -826,7 +852,12 @@ mod tests {
     }
     #[test]
     fn buffer_usage_never_silently_drops_bits() {
-        assert_eq!(buffer_usage(256), Err(UNSUPPORTED));
+        assert_eq!(buffer_usage(512), Err(UNSUPPORTED));
+        assert_ne!(
+            buffer_usage(PREPROCESS_USAGE).unwrap()
+                & vk::VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT as u32,
+            0
+        );
         assert_eq!(
             buffer_usage(0),
             Ok(vk::VkBufferUsageFlagBits_VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)

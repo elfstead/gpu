@@ -13,6 +13,7 @@ pub struct Executable {
     pub(super) byte_size: u32,
     pub(super) roots: Vec<RootSlot>,
     pub(super) stages: u64,
+    pub(super) indirect_bindable: bool,
 }
 impl Drop for Executable {
     fn drop(&mut self) {
@@ -98,10 +99,19 @@ fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Status> {
     Ok(())
 }
 fn compile_flags(enabled: u64, flags: u32, reserved: u32) -> Result<u64, Status> {
-    if flags & !1 != 0 || reserved != 0 || (flags != 0 && enabled & CACHE_CONTROL == 0) {
+    if flags & !3 != 0
+        || reserved != 0
+        || (flags & 1 != 0 && enabled & CACHE_CONTROL == 0)
+        || (flags & 2 != 0 && enabled & GENERATED_COMMANDS == 0)
+    {
         return Err(UNSUPPORTED);
     }
     Ok(vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT
+        | if flags & 2 != 0 {
+            vk::VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT
+        } else {
+            0
+        }
         | if flags & 1 != 0 {
             vk::VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT
         } else {
@@ -133,6 +143,11 @@ impl Executable {
         let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
         let shader = unsafe { array(desc.shaders, 1)? }.first().unwrap();
         if shader.stage != 4 || shader.format != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if desc.compile_flags & 2 != 0
+            && d.snapshot.generated_limits.pipeline_binding_stages & 4 == 0
+        {
             return Err(UNSUPPORTED);
         }
         if shader.code.data.is_null()
@@ -207,6 +222,7 @@ impl Executable {
             byte_size: abi.byte_size,
             roots: owned_roots,
             stages: 4,
+            indirect_bindable: desc.compile_flags & 2 != 0,
         });
         let info = vk::VkShaderModuleCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -274,6 +290,17 @@ mod tests {
         assert_eq!(compile_flags(0, 0, 0), Ok(base));
         assert_eq!(compile_flags(0, 1, 0), Err(UNSUPPORTED));
         assert_eq!(compile_flags(CACHE_CONTROL, 2, 0), Err(UNSUPPORTED));
+        assert_eq!(
+            compile_flags(GENERATED_COMMANDS, 2, 0),
+            Ok(base | vk::VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT)
+        );
+        assert_eq!(compile_flags(GENERATED_COMMANDS, 3, 0), Err(UNSUPPORTED));
+        assert_eq!(
+            compile_flags(GENERATED_COMMANDS | CACHE_CONTROL, 3, 0),
+            Ok(base
+                | vk::VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT
+                | vk::VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT)
+        );
         assert_eq!(compile_flags(CACHE_CONTROL, 0, 1), Err(UNSUPPORTED));
         assert_eq!(
             compile_flags(CACHE_CONTROL, 1, 0),

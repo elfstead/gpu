@@ -1,6 +1,8 @@
 //! Explicit native command storage. No pending registry, resource retention,
 //! hot-path allocator, implicit signal, or host wait.
 use super::*;
+#[path = "generated_commands.rs"]
+mod generated_commands;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
 #[path = "secondary.rs"]
 mod secondary;
@@ -301,7 +303,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 22) - 1;
+const KNOWN_SCOPES: u64 = (1 << 23) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -326,7 +328,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
     if mask & RASTER_SCOPES != 0 && (flags & GRAPHICS == 0 || !raster)
         || mask & (RESOLVE_SCOPE | BLIT_SCOPE) != 0 && flags & GRAPHICS == 0
         || mask & 4 != 0 && flags & COMPUTE == 0
-        || mask & 32 != 0 && flags & (COMPUTE | GRAPHICS) == 0
+        || mask & (32 | PREPROCESS_STAGE) != 0 && flags & (COMPUTE | GRAPHICS) == 0
         || mask & (2 | COPY_SCOPE | CLEAR_SCOPE) != 0
             && flags & (COMPUTE | GRAPHICS | TRANSFER) == 0
     {
@@ -356,6 +358,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT,
         vk::VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT,
         vk::VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT,
+        vk::VK_PIPELINE_STAGE_2_COMMAND_PREPROCESS_BIT_EXT,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
@@ -364,6 +367,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
 fn stage_features(enabled: u64, mask: u64) -> Result<(), Status> {
     if mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
         || mask & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
+        || mask & PREPROCESS_STAGE != 0 && enabled & GENERATED_COMMANDS == 0
     {
         return Err(UNSUPPORTED);
     }
@@ -386,7 +390,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 21) - 1) != 0 {
+    if mask & !((1 << 23) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -415,6 +419,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         shaders,
         shaders,
         shaders,
+        1 | PREPROCESS_STAGE,
+        1 | PREPROCESS_STAGE,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -438,6 +444,8 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
         vk::VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
         vk::VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+        vk::VK_ACCESS_2_COMMAND_PREPROCESS_READ_BIT_EXT,
+        vk::VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -2049,6 +2057,25 @@ mod tests {
     }
     #[test]
     fn synchronization_scopes_remain_narrow_and_queue_specific() {
+        assert_eq!(stage_features(0, PREPROCESS_STAGE), Err(UNSUPPORTED));
+        assert_eq!(stage_features(GENERATED_COMMANDS, PREPROCESS_STAGE), Ok(()));
+        assert_eq!(
+            stage_mask(COMPUTE, false, PREPROCESS_STAGE, false),
+            Ok(vk::VK_PIPELINE_STAGE_2_COMMAND_PREPROCESS_BIT_EXT)
+        );
+        assert_eq!(
+            stage_mask(TRANSFER, false, PREPROCESS_STAGE, false),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            access(PREPROCESS_READ, PREPROCESS_STAGE),
+            Ok(vk::VK_ACCESS_2_COMMAND_PREPROCESS_READ_BIT_EXT)
+        );
+        assert_eq!(
+            access(PREPROCESS_WRITE, PREPROCESS_STAGE),
+            Ok(vk::VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT)
+        );
+        assert_eq!(access(PREPROCESS_READ, 4), Err(INVALID));
         assert_eq!(stage_features(0, MESH_STAGE), Err(UNSUPPORTED));
         assert_eq!(stage_features(MESH_SHADER, TASK_STAGE), Err(UNSUPPORTED));
         assert_eq!(stage_features(MESH_SHADER, MESH_STAGE), Ok(()));
@@ -2096,7 +2123,7 @@ mod tests {
             stage_mask(TRANSFER, false, COPY_SCOPE | CLEAR_SCOPE, false),
             Ok(vk::VK_PIPELINE_STAGE_2_COPY_BIT | vk::VK_PIPELINE_STAGE_2_CLEAR_BIT)
         );
-        assert_eq!(stage_mask(GRAPHICS, true, 1 << 22, false), Err(UNSUPPORTED));
+        assert_eq!(stage_mask(GRAPHICS, true, 1 << 23, false), Err(UNSUPPORTED));
         assert_eq!(stage_mask(COMPUTE, false, 256, true), Err(INVALID));
         assert_eq!(access(512, 8), Err(INVALID));
         assert_eq!(access(1024, 8), Err(INVALID));
@@ -2149,7 +2176,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 21, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 23, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

@@ -104,8 +104,10 @@ ogpu_next_status ogpu_next_extension(ogpu_next_device *, uint32_t id, uint32_t v
  *            optional explicit eviction. No mandatory command resource walk.
  * Virtual memory: reserve/release, backing create/free, map/unmap/access;
  *                sparse image bindings and peer mappings with explicit ordering.
- * Generated commands: supported tokens, executable tables, layout create,
- *                     storage requirements, prepare, execute with GPU count.
+ * Generated commands: vertex/index-state and ray tokens, richer stage profiles.
+ *                     Initial layouts, executable sets, storage requirements,
+ *                     preprocessing and GPU-count execution are in the imported
+ *                     implemented header; see the M8 generated-command receipt.
  * Native interop: borrow device/queue, import/export memory/images/timelines;
  *                typed platform handles, owned/borrowed modes, initial/final
  *                states and native encoding sections with invalidated bindings.

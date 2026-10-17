@@ -167,6 +167,12 @@ pub(super) unsafe fn prepare(
     }
     let shaders = unsafe { array(desc.shaders, desc.shader_count)? };
     let stage_mask = graphics_stages(shaders)?;
+    if desc.compile_flags & 2 != 0
+        && (stage_mask & !d.snapshot.generated_limits.pipeline_binding_stages != 0
+            || d.snapshot.generated_limits.pipeline_binding_stages & 16 == 0)
+    {
+        return Err(UNSUPPORTED);
+    }
     let mesh_pipeline = stage_mask & MESH_STAGE != 0;
     let mesh_req = if mesh_pipeline {
         let req = unsafe { record::<MeshRequirements>(desc.requirements, MESH_REQUIREMENTS)? };
@@ -707,6 +713,7 @@ pub(super) unsafe fn prepare(
         byte_size,
         roots: owned_roots,
         stages: stage_mask,
+        indirect_bindable: desc.compile_flags & 2 != 0,
     });
     unsafe {
         d.result((d.f.vkCreateGraphicsPipelines.unwrap())(

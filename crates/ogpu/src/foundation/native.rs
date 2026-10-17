@@ -53,9 +53,12 @@ mod rendering;
 pub use executables::Executable;
 #[path = "executable_cache.rs"]
 mod executable_cache;
+#[path = "generated.rs"]
+mod generated;
 #[path = "mesh.rs"]
 mod mesh;
 pub use executable_cache::ExecutableCache;
+pub use generated::{GeneratedLayout, GeneratedSet};
 pub(super) use rendering::render_scratch;
 use rendering::samples;
 #[path = "queries.rs"]
@@ -553,6 +556,8 @@ pub(super) fn snapshot(
         features.max_timeline_difference = v12_properties.maxTimelineSemaphoreValueDifference;
     }
     let (mesh_features, mesh_limits) = mesh::snapshot(instance, physical, &f)?;
+    let (generated_features, generated_limits) = generated::snapshot(instance, physical, &f)?;
+    features.available |= generated_features;
     if features.available & RASTER != 0 {
         features.available |= mesh_features;
     }
@@ -627,6 +632,7 @@ pub(super) fn snapshot(
         matrix_tuples,
         integer_dot,
         mesh_limits,
+        generated_limits,
         memory_budget_supported: instance
             .supports_extension(physical, c"VK_EXT_memory_budget")
             .map_err(loader_error)?,
@@ -639,6 +645,7 @@ pub struct Device {
     handle: vk::VkDevice,
     f: Functions,
     mesh_functions: Option<mesh::MeshFunctions>,
+    generated_functions: Option<generated::GeneratedFunctions>,
     pub(super) snapshot: Snapshot,
     queues: Vec<Queue>,
     lost: AtomicBool,
@@ -697,6 +704,11 @@ impl Device {
                 None
             },
             snapshot,
+            generated_functions: if enabled & GENERATED_COMMANDS != 0 {
+                Some(generated::GeneratedFunctions::load(&adapter.instance)?)
+            } else {
+                None
+            },
             queues: Vec::new(),
             lost: AtomicBool::new(false),
             _instance: adapter.instance.clone(),
@@ -884,10 +896,22 @@ impl Device {
         if enabled & MESH_SHADER != 0 {
             extensions.push(c"VK_EXT_mesh_shader".as_ptr());
         }
+        let previous = if enabled & MESH_SHADER != 0 {
+            ptr::from_ref(&mesh).cast()
+        } else {
+            previous
+        };
+        let generated = vk::VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_GENERATED_COMMANDS_FEATURES_EXT,
+            pNext: previous.cast_mut(), deviceGeneratedCommands: 1, dynamicGeneratedPipelineLayout: 0,
+        };
+        if enabled & GENERATED_COMMANDS != 0 {
+            extensions.push(c"VK_EXT_device_generated_commands".as_ptr());
+        }
         let create = vk::VkDeviceCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            pNext: if enabled & MESH_SHADER != 0 {
-                ptr::from_ref(&mesh).cast()
+            pNext: if enabled & GENERATED_COMMANDS != 0 {
+                ptr::from_ref(&generated).cast()
             } else {
                 previous
             },

@@ -1224,7 +1224,11 @@ void ogpu_next_executable_cache_destroy(ogpu_next_executable_cache *);
  * and sizes/types matching the shader (including 4-byte native bools); reserved=0.
  * Inputs are borrowed during creation only; argument metadata is copied. Device
  * is borrowed through destruction; no current context or implicit shared cache.
- * compile_flags=0 permits native compilation. FAIL_IF_REQUIRED requires enabled
+ * compile_flags=0 permits native compilation. COMPILE_INDIRECT_BINDABLE (below)
+ * opts into native generated-command executable selection, requires enabled
+ * GENERATED_COMMANDS and matching pipeline_binding_stages, and may be combined
+ * with FAIL_IF_REQUIRED. It is never silently added to an ordinary executable.
+ * FAIL_IF_REQUIRED requires enabled
  * CACHE_CONTROL and applies to compute and graphics, with or without a cache.
  * If native compilation is needed, returns COMPILE_REQUIRED and a NULL executable;
  * no automatic retry, background work, or deferred compilation is scheduled.
@@ -1665,6 +1669,146 @@ void ogpu_next_draw_indexed_indirect(ogpu_next_encoder *, const ogpu_next_indire
  */
 void ogpu_next_draw_mesh(ogpu_next_encoder *, ogpu_next_extent groups);
 void ogpu_next_draw_mesh_indirect(ogpu_next_encoder *, const ogpu_next_indirect *);
+
+/* Optional device-generated commands. Availability is native, not emulation.
+ * It is independent of RASTER, MESH and TASK enabling; stages used by a layout
+ * must also be enabled and supported by GENERATED_LIMITS. The Vulkan generated
+ * mesh-token profile requires both MESH_SHADER and TASK_SHADER enabled, even for
+ * mesh-only executables; ordinary mesh draws do not have this extra requirement. */
+#define OGPU_NEXT_FEATURE_GENERATED_COMMANDS UINT64_C(1152921504606846976)
+#define OGPU_NEXT_USAGE_PREPROCESS UINT64_C(256)
+#define OGPU_NEXT_STAGE_PREPROCESS UINT64_C(4194304)
+#define OGPU_NEXT_ACCESS_PREPROCESS_READ UINT64_C(2097152)
+#define OGPU_NEXT_ACCESS_PREPROCESS_WRITE UINT64_C(4194304)
+enum { OGPU_NEXT_QUERY_GENERATED_LIMITS = 18, OGPU_NEXT_GENERATED_LAYOUT_DESC = 130,
+    OGPU_NEXT_GENERATED_SET_DESC = 131, OGPU_NEXT_COMPILE_INDIRECT_BINDABLE = 2 };
+typedef struct ogpu_next_generated_layout ogpu_next_generated_layout;
+typedef struct ogpu_next_generated_set ogpu_next_generated_set;
+typedef struct ogpu_next_generated_limits {
+    ogpu_next_stages stages, pipeline_binding_stages;
+    uint64_t tokens; /* Bit (1 << token_kind); intersect with stage/feature support. */
+    uint32_t max_pipelines, max_sequences, max_tokens, max_token_offset, max_stride, reserved;
+} ogpu_next_generated_limits;
+enum {
+    OGPU_NEXT_GENERATED_EXECUTABLE = 1, OGPU_NEXT_GENERATED_INLINE = 2,
+    OGPU_NEXT_GENERATED_SEQUENCE_INDEX = 3, OGPU_NEXT_GENERATED_DISPATCH = 4,
+    OGPU_NEXT_GENERATED_DRAW = 5, OGPU_NEXT_GENERATED_DRAW_INDEXED = 6,
+    OGPU_NEXT_GENERATED_MESH = 7, OGPU_NEXT_GENERATED_DRAW_COUNT = 8,
+    OGPU_NEXT_GENERATED_DRAW_INDEXED_COUNT = 9, OGPU_NEXT_GENERATED_MESH_COUNT = 10,
+    OGPU_NEXT_GENERATED_EXPLICIT_PREPROCESS = 1, OGPU_NEXT_GENERATED_UNORDERED = 2
+};
+typedef struct ogpu_next_generated_token {
+    uint32_t kind, offset, argument_offset, argument_size;
+} ogpu_next_generated_token;
+typedef struct ogpu_next_generated_layout_desc {
+    ogpu_next_record header;
+    ogpu_next_stages stages;
+    uint32_t flags, stride, token_count, reserved;
+    const ogpu_next_generated_token *tokens;
+} ogpu_next_generated_layout_desc;
+typedef struct ogpu_next_generated_set_desc {
+    ogpu_next_record header;
+    ogpu_next_executable *initial;
+    uint32_t capacity, reserved;
+} ogpu_next_generated_set_desc;
+typedef struct ogpu_next_generated_set_write {
+    uint32_t index, reserved;
+    ogpu_next_executable *executable;
+} ogpu_next_generated_set_write;
+typedef struct ogpu_next_generated_work {
+    ogpu_next_generated_layout *layout;
+    ogpu_next_generated_set *set;
+    ogpu_next_executable *executable;
+    uint32_t max_sequences, max_draws;
+} ogpu_next_generated_work;
+typedef struct ogpu_next_generated_requirements {
+    uint64_t size, alignment;
+    uint32_t memory_type_bits, reserved;
+} ogpu_next_generated_requirements_info;
+typedef struct ogpu_next_generated_batch {
+    ogpu_next_generated_work work;
+    ogpu_next_span arguments, preprocess, count;
+} ogpu_next_generated_batch;
+/* Nested-count GPU wire record: command_count draws at address/stride, bounded
+ * by work.max_draws. This is an address, not an OGPU memory handle. */
+typedef struct ogpu_next_generated_draw_count {
+    ogpu_next_address address;
+    uint32_t stride, command_count;
+} ogpu_next_generated_draw_count;
+/* Layouts are cold objects, with no retained token array. One action token is
+ * last, with optional EXECUTABLE selection first (one u32 table index). INLINE
+ * copies argument_size bytes from record+offset into the shared argument bank at
+ * argument_offset; SEQUENCE_INDEX writes the native u32 sequence index (size=4),
+ * consumes no record bytes, at most one. Argument destinations cannot overlap.
+ * Root pointers are ordinary 8-byte INLINE payloads, not a new binding strategy.
+ * Other tokens require argument_offset=argument_size=0. Token offsets are ordered,
+ * 4-aligned and queried-limit-bounded. Stride is 4-aligned, may be zero or smaller
+ * than the record extent: overlapping source records are not forcibly repacked.
+ * Wire actions: DISPATCH/MESH=extent; DRAW/DRAW_INDEXED=existing wire records;
+ * *_COUNT=generated_draw_count. Vertex/index state tokens, ray tokens and shader-
+ * object selection remain unimplemented, not emulated. Indexed work uses bound
+ * indices. Layout stages name one exact compute/vertex/mesh executable family.
+ * UNORDERED permits native sequence reordering; compute sequences are inherently
+ * unordered even without it. No sequence-to-sequence memory dependency is implied.
+ * EXPLICIT_PREPROCESS selects a separate preparation call; otherwise execution
+ * performs native preprocessing. Both modes use caller-provided backing.
+ */
+ogpu_next_status ogpu_next_generated_layout_create(ogpu_next_device *, const ogpu_next_generated_layout_desc *, ogpu_next_generated_layout **);
+void ogpu_next_generated_layout_destroy(ogpu_next_generated_layout *);
+/* Set creation stores initial in slot 0; other slots are undefined until written.
+ * Every member must have COMPILE_INDIRECT_BINDABLE enabled at executable creation;
+ * ordinary pipelines are not implicitly recompiled. All members have the same
+ * stages, and the caller guarantees identical native static/dynamic graphics state,
+ * fragment output interface and depth/sample-mask/stencil export use. Shared-byte
+ * argument meaning and bounds across members are also a caller/artifact contract.
+ * No native pipeline reflection or host shader rewriting. Initial executable stays
+ * alive until set destruction, even if slot 0 is updated. Other members stay alive
+ * while referenced by set slots or recorded/preprocessed/pending execution.
+ * Updates are cold, all local checks precede one native update; empty is a no-op.
+ * Exclude host set calls and pending uses of updated slots. Re-query requirements
+ * after every update; prepared data using changed slots must be regenerated.
+ */
+ogpu_next_status ogpu_next_generated_set_create(ogpu_next_device *, const ogpu_next_generated_set_desc *, ogpu_next_generated_set **);
+ogpu_next_status ogpu_next_generated_set_update(ogpu_next_generated_set *, uint32_t count, const ogpu_next_generated_set_write *);
+void ogpu_next_generated_set_destroy(ogpu_next_generated_set *);
+/* Work selects either set (EXECUTABLE token, executable=NULL) or one fixed
+ * executable (set=NULL). max_sequences>0 within queried limit. max_draws bounds
+ * each nested *_COUNT action; ignored for other actions. When used, their product
+ * must be <2^24 in this Vulkan profile. Query after set changes and before backing
+ * allocation; output is unchanged on failure. No GPU object is allocated by query.
+ * PREPROCESS backing must satisfy BOTH this returned size/alignment/type mask and
+ * ordinary memory_requirements. Bits index queried memory-type IDs. Recording
+ * trusts this native requirement match: no driver query or size cache on the hot
+ * path. Null preprocess span allowed only when native size is zero.
+ */
+ogpu_next_status ogpu_next_generated_requirements(ogpu_next_device *, const ogpu_next_generated_work *, ogpu_next_generated_requirements_info *);
+/* Primary encoders only. All objects/backing/reachable GPU addresses remain live
+ * through every recorded/preprocessed/pending use; no retention or hidden waits.
+ * Argument/count spans use INDIRECT usage, 4-aligned addresses; count optionally
+ * points to one u32. Null count means max_sequences; otherwise native execution
+ * uses min(count,max_sequences), and count itself must obey queried/preparation
+ * maxima. arguments covers (max_sequences-1)*stride + maximum token end, >0.
+ * All GPU records, indices, dimensions, nested addresses/counts and shader accesses
+ * are TRUSTED valid at execution, including per-stage draw/dispatch limits.
+ * Preprocessing runs outside rendering and snapshots a still-recording state
+ * encoder on the same device. It borrows that encoder only for this host call.
+ * State must bind the fixed executable, or the set's ORIGINAL initial executable.
+ * Execution binds that same executable before each call, and uses a compatible
+ * render scope/viewport/index binding for graphics, outside rendering for compute.
+ * preprocessed is 0/1 and must match EXPLICIT_PREPROCESS. For 1, preparation must
+ * have completed with identical work/input content and compatible native state;
+ * execute/state encoder queue families match, and referenced set slots unchanged.
+ * Caller synchronizes GPU producer -> PREPROCESS/READ for explicit preprocessing,
+ * PREPROCESS/WRITE -> INDIRECT/READ before prepared execution; integrated mode's
+ * inputs use INDIRECT/READ. PREPROCESS accesses do not imply compute shader access.
+ * Preserve native state (including argument bytes/heaps) between snapshot and use.
+ * Executable-selection tokens invalidate the corresponding executable binding;
+ * inline/sequence tokens make the shared argument bytes undefined afterward.
+ * Restore those explicitly for subsequent work. No hidden state restoration,
+ * CPU readback, per-sequence host loop, compilation or allocation during recording.
+ */
+void ogpu_next_generated_preprocess(ogpu_next_encoder *, const ogpu_next_generated_batch *, ogpu_next_encoder *state);
+void ogpu_next_generated_execute(ogpu_next_encoder *, const ogpu_next_generated_batch *, uint32_t preprocessed);
 enum { OGPU_NEXT_QUERY_TIMESTAMP = 1, OGPU_NEXT_QUERY_OCCLUSION = 2, OGPU_NEXT_QUERY_PIPELINE_STATISTICS = 3 };
 enum { OGPU_NEXT_QUERY_PRECISE = 1 };
 #define OGPU_NEXT_STATISTIC_INPUT_VERTICES UINT64_C(1)

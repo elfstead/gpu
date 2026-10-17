@@ -39,6 +39,7 @@ fn fixture() -> Snapshot {
         matrix_tuples: vec![],
         integer_dot: IntegerDotInfo::default(),
         mesh_limits: MeshLimits::default(),
+        generated_limits: GeneratedLimits::default(),
         formats: vec![],
     }
 }
@@ -91,6 +92,25 @@ fn mesh_limits_are_an_exact_single_record_query() {
     q.capacity = 1;
     assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
     assert_eq!(output[0], snapshot.mesh_limits);
+}
+#[test]
+fn generated_limits_are_an_exact_single_record_query() {
+    let mut snapshot = fixture();
+    snapshot.generated_limits.max_sequences = 1024;
+    let mut output = [GeneratedLimits::default()];
+    let mut q = query(GENERATED_LIMITS, &mut output);
+    q.element_size -= 4;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(INVALID));
+    assert_eq!(output[0], GeneratedLimits::default());
+    q.element_size = size_of::<GeneratedLimits>() as u32;
+    q.data = ptr::null_mut();
+    q.capacity = 0;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(q.count, 1);
+    q.data = output.as_mut_ptr().cast();
+    q.capacity = 1;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(output[0], snapshot.generated_limits);
 }
 #[test]
 fn malformed_queries_preserve_outputs() {

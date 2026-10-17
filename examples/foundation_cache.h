@@ -6,7 +6,7 @@ static int prepare_with_compile_policy(ogpu_next_device *device, const ogpu_next
     ogpu_next_executable_desc desc = *input;
     int result = EXIT_FAILURE;
     TRY(ogpu_next_device_query(device, &q));
-    desc.compile_flags = 2;
+    desc.compile_flags = 4;
     REQUIRE(ogpu_next_executable_create(device, &desc, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);
     desc.compile_flags = 0; desc.reserved = 1;
     REQUIRE(ogpu_next_executable_create(device, &desc, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);

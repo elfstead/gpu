@@ -57,7 +57,7 @@ compatibility are not completed by those results.
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
-| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and explicit advanced raster profiles | Active while M6 is deferred; compressed and task/mesh tranches implemented with bounded evidence; generated commands and advanced raster remain |
+| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and explicit advanced raster profiles | Active while M6 is deferred; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
 | M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
 | M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |
@@ -424,6 +424,15 @@ direct/address-indirect/count draws. llvmpipe passes the initial mesh-only and
 task-payload pixel fixture; Radeon has no native mesh support. Physical-GPU
 execution/performance, richer stage interactions and the GPU-culled scene remain
 open. No fallback or readback-based dispatch is installed. This is not M8 completion.
+
+The [generated-command tranche](results/m8-generated-commands-2026-10-17.md)
+implements optional native token layouts, executable sets, caller-owned preparation
+storage, explicit dependencies and separate/integrated preprocessing. Both drivers
+pass GPU-produced compute choice/arguments/counts and sequence identity across
+20 submissions; malformed recordings reject before submission. Graphics/mesh and
+nested-count actions have native lowering and layout coverage, not execution
+acceptance yet. GPU-culled graphics execution is next; vertex/index-state tokens,
+richer raster interactions and performance evidence remain open.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage

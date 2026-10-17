@@ -40,8 +40,17 @@ count launches. C and native Rust share the same backend operations. The existin
 argument bytes, heaps, backing and render scopes are reused; no new scene runtime,
 vertex emulation or command-time compilation. Initial execution passes on
 llvmpipe; Radeon reports the feature unavailable. Mesh-specific queries, multiview,
-primitive shading rate, generated command topology and physical mesh-GPU acceptance
+primitive shading rate and physical mesh-GPU acceptance
 remain separate work. M6 implementation is deferred until a Mac is available.
+
+The [generated-command tranche](results/m8-generated-commands-2026-10-17.md)
+adds optional native token layouts, executable sets, queryable preprocessing
+storage and separate/integrated execution through the same C/Rust backend.
+GPU-produced compute selection, arguments, counts and sequence identity pass on
+both local drivers. Graphics/mesh and nested-count actions are lowered but have
+only layout-creation evidence; vertex/index-state tokens are not implemented.
+Preparation storage, synchronization and lifetimes remain caller-controlled;
+recording adds no query, allocation, readback or implicit pipeline restoration.
 
 The [integrated M4 textured consumer](textured-scene-plan.md) now exercises
 GPU-generated indexed/depth geometry together with mipmapped sampling, restricted

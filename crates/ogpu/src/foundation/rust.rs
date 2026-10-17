@@ -51,6 +51,8 @@ handle!(ListHandle, List);
 handle!(ImageHandle, Image);
 handle!(ViewHandle, View);
 handle!(ExecutableHandle, Executable);
+handle!(GeneratedLayoutHandle, GeneratedLayout);
+handle!(GeneratedSetHandle, GeneratedSet);
 handle!(ExecutableCacheHandle, ExecutableCache);
 handle!(QueryPoolHandle, QueryPool);
 handle!(SplitHandle, Split);
@@ -60,9 +62,11 @@ handle!(FenceHandle, Fence);
 handle!(SwapchainHandle, Swapchain);
 
 mod commands;
+mod generated;
 mod presentation;
 mod resources;
 pub use commands::*;
+pub use generated::*;
 pub use presentation::*;
 pub use resources::*;
 

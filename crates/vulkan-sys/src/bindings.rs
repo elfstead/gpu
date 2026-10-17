@@ -136,6 +136,12 @@ pub struct VkPipelineLayout_T {
     _unused: [u8; 0],
 }
 pub type VkPipelineLayout = *mut VkPipelineLayout_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorSetLayout_T {
+    _unused: [u8; 0],
+}
+pub type VkDescriptorSetLayout = *mut VkDescriptorSetLayout_T;
 pub const VkResult_VK_SUCCESS: VkResult = 0;
 pub const VkResult_VK_NOT_READY: VkResult = 1;
 pub const VkResult_VK_TIMEOUT: VkResult = 2;
@@ -5239,6 +5245,31 @@ impl Default for VkComputePipelineCreateInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkPushConstantRange {
+    pub stageFlags: VkShaderStageFlags,
+    pub offset: u32,
+    pub size: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPushConstantRange",
+    ][::std::mem::size_of::<VkPushConstantRange>() - 12usize];
+    [
+        "Alignment of VkPushConstantRange",
+    ][::std::mem::align_of::<VkPushConstantRange>() - 4usize];
+    [
+        "Offset of field: VkPushConstantRange::stageFlags",
+    ][::std::mem::offset_of!(VkPushConstantRange, stageFlags) - 0usize];
+    [
+        "Offset of field: VkPushConstantRange::offset",
+    ][::std::mem::offset_of!(VkPushConstantRange, offset) - 4usize];
+    [
+        "Offset of field: VkPushConstantRange::size",
+    ][::std::mem::offset_of!(VkPushConstantRange, size) - 8usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkSamplerCreateInfo {
@@ -10455,10 +10486,14 @@ pub type PFN_vkCmdSetStencilOp = ::std::option::Option<
         compareOp: VkCompareOp,
     ),
 >;
+pub type VkBufferUsageFlags2 = VkFlags64;
+pub type VkBufferUsageFlagBits2 = VkFlags64;
+pub const VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT: VkBufferUsageFlagBits2 = 2147483648;
 pub type VkPipelineCreateFlags2 = VkFlags64;
 pub type VkPipelineCreateFlagBits2 = VkFlags64;
 pub const VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT: VkPipelineCreateFlagBits2 = 256;
 pub const VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT: VkPipelineCreateFlagBits2 = 68719476736;
+pub const VK_PIPELINE_CREATE_2_INDIRECT_BINDABLE_BIT_EXT: VkPipelineCreateFlagBits2 = 274877906944;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceVulkan14Features {
@@ -10585,6 +10620,40 @@ const _: () = {
         - 96usize];
 };
 impl Default for VkPhysicalDeviceVulkan14Features {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkBufferUsageFlags2CreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub usage: VkBufferUsageFlags2,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkBufferUsageFlags2CreateInfo",
+    ][::std::mem::size_of::<VkBufferUsageFlags2CreateInfo>() - 24usize];
+    [
+        "Alignment of VkBufferUsageFlags2CreateInfo",
+    ][::std::mem::align_of::<VkBufferUsageFlags2CreateInfo>() - 8usize];
+    [
+        "Offset of field: VkBufferUsageFlags2CreateInfo::sType",
+    ][::std::mem::offset_of!(VkBufferUsageFlags2CreateInfo, sType) - 0usize];
+    [
+        "Offset of field: VkBufferUsageFlags2CreateInfo::pNext",
+    ][::std::mem::offset_of!(VkBufferUsageFlags2CreateInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkBufferUsageFlags2CreateInfo::usage",
+    ][::std::mem::offset_of!(VkBufferUsageFlags2CreateInfo, usage) - 16usize];
+};
+impl Default for VkBufferUsageFlags2CreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
@@ -13219,6 +13288,12 @@ impl Default for VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkShaderEXT_T {
+    _unused: [u8; 0],
+}
+pub type VkShaderEXT = *mut VkShaderEXT_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT {
     pub sType: VkStructureType,
     pub pNext: *mut ::std::os::raw::c_void,
@@ -13303,6 +13378,909 @@ impl Default for VkPhysicalDeviceShaderFloat8FeaturesEXT {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectExecutionSetEXT_T {
+    _unused: [u8; 0],
+}
+pub type VkIndirectExecutionSetEXT = *mut VkIndirectExecutionSetEXT_T;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectCommandsLayoutEXT_T {
+    _unused: [u8; 0],
+}
+pub type VkIndirectCommandsLayoutEXT = *mut VkIndirectCommandsLayoutEXT_T;
+pub const VkIndirectExecutionSetInfoTypeEXT_VK_INDIRECT_EXECUTION_SET_INFO_TYPE_PIPELINES_EXT: VkIndirectExecutionSetInfoTypeEXT = 0;
+pub const VkIndirectExecutionSetInfoTypeEXT_VK_INDIRECT_EXECUTION_SET_INFO_TYPE_SHADER_OBJECTS_EXT: VkIndirectExecutionSetInfoTypeEXT = 1;
+pub const VkIndirectExecutionSetInfoTypeEXT_VK_INDIRECT_EXECUTION_SET_INFO_TYPE_MAX_ENUM_EXT: VkIndirectExecutionSetInfoTypeEXT = 2147483647;
+pub type VkIndirectExecutionSetInfoTypeEXT = ::std::os::raw::c_uint;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_EXECUTION_SET_EXT: VkIndirectCommandsTokenTypeEXT = 0;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_EXT: VkIndirectCommandsTokenTypeEXT = 1;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_SEQUENCE_INDEX_EXT: VkIndirectCommandsTokenTypeEXT = 2;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_EXT: VkIndirectCommandsTokenTypeEXT = 3;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_EXT: VkIndirectCommandsTokenTypeEXT = 4;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_EXT: VkIndirectCommandsTokenTypeEXT = 5;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_EXT: VkIndirectCommandsTokenTypeEXT = 6;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_COUNT_EXT: VkIndirectCommandsTokenTypeEXT = 7;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_COUNT_EXT: VkIndirectCommandsTokenTypeEXT = 8;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DISPATCH_EXT: VkIndirectCommandsTokenTypeEXT = 9;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_DATA_EXT: VkIndirectCommandsTokenTypeEXT = 1000135000;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_DATA_SEQUENCE_INDEX_EXT: VkIndirectCommandsTokenTypeEXT = 1000135001;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_MESH_TASKS_NV_EXT: VkIndirectCommandsTokenTypeEXT = 1000202002;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_MESH_TASKS_COUNT_NV_EXT: VkIndirectCommandsTokenTypeEXT = 1000202003;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_MESH_TASKS_EXT: VkIndirectCommandsTokenTypeEXT = 1000328000;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_MESH_TASKS_COUNT_EXT: VkIndirectCommandsTokenTypeEXT = 1000328001;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_TRACE_RAYS2_EXT: VkIndirectCommandsTokenTypeEXT = 1000386004;
+pub const VkIndirectCommandsTokenTypeEXT_VK_INDIRECT_COMMANDS_TOKEN_TYPE_MAX_ENUM_EXT: VkIndirectCommandsTokenTypeEXT = 2147483647;
+pub type VkIndirectCommandsTokenTypeEXT = ::std::os::raw::c_uint;
+pub const VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_VULKAN_INDEX_BUFFER_EXT: VkIndirectCommandsInputModeFlagBitsEXT = 1;
+pub const VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_DXGI_INDEX_BUFFER_EXT: VkIndirectCommandsInputModeFlagBitsEXT = 2;
+pub const VkIndirectCommandsInputModeFlagBitsEXT_VK_INDIRECT_COMMANDS_INPUT_MODE_FLAG_BITS_MAX_ENUM_EXT: VkIndirectCommandsInputModeFlagBitsEXT = 2147483647;
+pub type VkIndirectCommandsInputModeFlagBitsEXT = ::std::os::raw::c_uint;
+pub type VkIndirectCommandsInputModeFlagsEXT = VkFlags;
+pub type VkIndirectCommandsLayoutUsageFlagsEXT = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub deviceGeneratedCommands: VkBool32,
+    pub dynamicGeneratedPipelineLayout: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT::deviceGeneratedCommands",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT, deviceGeneratedCommands
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT::dynamicGeneratedPipelineLayout",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT,
+        dynamicGeneratedPipelineLayout
+    ) - 20usize];
+};
+impl Default for VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub maxIndirectPipelineCount: u32,
+    pub maxIndirectShaderObjectCount: u32,
+    pub maxIndirectSequenceCount: u32,
+    pub maxIndirectCommandsTokenCount: u32,
+    pub maxIndirectCommandsTokenOffset: u32,
+    pub maxIndirectCommandsIndirectStride: u32,
+    pub supportedIndirectCommandsInputModes: VkIndirectCommandsInputModeFlagsEXT,
+    pub supportedIndirectCommandsShaderStages: VkShaderStageFlags,
+    pub supportedIndirectCommandsShaderStagesPipelineBinding: VkShaderStageFlags,
+    pub supportedIndirectCommandsShaderStagesShaderBinding: VkShaderStageFlags,
+    pub deviceGeneratedCommandsTransformFeedback: VkBool32,
+    pub deviceGeneratedCommandsMultiDrawIndirectCount: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT>()
+        - 64usize];
+    [
+        "Alignment of VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::maxIndirectPipelineCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT, maxIndirectPipelineCount
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::maxIndirectShaderObjectCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        maxIndirectShaderObjectCount
+    ) - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::maxIndirectSequenceCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT, maxIndirectSequenceCount
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::maxIndirectCommandsTokenCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        maxIndirectCommandsTokenCount
+    ) - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::maxIndirectCommandsTokenOffset",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        maxIndirectCommandsTokenOffset
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::maxIndirectCommandsIndirectStride",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        maxIndirectCommandsIndirectStride
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::supportedIndirectCommandsInputModes",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        supportedIndirectCommandsInputModes
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::supportedIndirectCommandsShaderStages",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        supportedIndirectCommandsShaderStages
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::supportedIndirectCommandsShaderStagesPipelineBinding",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        supportedIndirectCommandsShaderStagesPipelineBinding
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::supportedIndirectCommandsShaderStagesShaderBinding",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        supportedIndirectCommandsShaderStagesShaderBinding
+    ) - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::deviceGeneratedCommandsTransformFeedback",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        deviceGeneratedCommandsTransformFeedback
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT::deviceGeneratedCommandsMultiDrawIndirectCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT,
+        deviceGeneratedCommandsMultiDrawIndirectCount
+    ) - 60usize];
+};
+impl Default for VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkGeneratedCommandsMemoryRequirementsInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub indirectExecutionSet: VkIndirectExecutionSetEXT,
+    pub indirectCommandsLayout: VkIndirectCommandsLayoutEXT,
+    pub maxSequenceCount: u32,
+    pub maxDrawCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkGeneratedCommandsMemoryRequirementsInfoEXT",
+    ][::std::mem::size_of::<VkGeneratedCommandsMemoryRequirementsInfoEXT>() - 40usize];
+    [
+        "Alignment of VkGeneratedCommandsMemoryRequirementsInfoEXT",
+    ][::std::mem::align_of::<VkGeneratedCommandsMemoryRequirementsInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkGeneratedCommandsMemoryRequirementsInfoEXT::sType",
+    ][::std::mem::offset_of!(VkGeneratedCommandsMemoryRequirementsInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkGeneratedCommandsMemoryRequirementsInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkGeneratedCommandsMemoryRequirementsInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkGeneratedCommandsMemoryRequirementsInfoEXT::indirectExecutionSet",
+    ][::std::mem::offset_of!(
+        VkGeneratedCommandsMemoryRequirementsInfoEXT, indirectExecutionSet
+    ) - 16usize];
+    [
+        "Offset of field: VkGeneratedCommandsMemoryRequirementsInfoEXT::indirectCommandsLayout",
+    ][::std::mem::offset_of!(
+        VkGeneratedCommandsMemoryRequirementsInfoEXT, indirectCommandsLayout
+    ) - 24usize];
+    [
+        "Offset of field: VkGeneratedCommandsMemoryRequirementsInfoEXT::maxSequenceCount",
+    ][::std::mem::offset_of!(
+        VkGeneratedCommandsMemoryRequirementsInfoEXT, maxSequenceCount
+    ) - 32usize];
+    [
+        "Offset of field: VkGeneratedCommandsMemoryRequirementsInfoEXT::maxDrawCount",
+    ][::std::mem::offset_of!(VkGeneratedCommandsMemoryRequirementsInfoEXT, maxDrawCount)
+        - 36usize];
+};
+impl Default for VkGeneratedCommandsMemoryRequirementsInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectExecutionSetPipelineInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub initialPipeline: VkPipeline,
+    pub maxPipelineCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectExecutionSetPipelineInfoEXT",
+    ][::std::mem::size_of::<VkIndirectExecutionSetPipelineInfoEXT>() - 32usize];
+    [
+        "Alignment of VkIndirectExecutionSetPipelineInfoEXT",
+    ][::std::mem::align_of::<VkIndirectExecutionSetPipelineInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetPipelineInfoEXT::sType",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetPipelineInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkIndirectExecutionSetPipelineInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetPipelineInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetPipelineInfoEXT::initialPipeline",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetPipelineInfoEXT, initialPipeline)
+        - 16usize];
+    [
+        "Offset of field: VkIndirectExecutionSetPipelineInfoEXT::maxPipelineCount",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetPipelineInfoEXT, maxPipelineCount)
+        - 24usize];
+};
+impl Default for VkIndirectExecutionSetPipelineInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectExecutionSetShaderLayoutInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub setLayoutCount: u32,
+    pub pSetLayouts: *const VkDescriptorSetLayout,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectExecutionSetShaderLayoutInfoEXT",
+    ][::std::mem::size_of::<VkIndirectExecutionSetShaderLayoutInfoEXT>() - 32usize];
+    [
+        "Alignment of VkIndirectExecutionSetShaderLayoutInfoEXT",
+    ][::std::mem::align_of::<VkIndirectExecutionSetShaderLayoutInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderLayoutInfoEXT::sType",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderLayoutInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderLayoutInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderLayoutInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderLayoutInfoEXT::setLayoutCount",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderLayoutInfoEXT, setLayoutCount)
+        - 16usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderLayoutInfoEXT::pSetLayouts",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderLayoutInfoEXT, pSetLayouts)
+        - 24usize];
+};
+impl Default for VkIndirectExecutionSetShaderLayoutInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectExecutionSetShaderInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub shaderCount: u32,
+    pub pInitialShaders: *const VkShaderEXT,
+    pub pSetLayoutInfos: *const VkIndirectExecutionSetShaderLayoutInfoEXT,
+    pub maxShaderCount: u32,
+    pub pushConstantRangeCount: u32,
+    pub pPushConstantRanges: *const VkPushConstantRange,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectExecutionSetShaderInfoEXT",
+    ][::std::mem::size_of::<VkIndirectExecutionSetShaderInfoEXT>() - 56usize];
+    [
+        "Alignment of VkIndirectExecutionSetShaderInfoEXT",
+    ][::std::mem::align_of::<VkIndirectExecutionSetShaderInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::sType",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::shaderCount",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, shaderCount)
+        - 16usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::pInitialShaders",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, pInitialShaders)
+        - 24usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::pSetLayoutInfos",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, pSetLayoutInfos)
+        - 32usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::maxShaderCount",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, maxShaderCount)
+        - 40usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::pushConstantRangeCount",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, pushConstantRangeCount)
+        - 44usize];
+    [
+        "Offset of field: VkIndirectExecutionSetShaderInfoEXT::pPushConstantRanges",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetShaderInfoEXT, pPushConstantRanges)
+        - 48usize];
+};
+impl Default for VkIndirectExecutionSetShaderInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkIndirectExecutionSetInfoEXT {
+    pub pPipelineInfo: *const VkIndirectExecutionSetPipelineInfoEXT,
+    pub pShaderInfo: *const VkIndirectExecutionSetShaderInfoEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectExecutionSetInfoEXT",
+    ][::std::mem::size_of::<VkIndirectExecutionSetInfoEXT>() - 8usize];
+    [
+        "Alignment of VkIndirectExecutionSetInfoEXT",
+    ][::std::mem::align_of::<VkIndirectExecutionSetInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetInfoEXT::pPipelineInfo",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetInfoEXT, pPipelineInfo) - 0usize];
+    [
+        "Offset of field: VkIndirectExecutionSetInfoEXT::pShaderInfo",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetInfoEXT, pShaderInfo) - 0usize];
+};
+impl Default for VkIndirectExecutionSetInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkIndirectExecutionSetCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub type_: VkIndirectExecutionSetInfoTypeEXT,
+    pub info: VkIndirectExecutionSetInfoEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectExecutionSetCreateInfoEXT",
+    ][::std::mem::size_of::<VkIndirectExecutionSetCreateInfoEXT>() - 32usize];
+    [
+        "Alignment of VkIndirectExecutionSetCreateInfoEXT",
+    ][::std::mem::align_of::<VkIndirectExecutionSetCreateInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetCreateInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkIndirectExecutionSetCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetCreateInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkIndirectExecutionSetCreateInfoEXT::type_",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetCreateInfoEXT, type_) - 16usize];
+    [
+        "Offset of field: VkIndirectExecutionSetCreateInfoEXT::info",
+    ][::std::mem::offset_of!(VkIndirectExecutionSetCreateInfoEXT, info) - 24usize];
+};
+impl Default for VkIndirectExecutionSetCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkGeneratedCommandsInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub shaderStages: VkShaderStageFlags,
+    pub indirectExecutionSet: VkIndirectExecutionSetEXT,
+    pub indirectCommandsLayout: VkIndirectCommandsLayoutEXT,
+    pub indirectAddress: VkDeviceAddress,
+    pub indirectAddressSize: VkDeviceSize,
+    pub preprocessAddress: VkDeviceAddress,
+    pub preprocessSize: VkDeviceSize,
+    pub maxSequenceCount: u32,
+    pub sequenceCountAddress: VkDeviceAddress,
+    pub maxDrawCount: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkGeneratedCommandsInfoEXT",
+    ][::std::mem::size_of::<VkGeneratedCommandsInfoEXT>() - 96usize];
+    [
+        "Alignment of VkGeneratedCommandsInfoEXT",
+    ][::std::mem::align_of::<VkGeneratedCommandsInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::sType",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::shaderStages",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, shaderStages) - 16usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::indirectExecutionSet",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, indirectExecutionSet)
+        - 24usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::indirectCommandsLayout",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, indirectCommandsLayout)
+        - 32usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::indirectAddress",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, indirectAddress) - 40usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::indirectAddressSize",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, indirectAddressSize) - 48usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::preprocessAddress",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, preprocessAddress) - 56usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::preprocessSize",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, preprocessSize) - 64usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::maxSequenceCount",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, maxSequenceCount) - 72usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::sequenceCountAddress",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, sequenceCountAddress)
+        - 80usize];
+    [
+        "Offset of field: VkGeneratedCommandsInfoEXT::maxDrawCount",
+    ][::std::mem::offset_of!(VkGeneratedCommandsInfoEXT, maxDrawCount) - 88usize];
+};
+impl Default for VkGeneratedCommandsInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkWriteIndirectExecutionSetPipelineEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub index: u32,
+    pub pipeline: VkPipeline,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkWriteIndirectExecutionSetPipelineEXT",
+    ][::std::mem::size_of::<VkWriteIndirectExecutionSetPipelineEXT>() - 32usize];
+    [
+        "Alignment of VkWriteIndirectExecutionSetPipelineEXT",
+    ][::std::mem::align_of::<VkWriteIndirectExecutionSetPipelineEXT>() - 8usize];
+    [
+        "Offset of field: VkWriteIndirectExecutionSetPipelineEXT::sType",
+    ][::std::mem::offset_of!(VkWriteIndirectExecutionSetPipelineEXT, sType) - 0usize];
+    [
+        "Offset of field: VkWriteIndirectExecutionSetPipelineEXT::pNext",
+    ][::std::mem::offset_of!(VkWriteIndirectExecutionSetPipelineEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkWriteIndirectExecutionSetPipelineEXT::index",
+    ][::std::mem::offset_of!(VkWriteIndirectExecutionSetPipelineEXT, index) - 16usize];
+    [
+        "Offset of field: VkWriteIndirectExecutionSetPipelineEXT::pipeline",
+    ][::std::mem::offset_of!(VkWriteIndirectExecutionSetPipelineEXT, pipeline)
+        - 24usize];
+};
+impl Default for VkWriteIndirectExecutionSetPipelineEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkIndirectCommandsPushConstantTokenEXT {
+    pub updateRange: VkPushConstantRange,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsPushConstantTokenEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsPushConstantTokenEXT>() - 12usize];
+    [
+        "Alignment of VkIndirectCommandsPushConstantTokenEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsPushConstantTokenEXT>() - 4usize];
+    [
+        "Offset of field: VkIndirectCommandsPushConstantTokenEXT::updateRange",
+    ][::std::mem::offset_of!(VkIndirectCommandsPushConstantTokenEXT, updateRange)
+        - 0usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkIndirectCommandsVertexBufferTokenEXT {
+    pub vertexBindingUnit: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsVertexBufferTokenEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsVertexBufferTokenEXT>() - 4usize];
+    [
+        "Alignment of VkIndirectCommandsVertexBufferTokenEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsVertexBufferTokenEXT>() - 4usize];
+    [
+        "Offset of field: VkIndirectCommandsVertexBufferTokenEXT::vertexBindingUnit",
+    ][::std::mem::offset_of!(VkIndirectCommandsVertexBufferTokenEXT, vertexBindingUnit)
+        - 0usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectCommandsIndexBufferTokenEXT {
+    pub mode: VkIndirectCommandsInputModeFlagBitsEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsIndexBufferTokenEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsIndexBufferTokenEXT>() - 4usize];
+    [
+        "Alignment of VkIndirectCommandsIndexBufferTokenEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsIndexBufferTokenEXT>() - 4usize];
+    [
+        "Offset of field: VkIndirectCommandsIndexBufferTokenEXT::mode",
+    ][::std::mem::offset_of!(VkIndirectCommandsIndexBufferTokenEXT, mode) - 0usize];
+};
+impl Default for VkIndirectCommandsIndexBufferTokenEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectCommandsExecutionSetTokenEXT {
+    pub type_: VkIndirectExecutionSetInfoTypeEXT,
+    pub shaderStages: VkShaderStageFlags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsExecutionSetTokenEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsExecutionSetTokenEXT>() - 8usize];
+    [
+        "Alignment of VkIndirectCommandsExecutionSetTokenEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsExecutionSetTokenEXT>() - 4usize];
+    [
+        "Offset of field: VkIndirectCommandsExecutionSetTokenEXT::type_",
+    ][::std::mem::offset_of!(VkIndirectCommandsExecutionSetTokenEXT, type_) - 0usize];
+    [
+        "Offset of field: VkIndirectCommandsExecutionSetTokenEXT::shaderStages",
+    ][::std::mem::offset_of!(VkIndirectCommandsExecutionSetTokenEXT, shaderStages)
+        - 4usize];
+};
+impl Default for VkIndirectCommandsExecutionSetTokenEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkIndirectCommandsTokenDataEXT {
+    pub pPushConstant: *const VkIndirectCommandsPushConstantTokenEXT,
+    pub pVertexBuffer: *const VkIndirectCommandsVertexBufferTokenEXT,
+    pub pIndexBuffer: *const VkIndirectCommandsIndexBufferTokenEXT,
+    pub pExecutionSet: *const VkIndirectCommandsExecutionSetTokenEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsTokenDataEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsTokenDataEXT>() - 8usize];
+    [
+        "Alignment of VkIndirectCommandsTokenDataEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsTokenDataEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectCommandsTokenDataEXT::pPushConstant",
+    ][::std::mem::offset_of!(VkIndirectCommandsTokenDataEXT, pPushConstant) - 0usize];
+    [
+        "Offset of field: VkIndirectCommandsTokenDataEXT::pVertexBuffer",
+    ][::std::mem::offset_of!(VkIndirectCommandsTokenDataEXT, pVertexBuffer) - 0usize];
+    [
+        "Offset of field: VkIndirectCommandsTokenDataEXT::pIndexBuffer",
+    ][::std::mem::offset_of!(VkIndirectCommandsTokenDataEXT, pIndexBuffer) - 0usize];
+    [
+        "Offset of field: VkIndirectCommandsTokenDataEXT::pExecutionSet",
+    ][::std::mem::offset_of!(VkIndirectCommandsTokenDataEXT, pExecutionSet) - 0usize];
+};
+impl Default for VkIndirectCommandsTokenDataEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkIndirectCommandsLayoutTokenEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub type_: VkIndirectCommandsTokenTypeEXT,
+    pub data: VkIndirectCommandsTokenDataEXT,
+    pub offset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsLayoutTokenEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsLayoutTokenEXT>() - 40usize];
+    [
+        "Alignment of VkIndirectCommandsLayoutTokenEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsLayoutTokenEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutTokenEXT::sType",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutTokenEXT, sType) - 0usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutTokenEXT::pNext",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutTokenEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutTokenEXT::type_",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutTokenEXT, type_) - 16usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutTokenEXT::data",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutTokenEXT, data) - 24usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutTokenEXT::offset",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutTokenEXT, offset) - 32usize];
+};
+impl Default for VkIndirectCommandsLayoutTokenEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkIndirectCommandsLayoutCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkIndirectCommandsLayoutUsageFlagsEXT,
+    pub shaderStages: VkShaderStageFlags,
+    pub indirectStride: u32,
+    pub pipelineLayout: VkPipelineLayout,
+    pub tokenCount: u32,
+    pub pTokens: *const VkIndirectCommandsLayoutTokenEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkIndirectCommandsLayoutCreateInfoEXT",
+    ][::std::mem::size_of::<VkIndirectCommandsLayoutCreateInfoEXT>() - 56usize];
+    [
+        "Alignment of VkIndirectCommandsLayoutCreateInfoEXT",
+    ][::std::mem::align_of::<VkIndirectCommandsLayoutCreateInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::flags",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, flags) - 16usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::shaderStages",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, shaderStages)
+        - 20usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::indirectStride",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, indirectStride)
+        - 24usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::pipelineLayout",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, pipelineLayout)
+        - 32usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::tokenCount",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, tokenCount)
+        - 40usize];
+    [
+        "Offset of field: VkIndirectCommandsLayoutCreateInfoEXT::pTokens",
+    ][::std::mem::offset_of!(VkIndirectCommandsLayoutCreateInfoEXT, pTokens) - 48usize];
+};
+impl Default for VkIndirectCommandsLayoutCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkGeneratedCommandsPipelineInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub pipeline: VkPipeline,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkGeneratedCommandsPipelineInfoEXT",
+    ][::std::mem::size_of::<VkGeneratedCommandsPipelineInfoEXT>() - 24usize];
+    [
+        "Alignment of VkGeneratedCommandsPipelineInfoEXT",
+    ][::std::mem::align_of::<VkGeneratedCommandsPipelineInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkGeneratedCommandsPipelineInfoEXT::sType",
+    ][::std::mem::offset_of!(VkGeneratedCommandsPipelineInfoEXT, sType) - 0usize];
+    [
+        "Offset of field: VkGeneratedCommandsPipelineInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkGeneratedCommandsPipelineInfoEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkGeneratedCommandsPipelineInfoEXT::pipeline",
+    ][::std::mem::offset_of!(VkGeneratedCommandsPipelineInfoEXT, pipeline) - 16usize];
+};
+impl Default for VkGeneratedCommandsPipelineInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkGetGeneratedCommandsMemoryRequirementsEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pInfo: *const VkGeneratedCommandsMemoryRequirementsInfoEXT,
+        pMemoryRequirements: *mut VkMemoryRequirements2,
+    ),
+>;
+pub type PFN_vkCmdPreprocessGeneratedCommandsEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pGeneratedCommandsInfo: *const VkGeneratedCommandsInfoEXT,
+        stateCommandBuffer: VkCommandBuffer,
+    ),
+>;
+pub type PFN_vkCmdExecuteGeneratedCommandsEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        isPreprocessed: VkBool32,
+        pGeneratedCommandsInfo: *const VkGeneratedCommandsInfoEXT,
+    ),
+>;
+pub type PFN_vkCreateIndirectCommandsLayoutEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkIndirectCommandsLayoutCreateInfoEXT,
+        pAllocator: *const VkAllocationCallbacks,
+        pIndirectCommandsLayout: *mut VkIndirectCommandsLayoutEXT,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyIndirectCommandsLayoutEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        indirectCommandsLayout: VkIndirectCommandsLayoutEXT,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkCreateIndirectExecutionSetEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        pCreateInfo: *const VkIndirectExecutionSetCreateInfoEXT,
+        pAllocator: *const VkAllocationCallbacks,
+        pIndirectExecutionSet: *mut VkIndirectExecutionSetEXT,
+    ) -> VkResult,
+>;
+pub type PFN_vkDestroyIndirectExecutionSetEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        indirectExecutionSet: VkIndirectExecutionSetEXT,
+        pAllocator: *const VkAllocationCallbacks,
+    ),
+>;
+pub type PFN_vkUpdateIndirectExecutionSetPipelineEXT = ::std::option::Option<
+    unsafe extern "C" fn(
+        device: VkDevice,
+        indirectExecutionSet: VkIndirectExecutionSetEXT,
+        executionSetWriteCount: u32,
+        pExecutionSetWrites: *const VkWriteIndirectExecutionSetPipelineEXT,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkPhysicalDeviceShaderOCPMicroscalingTypesFeaturesEXT {
