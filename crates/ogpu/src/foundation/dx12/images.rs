@@ -1,0 +1,552 @@
+//! Explicit D3D12 images and views. Images are placed resources over opaque
+//! memory (or dedicated committed backing); no implicit transition, staging or
+//! initialization exists in any operation.
+use super::*;
+
+#[derive(Clone, Copy)]
+struct Facts {
+    format: u32,
+    mip_count: u32,
+    layer_count: u32,
+    sample_count: u32,
+    extent: Extent,
+    usage: u64,
+}
+
+pub struct Image {
+    device: *const Device,
+    facts: Facts,
+    native: d3d::D3D12_RESOURCE_DESC,
+    size: u64,
+    alignment: u64,
+    resource: std::cell::OnceCell<d3d::ID3D12Resource>,
+    borrowed: bool,
+}
+
+/// A foundation view describes interpretation of an image for descriptors and
+/// attachments. D3D12 view objects are descriptor-heap contents materialized by
+/// the descriptor profile (D2); this batch rejects creation instead of handing
+/// out a view with no native representation.
+pub struct View;
+
+impl Drop for Image {
+    fn drop(&mut self) {
+        // The placed/committed resource releases its reference; the caller has
+        // retired all uses and kept the backing alive in lifetime order.
+    }
+}
+
+/// Image usage bits translate to native resource flags. Unknown bits are
+/// rejected; TRANSIENT/INPUT_ATTACHMENT have no D3D12 resource flag.
+fn resource_flags(usage: u64, format_aspects: u32) -> Result<d3d::D3D12_RESOURCE_FLAGS, Status> {
+    if usage & !(1 | 2 | 4 | 8 | 16 | 32) != 0 {
+        return Err(UNSUPPORTED);
+    }
+    let mut flags = d3d::D3D12_RESOURCE_FLAG_NONE;
+    if usage & 8 != 0 {
+        flags |= d3d::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    }
+    if usage & 16 != 0 {
+        if format_aspects & 1 == 0 {
+            return Err(INVALID);
+        }
+        flags |= d3d::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    }
+    if usage & 32 != 0 {
+        if format_aspects & (2 | 4) == 0 {
+            return Err(INVALID);
+        }
+        flags |= d3d::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    }
+    Ok(flags)
+}
+
+fn prepare(d: &Device, desc: &ImageDesc) -> Result<(Facts, d3d::D3D12_RESOURCE_DESC, d3d::D3D12_RESOURCE_ALLOCATION_INFO), Status> {
+    desc.header.validate::<ImageDesc>(IMAGE_DESC)?;
+    if desc.mip_count == 0
+        || desc.layer_count == 0
+        || desc.sample_count == 0
+        || desc.extent.x == 0
+        || desc.extent.y == 0
+        || desc.extent.z == 0
+    {
+        return Err(INVALID);
+    }
+    let meta = formats::meta(desc.format).ok_or(UNSUPPORTED)?;
+    if desc.view_format_count != 0 {
+        // View-format lists are part of the descriptor/view profile (D2).
+        return Err(UNSUPPORTED);
+    }
+    let concurrent = desc.concurrent_domain_count;
+    if concurrent == 1
+        || concurrent as usize > d.snapshot.queues.len()
+        || (concurrent != 0 && desc.concurrent_domains.is_null())
+    {
+        return Err(INVALID);
+    }
+    if concurrent != 0 {
+        // SAFETY: caller provides the described domain array.
+        let domains =
+            unsafe { std::slice::from_raw_parts(desc.concurrent_domains, concurrent as usize) };
+        for (index, domain) in domains.iter().enumerate() {
+            if domains[..index].contains(domain) {
+                return Err(INVALID);
+            }
+            if !d.snapshot.queues.iter().any(|q| q.domain == *domain) {
+                return Err(UNSUPPORTED);
+            }
+        }
+    }
+    let native_format = formats::dxgi_format(desc.format);
+    if native_format == windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_UNKNOWN {
+        return Err(UNSUPPORTED);
+    }
+    let flags = resource_flags(desc.usage, meta.aspects)?;
+    let dimension = match desc.dimension {
+        1 => d3d::D3D12_RESOURCE_DIMENSION_TEXTURE1D,
+        2 => d3d::D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+        3 => d3d::D3D12_RESOURCE_DIMENSION_TEXTURE3D,
+        _ => return Err(INVALID),
+    };
+    if desc.dimension != 3 && desc.extent.z != 1 {
+        return Err(INVALID);
+    }
+    if desc.dimension == 1 && (desc.extent.y != 1 || desc.sample_count != 1) {
+        return Err(INVALID);
+    }
+    if desc.sample_count != 1 && desc.usage & 8 != 0 {
+        // Multisampled storage images are outside this profile.
+        return Err(UNSUPPORTED);
+    }
+    let native = d3d::D3D12_RESOURCE_DESC {
+        Dimension: dimension,
+        Width: u64::from(desc.extent.x),
+        Height: desc.extent.y,
+        DepthOrArraySize: if desc.dimension == 3 {
+            desc.extent.z as u16
+        } else {
+            desc.layer_count as u16
+        },
+        MipLevels: desc.mip_count as u16,
+        Format: native_format,
+        SampleDesc: dxgi::Common::DXGI_SAMPLE_DESC {
+            Count: desc.sample_count,
+            Quality: 0,
+        },
+        Layout: d3d::D3D12_TEXTURE_LAYOUT_UNKNOWN,
+        Flags: flags,
+        Alignment: 0,
+    };
+    let info = d.allocation_info(&native);
+    if info.SizeInBytes == 0 || info.SizeInBytes == u64::MAX || info.Alignment == 0 {
+        return Err(UNSUPPORTED);
+    }
+    Ok((
+        Facts {
+            format: desc.format,
+            mip_count: desc.mip_count,
+            layer_count: desc.layer_count,
+            sample_count: desc.sample_count,
+            extent: desc.extent,
+            usage: desc.usage,
+        },
+        native,
+        info,
+    ))
+}
+
+impl Device {
+    /// Limits of the exact image profile tuple; no format substitution. This
+    /// reports the implemented profile, not that every maximal value combines.
+    pub(in crate::foundation) fn image_limits(
+        &self,
+        profile: &ImageProfile,
+    ) -> Result<ImageLimits, Status> {
+        self.ready()?;
+        profile.header.validate::<ImageProfile>(IMAGE_PROFILE)?;
+        if profile.reserved != 0 {
+            return Err(UNSUPPORTED);
+        }
+        let meta = formats::meta(profile.format).ok_or(UNSUPPORTED)?;
+        if profile.usage & !(1 | 2 | 4 | 8 | 16 | 32) != 0 {
+            return Err(UNSUPPORTED);
+        }
+        resource_flags(profile.usage, meta.aspects)?;
+        let (max_extent, max_mips) = match profile.dimension {
+            1 => ([16384, 1, 1], 15),
+            2 => ([16384, 16384, 1], 15),
+            3 => ([2048, 2048, 2048], 12),
+            _ => return Err(INVALID),
+        };
+        let mut sample_counts = 1;
+        if profile.usage & 8 == 0 {
+            for count in [2u32, 4, 8, 16] {
+                let mut levels = d3d::D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS {
+                    Format: formats::dxgi_format(profile.format),
+                    SampleCount: count,
+                    Flags: d3d::D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE,
+                    ..Default::default()
+                };
+                // SAFETY: feature query with a well-formed structure.
+                let supported = unsafe {
+                    self.device
+                        .CheckFeatureSupport(
+                            d3d::D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+                            ptr::from_mut(&mut levels).cast(),
+                            size_of::<d3d::D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS>() as u32,
+                        )
+                        .is_ok()
+                        && levels.NumQualityLevels != 0
+                };
+                if supported {
+                    sample_counts |= count;
+                }
+            }
+        }
+        Ok(ImageLimits {
+            max_extent,
+            max_mips,
+            max_layers: 2048,
+            sample_counts,
+            max_resource_size: self.snapshot.memory_limits.max_buffer_size,
+        })
+    }
+
+    /// Exact placement requirements of one image. No GPU object is created.
+    /// # Safety
+    /// Valid description arrays and writable output storage.
+    pub(in crate::foundation) unsafe fn image_requirements(
+        &self,
+        desc: &ImageDesc,
+        out: &mut Requirements,
+    ) -> Result<(), Status> {
+        if out.compatible_type_capacity != 0 && out.compatible_types.is_null() {
+            return Err(INVALID);
+        }
+        let (_facts, _native, info) = prepare(self, desc)?;
+        out.size = info.SizeInBytes;
+        out.alignment = info.Alignment;
+        // Tier-1 heaps keep RT/DS textures in dedicated heaps: report that as an
+        // exact dedicated requirement instead of promising placement.
+        out.dedicated_required = u32::from(self.heap_tier < 2 && desc.usage & (16 | 32) != 0);
+        out.dedicated_preferred = 0;
+        let types: Vec<u32> = self
+            .snapshot
+            .memory_types
+            .iter()
+            .filter(|m| m.properties & (32 | 64 | 128) == 0)
+            .map(|m| m.id)
+            .collect();
+        out.compatible_type_count = types.len() as u32;
+        if out.compatible_type_capacity == 0 {
+            return Ok(());
+        }
+        if out.compatible_type_capacity < out.compatible_type_count {
+            return Err(CAPACITY);
+        }
+        // SAFETY: caller guarantees writable array for capacity elements.
+        unsafe {
+            ptr::copy_nonoverlapping(types.as_ptr(), out.compatible_types, types.len());
+        }
+        Ok(())
+    }
+}
+
+impl Image {
+    /// # Safety
+    /// Live device and valid description arrays; device outlives the image.
+    pub(in crate::foundation) unsafe fn create(
+        d: &Device,
+        desc: &ImageDesc,
+    ) -> Result<Box<Self>, Status> {
+        let (facts, native, info) = prepare(d, desc)?;
+        Ok(Box::new(Self {
+            device: d,
+            facts,
+            native,
+            size: info.SizeInBytes,
+            alignment: info.Alignment,
+            resource: std::cell::OnceCell::new(),
+            borrowed: false,
+        }))
+    }
+
+    /// Bind the image to explicit opaque backing exactly once.
+    /// # Safety
+    /// Placement is valid, compatible and outlives the image and all uses.
+    pub(in crate::foundation) unsafe fn bind(&self, placement: Span) -> Result<(), Status> {
+        // SAFETY: span memory handle is a trusted live object by contract.
+        let memory = unsafe { placement.memory.as_ref() }.ok_or(INVALID)?;
+        if self.resource.get().is_some() {
+            return Err(INVALID);
+        }
+        // SAFETY: device pointer and image stay live during binding.
+        let d = unsafe { &*self.device };
+        d.ready()?;
+        memory.image_placement(
+            self.device,
+            self,
+            self.size,
+            self.alignment,
+            false,
+            placement.offset,
+            placement.size,
+        )?;
+        // Dedicated backing is adopted outright; nothing is placed or copied.
+        if let Some(committed) = memory.committed() {
+            return self.resource.set(committed).map_err(|_| INVALID);
+        }
+        let heap = memory.heap().ok_or(INVALID)?;
+        let mut resource: Option<d3d::ID3D12Resource> = None;
+        // SAFETY: validated placement on a live heap; output adopted below.
+        unsafe {
+            d.device
+                .CreatePlacedResource(
+                    heap,
+                    placement.offset,
+                    ptr::from_ref(&self.native),
+                    d3d::D3D12_RESOURCE_STATE_COMMON,
+                    None,
+                    &mut resource,
+                )
+                .map_err(map_error)?
+        };
+        // Binding is one-shot; a second bind fails without side effects.
+        self.resource
+            .set(resource.ok_or(BACKEND_ERROR)?)
+            .map_err(|_| INVALID)
+    }
+
+    /// Create the dedicated committed backing owner for exactly this image.
+    /// It does not bind; binding remains a separate explicit step.
+    /// # Safety
+    /// Live unbound image and exclusive binding access.
+    pub(in crate::foundation) fn dedicated_memory(
+        &self,
+        memory_type: u32,
+    ) -> Result<Box<Memory>, Status> {
+        if self.resource.get().is_some() {
+            return Err(INVALID);
+        }
+        // SAFETY: image stays live for backing creation.
+        let d = unsafe { &*self.device };
+        Memory::dedicated_image(d, self, memory_type)
+    }
+
+    pub(in crate::foundation) fn is_borrowed(&self) -> bool {
+        self.borrowed
+    }
+
+    pub(super) fn resource(&self) -> Result<&d3d::ID3D12Resource, Status> {
+        self.resource.get().ok_or(INVALID)
+    }
+
+    pub(super) fn native_desc(&self) -> d3d::D3D12_RESOURCE_DESC {
+        self.native
+    }
+
+    pub(super) fn requirements(&self) -> (u64, u64) {
+        (self.size, self.alignment)
+    }
+
+    pub(super) fn mip_count(&self) -> u32 {
+        self.facts.mip_count
+    }
+
+    pub(super) fn layer_count(&self) -> u32 {
+        self.facts.layer_count
+    }
+
+    /// Mip extent in texels of one subresource.
+    fn mip_extent(&self, mip: u32) -> Result<Extent, Status> {
+        if mip >= self.facts.mip_count {
+            return Err(INVALID);
+        }
+        let shift = |v: u32| (v >> mip).max(1);
+        Ok(Extent {
+            x: shift(self.facts.extent.x),
+            y: shift(self.facts.extent.y),
+            z: shift(self.facts.extent.z),
+        })
+    }
+}
+
+impl View {
+    /// # Safety
+    /// Live bound image and valid description; unsupported in this batch.
+    pub(in crate::foundation) fn create(
+        _image: &Image,
+        _desc: &ViewDesc,
+    ) -> Result<Box<Self>, Status> {
+        Err(UNSUPPORTED)
+    }
+}
+
+impl List {
+    /// Buffer/image copy in either direction through one placed footprint per
+    /// layer. D3D12 copies one subresource per native call; a multi-layer region
+    /// records one CopyTextureRegion per layer without allocation. Row pitches
+    /// must satisfy the native placed-footprint pitch alignment (256 bytes);
+    /// other pitches are rejected instead of staged.
+    /// # Safety
+    /// Image, span and copy description stay live through all pending uses.
+    pub(in crate::foundation) unsafe fn copy_image_memory(
+        &self,
+        image: &Image,
+        span: Span,
+        copy: &ImageCopy,
+        to_image: bool,
+    ) -> Result<(), Status> {
+        self.recording()?;
+        let meta = formats::meta(image.facts.format).ok_or(UNSUPPORTED)?;
+        // Depth/stencil copies are a separate graphics-family profile.
+        if copy.region.aspect != ASPECT_COLOR || meta.aspects & 1 == 0 {
+            return Err(UNSUPPORTED);
+        }
+        if image.facts.sample_count != 1 {
+            return Err(UNSUPPORTED);
+        }
+        let state_ok = if to_image {
+            copy.state == STATE_GENERAL || copy.state == STATE_COPY_DST
+        } else {
+            copy.state == STATE_GENERAL || copy.state == STATE_COPY_SRC
+        };
+        if !state_ok {
+            return Err(INVALID);
+        }
+        // SAFETY: span memory handle is a trusted live object by contract.
+        let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
+        let usage = if to_image { USAGE_COPY_SRC } else { USAGE_COPY_DST };
+        let (buffer, buffer_offset, _) =
+            memory.command_range(self.device, self.domain, span.offset, span.size, usage)?;
+        let image_usage = if to_image { 2 } else { 1 };
+        if image.facts.usage & image_usage == 0 {
+            return Err(INVALID);
+        }
+        let resource = image.resource()?;
+        let extent = image.mip_extent(copy.region.mip)?;
+        let end_layer = copy
+            .region
+            .first_layer
+            .checked_add(copy.region.layer_count)
+            .ok_or(INVALID)?;
+        if copy.region.layer_count == 0 || end_layer > image.facts.layer_count {
+            return Err(INVALID);
+        }
+        // Region offsets/extents are block-aligned and within the mip.
+        let block = meta.block;
+        if copy.region.offset.x < 0
+            || copy.region.offset.y < 0
+            || copy.region.offset.z != 0
+            || u32::try_from(copy.region.offset.x).map_err(|_| INVALID)? % block[0] != 0
+            || copy.region.offset.y as u32 % block[1] != 0
+        {
+            return Err(INVALID);
+        }
+        let x = u32::try_from(copy.region.offset.x).map_err(|_| INVALID)?;
+        let y = copy.region.offset.y as u32;
+        let blocks_x = copy.region.extent.x.div_ceil(block[0]);
+        let blocks_y = copy.region.extent.y.div_ceil(block[1]);
+        if copy.region.extent.z != 1
+            || x.checked_add(copy.region.extent.x).ok_or(INVALID)? > extent.x
+            || y.checked_add(copy.region.extent.y).ok_or(INVALID)? > extent.y
+        {
+            return Err(INVALID);
+        }
+        let row_bytes = u64::from(blocks_x) * u64::from(meta.color_bytes);
+        let row_pitch = if copy.row_pitch == 0 {
+            row_bytes
+        } else {
+            copy.row_pitch
+        };
+        if row_pitch < row_bytes
+            || row_pitch % u64::from(meta.color_bytes * block[0]) != 0
+            || row_pitch % 256 != 0
+        {
+            // The native placed-footprint pitch constraint; no hidden staging.
+            return Err(UNSUPPORTED);
+        }
+        let rows = blocks_y * block[1];
+        let slice_bytes = row_pitch * u64::from(rows);
+        let slice_pitch = if copy.slice_pitch == 0 {
+            slice_bytes
+        } else {
+            copy.slice_pitch
+        };
+        if slice_pitch < slice_bytes || slice_pitch % slice_bytes != 0 {
+            return Err(INVALID);
+        }
+        if copy.region.layer_count == 0 {
+            return Ok(());
+        }
+        let total = slice_pitch * u64::from(copy.region.layer_count);
+        let needed = buffer_offset.checked_add(total).ok_or(INVALID)?;
+        if needed > memory_span_end(span) {
+            return Err(INVALID);
+        }
+        for layer in 0..copy.region.layer_count {
+            let subresource = copy.region.mip
+                + (copy.region.first_layer + layer) * image.facts.mip_count;
+            let offset = buffer_offset + u64::from(layer) * slice_pitch;
+            let placed = d3d::D3D12_TEXTURE_COPY_LOCATION {
+                // Borrowed resource reference: the location is never dropped.
+                pResource: core::mem::ManuallyDrop::new(Some(unsafe {
+                    d3d::ID3D12Resource::from_raw(buffer.as_raw())
+                })),
+                Type: d3d::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
+                    PlacedFootprint: d3d::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
+                        Offset: offset,
+                        Footprint: d3d::D3D12_SUBRESOURCE_FOOTPRINT {
+                            Format: image.native.Format,
+                            Width: copy.region.extent.x,
+                            Height: copy.region.extent.y,
+                            Depth: 1,
+                            RowPitch: u32::try_from(row_pitch).map_err(|_| INVALID)?,
+                        },
+                    },
+                },
+            };
+            let texture = d3d::D3D12_TEXTURE_COPY_LOCATION {
+                // Borrowed resource reference: the location is never dropped.
+                pResource: core::mem::ManuallyDrop::new(Some(unsafe {
+                    d3d::ID3D12Resource::from_raw(resource.as_raw())
+                })),
+                Type: d3d::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
+                    SubresourceIndex: subresource,
+                },
+            };
+            // SAFETY: validated disjoint ranges of live resources; recording only.
+            // A placed-footprint endpoint takes zero coordinates; region offsets
+            // belong to the texture endpoint or its explicit source box.
+            unsafe {
+                if to_image {
+                    self.command.CopyTextureRegion(&texture, x, y, 0, &placed, None);
+                } else {
+                    let box_ = d3d::D3D12_BOX {
+                        left: x,
+                        top: y,
+                        front: 0,
+                        right: x + copy.region.extent.x,
+                        bottom: y + copy.region.extent.y,
+                        back: 1,
+                    };
+                    self.command.CopyTextureRegion(
+                        &placed,
+                        0,
+                        0,
+                        0,
+                        &texture,
+                        Some(ptr::from_ref(&box_)),
+                    );
+                }
+            };
+        }
+        Ok(())
+    }
+}
+
+fn memory_span_end(span: Span) -> u64 {
+    span.offset.saturating_add(span.size)
+}

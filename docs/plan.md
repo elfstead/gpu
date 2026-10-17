@@ -22,6 +22,11 @@ evidence. The [roadmap](roadmap.md) owns broader coverage. The [whole-API
 design](whole-api-design.md) is a target, not an assertion that its remaining
 [sketch](drafts/ogpu_next.h) is implemented.
 
+On the `dx12-backend` branch, the D1 resource/command core of the native D3D12
+candidate is implemented and natively exercised on one Windows machine; the
+[D1 batch receipt](dx12-backend-d1.md) records its evidence, mapping decisions
+and incidents. The branch is unmerged and D2/D3 remain open.
+
 ## Completed checkpoints
 
 | Work | Outcome | Evidence boundary |
