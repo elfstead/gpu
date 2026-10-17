@@ -2,7 +2,8 @@
 
 Updated 2026-10-17. **M1–M5 and foundation-contract consolidation are complete for
 their declared scope. P1 presentation has reached partial human acceptance;
-M6 Metal foundation mapping is now underway. P1's native Rust operation extraction and opt-in
+M6 Metal implementation is deferred until a Mac is available; current work moves
+to M8 block-compressed textures. P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
 dependencies are implemented. Borrowed swapchain images and acquire/present/release
 now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
@@ -146,7 +147,7 @@ This does not complete M8: block compression remains its own coherent image/copy
 view/sampling batch, alongside mesh/GPU-driven work. Plane-aware formats remain
 M11, pullable earlier independently of codecs; no conversion fallback is planned.
 
-## Current: M6 Metal foundation mapping
+## Deferred: M6 Metal foundation implementation
 
 Follow the [M6 entry handoff](m6-entry.md):
 
@@ -164,8 +165,19 @@ Follow the [M6 entry handoff](m6-entry.md):
 Existing Metal 4 compute remains the legacy path with earlier native evidence,
 not current foundation parity. No Mac is available here. A coherent implementation
 handoff can be prepared here, but native acceptance cannot be inferred from Linux
-tests. Next is the profile/record vocabulary and resource/command implementation
-tranche; unresolved native guarantees remain explicit in the mapping.
+tests. By user decision, defer implementation until a Mac is available. Preserve
+the mapping as design input, not a reason to refactor around untested assumptions.
+
+## Current: M8 block-compressed textures
+
+Implement a coherent compressed-format tranche: explicit format/block metadata,
+capability queries, block-aware memory/image copies, compatible views and sampled
+execution. Use the existing GPU and software driver; unsupported formats remain
+visible and are not transcoded or decompressed by OGPU. Cover odd image edges,
+small mip levels, padded pitches, arrays and rejection of invalid block regions.
+Native execution evidence is limited to the formats each local driver supports.
+Then proceed to advanced raster and GPU-driven/task-mesh work, followed by M9 ray
+tracing. M6 remains incomplete and can resume when native development is possible.
 
 ## Packaging and compatibility
 

@@ -14,6 +14,8 @@ checks. As of 2026-10-17, isolated native Rust packaging passes and human checks
 confirm controls, resize, pause and close; resume and real minimize/restore remain
 unverified. M6's [native mapping proposal](m6-native-mapping.md) is drafted;
 foundation backend implementation and native acceptance have not started.
+By user decision on 2026-10-17, defer M6 implementation until a Mac is available
+and proceed to M8, starting with block-compressed textures. M6 stays incomplete.
 M8–M11 below schedule the remaining hardware
 families; completed M1–M5 gates are not reopened.
 This is a concrete plan, not authorization to publish releases, provision machines
@@ -53,9 +55,9 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
-| M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md), backend not implemented; native execution needs a Mac |
+| M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
-| M8 — Advanced raster and GPU-driven execution | Task/mesh, generated commands and explicit advanced raster profiles | Scheduled after M6; native profile execution needs supporting hardware |
+| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and explicit advanced raster profiles | Active while M6 is deferred; compressed formats first; native profile execution needs supporting hardware |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
 | M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
 | M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |

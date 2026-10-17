@@ -8,6 +8,11 @@ design checkpoint and unresolved guarantees. The earlier requested stop at this 
 is complete. A Mac is not available in this environment;
 Linux compilation/mocks cannot supply native acceptance.
 
+2026-10-17 decision: **defer Metal implementation until a Mac is available**.
+Keep this mapping checkpoint; proceed with Linux M8 compressed formats and then
+advanced raster/GPU-driven work. Do not implement a speculative backend or count
+the deferral as milestone completion.
+
 ## Starting point
 
 - Linux foundation revision 1 is the default SDK, with explicit backing, ranges,
