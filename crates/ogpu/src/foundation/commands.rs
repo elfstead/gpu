@@ -1848,8 +1848,10 @@ mod tests {
                 .unwrap()
                 .domain;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             let requests = [QueueRequest {

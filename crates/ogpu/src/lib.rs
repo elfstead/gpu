@@ -1,13 +1,15 @@
 //! Experimental foundation C interface plus explicitly build-selectable Linux ABI20.
 //! Contracts: include/ogpu_next.h and (legacy/Metal) include/ogpu.h.
 #![deny(unsafe_op_in_unsafe_fn)]
+#[cfg(target_os = "windows")]
+mod dx12_sdk;
 #[cfg(any(feature = "legacy", target_os = "macos"))]
 mod api_types;
 #[cfg(any(feature = "legacy", target_os = "macos"))]
 mod boundary;
 #[cfg(any(feature = "legacy", target_os = "macos"))]
 mod contract;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "windows"))]
 pub mod foundation;
 #[cfg(any(feature = "legacy", target_os = "macos"))]
 mod shader;
@@ -44,6 +46,7 @@ pub type OgpuResult = i32;
 pub const ABI_VERSION: u32 = 20;
 pub const BACKEND_VULKAN: u32 = 1;
 pub const BACKEND_METAL: u32 = 2;
+pub const BACKEND_D3D12: u32 = 3;
 pub const SUCCESS: OgpuResult = 0;
 pub const INVALID_ARGUMENT: OgpuResult = -1;
 pub const ABI_MISMATCH: OgpuResult = -2;
@@ -120,6 +123,7 @@ pub struct OgpuProbe {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 struct Error {
     status: OgpuResult,
     // The shared native loader retains full diagnostics for legacy callers and
@@ -131,6 +135,7 @@ struct Error {
 }
 
 impl Error {
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
     fn new(status: OgpuResult, message: impl Into<String>) -> Self {
         Self {
             status,

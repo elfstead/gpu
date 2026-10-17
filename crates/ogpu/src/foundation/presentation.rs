@@ -1,5 +1,8 @@
 //! Opt-in Vulkan WSI. Cold setup/query work, independent of headless device setup.
 use super::*;
+use crate::vulkan::Instance;
+use ogpu_vulkan_sys as vk;
+use std::sync::Arc;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -42,7 +45,7 @@ fn status(result: vk::VkResult) -> Result<(), Status> {
 }
 
 pub(super) fn support(adapter: &Adapter) -> Result<PresentationSupport, Status> {
-    support_native(&adapter.instance, adapter.physical)
+    support_native(&adapter.state.instance, adapter.state.physical)
 }
 pub(super) fn support_native(
     instance: &Instance,
@@ -112,10 +115,10 @@ impl Surface {
         if desc.display.is_null() || desc.surface.is_null() {
             return Err(INVALID);
         }
-        if !adapter.instance.wayland_enabled() {
+        if !adapter.state.instance.wayland_enabled() {
             return Err(UNSUPPORTED);
         }
-        let f = Functions::load(&adapter.instance)?;
+        let f = Functions::load(&adapter.state.instance)?;
         let info = vk::VkWaylandSurfaceCreateInfoKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
             display: desc.display.cast(),
@@ -125,7 +128,7 @@ impl Surface {
         let mut handle = ptr::null_mut();
         status(unsafe {
             (f.vkCreateWaylandSurfaceKHR.unwrap())(
-                adapter.instance.handle(),
+                adapter.state.instance.handle(),
                 &info,
                 ptr::null(),
                 &mut handle,
@@ -133,7 +136,7 @@ impl Surface {
         })?;
         Ok(Box::new(Self {
             handle,
-            instance: adapter.instance.clone(),
+            instance: adapter.state.instance.clone(),
             f,
         }))
     }
@@ -144,7 +147,7 @@ impl Surface {
         mode: Option<u32>,
         query: *mut Query,
     ) -> Result<(), Status> {
-        if !Arc::ptr_eq(&self.instance, &adapter.instance) || query.is_null() {
+        if !Arc::ptr_eq(&self.instance, &adapter.state.instance) || query.is_null() {
             return Err(INVALID);
         }
         let header = unsafe { query.cast::<Record>().read() };
@@ -176,7 +179,7 @@ impl Surface {
                 let mut supported = 0;
                 status(unsafe {
                     (self.f.vkGetPhysicalDeviceSurfaceSupportKHR.unwrap())(
-                        adapter.physical,
+                        adapter.state.physical,
                         queue.domain,
                         self.handle,
                         &mut supported,
@@ -194,7 +197,7 @@ impl Surface {
         if let Some(mode) = mode {
             let modes = enumerate(0u32, |count, data| unsafe {
                 (self.f.vkGetPhysicalDeviceSurfacePresentModesKHR.unwrap())(
-                    adapter.physical,
+                    adapter.state.physical,
                     self.handle,
                     count,
                     data,
@@ -234,7 +237,7 @@ impl Surface {
                     };
                     status(
                         (self.f.vkGetPhysicalDeviceSurfaceCapabilities2KHR.unwrap())(
-                            adapter.physical,
+                            adapter.state.physical,
                             &info,
                             &mut caps,
                         ),
@@ -273,7 +276,7 @@ impl Surface {
                             ..Default::default()
                         };
                         let result = (self.f.vkGetPhysicalDeviceSurfaceCapabilities2KHR.unwrap())(
-                            adapter.physical,
+                            adapter.state.physical,
                             &info,
                             &mut caps,
                         );
@@ -289,7 +292,7 @@ impl Surface {
                     };
                     status(
                         (self.f.vkGetPhysicalDeviceSurfaceCapabilities2KHR.unwrap())(
-                            adapter.physical,
+                            adapter.state.physical,
                             &info,
                             &mut caps,
                         ),
@@ -321,7 +324,7 @@ impl Surface {
                         },
                         |count, data| {
                             (self.f.vkGetPhysicalDeviceSurfaceFormats2KHR.unwrap())(
-                                adapter.physical,
+                                adapter.state.physical,
                                 &info,
                                 count,
                                 data,
@@ -347,7 +350,7 @@ impl Surface {
                 SURFACE_PRESENT_MODES => {
                     let modes = enumerate(0u32, |count, data| {
                         (self.f.vkGetPhysicalDeviceSurfacePresentModesKHR.unwrap())(
-                            adapter.physical,
+                            adapter.state.physical,
                             self.handle,
                             count,
                             data,
@@ -363,7 +366,7 @@ impl Surface {
                     for queue in &adapter.snapshot.queues {
                         let mut supported = 0;
                         status((self.f.vkGetPhysicalDeviceSurfaceSupportKHR.unwrap())(
-                            adapter.physical,
+                            adapter.state.physical,
                             queue.domain,
                             self.handle,
                             &mut supported,

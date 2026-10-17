@@ -8,8 +8,16 @@ mod format_catalog;
 mod generated_api;
 mod images_api;
 mod memory_api;
+#[cfg(target_os = "linux")]
+mod native;
+#[cfg(target_os = "windows")]
+#[path = "dx12/mod.rs"]
 mod native;
 pub use generated_api::*;
+#[cfg(target_os = "linux")]
+mod presentation;
+#[cfg(target_os = "windows")]
+#[path = "dx12/presentation.rs"]
 mod presentation;
 mod presentation_api;
 pub use commands_api::*;
@@ -21,7 +29,6 @@ pub use presentation::Surface;
 pub use presentation_api::*;
 pub mod rust;
 pub mod types;
-use crate::vulkan::Instance;
 pub use native::Executable;
 pub use native::ExecutableCache;
 pub use native::Memory;
@@ -32,11 +39,9 @@ pub use native::{Binary, Fence};
 pub use native::{Device, Queue, Timeline};
 pub use native::{GeneratedLayout, GeneratedSet};
 pub use native::{Image, View};
-use ogpu_vulkan_sys as vk;
 use std::{
     panic::{catch_unwind, AssertUnwindSafe},
     ptr,
-    sync::Arc,
 };
 use types::*;
 
@@ -63,9 +68,9 @@ struct Snapshot {
     features: FeatureInfo,
 }
 pub struct Adapter {
-    instance: Arc<Instance>,
-    physical: vk::VkPhysicalDevice,
     snapshot: Snapshot,
+    // Backend-native discovery state; never exposed above the native layer.
+    state: native::AdapterState,
 }
 pub struct Discovery {
     adapters: Vec<Adapter>,
@@ -78,6 +83,7 @@ fn boundary(f: impl FnOnce() -> Result<(), Status>) -> Status {
         Err(_) => INTERNAL_ERROR,
     }
 }
+#[cfg(target_os = "linux")]
 fn loader_error(error: crate::Error) -> Status {
     if error.status == crate::UNSUPPORTED {
         UNSUPPORTED

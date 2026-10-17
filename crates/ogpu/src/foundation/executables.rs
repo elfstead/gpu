@@ -430,8 +430,10 @@ mod tests {
             }];
             let available = snapshot.features.available;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             // Exercise each independent bit and each otherwise-complete profile
@@ -671,8 +673,10 @@ mod tests {
                 .unwrap()
                 .domain;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             let mut device = Device::create(
@@ -1296,8 +1300,10 @@ mod tests {
                 .unwrap()
                 .domain;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             let mut device = Device::create(

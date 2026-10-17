@@ -7,8 +7,8 @@
 //! Records reuse `types`, including trusted nested metadata and address pointers.
 //! Rust and C share backend validation/execution and recording-error state.
 use super::types::*;
-use super::{native, Adapter, Discovery, Instance};
-use std::{ptr::NonNull, sync::Arc};
+use super::{native, Adapter, Discovery};
+use std::ptr::NonNull;
 
 pub type Result<T> = std::result::Result<T, Status>;
 
@@ -77,20 +77,9 @@ fn count(len: usize) -> Result<u32> {
 /// Discover immutable adapters. This owner may be dropped normally; created
 /// devices independently retain the loader/instance, not a borrowed adapter.
 pub fn discover() -> Result<Box<Discovery>> {
-    let instance = Arc::new(Instance::new().map_err(super::loader_error)?);
-    discover_instance(instance)
-}
-fn discover_instance(instance: Arc<Instance>) -> Result<Box<Discovery>> {
-    let physical = instance.physical_devices().map_err(super::loader_error)?;
-    let mut adapters = Vec::with_capacity(physical.len());
-    for device in physical {
-        adapters.push(Adapter {
-            snapshot: native::snapshot(&instance, device)?,
-            instance: instance.clone(),
-            physical: device,
-        });
-    }
-    Ok(Box::new(Discovery { adapters }))
+    #[cfg(target_os = "windows")]
+    crate::dx12_sdk::touch();
+    native::discover()
 }
 pub fn adapters(discovery: &Discovery) -> &[Adapter] {
     &discovery.adapters

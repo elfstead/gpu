@@ -209,8 +209,10 @@ mod tests {
             };
             let domain = q.domain;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             if adapter.snapshot.features.available & PIPELINE_STATISTICS != 0 {

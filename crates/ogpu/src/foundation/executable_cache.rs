@@ -325,8 +325,10 @@ mod tests {
             }];
             let enabled = snapshot.features.available & CACHE_CONTROL;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             let disabled = Device::create(&adapter, &requests, 0).unwrap();

@@ -133,8 +133,10 @@ impl Swapchain {
             return Err(INVALID);
         }
         let adapter = Adapter {
-            instance: d._instance.clone(),
-            physical: d.physical,
+            state: AdapterState {
+                instance: d._instance.clone(),
+                physical: d.physical,
+            },
             snapshot: d.snapshot.clone(),
         };
         let formats = unsafe { query::<SurfaceFormat>(surface, &adapter, None, SURFACE_FORMATS)? };

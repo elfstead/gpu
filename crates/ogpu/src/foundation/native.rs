@@ -11,7 +11,7 @@ mod integer_dot;
 mod matrices;
 #[path = "memory_budget.rs"]
 mod memory_budget;
-use super::{loader_error, Adapter, Snapshot};
+use super::{loader_error, Adapter, Discovery, Snapshot};
 use crate::vulkan::Instance;
 use float_controls::float_snapshot;
 use ogpu_vulkan_sys as vk;
@@ -71,6 +71,39 @@ pub use presentation_sync::{Binary, Fence};
 mod swapchain;
 pub(in crate::foundation) use swapchain::present_scratch;
 pub use swapchain::Swapchain;
+
+/// Immutable Vulkan discovery state retained by each shared `Adapter`.
+pub(super) struct AdapterState {
+    pub(super) instance: Arc<Instance>,
+    pub(super) physical: vk::VkPhysicalDevice,
+}
+
+/// Headless discovery: plain instance, no window-system profile enabled.
+pub(super) fn discover() -> Result<Box<Discovery>, Status> {
+    discover_instance(Arc::new(Instance::new().map_err(super::loader_error)?))
+}
+
+/// Discovery with the Wayland instance profile enabled; enables no device or surface.
+pub(super) fn discover_presentation() -> Result<Box<Discovery>, Status> {
+    discover_instance(Arc::new(
+        Instance::with_wayland(true).map_err(super::loader_error)?,
+    ))
+}
+
+fn discover_instance(instance: Arc<Instance>) -> Result<Box<Discovery>, Status> {
+    let physical = instance.physical_devices().map_err(super::loader_error)?;
+    let mut adapters = Vec::with_capacity(physical.len());
+    for device in physical {
+        adapters.push(Adapter {
+            snapshot: snapshot(&instance, device)?,
+            state: AdapterState {
+                instance: instance.clone(),
+                physical: device,
+            },
+        });
+    }
+    Ok(Box::new(Discovery { adapters }))
+}
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -681,7 +714,7 @@ impl Device {
         requests: &[QueueRequest],
         enabled: u64,
     ) -> Result<Box<Self>, Status> {
-        if enabled & PRESENTATION != 0 && !adapter.instance.wayland_enabled() {
+        if enabled & PRESENTATION != 0 && !adapter.state.instance.wayland_enabled() {
             return Err(UNSUPPORTED);
         }
         let mut snapshot = adapter.snapshot.clone();
@@ -695,23 +728,23 @@ impl Device {
                 .map_or(0, |r| r.count);
         }
         let mut result = Box::new(Self {
-            physical: adapter.physical,
+            physical: adapter.state.physical,
             handle: ptr::null_mut(),
-            f: Functions::load(&adapter.instance)?,
+            f: Functions::load(&adapter.state.instance)?,
             mesh_functions: if enabled & MESH_SHADER != 0 {
-                Some(mesh::MeshFunctions::load(&adapter.instance)?)
+                Some(mesh::MeshFunctions::load(&adapter.state.instance)?)
             } else {
                 None
             },
             snapshot,
             generated_functions: if enabled & GENERATED_COMMANDS != 0 {
-                Some(generated::GeneratedFunctions::load(&adapter.instance)?)
+                Some(generated::GeneratedFunctions::load(&adapter.state.instance)?)
             } else {
                 None
             },
             queues: Vec::new(),
             lost: AtomicBool::new(false),
-            _instance: adapter.instance.clone(),
+            _instance: adapter.state.instance.clone(),
         });
         let priorities: Vec<Vec<f32>> = requests
             .iter()
@@ -927,7 +960,7 @@ impl Device {
         let mut handle = ptr::null_mut();
         unsafe {
             status((result.f.vkCreateDevice.unwrap())(
-                adapter.physical,
+                adapter.state.physical,
                 &create,
                 ptr::null(),
                 &mut handle,
@@ -1132,8 +1165,10 @@ mod tests {
                 .unwrap()
                 .domain;
             let adapter = Adapter {
-                instance: instance.clone(),
-                physical,
+                state: AdapterState {
+                    instance: instance.clone(),
+                    physical,
+                },
                 snapshot,
             };
             let mut d = Device::create(

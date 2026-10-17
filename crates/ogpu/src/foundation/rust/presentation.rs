@@ -190,9 +190,7 @@ pub fn discover_presentation(platforms: u32) -> Result<Box<Discovery>> {
     if platforms != PRESENTATION_WAYLAND {
         return Err(UNSUPPORTED);
     }
-    discover_instance(Arc::new(
-        Instance::with_wayland(true).map_err(super::super::loader_error)?,
-    ))
+    native::discover_presentation()
 }
 
 /// Query physical-device presentation-profile availability without a window,

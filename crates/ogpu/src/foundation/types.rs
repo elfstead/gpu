@@ -379,8 +379,25 @@ pub const USAGE_STORAGE: u64 = 64;
 pub const STAGE_ALL: u64 = 1;
 pub const STAGE_TRANSFER: u64 = 2;
 pub const STAGE_COMPUTE: u64 = 4;
+pub const STAGE_VERTEX: u64 = 8;
+pub const STAGE_FRAGMENT: u64 = 16;
 pub const STAGE_INDIRECT: u64 = 32;
+pub const STAGE_COLOR: u64 = 64;
+pub const STAGE_DEPTH: u64 = 128;
 pub const STAGE_HOST: u64 = 256;
+pub const STAGE_COPY: u64 = 512;
+pub const STAGE_INDEX_INPUT: u64 = 1024;
+pub const STAGE_VERTEX_FETCH: u64 = 2048;
+pub const STAGE_EARLY_DEPTH: u64 = 4096;
+pub const STAGE_LATE_DEPTH: u64 = 8192;
+pub const STAGE_CLEAR: u64 = 16384;
+pub const STAGE_RESOLVE: u64 = 32768;
+pub const STAGE_BLIT: u64 = 65536;
+pub const STAGE_VERTEX_INPUT: u64 = 131072;
+pub const STAGE_ALL_GRAPHICS: u64 = 262144;
+pub const STAGE_PRE_RASTER: u64 = 524288;
+pub const ACCESS_READ: u64 = 1;
+pub const ACCESS_WRITE: u64 = 2;
 pub const ACCESS_COPY_READ: u64 = 4;
 pub const ACCESS_COPY_WRITE: u64 = 8;
 pub const ACCESS_SHADER_READ: u64 = 16;
@@ -388,6 +405,18 @@ pub const ACCESS_SHADER_WRITE: u64 = 32;
 pub const ACCESS_HOST_READ: u64 = 64;
 pub const ACCESS_HOST_WRITE: u64 = 128;
 pub const ACCESS_INDIRECT_READ: u64 = 256;
+pub const ACCESS_INDEX_READ: u64 = 512;
+pub const ACCESS_VERTEX_READ: u64 = 1024;
+pub const ACCESS_UNIFORM_READ: u64 = 2048;
+pub const ACCESS_COLOR_READ: u64 = 4096;
+pub const ACCESS_COLOR_WRITE: u64 = 8192;
+pub const ACCESS_DEPTH_READ: u64 = 16384;
+pub const ACCESS_DEPTH_WRITE: u64 = 32768;
+pub const ACCESS_RESOURCE_HEAP_READ: u64 = 65536;
+pub const ACCESS_SAMPLER_HEAP_READ: u64 = 131072;
+pub const ACCESS_SAMPLED_READ: u64 = 262144;
+pub const ACCESS_STORAGE_READ: u64 = 524288;
+pub const ACCESS_STORAGE_WRITE: u64 = 1048576;
 pub const RGBA8_UNORM: u32 = 3;
 pub const IMAGE_2D: u32 = 2;
 pub const VIEW_2D: u32 = 2;
@@ -400,6 +429,10 @@ pub const STATE_UNDEFINED: u32 = 0;
 pub const STATE_GENERAL: u32 = 1;
 pub const STATE_COPY_SRC: u32 = 2;
 pub const STATE_COPY_DST: u32 = 3;
+pub const STATE_SHADER_READ: u32 = 4;
+pub const STATE_COLOR_ATTACHMENT: u32 = 5;
+pub const STATE_DEPTH_STENCIL_ATTACHMENT: u32 = 6;
+pub const STATE_DEPTH_STENCIL_READ: u32 = 7;
 pub const DOMAIN_IGNORED: u32 = u32::MAX;
 pub const EXECUTABLE_COMPUTE: u32 = 1;
 pub const SHADER_SPIRV: u32 = 0;
@@ -567,6 +600,14 @@ pub mod format_features {
     pub const COPY_DST: u64 = 1024;
     pub const STORAGE_READ_WITHOUT_FORMAT: u64 = 2048;
     pub const STORAGE_WRITE_WITHOUT_FORMAT: u64 = 4096;
+}
+/// Formatted-buffer capabilities (including vertex fetch), not arbitrary
+/// address-buffer arithmetic. Texel buffers remain a future profile.
+pub mod format_buffer_features {
+    pub const VERTEX: u64 = 1;
+    pub const UNIFORM_TEXEL: u64 = 2;
+    pub const STORAGE_TEXEL: u64 = 4;
+    pub const ATOMIC_TEXEL: u64 = 8;
 }
 #[repr(C)]
 #[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
