@@ -6,7 +6,8 @@ and fence lifecycle implemented. Swapchain acquire/present/release has bounded
 two-window native acceptance. The interactive textured Rust scene now passes
 bounded three-slot, framebuffer-resize, pixel and no-readback checks. The SDK now
 packages a relocatable native Rust source/consumer/shader bundle and manual checklist;
-human interaction/minimize/restore acceptance remains.**
+partial human checks confirm controls, resize, pause and close. Resume and real
+minimize/restore remain unverified.**
 M4's offscreen acceptance remains complete. P1 supplies a missing application
 boundary; it does not turn OGPU into a windowing library or game engine.
 
@@ -79,8 +80,9 @@ manual compositor interaction is the acceptance route, not a fabricated callback
 The 2026-10-17 packaging follow-up includes the complete consumer dependency graph
 and [manual acceptance checklist](presentation-acceptance.md). The isolated tester
 builds only copied sources, using cached registry dependencies and a fresh target,
-and optionally runs the headless and bounded display probes. Human acceptance is
-still a separate open item. Clean isolated runs pass on both local drivers; see
+and optionally runs the headless and bounded display probes. Subsequent
+[human observations](results/p1-human-interaction-2026-10-17.md) cover controls,
+resize, pause and close, but not the full checklist. Clean isolated runs pass on both local drivers; see
 the [packaging receipt](results/p1-rust-package-2026-10-17.md) and
 [quickstart](foundation-quickstart.md#native-rust-and-the-interactive-wayland-scene).
 

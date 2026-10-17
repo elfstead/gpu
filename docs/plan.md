@@ -8,8 +8,9 @@ dependencies are implemented. Borrowed swapchain images and acquire/present/rele
 now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
 is implemented; bounded pixel/lifecycle checks pass with three frame slots and
 observed framebuffer resizes. The SDK now packages a self-contained native Rust
-source/consumer/shader bundle and a manual acceptance checklist. Human interaction/
-minimize/restore acceptance remains; M6 implementation has not started.**
+source/consumer/shader bundle and a manual acceptance checklist. Partial human
+checks confirm controls, resize, pause and close; resume and real minimize/restore
+remain unverified. M6 implementation has not started.**
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -105,7 +106,8 @@ The [interactive scene receipt](results/p1-interactive-scene-2026-10-16.md) now 
 native Rust indexed/depth/textured/blended rendering, three caller-owned slots,
 observed framebuffer resizing and close with pending slots. Both a guarded pixel
 oracle and the normal no-readback path pass bounded runs on both drivers. Input
-controls are implemented but not human-accepted. Synthetic zero extent exercises
+controls now have [partial human acceptance](results/p1-human-interaction-2026-10-17.md):
+controls, resize, pause and close work; resume was not tested. Synthetic zero extent exercises
 the suspension branch; Wayland GLFW cannot report iconification or restore a window,
 so actual minimize/restore remains a manual compositor exercise.
 The SDK now includes the native Rust consumer, runtime source dependency, pinned
@@ -115,8 +117,9 @@ fresh target directory, no SDK shared library and no shader compiler; registry
 dependencies still need fetching or an existing cache. Clean isolated headless and
 bounded display checks pass on both local drivers; see the
 [packaging receipt](results/p1-rust-package-2026-10-17.md), the bundle README and
-`tools/test-rust-install.py`. Next: record actual interaction/minimize/restore
-observations using [the checklist](presentation-acceptance.md), then the M6 mapping.
+`tools/test-rust-install.py`. Remaining observations stay open in
+[the checklist](presentation-acceptance.md); this compositor has no minimize support.
+Next: the M6 mapping, without blocking on unavailable manual checks.
 No scanout, real-loss recovery or cross-family
 presentation acceptance yet; M6 remains after P1.
 

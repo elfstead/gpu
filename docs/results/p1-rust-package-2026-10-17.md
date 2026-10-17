@@ -75,9 +75,10 @@ acceptance; no hosted CI result is claimed.
 
 ## Remaining P1 acceptance and next work
 
-The [manual checklist](../presentation-acceptance.md) is packaged and ready. A person
-must still check keyboard interaction, visible resizing, compositor minimize/
-restore and closing under active rendering. Scripted camera changes, synthetic
+The [manual checklist](../presentation-acceptance.md) is packaged. Subsequent
+[human observations](p1-human-interaction-2026-10-17.md) confirm controls, resizing,
+pause and close; resume was not tested and the compositor has no minimize support.
+Detailed per-action coverage remains partial. Scripted camera changes, synthetic
 zero extent and readback do not replace those observations. P1 is not marked fully
 complete. Real surface/device-loss recovery, scanout accuracy and cross-family
 presentation remain outside this bounded acceptance.

@@ -1,6 +1,10 @@
 # P1 manual interaction acceptance
 
-Status: **not yet human-accepted**. Automated scripted input, zero extents and
+Status: **partially human-accepted**; see the
+[2026-10-17 observations](results/p1-human-interaction-2026-10-17.md). Controls,
+resize, pause and close were reported working. Resume was not tested;
+minimize/restore is unavailable on this compositor. The detailed checklist is
+not fully accepted. Automated scripted input, zero extents and
 pixel readback are separate evidence. Do not mark this checklist complete merely
 because `--scene-check` or `--scene-smoke` prints `SCENE_PASS`.
 

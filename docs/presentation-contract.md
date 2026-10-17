@@ -1,7 +1,7 @@
 # P1 native presentation mapping
 
 Selected 2026-10-15; scene checkpoint 2026-10-16. **Swapchain lifecycle and interactive
-scene implemented; bounded execution passes, human acceptance remains.**
+scene implemented; bounded execution passes, human acceptance is partial.**
 Native Rust extraction, optional Wayland surface setup, device enabling, mode
 queries, binary submission dependencies, fence lifecycle, swapchain borrowing and
 acquire/present/release are implemented.
@@ -35,8 +35,10 @@ unimplemented profiles; unsupported choices are not substituted. The current
 two-window consumer serially retires each frame. The separate
 [textured scene](results/p1-interactive-scene-2026-10-16.md) now uses three explicit
 slots, observed framebuffer resizing and distinct render/present retirement.
-Bounded pixel and no-readback runs pass; real minimize/restore and human interaction
-remain. GLFW cannot report Wayland iconification, so zero-extent suspension is tested
+Bounded pixel and no-readback runs pass. Subsequent
+[human observations](results/p1-human-interaction-2026-10-17.md) confirm controls,
+resize, pause and close; resume and real minimize/restore remain unverified.
+GLFW cannot report Wayland iconification, so zero-extent suspension is tested
 synthetically, not represented as a compositor minimize/restore observation.
 
 Queries are explicitly cold-path: dynamic enumeration can allocate temporary
