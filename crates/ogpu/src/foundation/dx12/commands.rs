@@ -29,6 +29,8 @@ pub struct List {
     barriers: Option<d3d::ID3D12GraphicsCommandList7>,
     /// Bound compute executable; arguments require one.
     executable: Cell<*const Executable>,
+    /// Kinds of descriptor heaps currently bound (bit 1 resource, bit 2 sampler).
+    heaps: Cell<u32>,
     /// Argument namespace shadow. Root arguments are invalidated by a root
     /// signature change, so binding re-emits these recorded bytes to preserve
     /// the contract's byte-preservation rule. Preallocated per slot; recording
@@ -106,6 +108,7 @@ impl Arena {
                 command,
                 barriers,
                 executable: Cell::new(ptr::null()),
+                heaps: Cell::new(0),
                 arguments: RefCell::new(vec![0; MAX_ARGUMENT_BYTES as usize]),
             }));
         }
@@ -1058,6 +1061,125 @@ impl List {
                 None,
                 0,
             );
+        }
+        Ok(())
+    }
+}
+
+impl List {
+    /// Bind a descriptor-heap range for direct heap indexing. Recipes in the
+    /// range are materialized into the memory's native heaps; D3D12 binds the
+    /// heap set, so both currently bound kinds are re-issued together.
+    /// # Safety
+    /// Storage is live descriptor-heap memory; descriptor contents own nothing.
+    pub(in crate::foundation) unsafe fn bind_heap(
+        &self,
+        binding: &HeapBinding,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        binding.header.validate::<HeapBinding>(HEAP_BINDING)?;
+        if binding.flags != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if binding.reserved_size != 0 {
+            // Heap reservations (out-of-bounds fallbacks) are not mapped here.
+            return Err(UNSUPPORTED);
+        }
+        let domain = d
+            .snapshot
+            .queues
+            .iter()
+            .find(|q| q.domain == self.domain)
+            .ok_or(INVALID)?;
+        if domain.flags & (GRAPHICS | COMPUTE) == 0 {
+            return Err(UNSUPPORTED);
+        }
+        let (stride, heap_bit) = match binding.kind {
+            HEAP_RESOURCE => (descriptors::RESOURCE_STRIDE, 1),
+            HEAP_SAMPLER => (descriptors::SAMPLER_STRIDE, 2),
+            _ => return Err(INVALID),
+        };
+        // SAFETY: storage memory handle is a trusted live object by contract.
+        let memory = unsafe { binding.storage.memory.as_ref() }.ok_or(INVALID)?;
+        if memory.usage & USAGE_DESCRIPTOR_HEAP == 0 {
+            return Err(INVALID);
+        }
+        if binding.storage.offset % stride != 0
+            || binding.storage.size % stride != 0
+            || binding.storage.offset > memory.size
+            || binding.storage.size > memory.size - binding.storage.offset
+        {
+            return Err(INVALID);
+        }
+        let heaps = memory.descriptor_heaps().ok_or(INVALID)?;
+        let heap = match binding.kind {
+            HEAP_RESOURCE => &heaps.resource,
+            _ => &heaps.sampler,
+        };
+        let capacity = heaps.capacity(binding.kind)?;
+        let base_index = binding.storage.offset / stride;
+        let count = binding.storage.size / stride;
+        if base_index + count > capacity {
+            return Err(INVALID);
+        }
+        if count != 0 {
+            // Recipes materialize from host-visible heap memory through the
+            // memory's persistent mapping; no allocation or retention.
+            // SAFETY: external serialization covers mapping state.
+            let mapping = unsafe { memory.map(binding.storage.offset, binding.storage.size)? };
+            for i in 0..count {
+                // SAFETY: the mapping covers the recipe region.
+                let bytes = unsafe {
+                    std::slice::from_raw_parts(
+                        mapping.data.cast::<u8>().add((i * stride) as usize),
+                        stride as usize,
+                    )
+                };
+                // SAFETY: live heap and validated recipe bytes.
+                unsafe {
+                    descriptors::materialize(
+                        d,
+                        heap,
+                        binding.kind,
+                        (base_index + i) as u32,
+                        bytes,
+                    )?
+                };
+            }
+        }
+        // D3D12 binds the heap set; re-issue both kinds to keep earlier binds.
+        let kinds = self.heaps.get() | heap_bit;
+        self.heaps.set(kinds);
+        // The native array must contain only present heaps: a NULL entry is
+        // rejected. One resource and one sampler heap may be bound together.
+        let mut bound: Vec<Option<d3d::ID3D12DescriptorHeap>> = Vec::with_capacity(2);
+        if kinds & 1 != 0 {
+            bound.push(Some(heaps.resource.clone()));
+        }
+        if kinds & 2 != 0 {
+            bound.push(Some(heaps.sampler.clone()));
+        }
+        // SAFETY: recording slot is live; heap references stay live through use.
+        unsafe {
+            self.command.SetDescriptorHeaps(&bound);
+        }
+        // Changing descriptor heaps invalidates bound tables and root
+        // arguments: re-emit arguments and bind the range-start table.
+        if let Some(executable) = unsafe { self.executable.get().as_ref() } {
+            // SAFETY: recording slot and executable are live.
+            unsafe { self.emit_arguments(executable)? };
+            let (gpu, _stride) = heaps.gpu_start(d, binding.kind)?;
+            // SAFETY: recording slot is live; the heap stays live through use.
+            unsafe {
+                self.command.SetComputeRootDescriptorTable(
+                    1 + executable.roots.len() as u32,
+                    d3d::D3D12_GPU_DESCRIPTOR_HANDLE {
+                        ptr: gpu.ptr
+                            + u64::from(super::descriptors::native_stride(d, binding.kind))
+                                * u64::from(base_index),
+                    },
+                );
+            }
         }
         Ok(())
     }

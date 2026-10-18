@@ -21,15 +21,52 @@ pub struct Memory {
     buffer: Option<d3d::ID3D12Resource>,
     /// Dedicated image backing: a committed resource adopted by exactly one image.
     committed: Option<d3d::ID3D12Resource>,
-    size: u64,
+    pub(super) size: u64,
     allocated: u64,
     prefix: u64,
     address: u64,
     properties: u32,
     mapped: Cell<*mut u8>,
-    usage: u64,
+    pub(super) usage: u64,
     dedicated_image: *const Image,
     domains: Vec<u32>,
+    /// Native shader-visible descriptor heaps for DESCRIPTOR_HEAP memory.
+    descriptor_heaps: Option<DescriptorHeaps>,
+}
+
+/// Native heaps backing DESCRIPTOR_HEAP memory. D3D12 separates resource and
+/// sampler descriptor heaps; both are created at preparation.
+pub(super) struct DescriptorHeaps {
+    pub(super) resource: d3d::ID3D12DescriptorHeap,
+    pub(super) sampler: d3d::ID3D12DescriptorHeap,
+    resource_capacity: u64,
+    sampler_capacity: u64,
+}
+
+impl DescriptorHeaps {
+    /// Native slot capacity of one heap kind.
+    pub(super) fn capacity(&self, kind: u32) -> Result<u64, Status> {
+        match kind {
+            HEAP_RESOURCE => Ok(self.resource_capacity),
+            HEAP_SAMPLER => Ok(self.sampler_capacity),
+            _ => Err(INVALID),
+        }
+    }
+
+    /// GPU descriptor handle of one heap's first slot.
+    pub(super) fn gpu_start(
+        &self,
+        _d: &Device,
+        kind: u32,
+    ) -> Result<(d3d::D3D12_GPU_DESCRIPTOR_HANDLE, u32), Status> {
+        let heap = match kind {
+            HEAP_RESOURCE => &self.resource,
+            HEAP_SAMPLER => &self.sampler,
+            _ => return Err(INVALID),
+        };
+        // SAFETY: live heap; the handle is an opaque address for binding.
+        Ok((unsafe { heap.GetGPUDescriptorHandleForHeapStart() }, 0))
+    }
 }
 
 impl Drop for Memory {
@@ -213,7 +250,31 @@ fn buffer_usage(usage: u64) -> Result<d3d::D3D12_RESOURCE_FLAGS, Status> {
     Ok(flags)
 }
 
+fn create_descriptor_heap(
+    d: &Device,
+    kind: d3d::D3D12_DESCRIPTOR_HEAP_TYPE,
+    count: u32,
+) -> Result<d3d::ID3D12DescriptorHeap, Status> {
+    let desc = d3d::D3D12_DESCRIPTOR_HEAP_DESC {
+        Type: kind,
+        NumDescriptors: count.max(1),
+        Flags: d3d::D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+        NodeMask: 0,
+    };
+    // SAFETY: well-formed heap description; output reference adopted.
+    unsafe {
+        d.device
+            .CreateDescriptorHeap::<d3d::ID3D12DescriptorHeap>(&desc)
+            .map_err(map_error)
+    }
+}
+
 impl Memory {
+    /// Native descriptor heaps of DESCRIPTOR_HEAP memory.
+    pub(super) fn descriptor_heaps(&self) -> Option<&DescriptorHeaps> {
+        self.descriptor_heaps.as_ref()
+    }
+
     pub(in crate::foundation) unsafe fn create(
         d: &Device,
         desc: &MemoryDesc,
@@ -262,6 +323,7 @@ impl Memory {
             properties,
             mapped: Cell::new(ptr::null_mut()),
             usage: desc.usage,
+            descriptor_heaps: None,
             dedicated_image: ptr::null(),
             domains: if desc.concurrent_domain_count == 0 {
                 Vec::new()
@@ -276,6 +338,31 @@ impl Memory {
                 .to_vec()
             },
         });
+        if desc.usage & USAGE_DESCRIPTOR_HEAP != 0 {
+            if properties & MEMORY_HOST_VISIBLE == 0 {
+                // Recipes materialize at bind from host-visible heap memory.
+                return Err(UNSUPPORTED);
+            }
+            let resource_capacity =
+                (desc.size / super::descriptors::RESOURCE_STRIDE).min(super::descriptors::MAX_RESOURCE_DESCRIPTORS);
+            let sampler_capacity =
+                (desc.size / super::descriptors::SAMPLER_STRIDE).min(super::descriptors::MAX_SAMPLER_DESCRIPTORS);
+            let heaps = DescriptorHeaps {
+                resource_capacity,
+                sampler_capacity,
+                resource: create_descriptor_heap(
+                    d,
+                    d3d::D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                    resource_capacity as u32,
+                )?,
+                sampler: create_descriptor_heap(
+                    d,
+                    d3d::D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+                    sampler_capacity as u32,
+                )?,
+            };
+            result.descriptor_heaps = Some(heaps);
+        }
         if desc.kind == 1 {
             // One whole-allocation placed buffer makes the backing addressable;
             // spans are caller-partitioned ranges of it.
@@ -358,6 +445,7 @@ impl Memory {
             properties,
             mapped: Cell::new(ptr::null_mut()),
             usage: 0,
+            descriptor_heaps: None,
             dedicated_image: image,
             domains: Vec::new(),
         }))

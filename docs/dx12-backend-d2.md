@@ -39,12 +39,52 @@ Evidence (same machine as the D1 receipt: Radeon RX 5700 XT, driver
 - All D1 suites still pass (8 GPU + 18 host tests on Windows; Linux regression
   110 + 67 unchanged).
 
+## D2.2 — descriptor profile (implemented, natively exercised)
+
+The provisional recipe profile is implemented and verified on the GPU, with one
+artifact-ABI correction forced by evidence: descriptors bind as an **unbounded
+descriptor table at `u0, space1`** (classic descriptor-table indexing), not
+SM 6.6 global-heap direct indexing.
+
+| Piece | Mapping |
+| --- | --- |
+| Descriptor bytes | Opaque validated recipes (`ResourceDescriptor`/`SamplerDesc` records) in linear `DESCRIPTOR_HEAP` memory; `copy_memory` and mutation semantics unchanged |
+| Descriptor heap memory | Linear bytes plus preallocated native shader-visible heaps (resource + sampler kinds, D3D12 separates them); host-visible type required (recipes materialize at bind) |
+| `write_*_descriptors` | Validate and encode recipes into caller host storage; output sizes bounded by recipe strides (40/80 bytes) |
+| `bind_heap` | Materializes the bound range into native descriptors (`Create*View`/`CreateSampler`) and binds the range start as an unbounded UAV descriptor table; table indices are range-relative. Changing heaps invalidates tables/root arguments natively, so binding re-emits both (bounded re-recording) |
+| Artifact ABI | `RWByteAddressBuffer heap[] : register(u0, space1)` unbounded arrays (Slang → DXIL, fixture checked in). SM 6.6 `ResourceDescriptorHeap[i]` direct indexing is recorded as an **open alternative**: with root-signature flags verified against the SDK header, correct descriptors and proven shader execution, its writes were silently dead in all probes — the artifact/runtime alignment for that style needs its own investigation |
+| Views | Validated interpretation records ("views are descriptor contents"); RTV/DSV slot ownership lands with D2.3 rendering |
+| Mutation | Descriptor bytes are captured at bind on this backend; mutate-then-rebind is the profile rule (the review gate's independent-range mutation is exercised across submissions). Submission-time re-materialization stays the reviewer's alternative |
+
+Evidence (same machine as the D1 receipt):
+
+- `gpu_descriptor_heap_roundtrip`: recipes → heap memory → bind → unbounded-table
+  dispatch, byte-exact against the CPU oracle on both buffers; a mutated range
+  plus rebind redirects the second submission's output and the diagnostic
+  root-slot buffer proves each dispatch executed with the expected constants.
+- `gpu_descriptor_contract_rejections`: short outputs, unsupported descriptor
+  kinds, non-descriptor memory, misaligned ranges and reservations reject
+  exactly as documented; non-host-visible descriptor memory rejects.
+- Full suite: 10 GPU + 18 host tests on Windows pass (D1 and D2.1 included);
+  Linux regression unchanged (110 + 67).
+
+### Incidents recorded (D2.2)
+
+- SM 6.6 direct heap indexing produced silently dead writes despite verified
+  root-signature flags (values cross-checked against the Windows SDK header),
+  correct descriptor contents and proven shader execution; bisected down to the
+  indexing style itself before switching to descriptor tables.
+- A test-level copy/dispatch race ("all ones" output) masqueraded as an
+  implementation bug; the profile's barrier requirements were already correct.
+- Debugging blind without the debug layer cost several GPU-level bisections;
+  the debug-layer deployment gap from D1 remains the top tooling follow-up.
+
 ## Remaining D2 scope
 
-- Descriptor profile: `write_resource_descriptors`/samplers, DESCRIPTOR_HEAP
-  memory as native descriptor heaps, `bind_heap` tables (D2.2).
 - Offscreen graphics: render scopes, graphics executables/PSOs, viewport and
   dynamic raster state, indexed drawing, image clears (D2.3).
+- Image descriptors (sampled/storage image recipes materializing SRV/UAV from
+  validated views) — the D2.3 graphics tests exercise them.
 - Queries, executable caches (pipeline libraries), count-based indirect work,
   specialization strategy (D2.4).
 - Consumer attempts (foundation Rust consumer, learned-image, M4/M5) once the

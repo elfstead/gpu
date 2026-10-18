@@ -28,6 +28,8 @@ use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject, INFIN
 
 #[path = "commands.rs"]
 mod commands;
+#[path = "descriptors.rs"]
+mod descriptors;
 #[path = "executables.rs"]
 mod executables;
 #[path = "formats.rs"]
@@ -187,6 +189,7 @@ fn probe(adapter: dxgi::IDXGIAdapter1) -> Result<(Snapshot, AdapterState), Statu
     snapshot.memory_heaps = memory_heaps;
     snapshot.memory_budget_supported = adapter.cast::<dxgi::IDXGIAdapter3>().is_ok();
     snapshot.memory_limits = memory_limits(&device);
+    snapshot.descriptor_limits = descriptors::descriptor_limits();
     snapshot.execution_limits = execution_limits();
     snapshot.formats = formats::format_snapshot(&device);
     snapshot.features = FeatureInfo {
@@ -463,6 +466,7 @@ fn execution_limits() -> ExecutionLimits {
 pub(super) fn map_error(error: windows::core::Error) -> Status {
     use windows::core::HRESULT;
     let code = error.code();
+    eprintln!("DX12PROBE map_error {:#x}", code.0 as u32);
     if code == HRESULT(0x8007_000E_u32 as i32) /* E_OUTOFMEMORY */ {
         OUT_OF_MEMORY
     } else if matches!(
@@ -628,6 +632,7 @@ impl Device {
             Ok(()) => Ok(()),
             Err(error) => {
                 let status = map_error(error);
+                eprintln!("DX12PROBE result() status {}", status);
                 if status == DEVICE_LOST {
                     self.lost.store(true, Ordering::Relaxed);
                 }
@@ -642,6 +647,7 @@ impl Device {
             Ok(()) => Ok(()),
             Err(error) => {
                 let status = map_error(error);
+                eprintln!("DX12PROBE submission_result() status {}", status);
                 if status != OUT_OF_MEMORY {
                     self.lost.store(true, Ordering::Relaxed);
                 }

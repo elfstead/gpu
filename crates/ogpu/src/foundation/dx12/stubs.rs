@@ -211,30 +211,6 @@ impl Queue {
 }
 
 impl Device {
-    /// # Safety
-    /// Live device; writable descriptor outputs and scratch as declared.
-    pub(in crate::foundation) unsafe fn write_resources(
-        &self,
-        _count: u32,
-        _inputs: *const ResourceDescriptor,
-        _outputs: *const HostSpan,
-        _scratch: HostSpan,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Live device; writable descriptor outputs and scratch as declared.
-    pub(in crate::foundation) unsafe fn write_samplers(
-        &self,
-        _count: u32,
-        _inputs: *const SamplerDesc,
-        _outputs: *const HostSpan,
-        _scratch: HostSpan,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Live device/layout/set/executable; valid embedded records.
     pub(in crate::foundation) unsafe fn generated_requirements(
         &self,
         _work: &GeneratedWork,
@@ -244,14 +220,6 @@ impl Device {
 }
 
 impl List {
-    /// # Safety
-    /// Reserved descriptor bytes obey heap lifetime/mutation rules.
-    pub(in crate::foundation) unsafe fn bind_heap(
-        &self,
-        _binding: &HeapBinding,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
     /// # Safety
     /// Views and scratch stay live through all recorded/pending uses.
     pub(in crate::foundation) unsafe fn render_begin(

@@ -316,7 +316,7 @@ fn gpu_one_shot_consumption_capacity_and_unsupported_poison() {
     let heap = HeapBinding {
         header: Record::new::<HeapBinding>(HEAP_BINDING),
         kind: HEAP_RESOURCE,
-        flags: 0,
+        flags: 1,
         storage: Span {
             memory: ptr::null_mut(),
             offset: 0,
@@ -774,6 +774,7 @@ fn bytemuck_bytes<T>(value: &T) -> &[u8] {
 
 #[ignore = "requires a live D3D12 adapter; run with --ignored"]
 #[test]
+#[allow(unused_assignments)]
 fn gpu_argument_contract_rejections() {
     let (_discovery, device, _queue, domain) = gpu_setup();
     let bytes = 256u64;
@@ -830,15 +831,22 @@ fn gpu_argument_contract_rejections() {
     unsafe { api::arena_destroy(arena) };
 
     // Preparation rejects SPIR-V pointer-ABI artifacts and specialization.
-    let roots = [RootSlot {
-        stages: STAGE_COMPUTE,
-        offset: 0,
-        alignment: 4,
-    }];
+    let roots = [
+        RootSlot {
+            stages: STAGE_COMPUTE,
+            offset: 0,
+            alignment: 4,
+        },
+        RootSlot {
+            stages: STAGE_COMPUTE,
+            offset: 8,
+            alignment: 4,
+        },
+    ];
     let abi = ArgumentInterface {
         header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
         byte_size: 24,
-        root_count: 1,
+        root_count: 2,
         roots: roots.as_ptr(),
     };
     let requirements = ShaderRequirements {
@@ -891,6 +899,522 @@ fn gpu_argument_contract_rejections() {
     unsafe {
         api::executable_destroy(executable);
         api::memory_destroy(memory);
+        api::device_destroy(device);
+    }
+}
+
+// ---- D2.2 GPU tests: descriptor-heap recipes and direct heap indexing ----
+
+/// Fixture artifact of tests/dx12-fixtures/heap-transform.slang.
+static HEAP_TRANSFORM: AlignedArtifact<4056> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/heap-transform.dxil"
+));
+
+/// Prepare the heap-indexing fixture: 16-byte namespace, no root slots.
+fn heap_transform_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandle, Status> {
+    let roots = [RootSlot {
+        stages: STAGE_COMPUTE,
+        offset: 0,
+        alignment: 4,
+    }];
+    let abi = ArgumentInterface {
+        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+        byte_size: 24,
+        root_count: 1,
+        roots: roots.as_ptr(),
+    };
+    let requirements = ShaderRequirements {
+        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+        features: 0,
+        local_size: [64, 1, 1],
+        shared_memory: 0,
+    };
+    let artifact = &HEAP_TRANSFORM.0;
+    let shader = Shader {
+        stage: STAGE_COMPUTE as u32,
+        format: SHADER_DXIL,
+        code: Bytes {
+            data: artifact.as_ptr().cast(),
+            size: artifact.len(),
+        },
+        entry: c"main".as_ptr(),
+        interface_metadata: &abi.header,
+        specialization: ptr::null(),
+        subgroup: ptr::null(),
+    };
+    let desc = ExecutableDesc {
+        header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+        kind: EXECUTABLE_COMPUTE,
+        shader_count: 1,
+        shaders: &shader,
+        static_state: ptr::null(),
+        dynamic_state: 0,
+        requirements: &requirements.header,
+        cache: ptr::null_mut(),
+        compile_flags: 0,
+        reserved: 0,
+    };
+    unsafe { api::executable_create(device, &desc) }
+}
+
+/// Encode resource descriptors into host storage, then place them into
+/// descriptor-heap memory at the given slots (byte offset = slot * 40).
+fn place_resource_recipes(
+    device: api::DeviceHandle,
+    heap: api::MemoryHandle,
+    slot_offsets: &[u64],
+    inputs: &[ResourceDescriptor],
+) {
+    let mut host: Vec<[u8; 40]> = vec![[0; 40]; inputs.len()];
+    let outputs: Vec<HostSpan> = host
+        .iter_mut()
+        .map(|bytes| HostSpan {
+            data: bytes.as_mut_ptr().cast(),
+            size: 40,
+        })
+        .collect();
+    unsafe {
+        api::write_resource_descriptors(
+            device,
+            inputs,
+            &outputs,
+            HostSpan {
+                data: ptr::null_mut(),
+                size: 0,
+            },
+        )
+    }
+    .unwrap();
+    for (bytes, offset) in host.iter().zip(slot_offsets) {
+        let mapping = unsafe { api::memory_map(heap.span(*offset, 40)) }.unwrap();
+        // SAFETY: the mapping covers the recipe slot.
+        unsafe {
+            ptr::copy_nonoverlapping(bytes.as_ptr(), mapping.data.cast::<u8>(), 40);
+        }
+        unsafe { api::memory_unmap(heap) };
+    }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_descriptor_heap_roundtrip() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let elements = 128u32;
+    let bytes = u64::from(elements) * 4;
+    let staging = linear_memory(device, bytes, USAGE_COPY_SRC, 1);
+    let input = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_DST, 0);
+    let output = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_SRC, 0);
+    let second = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_SRC, 0);
+    let diag = linear_memory(device, 256, USAGE_STORAGE | USAGE_COPY_SRC, 0);
+    let readback = linear_memory(device, bytes, USAGE_COPY_DST, 2);
+    let readback2 = linear_memory(device, bytes, USAGE_COPY_DST, 2);
+    let diag_readback = linear_memory(device, 256, USAGE_COPY_DST, 2);
+    let pattern: Vec<u8> = (0..bytes).map(|i| (i % 251) as u8).collect();
+    fill_upload(staging, &pattern);
+
+    // Descriptor-heap memory: host-visible, recipe bytes at 40-byte slots.
+    let heap = linear_memory(device, 512, USAGE_DESCRIPTOR_HEAP, 1);
+    place_resource_recipes(
+        device,
+        heap,
+        &[0, 40],
+        &[
+            ResourceDescriptor {
+                kind: DESCRIPTOR_STORAGE_BUFFER,
+                image_state: STATE_GENERAL,
+                view: ptr::null_mut(),
+                buffer: input.span(0, bytes),
+            },
+            ResourceDescriptor {
+                kind: DESCRIPTOR_STORAGE_BUFFER,
+                image_state: STATE_GENERAL,
+                view: ptr::null_mut(),
+                buffer: output.span(0, bytes),
+            },
+        ],
+    );
+
+    let executable = heap_transform_executable(device).unwrap();
+    let diag_address = unsafe { api::memory_address(diag.span(0, 256)) }.unwrap();
+    // Two independent submissions consume two slots until an arena reset.
+    let arena = unsafe {
+        api::arena_create(
+            device,
+            &ArenaDesc {
+                header: Record::new::<ArenaDesc>(ARENA_DESC),
+                domain,
+                list_capacity: 2,
+                level: 0,
+                reserved: 0,
+            },
+        )
+    }
+    .unwrap();
+    let binding = HeapBinding {
+        header: Record::new::<HeapBinding>(HEAP_BINDING),
+        kind: HEAP_RESOURCE,
+        flags: 0,
+        storage: heap.span(0, 80),
+        reserved_offset: 0,
+        reserved_size: 0,
+    };
+
+    // Submission 1: copy the pattern in, transform through slot 1 -> output.
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::copy_memory(list, input.span(0, bytes), staging.span(0, bytes)) };
+    // The copy-in must be visible to the dispatch's reads and later copies.
+    let copy_in_requirements = api::barrier_scratch_requirements(1, 0).unwrap();
+    let (mut copy_in_scratch, copy_in_offset) = aligned_scratch(copy_in_requirements);
+    let copy_in_barrier = MemoryBarrier {
+        range: input.span(0, bytes),
+        before: ACCESS_COPY_WRITE,
+        after: ACCESS_COPY_READ | ACCESS_SHADER_READ,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+    };
+    let copy_in_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_COMPUTE | STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 1,
+        image_count: 0,
+        flags: 0,
+        memory: &copy_in_barrier,
+        images: ptr::null(),
+        scratch: unsafe { copy_in_scratch.as_mut_ptr().add(copy_in_offset) }.cast(),
+        scratch_size: copy_in_requirements.size,
+    };
+    unsafe { api::barrier(list, &copy_in_dependency) };
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 0, diag_address) };
+    // Namespace: [8..24) = index_in, index_out, count, reserved.
+    let constants = [0u32, 1, elements, 0];
+    unsafe { api::set_inline(list, STAGE_COMPUTE, 8, bytemuck_bytes(&constants)) };
+    unsafe { api::bind_heap(list, &binding) };
+    unsafe {
+        api::dispatch(
+            list,
+            &Launch {
+                groups: Extent {
+                    x: elements / 64,
+                    y: 1,
+                    z: 1,
+                },
+                dynamic_shared_bytes: 0,
+                extensions: ptr::null(),
+            },
+        )
+    };
+    let requirements = api::barrier_scratch_requirements(3, 0).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let barriers = [
+        MemoryBarrier {
+            range: output.span(0, bytes),
+            before: ACCESS_STORAGE_WRITE,
+            after: ACCESS_COPY_READ,
+            source_domain: DOMAIN_IGNORED,
+            destination_domain: DOMAIN_IGNORED,
+        },
+        MemoryBarrier {
+            range: input.span(0, bytes),
+            before: ACCESS_STORAGE_WRITE,
+            after: ACCESS_COPY_READ,
+            source_domain: DOMAIN_IGNORED,
+            destination_domain: DOMAIN_IGNORED,
+        },
+        MemoryBarrier {
+            range: diag.span(0, 256),
+            before: ACCESS_STORAGE_WRITE,
+            after: ACCESS_COPY_READ,
+            source_domain: DOMAIN_IGNORED,
+            destination_domain: DOMAIN_IGNORED,
+        },
+    ];
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COMPUTE,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 3,
+        image_count: 0,
+        flags: 0,
+        memory: barriers.as_ptr(),
+        images: ptr::null(),
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: requirements.size,
+    };
+    unsafe { api::barrier(list, &dependency) };
+    unsafe { api::copy_memory(list, readback.span(0, bytes), output.span(0, bytes)) };
+    unsafe { api::copy_memory(list, diag_readback.span(0, 256), diag.span(0, 256)) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+    // Mutation of an independent range plus a rebind: descriptor bytes are
+    // captured at bind on this backend (docs/dx12-backend-d2.md).
+    place_resource_recipes(
+        device,
+        heap,
+        &[40],
+        &[ResourceDescriptor {
+            kind: DESCRIPTOR_STORAGE_BUFFER,
+            image_state: STATE_GENERAL,
+            view: ptr::null_mut(),
+            buffer: second.span(0, bytes),
+        }],
+    );
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 0, diag_address) };
+    let constants = [0u32, 1, elements / 2, 0];
+    unsafe { api::set_inline(list, STAGE_COMPUTE, 8, bytemuck_bytes(&constants)) };
+    unsafe { api::bind_heap(list, &binding) };
+    unsafe {
+        api::dispatch(
+            list,
+            &Launch {
+                groups: Extent {
+                    x: elements / 64,
+                    y: 1,
+                    z: 1,
+                },
+                dynamic_shared_bytes: 0,
+                extensions: ptr::null(),
+            },
+        )
+    };
+    let requirements = api::barrier_scratch_requirements(1, 0).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let barrier = MemoryBarrier {
+        range: second.span(0, bytes),
+        before: ACCESS_STORAGE_WRITE,
+        after: ACCESS_COPY_READ,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COMPUTE,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 1,
+        image_count: 0,
+        flags: 0,
+        memory: &barrier,
+        images: ptr::null(),
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: requirements.size,
+    };
+    unsafe { api::barrier(list, &dependency) };
+    unsafe { api::copy_memory(list, readback2.span(0, bytes), second.span(0, bytes)) };
+    unsafe { api::copy_memory(list, diag_readback.span(0, 256), diag.span(0, 256)) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 2,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 2, u64::MAX) }, Ok(()));
+
+    let mut expected_full = Vec::with_capacity(bytes as usize);
+    let mut expected_half = Vec::with_capacity(bytes as usize);
+    for i in 0..elements {
+        let base = (i as usize) * 4;
+        let value = u32::from_le_bytes(pattern[base..base + 4].try_into().unwrap()) + 1;
+        expected_full.extend_from_slice(&value.to_le_bytes());
+        if i < elements / 2 {
+            expected_half.extend_from_slice(&value.to_le_bytes());
+        } else {
+            expected_half.extend_from_slice(&0u32.to_le_bytes());
+        }
+    }
+    assert_eq!(read_back(readback, bytes), expected_full);
+    assert_eq!(read_back(readback2, bytes), expected_half);
+    // The diagnostic root-slot buffer proves the second dispatch executed.
+    let diag_bytes = read_back(diag_readback, 256);
+    assert_eq!(
+        u32::from_le_bytes(diag_bytes[..4].try_into().unwrap()),
+        elements / 2
+    );
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::memory_destroy(diag_readback);
+        api::memory_destroy(readback2);
+        api::memory_destroy(readback);
+        api::memory_destroy(heap);
+        api::memory_destroy(second);
+        api::memory_destroy(output);
+        api::memory_destroy(input);
+        api::memory_destroy(staging);
+        api::memory_destroy(diag);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_descriptor_contract_rejections() {
+    let (_discovery, device, _queue, domain) = gpu_setup();
+    let bytes = 256u64;
+    let plain = linear_memory(device, bytes, USAGE_STORAGE, 0);
+    let heap = linear_memory(device, 512, USAGE_DESCRIPTOR_HEAP, 1);
+    let span = plain.span(0, bytes);
+    let recipe = ResourceDescriptor {
+        kind: DESCRIPTOR_STORAGE_BUFFER,
+        image_state: STATE_GENERAL,
+        view: ptr::null_mut(),
+        buffer: span,
+    };
+
+    // Recipe encoding rejects unusable outputs and unsupported descriptor kinds.
+    let mut host = [0u8; 40];
+    let short = HostSpan {
+        data: host.as_mut_ptr().cast(),
+        size: 39,
+    };
+    assert_eq!(
+        unsafe {
+            api::write_resource_descriptors(
+                device,
+                &[recipe],
+                &[short],
+                HostSpan {
+                    data: ptr::null_mut(),
+                    size: 0
+                },
+            )
+        },
+        Err(INVALID)
+    );
+    let image_recipe = ResourceDescriptor {
+        kind: DESCRIPTOR_SAMPLED_IMAGE,
+        image_state: STATE_GENERAL,
+        view: ptr::null_mut(),
+        buffer: span,
+    };
+    let output = HostSpan {
+        data: host.as_mut_ptr().cast(),
+        size: 40,
+    };
+    assert_eq!(
+        unsafe {
+            api::write_resource_descriptors(
+                device,
+                &[image_recipe],
+                &[output],
+                HostSpan {
+                    data: ptr::null_mut(),
+                    size: 0
+                },
+            )
+        },
+        Err(UNSUPPORTED)
+    );
+
+    // Bind rejects non-descriptor memory, misaligned ranges and reservations.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let bad = HeapBinding {
+        header: Record::new::<HeapBinding>(HEAP_BINDING),
+        kind: HEAP_RESOURCE,
+        flags: 0,
+        storage: plain.span(0, 40),
+        reserved_offset: 0,
+        reserved_size: 0,
+    };
+    unsafe { api::bind_heap(list, &bad) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let misaligned = HeapBinding {
+        storage: heap.span(8, 40),
+        ..bad
+    };
+    unsafe { api::bind_heap(list, &misaligned) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let reserved = HeapBinding {
+        storage: heap.span(0, 40),
+        reserved_offset: 0,
+        reserved_size: 40,
+        ..bad
+    };
+    unsafe { api::bind_heap(list, &reserved) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    unsafe { api::arena_destroy(arena) };
+
+    // Descriptor-heap memory requires a host-visible type on this backend.
+    let attempted = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: 512,
+                alignment: 256,
+                usage: USAGE_DESCRIPTOR_HEAP,
+                memory_type: 0,
+                kind: 1,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    };
+    assert_eq!(attempted, Err(UNSUPPORTED));
+
+    unsafe {
+        api::memory_destroy(heap);
+        api::memory_destroy(plain);
         api::device_destroy(device);
     }
 }

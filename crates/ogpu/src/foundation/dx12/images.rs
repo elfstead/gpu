@@ -6,6 +6,8 @@ use super::*;
 #[derive(Clone, Copy)]
 struct Facts {
     format: u32,
+    dimension: u32,
+    flags: u32,
     mip_count: u32,
     layer_count: u32,
     sample_count: u32,
@@ -24,10 +26,14 @@ pub struct Image {
 }
 
 /// A foundation view describes interpretation of an image for descriptors and
-/// attachments. D3D12 view objects are descriptor-heap contents materialized by
-/// the descriptor profile (D2); this batch rejects creation instead of handing
-/// out a view with no native representation.
-pub struct View;
+/// attachments. On D3D12 the native view is descriptor-heap content, so the
+/// object is a validated interpretation record that descriptor materialization
+/// and rendering consume (docs/dx12-backend-d1.md, "views are descriptor
+/// contents").
+pub struct View {
+    pub(super) image: *const Image,
+    pub(super) desc: ViewDesc,
+}
 
 impl Drop for Image {
     fn drop(&mut self) {
@@ -144,6 +150,8 @@ fn prepare(d: &Device, desc: &ImageDesc) -> Result<(Facts, d3d::D3D12_RESOURCE_D
     Ok((
         Facts {
             format: desc.format,
+            dimension: desc.dimension,
+            flags: desc.flags,
             mip_count: desc.mip_count,
             layer_count: desc.layer_count,
             sample_count: desc.sample_count,
@@ -372,13 +380,76 @@ impl Image {
 }
 
 impl View {
+    /// Create a validated view record; the view outlives its image.
     /// # Safety
-    /// Live bound image and valid description; unsupported in this batch.
+    /// Live bound image and valid description arrays.
     pub(in crate::foundation) fn create(
-        _image: &Image,
-        _desc: &ViewDesc,
+        image: &Image,
+        desc: &ViewDesc,
     ) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
+        desc.header.validate::<ViewDesc>(VIEW_DESC)?;
+        if image.resource.get().is_none() {
+            // Unbound images cannot create views.
+            return Err(INVALID);
+        }
+        if desc.usage == 0 {
+            return Err(INVALID);
+        }
+        let known = (IMAGE_SAMPLED
+            | IMAGE_STORAGE
+            | IMAGE_COLOR_ATTACHMENT
+            | IMAGE_DEPTH_STENCIL_ATTACHMENT
+            | IMAGE_INPUT_ATTACHMENT) as u32;
+        if desc.usage & !known != 0 || u64::from(desc.usage) & !image.facts.usage != 0 {
+            return Err(INVALID);
+        }
+        // D3D12 views have no component swizzles; shaders swizzle instead.
+        if desc.component_mapping != [0, 0, 0, 0] {
+            return Err(UNSUPPORTED);
+        }
+        if !(VIEW_1D..=VIEW_CUBE_ARRAY).contains(&desc.dimension) {
+            return Err(INVALID);
+        }
+        let meta = formats::meta(image.facts.format).ok_or(UNSUPPORTED)?;
+        if desc.range.aspects & !meta.aspects != 0 || desc.range.aspects == 0 {
+            return Err(INVALID);
+        }
+        if desc.range.mip_count == 0
+            || desc.range.layer_count == 0
+            || desc
+                .range
+                .first_mip
+                .checked_add(desc.range.mip_count)
+                .is_none_or(|end| end > image.facts.mip_count)
+            || desc
+                .range
+                .first_layer
+                .checked_add(desc.range.layer_count)
+                .is_none_or(|end| end > image.facts.layer_count)
+        {
+            return Err(INVALID);
+        }
+        if desc.format != image.facts.format {
+            // Reinterpretation needs MUTABLE_FORMAT and a compatible class.
+            if image.facts.flags & 1 == 0 {
+                return Err(INVALID);
+            }
+            return Err(UNSUPPORTED);
+        }
+        if desc.dimension == VIEW_CUBE || desc.dimension == VIEW_CUBE_ARRAY {
+            if image.facts.flags & 2 == 0 {
+                return Err(INVALID);
+            }
+            return Err(UNSUPPORTED);
+        }
+        if desc.dimension == VIEW_3D || image.facts.dimension == 3 {
+            // 2D views of 3D slices are outside the current profile.
+            return Err(UNSUPPORTED);
+        }
+        Ok(Box::new(Self {
+            image,
+            desc: *desc,
+        }))
     }
 }
 

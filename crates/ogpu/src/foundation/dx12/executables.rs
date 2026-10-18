@@ -220,6 +220,27 @@ impl Executable {
                 ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
             });
         }
+        // The descriptor-profile table: one unbounded UAV range at u0/space1.
+        // Artifacts index it directly; `bind_heap` binds the range start.
+        let table_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> = vec![d3d::D3D12_DESCRIPTOR_RANGE1 {
+            RangeType: d3d::D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+            NumDescriptors: u32::MAX,
+            BaseShaderRegister: 0,
+            RegisterSpace: 1,
+            Flags: d3d::D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+            OffsetInDescriptorsFromTableStart: 0,
+        }];
+        let table = d3d::D3D12_ROOT_DESCRIPTOR_TABLE1 {
+            NumDescriptorRanges: 1,
+            pDescriptorRanges: table_ranges.as_ptr(),
+        };
+        parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
+            ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
+                DescriptorTable: table,
+            },
+            ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
+        });
         let signature_desc = d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC {
             Version: d3d::D3D_ROOT_SIGNATURE_VERSION_1_1,
             Anonymous: d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC_0 {
