@@ -55,10 +55,10 @@ pub use stubs::{
 
 pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch};
 pub(super) use descriptors::descriptor_scratch;
+pub(super) use commands::vertex_scratch;
 pub(super) use rendering::render_scratch;
 pub(super) use stubs::{
     execute_scratch, executable_record, inheritance_scratch, present_scratch, split_scratch,
-    vertex_scratch,
 };
 
 /// Queue domains of this adapter profile: direct, compute, copy queues.

@@ -142,18 +142,35 @@ SRV table (t0/space1) for images and a sampler table (s0/space1), each bound
 at the heap range start (separate table parameters may share a range start;
 ranges within one table must not overlap).
 
-**Open item (blocks `gpu_textured_raster`):** the graphics PSO with a vertex
-input layout rejects with `E_INVALIDARG` at `CreateGraphicsPipelineState`
-while the same shaders/PSO path without input layout works (the triangle
-fixture passes against the extended three-table signature). The compiled VS
-input signature names are `TEXCOORD` (DXIL ISG1); the semantic-index/layout
-pairing needs a debug-layer run or full signature-chunk decode to resolve —
-the top reason to unblock the debug layer (Graphics Tools optional feature).
+**Open item (blocks `gpu_textured_raster`):** the textured pipeline now runs
+end to end (vertex buffers, descriptor tables, SRV/sampler materialization and
+sampling all execute; earlier blockers — the input-layout root-signature flag,
+the SPIR-V word-size rule vs DXIL byte-granularity and a stale scratch
+re-export — are fixed) but sampled pixel values do not match the CPU oracle
+yet (`[32, 32, 2, 255]` where a texel of the uploaded pattern is expected).
+The remaining question is shader-side: the UV/snap convention, the sampler
+recipe or the pattern layout. The D3D12 debug layer (Graphics Tools now
+installed) reports no validation errors for the recorded work.
+
+Debug-layer note: `gpu_setup` enables the OS debug layer when installed, so
+every GPU test is also a validation run. Two benign messages recur (the
+defensive close on already-closed lists and the missing optimized clear value
+on render targets) and should be silenced or documented at the review.
 
 The textured fixture itself is checked in (vertex-buffer VS with `TEXCOORD<N>`
 semantics, sampling PS with snapped texel fetches for exact expectations) and
 the test is the acceptance criterion, labeled `blocked` until the pairing is
 resolved.
+
+### Incidents recorded (D2.4)
+
+- The debug layer (Graphics Tools, installed 2026-10-18) named the first
+  blocker immediately: the root signature lacked
+  `ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT` for vertex-input PSOs. It also caught
+  that image recipes were dereferencing a null buffer span before the
+  recipe-kind branch (fixed), and that `mod.rs` re-exported the stub
+  `vertex_scratch` instead of the real one (fixed — the same stub-shadowing
+  class as earlier incidents; worth a naming convention at review).
 
 ## Remaining D2 scope
 

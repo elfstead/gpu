@@ -180,7 +180,7 @@ impl Arena {
 
     pub(in crate::foundation) fn trim(&mut self, retained: u32) -> Result<(), Status> {
         if retained as usize > self.slots.len() {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         self.reset(true)?;
         self.slots.truncate(retained as usize);
@@ -197,17 +197,17 @@ impl Arena {
         d.ready()?;
         desc.header.validate::<RecordingDesc>(RECORDING_DESC)?;
         if desc.level != self.level {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // Primary recording has no inheritance record; bundles are not mapped.
         if !desc.inheritance.is_null() {
             return Err(UNSUPPORTED);
         }
         if !(1..=3).contains(&desc.replay_mode) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if !self.usable {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let slot = self.slots.get_mut(self.used).ok_or(CAPACITY)?;
         self.used += 1;
@@ -242,7 +242,7 @@ impl Drop for Arena {
 impl List {
     pub(super) fn recording(&self) -> Result<&Device, Status> {
         if self.state.get() != 1 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if self.error.get() != OK {
             return Err(self.error.get());
@@ -309,7 +309,7 @@ impl List {
     pub(in crate::foundation) unsafe fn copy(&self, dst: Span, src: Span) -> Result<(), Status> {
         self.recording()?;
         if src.size != dst.size {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: span memory handles are trusted live objects by contract.
         let source = unsafe { src.memory.as_ref() }.ok_or(INVALID)?;
@@ -323,7 +323,7 @@ impl List {
             return Ok(());
         }
         if src_address.abs_diff(dst_address) < src.size {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: validated disjoint ranges of live resources; recording only.
         unsafe {
@@ -387,7 +387,7 @@ impl List {
         let global_before = access(dep.global_before)?;
         let global_after = access(dep.global_after)?;
         if (dep.before == 0 && dep.global_before != 0) || (dep.after == 0 && dep.global_after != 0) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // D3D12 pairs each sync bit with the accesses it justifies: the native
         // sync scope is derived from the declared accesses and narrowed to the
@@ -433,7 +433,7 @@ impl List {
                 // SAFETY: span memory handles are trusted live objects by contract.
                 let backing = unsafe { memory.range.memory.as_ref() }.ok_or(INVALID)?;
                 if memory.range.size == 0 {
-                    return Err(INVALID);
+        return Err(INVALID);
                 }
                 let (resource, offset, _) = backing.command_range(
                     d,
@@ -484,7 +484,7 @@ impl List {
                 // SAFETY: image handles are trusted live objects by contract.
                 let image = unsafe { barrier.image.as_ref() }.ok_or(INVALID)?;
                 if barrier.new_state == STATE_UNDEFINED {
-                    return Err(INVALID);
+        return Err(INVALID);
                 }
                 domains(d, barrier.source_domain, barrier.destination_domain)?;
                 let before_access = access(barrier.before)?;
@@ -890,7 +890,7 @@ impl List {
     ) -> Result<(), Status> {
         let d = self.recording()?;
         if !ptr::eq(executable.device, d) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let domain = d
             .snapshot
@@ -991,7 +991,7 @@ impl List {
             || size > executable.byte_size - offset
             || (size != 0 && data.is_null())
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if executable
             .roots
@@ -1038,7 +1038,7 @@ impl List {
             return Err(UNSUPPORTED);
         }
         if address % u64::from(root.alignment) != 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         self.arguments.borrow_mut()[root.offset as usize..root.offset as usize + 8]
             .copy_from_slice(&address.to_le_bytes());
@@ -1094,7 +1094,7 @@ impl List {
         let (buffer, offset, _) =
             memory.command_range(d, self.domain, args.offset, args.size, USAGE_INDIRECT)?;
         if offset % 4 != 0 || args.size < 12 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: validated arguments range of a live buffer; recording only.
         unsafe {
@@ -1147,14 +1147,14 @@ impl List {
         // SAFETY: storage memory handle is a trusted live object by contract.
         let memory = unsafe { binding.storage.memory.as_ref() }.ok_or(INVALID)?;
         if memory.usage & USAGE_DESCRIPTOR_HEAP == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if binding.storage.offset % stride != 0
             || binding.storage.size % stride != 0
             || binding.storage.offset > memory.size
             || binding.storage.size > memory.size - binding.storage.offset
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let heaps = memory.descriptor_heaps().ok_or(INVALID)?;
         let heap = match binding.kind {
@@ -1165,7 +1165,7 @@ impl List {
         let base_index = binding.storage.offset / stride;
         let count = binding.storage.size / stride;
         if base_index + count > capacity {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if count != 0 {
             // Recipes materialize from host-visible heap memory through the
@@ -1279,7 +1279,7 @@ impl List {
         self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
         state.header.validate::<ViewportState>(VIEWPORT_STATE)?;
         if state.width == 0.0 || state.height == 0.0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let viewport = d3d::D3D12_VIEWPORT {
             TopLeftX: state.x,
@@ -1307,7 +1307,7 @@ impl List {
     pub(in crate::foundation) fn blend_constants(&self, values: &[f32; 4]) -> Result<(), Status> {
         self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
         if values.iter().any(|v| !v.is_finite()) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: recording slot is live.
         unsafe { self.command.OMSetBlendFactor(Some(values)) };
@@ -1357,7 +1357,7 @@ impl List {
     pub(in crate::foundation) fn draw(&self, draw: &DrawDesc, indexed: bool) -> Result<(), Status> {
         self.bound_executable(STAGE_VERTEX)?;
         if draw.instances == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: recording slot is live.
         unsafe {
@@ -1434,7 +1434,7 @@ impl List {
             || scratch.data.is_null()
             || scratch.data as usize % requirement.alignment as usize != 0
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if u64::from(first) + u64::from(count) > 32 {
             return Err(UNSUPPORTED);
@@ -1557,14 +1557,14 @@ impl Queue {
                 || !list.executable()
                 || !list.primary()
             {
-                return Err(INVALID);
+        return Err(INVALID);
             }
         }
         for point in waits.iter().chain(signals.iter()) {
             // SAFETY: timeline handles are trusted live objects by contract.
             let timeline = unsafe { point.point.timeline.as_ref() }.ok_or(INVALID)?;
             if timeline.device() != self.device {
-                return Err(INVALID);
+        return Err(INVALID);
             }
             // HOST waits/signals are invalid in submissions.
             stages(point.stages)?;

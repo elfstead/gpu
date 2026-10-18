@@ -244,14 +244,16 @@ pub(super) unsafe fn materialize(
             let handle = d3d::D3D12_CPU_DESCRIPTOR_HANDLE {
                 ptr: cpu.ptr + stride as usize * index as usize,
             };
-            let memory = unsafe { recipe.buffer.memory.as_ref() }.ok_or(INVALID)?;
-            let (resource, offset, address) = memory.descriptor_range(
-                ptr::from_ref(d),
-                recipe.buffer.offset,
-                recipe.buffer.size,
-                0,
-            )?;
             match recipe.kind {
+                DESCRIPTOR_STORAGE_BUFFER | DESCRIPTOR_UNIFORM_BUFFER => {
+                let memory = unsafe { recipe.buffer.memory.as_ref() }.ok_or(INVALID)?;
+                let (resource, offset, address) = memory.descriptor_range(
+                    ptr::from_ref(d),
+                    recipe.buffer.offset,
+                    recipe.buffer.size,
+                    0,
+                )?;
+                match recipe.kind {
                 DESCRIPTOR_STORAGE_BUFFER => {
                     let view = d3d::D3D12_UNORDERED_ACCESS_VIEW_DESC {
                         Format: dxgic::DXGI_FORMAT_R32_TYPELESS,
@@ -280,7 +282,66 @@ pub(super) unsafe fn materialize(
                     // SAFETY: live resource and heap slot; no retained state.
                     unsafe { d.device.CreateConstantBufferView(Some(&view), handle) };
                 }
-                _ => return Err(UNSUPPORTED),
+                DESCRIPTOR_SAMPLED_IMAGE | DESCRIPTOR_INPUT_ATTACHMENT | DESCRIPTOR_STORAGE_IMAGE => {
+                    // SAFETY: view handles are trusted live objects by contract.
+                    let view = unsafe { recipe.view.as_ref() }.ok_or(INVALID)?;
+                    // SAFETY: the view's image is live through every recorded use.
+                    let image = unsafe { &*view.image };
+                    let resource = image.resource()?;
+                    let native = view.native_view_desc()?;
+                    if recipe.kind == DESCRIPTOR_STORAGE_IMAGE {
+                        // SAFETY: live resource and heap slot; no retained state.
+                        unsafe {
+                            d.device.CreateUnorderedAccessView(
+                                resource,
+                                None,
+                                Some(&native.unordered_access()),
+                                handle,
+                            )
+                        };
+                    } else {
+                        // SAFETY: live resource and heap slot; no retained state.
+                        unsafe {
+                            d.device.CreateShaderResourceView(
+                                Some(resource),
+                                Some(&native.shader_resource()),
+                                handle,
+                            )
+                        };
+                    }
+                }
+                _ => return Err(INVALID),
+                }
+                }
+                DESCRIPTOR_SAMPLED_IMAGE | DESCRIPTOR_INPUT_ATTACHMENT | DESCRIPTOR_STORAGE_IMAGE => {
+                    // SAFETY: view handles are trusted live objects by contract.
+                    let view = unsafe { recipe.view.as_ref() }.ok_or(INVALID)?;
+                    // SAFETY: the view's image is live through every recorded use.
+                    let image = unsafe { &*view.image };
+                    let resource = image.resource()?;
+                    let native = view.native_view_desc()?;
+                    if recipe.kind == DESCRIPTOR_STORAGE_IMAGE {
+                        // SAFETY: live resource and heap slot; no retained state.
+                        unsafe {
+                            d.device.CreateUnorderedAccessView(
+                                resource,
+                                None,
+                                Some(&native.unordered_access()),
+                                handle,
+                            )
+                        };
+                    } else {
+                        // SAFETY: live resource and heap slot; no retained state.
+                        unsafe {
+                            d.device.CreateShaderResourceView(
+                                Some(resource),
+                                Some(&native.shader_resource()),
+                                handle,
+                            )
+                        };
+                    }
+                }
+                _ => return Err(INVALID),
             }
             Ok(())
         }

@@ -69,13 +69,13 @@ fn resource_flags(usage: u64, format_aspects: u32) -> Result<d3d::D3D12_RESOURCE
     }
     if usage & 16 != 0 {
         if format_aspects & 1 == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         flags |= d3d::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     }
     if usage & 32 != 0 {
         if format_aspects & (2 | 4) == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         flags |= d3d::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     }
@@ -111,7 +111,7 @@ fn prepare(d: &Device, desc: &ImageDesc) -> Result<(Facts, d3d::D3D12_RESOURCE_D
             unsafe { std::slice::from_raw_parts(desc.concurrent_domains, concurrent as usize) };
         for (index, domain) in domains.iter().enumerate() {
             if domains[..index].contains(domain) {
-                return Err(INVALID);
+        return Err(INVALID);
             }
             if !d.snapshot.queues.iter().any(|q| q.domain == *domain) {
                 return Err(UNSUPPORTED);
@@ -244,7 +244,7 @@ impl Device {
         out: &mut Requirements,
     ) -> Result<(), Status> {
         if out.compatible_type_capacity != 0 && out.compatible_types.is_null() {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let (_facts, _native, info) = prepare(self, desc)?;
         out.size = info.SizeInBytes;
@@ -301,7 +301,7 @@ impl Image {
         // SAFETY: span memory handle is a trusted live object by contract.
         let memory = unsafe { placement.memory.as_ref() }.ok_or(INVALID)?;
         if self.resource.get().is_some() {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: device pointer and image stay live during binding.
         let d = unsafe { &*self.device };
@@ -349,7 +349,7 @@ impl Image {
         memory_type: u32,
     ) -> Result<Box<Memory>, Status> {
         if self.resource.get().is_some() {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: image stays live for backing creation.
         let d = unsafe { &*self.device };
@@ -387,7 +387,7 @@ impl Image {
     /// Mip extent in texels of one subresource.
     fn mip_extent(&self, mip: u32) -> Result<Extent, Status> {
         if mip >= self.facts.mip_count {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let shift = |v: u32| (v >> mip).max(1);
         Ok(Extent {
@@ -409,10 +409,10 @@ impl View {
         desc.header.validate::<ViewDesc>(VIEW_DESC)?;
         if image.resource.get().is_none() {
             // Unbound images cannot create views.
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if desc.usage == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let known = (IMAGE_SAMPLED
             | IMAGE_STORAGE
@@ -420,18 +420,18 @@ impl View {
             | IMAGE_DEPTH_STENCIL_ATTACHMENT
             | IMAGE_INPUT_ATTACHMENT) as u32;
         if desc.usage & !known != 0 || u64::from(desc.usage) & !image.facts.usage != 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // D3D12 views have no component swizzles; shaders swizzle instead.
         if desc.component_mapping != [0, 0, 0, 0] {
             return Err(UNSUPPORTED);
         }
         if !(VIEW_1D..=VIEW_CUBE_ARRAY).contains(&desc.dimension) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let meta = formats::meta(image.facts.format).ok_or(UNSUPPORTED)?;
         if desc.range.aspects & !meta.aspects != 0 || desc.range.aspects == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if desc.range.mip_count == 0
             || desc.range.layer_count == 0
@@ -446,18 +446,18 @@ impl View {
                 .checked_add(desc.range.layer_count)
                 .is_none_or(|end| end > image.facts.layer_count)
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if desc.format != image.facts.format {
             // Reinterpretation needs MUTABLE_FORMAT and a compatible class.
             if image.facts.flags & 1 == 0 {
-                return Err(INVALID);
+        return Err(INVALID);
             }
             return Err(UNSUPPORTED);
         }
         if desc.dimension == VIEW_CUBE || desc.dimension == VIEW_CUBE_ARRAY {
             if image.facts.flags & 2 == 0 {
-                return Err(INVALID);
+        return Err(INVALID);
             }
             return Err(UNSUPPORTED);
         }
@@ -506,7 +506,7 @@ impl View {
         let format = formats::dxgi_format(self.desc.format);
         let meta = formats::meta(self.desc.format).ok_or(UNSUPPORTED)?;
         if self.desc.range.mip_count == 0 || self.desc.range.layer_count == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let array = self.desc.range.layer_count > 1;
         let plane = if meta.aspects & (2 | 4) != 0 {
@@ -674,7 +674,7 @@ impl List {
             copy.state == STATE_GENERAL || copy.state == STATE_COPY_SRC
         };
         if !state_ok {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // SAFETY: span memory handle is a trusted live object by contract.
         let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
@@ -683,7 +683,7 @@ impl List {
             memory.command_range(self.device, self.domain, span.offset, span.size, usage)?;
         let image_usage = if to_image { 2 } else { 1 };
         if image.facts.usage & image_usage == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let resource = image.resource()?;
         let extent = image.mip_extent(copy.region.mip)?;
@@ -693,7 +693,7 @@ impl List {
             .checked_add(copy.region.layer_count)
             .ok_or(INVALID)?;
         if copy.region.layer_count == 0 || end_layer > image.facts.layer_count {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         // Region offsets/extents are block-aligned and within the mip.
         let block = meta.block;
@@ -703,7 +703,7 @@ impl List {
             || u32::try_from(copy.region.offset.x).map_err(|_| INVALID)? % block[0] != 0
             || copy.region.offset.y as u32 % block[1] != 0
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let x = u32::try_from(copy.region.offset.x).map_err(|_| INVALID)?;
         let y = copy.region.offset.y as u32;
@@ -713,7 +713,7 @@ impl List {
             || x.checked_add(copy.region.extent.x).ok_or(INVALID)? > extent.x
             || y.checked_add(copy.region.extent.y).ok_or(INVALID)? > extent.y
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let row_bytes = u64::from(blocks_x) * u64::from(meta.color_bytes);
         let row_pitch = if copy.row_pitch == 0 {
@@ -736,7 +736,7 @@ impl List {
             copy.slice_pitch
         };
         if slice_pitch < slice_bytes || slice_pitch % slice_bytes != 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if copy.region.layer_count == 0 {
             return Ok(());
@@ -744,7 +744,7 @@ impl List {
         let total = slice_pitch * u64::from(copy.region.layer_count);
         let needed = buffer_offset.checked_add(total).ok_or(INVALID)?;
         if needed > memory_span_end(span) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         for layer in 0..copy.region.layer_count {
             let subresource = copy.region.mip

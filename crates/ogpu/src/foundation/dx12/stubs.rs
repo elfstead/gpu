@@ -33,9 +33,6 @@ pub(in crate::foundation) fn present_scratch(
 ) -> Result<HostRequirements, Status> {
     no_scratch()
 }
-pub(in crate::foundation) fn vertex_scratch(_count: u32) -> Result<HostRequirements, Status> {
-    no_scratch()
-}
 pub(in crate::foundation) fn execute_scratch(_count: u32) -> Result<HostRequirements, Status> {
     no_scratch()
 }

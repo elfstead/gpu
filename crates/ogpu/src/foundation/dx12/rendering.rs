@@ -30,10 +30,10 @@ impl List {
             return Err(UNSUPPORTED);
         }
         if desc.width == 0 || desc.height == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if desc.x < 0 || desc.y < 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         if desc.color_count > 8 {
             return Err(UNSUPPORTED);
@@ -44,7 +44,7 @@ impl List {
                 && (desc.scratch.data.is_null()
                     || desc.scratch.data as usize % requirement.alignment as usize != 0))
         {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         let domain = d
             .snapshot
@@ -88,7 +88,7 @@ impl List {
                 // SAFETY: trusted paired record.
                 let depth = unsafe { &*desc.depth };
                 if depth.view != attachment.view || depth.state != attachment.state {
-                    return Err(INVALID);
+        return Err(INVALID);
                 }
             }
         }
@@ -124,7 +124,7 @@ impl List {
                     );
                 }
             } else if attachment.load_op != LOAD && attachment.load_op != DONT_CARE {
-                return Err(INVALID);
+        return Err(INVALID);
             }
         }
         if has_depth {
@@ -143,12 +143,12 @@ impl List {
             if depth.load_op == CLEAR {
                 clear_flags |= d3d::D3D12_CLEAR_FLAG_DEPTH;
             } else if depth.load_op != LOAD && depth.load_op != DONT_CARE {
-                return Err(INVALID);
+        return Err(INVALID);
             }
             if stencil.load_op == CLEAR {
                 clear_flags |= d3d::D3D12_CLEAR_FLAG_STENCIL;
             } else if stencil.load_op != LOAD && stencil.load_op != DONT_CARE {
-                return Err(INVALID);
+        return Err(INVALID);
             }
             if clear_flags != d3d::D3D12_CLEAR_FLAGS(0) {
                 let depth_clear = unsafe { desc.depth.as_ref() }
@@ -156,7 +156,7 @@ impl List {
                     .clear;
                 let value = unsafe { depth_clear.depth_stencil };
                 if value.depth < 0.0 || value.depth > 1.0 {
-                    return Err(INVALID);
+        return Err(INVALID);
                 }
                 // SAFETY: validated depth target and clear value.
                 unsafe {
@@ -180,7 +180,7 @@ impl List {
     pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
         self.recording()?;
         if !self.rendering.replace(false) {
-            return Err(INVALID);
+        return Err(INVALID);
         }
         Ok(())
     }
@@ -232,7 +232,7 @@ fn validate_attachment(d: &Device, attachment: &Attachment, color: bool) -> Resu
     if !color && attachment.load_op == CLEAR {
         // Read-only depth/stencil forbids CLEAR (enforced by usage too).
         if view.desc.usage & (IMAGE_DEPTH_STENCIL_ATTACHMENT as u32) == 0 {
-            return Err(INVALID);
+        return Err(INVALID);
         }
     }
     let _ = d;

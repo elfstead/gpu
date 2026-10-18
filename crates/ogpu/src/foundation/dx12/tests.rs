@@ -71,7 +71,46 @@ fn aligned_scratch(requirements: HostRequirements) -> (Vec<u8>, usize) {
     (backing, offset)
 }
 
+/// Print D3D12 debug-layer messages of the live device (test diagnostics).
+fn dump_validation(device: api::DeviceHandle) {
+    // SAFETY: the handle identifies a live device.
+    let device_ref: &Device = unsafe { &*device.as_raw() };
+    if let Ok(info) = device_ref.device.cast::<d3d::ID3D12InfoQueue>() {
+        let count = unsafe { info.GetNumStoredMessages() };
+        eprintln!("DX12PROBE validation messages: {}", count);
+        for i in 0..count.min(10) {
+            let mut len = 0usize;
+            unsafe {
+                info.GetMessage(i, None, &mut len);
+                let mut buffer = vec![0u8; len];
+                info.GetMessage(i, Some(buffer.as_mut_ptr().cast()), &mut len);
+                let message: &d3d::D3D12_MESSAGE = &*buffer.as_ptr().cast();
+                let text = std::slice::from_raw_parts(
+                    message.pDescription.cast::<u8>(),
+                    message.DescriptionByteLength,
+                );
+                eprintln!(
+                    "DX12PROBE msg[{}]: {}",
+                    i,
+                    String::from_utf8_lossy(text).trim_end_matches('\0')
+                );
+            }
+        }
+    }
+}
+
 fn gpu_setup() -> (Box<Discovery>, api::DeviceHandle, api::QueueHandle, u32) {
+    // Test runs execute under the D3D12 debug layer when it is installed:
+    // validation evidence for the review gate (best-effort, never required).
+    static ENABLE: std::sync::Once = std::sync::Once::new();
+    ENABLE.call_once(|| {
+        let mut debug: Option<d3d::ID3D12Debug> = None;
+        if let Ok(debug) = unsafe { d3d::D3D12GetDebugInterface(&mut debug) }.map(|_| debug) {
+            if let Some(debug) = debug.as_ref() {
+                unsafe { debug.EnableDebugLayer() };
+            }
+        }
+    });
     let discovery = api::discover().unwrap();
     let index = api::adapters(&discovery)
         .iter()
@@ -2084,9 +2123,9 @@ fn gpu_graphics_triangle_raster() {
     .unwrap();
     assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
 
-    let pixels = read_back(readback, texels);
+    let pixels = read_back(readback, u64::from(extent) * 256);
     let pixel = |x: usize, y: usize| -> [u8; 4] {
-        let base = (y * extent as usize + x) * 4;
+        let base = y * 256 + x * 4;
         pixels[base..base + 4].try_into().unwrap()
     };
     // Center falls inside the drawn triangle: red over the green clear.
@@ -2310,7 +2349,7 @@ fn textured_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandl
     unsafe { api::executable_create(device, &desc) }
 }
 
-#[ignore = "blocked on D2.4 input-layout/PSO pairing (docs/dx12-backend-d2.md)"]
+#[ignore = "blocked: sampled pixel values under diagnosis (docs/dx12-backend-d2.md)"]
 #[test]
 fn gpu_textured_raster() {
     let (_discovery, device, queue, domain) = gpu_setup();
@@ -2354,11 +2393,11 @@ fn gpu_textured_raster() {
     .unwrap();
     let texture = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
     unsafe { api::image_bind(texture, texture_backing.span(0, requirements.size)) }.unwrap();
-    let staging = linear_memory(device, 64, USAGE_COPY_SRC, 1);
-    let mut pattern = [0u8; 64];
+    let staging = linear_memory(device, 1024, USAGE_COPY_SRC, 1);
+    let mut pattern = vec![0u8; 1024];
     for ty in 0..4u32 {
         for tx in 0..4u32 {
-            let base = ((ty * 4 + tx) * 4) as usize;
+            let base = (ty * 256 + tx * 4) as usize;
             pattern[base] = (tx * 60) as u8;
             pattern[base + 1] = (ty * 60) as u8;
             pattern[base + 2] = 100;
@@ -2505,12 +2544,12 @@ fn gpu_textured_raster() {
             offset: Offset { x: 0, y: 0, z: 0 },
             extent: Extent { x: 4, y: 4, z: 1 },
         },
-        row_pitch: 0,
+        row_pitch: 256,
         slice_pitch: 0,
         state: STATE_COPY_DST,
         reserved: 0,
     };
-    unsafe { api::copy_to_image(list, texture, staging.span(0, 64), &copy) };
+    unsafe { api::copy_to_image(list, texture, staging.span(0, 1024), &copy) };
     let to_shader = ImageBarrier {
         before: ACCESS_COPY_WRITE,
         after: ACCESS_SHADER_READ,
@@ -2661,7 +2700,7 @@ fn gpu_textured_raster() {
         ..dependency
     };
     unsafe { api::barrier(list, &dependency) };
-    let readback = linear_memory(device, texels, USAGE_COPY_DST, 2);
+    let readback = linear_memory(device, u64::from(extent) * 256, USAGE_COPY_DST, 2);
     let copy_out = ImageCopy {
         region: ImageRegion {
             aspect: ASPECT_COLOR,
@@ -2675,13 +2714,18 @@ fn gpu_textured_raster() {
                 z: 1,
             },
         },
-        row_pitch: 0,
+        row_pitch: 256,
         slice_pitch: 0,
         state: STATE_COPY_SRC,
         reserved: 0,
     };
-    unsafe { api::copy_from_image(list, readback.span(0, texels), output, &copy_out) };
-    let list = unsafe { api::commands_end(list) }.unwrap();
+    let readback_size = u64::from(extent) * 256;
+    unsafe { api::copy_from_image(list, readback.span(0, readback_size), output, &copy_out) };
+    let list = unsafe { api::commands_end(list) };
+    if list.is_err() {
+        dump_validation(device);
+    }
+    let list = list.unwrap();
 
     let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
     let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
@@ -2708,9 +2752,9 @@ fn gpu_textured_raster() {
     .unwrap();
     assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
 
-    let pixels = read_back(readback, texels);
+    let pixels = read_back(readback, u64::from(extent) * 256);
     let pixel = |x: usize, y: usize| -> [u8; 4] {
-        let base = (y * extent as usize + x) * 4;
+        let base = y * 256 + x * 4;
         pixels[base..base + 4].try_into().unwrap()
     };
     // UVs interpolate as (x+0.5)/extent and snap to 4x4 texels exactly.
@@ -2740,4 +2784,50 @@ fn gpu_textured_raster() {
         api::timeline_destroy(timeline);
         api::device_destroy(device);
     }
+}
+
+#[ignore = "probe"]
+#[test]
+fn probe_debug_layer_pso() {
+    // Enable the OS debug layer before any device creation, then read the
+    // validation messages the PSO preparation triggers.
+    let mut debug: Option<d3d::ID3D12Debug> = None;
+    let result = unsafe { d3d::D3D12GetDebugInterface(&mut debug) };
+    eprintln!("DX12PROBE debug interface: {:#x}", result.as_ref().err().map_or(0, |e| e.code().0 as u32));
+    if let Some(debug) = debug.as_ref() {
+        unsafe { debug.EnableDebugLayer() };
+        eprintln!("DX12PROBE debug layer ENABLED");
+    }
+    let (_discovery, device, _queue, _domain) = gpu_setup();
+    let handle_ptr = device.as_raw();
+    // SAFETY: the handle identifies the live device created above.
+    let device_ref: &Device = unsafe { &*handle_ptr };
+    let outcome = textured_executable(device);
+    eprintln!("DX12PROBE textured executable: {:?}", outcome.map(|_| "ok").map_err(|s| s));
+    if let Ok(executable) = outcome {
+        unsafe { api::executable_destroy(executable) };
+    }
+    if let Ok(info) = device_ref.device.cast::<d3d::ID3D12InfoQueue>() {
+        let count = unsafe { info.GetNumStoredMessages() };
+        eprintln!("DX12PROBE validation messages: {}", count);
+        for i in 0..count.min(20) {
+            let mut len = 0usize;
+            unsafe {
+                info.GetMessage(i, None, &mut len);
+                let mut buffer = vec![0u8; len];
+                info.GetMessage(i, Some(buffer.as_mut_ptr().cast()), &mut len);
+                let message: &d3d::D3D12_MESSAGE = &*buffer.as_ptr().cast();
+                let text = std::slice::from_raw_parts(
+                    message.pDescription.cast::<u8>(),
+                    message.DescriptionByteLength,
+                );
+                eprintln!(
+                    "DX12PROBE msg[{}]: {}",
+                    i,
+                    String::from_utf8_lossy(text).trim_end_matches('\0')
+                );
+            }
+        }
+    }
+    unsafe { api::device_destroy(device) };
 }

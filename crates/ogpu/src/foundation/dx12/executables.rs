@@ -342,7 +342,10 @@ pub(in crate::foundation) fn root_signature(
                 pParameters: parameters.as_ptr(),
                 NumStaticSamplers: 0,
                 pStaticSamplers: ptr::null(),
-                Flags: d3d::D3D12_ROOT_SIGNATURE_FLAG_NONE,
+                // The profile's artifacts may declare vertex input; the flag
+                // permits input layouts on the signature (required by the
+                // native PSO validation when one is bound).
+                Flags: d3d::D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
             },
         },
     };
