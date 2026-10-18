@@ -132,6 +132,29 @@ Windows; Linux regression unchanged.
   namespaces omit the parameter and shift root-parameter indices (now computed
   from the executable, not assumed).
 
+## D2.4 — image/sampler descriptors and textured raster (in progress)
+
+The descriptor profile extends to image and sampler recipes: validated view
+records materialize as native SRV/UAV descriptors (`TEXCOORD` component
+mapping, mip/layer ranges), sampler recipes as native samplers, and the root
+signature grows the profile's tables — a UAV table (u0/space1) for buffers, an
+SRV table (t0/space1) for images and a sampler table (s0/space1), each bound
+at the heap range start (separate table parameters may share a range start;
+ranges within one table must not overlap).
+
+**Open item (blocks `gpu_textured_raster`):** the graphics PSO with a vertex
+input layout rejects with `E_INVALIDARG` at `CreateGraphicsPipelineState`
+while the same shaders/PSO path without input layout works (the triangle
+fixture passes against the extended three-table signature). The compiled VS
+input signature names are `TEXCOORD` (DXIL ISG1); the semantic-index/layout
+pairing needs a debug-layer run or full signature-chunk decode to resolve —
+the top reason to unblock the debug layer (Graphics Tools optional feature).
+
+The textured fixture itself is checked in (vertex-buffer VS with `TEXCOORD<N>`
+semantics, sampling PS with snapped texel fetches for exact expectations) and
+the test is the acceptance criterion, labeled `blocked` until the pairing is
+resolved.
+
 ## Remaining D2 scope
 
 - Standalone `clear_image` (transient-descriptor question) and multisample/

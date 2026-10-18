@@ -497,6 +497,78 @@ impl View {
             _ => None,
         }
     }
+
+    /// Native shader-descriptor content of this view: the descriptor-profile
+    /// materialization derives SRV/UAV descs from the validated interpretation.
+    pub(super) fn native_view_desc(&self) -> Result<NativeView, Status> {
+        // SAFETY: the view's image is live through every recorded use.
+        let image = unsafe { &*self.image };
+        let format = formats::dxgi_format(self.desc.format);
+        let meta = formats::meta(self.desc.format).ok_or(UNSUPPORTED)?;
+        if self.desc.range.mip_count == 0 || self.desc.range.layer_count == 0 {
+            return Err(INVALID);
+        }
+        let array = self.desc.range.layer_count > 1;
+        let plane = if meta.aspects & (2 | 4) != 0 {
+            // Depth/stencil descriptors address the depth plane here.
+            0
+        } else {
+            0
+        };
+        let mip_levels = if self.desc.range.mip_count == u32::MAX {
+            0
+        } else {
+            self.desc.range.mip_count
+        };
+        let srv = d3d::D3D12_SHADER_RESOURCE_VIEW_DESC {
+            Format: format,
+            ViewDimension: if array {
+                d3d::D3D12_SRV_DIMENSION_TEXTURE2DARRAY
+            } else {
+                d3d::D3D12_SRV_DIMENSION_TEXTURE2D
+            },
+            Shader4ComponentMapping: 0x1688,
+            Anonymous: d3d::D3D12_SHADER_RESOURCE_VIEW_DESC_0 {
+                Texture2D: d3d::D3D12_TEX2D_SRV {
+                    MostDetailedMip: self.desc.range.first_mip,
+                    MipLevels: mip_levels,
+                    PlaneSlice: plane,
+                    ResourceMinLODClamp: 0.0,
+                },
+            },
+        };
+        let uav = d3d::D3D12_UNORDERED_ACCESS_VIEW_DESC {
+            Format: format,
+            ViewDimension: if array {
+                d3d::D3D12_UAV_DIMENSION_TEXTURE2DARRAY
+            } else {
+                d3d::D3D12_UAV_DIMENSION_TEXTURE2D
+            },
+            Anonymous: d3d::D3D12_UNORDERED_ACCESS_VIEW_DESC_0 {
+                Texture2D: d3d::D3D12_TEX2D_UAV {
+                    MipSlice: self.desc.range.first_mip,
+                    PlaneSlice: plane,
+                },
+            },
+        };
+        let _ = image;
+        Ok(NativeView { srv, uav })
+    }
+}
+
+/// Native descriptor content of a validated view record.
+pub(super) struct NativeView {
+    srv: d3d::D3D12_SHADER_RESOURCE_VIEW_DESC,
+    uav: d3d::D3D12_UNORDERED_ACCESS_VIEW_DESC,
+}
+
+impl NativeView {
+    pub(super) fn shader_resource(&self) -> d3d::D3D12_SHADER_RESOURCE_VIEW_DESC {
+        self.srv
+    }
+    pub(super) fn unordered_access(&self) -> d3d::D3D12_UNORDERED_ACCESS_VIEW_DESC {
+        self.uav
+    }
 }
 
 impl Device {

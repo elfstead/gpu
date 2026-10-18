@@ -24,6 +24,21 @@ pub struct Executable {
     pub(super) strides: Vec<u32>,
 }
 
+/// One unbounded descriptor range of the profile's tables.
+fn unbounded_range(
+    kind: d3d::D3D12_DESCRIPTOR_RANGE_TYPE,
+    register: u32,
+) -> d3d::D3D12_DESCRIPTOR_RANGE1 {
+    d3d::D3D12_DESCRIPTOR_RANGE1 {
+        RangeType: kind,
+        NumDescriptors: u32::MAX,
+        BaseShaderRegister: register,
+        RegisterSpace: 1,
+        Flags: d3d::D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+        OffsetInDescriptorsFromTableStart: 0,
+    }
+}
+
 impl Executable {
     /// Root parameter index of one root slot: descriptors follow the optional
     /// namespace-constants parameter.
@@ -31,9 +46,15 @@ impl Executable {
         u32::from(self.byte_size != 0) + slot
     }
 
-    /// Root parameter index of the unbounded descriptor table.
+    /// Root parameter index of the resource-descriptor tables (UAV/SRV share
+    /// the heap range start; they are consecutive parameters).
     pub(super) fn table_parameter(&self) -> u32 {
         u32::from(self.byte_size != 0) + self.roots.len() as u32
+    }
+
+    /// Root parameter index of the sampler table.
+    pub(super) fn sampler_parameter(&self) -> u32 {
+        self.table_parameter() + 2
     }
 }
 
@@ -291,26 +312,28 @@ pub(in crate::foundation) fn root_signature(
             ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
         });
     }
-    // The descriptor-profile table: one unbounded UAV range at u0/space1.
-    let table_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> = vec![d3d::D3D12_DESCRIPTOR_RANGE1 {
-        RangeType: d3d::D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-        NumDescriptors: u32::MAX,
-        BaseShaderRegister: 0,
-        RegisterSpace: 1,
-        Flags: d3d::D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
-        OffsetInDescriptorsFromTableStart: 0,
-    }];
-    let table = d3d::D3D12_ROOT_DESCRIPTOR_TABLE1 {
-        NumDescriptorRanges: 1,
-        pDescriptorRanges: table_ranges.as_ptr(),
-    };
-    parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
-        ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-        Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
-            DescriptorTable: table,
-        },
-        ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
-    });
+    // Descriptor-profile tables: separate table parameters may share the same
+    // heap range start (ranges within one table must not overlap). Buffer
+    // access binds the UAV table (u0/space1), image access the SRV table
+    // (t0/space1), samplers their own heap (s0/space1).
+    let resource_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> =
+        vec![unbounded_range(d3d::D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0)];
+    let image_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> =
+        vec![unbounded_range(d3d::D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0)];
+    let sampler_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> =
+        vec![unbounded_range(d3d::D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0)];
+    for ranges in [&resource_ranges, &image_ranges, &sampler_ranges] {
+        parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
+            ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+            Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
+                DescriptorTable: d3d::D3D12_ROOT_DESCRIPTOR_TABLE1 {
+                    NumDescriptorRanges: 1,
+                    pDescriptorRanges: ranges.as_ptr(),
+                },
+            },
+            ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
+        });
+    }
     let signature_desc = d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC {
         Version: d3d::D3D_ROOT_SIGNATURE_VERSION_1_1,
         Anonymous: d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC_0 {
@@ -326,14 +349,29 @@ pub(in crate::foundation) fn root_signature(
     let mut serialized: Option<windows::Win32::Graphics::Direct3D::ID3DBlob> = None;
     let mut errors: Option<windows::Win32::Graphics::Direct3D::ID3DBlob> = None;
     // SAFETY: self-contained description; out blobs are adopted.
-    unsafe {
+    let serialized_result = unsafe {
         d3d::D3D12SerializeVersionedRootSignature(
             &signature_desc,
             ptr::from_mut(&mut serialized),
             Some(ptr::from_mut(&mut errors)),
         )
-        .map_err(map_error)?
     };
+    if let Err(error) = serialized_result {
+        if let Some(blob) = errors.as_ref() {
+            // SAFETY: blob bytes are immutable and length-reported.
+            let text = unsafe {
+                std::slice::from_raw_parts(
+                    blob.GetBufferPointer().cast::<u8>(),
+                    blob.GetBufferSize(),
+                )
+            };
+            eprintln!(
+                "DX12PROBE root signature error: {}",
+                String::from_utf8_lossy(text)
+            );
+        }
+        return Err(map_error(error));
+    }
     let serialized = serialized.ok_or(BACKEND_ERROR)?;
     // SAFETY: blob bytes are immutable and length-reported.
     let blob = unsafe {

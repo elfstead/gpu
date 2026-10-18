@@ -1331,15 +1331,21 @@ fn gpu_descriptor_contract_rejections() {
         },
         Err(INVALID)
     );
+    // Image recipes are implemented: they reject on missing views or on a
+    // buffer span mixed into an image descriptor.
+    let output = HostSpan {
+        data: host.as_mut_ptr().cast(),
+        size: 40,
+    };
     let image_recipe = ResourceDescriptor {
         kind: DESCRIPTOR_SAMPLED_IMAGE,
         image_state: STATE_GENERAL,
         view: ptr::null_mut(),
-        buffer: span,
-    };
-    let output = HostSpan {
-        data: host.as_mut_ptr().cast(),
-        size: 40,
+        buffer: Span {
+            memory: ptr::null_mut(),
+            offset: 0,
+            size: 0,
+        },
     };
     assert_eq!(
         unsafe {
@@ -1353,7 +1359,27 @@ fn gpu_descriptor_contract_rejections() {
                 },
             )
         },
-        Err(UNSUPPORTED)
+        Err(INVALID)
+    );
+    let mixed_recipe = ResourceDescriptor {
+        kind: DESCRIPTOR_SAMPLED_IMAGE,
+        image_state: STATE_GENERAL,
+        view: ptr::null_mut(),
+        buffer: span,
+    };
+    assert_eq!(
+        unsafe {
+            api::write_resource_descriptors(
+                device,
+                &[mixed_recipe],
+                &[output],
+                HostSpan {
+                    data: ptr::null_mut(),
+                    size: 0
+                },
+            )
+        },
+        Err(INVALID)
     );
 
     // Bind rejects non-descriptor memory, misaligned ranges and reservations.
@@ -2140,6 +2166,578 @@ fn gpu_graphics_contract_rejections() {
 
     unsafe {
         api::executable_destroy(executable);
+        api::device_destroy(device);
+    }
+}
+
+// ---- D2.4 GPU tests: textured raster through descriptor tables ----
+
+/// Fixture artifacts of tests/dx12-fixtures/textured.slang.
+static TEXTURED_VS: AlignedArtifact<3299> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/textured.vs.dxil"
+));
+static TEXTURED_PS: AlignedArtifact<4279> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/textured.ps.dxil"
+));
+
+fn textured_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandle, Status> {
+    let abi = ArgumentInterface {
+        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+        byte_size: 0,
+        root_count: 0,
+        roots: ptr::null(),
+    };
+    let requirements = ShaderRequirements {
+        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+        features: 0,
+        local_size: [1, 1, 1],
+        shared_memory: 0,
+    };
+    let vs = &TEXTURED_VS.0;
+    let ps = &TEXTURED_PS.0;
+    let shaders = [
+        Shader {
+            stage: STAGE_VERTEX as u32,
+            format: SHADER_DXIL,
+            code: Bytes {
+                data: vs.as_ptr().cast(),
+                size: vs.len(),
+            },
+            entry: c"vsMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+            subgroup: ptr::null(),
+        },
+        Shader {
+            stage: STAGE_FRAGMENT as u32,
+            format: SHADER_DXIL,
+            code: Bytes {
+                data: ps.as_ptr().cast(),
+                size: ps.len(),
+            },
+            entry: c"fsMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+            subgroup: ptr::null(),
+        },
+    ];
+    let bindings = [VertexBinding {
+        binding: 0,
+        stride: 16,
+        rate: 0,
+    }];
+    let attributes = [
+        VertexAttribute {
+            location: 0,
+            binding: 0,
+            format: image_formats::RG32_FLOAT,
+            offset: 0,
+        },
+        VertexAttribute {
+            location: 1,
+            binding: 0,
+            format: image_formats::RG32_FLOAT,
+            offset: 8,
+        },
+    ];
+    let vertex_input = VertexInput {
+        header: Record::new::<VertexInput>(VERTEX_INPUT),
+        binding_count: 1,
+        attribute_count: 2,
+        bindings: bindings.as_ptr(),
+        attributes: attributes.as_ptr(),
+    };
+    let color = ColorState {
+        format: RGBA8_UNORM,
+        write_mask: 0xf,
+        blend: 0,
+        src_color: 0,
+        dst_color: 0,
+        color_op: 0,
+        src_alpha: 0,
+        dst_alpha: 0,
+        alpha_op: 0,
+    };
+    let graphics = GraphicsState {
+        header: Record::new::<GraphicsState>(GRAPHICS_STATE),
+        topology: TRIANGLES,
+        cull: CULL_NONE,
+        front_face: FRONT_CCW,
+        samples: 1,
+        color_count: 1,
+        colors: &color,
+        depth_format: 0,
+        depth_test: 0,
+        depth_write: 0,
+        depth_compare: 0,
+        blend_constants: [0.0; 4],
+        stencil_test: 0,
+        stencil_front: StencilState {
+            fail: 0,
+            pass: 0,
+            depth_fail: 0,
+            compare: 0,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        },
+        stencil_back: StencilState {
+            fail: 0,
+            pass: 0,
+            depth_fail: 0,
+            compare: 0,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        },
+        vertex_input: &vertex_input.header,
+        raster_options: ptr::null(),
+        logic_op_enable: 0,
+        logic_op: 0,
+    };
+    let desc = ExecutableDesc {
+        header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+        kind: EXECUTABLE_GRAPHICS,
+        shader_count: 2,
+        shaders: shaders.as_ptr(),
+        static_state: &graphics.header,
+        dynamic_state: DYNAMIC_VIEWPORT_SCISSOR,
+        requirements: &requirements.header,
+        cache: ptr::null_mut(),
+        compile_flags: 0,
+        reserved: 0,
+    };
+    unsafe { api::executable_create(device, &desc) }
+}
+
+#[ignore = "blocked on D2.4 input-layout/PSO pairing (docs/dx12-backend-d2.md)"]
+#[test]
+fn gpu_textured_raster() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let extent = 64u32;
+    let texels = u64::from(extent * extent) * 4;
+
+    // 4x4 texture with an exact per-texel pattern.
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent { x: 4, y: 4, z: 1 },
+        usage: IMAGE_SAMPLED | IMAGE_COPY_DST,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let texture_backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let texture = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+    unsafe { api::image_bind(texture, texture_backing.span(0, requirements.size)) }.unwrap();
+    let staging = linear_memory(device, 64, USAGE_COPY_SRC, 1);
+    let mut pattern = [0u8; 64];
+    for ty in 0..4u32 {
+        for tx in 0..4u32 {
+            let base = ((ty * 4 + tx) * 4) as usize;
+            pattern[base] = (tx * 60) as u8;
+            pattern[base + 1] = (ty * 60) as u8;
+            pattern[base + 2] = 100;
+            pattern[base + 3] = 255;
+        }
+    }
+    fill_upload(staging, &pattern);
+
+    // Vertex buffer: full-screen triangle (position, uv) pairs.
+    let vertices: Vec<u8> = [
+        [-1.0f32, -1.0, 0.0, 1.0],
+        [-1.0, 3.0, 0.0, -1.0],
+        [3.0, -1.0, 2.0, 1.0],
+    ]
+    .iter()
+    .flat_map(|v| v.iter().flat_map(|f| f.to_le_bytes()))
+    .collect();
+    let vertex_memory = linear_memory(device, 4096, USAGE_VERTEX, 1);
+    fill_upload(vertex_memory, &vertices);
+
+    // Descriptor recipes: texture SRV at resource slot 0, sampler at slot 0.
+    let resource_heap = linear_memory(device, 512, USAGE_DESCRIPTOR_HEAP, 1);
+    let sampler_heap = linear_memory(device, 512, USAGE_DESCRIPTOR_HEAP, 1);
+    let texture_view = unsafe {
+        api::view_create(
+            texture,
+            &ViewDesc {
+                header: Record::new::<ViewDesc>(VIEW_DESC),
+                format: RGBA8_UNORM,
+                dimension: VIEW_2D,
+                usage: IMAGE_SAMPLED as u32,
+                component_mapping: [0, 0, 0, 0],
+                range: Subresources {
+                    aspects: ASPECT_COLOR,
+                    first_mip: 0,
+                    mip_count: 1,
+                    first_layer: 0,
+                    layer_count: 1,
+                },
+            },
+        )
+    }
+    .unwrap();
+    place_resource_recipes(
+        device,
+        resource_heap,
+        &[0],
+        &[ResourceDescriptor {
+            kind: DESCRIPTOR_SAMPLED_IMAGE,
+            image_state: STATE_SHADER_READ,
+            view: texture_view.as_raw(),
+            buffer: Span {
+                memory: ptr::null_mut(),
+                offset: 0,
+                size: 0,
+            },
+        }],
+    );
+    let sampler = SamplerDesc {
+        header: Record::new::<SamplerDesc>(SAMPLER_DESC),
+        min_filter: 0,
+        mag_filter: 0,
+        mip_filter: 0,
+        address_mode: [0, 0, 0],
+        compare_enable: 0,
+        compare_op: 0,
+        border_color: 0,
+        unnormalized_coordinates: 0,
+        min_lod: 0.0,
+        max_lod: 1000.0,
+        lod_bias: 0.0,
+        max_anisotropy: 1.0,
+    };
+    let mut host = [[0u8; 80]; 1];
+    let outputs = [HostSpan {
+        data: host[0].as_mut_ptr().cast(),
+        size: 80,
+    }];
+    unsafe {
+        api::write_sampler_descriptors(
+            device,
+            &[sampler],
+            &outputs,
+            HostSpan {
+                data: ptr::null_mut(),
+                size: 0,
+            },
+        )
+    }
+    .unwrap();
+    {
+        let mapping = unsafe { api::memory_map(sampler_heap.span(0, 80)) }.unwrap();
+        // SAFETY: the mapping covers the recipe slot.
+        unsafe {
+            ptr::copy_nonoverlapping(host[0].as_ptr(), mapping.data.cast::<u8>(), 80);
+        }
+        unsafe { api::memory_unmap(sampler_heap) };
+    }
+
+    let executable = textured_executable(device).unwrap();
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    // Upload the texture through an explicit copy with explicit states.
+    let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let to_dst = ImageBarrier {
+        image: texture.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COPY_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COPY_DST,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_dst,
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: scratch_requirements.size,
+    };
+    unsafe { api::barrier(list, &dependency) };
+    let copy = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent { x: 4, y: 4, z: 1 },
+        },
+        row_pitch: 0,
+        slice_pitch: 0,
+        state: STATE_COPY_DST,
+        reserved: 0,
+    };
+    unsafe { api::copy_to_image(list, texture, staging.span(0, 64), &copy) };
+    let to_shader = ImageBarrier {
+        before: ACCESS_COPY_WRITE,
+        after: ACCESS_SHADER_READ,
+        old_state: STATE_COPY_DST,
+        new_state: STATE_SHADER_READ,
+        discard: 0,
+        ..to_dst
+    };
+    let dependency = Dependency {
+        images: &to_shader,
+        ..dependency
+    };
+    unsafe { api::barrier(list, &dependency) };
+
+    // Render target with a black clear, then the textured triangle.
+    let out_desc = ImageDesc {
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT | IMAGE_COPY_SRC,
+        ..image_desc
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &out_desc, &mut requirements) }.unwrap();
+    let backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let output = unsafe { api::image_create_unbound(device, &out_desc) }.unwrap();
+    unsafe { api::image_bind(output, backing.span(0, requirements.size)) }.unwrap();
+    let view = attachment_view(device, output, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+    let scratch_requirements = unsafe { api::render_scratch_requirements(1) }.unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [0.0, 0.0, 0.0, 1.0],
+        },
+    };
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: 0,
+        color_count: 1,
+        colors: &attachment,
+        depth: ptr::null(),
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            size: scratch_requirements.size,
+        },
+    };
+    unsafe { api::render_begin(list, &render) };
+    unsafe { api::bind_executable(list, executable) };
+    let viewport = ViewportState {
+        header: Record::new::<ViewportState>(VIEWPORT_STATE),
+        x: 0.0,
+        y: 0.0,
+        width: extent as f32,
+        height: extent as f32,
+        min_depth: 0.0,
+        max_depth: 1.0,
+        scissor_x: 0,
+        scissor_y: 0,
+        scissor_width: extent,
+        scissor_height: extent,
+    };
+    unsafe { api::set_graphics_state(list, &viewport) };
+    let scratch_requirements = unsafe { api::vertex_scratch_requirements(1) }.unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let vertex_span = vertex_memory.span(0, 48);
+    unsafe {
+        api::bind_vertices(
+            list,
+            0,
+            &[vertex_span],
+            HostSpan {
+                data: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+                size: scratch_requirements.size,
+            },
+        )
+    };
+    let resource_binding = HeapBinding {
+        header: Record::new::<HeapBinding>(HEAP_BINDING),
+        kind: HEAP_RESOURCE,
+        flags: 0,
+        storage: resource_heap.span(0, 40),
+        reserved_offset: 0,
+        reserved_size: 0,
+    };
+    let sampler_binding = HeapBinding {
+        kind: HEAP_SAMPLER,
+        storage: sampler_heap.span(0, 80),
+        ..resource_binding
+    };
+    unsafe { api::bind_heap(list, &resource_binding) };
+    unsafe { api::bind_heap(list, &sampler_binding) };
+    let draw = DrawDesc {
+        count: 3,
+        instances: 1,
+        first: 0,
+        first_instance: 0,
+        vertex_offset: 0,
+    };
+    unsafe { api::draw(list, &draw) };
+    unsafe { api::render_end(list) };
+
+    let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let to_copy = ImageBarrier {
+        image: output.as_raw(),
+        before: ACCESS_COLOR_WRITE,
+        after: ACCESS_COPY_READ,
+        old_state: STATE_COLOR_ATTACHMENT,
+        new_state: STATE_COPY_SRC,
+        discard: 0,
+        ..to_dst
+    };
+    let dependency = Dependency {
+        images: &to_copy,
+        ..dependency
+    };
+    unsafe { api::barrier(list, &dependency) };
+    let readback = linear_memory(device, texels, USAGE_COPY_DST, 2);
+    let copy_out = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent {
+                x: extent,
+                y: extent,
+                z: 1,
+            },
+        },
+        row_pitch: 0,
+        slice_pitch: 0,
+        state: STATE_COPY_SRC,
+        reserved: 0,
+    };
+    unsafe { api::copy_from_image(list, readback.span(0, texels), output, &copy_out) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+
+    let pixels = read_back(readback, texels);
+    let pixel = |x: usize, y: usize| -> [u8; 4] {
+        let base = (y * extent as usize + x) * 4;
+        pixels[base..base + 4].try_into().unwrap()
+    };
+    // UVs interpolate as (x+0.5)/extent and snap to 4x4 texels exactly.
+    let expected = |x: usize, y: usize| -> [u8; 4] {
+        let tx = (((x * 2 + 1) as u32) / (extent / 4)) as u8;
+        let ty = (((y * 2 + 1) as u32) / (extent / 4)) as u8;
+        [(tx * 60) as u8, (ty * 60) as u8, 100, 255]
+    };
+    for (x, y) in [(0usize, 0usize), (32, 32), (63, 63), (16, 48), (48, 16)] {
+        assert_eq!(pixel(x, y), expected(x, y), "pixel ({}, {})", x, y);
+    }
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::view_destroy(view);
+        api::view_destroy(texture_view);
+        api::image_destroy(output);
+        api::image_destroy(texture);
+        api::memory_destroy(readback);
+        api::memory_destroy(sampler_heap);
+        api::memory_destroy(resource_heap);
+        api::memory_destroy(vertex_memory);
+        api::memory_destroy(staging);
+        api::memory_destroy(backing);
+        api::memory_destroy(texture_backing);
+        api::timeline_destroy(timeline);
         api::device_destroy(device);
     }
 }

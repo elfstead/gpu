@@ -196,8 +196,25 @@ fn validate_resource(d: &Device, input: &ResourceDescriptor) -> Result<(), Statu
             Ok(())
         }
         DESCRIPTOR_SAMPLED_IMAGE | DESCRIPTOR_STORAGE_IMAGE | DESCRIPTOR_INPUT_ATTACHMENT => {
-            // Image descriptors materialize with the graphics profile (D2.3).
-            Err(UNSUPPORTED)
+            // Image descriptors carry a validated view record.
+            if !input.buffer.memory.is_null() {
+                return Err(INVALID);
+            }
+            // SAFETY: view handles are trusted live objects by contract.
+            let view = unsafe { input.view.as_ref() }.ok_or(INVALID)?;
+            if view.image.is_null() {
+                return Err(INVALID);
+            }
+            if input.kind == DESCRIPTOR_STORAGE_IMAGE && input.image_state != STATE_GENERAL {
+                return Err(INVALID);
+            }
+            if input.kind != DESCRIPTOR_STORAGE_IMAGE
+                && input.image_state != STATE_GENERAL
+                && input.image_state != STATE_SHADER_READ
+            {
+                return Err(INVALID);
+            }
+            Ok(())
         }
         _ => Err(INVALID),
     }

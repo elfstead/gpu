@@ -1221,10 +1221,25 @@ impl List {
                         + u64::from(super::descriptors::native_stride(d, binding.kind))
                             * u64::from(base_index),
                 };
-                self.command
-                    .SetComputeRootDescriptorTable(executable.table_parameter(), handle);
-                self.command
-                    .SetGraphicsRootDescriptorTable(executable.table_parameter(), handle);
+                if binding.kind == HEAP_SAMPLER {
+                    self.command
+                        .SetComputeRootDescriptorTable(executable.sampler_parameter(), handle);
+                    self.command
+                        .SetGraphicsRootDescriptorTable(executable.sampler_parameter(), handle);
+                } else {
+                    // UAV and SRV tables share the heap range start: one slot
+                    // space for buffers and images alike.
+                    for offset in [0u32, 1] {
+                        self.command.SetComputeRootDescriptorTable(
+                            executable.table_parameter() + offset,
+                            handle,
+                        );
+                        self.command.SetGraphicsRootDescriptorTable(
+                            executable.table_parameter() + offset,
+                            handle,
+                        );
+                    }
+                }
             }
         }
         Ok(())
