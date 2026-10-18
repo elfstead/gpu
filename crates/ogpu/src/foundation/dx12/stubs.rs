@@ -27,19 +27,10 @@ fn no_scratch() -> Result<HostRequirements, Status> {
     })
 }
 
-pub(in crate::foundation) fn descriptor_scratch(
-    _kind: u32,
-    _count: u32,
-) -> Result<HostRequirements, Status> {
-    no_scratch()
-}
 pub(in crate::foundation) fn present_scratch(
     _waits: u32,
     _images: u32,
 ) -> Result<HostRequirements, Status> {
-    no_scratch()
-}
-pub(in crate::foundation) fn render_scratch(_colors: u32) -> Result<HostRequirements, Status> {
     no_scratch()
 }
 pub(in crate::foundation) fn vertex_scratch(_count: u32) -> Result<HostRequirements, Status> {
@@ -220,17 +211,6 @@ impl Device {
 }
 
 impl List {
-    /// # Safety
-    /// Views and scratch stay live through all recorded/pending uses.
-    pub(in crate::foundation) unsafe fn render_begin(
-        &self,
-        _desc: &RenderDesc,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn render_end(&self) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
     pub(in crate::foundation) fn viewport(&self, _state: &ViewportState) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }

@@ -31,6 +31,8 @@ pub struct List {
     executable: Cell<*const Executable>,
     /// Kinds of descriptor heaps currently bound (bit 1 resource, bit 2 sampler).
     heaps: Cell<u32>,
+    /// Whether a render scope is active on this recording.
+    pub(super) rendering: Cell<bool>,
     /// Argument namespace shadow. Root arguments are invalidated by a root
     /// signature change, so binding re-emits these recorded bytes to preserve
     /// the contract's byte-preservation rule. Preallocated per slot; recording
@@ -109,6 +111,7 @@ impl Arena {
                 barriers,
                 executable: Cell::new(ptr::null()),
                 heaps: Cell::new(0),
+                rendering: Cell::new(false),
                 arguments: RefCell::new(vec![0; MAX_ARGUMENT_BYTES as usize]),
             }));
         }
@@ -1126,7 +1129,7 @@ impl List {
             // Recipes materialize from host-visible heap memory through the
             // memory's persistent mapping; no allocation or retention.
             // SAFETY: external serialization covers mapping state.
-            let mapping = unsafe { memory.map(binding.storage.offset, binding.storage.size)? };
+            let mapping = memory.map(binding.storage.offset, binding.storage.size)?;
             for i in 0..count {
                 // SAFETY: the mapping covers the recipe region.
                 let bytes = unsafe {

@@ -79,10 +79,33 @@ Evidence (same machine as the D1 receipt):
 - Debugging blind without the debug layer cost several GPU-level bisections;
   the debug-layer deployment gap from D1 remains the top tooling follow-up.
 
+## D2.3a — render scopes and attachment views (implemented, natively exercised)
+
+Clear-only and attachment-load render scopes work end to end: attachment views
+own native RTV/DSV descriptors (cold creation into device view heaps), render
+begin binds targets and applies explicit CLEAR load operations over the
+declared area, and pixels verify byte-exact on readback.
+
+| Piece | Mapping |
+| --- | --- |
+| `View` attachment records | Own native RTV/DSV descriptors (the "views are descriptor contents" decision); slot allocation is a cold-path counter into device view heaps |
+| `render_begin` | Validate the full attachment contract (states, one-mip identity views, pairing rules, area, scratch sized per color count) then `OMSetRenderTargets` and explicit `Clear*View` load operations; no transition, initialization or implicit viewport/scissor |
+| `render_end` | Clears the recorded scope; D3D12 render targets are state, so no native call is required |
+| Load/store operations | LOAD preserves (native state keeps contents), CLEAR clears, DONT_CARE is a no-op; STORE/DISCARD map to native attachment lifetime (no store-op call exists) |
+| Depth/stencil | DSV creation and paired-record validation land here; depth clear values are range-checked to [0,1] |
+
+Evidence: `gpu_render_scope_clear_readback` (RGBA clear through a real render
+scope, pixel-exact readback) and `gpu_render_scope_contract_rejections`
+(secondary scopes, invalid attachment states, out-of-scope render end, views
+without attachment usage). Full suite: 12 GPU + 18 host tests on Windows;
+Linux regression unchanged.
+
 ## Remaining D2 scope
 
-- Offscreen graphics: render scopes, graphics executables/PSOs, viewport and
-  dynamic raster state, indexed drawing, image clears (D2.3).
+- Offscreen graphics: graphics executables/PSOs, viewport and dynamic raster
+  state, draws and indexed drawing (D2.3b); standalone `clear_image` and
+  multisample/resolve targets remain open (transient-descriptor and resolve
+  profiles).
 - Image descriptors (sampled/storage image recipes materializing SRV/UAV from
   validated views) — the D2.3 graphics tests exercise them.
 - Queries, executable caches (pipeline libraries), count-based indirect work,

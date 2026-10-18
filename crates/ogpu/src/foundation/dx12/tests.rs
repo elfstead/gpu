@@ -1418,3 +1418,339 @@ fn gpu_descriptor_contract_rejections() {
         api::device_destroy(device);
     }
 }
+
+// ---- D2.3 GPU tests: render scopes, attachment views and load-op clears ----
+
+fn attachment_view(
+    device: api::DeviceHandle,
+    image: api::ImageHandle,
+    usage: u32,
+) -> Result<api::ViewHandle, Status> {
+    let desc = ViewDesc {
+        header: Record::new::<ViewDesc>(VIEW_DESC),
+        format: RGBA8_UNORM,
+        dimension: VIEW_2D,
+        usage,
+        component_mapping: [0, 0, 0, 0],
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+    };
+    unsafe { api::view_create(image, &desc) }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_render_scope_clear_readback() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let extent = 64u32;
+    let texels = u64::from(extent * extent) * 4;
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT | IMAGE_COPY_SRC,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let image = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+    unsafe { api::image_bind(image, backing.span(0, requirements.size)) }.unwrap();
+    let view = attachment_view(device, image, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let scratch_requirements = unsafe { api::render_scratch_requirements(1) };
+    let scratch_requirements = scratch_requirements.unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let clear = ClearValue {
+        f32: [0.0, 0.0, 0.0, 1.0],
+    };
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear,
+    };
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: 0,
+        color_count: 1,
+        colors: &attachment,
+        depth: ptr::null(),
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            size: scratch_requirements.size,
+        },
+    };
+    unsafe { api::render_begin(list, &render) };
+    unsafe { api::render_end(list) };
+    let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let barrier = ImageBarrier {
+        image: image.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: ACCESS_COLOR_WRITE,
+        after: ACCESS_COPY_READ,
+        old_state: STATE_COLOR_ATTACHMENT,
+        new_state: STATE_COPY_SRC,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 0,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &barrier,
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: scratch_requirements.size,
+    };
+    unsafe { api::barrier(list, &dependency) };
+    let readback = linear_memory(device, texels, USAGE_COPY_DST, 2);
+    let copy = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent {
+                x: extent,
+                y: extent,
+                z: 1,
+            },
+        },
+        row_pitch: 0,
+        slice_pitch: 0,
+        state: STATE_COPY_SRC,
+        reserved: 0,
+    };
+    unsafe { api::copy_from_image(list, readback.span(0, texels), image, &copy) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+
+    // Clear values 0.0/1.0 map exactly to UNORM bytes without rounding rules.
+    let pixels = read_back(readback, texels);
+    let expected: Vec<u8> = [0, 0, 0, 255]
+        .iter()
+        .cycle()
+        .take(texels as usize)
+        .copied()
+        .collect();
+    assert_eq!(pixels, expected);
+
+    unsafe {
+        api::arena_destroy(arena);
+        api::view_destroy(view);
+        api::image_destroy(image);
+        api::memory_destroy(backing);
+        api::memory_destroy(readback);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_render_scope_contract_rejections() {
+    let (_discovery, device, _queue, domain) = gpu_setup();
+    let extent = 16u32;
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT | IMAGE_COPY_SRC,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let image = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+    unsafe { api::image_bind(image, backing.span(0, requirements.size)) }.unwrap();
+    let view = attachment_view(device, image, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+
+    let scratch_requirements = unsafe { api::render_scratch_requirements(1) }.unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [0.0, 0.0, 0.0, 1.0],
+        },
+    };
+
+    // RENDER_SECONDARY is the secondary-execution profile; reject visibly.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: RENDER_SECONDARY,
+        color_count: 1,
+        colors: &attachment,
+        depth: ptr::null(),
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            size: scratch_requirements.size,
+        },
+    };
+    unsafe { api::render_begin(list, &render) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    unsafe { api::arena_destroy(arena) };
+
+    // Attachment states must be the declared attachment states.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let bad = Attachment {
+        state: STATE_COPY_DST,
+        ..attachment
+    };
+    let render = RenderDesc {
+        flags: 0,
+        colors: &bad,
+        ..render
+    };
+    unsafe { api::render_begin(list, &render) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    // render_end outside a scope is invalid.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::render_end(list) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    // Views without attachment usage cannot be attachment views.
+    let bad_view = attachment_view(device, image, IMAGE_SAMPLED as u32);
+    assert!(bad_view.is_err());
+
+    unsafe {
+        api::view_destroy(view);
+        api::image_destroy(image);
+        api::memory_destroy(backing);
+        api::device_destroy(device);
+    }
+}

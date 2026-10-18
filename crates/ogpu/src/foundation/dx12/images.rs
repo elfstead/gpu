@@ -33,6 +33,21 @@ pub struct Image {
 pub struct View {
     pub(super) image: *const Image,
     pub(super) desc: ViewDesc,
+    /// Native render/depth target descriptors owned by this view; attachment
+    /// views carry exactly one of them.
+    targets: Targets,
+}
+
+/// Native descriptor slots of an attachment view (cold creation).
+#[derive(Clone, Copy)]
+pub(super) enum Targets {
+    None,
+    RenderTarget {
+        handle: d3d::D3D12_CPU_DESCRIPTOR_HANDLE,
+    },
+    DepthStencil {
+        handle: d3d::D3D12_CPU_DESCRIPTOR_HANDLE,
+    },
 }
 
 impl Drop for Image {
@@ -361,6 +376,10 @@ impl Image {
         self.facts.mip_count
     }
 
+    pub(super) fn sample_count(&self) -> u32 {
+        self.facts.sample_count
+    }
+
     pub(super) fn layer_count(&self) -> u32 {
         self.facts.layer_count
     }
@@ -446,10 +465,110 @@ impl View {
             // 2D views of 3D slices are outside the current profile.
             return Err(UNSUPPORTED);
         }
+        // SAFETY: the view's image is live and carries its device.
+        let d = unsafe { &*image.device };
+        let mut targets = Targets::None;
+        if desc.usage & IMAGE_COLOR_ATTACHMENT as u32 != 0 {
+            let handle = d.render_target_view(image, desc)?;
+            targets = Targets::RenderTarget { handle };
+        } else if desc.usage & IMAGE_DEPTH_STENCIL_ATTACHMENT as u32 != 0 {
+            let handle = d.depth_stencil_view(image, desc)?;
+            targets = Targets::DepthStencil { handle };
+        }
         Ok(Box::new(Self {
             image,
             desc: *desc,
+            targets,
         }))
+    }
+
+    /// The view's render-target descriptor, when it is a color attachment view.
+    pub(super) fn render_target(&self) -> Option<d3d::D3D12_CPU_DESCRIPTOR_HANDLE> {
+        match self.targets {
+            Targets::RenderTarget { handle } => Some(handle),
+            _ => None,
+        }
+    }
+
+    /// The view's depth/stencil descriptor, when it is a depth attachment view.
+    pub(super) fn depth_stencil(&self) -> Option<d3d::D3D12_CPU_DESCRIPTOR_HANDLE> {
+        match self.targets {
+            Targets::DepthStencil { handle } => Some(handle),
+            _ => None,
+        }
+    }
+}
+
+impl Device {
+    /// Create the render-target descriptor of an attachment view. The native
+    /// descriptor belongs to the view; cold creation may allocate slot storage.
+    fn render_target_view(
+        &self,
+        image: &Image,
+        desc: &ViewDesc,
+    ) -> Result<d3d::D3D12_CPU_DESCRIPTOR_HANDLE, Status> {
+        let format = formats::dxgi_format(desc.format);
+        let dimension = if desc.range.layer_count > 1 {
+            d3d::D3D12_RTV_DIMENSION_TEXTURE2DARRAY
+        } else {
+            d3d::D3D12_RTV_DIMENSION_TEXTURE2D
+        };
+        let view = d3d::D3D12_RENDER_TARGET_VIEW_DESC {
+            Format: format,
+            ViewDimension: dimension,
+            Anonymous: d3d::D3D12_RENDER_TARGET_VIEW_DESC_0 {
+                Texture2D: d3d::D3D12_TEX2D_RTV {
+                    MipSlice: desc.range.first_mip,
+                    PlaneSlice: 0,
+                },
+            },
+        };
+        // SAFETY: validated image and view record; output slot is owned by the view.
+        let handle = unsafe {
+            self.next_view_slot(d3d::D3D12_DESCRIPTOR_HEAP_TYPE_RTV)?
+        };
+        // SAFETY: live resource and owned descriptor slot.
+        unsafe {
+            self.device.CreateRenderTargetView(
+                Some(image.resource()?),
+                Some(&view),
+                handle,
+            );
+        }
+        Ok(handle)
+    }
+
+    /// Create the depth/stencil descriptor of an attachment view.
+    fn depth_stencil_view(
+        &self,
+        image: &Image,
+        desc: &ViewDesc,
+    ) -> Result<d3d::D3D12_CPU_DESCRIPTOR_HANDLE, Status> {
+        let format = formats::dxgi_format(desc.format);
+        let dimension = if desc.range.layer_count > 1 {
+            d3d::D3D12_DSV_DIMENSION_TEXTURE2DARRAY
+        } else {
+            d3d::D3D12_DSV_DIMENSION_TEXTURE2D
+        };
+        let view = d3d::D3D12_DEPTH_STENCIL_VIEW_DESC {
+            Format: format,
+            ViewDimension: dimension,
+            Flags: d3d::D3D12_DSV_FLAG_NONE,
+            Anonymous: d3d::D3D12_DEPTH_STENCIL_VIEW_DESC_0 {
+                Texture2D: d3d::D3D12_TEX2D_DSV {
+                    MipSlice: desc.range.first_mip,
+                },
+            },
+        };
+        // SAFETY: validated image and view record; output slot is owned by the view.
+        let handle = unsafe {
+            self.next_view_slot(d3d::D3D12_DESCRIPTOR_HEAP_TYPE_DSV)?
+        };
+        // SAFETY: live resource and owned descriptor slot.
+        unsafe {
+            self.device.CreateDepthStencilView(Some(image.resource()?), Some(&view), handle);
+        }
+        Ok(handle)
     }
 }
 

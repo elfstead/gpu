@@ -430,6 +430,14 @@ pub const VIEW_CUBE: u32 = 4;
 pub const VIEW_1D_ARRAY: u32 = 5;
 pub const VIEW_2D_ARRAY: u32 = 6;
 pub const VIEW_CUBE_ARRAY: u32 = 7;
+/// Attachment load/store operations (include/ogpu_next.h).
+pub const LOAD: u32 = 0;
+pub const CLEAR: u32 = 1;
+pub const DONT_CARE: u32 = 2;
+pub const STORE: u32 = 0;
+pub const DISCARD: u32 = 1;
+/// Render-scope flags.
+pub const RENDER_SECONDARY: u32 = 1;
 pub const IMAGE_COPY_SRC: u64 = 1;
 pub const IMAGE_COPY_DST: u64 = 2;
 pub const IMAGE_SAMPLED: u64 = 4;

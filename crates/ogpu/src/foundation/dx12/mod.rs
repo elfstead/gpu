@@ -30,6 +30,8 @@ use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject, INFIN
 mod commands;
 #[path = "descriptors.rs"]
 mod descriptors;
+#[path = "rendering.rs"]
+mod rendering;
 #[path = "executables.rs"]
 mod executables;
 #[path = "formats.rs"]
@@ -50,9 +52,11 @@ pub use stubs::{
 };
 
 pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch};
+pub(super) use descriptors::descriptor_scratch;
+pub(super) use rendering::render_scratch;
 pub(super) use stubs::{
-    descriptor_scratch, execute_scratch, executable_record, inheritance_scratch, present_scratch,
-    render_scratch, split_scratch, vertex_scratch,
+    execute_scratch, executable_record, inheritance_scratch, present_scratch, split_scratch,
+    vertex_scratch,
 };
 
 /// Queue domains of this adapter profile: direct, compute, copy queues.
@@ -490,8 +494,19 @@ pub struct Device {
     pub(super) heap_tier: u32,
     /// Retained for the live budget query; no other adapter dependency exists.
     adapter: dxgi::IDXGIAdapter1,
+    /// Native render/depth target descriptor heaps; attachment views own slots.
+    view_heaps: ViewHeaps,
     queues: Vec<Queue>,
     lost: AtomicBool,
+}
+
+/// Descriptor heaps for render/depth attachment views. Slot allocation is a
+/// cold-path counter; recording performs no allocation.
+pub(super) struct ViewHeaps {
+    rtv: d3d::ID3D12DescriptorHeap,
+    dsv: d3d::ID3D12DescriptorHeap,
+    rtv_next: std::sync::atomic::AtomicU32,
+    dsv_next: std::sync::atomic::AtomicU32,
 }
 
 pub struct Queue {
@@ -602,12 +617,24 @@ impl Device {
                 )
                 .map_err(map_error)?
         };
+        // SAFETY: well-formed heap descriptions; outputs are adopted.
+        let view_heaps = ViewHeaps {
+            rtv: unsafe {
+                create_view_heap(&device, d3d::D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 65536)?
+            },
+            dsv: unsafe {
+                create_view_heap(&device, d3d::D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 8192)?
+            },
+            rtv_next: std::sync::atomic::AtomicU32::new(0),
+            dsv_next: std::sync::atomic::AtomicU32::new(0),
+        };
         let mut result = Box::new(Self {
             snapshot,
             device,
             dispatch_signature: dispatch_signature.ok_or(BACKEND_ERROR)?,
             heap_tier: adapter.state.heap_tier,
             adapter: adapter.state.adapter.clone(),
+            view_heaps,
             queues,
             lost: AtomicBool::new(false),
         });
@@ -655,6 +682,37 @@ impl Device {
             }
         }
     }
+    /// Allocate one attachment-view descriptor slot of the given native heap
+    /// type. Cold path: view creation, never recording.
+    pub(super) unsafe fn next_view_slot(
+        &self,
+        kind: d3d::D3D12_DESCRIPTOR_HEAP_TYPE,
+    ) -> Result<d3d::D3D12_CPU_DESCRIPTOR_HANDLE, Status> {
+        let (heap, counter, capacity) = match kind {
+            d3d::D3D12_DESCRIPTOR_HEAP_TYPE_RTV => (
+                &self.view_heaps.rtv,
+                &self.view_heaps.rtv_next,
+                65536,
+            ),
+            _ => (
+                &self.view_heaps.dsv,
+                &self.view_heaps.dsv_next,
+                8192,
+            ),
+        };
+        let slot = counter.fetch_add(1, Ordering::Relaxed);
+        if slot >= capacity {
+            return Err(CAPACITY);
+        }
+        // SAFETY: live heap; the handle targets one owned slot.
+        let mut handle = unsafe { heap.GetCPUDescriptorHandleForHeapStart() };
+        let stride =
+            // SAFETY: live device query; returns the native slot size.
+            unsafe { self.device.GetDescriptorHandleIncrementSize(kind) };
+        handle.ptr += stride as usize * slot as usize;
+        Ok(handle)
+    }
+
     pub(super) fn queue(&self, domain: u32, index: u32) -> Option<&Queue> {
         self.queues
             .iter()
@@ -833,3 +891,23 @@ pub(super) fn array_layout<T>(count: u32) -> Result<std::alloc::Layout, Status> 
 
 #[cfg(test)]
 mod tests;
+
+/// Create one shader-invisible attachment-view descriptor heap.
+unsafe fn create_view_heap(
+    device: &d3d::ID3D12Device,
+    kind: d3d::D3D12_DESCRIPTOR_HEAP_TYPE,
+    count: u32,
+) -> Result<d3d::ID3D12DescriptorHeap, Status> {
+    let desc = d3d::D3D12_DESCRIPTOR_HEAP_DESC {
+        Type: kind,
+        NumDescriptors: count,
+        Flags: d3d::D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+        NodeMask: 0,
+    };
+    // SAFETY: well-formed heap description; output reference adopted.
+    unsafe {
+        device
+            .CreateDescriptorHeap::<d3d::ID3D12DescriptorHeap>(&desc)
+            .map_err(map_error)
+    }
+}
