@@ -32,7 +32,11 @@ pub struct List {
     /// Bound graphics executable; drawing requires one.
     graphics: Cell<*const Executable>,
     /// Kinds of descriptor heaps currently bound (bit 1 resource, bit 2 sampler).
-    heaps: Cell<u32>,
+    /// Currently bound descriptor-heap range per kind. D3D12 sets the complete
+    /// bound-heap set at once and invalidates descriptor tables whenever it
+    /// changes, so the list remembers both bindings and re-issues them together.
+    resource_binding: RefCell<Option<TableBinding>>,
+    sampler_binding: RefCell<Option<TableBinding>>,
     /// Whether a render scope is active on this recording.
     pub(super) rendering: Cell<bool>,
     /// Argument namespace shadow. Root arguments are invalidated by a root
@@ -113,7 +117,8 @@ impl Arena {
                 barriers,
                 executable: Cell::new(ptr::null()),
                 graphics: Cell::new(ptr::null()),
-                heaps: Cell::new(0),
+                resource_binding: RefCell::new(None),
+                sampler_binding: RefCell::new(None),
                 rendering: Cell::new(false),
                 arguments: RefCell::new(vec![0; MAX_ARGUMENT_BYTES as usize]),
             }));
@@ -913,6 +918,7 @@ impl List {
             self.command.SetPipelineState(&executable.pipeline);
             self.emit_arguments(executable)?;
         }
+        self.apply_descriptor_state(d)?;
         if compute {
             self.executable.set(executable);
         } else {
@@ -1139,7 +1145,7 @@ impl List {
         if domain.flags & (GRAPHICS | COMPUTE) == 0 {
             return Err(UNSUPPORTED);
         }
-        let (stride, heap_bit) = match binding.kind {
+        let (stride, _heap_bit) = match binding.kind {
             HEAP_RESOURCE => (descriptors::RESOURCE_STRIDE, 1),
             HEAP_SAMPLER => (descriptors::SAMPLER_STRIDE, 2),
             _ => return Err(INVALID),
@@ -1192,58 +1198,92 @@ impl List {
                 };
             }
         }
-        // D3D12 binds the heap set; re-issue both kinds to keep earlier binds.
-        let kinds = self.heaps.get() | heap_bit;
-        self.heaps.set(kinds);
-        // The native array must contain only present heaps: a NULL entry is
-        // rejected. One resource and one sampler heap may be bound together.
+        // Remember this kind's binding and re-issue the complete heap set:
+        // SetDescriptorHeaps replaces the bound set and invalidates tables.
+        let (gpu, _stride) = heaps.gpu_start(d, binding.kind)?;
+        let handle = d3d::D3D12_GPU_DESCRIPTOR_HANDLE {
+            ptr: gpu.ptr
+                + u64::from(super::descriptors::native_stride(d, binding.kind))
+                    * u64::from(base_index),
+        };
+        let table = TableBinding {
+            heap: match binding.kind {
+                HEAP_SAMPLER => heaps.sampler.clone(),
+                _ => heaps.resource.clone(),
+            },
+            handle,
+        };
+        match binding.kind {
+            HEAP_SAMPLER => *self.sampler_binding.borrow_mut() = Some(table),
+            _ => *self.resource_binding.borrow_mut() = Some(table),
+        };
+        self.apply_descriptor_state(d)?;
+        Ok(())
+    }
+
+    /// Re-issue the complete descriptor-heap set and every bound table. Any
+    /// change to the set invalidates tables and root arguments natively.
+    fn apply_descriptor_state(&self, _d: &Device) -> Result<(), Status> {
+        let resource = self.resource_binding.borrow();
+        let sampler = self.sampler_binding.borrow();
         let mut bound: Vec<Option<d3d::ID3D12DescriptorHeap>> = Vec::with_capacity(2);
-        if kinds & 1 != 0 {
-            bound.push(Some(heaps.resource.clone()));
+        if let Some(binding) = resource.as_ref() {
+            bound.push(Some(binding.heap.clone()));
         }
-        if kinds & 2 != 0 {
-            bound.push(Some(heaps.sampler.clone()));
+        if let Some(binding) = sampler.as_ref() {
+            bound.push(Some(binding.heap.clone()));
         }
-        // SAFETY: recording slot is live; heap references stay live through use.
-        unsafe {
-            self.command.SetDescriptorHeaps(&bound);
+        if !bound.is_empty() {
+            // SAFETY: recording slot is live; heap references stay live through use.
+            unsafe {
+                self.command.SetDescriptorHeaps(&bound);
+            }
         }
-        // Changing descriptor heaps invalidates bound tables and root
-        // arguments: re-emit arguments and bind the range-start table.
-        if let Some(executable) = unsafe { self.executable.get().as_ref() } {
+        // Root arguments reach both root states; table parameters come from
+        // each bound executable's own layout (compute and graphics can differ).
+        for bound_executable in [self.executable.get(), self.graphics.get()] {
+            let Some(executable) = (unsafe { bound_executable.as_ref() }) else {
+                continue;
+            };
             // SAFETY: recording slot and executable are live.
             unsafe { self.emit_arguments(executable)? };
-            let (gpu, _stride) = heaps.gpu_start(d, binding.kind)?;
-            // SAFETY: recording slot is live; the heap stays live through use.
+            // SAFETY: recording slot is live; heap bindings stay live through use.
             unsafe {
-                let handle = d3d::D3D12_GPU_DESCRIPTOR_HANDLE {
-                    ptr: gpu.ptr
-                        + u64::from(super::descriptors::native_stride(d, binding.kind))
-                            * u64::from(base_index),
-                };
-                if binding.kind == HEAP_SAMPLER {
-                    self.command
-                        .SetComputeRootDescriptorTable(executable.sampler_parameter(), handle);
-                    self.command
-                        .SetGraphicsRootDescriptorTable(executable.sampler_parameter(), handle);
-                } else {
+                if let Some(binding) = resource.as_ref() {
                     // UAV and SRV tables share the heap range start: one slot
                     // space for buffers and images alike.
                     for offset in [0u32, 1] {
                         self.command.SetComputeRootDescriptorTable(
                             executable.table_parameter() + offset,
-                            handle,
+                            binding.handle,
                         );
                         self.command.SetGraphicsRootDescriptorTable(
                             executable.table_parameter() + offset,
-                            handle,
+                            binding.handle,
                         );
                     }
+                }
+                if let Some(binding) = sampler.as_ref() {
+                    self.command.SetComputeRootDescriptorTable(
+                        executable.sampler_parameter(),
+                        binding.handle,
+                    );
+                    self.command.SetGraphicsRootDescriptorTable(
+                        executable.sampler_parameter(),
+                        binding.handle,
+                    );
                 }
             }
         }
         Ok(())
     }
+}
+
+/// One bound descriptor-heap range: the native heap and the table start handle.
+#[derive(Clone)]
+pub(super) struct TableBinding {
+    heap: d3d::ID3D12DescriptorHeap,
+    handle: d3d::D3D12_GPU_DESCRIPTOR_HANDLE,
 }
 
 /// Shared primitive topology mapping for the input assembler.

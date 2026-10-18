@@ -29,9 +29,12 @@ VSOut vsMain(VSIn input)
 [shader("fragment")]
 float4 fsMain(VSOut input) : SV_Target
 {
-    // DIAGNOSTIC: two distinct texel fetches. Identical values mean a dead or
-    // constant descriptor; distinct-but-wrong values mean a wrong resource view.
-    float4 texel00 = textures[0][uint2(0, 0)];
-    float4 texel10 = textures[0][uint2(1, 0)];
-    return float4(texel10.r, texel00.g, texel10.g, 1.0);
+    // Pixel-exact fixture: snap UVs to texel centres so the linear filter
+    // returns exact texels at any rasterisation resolution; the CPU-side
+    // oracle snaps identically.
+    uint width, height;
+    textures[0].GetDimensions(width, height);
+    float2 size = float2(width, height);
+    float2 snapped = (floor(input.uv * size) + 0.5) / size;
+    return textures[0].Sample(samplers[0], snapped);
 }

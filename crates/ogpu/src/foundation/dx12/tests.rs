@@ -2324,7 +2324,7 @@ fn gpu_graphics_contract_rejections() {
 static TEXTURED_VS: AlignedArtifact<3299> = AlignedArtifact(*include_bytes!(
     "../../../../../tests/dx12-fixtures/textured.vs.dxil"
 ));
-static TEXTURED_PS: AlignedArtifact<3867> = AlignedArtifact(*include_bytes!(
+static TEXTURED_PS: AlignedArtifact<4423> = AlignedArtifact(*include_bytes!(
     "../../../../../tests/dx12-fixtures/textured.ps.dxil"
 ));
 
@@ -2974,7 +2974,14 @@ fn gpu_textured_raster() {
     };
     // DIAGNOSTIC: the shader reports texel(0,0).r and the interpolated UVs.
     // UVs interpolate as ((x+0.5)/extent, (y+0.5)/extent) in this topology.
-    let expected = |_x: usize, _y: usize| -> [u8; 4] { [0, 0, 100, 255] };
+    // CPU oracle: the fixture snaps UVs to texel centres, so the linear
+    // filter returns the exact texel floor(u*4) x floor(v*4) at every pixel.
+    let expected = |x: usize, y: usize| -> [u8; 4] {
+        let (u, v) = (x as f32 / 64.0, y as f32 / 64.0);
+        let col = (u * 4.0).floor().clamp(0.0, 3.0) as u8;
+        let row = (v * 4.0).floor().clamp(0.0, 3.0) as u8;
+        [col * 60, row * 60, 100, 255]
+    };
     for (x, y) in [(0usize, 0usize), (32, 32), (63, 63), (16, 48), (48, 16)] {
         let got = pixel(x, y);
         let want = expected(x, y);
