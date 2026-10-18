@@ -49,3 +49,44 @@ Evidence (same machine as the D1 receipt: Radeon RX 5700 XT, driver
   specialization strategy (D2.4).
 - Consumer attempts (foundation Rust consumer, learned-image, M4/M5) once the
   above profiles express them.
+
+## D2.2 descriptor profile: provisional decision (implementation next)
+
+Status: **PROVISIONAL — the reviewer may replace this profile.** The question:
+the shared contract encodes descriptors into host bytes, lets the caller place
+or copy those bytes into linear `DESCRIPTOR_HEAP` memory, and binds a range.
+D3D12 descriptors are opaque native values: they exist only inside native
+descriptor heaps, are written by `Create*View`, and cannot be materialized into
+host memory. The matrix already records "no promise of portable or directly
+writable descriptor bytes" for this backend.
+
+### Provisional choice: recipe-encoded descriptor bytes
+
+`DESCRIPTOR_HEAP` memory stays linear memory (so `copy_memory` of descriptor
+ranges keeps working exactly as the contract describes) and additionally owns
+preallocated native descriptor heaps (resource-kind and sampler-kind, created
+at preparation). Descriptor "bytes" are an opaque device-specific **recipe**
+encoding. `bind_heap` materializes the bound range into the native heaps and
+binds them — bounded record-time encoding into preallocated storage, no
+allocation, no copying of resources. Descriptor mutation works exactly as the
+contract states: overwrite recipe bytes and rebind. `DescriptorLimits` reports
+the recipe sizes/alignments. Artifact-side heap access maps to SM 6.6 dynamic
+resources (direct heap indexing), matching the header's "direct heap access"
+note.
+
+### Alternative kept open
+
+A write-to-heap API (`write_*_descriptors` targeting a descriptor-heap span
+directly) with native `Create*View` encoding — the category-2 alternative where
+the heap memory is natively writable and no recipes exist. It changes the
+shared API surface; the recipe profile keeps the API unchanged. Either can be
+selected without touching D2.1 or D1.
+
+### Related rendering decision (D2.3)
+
+Render-target/depth views are *not* shader descriptors: D3D12 has separate
+RTV/DSV heaps and `Set*Targets` binds by handle. A `View` object therefore owns
+its RTV/DSV descriptor slot (cold creation) while shader-facing views
+materialize as descriptors. `View::create` itself is a validated interpretation
+record on this backend — the "views are descriptor contents" item from the D1
+matrix.
