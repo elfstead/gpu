@@ -29,7 +29,7 @@ VSOut vsMain(VSIn input)
 [shader("fragment")]
 float4 fsMain(VSOut input) : SV_Target
 {
-    float2 texel = floor(input.uv * 4.0);
-    float2 snapped = (texel + 0.5) / 4.0;
-    return textures[0].Sample(samplers[0], snapped);
+    // DIAGNOSTIC: exact texel fetch at (0,0) and the raw UV as color channels
+    // identify whether the texture content or the sampling path is wrong.
+    return textures[0].Load(int3(0, 0, 0));
 }

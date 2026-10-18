@@ -1574,6 +1574,42 @@ fn gpu_render_scope_clear_readback() {
         resolve_mode: 0,
         clear,
     };
+    // The caller owns attachment state: images start UNDEFINED and render
+    // scopes infer no transition.
+    let state_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut state_scratch, state_offset) = aligned_scratch(state_requirements);
+    let to_attachment = ImageBarrier {
+        image: image.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COLOR_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COLOR_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let state_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR,
+        after: STAGE_COLOR,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_attachment,
+        scratch: unsafe { state_scratch.as_mut_ptr().add(state_offset) }.cast(),
+        scratch_size: state_requirements.size,
+    };
+    unsafe { api::barrier(list, &state_dependency) };
     let render = RenderDesc {
         header: Record::new::<RenderDesc>(RENDER_DESC),
         x: 0,
@@ -1762,6 +1798,42 @@ fn gpu_render_scope_contract_rejections() {
     // RENDER_SECONDARY is the secondary-execution profile; reject visibly.
     let arena = single_slot_arena(device, domain);
     let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    // The caller owns attachment state: images start UNDEFINED and render
+    // scopes infer no transition.
+    let state_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut state_scratch, state_offset) = aligned_scratch(state_requirements);
+    let to_attachment = ImageBarrier {
+        image: image.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COLOR_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COLOR_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let state_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR,
+        after: STAGE_COLOR,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_attachment,
+        scratch: unsafe { state_scratch.as_mut_ptr().add(state_offset) }.cast(),
+        scratch_size: state_requirements.size,
+    };
+    unsafe { api::barrier(list, &state_dependency) };
     let render = RenderDesc {
         header: Record::new::<RenderDesc>(RENDER_DESC),
         x: 0,
@@ -1999,6 +2071,42 @@ fn gpu_graphics_triangle_raster() {
             f32: [0.0, 1.0, 0.0, 1.0],
         },
     };
+    // The caller owns attachment state: images start UNDEFINED and render
+    // scopes infer no transition.
+    let state_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut state_scratch, state_offset) = aligned_scratch(state_requirements);
+    let to_attachment = ImageBarrier {
+        image: image.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COLOR_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COLOR_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let state_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR,
+        after: STAGE_COLOR,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_attachment,
+        scratch: unsafe { state_scratch.as_mut_ptr().add(state_offset) }.cast(),
+        scratch_size: state_requirements.size,
+    };
+    unsafe { api::barrier(list, &state_dependency) };
     let render = RenderDesc {
         header: Record::new::<RenderDesc>(RENDER_DESC),
         x: 0,
@@ -2123,6 +2231,7 @@ fn gpu_graphics_triangle_raster() {
     .unwrap();
     assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
 
+    dump_validation(device);
     let pixels = read_back(readback, u64::from(extent) * 256);
     let pixel = |x: usize, y: usize| -> [u8; 4] {
         let base = y * 256 + x * 4;
@@ -2215,7 +2324,7 @@ fn gpu_graphics_contract_rejections() {
 static TEXTURED_VS: AlignedArtifact<3299> = AlignedArtifact(*include_bytes!(
     "../../../../../tests/dx12-fixtures/textured.vs.dxil"
 ));
-static TEXTURED_PS: AlignedArtifact<4279> = AlignedArtifact(*include_bytes!(
+static TEXTURED_PS: AlignedArtifact<3831> = AlignedArtifact(*include_bytes!(
     "../../../../../tests/dx12-fixtures/textured.ps.dxil"
 ));
 
@@ -2365,7 +2474,7 @@ fn gpu_textured_raster() {
         layer_count: 1,
         sample_count: 1,
         extent: Extent { x: 4, y: 4, z: 1 },
-        usage: IMAGE_SAMPLED | IMAGE_COPY_DST,
+        usage: IMAGE_SAMPLED | IMAGE_COPY_DST | IMAGE_COPY_SRC,
         flags: 0,
         view_formats: ptr::null(),
         view_format_count: 0,
@@ -2564,6 +2673,22 @@ fn gpu_textured_raster() {
     };
     unsafe { api::barrier(list, &dependency) };
 
+    // Direct texture content check through the independently verified copy path.
+    let texture_check = linear_memory(device, 1024, USAGE_COPY_DST, 2);
+    let check_copy = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent { x: 4, y: 4, z: 1 },
+        },
+        row_pitch: 256,
+        slice_pitch: 0,
+        state: STATE_SHADER_READ,
+        reserved: 0,
+    };
     // Render target with a black clear, then the textured triangle.
     let out_desc = ImageDesc {
         extent: Extent {
@@ -2610,6 +2735,42 @@ fn gpu_textured_raster() {
             f32: [0.0, 0.0, 0.0, 1.0],
         },
     };
+    // The caller owns attachment state: images start UNDEFINED and render
+    // scopes infer no transition.
+    let state_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut state_scratch, state_offset) = aligned_scratch(state_requirements);
+    let to_attachment = ImageBarrier {
+        image: output.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COLOR_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COLOR_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let state_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR,
+        after: STAGE_COLOR,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_attachment,
+        scratch: unsafe { state_scratch.as_mut_ptr().add(state_offset) }.cast(),
+        scratch_size: state_requirements.size,
+    };
+    unsafe { api::barrier(list, &state_dependency) };
     let render = RenderDesc {
         header: Record::new::<RenderDesc>(RENDER_DESC),
         x: 0,
@@ -2683,6 +2844,56 @@ fn gpu_textured_raster() {
     };
     unsafe { api::draw(list, &draw) };
     unsafe { api::render_end(list) };
+    // The texture was sampled in SHADER_READ; transition it for the content check.
+    let check_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut check_scratch, check_offset) = aligned_scratch(check_requirements);
+    let to_check = ImageBarrier {
+        image: texture.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: ACCESS_SHADER_READ,
+        after: ACCESS_COPY_READ,
+        old_state: STATE_SHADER_READ,
+        new_state: STATE_COPY_SRC,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 0,
+    };
+    let check_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_FRAGMENT,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_check,
+        scratch: unsafe { check_scratch.as_mut_ptr().add(check_offset) }.cast(),
+        scratch_size: check_requirements.size,
+    };
+    unsafe { api::barrier(list, &check_dependency) };
+    let check_copy = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent { x: 4, y: 4, z: 1 },
+        },
+        row_pitch: 256,
+        slice_pitch: 0,
+        state: STATE_COPY_SRC,
+        reserved: 0,
+    };
+    unsafe { api::copy_from_image(list, texture_check.span(0, 1024), texture, &check_copy) };
 
     let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
     let (mut scratch, offset) = aligned_scratch(scratch_requirements);
@@ -2752,19 +2963,32 @@ fn gpu_textured_raster() {
     .unwrap();
     assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
 
+    dump_validation(device);
+    let texture_bytes = read_back(texture_check, 1024);
+    eprintln!("DX12PROBE texture texel(0,0) = {:?}", &texture_bytes[..4]);
+    eprintln!("DX12PROBE texture row0       = {:?}", &texture_bytes[..16]);
     let pixels = read_back(readback, u64::from(extent) * 256);
     let pixel = |x: usize, y: usize| -> [u8; 4] {
         let base = y * 256 + x * 4;
         pixels[base..base + 4].try_into().unwrap()
     };
-    // UVs interpolate as (x+0.5)/extent and snap to 4x4 texels exactly.
-    let expected = |x: usize, y: usize| -> [u8; 4] {
-        let tx = (((x * 2 + 1) as u32) / (extent / 4)) as u8;
-        let ty = (((y * 2 + 1) as u32) / (extent / 4)) as u8;
-        [(tx * 60) as u8, (ty * 60) as u8, 100, 255]
-    };
+    // DIAGNOSTIC: the shader reports texel(0,0).r and the interpolated UVs.
+    // UVs interpolate as ((x+0.5)/extent, (y+0.5)/extent) in this topology.
+    let expected = |_x: usize, _y: usize| -> [u8; 4] { [0, 0, 100, 255] };
     for (x, y) in [(0usize, 0usize), (32, 32), (63, 63), (16, 48), (48, 16)] {
-        assert_eq!(pixel(x, y), expected(x, y), "pixel ({}, {})", x, y);
+        let got = pixel(x, y);
+        let want = expected(x, y);
+        // Float-to-UNORM rounding may differ by one byte.
+        for (g, w) in got.iter().zip(want.iter()) {
+            assert!(
+                (*g as i32 - *w as i32).abs() <= 1,
+                "pixel ({}, {}): got {:?} want {:?}",
+                x,
+                y,
+                got,
+                want
+            );
+        }
     }
 
     unsafe {

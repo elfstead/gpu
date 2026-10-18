@@ -142,15 +142,28 @@ SRV table (t0/space1) for images and a sampler table (s0/space1), each bound
 at the heap range start (separate table parameters may share a range start;
 ranges within one table must not overlap).
 
-**Open item (blocks `gpu_textured_raster`):** the textured pipeline now runs
-end to end (vertex buffers, descriptor tables, SRV/sampler materialization and
-sampling all execute; earlier blockers — the input-layout root-signature flag,
-the SPIR-V word-size rule vs DXIL byte-granularity and a stale scratch
-re-export — are fixed) but sampled pixel values do not match the CPU oracle
-yet (`[32, 32, 2, 255]` where a texel of the uploaded pattern is expected).
-The remaining question is shader-side: the UV/snap convention, the sampler
-recipe or the pattern layout. The D3D12 debug layer (Graphics Tools now
-installed) reports no validation errors for the recorded work.
+**Open item (blocks `gpu_textured_raster`):** narrowed to the image-descriptor
+path by layered diagnostics (fixture variants + the debug layer):
+
+1. **Texture content is correct** — the uploaded pattern reads back exactly
+   (`[0,0,100,255, 60,0,100,255, ...]`) through the independently verified
+   image-copy path.
+2. **Vertex input, input layout and UV interpolation are correct** — a
+   diagnostic fragment shader reporting the interpolated UVs matched the CPU
+   oracle exactly (this exercised the TEXCOORD<N> convention end to end).
+3. **The SRV reads garbage** — `Load` through the descriptor table returns
+   values matching no texel (nondeterministic across runs), while the D3D12
+   debug layer reports the descriptor and resource as valid. The UAV-table
+   variant (`RWTexture2D`) faults the device instead — so the image-descriptor
+   materialization (`native_view_desc` / `CreateShaderResourceView` path) is
+   the remaining defect, not the upload, the sampling conventions or the
+   tables (buffer descriptors through the same tables are proven by
+   `gpu_descriptor_heap_roundtrip`).
+
+Also fixed this round: render scopes require the caller's attachment-state
+transition (images start UNDEFINED; the clear worked only by driver tolerance —
+the debug layer flagged it), and a test-side scratch requirement mismatch
+rendered a post-scope barrier CAPACITY-poisoned.
 
 Debug-layer note: `gpu_setup` enables the OS debug layer when installed, so
 every GPU test is also a validation run. Two benign messages recur (the
