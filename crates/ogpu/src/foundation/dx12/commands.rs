@@ -29,6 +29,8 @@ pub struct List {
     barriers: Option<d3d::ID3D12GraphicsCommandList7>,
     /// Bound compute executable; arguments require one.
     executable: Cell<*const Executable>,
+    /// Bound graphics executable; drawing requires one.
+    graphics: Cell<*const Executable>,
     /// Kinds of descriptor heaps currently bound (bit 1 resource, bit 2 sampler).
     heaps: Cell<u32>,
     /// Whether a render scope is active on this recording.
@@ -110,6 +112,7 @@ impl Arena {
                 command,
                 barriers,
                 executable: Cell::new(ptr::null()),
+                graphics: Cell::new(ptr::null()),
                 heaps: Cell::new(0),
                 rendering: Cell::new(false),
                 arguments: RefCell::new(vec![0; MAX_ARGUMENT_BYTES as usize]),
@@ -864,13 +867,19 @@ impl List {
     /// of this profile.
     fn bound_executable(&self, scope: u64) -> Result<&Executable, Status> {
         let d = self.recording()?;
-        if scope != STAGE_COMPUTE {
-            return Err(UNSUPPORTED);
-        }
         let _ = d;
         // SAFETY: the executable pointer is set only by bind_executable and the
         // contract keeps executables alive through all recorded/pending uses.
-        unsafe { self.executable.get().as_ref() }.ok_or(INVALID)
+        let cell = match scope {
+            STAGE_COMPUTE => &self.executable,
+            s if s != 0
+                && s & !(STAGE_VERTEX | STAGE_FRAGMENT | MESH_STAGE | TASK_STAGE) == 0 =>
+            {
+                &self.graphics
+            }
+            _ => return Err(UNSUPPORTED),
+        };
+        unsafe { cell.get().as_ref() }.ok_or(INVALID)
     }
 
     /// Bind prepared compute state. Root arguments are re-emitted from the
@@ -880,9 +889,6 @@ impl List {
         executable: &Executable,
     ) -> Result<(), Status> {
         let d = self.recording()?;
-        if executable.stages != STAGE_COMPUTE {
-            return Err(UNSUPPORTED);
-        }
         if !ptr::eq(executable.device, d) {
             return Err(INVALID);
         }
@@ -892,16 +898,31 @@ impl List {
             .iter()
             .find(|q| q.domain == self.domain)
             .ok_or(INVALID)?;
-        if domain.flags & COMPUTE == 0 {
+        let compute = executable.stages == STAGE_COMPUTE;
+        if compute {
+            if domain.flags & COMPUTE == 0 {
+                return Err(UNSUPPORTED);
+            }
+        } else if domain.flags & GRAPHICS == 0 {
             return Err(UNSUPPORTED);
         }
         // SAFETY: prepared objects stay live through all recorded uses.
         unsafe {
             self.command.SetComputeRootSignature(&executable.signature);
+            self.command.SetGraphicsRootSignature(&executable.signature);
             self.command.SetPipelineState(&executable.pipeline);
             self.emit_arguments(executable)?;
         }
-        self.executable.set(executable);
+        if compute {
+            self.executable.set(executable);
+        } else {
+            // Input-assembler state follows the executable's topology.
+            // SAFETY: recording slot is live.
+            unsafe {
+                self.command.IASetPrimitiveTopology(topology(executable.topology)?);
+            }
+            self.graphics.set(executable);
+        }
         Ok(())
     }
 
@@ -914,9 +935,20 @@ impl List {
         // Recording is externally serialized per the contract; the borrow only
         // guards accidental aliasing in this module.
         let shadow = self.arguments.borrow();
+        if executable.byte_size == 0 {
+            return Ok(());
+        }
         // SAFETY: recording slot and executable are live; bytes are plain data.
+        // Both pipeline classes see one shared namespace (the SHARED_BYTES
+        // profile), so every update reaches compute and graphics root state.
         unsafe {
             self.command.SetComputeRoot32BitConstants(
+                0,
+                executable.byte_size / 4,
+                shadow[..bytes].as_ptr().cast(),
+                0,
+            );
+            self.command.SetGraphicsRoot32BitConstants(
                 0,
                 executable.byte_size / 4,
                 shadow[..bytes].as_ptr().cast(),
@@ -928,8 +960,14 @@ impl List {
             address.copy_from_slice(&shadow[root.offset as usize..root.offset as usize + 8]);
             // SAFETY: recording slot is live; the address is caller-owned data.
             unsafe {
-                self.command
-                    .SetComputeRootUnorderedAccessView(1 + slot as u32, u64::from_le_bytes(address));
+                self.command.SetComputeRootUnorderedAccessView(
+                    executable.root_parameter(slot as u32),
+                    u64::from_le_bytes(address),
+                );
+                self.command.SetGraphicsRootUnorderedAccessView(
+                    executable.root_parameter(slot as u32),
+                    u64::from_le_bytes(address),
+                );
             }
         }
         Ok(())
@@ -980,6 +1018,8 @@ impl List {
         unsafe {
             self.command
                 .SetComputeRoot32BitConstants(0, size / 4, data.cast(), offset / 4);
+            self.command
+                .SetGraphicsRoot32BitConstants(0, size / 4, data.cast(), offset / 4);
         }
         Ok(())
     }
@@ -1005,7 +1045,9 @@ impl List {
         // SAFETY: recording slot is live; the address is caller-owned data.
         unsafe {
             self.command
-                .SetComputeRootUnorderedAccessView(1 + slot, address);
+                .SetComputeRootUnorderedAccessView(executable.root_parameter(slot), address);
+            self.command
+                .SetGraphicsRootUnorderedAccessView(executable.root_parameter(slot), address);
         }
         Ok(())
     }
@@ -1174,15 +1216,248 @@ impl List {
             let (gpu, _stride) = heaps.gpu_start(d, binding.kind)?;
             // SAFETY: recording slot is live; the heap stays live through use.
             unsafe {
-                self.command.SetComputeRootDescriptorTable(
-                    1 + executable.roots.len() as u32,
-                    d3d::D3D12_GPU_DESCRIPTOR_HANDLE {
-                        ptr: gpu.ptr
-                            + u64::from(super::descriptors::native_stride(d, binding.kind))
-                                * u64::from(base_index),
-                    },
+                let handle = d3d::D3D12_GPU_DESCRIPTOR_HANDLE {
+                    ptr: gpu.ptr
+                        + u64::from(super::descriptors::native_stride(d, binding.kind))
+                            * u64::from(base_index),
+                };
+                self.command
+                    .SetComputeRootDescriptorTable(executable.table_parameter(), handle);
+                self.command
+                    .SetGraphicsRootDescriptorTable(executable.table_parameter(), handle);
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Shared primitive topology mapping for the input assembler.
+fn topology(value: u32) -> Result<windows::Win32::Graphics::Direct3D::D3D_PRIMITIVE_TOPOLOGY, Status> {
+    use windows::Win32::Graphics::Direct3D as d3dtopo;
+    Ok(match value {
+        POINTS => d3dtopo::D3D_PRIMITIVE_TOPOLOGY_POINTLIST,
+        LINES => d3dtopo::D3D_PRIMITIVE_TOPOLOGY_LINELIST,
+        LINE_STRIP => d3dtopo::D3D_PRIMITIVE_TOPOLOGY_LINESTRIP,
+        TRIANGLES => d3dtopo::D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST,
+        TRIANGLE_STRIP => d3dtopo::D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,
+        _ => return Err(INVALID),
+    })
+}
+
+/// Scratch holds the native vertex-buffer view array (one per binding).
+pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
+    if count == 0 {
+        return Ok(HostRequirements {
+            size: 0,
+            alignment: 1,
+        });
+    }
+    Ok(HostRequirements {
+        size: u64::from(count) * 24,
+        alignment: 8,
+    })
+}
+
+impl List {
+    /// Viewport and scissor state (dynamically supported on this backend).
+    pub(in crate::foundation) fn viewport(&self, state: &ViewportState) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
+        state.header.validate::<ViewportState>(VIEWPORT_STATE)?;
+        if state.width == 0.0 || state.height == 0.0 {
+            return Err(INVALID);
+        }
+        let viewport = d3d::D3D12_VIEWPORT {
+            TopLeftX: state.x,
+            TopLeftY: state.y,
+            Width: state.width,
+            Height: state.height,
+            MinDepth: state.min_depth,
+            MaxDepth: state.max_depth,
+        };
+        let scissor = windows::Win32::Foundation::RECT {
+            left: state.scissor_x,
+            top: state.scissor_y,
+            right: state.scissor_x + state.scissor_width as i32,
+            bottom: state.scissor_y + state.scissor_height as i32,
+        };
+        // SAFETY: recording slot is live; state is validated.
+        unsafe {
+            self.command.RSSetViewports(&[viewport]);
+            self.command.RSSetScissorRects(&[scissor]);
+        }
+        Ok(())
+    }
+
+    /// Blend constants are dynamic on this backend.
+    pub(in crate::foundation) fn blend_constants(&self, values: &[f32; 4]) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
+        if values.iter().any(|v| !v.is_finite()) {
+            return Err(INVALID);
+        }
+        // SAFETY: recording slot is live.
+        unsafe { self.command.OMSetBlendFactor(Some(values)) };
+        Ok(())
+    }
+
+    /// Stencil reference is dynamic; stencil masks are PSO state on this backend.
+    pub(in crate::foundation) fn stencil_value(
+        &self,
+        field: u32,
+        _faces: u32,
+        value: u32,
+    ) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
+        if field != 4 {
+            return Err(UNSUPPORTED);
+        }
+        // SAFETY: recording slot is live.
+        unsafe { self.command.OMSetStencilRef(value) };
+        Ok(())
+    }
+
+    /// Depth/stencil/cull/front-face dynamic states are PSO state on this
+    /// backend and reject rather than being silently baked.
+    pub(in crate::foundation) fn dynamic_raster_value(
+        &self,
+        _field: u32,
+        _value: u32,
+    ) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
+        Err(UNSUPPORTED)
+    }
+
+    /// Stencil operations are PSO state on this backend.
+    pub(in crate::foundation) fn stencil_ops(
+        &self,
+        _faces: u32,
+        _fail: u32,
+        _pass: u32,
+        _depth_fail: u32,
+        _compare: u32,
+    ) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX | STAGE_FRAGMENT)?;
+        Err(UNSUPPORTED)
+    }
+
+    pub(in crate::foundation) fn draw(&self, draw: &DrawDesc, indexed: bool) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX)?;
+        if draw.instances == 0 {
+            return Err(INVALID);
+        }
+        // SAFETY: recording slot is live.
+        unsafe {
+            if indexed {
+                self.command.DrawIndexedInstanced(
+                    draw.count,
+                    draw.instances,
+                    draw.first,
+                    draw.vertex_offset,
+                    draw.first_instance,
+                );
+            } else {
+                self.command.DrawInstanced(
+                    draw.count,
+                    draw.instances,
+                    draw.first,
+                    draw.first_instance,
                 );
             }
+        }
+        Ok(())
+    }
+
+    pub(in crate::foundation) fn bind_indices(
+        &self,
+        span: Span,
+        kind: u32,
+    ) -> Result<(), Status> {
+        let d = self.bound_executable(STAGE_VERTEX)?;
+        let _ = d;
+        let format = match kind {
+            INDEX_U16 => windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R16_UINT,
+            INDEX_U32 => windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R32_UINT,
+            _ => return Err(INVALID),
+        };
+        // SAFETY: span memory handle is a trusted live object by contract.
+        let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
+        let (buffer, offset, _) =
+            // SAFETY: the device pointer is live for every list operation.
+            memory.command_range(unsafe { &*self.device }, self.domain, span.offset, span.size, USAGE_INDEX)?;
+        let view = d3d::D3D12_INDEX_BUFFER_VIEW {
+            BufferLocation: {
+                // SAFETY: buffer stays live for the query.
+                let base = unsafe { buffer.GetGPUVirtualAddress() };
+                base + offset
+            },
+            SizeInBytes: span.size as u32,
+            Format: format,
+        };
+        // SAFETY: recording slot is live; the view names a live buffer.
+        unsafe { self.command.IASetIndexBuffer(Some(&view)) };
+        Ok(())
+    }
+
+    /// Vertex bindings translate to native vertex-buffer views placed in the
+    /// caller scratch, one view per binding.
+    /// # Safety
+    /// Spans and scratch stay live through all recorded/pending uses.
+    pub(in crate::foundation) fn bind_vertices(
+        &self,
+        first: u32,
+        count: u32,
+        spans: *const Span,
+        scratch: HostSpan,
+    ) -> Result<(), Status> {
+        let executable = self.bound_executable(STAGE_VERTEX)?;
+        // SAFETY: trusted span array of the declared count.
+        let spans = unsafe { super::slice(spans, count)? };
+        let requirement = vertex_scratch(count)?;
+        if count == 0 {
+            return Ok(());
+        }
+        if scratch.size < requirement.size
+            || scratch.data.is_null()
+            || scratch.data as usize % requirement.alignment as usize != 0
+        {
+            return Err(INVALID);
+        }
+        if u64::from(first) + u64::from(count) > 32 {
+            return Err(UNSUPPORTED);
+        }
+        let views = scratch.data.cast::<d3d::D3D12_VERTEX_BUFFER_VIEW>();
+        for (index, span) in spans.iter().enumerate() {
+            // SAFETY: span memory handle is a trusted live object by contract.
+            let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
+            let (buffer, offset, _) = memory.command_range(
+                // SAFETY: the device pointer is live for every list operation.
+                unsafe { &*self.device },
+                self.domain,
+                span.offset,
+                span.size,
+                USAGE_VERTEX,
+            )?;
+            // SAFETY: scratch is writable for the declared requirement.
+            unsafe {
+                views.add(index).write(d3d::D3D12_VERTEX_BUFFER_VIEW {
+                    BufferLocation: {
+                        // SAFETY: buffer stays live for the query.
+                        let base = unsafe { buffer.GetGPUVirtualAddress() };
+                        base + offset
+                    },
+                    SizeInBytes: span.size as u32,
+                    StrideInBytes: *executable
+                        .strides
+                        .get(first as usize + index)
+                        .ok_or(INVALID)?,
+                });
+            }
+        }
+        // SAFETY: recording slot is live; the views name live buffers.
+        unsafe {
+            self.command.IASetVertexBuffers(
+                first,
+                Some(std::slice::from_raw_parts(views, count as usize)),
+            );
         }
         Ok(())
     }

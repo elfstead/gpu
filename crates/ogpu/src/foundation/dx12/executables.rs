@@ -18,6 +18,23 @@ pub struct Executable {
     pub(super) byte_size: u32,
     pub(super) roots: Vec<RootSlot>,
     pub(super) stages: u64,
+    /// Primitive topology of graphics executables (input-assembler state).
+    pub(super) topology: u32,
+    /// Per-binding vertex strides (input-assembler state); graphics only.
+    pub(super) strides: Vec<u32>,
+}
+
+impl Executable {
+    /// Root parameter index of one root slot: descriptors follow the optional
+    /// namespace-constants parameter.
+    pub(super) fn root_parameter(&self, slot: u32) -> u32 {
+        u32::from(self.byte_size != 0) + slot
+    }
+
+    /// Root parameter index of the unbounded descriptor table.
+    pub(super) fn table_parameter(&self) -> u32 {
+        u32::from(self.byte_size != 0) + self.roots.len() as u32
+    }
 }
 
 impl Drop for Executable {
@@ -39,7 +56,7 @@ pub(in crate::foundation) unsafe fn array<'a, T>(p: *const T, count: u32) -> Res
 }
 
 /// Argument-interface validation, mirroring the shared contract exactly.
-pub(super) fn interface(
+pub(in crate::foundation) fn interface(
     limits: &ExecutionLimits,
     input: &ArgumentInterface,
     roots: &[RootSlot],
@@ -126,6 +143,10 @@ impl Executable {
             // GENERATED_COMMANDS. Neither is enabled in this profile yet.
             return Err(UNSUPPORTED);
         }
+        if desc.kind == EXECUTABLE_GRAPHICS {
+            // SAFETY: caller contract covers the description arrays.
+            return unsafe { super::graphics::prepare(d, desc) };
+        }
         if desc.kind != EXECUTABLE_COMPUTE
             || desc.shader_count != 1
             || !desc.static_state.is_null()
@@ -144,10 +165,11 @@ impl Executable {
             // no DXIL representation; the toolchain emits DXIL for this backend.
             return Err(UNSUPPORTED);
         }
+        // DXIL containers are byte-granular (their own header declares the
+        // size); the word-granular size rule describes SPIR-V artifacts.
         if shader.code.data.is_null()
             || shader.code.data as usize % 4 != 0
             || shader.code.size < 20
-            || shader.code.size % 4 != 0
             || shader.code.size > isize::MAX as usize
             || shader.entry.is_null()
         {
@@ -187,98 +209,7 @@ impl Executable {
         requirements(d, req)?;
         signature_budget(abi.byte_size, abi.root_count)?;
 
-        // Root signature: namespace constants at b0, one raw UAV root
-        // descriptor per root slot at u(i), all in space 0. The union values
-        // are plain Copy structs; storage lives until serialization below.
-        let constants = d3d::D3D12_ROOT_CONSTANTS {
-            ShaderRegister: 0,
-            RegisterSpace: 0,
-            Num32BitValues: abi.byte_size / 4,
-        };
-        let descriptors: Vec<d3d::D3D12_ROOT_DESCRIPTOR1> = (0..abi.root_count)
-            .map(|slot| d3d::D3D12_ROOT_DESCRIPTOR1 {
-                ShaderRegister: slot,
-                RegisterSpace: 0,
-                Flags: d3d::D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE,
-            })
-            .collect();
-        let mut parameters: Vec<d3d::D3D12_ROOT_PARAMETER1> =
-            Vec::with_capacity(descriptors.len() + 1);
-        parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
-            ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
-            Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
-                Constants: constants,
-            },
-            ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
-        });
-        for descriptor in &descriptors {
-            parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
-                ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_UAV,
-                Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
-                    Descriptor: *descriptor,
-                },
-                ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
-            });
-        }
-        // The descriptor-profile table: one unbounded UAV range at u0/space1.
-        // Artifacts index it directly; `bind_heap` binds the range start.
-        let table_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> = vec![d3d::D3D12_DESCRIPTOR_RANGE1 {
-            RangeType: d3d::D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-            NumDescriptors: u32::MAX,
-            BaseShaderRegister: 0,
-            RegisterSpace: 1,
-            Flags: d3d::D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
-            OffsetInDescriptorsFromTableStart: 0,
-        }];
-        let table = d3d::D3D12_ROOT_DESCRIPTOR_TABLE1 {
-            NumDescriptorRanges: 1,
-            pDescriptorRanges: table_ranges.as_ptr(),
-        };
-        parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
-            ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-            Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
-                DescriptorTable: table,
-            },
-            ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
-        });
-        let signature_desc = d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC {
-            Version: d3d::D3D_ROOT_SIGNATURE_VERSION_1_1,
-            Anonymous: d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC_0 {
-                Desc_1_1: d3d::D3D12_ROOT_SIGNATURE_DESC1 {
-                    NumParameters: parameters.len() as u32,
-                    pParameters: parameters.as_ptr(),
-                    NumStaticSamplers: 0,
-                    pStaticSamplers: ptr::null(),
-                    Flags: d3d::D3D12_ROOT_SIGNATURE_FLAG_NONE,
-                },
-            },
-        };
-        let mut serialized: Option<windows::Win32::Graphics::Direct3D::ID3DBlob> = None;
-        let mut errors: Option<windows::Win32::Graphics::Direct3D::ID3DBlob> = None;
-        // SAFETY: self-contained description; out blobs are adopted.
-        unsafe {
-            d3d::D3D12SerializeVersionedRootSignature(
-                &signature_desc,
-                ptr::from_mut(&mut serialized),
-                Some(ptr::from_mut(&mut errors)),
-            )
-            .map_err(map_error)?
-        };
-        let serialized = serialized.ok_or(BACKEND_ERROR)?;
-        // SAFETY: blob bytes are immutable and length-reported.
-        let blob = unsafe {
-            std::slice::from_raw_parts(
-                serialized.GetBufferPointer().cast::<u8>(),
-                serialized.GetBufferSize(),
-            )
-        };
-        // SAFETY: validated serialized signature blob.
-        let signature: d3d::ID3D12RootSignature = unsafe {
-            d.device
-                .CreateRootSignature(0, blob)
-                .map_err(map_error)?
-        };
-
+        let signature = root_signature(d, abi, roots)?;
         let pipeline_desc = d3d::D3D12_COMPUTE_PIPELINE_STATE_DESC {
             pRootSignature: core::mem::ManuallyDrop::new(Some(unsafe {
                 d3d::ID3D12RootSignature::from_raw(signature.as_raw())
@@ -312,6 +243,113 @@ impl Executable {
             byte_size: abi.byte_size,
             roots: owned_roots,
             stages: STAGE_COMPUTE,
+            topology: 0,
+            strides: Vec::new(),
         }))
     }
+}
+
+/// Build the ROOT_DESCRIPTORS profile root signature: namespace constants at
+/// b0, one raw UAV root descriptor per root slot at u(slot), and one unbounded
+/// UAV descriptor table at u0/space1 for the descriptor profile.
+pub(in crate::foundation) fn root_signature(
+    d: &Device,
+    abi: &ArgumentInterface,
+    roots: &[RootSlot],
+) -> Result<d3d::ID3D12RootSignature, Status> {
+    let constants = d3d::D3D12_ROOT_CONSTANTS {
+        ShaderRegister: 0,
+        RegisterSpace: 0,
+        Num32BitValues: abi.byte_size / 4,
+    };
+    let descriptors: Vec<d3d::D3D12_ROOT_DESCRIPTOR1> = (0..abi.root_count)
+        .map(|slot| d3d::D3D12_ROOT_DESCRIPTOR1 {
+            ShaderRegister: slot,
+            RegisterSpace: 0,
+            Flags: d3d::D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE,
+        })
+        .collect();
+    let mut parameters: Vec<d3d::D3D12_ROOT_PARAMETER1> =
+        Vec::with_capacity(descriptors.len() + 2);
+    if abi.byte_size != 0 {
+        // A zero-length root-constant parameter is invalid; an empty argument
+        // namespace omits the parameter entirely (and shifts root indices).
+        parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
+            ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+            Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
+                Constants: constants,
+            },
+            ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
+        });
+    }
+    for descriptor in &descriptors {
+        parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
+            ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_UAV,
+            Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
+                Descriptor: *descriptor,
+            },
+            ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
+        });
+    }
+    // The descriptor-profile table: one unbounded UAV range at u0/space1.
+    let table_ranges: Vec<d3d::D3D12_DESCRIPTOR_RANGE1> = vec![d3d::D3D12_DESCRIPTOR_RANGE1 {
+        RangeType: d3d::D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+        NumDescriptors: u32::MAX,
+        BaseShaderRegister: 0,
+        RegisterSpace: 1,
+        Flags: d3d::D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE,
+        OffsetInDescriptorsFromTableStart: 0,
+    }];
+    let table = d3d::D3D12_ROOT_DESCRIPTOR_TABLE1 {
+        NumDescriptorRanges: 1,
+        pDescriptorRanges: table_ranges.as_ptr(),
+    };
+    parameters.push(d3d::D3D12_ROOT_PARAMETER1 {
+        ParameterType: d3d::D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+        Anonymous: d3d::D3D12_ROOT_PARAMETER1_0 {
+            DescriptorTable: table,
+        },
+        ShaderVisibility: d3d::D3D12_SHADER_VISIBILITY_ALL,
+    });
+    let signature_desc = d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC {
+        Version: d3d::D3D_ROOT_SIGNATURE_VERSION_1_1,
+        Anonymous: d3d::D3D12_VERSIONED_ROOT_SIGNATURE_DESC_0 {
+            Desc_1_1: d3d::D3D12_ROOT_SIGNATURE_DESC1 {
+                NumParameters: parameters.len() as u32,
+                pParameters: parameters.as_ptr(),
+                NumStaticSamplers: 0,
+                pStaticSamplers: ptr::null(),
+                Flags: d3d::D3D12_ROOT_SIGNATURE_FLAG_NONE,
+            },
+        },
+    };
+    let mut serialized: Option<windows::Win32::Graphics::Direct3D::ID3DBlob> = None;
+    let mut errors: Option<windows::Win32::Graphics::Direct3D::ID3DBlob> = None;
+    // SAFETY: self-contained description; out blobs are adopted.
+    unsafe {
+        d3d::D3D12SerializeVersionedRootSignature(
+            &signature_desc,
+            ptr::from_mut(&mut serialized),
+            Some(ptr::from_mut(&mut errors)),
+        )
+        .map_err(map_error)?
+    };
+    let serialized = serialized.ok_or(BACKEND_ERROR)?;
+    // SAFETY: blob bytes are immutable and length-reported.
+    let blob = unsafe {
+        std::slice::from_raw_parts(
+            serialized.GetBufferPointer().cast::<u8>(),
+            serialized.GetBufferSize(),
+        )
+    };
+    // SAFETY: validated serialized signature blob.
+    let signature: d3d::ID3D12RootSignature = unsafe {
+        d.device.CreateRootSignature(0, blob).map_err(|e| {
+            let status = map_error(e);
+            eprintln!("DX12PROBE root signature creation failed: {}", status);
+            status
+        })?
+    };
+    let _ = roots;
+    Ok(signature)
 }

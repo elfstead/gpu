@@ -211,16 +211,6 @@ impl Device {
 }
 
 impl List {
-    pub(in crate::foundation) fn viewport(&self, _state: &ViewportState) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn draw(
-        &self,
-        _draw: &DrawDesc,
-        _indexed: bool,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
     pub(in crate::foundation) fn draw_indirect(
         &self,
         _desc: &Indirect,
@@ -252,55 +242,6 @@ impl List {
         &self,
         _batch: &GeneratedBatch,
         _preprocessed: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn bind_indices(
-        &self,
-        _span: Span,
-        _kind: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Spans and scratch are valid and live through all recorded uses.
-    pub(in crate::foundation) fn bind_vertices(
-        &self,
-        _first: u32,
-        _count: u32,
-        _spans: *const Span,
-        _scratch: HostSpan,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn blend_constants(
-        &self,
-        _values: &[f32; 4],
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn stencil_value(
-        &self,
-        _field: u32,
-        _faces: u32,
-        _value: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn dynamic_raster_value(
-        &self,
-        _field: u32,
-        _value: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn stencil_ops(
-        &self,
-        _faces: u32,
-        _fail: u32,
-        _pass: u32,
-        _depth_fail: u32,
-        _compare: u32,
     ) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }

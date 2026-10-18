@@ -1754,3 +1754,392 @@ fn gpu_render_scope_contract_rejections() {
         api::device_destroy(device);
     }
 }
+
+// ---- D2.3b GPU tests: graphics executables and rasterization ----
+
+/// Fixture artifacts of tests/dx12-fixtures/triangle.slang.
+static TRIANGLE_VS: AlignedArtifact<3336> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/triangle.vs.dxil"
+));
+static TRIANGLE_PS: AlignedArtifact<2790> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/triangle.ps.dxil"
+));
+
+fn triangle_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandle, Status> {
+    let abi = ArgumentInterface {
+        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+        byte_size: 0,
+        root_count: 0,
+        roots: ptr::null(),
+    };
+    let requirements = ShaderRequirements {
+        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+        features: 0,
+        local_size: [1, 1, 1],
+        shared_memory: 0,
+    };
+    let vs = &TRIANGLE_VS.0;
+    let ps = &TRIANGLE_PS.0;
+    let shaders = [
+        Shader {
+            stage: STAGE_VERTEX as u32,
+            format: SHADER_DXIL,
+            code: Bytes {
+                data: vs.as_ptr().cast(),
+                size: vs.len(),
+            },
+            entry: c"vsMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+            subgroup: ptr::null(),
+        },
+        Shader {
+            stage: STAGE_FRAGMENT as u32,
+            format: SHADER_DXIL,
+            code: Bytes {
+                data: ps.as_ptr().cast(),
+                size: ps.len(),
+            },
+            entry: c"fsMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+            subgroup: ptr::null(),
+        },
+    ];
+    let color = ColorState {
+        format: RGBA8_UNORM,
+        write_mask: 0xf,
+        blend: 0,
+        src_color: 0,
+        dst_color: 0,
+        color_op: 0,
+        src_alpha: 0,
+        dst_alpha: 0,
+        alpha_op: 0,
+    };
+    let graphics = GraphicsState {
+        header: Record::new::<GraphicsState>(GRAPHICS_STATE),
+        topology: TRIANGLES,
+        cull: CULL_NONE,
+        front_face: FRONT_CCW,
+        samples: 1,
+        color_count: 1,
+        colors: &color,
+        depth_format: 0,
+        depth_test: 0,
+        depth_write: 0,
+        depth_compare: 0,
+        blend_constants: [0.0; 4],
+        stencil_test: 0,
+        stencil_front: StencilState {
+            fail: 0,
+            pass: 0,
+            depth_fail: 0,
+            compare: 0,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        },
+        stencil_back: StencilState {
+            fail: 0,
+            pass: 0,
+            depth_fail: 0,
+            compare: 0,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        },
+        vertex_input: ptr::null(),
+        raster_options: ptr::null(),
+        logic_op_enable: 0,
+        logic_op: 0,
+    };
+    let desc = ExecutableDesc {
+        header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+        kind: EXECUTABLE_GRAPHICS,
+        shader_count: 2,
+        shaders: shaders.as_ptr(),
+        static_state: &graphics.header,
+        dynamic_state: DYNAMIC_VIEWPORT_SCISSOR,
+        requirements: &requirements.header,
+        cache: ptr::null_mut(),
+        compile_flags: 0,
+        reserved: 0,
+    };
+    unsafe { api::executable_create(device, &desc) }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_graphics_triangle_raster() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let extent = 64u32;
+    let texels = u64::from(extent * extent) * 4;
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT | IMAGE_COPY_SRC,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let image = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+    unsafe { api::image_bind(image, backing.span(0, requirements.size)) }.unwrap();
+    let view = attachment_view(device, image, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+    let executable = triangle_executable(device).unwrap();
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let scratch_requirements = unsafe { api::render_scratch_requirements(1) }.unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [0.0, 1.0, 0.0, 1.0],
+        },
+    };
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: 0,
+        color_count: 1,
+        colors: &attachment,
+        depth: ptr::null(),
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            size: scratch_requirements.size,
+        },
+    };
+    unsafe { api::render_begin(list, &render) };
+    unsafe { api::bind_executable(list, executable) };
+    let viewport = ViewportState {
+        header: Record::new::<ViewportState>(VIEWPORT_STATE),
+        x: 0.0,
+        y: 0.0,
+        width: extent as f32,
+        height: extent as f32,
+        min_depth: 0.0,
+        max_depth: 1.0,
+        scissor_x: 0,
+        scissor_y: 0,
+        scissor_width: extent,
+        scissor_height: extent,
+    };
+    unsafe { api::set_graphics_state(list, &viewport) };
+    let draw = DrawDesc {
+        count: 3,
+        instances: 1,
+        first: 0,
+        first_instance: 0,
+        vertex_offset: 0,
+    };
+    unsafe { api::draw(list, &draw) };
+    unsafe { api::render_end(list) };
+    let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let barrier = ImageBarrier {
+        image: image.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: ACCESS_COLOR_WRITE,
+        after: ACCESS_COPY_READ,
+        old_state: STATE_COLOR_ATTACHMENT,
+        new_state: STATE_COPY_SRC,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 0,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &barrier,
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: scratch_requirements.size,
+    };
+    unsafe { api::barrier(list, &dependency) };
+    let readback = linear_memory(device, texels, USAGE_COPY_DST, 2);
+    let copy = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent {
+                x: extent,
+                y: extent,
+                z: 1,
+            },
+        },
+        row_pitch: 0,
+        slice_pitch: 0,
+        state: STATE_COPY_SRC,
+        reserved: 0,
+    };
+    unsafe { api::copy_from_image(list, readback.span(0, texels), image, &copy) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+
+    let pixels = read_back(readback, texels);
+    let pixel = |x: usize, y: usize| -> [u8; 4] {
+        let base = (y * extent as usize + x) * 4;
+        pixels[base..base + 4].try_into().unwrap()
+    };
+    // Center falls inside the drawn triangle: red over the green clear.
+    assert_eq!(pixel(32, 32), [255, 0, 0, 255]);
+    // Corners remain the clear color.
+    assert_eq!(pixel(0, 0), [0, 255, 0, 255]);
+    assert_eq!(pixel(63, 0), [0, 255, 0, 255]);
+    assert_eq!(pixel(0, 63), [0, 255, 0, 255]);
+    assert_eq!(pixel(63, 63), [0, 255, 0, 255]);
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::view_destroy(view);
+        api::image_destroy(image);
+        api::memory_destroy(backing);
+        api::memory_destroy(readback);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_graphics_contract_rejections() {
+    let (_discovery, device, _queue, domain) = gpu_setup();
+    let executable = triangle_executable(device).unwrap();
+
+    // PSO-baked dynamic states reject visibly on this backend.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let draw = DrawDesc {
+        count: 3,
+        instances: 1,
+        first: 0,
+        first_instance: 0,
+        vertex_offset: 0,
+    };
+    unsafe { api::draw(list, &draw) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_cull(list, 0) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    unsafe { api::arena_destroy(arena) };
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_stencil_compare_mask(list, 0, 0) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    unsafe { api::arena_destroy(arena) };
+
+    // A zero-area viewport is invalid.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    let viewport = ViewportState {
+        header: Record::new::<ViewportState>(VIEWPORT_STATE),
+        x: 0.0,
+        y: 0.0,
+        width: 0.0,
+        height: 0.0,
+        min_depth: 0.0,
+        max_depth: 1.0,
+        scissor_x: 0,
+        scissor_y: 0,
+        scissor_width: 1,
+        scissor_height: 1,
+    };
+    unsafe { api::set_graphics_state(list, &viewport) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::device_destroy(device);
+    }
+}

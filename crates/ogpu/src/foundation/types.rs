@@ -438,6 +438,70 @@ pub const STORE: u32 = 0;
 pub const DISCARD: u32 = 1;
 /// Render-scope flags.
 pub const RENDER_SECONDARY: u32 = 1;
+/// Primitive topologies (include/ogpu_next.h).
+pub const POINTS: u32 = 0;
+pub const LINES: u32 = 1;
+pub const LINE_STRIP: u32 = 2;
+pub const TRIANGLES: u32 = 3;
+pub const TRIANGLE_STRIP: u32 = 4;
+/// Raster state enums.
+pub const CULL_NONE: u32 = 0;
+pub const CULL_FRONT: u32 = 1;
+pub const CULL_BACK: u32 = 2;
+pub const FRONT_CCW: u32 = 0;
+pub const FRONT_CW: u32 = 1;
+pub const POLYGON_FILL: u32 = 0;
+pub const POLYGON_LINE: u32 = 1;
+/// Blend factors and operations.
+pub const BLEND_ZERO: u32 = 0;
+pub const BLEND_ONE: u32 = 1;
+pub const BLEND_SRC_COLOR: u32 = 2;
+pub const BLEND_ONE_MINUS_SRC_COLOR: u32 = 3;
+pub const BLEND_DST_COLOR: u32 = 4;
+pub const BLEND_ONE_MINUS_DST_COLOR: u32 = 5;
+pub const BLEND_SRC_ALPHA: u32 = 6;
+pub const BLEND_ONE_MINUS_SRC_ALPHA: u32 = 7;
+pub const BLEND_DST_ALPHA: u32 = 8;
+pub const BLEND_ONE_MINUS_DST_ALPHA: u32 = 9;
+pub const BLEND_CONSTANT_COLOR: u32 = 10;
+pub const BLEND_ONE_MINUS_CONSTANT_COLOR: u32 = 11;
+pub const BLEND_CONSTANT_ALPHA: u32 = 12;
+pub const BLEND_ONE_MINUS_CONSTANT_ALPHA: u32 = 13;
+pub const BLEND_SRC_ALPHA_SATURATE: u32 = 14;
+pub const BLEND_OP_ADD: u32 = 0;
+pub const BLEND_OP_SUBTRACT: u32 = 1;
+pub const BLEND_OP_REVERSE_SUBTRACT: u32 = 2;
+pub const BLEND_OP_MIN: u32 = 3;
+pub const BLEND_OP_MAX: u32 = 4;
+/// Stencil operations.
+pub const STENCIL_KEEP: u32 = 0;
+pub const STENCIL_ZERO: u32 = 1;
+pub const STENCIL_REPLACE: u32 = 2;
+pub const STENCIL_INCREMENT_CLAMP: u32 = 3;
+pub const STENCIL_DECREMENT_CLAMP: u32 = 4;
+pub const STENCIL_INVERT: u32 = 5;
+pub const STENCIL_INCREMENT_WRAP: u32 = 6;
+pub const STENCIL_DECREMENT_WRAP: u32 = 7;
+/// Index formats.
+pub const INDEX_U16: u32 = 16;
+pub const INDEX_U32: u32 = 32;
+/// Dynamic state bits of the executable description.
+pub const DYNAMIC_VIEWPORT_SCISSOR: u64 = 1;
+pub const DYNAMIC_BLEND_CONSTANTS: u64 = 2;
+pub const DYNAMIC_STENCIL_REFERENCE: u64 = 4;
+pub const DYNAMIC_STENCIL_COMPARE_MASK: u64 = 8;
+pub const DYNAMIC_STENCIL_WRITE_MASK: u64 = 16;
+pub const DYNAMIC_DEPTH_TEST: u64 = 32;
+pub const DYNAMIC_DEPTH_WRITE: u64 = 64;
+pub const DYNAMIC_DEPTH_COMPARE: u64 = 128;
+pub const DYNAMIC_STENCIL_TEST: u64 = 256;
+pub const DYNAMIC_STENCIL_OPS: u64 = 512;
+pub const DYNAMIC_CULL: u64 = 1024;
+pub const DYNAMIC_FRONT_FACE: u64 = 2048;
+/// Dynamic states D3D12 supports natively (viewport/scissor, blend constants,
+/// stencil reference); all others are PSO state on this backend.
+pub const DYNAMIC_D3D12_NATIVE: u64 =
+    DYNAMIC_VIEWPORT_SCISSOR | DYNAMIC_BLEND_CONSTANTS | DYNAMIC_STENCIL_REFERENCE;
 pub const IMAGE_COPY_SRC: u64 = 1;
 pub const IMAGE_COPY_DST: u64 = 2;
 pub const IMAGE_SAMPLED: u64 = 4;
@@ -456,6 +520,7 @@ pub const STATE_DEPTH_STENCIL_ATTACHMENT: u32 = 6;
 pub const STATE_DEPTH_STENCIL_READ: u32 = 7;
 pub const DOMAIN_IGNORED: u32 = u32::MAX;
 pub const EXECUTABLE_COMPUTE: u32 = 1;
+pub const EXECUTABLE_GRAPHICS: u32 = 2;
 pub const SHADER_SPIRV: u32 = 0;
 /// Native DXIL container artifact (see include/ogpu_next.h artifact notes).
 pub const SHADER_DXIL: u32 = 1;

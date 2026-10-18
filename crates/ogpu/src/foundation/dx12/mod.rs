@@ -36,6 +36,8 @@ mod rendering;
 mod executables;
 #[path = "formats.rs"]
 mod formats;
+#[path = "graphics.rs"]
+mod graphics;
 #[path = "images.rs"]
 mod images;
 #[path = "memory.rs"]

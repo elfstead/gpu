@@ -100,12 +100,45 @@ scope, pixel-exact readback) and `gpu_render_scope_contract_rejections`
 without attachment usage). Full suite: 12 GPU + 18 host tests on Windows;
 Linux regression unchanged.
 
+## D2.3b — graphics executables and rasterization (implemented, natively exercised)
+
+Graphics pipelines work end to end: PSO preparation from the shared
+GRAPHICS_STATE/VERTEX_INPUT records, viewport/scissor and the native dynamic
+states, and draws that rasterize with pixel-exact verification.
+
+| Piece | Mapping |
+| --- | --- |
+| Graphics executables | DXIL vertex artifact with optional fragment artifact → `CreateGraphicsPipelineState`; topology, cull/front face, samples, color blend state, depth/stencil state, raster options and vertex input all translate at preparation |
+| Vertex input | Location N binds as semantic `TEXCOORD<N>` (the artifact ABI convention; documented in the fixture) |
+| Dynamic states | Viewport/scissor, blend constants and stencil reference are native dynamic state; cull/front-face/depth/stencil-masks/ops are PSO state and reject visibly rather than being silently baked (the DYNAMIC bits advertise exactly this) |
+| Shared argument namespace | Root-constant/descriptor updates reach both compute and graphics root state, preserving the SHARED_BYTES contract that all stages see one namespace |
+| Draws | `DrawInstanced`/`DrawIndexedInstanced`; `bind_vertices`/`bind_indices` translate to input-assembler views with per-binding strides from the executable's vertex input (caller scratch holds the view array) |
+| Empty namespaces | The namespace-constants root parameter is omitted when `byte_size == 0` (a zero-length root-constant parameter is invalid) and root indices shift accordingly |
+| Artifact sizing | DXIL containers are byte-granular (their header declares the size); the word-granular `size % 4` rule belongs to SPIR-V artifacts. Bytecode length must exactly match the container |
+
+Evidence: `gpu_graphics_triangle_raster` (clear + viewport + draw of a
+vertex-id triangle; center pixel red, corner pixels green — pixel-exact) and
+`gpu_graphics_contract_rejections` (draw without an executable, PSO-baked
+dynamic states, zero-area viewport). Full suite: 14 GPU + 18 host tests on
+Windows; Linux regression unchanged.
+
+### Incidents recorded (D2.3b)
+
+- Two intertwined artifact issues: padding a DXIL container to a word multiple
+  made `BytecodeLength` disagree with the declared container size (PSO
+  rejection), while the unpadded container tripped the SPIR-V size rule. Fixed
+  by recording the byte-granular rule for DXIL and keeping artifacts unpadded.
+- A root-constants parameter with zero dwords is invalid; empty argument
+  namespaces omit the parameter and shift root-parameter indices (now computed
+  from the executable, not assumed).
+
 ## Remaining D2 scope
 
-- Offscreen graphics: graphics executables/PSOs, viewport and dynamic raster
-  state, draws and indexed drawing (D2.3b); standalone `clear_image` and
-  multisample/resolve targets remain open (transient-descriptor and resolve
-  profiles).
+- Standalone `clear_image` (transient-descriptor question) and multisample/
+  resolve targets (resolve profiles) remain open; secondary rendering bundles,
+  image descriptor recipes and dual-source blending are named rejections.
+- The `TEXCOORD<N>` vertex-semantic convention should move into the decision
+  record when the reviewer confirms it.
 - Image descriptors (sampled/storage image recipes materializing SRV/UAV from
   validated views) — the D2.3 graphics tests exercise them.
 - Queries, executable caches (pipeline libraries), count-based indirect work,
