@@ -13,7 +13,7 @@ pub static D3D12SDKVersion: u32 = 613;
 /// Pointer-sized export value; the documented ABI is
 /// `extern const char *D3D12SDKPath`, i.e. an exported pointer variable.
 #[repr(transparent)]
-struct PathPointer(*const u8);
+pub struct PathPointer(*const u8);
 // SAFETY: the export is immutable read-only data consumed by the D3D12 loader.
 unsafe impl Sync for PathPointer {}
 

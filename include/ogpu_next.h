@@ -993,8 +993,20 @@ void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
  * OGPU storage, compile, retain resources, upload pointees or insert dependencies.
  */
 enum { OGPU_NEXT_EXECUTABLE_COMPUTE = 1, OGPU_NEXT_EXECUTABLE_GRAPHICS = 2 };
-enum { OGPU_NEXT_SHADER_SPIRV = 0 };
-enum { OGPU_NEXT_ARGUMENT_SHARED_BYTES = 1 };
+/* Artifacts are backend-native words of the declared format: SPIR-V words for
+ * SHADER_SPIRV, DXIL container bytes for SHADER_DXIL. Artifact choice is a
+ * consumer/toolchain decision per backend; there is no runtime shader
+ * translation. Source portability does not imply artifact or ABI portability:
+ * the argument profile below is part of each artifact's ABI. */
+enum { OGPU_NEXT_SHADER_SPIRV = 0, OGPU_NEXT_SHADER_DXIL = 1 };
+/* Argument profiles: SHARED_BYTES means inline and roots address one byte
+ * namespace, not separate stage banks. ROOT_DESCRIPTORS additionally binds each
+ * root slot as a native root descriptor of the backend: set_root updates both
+ * the namespace bytes and that binding, and inline ranges overlapping a root
+ * slot's bytes are UNSUPPORTED because a binding cannot follow byte writes.
+ * argument_flags reports the profiles a device's executables use; artifacts
+ * must be built for the matching profile. */
+enum { OGPU_NEXT_ARGUMENT_SHARED_BYTES = 1, OGPU_NEXT_ARGUMENT_ROOT_DESCRIPTORS = 2 };
 typedef struct ogpu_next_execution_limits {
     uint64_t max_inline_size;
     uint32_t max_groups[3], max_local_size[3], max_local_invocations;

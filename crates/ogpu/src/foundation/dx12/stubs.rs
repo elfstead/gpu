@@ -57,7 +57,6 @@ pub(in crate::foundation) fn split_scratch(_count: u32) -> Result<HostRequiremen
     no_scratch()
 }
 
-pub struct Executable;
 pub struct ExecutableCache;
 pub struct QueryPool;
 pub struct Split;
@@ -66,17 +65,6 @@ pub struct GeneratedSet;
 pub struct Binary;
 pub struct Fence;
 pub struct Swapchain;
-
-impl Executable {
-    /// # Safety
-    /// Live device and trusted description arrays; device outlives the object.
-    pub(in crate::foundation) unsafe fn create(
-        _d: &Device,
-        _desc: &ExecutableDesc,
-    ) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
-    }
-}
 
 impl ExecutableCache {
     /// # Safety
@@ -256,43 +244,6 @@ impl Device {
 }
 
 impl List {
-    pub(in crate::foundation) fn bind_executable(
-        &self,
-        _executable: &Executable,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Live recording slot; readable inline bytes for the call duration.
-    pub(in crate::foundation) unsafe fn inline(
-        &self,
-        _scope: u64,
-        _offset: u32,
-        _size: u32,
-        _data: *const c_void,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn root(
-        &self,
-        _scope: u64,
-        _slot: u32,
-        _address: u64,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn dispatch(&self, _launch: &Launch) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Argument span stays live and valid for all recorded/pending uses.
-    pub(in crate::foundation) unsafe fn dispatch_indirect(
-        &self,
-        _args: Span,
-        _dynamic_shared_bytes: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
     /// # Safety
     /// Reserved descriptor bytes obey heap lifetime/mutation rules.
     pub(in crate::foundation) unsafe fn bind_heap(

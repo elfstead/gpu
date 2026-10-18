@@ -28,6 +28,8 @@ use windows::Win32::System::Threading::{CreateEventW, WaitForSingleObject, INFIN
 
 #[path = "commands.rs"]
 mod commands;
+#[path = "executables.rs"]
+mod executables;
 #[path = "formats.rs"]
 mod formats;
 #[path = "images.rs"]
@@ -40,9 +42,9 @@ mod stubs;
 pub use commands::{Arena, List};
 pub use images::{Image, View};
 pub use memory::Memory;
+pub use executables::Executable;
 pub use stubs::{
-    Binary, Executable, ExecutableCache, Fence, GeneratedLayout, GeneratedSet, QueryPool, Split,
-    Swapchain,
+    Binary, ExecutableCache, Fence, GeneratedLayout, GeneratedSet, QueryPool, Split, Swapchain,
 };
 
 pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch};
@@ -439,16 +441,20 @@ fn memory_limits(device: &d3d::ID3D12Device) -> MemoryLimits {
     }
 }
 
-/// Physical execution constants of the D3D12 compute profile. Inline/root
-/// argument limits stay zero until the argument/pointer profile (D2) resolves.
+/// Physical execution constants of the D3D12 compute profile. The argument
+/// namespace is root constants: `max_inline_size` is the largest namespace with
+/// no root descriptors (63 dwords); composition with root descriptors is
+/// checked per executable against the 64-dword root budget. The reported
+/// argument profile is the provisional ROOT_DESCRIPTORS profile documented in
+/// docs/dx12-arguments-profile.md.
 fn execution_limits() -> ExecutionLimits {
     ExecutionLimits {
-        max_inline_size: 0,
+        max_inline_size: 252,
         max_groups: [65535, 65535, 65535],
         max_local_size: [1024, 1024, 64],
         max_local_invocations: 1024,
         max_shared_memory: 32768,
-        argument_flags: 0,
+        argument_flags: ARGUMENT_SHARED_BYTES | ARGUMENT_ROOT_DESCRIPTORS,
     }
 }
 
@@ -475,6 +481,8 @@ pub(super) fn map_error(error: windows::core::Error) -> Status {
 pub struct Device {
     pub(super) snapshot: Snapshot,
     pub(super) device: d3d::ID3D12Device,
+    /// Device-level dispatch command signature for indirect dispatch.
+    pub(super) dispatch_signature: d3d::ID3D12CommandSignature,
     pub(super) heap_tier: u32,
     /// Retained for the live budget query; no other adapter dependency exists.
     adapter: dxgi::IDXGIAdapter1,
@@ -567,9 +575,33 @@ impl Device {
                 });
             }
         }
+        // Indirect dispatch signature: one DISPATCH argument, created once.
+        let argument = d3d::D3D12_INDIRECT_ARGUMENT_DESC {
+            Type: d3d::D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH,
+            // The dispatch argument carries no inline payload.
+            Anonymous: unsafe { core::mem::zeroed() },
+        };
+        let signature_desc = d3d::D3D12_COMMAND_SIGNATURE_DESC {
+            ByteStride: size_of::<d3d::D3D12_DISPATCH_ARGUMENTS>() as u32,
+            NumArgumentDescs: 1,
+            pArgumentDescs: &argument,
+            NodeMask: 0,
+        };
+        // SAFETY: self-contained description; output signature is adopted.
+        let mut dispatch_signature: Option<d3d::ID3D12CommandSignature> = None;
+        unsafe {
+            device
+                .CreateCommandSignature(
+                    &signature_desc,
+                    None::<&d3d::ID3D12RootSignature>,
+                    &mut dispatch_signature,
+                )
+                .map_err(map_error)?
+        };
         let mut result = Box::new(Self {
             snapshot,
             device,
+            dispatch_signature: dispatch_signature.ok_or(BACKEND_ERROR)?,
             heap_tier: adapter.state.heap_tier,
             adapter: adapter.state.adapter.clone(),
             queues,

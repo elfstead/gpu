@@ -27,9 +27,16 @@ pub struct List {
     pub(super) command: d3d::ID3D12GraphicsCommandList,
     /// Enhanced-barrier command level, queried once per slot at creation.
     barriers: Option<d3d::ID3D12GraphicsCommandList7>,
+    /// Bound compute executable; arguments require one.
+    executable: Cell<*const Executable>,
+    /// Argument namespace shadow. Root arguments are invalidated by a root
+    /// signature change, so binding re-emits these recorded bytes to preserve
+    /// the contract's byte-preservation rule. Preallocated per slot; recording
+    /// never allocates.
+    arguments: RefCell<Vec<u8>>,
 }
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 fn list_type(domain: u32) -> Result<d3d::D3D12_COMMAND_LIST_TYPE, Status> {
     match domain {
@@ -98,6 +105,8 @@ impl Arena {
                 allocator,
                 command,
                 barriers,
+                executable: Cell::new(ptr::null()),
+                arguments: RefCell::new(vec![0; MAX_ARGUMENT_BYTES as usize]),
             }));
         }
         Ok(())
@@ -438,9 +447,9 @@ impl List {
                         AccessAfter: access_after,
                         // Borrowed resource reference: scratch is never dropped,
                         // so the borrowed interface wrapper is not released.
-                        pResource: core::mem::ManuallyDrop::new(Some(unsafe {
-                            d3d::ID3D12Resource::from_raw(resource.as_raw())
-                        })),
+                        pResource: core::mem::ManuallyDrop::new(Some(
+                            d3d::ID3D12Resource::from_raw(resource.as_raw()),
+                        )),
                         Offset: offset,
                         Size: memory.range.size,
                     });
@@ -489,9 +498,9 @@ impl List {
                         LayoutAfter: layout_after,
                         // Borrowed resource reference: scratch is never dropped,
                         // so the borrowed interface wrapper is not released.
-                        pResource: core::mem::ManuallyDrop::new(Some(unsafe {
-                            d3d::ID3D12Resource::from_raw(image.resource()?.as_raw())
-                        })),
+                        pResource: core::mem::ManuallyDrop::new(Some(
+                            d3d::ID3D12Resource::from_raw(image.resource()?.as_raw()),
+                        )),
                         Subresources: subresources,
                         Flags: flags,
                     });
@@ -838,6 +847,219 @@ fn domains(d: &Device, source: u32, destination: u32) -> Result<(), Status> {
         Ok(())
     } else {
         Err(UNSUPPORTED)
+    }
+}
+
+/// Upper bound of the argument namespace (63 root-constant dwords).
+pub(super) const MAX_ARGUMENT_BYTES: u32 = 252;
+
+impl List {
+    /// The bound executable for one argument scope. COMPUTE is the only scope
+    /// of this profile.
+    fn bound_executable(&self, scope: u64) -> Result<&Executable, Status> {
+        let d = self.recording()?;
+        if scope != STAGE_COMPUTE {
+            return Err(UNSUPPORTED);
+        }
+        let _ = d;
+        // SAFETY: the executable pointer is set only by bind_executable and the
+        // contract keeps executables alive through all recorded/pending uses.
+        unsafe { self.executable.get().as_ref() }.ok_or(INVALID)
+    }
+
+    /// Bind prepared compute state. Root arguments are re-emitted from the
+    /// argument shadow so bytes survive root-signature changes.
+    pub(in crate::foundation) fn bind_executable(
+        &self,
+        executable: &Executable,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        if executable.stages != STAGE_COMPUTE {
+            return Err(UNSUPPORTED);
+        }
+        if !ptr::eq(executable.device, d) {
+            return Err(INVALID);
+        }
+        let domain = d
+            .snapshot
+            .queues
+            .iter()
+            .find(|q| q.domain == self.domain)
+            .ok_or(INVALID)?;
+        if domain.flags & COMPUTE == 0 {
+            return Err(UNSUPPORTED);
+        }
+        // SAFETY: prepared objects stay live through all recorded uses.
+        unsafe {
+            self.command.SetComputeRootSignature(&executable.signature);
+            self.command.SetPipelineState(&executable.pipeline);
+            self.emit_arguments(executable)?;
+        }
+        self.executable.set(executable);
+        Ok(())
+    }
+
+    /// Re-emit recorded argument bytes as root constants and root descriptors.
+    /// Bounded native re-recording; no allocation, compilation or retention.
+    /// # Safety
+    /// The bound executable and command list are live and exclusively recorded.
+    unsafe fn emit_arguments(&self, executable: &Executable) -> Result<(), Status> {
+        let bytes = executable.byte_size as usize;
+        // Recording is externally serialized per the contract; the borrow only
+        // guards accidental aliasing in this module.
+        let shadow = self.arguments.borrow();
+        // SAFETY: recording slot and executable are live; bytes are plain data.
+        unsafe {
+            self.command.SetComputeRoot32BitConstants(
+                0,
+                executable.byte_size / 4,
+                shadow[..bytes].as_ptr().cast(),
+                0,
+            );
+        }
+        for (slot, root) in executable.roots.iter().enumerate() {
+            let mut address = [0u8; 8];
+            address.copy_from_slice(&shadow[root.offset as usize..root.offset as usize + 8]);
+            // SAFETY: recording slot is live; the address is caller-owned data.
+            unsafe {
+                self.command
+                    .SetComputeRootUnorderedAccessView(1 + slot as u32, u64::from_le_bytes(address));
+            }
+        }
+        Ok(())
+    }
+
+    /// Update shared argument bytes. Ranges overlapping a root slot's bytes are
+    /// rejected: a native root descriptor binding cannot follow byte writes.
+    /// # Safety
+    /// Data points to `size` readable bytes for the duration of the call.
+    pub(in crate::foundation) unsafe fn inline(
+        &self,
+        scope: u64,
+        offset: u32,
+        size: u32,
+        data: *const std::ffi::c_void,
+    ) -> Result<(), Status> {
+        let executable = self.bound_executable(scope)?;
+        if offset % 4 != 0
+            || size % 4 != 0
+            || offset > executable.byte_size
+            || size > executable.byte_size - offset
+            || (size != 0 && data.is_null())
+        {
+            return Err(INVALID);
+        }
+        if executable
+            .roots
+            .iter()
+            .any(|r| offset < r.offset + 8 && r.offset < offset + size)
+        {
+            return Err(UNSUPPORTED);
+        }
+        if size == 0 {
+            return Ok(());
+        }
+        {
+            let mut shadow = self.arguments.borrow_mut();
+            // SAFETY: data points to size readable bytes by the caller contract.
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    data.cast::<u8>(),
+                    shadow[offset as usize..].as_mut_ptr(),
+                    size as usize,
+                );
+            }
+        }
+        // SAFETY: recording slot is live; data is readable for this call.
+        unsafe {
+            self.command
+                .SetComputeRoot32BitConstants(0, size / 4, data.cast(), offset / 4);
+        }
+        Ok(())
+    }
+
+    /// Bind one root slot as a native root descriptor; the namespace bytes at
+    /// the slot's offset are updated to match, as in the shared contract.
+    pub(in crate::foundation) fn root(
+        &self,
+        scope: u64,
+        slot: u32,
+        address: u64,
+    ) -> Result<(), Status> {
+        let executable = self.bound_executable(scope)?;
+        let root = executable.roots.get(slot as usize).ok_or(INVALID)?;
+        if root.stages != scope {
+            return Err(UNSUPPORTED);
+        }
+        if address % u64::from(root.alignment) != 0 {
+            return Err(INVALID);
+        }
+        self.arguments.borrow_mut()[root.offset as usize..root.offset as usize + 8]
+            .copy_from_slice(&address.to_le_bytes());
+        // SAFETY: recording slot is live; the address is caller-owned data.
+        unsafe {
+            self.command
+                .SetComputeRootUnorderedAccessView(1 + slot, address);
+        }
+        Ok(())
+    }
+
+    pub(in crate::foundation) fn dispatch(&self, launch: &Launch) -> Result<(), Status> {
+        self.bound_executable(STAGE_COMPUTE)?;
+        if launch.dynamic_shared_bytes != 0 || !launch.extensions.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        // SAFETY: device pointer is live for every list operation.
+        let d = unsafe { &*self.device };
+        let groups = [launch.groups.x, launch.groups.y, launch.groups.z];
+        if groups
+            .iter()
+            .zip(d.snapshot.execution_limits.max_groups)
+            .any(|(n, max)| *n > max)
+        {
+            return Err(UNSUPPORTED);
+        }
+        // SAFETY: recording slot is live.
+        unsafe {
+            self.command.Dispatch(groups[0], groups[1], groups[2]);
+        }
+        Ok(())
+    }
+
+    /// Indirect dispatch through the device's dispatch command signature; the
+    /// arguments span supplies three u32 dimensions.
+    /// # Safety
+    /// The arguments span stays live and valid for all recorded/pending uses.
+    pub(in crate::foundation) unsafe fn dispatch_indirect(
+        &self,
+        args: Span,
+        dynamic_shared_bytes: u32,
+    ) -> Result<(), Status> {
+        self.bound_executable(STAGE_COMPUTE)?;
+        if dynamic_shared_bytes != 0 {
+            return Err(UNSUPPORTED);
+        }
+        // SAFETY: device pointer is live for every list operation.
+        let d = unsafe { &*self.device };
+        // SAFETY: span memory handle is a trusted live object by contract.
+        let memory = unsafe { args.memory.as_ref() }.ok_or(INVALID)?;
+        let (buffer, offset, _) =
+            memory.command_range(d, self.domain, args.offset, args.size, USAGE_INDIRECT)?;
+        if offset % 4 != 0 || args.size < 12 {
+            return Err(INVALID);
+        }
+        // SAFETY: validated arguments range of a live buffer; recording only.
+        unsafe {
+            self.command.ExecuteIndirect(
+                &d.dispatch_signature,
+                1,
+                buffer,
+                offset,
+                None,
+                0,
+            );
+        }
+        Ok(())
     }
 }
 

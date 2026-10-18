@@ -436,6 +436,11 @@ pub const STATE_DEPTH_STENCIL_READ: u32 = 7;
 pub const DOMAIN_IGNORED: u32 = u32::MAX;
 pub const EXECUTABLE_COMPUTE: u32 = 1;
 pub const SHADER_SPIRV: u32 = 0;
+/// Native DXIL container artifact (see include/ogpu_next.h artifact notes).
+pub const SHADER_DXIL: u32 = 1;
+/// Argument profile bits reported in `ExecutionLimits::argument_flags`.
+pub const ARGUMENT_SHARED_BYTES: u32 = 1;
+pub const ARGUMENT_ROOT_DESCRIPTORS: u32 = 2;
 pub const INFO: u32 = 1;
 pub const QUEUES: u32 = 2;
 pub const MEMORY_TYPES: u32 = 3;
@@ -451,6 +456,9 @@ pub const IMAGE_DESC: u32 = 106;
 pub const VIEW_DESC: u32 = 107;
 pub const SAMPLER_DESC: u32 = 108;
 pub const HEAP_BINDING: u32 = 109;
+/// Heap binding kinds (include/ogpu_next.h).
+pub const HEAP_RESOURCE: u32 = 1;
+pub const HEAP_SAMPLER: u32 = 2;
 pub const DESCRIPTOR_LIMITS: u32 = 7;
 pub const SAMPLER_ANISOTROPY: u64 = 8;
 pub const EXECUTION_LIMITS: u32 = 8;

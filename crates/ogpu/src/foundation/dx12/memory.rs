@@ -130,13 +130,15 @@ impl Device {
         } else {
             d3d::D3D12_RESOURCE_FLAG_NONE
         };
-        // All three standard heap types accept buffers; textures use opaque
-        // memory and are checked again at placement.
+        // Storage usage carries the native unordered-access flag, which the
+        // UPLOAD and READBACK heap types reject: storage buffers report only
+        // the DEFAULT heap as compatible instead of failing later.
+        let storage = desc.usage & USAGE_STORAGE != 0;
         let types: Vec<u32> = self
             .snapshot
             .memory_types
             .iter()
-            .filter(|m| m.properties & (32 | 64 | 128) == 0)
+            .filter(|m| m.properties & (32 | 64 | 128) == 0 && (!storage || m.id == 0))
             .map(|m| m.id)
             .collect();
         if types.is_empty() {

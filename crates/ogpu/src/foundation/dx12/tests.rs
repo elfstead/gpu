@@ -313,16 +313,19 @@ fn gpu_one_shot_consumption_capacity_and_unsupported_poison() {
     // Unsupported operations poison the recording visibly instead of emulating.
     unsafe { api::arena_reset(arena) }.unwrap();
     let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
-    unsafe {
-        api::dispatch(
-            list,
-            &Launch {
-                groups: Extent { x: 1, y: 1, z: 1 },
-                dynamic_shared_bytes: 0,
-                extensions: ptr::null(),
-            },
-        )
+    let heap = HeapBinding {
+        header: Record::new::<HeapBinding>(HEAP_BINDING),
+        kind: HEAP_RESOURCE,
+        flags: 0,
+        storage: Span {
+            memory: ptr::null_mut(),
+            offset: 0,
+            size: 0,
+        },
+        reserved_offset: 0,
+        reserved_size: 0,
     };
+    unsafe { api::bind_heap(list, &heap) };
     assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
 
     unsafe {
@@ -517,6 +520,377 @@ fn gpu_image_copy_roundtrip_with_explicit_states() {
         api::memory_destroy(readback);
         api::memory_destroy(upload);
         api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+// ---- D2.1 GPU tests: root-argument compute over DXIL artifacts ----
+
+#[repr(align(4))]
+struct AlignedArtifact<const N: usize>([u8; N]);
+/// Fixture artifact of tests/dx12-fixtures/argument-transform.slang.
+static ARGUMENT_TRANSFORM: AlignedArtifact<3816> =
+    AlignedArtifact(*include_bytes!(
+        "../../../../../tests/dx12-fixtures/argument-transform.dxil"
+    ));
+
+/// Prepare the fixture executable: namespace 24 bytes, two root slots.
+fn argument_transform_executable(
+    device: api::DeviceHandle,
+) -> Result<api::ExecutableHandle, Status> {
+    let roots = [
+        RootSlot {
+            stages: STAGE_COMPUTE,
+            offset: 0,
+            alignment: 4,
+        },
+        RootSlot {
+            stages: STAGE_COMPUTE,
+            offset: 8,
+            alignment: 4,
+        },
+    ];
+    let abi = ArgumentInterface {
+        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+        byte_size: 24,
+        root_count: 2,
+        roots: roots.as_ptr(),
+    };
+    let requirements = ShaderRequirements {
+        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+        features: 0,
+        local_size: [64, 1, 1],
+        shared_memory: 0,
+    };
+    let artifact = &ARGUMENT_TRANSFORM.0;
+    let shader = Shader {
+        stage: STAGE_COMPUTE as u32,
+        format: SHADER_DXIL,
+        code: Bytes {
+            data: artifact.as_ptr().cast(),
+            size: artifact.len(),
+        },
+        entry: c"main".as_ptr(),
+        interface_metadata: &abi.header,
+        specialization: ptr::null(),
+        subgroup: ptr::null(),
+    };
+    let desc = ExecutableDesc {
+        header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+        kind: EXECUTABLE_COMPUTE,
+        shader_count: 1,
+        shaders: &shader,
+        static_state: ptr::null(),
+        dynamic_state: 0,
+        requirements: &requirements.header,
+        cache: ptr::null_mut(),
+        compile_flags: 0,
+        reserved: 0,
+    };
+    unsafe { api::executable_create(device, &desc) }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_root_argument_dispatch_roundtrip() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let elements = 128u32;
+    let bytes = u64::from(elements) * 4;
+    let staging = linear_memory(device, bytes, USAGE_COPY_SRC, 1);
+    let input = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_DST, 0);
+    let output = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_SRC, 0);
+    let second = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_SRC, 0);
+    let readback = linear_memory(device, bytes, USAGE_COPY_DST, 2);
+    let pattern: Vec<u8> = (0..bytes).map(|i| (i % 251) as u8).collect();
+    fill_upload(staging, &pattern);
+
+    let executable = argument_transform_executable(device).unwrap();
+    let input_address = unsafe { api::memory_address(input.span(0, bytes)) }.unwrap();
+    let output_address = unsafe { api::memory_address(output.span(0, bytes)) }.unwrap();
+    let second_address = unsafe { api::memory_address(second.span(0, bytes)) }.unwrap();
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    // Storage buffers are DEFAULT-heap only; the pattern is copied in explicitly.
+    unsafe { api::copy_memory(list, input.span(0, bytes), staging.span(0, bytes)) };
+    let input_barrier = MemoryBarrier {
+        range: input.span(0, bytes),
+        before: ACCESS_COPY_WRITE,
+        after: ACCESS_SHADER_READ,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+    };
+    let copy_scratch = api::barrier_scratch_requirements(1, 0).unwrap();
+    let (mut copy_scratch_bytes, copy_offset) = aligned_scratch(copy_scratch);
+    let copy_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_COMPUTE,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 1,
+        image_count: 0,
+        flags: 0,
+        memory: &input_barrier,
+        images: ptr::null(),
+        scratch: unsafe { copy_scratch_bytes.as_mut_ptr().add(copy_offset) }.cast(),
+        scratch_size: copy_scratch.size,
+    };
+    unsafe { api::barrier(list, &copy_dependency) };
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 0, input_address) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 1, output_address) };
+    let constants = [elements, 3u32];
+    unsafe {
+        api::set_inline(
+            list,
+            STAGE_COMPUTE,
+            16,
+            bytemuck_bytes(&constants),
+        )
+    };
+    unsafe {
+        api::dispatch(
+            list,
+            &Launch {
+                groups: Extent {
+                    x: elements / 64,
+                    y: 1,
+                    z: 1,
+                },
+                dynamic_shared_bytes: 0,
+                extensions: ptr::null(),
+            },
+        )
+    };
+    // Rebinding the same executable must preserve the argument bytes; only the
+    // output root changes before the second, indirect dispatch.
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 1, second_address) };
+    let indirect = [elements / 64, 1u32, 1u32];
+    let indirect_bytes = bytemuck_bytes(&indirect);
+    let args = linear_memory(device, 256, USAGE_INDIRECT, 1);
+    fill_upload(args, indirect_bytes);
+    // Arguments stay in caller memory; the GPU reads them at execution.
+    unsafe { api::dispatch_indirect(list, args.span(0, 12), 0) };
+
+    // One memory dependency, then read both outputs back.
+    let requirements = api::barrier_scratch_requirements(1, 0).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let barrier = MemoryBarrier {
+        range: output.span(0, bytes),
+        before: ACCESS_STORAGE_WRITE,
+        after: ACCESS_COPY_READ,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COMPUTE,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 1,
+        image_count: 0,
+        flags: 0,
+        memory: &barrier,
+        images: ptr::null(),
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: requirements.size,
+    };
+    unsafe { api::barrier(list, &dependency) };
+    let barrier = MemoryBarrier {
+        range: second.span(0, bytes),
+        ..barrier
+    };
+    let dependency = Dependency {
+        memory: &barrier,
+        ..dependency
+    };
+    unsafe { api::barrier(list, &dependency) };
+    unsafe { api::copy_memory(list, readback.span(0, bytes), output.span(0, bytes)) };
+    let readback2 = linear_memory(device, bytes, USAGE_COPY_DST, 2);
+    unsafe { api::copy_memory(list, readback2.span(0, bytes), second.span(0, bytes)) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+
+    let multiplier = 3u32;
+    let count = elements;
+    let mut expected = Vec::with_capacity(bytes as usize);
+    for i in 0..elements {
+        let base = (i as usize) * 4;
+        let mut value = u32::from_le_bytes(pattern[base..base + 4].try_into().unwrap());
+        value = value.wrapping_mul(multiplier).wrapping_add(count);
+        expected.extend_from_slice(&value.to_le_bytes());
+    }
+    assert_eq!(read_back(readback, bytes), expected);
+    assert_eq!(read_back(readback2, bytes), expected);
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::memory_destroy(readback2);
+        api::memory_destroy(readback);
+        api::memory_destroy(args);
+        api::memory_destroy(second);
+        api::memory_destroy(output);
+        api::memory_destroy(input);
+        api::memory_destroy(staging);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+/// Interpret plain values as command bytes without external crates.
+fn bytemuck_bytes<T>(value: &T) -> &[u8] {
+    // SAFETY: T is plain data (u32 arrays in these tests); the bytes are the
+    // object's exact initialized representation.
+    unsafe { std::slice::from_raw_parts((value as *const T).cast::<u8>(), size_of::<T>()) }
+}
+
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_argument_contract_rejections() {
+    let (_discovery, device, _queue, domain) = gpu_setup();
+    let bytes = 256u64;
+    let memory = linear_memory(device, bytes, USAGE_STORAGE | USAGE_COPY_SRC, 0);
+    let address = unsafe { api::memory_address(memory.span(0, bytes)) }.unwrap();
+    let executable = argument_transform_executable(device).unwrap();
+    let one = one_shot();
+
+    // Inline ranges overlapping root-slot bytes cannot follow byte writes.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_inline(list, STAGE_COMPUTE, 0, &[0u8; 8]) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    unsafe { api::arena_destroy(arena) };
+
+    // Unknown root slot and misaligned addresses are invalid.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 2, address) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    unsafe { api::set_root(list, STAGE_COMPUTE, 0, address + 2) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    // Dispatch requires a bound executable; extensions remain unsupported.
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one) }.unwrap();
+    let launch = Launch {
+        groups: Extent { x: 1, y: 1, z: 1 },
+        dynamic_shared_bytes: 0,
+        extensions: ptr::null(),
+    };
+    unsafe { api::dispatch(list, &launch) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(INVALID));
+    unsafe { api::arena_destroy(arena) };
+
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one) }.unwrap();
+    unsafe { api::bind_executable(list, executable) };
+    let launch = Launch {
+        groups: Extent { x: 1, y: 1, z: 1 },
+        dynamic_shared_bytes: 4,
+        extensions: ptr::null(),
+    };
+    unsafe { api::dispatch(list, &launch) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    unsafe { api::arena_destroy(arena) };
+
+    // Preparation rejects SPIR-V pointer-ABI artifacts and specialization.
+    let roots = [RootSlot {
+        stages: STAGE_COMPUTE,
+        offset: 0,
+        alignment: 4,
+    }];
+    let abi = ArgumentInterface {
+        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+        byte_size: 24,
+        root_count: 1,
+        roots: roots.as_ptr(),
+    };
+    let requirements = ShaderRequirements {
+        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+        features: 0,
+        local_size: [64, 1, 1],
+        shared_memory: 0,
+    };
+    let artifact = &ARGUMENT_TRANSFORM.0;
+    let mut shader = Shader {
+        stage: STAGE_COMPUTE as u32,
+        format: SHADER_DXIL,
+        code: Bytes {
+            data: artifact.as_ptr().cast(),
+            size: artifact.len(),
+        },
+        entry: c"main".as_ptr(),
+        interface_metadata: &abi.header,
+        specialization: ptr::null(),
+        subgroup: ptr::null(),
+    };
+    let desc = ExecutableDesc {
+        header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+        kind: EXECUTABLE_COMPUTE,
+        shader_count: 1,
+        shaders: &shader,
+        static_state: ptr::null(),
+        dynamic_state: 0,
+        requirements: &requirements.header,
+        cache: ptr::null_mut(),
+        compile_flags: 0,
+        reserved: 0,
+    };
+    shader.format = SHADER_SPIRV;
+    assert_eq!(unsafe { api::executable_create(device, &desc) }, Err(UNSUPPORTED));
+    shader.format = SHADER_DXIL;
+    let specialization = Specialization {
+        header: Record::new::<Specialization>(SPECIALIZATION),
+        count: 0,
+        reserved: 0,
+        entries: ptr::null(),
+        data: Bytes {
+            data: ptr::null(),
+            size: 0,
+        },
+    };
+    shader.specialization = &specialization.header;
+    assert_eq!(unsafe { api::executable_create(device, &desc) }, Err(UNSUPPORTED));
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::memory_destroy(memory);
         api::device_destroy(device);
     }
 }
