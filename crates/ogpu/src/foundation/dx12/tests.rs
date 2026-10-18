@@ -2324,7 +2324,7 @@ fn gpu_graphics_contract_rejections() {
 static TEXTURED_VS: AlignedArtifact<3299> = AlignedArtifact(*include_bytes!(
     "../../../../../tests/dx12-fixtures/textured.vs.dxil"
 ));
-static TEXTURED_PS: AlignedArtifact<3831> = AlignedArtifact(*include_bytes!(
+static TEXTURED_PS: AlignedArtifact<3867> = AlignedArtifact(*include_bytes!(
     "../../../../../tests/dx12-fixtures/textured.ps.dxil"
 ));
 

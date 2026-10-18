@@ -151,14 +151,22 @@ path by layered diagnostics (fixture variants + the debug layer):
 2. **Vertex input, input layout and UV interpolation are correct** — a
    diagnostic fragment shader reporting the interpolated UVs matched the CPU
    oracle exactly (this exercised the TEXCOORD<N> convention end to end).
-3. **The SRV reads garbage** — `Load` through the descriptor table returns
-   values matching no texel (nondeterministic across runs), while the D3D12
-   debug layer reports the descriptor and resource as valid. The UAV-table
-   variant (`RWTexture2D`) faults the device instead — so the image-descriptor
-   materialization (`native_view_desc` / `CreateShaderResourceView` path) is
-   the remaining defect, not the upload, the sampling conventions or the
-   tables (buffer descriptors through the same tables are proven by
-   `gpu_descriptor_heap_roundtrip`).
+3. **The texture SRV reads only texel (0,0) correctly** — precise finding from
+   two-fetch diagnostics: `Load(0,0)`/`[uint2(0,0)]` returns the correct
+   pattern values, while `texel(1,0)` returns nondeterministic garbage (0
+   across runs, 24 in the next) — while `CopyTextureRegion` reads the same
+   texel correctly. So the resource is a correct 4x4 texture and the defect is
+   in what the SRV descriptor resolves to: either the bound SRV table
+   parameter or the SRV payload view itself. Buffer descriptors through the
+   UAV table are proven; the `RWTexture2D` (UAV-table) variant faults the
+   device and needs a careful retest.
+
+Next-step hypotheses, in order: (a) the SRV table root-parameter index used
+at bind (`table_parameter() + 1`) does not match the signature layout;
+(b) the `native_view_desc` SRV payload makes the view behave 1 texel wide;
+(c) the materialized slot index for image recipes. A decisive probe: bind the
+texture SRV at the *UAV-table* parameter too and read through both tables.)
+
 
 Also fixed this round: render scopes require the caller's attachment-state
 transition (images start UNDEFINED; the clear worked only by driver tolerance —
