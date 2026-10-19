@@ -999,16 +999,14 @@ impl List {
         {
         return Err(INVALID);
         }
-        if executable
-            .roots
-            .iter()
-            .any(|r| offset < r.offset + 8 && r.offset < offset + size)
-        {
-            return Err(UNSUPPORTED);
-        }
         if size == 0 {
             return Ok(());
         }
+        // SHARED_BYTES: inline may intentionally change root-slot bytes ("set_root
+        // changes only its 8 bytes; inline may intentionally change those same
+        // bytes"). Any write touching a slot updates its root descriptor from the
+        // resulting namespace bytes, exactly as set_root would.
+        let mut rebound: Vec<(u32, u64)> = Vec::new();
         {
             let mut shadow = self.arguments.borrow_mut();
             // SAFETY: data points to size readable bytes by the caller contract.
@@ -1018,6 +1016,22 @@ impl List {
                     shadow[offset as usize..].as_mut_ptr(),
                     size as usize,
                 );
+            }
+            for (slot, root) in executable.roots.iter().enumerate() {
+                if offset < root.offset + 8 && root.offset < offset + size {
+                    let start = root.offset as usize;
+                    let bytes: [u8; 8] = shadow[start..start + 8].try_into().unwrap();
+                    rebound.push((slot as u32, u64::from_le_bytes(bytes)));
+                }
+            }
+        }
+        for (slot, address) in rebound {
+            // SAFETY: recording slot is live; the address is caller-owned data.
+            unsafe {
+                self.command
+                    .SetComputeRootUnorderedAccessView(executable.root_parameter(slot), address);
+                self.command
+                    .SetGraphicsRootUnorderedAccessView(executable.root_parameter(slot), address);
             }
         }
         // SAFETY: recording slot is live; data is readable for this call.

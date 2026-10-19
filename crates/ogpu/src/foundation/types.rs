@@ -510,6 +510,7 @@ pub const IMAGE_COLOR_ATTACHMENT: u64 = 16;
 pub const IMAGE_DEPTH_STENCIL_ATTACHMENT: u64 = 32;
 pub const IMAGE_INPUT_ATTACHMENT: u64 = 128;
 pub const ASPECT_COLOR: u32 = 1;
+pub const ASPECT_DEPTH: u32 = 2;
 pub const STATE_UNDEFINED: u32 = 0;
 pub const STATE_GENERAL: u32 = 1;
 pub const STATE_COPY_SRC: u32 = 2;

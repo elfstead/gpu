@@ -247,3 +247,57 @@ its RTV/DSV descriptor slot (cold creation) while shader-facing views
 materialize as descriptors. `View::create` itself is a validated interpretation
 record on this backend — the "views are descriptor contents" item from the D1
 matrix.
+
+## M4 scene-shape consumer milestone (gpu_scene_raster)
+
+`gpu_scene_raster` proves the M4 textured-scene argument shape end to end on
+the native backend: the 24-byte shared inline bank read by both stages (with
+its root-slot words), a flat root-descriptor vertex buffer (D2.1 lowering),
+descriptor-indexed image and sampler selection (D2.2 lowering: table slot N is
+heap slot N), an indexed two-quad draw with depth rejection (near drawn first,
+far rejected where it overlaps) and a scissored overlay phase. Pixels are
+exact: solid textures make bilinear sampling constant, and the geometry
+avoids pixel-center edge ambiguity. The fixture is
+`tests/dx12-fixtures/scene.slang`, the DXIL lowering of
+`examples/graphics_scene/textured.{vert,frag}.slang`.
+
+Three findings belong to this milestone:
+
+1. **Contract violation fixed in `inline()`**: the SHARED_BYTES clause of
+   `ogpu_next_bind_executable` states "set_root changes only its 8 bytes;
+   inline may intentionally change those same bytes". The backend rejected
+   inline ranges overlapping root slots (`UNSUPPORTED`); the M4 consumer
+   writes its full Root bank through `set_inline` and hits exactly this.
+   Fixed: such writes are accepted and update the slot's root descriptor from
+   the resulting namespace bytes, exactly as `set_root` would. The
+   `gpu_argument_contract_rejections` expectation was updated accordingly.
+
+2. **Interstage signatures on DXIL**: Slang assigns signature registers per
+   entry point independently; a fragment stage consuming a trimmed input
+   struct (without `SV_Position`) links against a vertex stage that emits it
+   and fails PSO creation with "Semantic 'TEXCOORD' is defined for mismatched
+   hardware registers". DXIL fixture variants must pass the full vertex
+   output struct to the fragment stage (the working textured fixture takes
+   this shape). This is a lowering convention for shader variants, not a
+   backend restriction.
+
+3. **Buffer barriers cover whole resources on this runtime**: the enhanced-
+   barrier validation rejects sub-range buffer barriers ("Size must be
+   UINT64_MAX or the width of the buffer"). Sub-range memory barriers should
+   be treated as non-portable until a runtime is found that accepts them;
+   the backend currently forwards the range unchanged.
+
+Also fixed while landing the depth path: `render_begin` eagerly dereferenced
+the absent `stencil` pointer through `unwrap_or` fallbacks (UB that crashed
+depth-only scopes), and depth/stencil clear flags are now filtered by the
+view format's aspects (a depth-only view no longer requests a stencil clear).
+
+Suite after this milestone: 17 GPU + 18 host tests pass on Windows (RX 5700
+XT); Linux regression unchanged (110 + 2 + 67).
+
+Consumer coverage so far: the M4 scene argument shape is covered by fixture;
+the `foundation_rust` compute workload (`examples/shaders/foundation-compute
+.slang`) depends on nested pointers (`source->values[i]`), which rule 3 of the
+arguments profile marks `UNSUPPORTED` and which the toolchain rejects at the
+language level — its coverage claim stays "not covered on D3D12 under the
+ROOT_DESCRIPTORS profile".

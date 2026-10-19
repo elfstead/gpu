@@ -676,7 +676,7 @@ fn gpu_root_argument_dispatch_roundtrip() {
         scratch_size: copy_scratch.size,
     };
     unsafe { api::barrier(list, &copy_dependency) };
-    unsafe { api::bind_executable(list, executable) };
+        unsafe { api::bind_executable(list, executable) };
     unsafe { api::set_root(list, STAGE_COMPUTE, 0, input_address) };
     unsafe { api::set_root(list, STAGE_COMPUTE, 1, output_address) };
     let constants = [elements, 3u32];
@@ -822,12 +822,14 @@ fn gpu_argument_contract_rejections() {
     let executable = argument_transform_executable(device).unwrap();
     let one = one_shot();
 
-    // Inline ranges overlapping root-slot bytes cannot follow byte writes.
+    // SHARED_BYTES per the contract: "set_root changes only its 8 bytes; inline
+    // may intentionally change those same bytes". The write is accepted and
+    // updates the slot's root descriptor from the resulting namespace bytes.
     let arena = single_slot_arena(device, domain);
     let list = unsafe { api::commands_begin(arena, &one) }.unwrap();
     unsafe { api::bind_executable(list, executable) };
     unsafe { api::set_inline(list, STAGE_COMPUTE, 0, &[0u8; 8]) };
-    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+    assert!(unsafe { api::commands_end(list) }.is_ok());
     unsafe { api::arena_destroy(arena) };
 
     // Unknown root slot and misaligned addresses are invalid.
@@ -1629,8 +1631,8 @@ fn gpu_render_scope_clear_readback() {
             size: scratch_requirements.size,
         },
     };
-    unsafe { api::render_begin(list, &render) };
-    unsafe { api::render_end(list) };
+        unsafe { api::render_begin(list, &render) };
+        unsafe { api::render_end(list) };
     let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
     let (mut scratch, offset) = aligned_scratch(scratch_requirements);
     let barrier = ImageBarrier {
@@ -2141,7 +2143,7 @@ fn gpu_graphics_triangle_raster() {
         scissor_width: extent,
         scissor_height: extent,
     };
-    unsafe { api::set_graphics_state(list, &viewport) };
+        unsafe { api::set_graphics_state(list, &viewport) };
     let draw = DrawDesc {
         count: 3,
         instances: 1,
@@ -2458,7 +2460,7 @@ fn textured_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandl
     unsafe { api::executable_create(device, &desc) }
 }
 
-#[ignore = "blocked: sampled pixel values under diagnosis (docs/dx12-backend-d2.md)"]
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
 #[test]
 fn gpu_textured_raster() {
     let (_discovery, device, queue, domain) = gpu_setup();
@@ -2833,8 +2835,8 @@ fn gpu_textured_raster() {
         storage: sampler_heap.span(0, 80),
         ..resource_binding
     };
-    unsafe { api::bind_heap(list, &resource_binding) };
-    unsafe { api::bind_heap(list, &sampler_binding) };
+        unsafe { api::bind_heap(list, &resource_binding) };
+        unsafe { api::bind_heap(list, &sampler_binding) };
     let draw = DrawDesc {
         count: 3,
         instances: 1,
@@ -3061,4 +3063,898 @@ fn probe_debug_layer_pso() {
         }
     }
     unsafe { api::device_destroy(device) };
+}
+
+
+// ---- M4 scene-shape GPU test: shared inline bank, root-descriptor vertices,
+// descriptor-indexed sampling, indexed draws with depth rejection ----
+
+/// Fixture artifact of tests/dx12-fixtures/scene.slang (vertex stage).
+static SCENE_VS: AlignedArtifact<4110> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/scene.vs.dxil"
+));
+
+/// Fixture artifact of tests/dx12-fixtures/scene.slang (fragment stage).
+static SCENE_FS: AlignedArtifact<5252> = AlignedArtifact(*include_bytes!(
+    "../../../../../tests/dx12-fixtures/scene.fs.dxil"
+));
+
+/// Prepare the M4 scene fixture: 24-byte shared namespace, one root slot at
+/// [0..8), no vertex input (positions arrive through the root descriptor).
+fn scene_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandle, Status> {
+    let roots = [RootSlot {
+        stages: STAGE_VERTEX,
+        offset: 0,
+        alignment: 8,
+    }];
+    let abi = ArgumentInterface {
+        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
+        byte_size: 24,
+        root_count: 1,
+        roots: roots.as_ptr(),
+    };
+    let requirements = ShaderRequirements {
+        header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
+        features: 0,
+        local_size: [1, 1, 1],
+        shared_memory: 0,
+    };
+    let vs = &SCENE_VS.0;
+    let fs = &SCENE_FS.0;
+    let shaders = [
+        Shader {
+            stage: STAGE_VERTEX as u32,
+            format: SHADER_DXIL,
+            code: Bytes {
+                data: vs.as_ptr().cast(),
+                size: vs.len(),
+            },
+            entry: c"vsMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+            subgroup: ptr::null(),
+        },
+        Shader {
+            stage: STAGE_FRAGMENT as u32,
+            format: SHADER_DXIL,
+            code: Bytes {
+                data: fs.as_ptr().cast(),
+                size: fs.len(),
+            },
+            entry: c"fsMain".as_ptr(),
+            interface_metadata: &abi.header,
+            specialization: ptr::null(),
+            subgroup: ptr::null(),
+        },
+    ];
+    let vertex_input = VertexInput {
+        header: Record::new::<VertexInput>(VERTEX_INPUT),
+        binding_count: 0,
+        attribute_count: 0,
+        bindings: ptr::null(),
+        attributes: ptr::null(),
+    };
+    let color = ColorState {
+        format: RGBA8_UNORM,
+        write_mask: 0xf,
+        blend: 0,
+        src_color: 0,
+        dst_color: 0,
+        color_op: 0,
+        src_alpha: 0,
+        dst_alpha: 0,
+        alpha_op: 0,
+    };
+    let graphics = GraphicsState {
+        header: Record::new::<GraphicsState>(GRAPHICS_STATE),
+        topology: TRIANGLES,
+        cull: CULL_NONE,
+        front_face: FRONT_CCW,
+        samples: 1,
+        color_count: 1,
+        colors: &color,
+        depth_format: 14,
+        depth_test: 1,
+        depth_write: 1,
+        depth_compare: 1,
+        blend_constants: [0.0; 4],
+        stencil_test: 0,
+        stencil_front: StencilState {
+            fail: 0,
+            pass: 0,
+            depth_fail: 0,
+            compare: 0,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        },
+        stencil_back: StencilState {
+            fail: 0,
+            pass: 0,
+            depth_fail: 0,
+            compare: 0,
+            compare_mask: 0,
+            write_mask: 0,
+            reference: 0,
+        },
+        vertex_input: &vertex_input.header,
+        raster_options: ptr::null(),
+        logic_op_enable: 0,
+        logic_op: 0,
+    };
+    let desc = ExecutableDesc {
+        header: Record::new::<ExecutableDesc>(EXECUTABLE_DESC),
+        kind: EXECUTABLE_GRAPHICS,
+        shader_count: 2,
+        shaders: shaders.as_ptr(),
+        static_state: &graphics.header,
+        dynamic_state: DYNAMIC_VIEWPORT_SCISSOR,
+        requirements: &requirements.header,
+        cache: ptr::null_mut(),
+        compile_flags: 0,
+        reserved: 0,
+    };
+    unsafe { api::executable_create(device, &desc) }
+}
+
+/// The M4 argument shape end to end: shared inline bank read by both stages,
+/// a flat root-descriptor vertex buffer, descriptor-indexed image and sampler
+/// selection, an indexed two-quad draw with depth rejection, and a scissored
+/// overlay phase. Geometry: quad N (surface 0) covers pixels [4,28)^2 at
+/// z=0.25; quad F (surface 1) covers [16,32)^2 at z=0.75, drawn second and
+/// depth-rejected where they overlap.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_scene_raster() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let extent = 32u32;
+    let out_bytes = u64::from(extent) * 256;
+
+    // Two 2x2 solid textures at descriptor slots 0 and 1: sampling a constant
+    // is constant at any UV (exact pixels) while descriptor-index selection
+    // stays observable through their different colours.
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent { x: 2, y: 2, z: 1 },
+        usage: IMAGE_SAMPLED | IMAGE_COPY_DST,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let mut textures = Vec::new();
+    let mut texture_backings = Vec::new();
+    let mut texture_views = Vec::new();
+    for _ in 0..2 {
+        let backing = unsafe {
+            api::memory_create(
+                device,
+                &MemoryDesc {
+                    header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                    size: requirements.size,
+                    alignment: 1,
+                    usage: 0,
+                    memory_type: 0,
+                    kind: 2,
+                    concurrent_domains: ptr::null(),
+                    concurrent_domain_count: 0,
+                    flags: 0,
+                },
+            )
+        }
+        .unwrap();
+        let texture = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+        unsafe { api::image_bind(texture, backing.span(0, requirements.size)) }.unwrap();
+        let view = unsafe {
+            api::view_create(
+                texture,
+                &ViewDesc {
+                    header: Record::new::<ViewDesc>(VIEW_DESC),
+                    format: RGBA8_UNORM,
+                    dimension: VIEW_2D,
+                    usage: IMAGE_SAMPLED as u32,
+                    component_mapping: [0, 0, 0, 0],
+                    range: Subresources {
+                        aspects: ASPECT_COLOR,
+                        first_mip: 0,
+                        mip_count: 1,
+                        first_layer: 0,
+                        layer_count: 1,
+                    },
+                },
+            )
+        }
+        .unwrap();
+        textures.push(texture);
+        texture_backings.push(backing);
+        texture_views.push(view);
+    }
+
+    // Root-descriptor vertex buffer: two quads x four corners x four floats.
+    let vertices = linear_memory(device, 256, USAGE_STORAGE | USAGE_COPY_DST, 0);
+    let mut vertex_data = [0f32; 32];
+    for (surface, (min, max, z)) in [
+        ((-0.75f32, -0.75f32), (0.75f32, 0.75f32), 0.25f32),
+        ((0.0, -1.0), (1.0, 0.0), 0.75),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for (corner, [x, y]) in [[min.0, min.1], [max.0, min.1], [max.0, max.1], [min.0, max.1]]
+            .into_iter()
+            .enumerate()
+        {
+            for (k, v) in [x, y, z, 1.0f32].into_iter().enumerate() {
+                vertex_data[surface * 16 + corner * 4 + k] = v;
+            }
+        }
+    }
+    let vertex_staging = linear_memory(device, 256, USAGE_COPY_SRC, 1);
+    {
+        let mapping = unsafe { api::memory_map(vertex_staging.span(0, 128)) }.unwrap();
+        // SAFETY: the mapping covers the vertex region.
+        unsafe {
+            ptr::copy_nonoverlapping(
+                vertex_data.as_ptr().cast::<u8>(),
+                mapping.data.cast::<u8>(),
+                128,
+            );
+        }
+        unsafe { api::memory_unmap(vertex_staging) };
+    }
+    let vertices_address = unsafe { api::memory_address(vertices.span(0, 128)) }.unwrap();
+
+    // Indexed draw: two triangles per quad, quad vertices 0..3 and 4..7.
+    let indices = linear_memory(device, 256, USAGE_INDEX, 1);
+    let index_data: [u32; 12] = [0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4];
+    {
+        let mapping = unsafe { api::memory_map(indices.span(0, 48)) }.unwrap();
+        // SAFETY: the mapping covers the index region.
+        unsafe {
+            ptr::copy_nonoverlapping(
+                index_data.as_ptr().cast::<u8>(),
+                mapping.data.cast::<u8>(),
+                48,
+            );
+        }
+        unsafe { api::memory_unmap(indices) };
+    }
+
+    // Descriptor heaps: two image recipes (40-byte slots) and one sampler.
+    let resource_heap = linear_memory(device, 512, USAGE_DESCRIPTOR_HEAP, 1);
+    let sampler_heap = linear_memory(device, 512, USAGE_DESCRIPTOR_HEAP, 1);
+    place_resource_recipes(
+        device,
+        resource_heap,
+        &[0, 40],
+        &[
+            ResourceDescriptor {
+                kind: DESCRIPTOR_SAMPLED_IMAGE,
+                image_state: STATE_SHADER_READ,
+                view: texture_views[0].as_raw(),
+                buffer: Span {
+                    memory: ptr::null_mut(),
+                    offset: 0,
+                    size: 0,
+                },
+            },
+            ResourceDescriptor {
+                kind: DESCRIPTOR_SAMPLED_IMAGE,
+                image_state: STATE_SHADER_READ,
+                view: texture_views[1].as_raw(),
+                buffer: Span {
+                    memory: ptr::null_mut(),
+                    offset: 0,
+                    size: 0,
+                },
+            },
+        ],
+    );
+    let sampler = SamplerDesc {
+        header: Record::new::<SamplerDesc>(SAMPLER_DESC),
+        min_filter: 0,
+        mag_filter: 0,
+        mip_filter: 0,
+        address_mode: [0, 0, 0],
+        compare_enable: 0,
+        compare_op: 0,
+        border_color: 0,
+        unnormalized_coordinates: 0,
+        min_lod: 0.0,
+        max_lod: 1000.0,
+        lod_bias: 0.0,
+        max_anisotropy: 1.0,
+    };
+    let mut host = [[0u8; 80]; 1];
+    let outputs = [HostSpan {
+        data: host[0].as_mut_ptr().cast(),
+        size: 80,
+    }];
+    unsafe {
+        api::write_sampler_descriptors(
+            device,
+            &[sampler],
+            &outputs,
+            HostSpan {
+                data: ptr::null_mut(),
+                size: 0,
+            },
+        )
+    }
+    .unwrap();
+    {
+        let mapping = unsafe { api::memory_map(sampler_heap.span(0, 80)) }.unwrap();
+        // SAFETY: the mapping covers the recipe slot.
+        unsafe {
+            ptr::copy_nonoverlapping(host[0].as_ptr(), mapping.data.cast::<u8>(), 80);
+        }
+        unsafe { api::memory_unmap(sampler_heap) };
+    }
+
+    // Output and depth attachments.
+    let out_desc = ImageDesc {
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT | IMAGE_COPY_SRC,
+        ..image_desc
+    };
+    let mut out_requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &out_desc, &mut out_requirements) }.unwrap();
+    let out_backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: out_requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let output = unsafe { api::image_create_unbound(device, &out_desc) }.unwrap();
+    unsafe { api::image_bind(output, out_backing.span(0, out_requirements.size)) }.unwrap();
+    let view = attachment_view(device, output, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+
+    let depth_desc = ImageDesc {
+        format: 14,
+        usage: IMAGE_DEPTH_STENCIL_ATTACHMENT,
+        ..image_desc
+    };
+    let depth_desc = ImageDesc {
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        ..depth_desc
+    };
+    let mut depth_requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &depth_desc, &mut depth_requirements) }.unwrap();
+    let depth_backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: depth_requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let depth = unsafe { api::image_create_unbound(device, &depth_desc) }.unwrap();
+    unsafe { api::image_bind(depth, depth_backing.span(0, depth_requirements.size)) }.unwrap();
+    let depth_view = unsafe {
+        api::view_create(
+            depth,
+            &ViewDesc {
+                header: Record::new::<ViewDesc>(VIEW_DESC),
+                format: 14,
+                dimension: VIEW_2D,
+                usage: IMAGE_DEPTH_STENCIL_ATTACHMENT as u32,
+                component_mapping: [0, 0, 0, 0],
+                range: Subresources {
+                    aspects: ASPECT_DEPTH,
+                    first_mip: 0,
+                    mip_count: 1,
+                    first_layer: 0,
+                    layer_count: 1,
+                },
+            },
+        )
+    }
+    .unwrap();
+
+    let executable = scene_executable(device);
+    if executable.is_err() {
+        dump_validation(device);
+    }
+    let executable = executable.unwrap();
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let scratch_requirements = api::barrier_scratch_requirements(0, 3).unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+
+    // Upload both solid textures through explicit copies with explicit states.
+    let staging = linear_memory(device, 1024, USAGE_COPY_SRC, 1);
+    let mut upload = vec![0u8; 1024];
+    for (slot, color) in [[64u8, 128, 255, 255], [200, 100, 50, 255]]
+        .into_iter()
+        .enumerate()
+    {
+        for row in 0..2 {
+            for col in 0..2 {
+                let base = slot * 512 + row * 256 + col * 4;
+                upload[base..base + 4].copy_from_slice(&color);
+            }
+        }
+    }
+    fill_upload(staging, &upload);
+    let mut upload_barriers = Vec::new();
+    for (index, texture) in textures.iter().enumerate() {
+        let to_dst = ImageBarrier {
+            image: texture.as_raw(),
+            range: Subresources {
+                aspects: ASPECT_COLOR,
+                first_mip: 0,
+                mip_count: 1,
+                first_layer: 0,
+                layer_count: 1,
+            },
+            before: 0,
+            after: ACCESS_COPY_WRITE,
+            old_state: STATE_UNDEFINED,
+            new_state: STATE_COPY_DST,
+            source_domain: DOMAIN_IGNORED,
+            destination_domain: DOMAIN_IGNORED,
+            discard: 1,
+        };
+        let to_shader = ImageBarrier {
+            before: ACCESS_COPY_WRITE,
+            after: ACCESS_SHADER_READ,
+            old_state: STATE_COPY_DST,
+            new_state: STATE_SHADER_READ,
+            ..to_dst
+        };
+        upload_barriers.push((index, to_dst, to_shader));
+    }
+    for (_, to_dst, _) in &upload_barriers {
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_TRANSFER,
+            after: STAGE_TRANSFER,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            images: to_dst,
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+        };
+        unsafe { api::barrier(list, &dependency) };
+    }
+    unsafe { api::copy_memory(list, vertices.span(0, 128), vertex_staging.span(0, 128)) };
+    for (index, _, _) in &upload_barriers {
+        let copy = ImageCopy {
+            region: ImageRegion {
+                aspect: ASPECT_COLOR,
+                mip: 0,
+                first_layer: 0,
+                layer_count: 1,
+                offset: Offset { x: 0, y: 0, z: 0 },
+                extent: Extent { x: 2, y: 2, z: 1 },
+            },
+            row_pitch: 256,
+            slice_pitch: 0,
+            state: STATE_COPY_DST,
+            reserved: 0,
+        };
+        unsafe {
+            api::copy_to_image(
+                list,
+                textures[*index],
+                staging.span(*index as u64 * 512, 512),
+                &copy,
+            )
+        };
+    }
+    for (_, _, to_shader) in &upload_barriers {
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_TRANSFER,
+            after: STAGE_FRAGMENT,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            images: to_shader,
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+        };
+        unsafe { api::barrier(list, &dependency) };
+    }
+
+    // This runtime's enhanced-barrier validation requires buffer barriers to
+    // cover the whole resource (Size = width or UINT64_MAX): sub-ranges are
+    // rejected at record time.
+    let vertex_barrier = MemoryBarrier {
+        range: vertices.span(0, 256),
+        before: ACCESS_COPY_WRITE,
+        after: ACCESS_SHADER_READ,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+    };
+    let vertex_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_VERTEX,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 1,
+        image_count: 0,
+        flags: 0,
+        memory: &vertex_barrier,
+        images: ptr::null(),
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: scratch_requirements.size,
+    };
+    unsafe { api::barrier(list, &vertex_dependency) };
+
+    // Depth enters its attachment state once and stays there.
+    let to_depth = ImageBarrier {
+        image: depth.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_DEPTH,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_DEPTH_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_DEPTH_STENCIL_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [0.0, 0.0, 0.0, 1.0],
+        },
+    };
+    let depth_attachment = Attachment {
+        view: depth_view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_DEPTH_STENCIL_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [1.0, 0.0, 0.0, 0.0],
+        },
+    };
+    let render_requirements = api::render_scratch_requirements(2).unwrap();
+    let (mut render_scratch, render_offset) = aligned_scratch(render_requirements);
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: 0,
+        color_count: 1,
+        colors: &attachment,
+        depth: &depth_attachment,
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { render_scratch.as_mut_ptr().add(render_offset) }.cast(),
+            size: render_requirements.size,
+        },
+    };
+    let state_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut state_scratch, state_offset) = aligned_scratch(state_requirements);
+
+    let readback = linear_memory(device, out_bytes * 3, USAGE_COPY_DST, 2);
+    let copy_out = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent {
+                x: extent,
+                y: extent,
+                z: 1,
+            },
+        },
+        row_pitch: 256,
+        slice_pitch: 0,
+        state: STATE_COPY_SRC,
+        reserved: 0,
+    };
+    let resource_binding = HeapBinding {
+        header: Record::new::<HeapBinding>(HEAP_BINDING),
+        kind: HEAP_RESOURCE,
+        flags: 0,
+        storage: resource_heap.span(0, 80),
+        reserved_offset: 0,
+        reserved_size: 0,
+    };
+    let sampler_binding = HeapBinding {
+        kind: HEAP_SAMPLER,
+        storage: sampler_heap.span(0, 80),
+        ..resource_binding
+    };
+
+    let to_depth_dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_FRAGMENT,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        images: &to_depth,
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: scratch_requirements.size,
+    };
+    unsafe { api::barrier(list, &to_depth_dependency) };
+
+    let mut check = |list: api::ListHandle,
+                     phase: u64,
+                     image: u32,
+                     overlay: u32,
+                     scissor: (i32, i32, u32, u32)| {
+        // The caller owns attachment states: colour re-enters the attachment
+        // state per phase (content is cleared), depth stays in it.
+        let to_attachment = ImageBarrier {
+            image: output.as_raw(),
+            range: Subresources {
+                aspects: ASPECT_COLOR,
+                first_mip: 0,
+                mip_count: 1,
+                first_layer: 0,
+                layer_count: 1,
+            },
+            before: 0,
+            after: ACCESS_COLOR_WRITE,
+            old_state: STATE_UNDEFINED,
+            new_state: STATE_COLOR_ATTACHMENT,
+            source_domain: DOMAIN_IGNORED,
+            destination_domain: DOMAIN_IGNORED,
+            discard: 1,
+        };
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_TRANSFER,
+            after: STAGE_FRAGMENT,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            images: &to_attachment,
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+        };
+        unsafe { api::barrier(list, &dependency) };
+        let mut bank = [0u8; 24];
+        bank[0..8].copy_from_slice(&vertices_address.to_ne_bytes());
+        bank[8..12].copy_from_slice(&image.to_ne_bytes());
+        bank[12..16].copy_from_slice(&0u32.to_ne_bytes());
+        bank[16..20].copy_from_slice(&0f32.to_ne_bytes());
+        bank[20..24].copy_from_slice(&overlay.to_ne_bytes());
+        let viewport = ViewportState {
+            header: Record::new::<ViewportState>(VIEWPORT_STATE),
+            x: 0.0,
+            y: 0.0,
+            width: extent as f32,
+            height: extent as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+            scissor_x: scissor.0,
+            scissor_y: scissor.1,
+            scissor_width: scissor.2,
+            scissor_height: scissor.3,
+        };
+        unsafe { api::render_begin(list, &render) };
+        unsafe { api::bind_executable(list, executable) };
+        unsafe { api::set_graphics_state(list, &viewport) };
+        unsafe { api::set_root(list, STAGE_VERTEX, 0, vertices_address) };
+        unsafe { api::set_inline(list, STAGE_VERTEX | STAGE_FRAGMENT, 0, &bank) };
+        unsafe { api::bind_heap(list, &resource_binding) };
+        unsafe { api::bind_heap(list, &sampler_binding) };
+        unsafe { api::bind_indices(list, indices.span(0, 48), INDEX_U32) };
+        let draw = DrawDesc {
+            count: 12,
+            instances: 1,
+            first: 0,
+            first_instance: 0,
+            vertex_offset: 0,
+        };
+        unsafe { api::draw_indexed(list, &draw) };
+        unsafe { api::render_end(list) };
+        let to_copy = ImageBarrier {
+            before: ACCESS_COLOR_WRITE,
+            after: ACCESS_COPY_READ,
+            old_state: STATE_COLOR_ATTACHMENT,
+            new_state: STATE_COPY_SRC,
+            ..to_attachment
+        };
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_FRAGMENT,
+            after: STAGE_TRANSFER,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            images: &to_copy,
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+        };
+        unsafe { api::barrier(list, &dependency) };
+        unsafe {
+            api::copy_from_image(
+                list,
+                readback.span(phase * out_bytes, out_bytes),
+                output,
+                &copy_out,
+            )
+        };
+    };
+
+    // Phase 1: texture 0, no overlay. Quad N shows through; quad F is
+    // depth-rejected where it overlaps (drawn second, farther).
+    check(list, 0, 0, 0, (0, 0, extent, extent));
+    // Phase 2: texture 1 through the same descriptor index channel.
+    check(list, 1, 1, 0, (0, 0, extent, extent));
+    // Phase 3: overlay bank value, scissored to [8,24) x [10,20).
+    check(list, 2, 0, 1, (8, 10, 16, 10));
+
+    let list = unsafe { api::commands_end(list) };
+    if list.is_err() {
+        dump_validation(device);
+    }
+    let list = list.unwrap();
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+    dump_validation(device);
+
+    // Verify each phase's readback region once the submission completed.
+    let pixels = read_back(readback, out_bytes * 3);
+    let verify = |phase: usize, samples: &[(usize, usize, [u8; 4])]| {
+        let pixel = |x: usize, y: usize| -> [u8; 4] {
+            let base = phase * out_bytes as usize + y * 256 + x * 4;
+            pixels[base..base + 4].try_into().unwrap()
+        };
+        for &(x, y, want) in samples {
+            let got = pixel(x, y);
+            for (g, w) in got.iter().zip(want.iter()) {
+                assert!(
+                    (*g as i32 - *w as i32).abs() <= 1,
+                    "phase {phase} pixel ({x}, {y}): got {got:?} want {want:?}"
+                );
+            }
+        }
+    };
+    verify(
+        0,
+        &[
+            (16, 20, [64, 128, 255, 255]),
+            (8, 8, [64, 128, 255, 255]),
+            (30, 30, [32, 128, 128, 255]),
+            (2, 2, [0, 0, 0, 255]),
+        ],
+    );
+    verify(
+        1,
+        &[
+            (16, 20, [200, 100, 50, 255]),
+            (30, 30, [100, 100, 25, 255]),
+        ],
+    );
+    verify(
+        2,
+        &[
+            (16, 14, [64, 128, 255, 128]),
+            (2, 2, [0, 0, 0, 255]),
+        ],
+    );
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::view_destroy(depth_view);
+        api::view_destroy(view);
+        for view in texture_views {
+            api::view_destroy(view);
+        }
+        api::image_destroy(depth);
+        api::image_destroy(output);
+        for texture in textures {
+            api::image_destroy(texture);
+        }
+        api::memory_destroy(readback);
+        api::memory_destroy(staging);
+        api::memory_destroy(indices);
+        api::memory_destroy(vertex_staging);
+        api::memory_destroy(vertices);
+        api::memory_destroy(sampler_heap);
+        api::memory_destroy(resource_heap);
+        api::memory_destroy(depth_backing);
+        api::memory_destroy(out_backing);
+        for backing in texture_backings {
+            api::memory_destroy(backing);
+        }
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
 }

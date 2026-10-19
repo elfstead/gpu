@@ -128,32 +128,37 @@ impl List {
             }
         }
         if has_depth {
-            // SAFETY: trusted depth/stencil record.
-            let records: [&Attachment; 2] = [
-                unsafe { desc.depth.as_ref() }.unwrap_or(unsafe { &*desc.stencil }),
-                unsafe { desc.stencil.as_ref() }.unwrap_or(unsafe { &*desc.depth }),
-            ];
-            let depth = unsafe { &*desc.depth };
-            let stencil = if desc.stencil.is_null() {
-                depth
-            } else {
-                unsafe { &*desc.stencil }
-            };
+            // Depth-only or stencil-only records describe both sides by
+            // falling back to each other. Resolution stays lazy: the absent
+            // pointer must never be dereferenced.
+            let depth = unsafe { desc.depth.as_ref() }
+                .or_else(|| unsafe { desc.stencil.as_ref() })
+                .ok_or(INVALID)?;
+            let stencil = unsafe { desc.stencil.as_ref() }
+                .or_else(|| unsafe { desc.depth.as_ref() })
+                .ok_or(INVALID)?;
+            // Clear flags must match the format's aspects: a depth-only view
+            // rejects stencil clears and vice versa.
+            // SAFETY: the record's view is validated live by validate_attachment.
+            let depth_view = unsafe { depth.view.as_ref() }.ok_or(INVALID)?;
+            let aspects = super::formats::meta(depth_view.desc.format).ok_or(UNSUPPORTED)?.aspects;
             let mut clear_flags = d3d::D3D12_CLEAR_FLAGS(0);
             if depth.load_op == CLEAR {
-                clear_flags |= d3d::D3D12_CLEAR_FLAG_DEPTH;
+                if aspects & 2 != 0 {
+                    clear_flags |= d3d::D3D12_CLEAR_FLAG_DEPTH;
+                }
             } else if depth.load_op != LOAD && depth.load_op != DONT_CARE {
         return Err(INVALID);
             }
             if stencil.load_op == CLEAR {
-                clear_flags |= d3d::D3D12_CLEAR_FLAG_STENCIL;
+                if aspects & 4 != 0 {
+                    clear_flags |= d3d::D3D12_CLEAR_FLAG_STENCIL;
+                }
             } else if stencil.load_op != LOAD && stencil.load_op != DONT_CARE {
         return Err(INVALID);
             }
             if clear_flags != d3d::D3D12_CLEAR_FLAGS(0) {
-                let depth_clear = unsafe { desc.depth.as_ref() }
-                    .unwrap_or(unsafe { &*desc.stencil })
-                    .clear;
+                let depth_clear = depth.clear;
                 let value = unsafe { depth_clear.depth_stencil };
                 if value.depth < 0.0 || value.depth > 1.0 {
         return Err(INVALID);
@@ -169,7 +174,6 @@ impl List {
                     );
                 }
             }
-            let _ = records;
         }
         self.rendering.set(true);
         Ok(())
