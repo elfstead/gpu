@@ -40,6 +40,8 @@ mod formats;
 mod graphics;
 #[path = "images.rs"]
 mod images;
+#[path = "cache.rs"]
+mod cache;
 #[path = "memory.rs"]
 mod memory;
 #[path = "stubs.rs"]
@@ -49,8 +51,9 @@ pub use commands::{Arena, List};
 pub use images::{Image, View};
 pub use memory::Memory;
 pub use executables::Executable;
+pub use cache::ExecutableCache;
 pub use stubs::{
-    Binary, ExecutableCache, Fence, GeneratedLayout, GeneratedSet, QueryPool, Split, Swapchain,
+    Binary, Fence, GeneratedLayout, GeneratedSet, QueryPool, Split, Swapchain,
 };
 
 pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch};

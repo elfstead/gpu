@@ -260,6 +260,19 @@ pub(super) unsafe fn prepare(
         }
     }
 
+    // Advisory cache: a cached blob is offered only to the identical
+    // preparation; a rejected blob falls back to uncached creation.
+    let cache = if desc.cache.is_null() {
+        None
+    } else {
+        // SAFETY: live cache through this preparation by caller contract.
+        Some(unsafe { &*desc.cache })
+    };
+    let identity = cache.map(|_| super::cache::identity(desc));
+    let cached = match (&cache, &identity) {
+        (Some(cache), Some(identity)) => cache.lookup(identity),
+        _ => None,
+    };
     let mut pipeline_desc = d3d::D3D12_GRAPHICS_PIPELINE_STATE_DESC {
         pRootSignature: core::mem::ManuallyDrop::new(None),
         VS: shader_bytecode(vertex),
@@ -303,8 +316,10 @@ pub(super) unsafe fn prepare(
         },
         NodeMask: 0,
         CachedPSO: d3d::D3D12_CACHED_PIPELINE_STATE {
-            pCachedBlob: ptr::null(),
-            CachedBlobSizeInBytes: 0,
+            pCachedBlob: cached
+                .as_ref()
+                .map_or(ptr::null(), |blob| blob.as_ptr().cast()),
+            CachedBlobSizeInBytes: cached.as_ref().map_or(0, |blob| blob.len()),
         },
         Flags: d3d::D3D12_PIPELINE_STATE_FLAG_NONE,
     };
@@ -314,15 +329,39 @@ pub(super) unsafe fn prepare(
         d3d::ID3D12RootSignature::from_raw(signature.as_raw())
     }));
     // SAFETY: prepared signature, artifacts and layout stay valid for the call.
-    let pipeline: d3d::ID3D12PipelineState = unsafe {
-        d.device
-            .CreateGraphicsPipelineState(&pipeline_desc)
-            .map_err(|e| {
+    let pipeline: d3d::ID3D12PipelineState = match unsafe {
+        d.device.CreateGraphicsPipelineState(&pipeline_desc)
+    } {
+        Ok(pipeline) => pipeline,
+        Err(_) if cached.is_some() => {
+            // Advisory caching: a rejected cached blob is not a failure.
+            let mut retry = pipeline_desc.clone();
+            retry.CachedPSO = d3d::D3D12_CACHED_PIPELINE_STATE {
+                pCachedBlob: ptr::null(),
+                CachedBlobSizeInBytes: 0,
+            };
+            // SAFETY: same prepared inputs with an empty cache hint.
+            unsafe { d.device.CreateGraphicsPipelineState(&retry) }.map_err(|e| {
                 let status = map_error(e);
                 eprintln!("DX12PROBE PSO creation failed: {}", status);
                 status
             })?
+        }
+        Err(error) => {
+            let status = map_error(error);
+            eprintln!("DX12PROBE PSO creation failed: {}", status);
+            return Err(status);
+        }
     };
+    if let (Some(cache), Some(identity)) = (cache, identity) {
+        if let Ok(blob) = unsafe { pipeline.GetCachedBlob() } {
+            // SAFETY: blob bytes are immutable and length-reported.
+            let bytes = unsafe {
+                std::slice::from_raw_parts(blob.GetBufferPointer().cast::<u8>(), blob.GetBufferSize())
+            };
+            cache.store(identity, bytes.to_vec());
+        }
+    }
     let mut owned_roots = Vec::new();
     owned_roots
         .try_reserve_exact(roots.len())

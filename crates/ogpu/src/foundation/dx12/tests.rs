@@ -953,6 +953,13 @@ static HEAP_TRANSFORM: AlignedArtifact<4056> = AlignedArtifact(*include_bytes!(
 
 /// Prepare the heap-indexing fixture: 16-byte namespace, no root slots.
 fn heap_transform_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandle, Status> {
+    heap_transform_executable_with(device, None)
+}
+
+fn heap_transform_executable_with(
+    device: api::DeviceHandle,
+    cache: Option<api::ExecutableCacheHandle>,
+) -> Result<api::ExecutableHandle, Status> {
     let roots = [RootSlot {
         stages: STAGE_COMPUTE,
         offset: 0,
@@ -991,7 +998,7 @@ fn heap_transform_executable(device: api::DeviceHandle) -> Result<api::Executabl
         static_state: ptr::null(),
         dynamic_state: 0,
         requirements: &requirements.header,
-        cache: ptr::null_mut(),
+        cache: cache.map_or(ptr::null_mut(), |cache| cache.as_raw()),
         compile_flags: 0,
         reserved: 0,
     };
@@ -1905,6 +1912,13 @@ static TRIANGLE_PS: AlignedArtifact<2790> = AlignedArtifact(*include_bytes!(
 ));
 
 fn triangle_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandle, Status> {
+    triangle_executable_with(device, None)
+}
+
+fn triangle_executable_with(
+    device: api::DeviceHandle,
+    cache: Option<api::ExecutableCacheHandle>,
+) -> Result<api::ExecutableHandle, Status> {
     let abi = ArgumentInterface {
         header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
         byte_size: 0,
@@ -2001,7 +2015,7 @@ fn triangle_executable(device: api::DeviceHandle) -> Result<api::ExecutableHandl
         static_state: &graphics.header,
         dynamic_state: DYNAMIC_VIEWPORT_SCISSOR,
         requirements: &requirements.header,
-        cache: ptr::null_mut(),
+        cache: cache.map_or(ptr::null_mut(), |cache| cache.as_raw()),
         compile_flags: 0,
         reserved: 0,
     };
@@ -3956,5 +3970,114 @@ fn gpu_scene_raster() {
         }
         api::timeline_destroy(timeline);
         api::device_destroy(device);
+    }
+}
+
+/// Executable cache contract: advisory native cached pipeline-state blobs,
+/// export/import with identity checking, valid partial export at capacity, and
+/// merge preserving the destination.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_executable_cache_roundtrip() {
+    let (_discovery, device, _queue, _domain) = gpu_setup();
+    let empty = ExecutableCacheDesc {
+        header: Record::new::<ExecutableCacheDesc>(EXECUTABLE_CACHE_DESC),
+        synchronization: 0,
+        reserved: 0,
+        initial: Bytes {
+            data: ptr::null(),
+            size: 0,
+        },
+    };
+    let cache = unsafe { api::executable_cache_create(device, &empty) }.unwrap();
+
+    // Preparation through the cache: both a graphics and a compute executable.
+    let graphics = triangle_executable_with(device, Some(cache)).unwrap();
+    let compute = heap_transform_executable_with(device, Some(cache)).unwrap();
+
+    // Export: query the maximum size, then the full container.
+    let mut size = 0usize;
+    unsafe { api::executable_cache_data(cache, &mut size, None) }.unwrap();
+    assert!(size > 32);
+    let mut data = vec![0u8; size];
+    let mut written = size;
+    unsafe { api::executable_cache_data(cache, &mut written, Some(&mut data)) }.unwrap();
+    assert_eq!(written, size);
+    assert_eq!(&data[..8], b"OGPUCAC1");
+
+    // Import unchanged exported bytes and prepare again through it.
+    let imported = unsafe {
+        api::executable_cache_create(
+            device,
+            &ExecutableCacheDesc {
+                initial: Bytes {
+                    data: data.as_ptr().cast(),
+                    size,
+                },
+                ..empty
+            },
+        )
+    }
+    .unwrap();
+    let graphics2 = triangle_executable_with(device, Some(imported)).unwrap();
+    let mut imported_size = 0usize;
+    unsafe { api::executable_cache_data(imported, &mut imported_size, None) }.unwrap();
+    assert!(imported_size >= size);
+
+    // Identity mismatch is UNSUPPORTED, never silently retried as empty.
+    let mut corrupt = data.clone();
+    corrupt[12] ^= 0xff;
+    assert_eq!(
+        unsafe {
+            api::executable_cache_create(
+                device,
+                &ExecutableCacheDesc {
+                    initial: Bytes {
+                        data: corrupt.as_ptr().cast(),
+                        size,
+                    },
+                    ..empty
+                },
+            )
+        },
+        Err(UNSUPPORTED)
+    );
+
+    // A partial export at reduced capacity stays a valid importable cache.
+    let capacity = size / 2;
+    let mut partial = vec![0u8; capacity];
+    let mut partial_size = capacity;
+    unsafe { api::executable_cache_data(cache, &mut partial_size, Some(&mut partial)) }.unwrap();
+    assert!(partial_size <= capacity);
+    let merged = unsafe {
+        api::executable_cache_create(
+            device,
+            &ExecutableCacheDesc {
+                initial: Bytes {
+                    data: partial.as_ptr().cast(),
+                    size: partial_size,
+                },
+                ..empty
+            },
+        )
+    }
+    .unwrap();
+
+    // Merge borrows sources and preserves destination contents; self-merge is
+    // invalid and count=0 is a no-op.
+    unsafe { api::executable_cache_merge(merged, &[imported]) }.unwrap();
+    assert_eq!(unsafe { api::executable_cache_merge(cache, &[cache]) }, Err(INVALID));
+    unsafe { api::executable_cache_merge(cache, &[]) }.unwrap();
+    let mut merged_size = 0usize;
+    unsafe { api::executable_cache_data(merged, &mut merged_size, None) }.unwrap();
+    assert!(merged_size >= size);
+
+    unsafe {
+        api::executable_cache_destroy(merged);
+        api::executable_cache_destroy(imported);
+        api::executable_cache_destroy(cache);
+        api::executable_destroy(graphics2);
+        api::executable_destroy(graphics);
+        api::executable_destroy(compute);
     }
 }

@@ -45,7 +45,6 @@ pub(in crate::foundation) fn split_scratch(_count: u32) -> Result<HostRequiremen
     no_scratch()
 }
 
-pub struct ExecutableCache;
 pub struct QueryPool;
 pub struct Split;
 pub struct GeneratedLayout;
@@ -53,35 +52,6 @@ pub struct GeneratedSet;
 pub struct Binary;
 pub struct Fence;
 pub struct Swapchain;
-
-impl ExecutableCache {
-    /// # Safety
-    /// Live device and initial cache bytes; declared synchronization applies.
-    pub(in crate::foundation) unsafe fn create(
-        _d: &Device,
-        _desc: &ExecutableCacheDesc,
-    ) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Live cache; exclusive mutation/export access; writable output storage.
-    pub(in crate::foundation) unsafe fn data(
-        &self,
-        _size: *mut usize,
-        _data: *mut c_void,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Live same-device caches; exclusive destination, no source mutation.
-    pub(in crate::foundation) unsafe fn merge(
-        &self,
-        _count: u32,
-        _sources: *const *mut ExecutableCache,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-}
 
 impl QueryPool {
     /// # Safety

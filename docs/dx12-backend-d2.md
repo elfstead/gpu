@@ -301,3 +301,36 @@ the `foundation_rust` compute workload (`examples/shaders/foundation-compute
 arguments profile marks `UNSUPPORTED` and which the toolchain rejects at the
 language level — its coverage claim stays "not covered on D3D12 under the
 ROOT_DESCRIPTORS profile".
+
+## Executable caches (D2.4: `gpu_executable_cache_roundtrip`)
+
+The executable cache maps to D3D12's native cached pipeline-state mechanism:
+`CachedPSO` hints at `Create*PipelineState` and `GetCachedBlob` after creation
+— the same advisory compiled-pipeline storage `VkPipelineCache` wraps on
+Vulkan. The exported container is the backend's native cache representation:
+a magic/version header, the adapter identity (vendor, device and cache UUID
+from the adapter LUID) checked at import with `UNSUPPORTED` on mismatch and
+never silently retried as empty, and entries keyed by the canonical
+preparation identity (every byte that shapes the native PSO: shader code,
+entries, specialization, static state, requirements). Entries compare
+exactly, so a cached blob is only offered to the preparation it came from —
+no hashing collisions and no cross-preparation reuse.
+
+Contract clauses covered by `gpu_executable_cache_roundtrip`: empty creation,
+preparation through a cache for both compute and graphics, size query and
+full export, unchanged-bytes import with a second preparation, identity
+mismatch rejection, valid partial export at reduced capacity (whole entries
+up to capacity; the container's entry count matches what was written), merge
+preserving destination contents with `count=0` as a no-op and self-merge
+invalid. A rejected cached blob falls back to uncached creation — caching
+promises no hit semantics, per the advisory clause.
+
+Provisional design notes for the reviewer: the entry key is the exact
+preparation identity rather than a digest (exact comparison, at the cost of
+carrying the identity bytes in the export); the alternative native mapping is
+`ID3D12PipelineLibrary` with a name table, which this implementation avoids
+because library serialization is monolithic and cannot honor the valid-
+partial-export clause. The synchronization field accepts both modes;
+`CALLER_SYNCHRONIZATION` requires the `CACHE_CONTROL` feature.
+
+Suite: 18 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).
