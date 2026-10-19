@@ -92,3 +92,21 @@ over-claims nothing (the pointer gap is explicit and probed), it does not
 distort the shared API, and every place a different decision would touch is
 listed above. The reviewer can accept, replace, or run this profile in
 parallel with a descriptor-index profile without reworking D1.
+
+## Consumer-fixture evidence (M4 foundation Rust consumer attempt)
+
+Probe (slangc 2026.14.1, `-target dxil -profile cs_6_6`): the consumer's
+`examples/shaders/foundation-compute.slang` fails to compile for DXIL. Slang
+lowers the pointer member `uint* values` to generated HLSL
+`Ptr<uint, ...> values_0;` and dxc rejects it (`expected member name or ';'
+after declaration specifiers`) — HLSL has no general pointers, language-level,
+matching the profile's probe table.
+
+The fixture's ABI is exactly the ROOT_DESCRIPTORS shape (`byte_size: 24,
+root_count: 2`): inline bytes are root constants at the same namespace
+offsets, the two `*Root` pointer members are root slots (raw UAV root
+descriptors). The D2.1 `argument-transform` fixture is the proven DXIL
+lowering. Consumer work therefore compiles DXIL artifact variants through
+that lowering rather than reusing the SPIR-V-oriented sources unchanged;
+`SHADER_DXIL` already exists in the artifact format enum and the consumer's
+`Shader.code` is byte-based, so artifact plumbing is byte-exact DXIL.
