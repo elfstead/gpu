@@ -240,25 +240,69 @@ pub unsafe fn raster(
     format: u32,
     overlay: bool,
 ) -> gpu::Result<gpu::ExecutableHandle> {
+    // The D3D12 ROOT_DESCRIPTORS profile binds the inline vertices address as
+    // a root descriptor (u0) and consumes the DXIL variant artifacts; the
+    // SPIR-V path reads the same address as inline pointer bytes.
+    #[cfg(target_os = "windows")]
+    let roots = [RootSlot {
+        stages: STAGE_VERTEX,
+        offset: 0,
+        alignment: 8,
+    }];
+    #[cfg(not(target_os = "windows"))]
+    let roots: [RootSlot; 0] = [];
     let abi = ArgumentInterface {
         header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
         byte_size: 24,
-        root_count: 0,
-        roots: ptr::null(),
+        root_count: roots.len() as u32,
+        roots: roots.as_ptr(),
     };
-    let shaders =
-        [(VERTEX, shaders::VERTEX), (FRAGMENT, shaders::FRAGMENT)].map(|(stage, code)| Shader {
-            stage: stage as u32,
-            format: SHADER_SPIRV,
-            code: Bytes {
-                data: code.as_ptr().cast(),
-                size: std::mem::size_of_val(code),
+    #[cfg(target_os = "windows")]
+    let entries = [
+        (VERTEX, shaders::VERTEX_DXIL, c"vsMain"),
+        (FRAGMENT, shaders::FRAGMENT_DXIL, c"fsMain"),
+    ];
+    #[cfg(not(target_os = "windows"))]
+    let entries = [
+        (
+            VERTEX,
+            // SAFETY: the generated words are dense u32 storage.
+            unsafe {
+                std::slice::from_raw_parts(
+                    shaders::VERTEX.as_ptr().cast::<u8>(),
+                    shaders::VERTEX.len() * 4,
+                )
             },
-            entry: c"main".as_ptr(),
-            interface_metadata: &abi.header,
-            specialization: ptr::null(),
-            subgroup: ptr::null(),
-        });
+            c"main",
+        ),
+        (
+            FRAGMENT,
+            // SAFETY: the generated words are dense u32 storage.
+            unsafe {
+                std::slice::from_raw_parts(
+                    shaders::FRAGMENT.as_ptr().cast::<u8>(),
+                    shaders::FRAGMENT.len() * 4,
+                )
+            },
+            c"main",
+        ),
+    ];
+    let shaders = entries.map(|(stage, code, entry)| Shader {
+        stage: stage as u32,
+        format: if cfg!(target_os = "windows") {
+            SHADER_DXIL
+        } else {
+            SHADER_SPIRV
+        },
+        code: Bytes {
+            data: code.as_ptr().cast(),
+            size: code.len(),
+        },
+        entry: entry.as_ptr(),
+        interface_metadata: &abi.header,
+        specialization: ptr::null(),
+        subgroup: ptr::null(),
+    });
     let req = ShaderRequirements {
         header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
         features: RASTER,

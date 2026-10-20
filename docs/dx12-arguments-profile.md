@@ -132,3 +132,22 @@ covered separately by the `gpu_scene_raster` fixture (shared inline bank,
 flat root-descriptor vertex buffer, descriptor-indexed sampling, indexed
 draws with depth rejection), and the executable-cache path it exercises is
 covered by `gpu_executable_cache_roundtrip`.
+
+## Consumer wiring: the M4 scene's DXIL variant (work in progress)
+
+The consumer's M4 scene (the `surface` binary, `--scene-check` mode) now has
+the D3D12 variant wired end to end: `examples/graphics_scene/textured_dxil.slang`
+(the documented lowering of `textured.{vert,frag}.slang`: shared inline bank,
+the vertices address as root descriptor u0, descriptor-indexed
+textures/samplers through bound heap tables), its checked-in `textured.{vs,fs}.dxil`
+artifacts, a `build.rs` that emits both artifact families, and per-target
+selection in `scene_resources.rs` (`SHADER_DXIL` + the root slot + `vsMain`/
+`fsMain` on Windows, `SHADER_SPIRV` + inline pointer bytes elsewhere).
+
+The binary builds and runs against the D3D12 backend and reaches the scene
+setup, currently failing at a further `UNSUPPORTED` before any case executes.
+Candidate checks for the next session, in order: the scene's `topology: 3`
+against this backend's topology mapping; the graphics state's dynamic-state
+bits; the vertex-input record; the blend enum values (`src_color: 6`,
+`dst_color: 7`). Each is a small, visible rejection to either accept or
+document — nothing here is emulated.

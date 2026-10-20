@@ -49,6 +49,16 @@ fn main() {
             words
         ));
     }
+    // The D3D12 variant artifacts of the same M4 scene (byte arrays; DXIL
+    // containers are byte-granular). Source: graphics_scene/textured_dxil.slang.
+    for (name, path) in [
+        ("VERTEX_DXIL", "../graphics_scene/textured.vs.dxil"),
+        ("FRAGMENT_DXIL", "../graphics_scene/textured.fs.dxil"),
+    ] {
+        println!("cargo:rerun-if-changed={path}");
+        let bytes = fs::read(path).expect("M4 DXIL artifact");
+        generated.push_str(&format!("pub const {name}: &[u8] = &{:?};\n", bytes));
+    }
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("textured.rs"),
         generated,
