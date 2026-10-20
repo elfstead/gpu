@@ -417,6 +417,27 @@ carry their layer slice (`FirstArraySlice`/`ArraySize`) for both RTV and DSV.
 state/range rejections. Suite: 21 GPU + 18 host tests pass on Windows; Linux
 unchanged (110 + 2 + 67).
 
+## The mixed compute-to-raster fixture (labeled blocker)
+
+`gpu_compute_to_raster` is written and compiles: the D2.1 argument transform
+dispatches `value * multiplier + count` over uploaded vertex words (the
+inverse transform is uploaded so the vertices land exact), a
+compute-to-vertex barrier sequences it against the M4-shape draw, and the
+draw consumes the computed positions through its root descriptor together
+with descriptor-indexed sampling. The vertex buffer starts zero, so the
+rendered pixels prove the compute ran and its writes reached the vertex
+fetch. One test-side defect was already found and fixed this way (the index
+buffer needed `USAGE_COPY_DST` when written by copy rather than map).
+
+Remaining symptom: one recording call poisons the list with `CAPACITY`
+(-5), after which everything cascades; `commands_end` then reports it. The
+trace narrowed it past the uploads and the compute dispatch (those record
+cleanly) — the suspects are the render-scope/bind/draw sequence or the
+descriptor-heap binds. The encoding-error trace used to find it is two lines
+in `foundation/rust.rs`'s `encode` (`if let Err(code) = f(list) { eprintln }`).
+Known `CAPACITY` sources to check first: `next_view_slot` (view-heap slot
+counter) in the render path.
+
 ## Open D2 checklist item: the mixed compute-to-raster fixture
 
 The plan's D2 fixtures list includes a *mixed* compute-to-raster fixture. The
