@@ -513,3 +513,12 @@ this AMD driver would be worth ruling out before D3's interactive work; the
 `gpu_closure_ab_probe` and the mixed fixture are the instruments (run them in
 a loop under load). Nothing else in the suite has shown flakiness across the
 session's hundreds of runs.
+
+**Soak data:** 8 runs each of `gpu_draw_indirect`, `gpu_closure_ab_probe` and
+`gpu_compute_to_raster` in isolation (24 total) and 5 consecutive full-suite
+runs — all green. The single observed failure remains the one full-suite run
+earlier in the session (one phase-0 assertion in `gpu_draw_indirect`), i.e. a
+low single-digit-percent intermittency under this driver that a dedicated
+soak (hundreds of runs, ideally under GPU load) should characterize before
+D3's interactive work. The instruments and the counter-evidence probe are
+checked in for exactly that purpose.
