@@ -2,14 +2,29 @@
 //! externally supplied windows through a surface record that lands in D3.
 use super::types::*;
 use super::Adapter;
+use windows::Win32::Graphics::Dxgi as dxgi;
 
 /// Opaque surface owner; creation is unsupported in this batch.
 pub struct Surface;
 
-/// Report the presentation profiles of this adapter. Nothing is enabled.
-pub(in crate::foundation) fn support(_adapter: &Adapter) -> Result<PresentationSupport, Status> {
+/// Report the physical presentation profiles of this adapter, without a
+/// window and without enabling anything (the contract's headless
+/// `adapter_support` query). DXGI swapchain creation is a factory capability:
+/// its presence is the physical swapchain profile. Swapchain maintenance
+/// (parameter changes without recreation) maps to no DXGI profile this
+/// backend reports yet and stays zero until the D3 swapchain work measures
+/// what `ResizeBuffers` preserves.
+pub(in crate::foundation) fn support(adapter: &Adapter) -> Result<PresentationSupport, Status> {
+    // SAFETY: live adapter; the parent factory reference is adopted.
+    let factory = unsafe {
+        adapter
+            .state
+            .adapter
+            .GetParent::<dxgi::IDXGIFactory2>()
+            .ok()
+    };
     Ok(PresentationSupport {
-        swapchain: 0,
+        swapchain: u32::from(factory.is_some()),
         swapchain_maintenance: 0,
     })
 }
