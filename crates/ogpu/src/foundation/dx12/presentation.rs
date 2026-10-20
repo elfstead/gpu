@@ -47,6 +47,7 @@ pub struct Swapchain {
     chain: dxgi::IDXGISwapChain3,
     images: Vec<Box<Image>>,
     extent: Extent,
+    sync_interval: u32,
 }
 
 /// Report the physical presentation profiles of this adapter, without a
