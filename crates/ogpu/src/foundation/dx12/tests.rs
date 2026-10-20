@@ -4427,9 +4427,6 @@ fn gpu_draw_indirect() {
         }
         unsafe { api::memory_unmap(arguments) };
     }
-    // The contract's host-write flow is map/unmap/flush: the indirect reads
-    // consume these bytes at execution.
-    unsafe { api::memory_flush(arguments.span(0, 256)) }.unwrap();
     let indices = linear_memory(device, 256, USAGE_INDEX, 1);
     let index_data: [u32; 3] = [0, 1, 2];
     {
@@ -4444,8 +4441,7 @@ fn gpu_draw_indirect() {
         }
         unsafe { api::memory_unmap(indices) };
     }
-    unsafe { api::memory_flush(indices.span(0, 12)) }.unwrap();
-    let readback = linear_memory(device, out_bytes * 3, USAGE_COPY_DST, 2);
+    let readback = linear_memory(device, out_bytes * 4, USAGE_COPY_DST, 2);
 
     let arena = single_slot_arena(device, domain);
     let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
@@ -4626,9 +4622,10 @@ fn gpu_draw_indirect() {
     // Fixed-count indirect draws (draw and indexed) cover the clear with the
     // centre-covering triangle; a count-based draw whose GPU count is zero
     // must issue nothing.
-    phase(list, 0, 2, arguments.span(0, 16), 16, None);
-    phase(list, 1, 1, arguments.span(16, 20), 20, None);
-    phase(list, 2, 2, arguments.span(0, 16), 16, Some(arguments.span(64, 4)));
+    phase(list, 0, 2, arguments.span(0, 16), 16, Some(arguments.span(64, 4)));
+    phase(list, 1, 2, arguments.span(0, 16), 16, None);
+    phase(list, 2, 1, arguments.span(16, 20), 20, None);
+    phase(list, 3, 2, arguments.span(0, 16), 16, Some(arguments.span(64, 4)));
 
     let list = unsafe { api::commands_end(list) };
     if list.is_err() {
@@ -4661,14 +4658,14 @@ fn gpu_draw_indirect() {
     assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
     dump_validation(device);
 
-    let bytes = read_back(readback, out_bytes * 3);
+    let bytes = read_back(readback, out_bytes * 4);
     let pixel = |phase: usize, x: usize, y: usize| -> [u8; 4] {
         let base = phase * out_bytes as usize + y * 256 + x * 4;
         bytes[base..base + 4].try_into().unwrap()
     };
     // The fixed-count variants draw the centre-covering triangle over the
     // black clear; the count-based variant with a zero count draws nothing.
-    for phase in [0usize, 1] {
+    for phase in [1usize, 2] {
         assert_eq!(
             pixel(phase, 32, 32),
             [255, 0, 0, 255],
@@ -4676,7 +4673,10 @@ fn gpu_draw_indirect() {
         );
         assert_eq!(pixel(phase, 1, 1), [0, 0, 0, 255], "phase {phase} corner");
     }
-    assert_eq!(pixel(2, 32, 32), [0, 0, 0, 255], "zero count must not draw");
+    assert_eq!(pixel(0, 32, 32), [0, 0, 0, 255], "zero count must not draw");
+    // The late zero-count phase is the meaningful one: a drawn phase preceded
+    // it on the same list, so a stale record would show red here.
+    assert_eq!(pixel(3, 32, 32), [0, 0, 0, 255], "late zero count must not draw");
 
     // Visible rejection: wider-than-record strides have no native command
     // stride and stay unsupported (each on its own list).
@@ -5527,6 +5527,327 @@ fn gpu_compute_to_raster() {
         api::memory_destroy(resource_heap);
         api::memory_destroy(out_backing);
         api::memory_destroy(texture_backing);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+/// AB probe: the same draw scope recorded through a closure (round 0) and
+/// inline (round 1) on one list.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_closure_ab_probe() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let extent = 64u32;
+    let out_bytes = u64::from(extent) * 256;
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT | IMAGE_COPY_SRC,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let output = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+    unsafe { api::image_bind(output, backing.span(0, requirements.size)) }.unwrap();
+    let view = attachment_view(device, output, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+    let executable = triangle_executable(device).unwrap();
+    let arguments = linear_memory(device, 256, USAGE_INDIRECT, 1);
+    let indices = linear_memory(device, 256, USAGE_INDEX | USAGE_COPY_DST, 1);
+    let mut wire = [0u8; 256];
+    wire[0..16].copy_from_slice(&[3u32, 1, 0, 0].map(u32::to_ne_bytes).concat());
+    {
+        let mapping = unsafe { api::memory_map(arguments.span(0, 256)) }.unwrap();
+        unsafe {
+            ptr::copy_nonoverlapping(wire.as_ptr(), mapping.data.cast::<u8>(), 256);
+        }
+        unsafe { api::memory_unmap(arguments) };
+    }
+    let _ = &indices;
+    let readback = linear_memory(device, out_bytes * 2, USAGE_COPY_DST, 2);
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let scratch_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(scratch_requirements);
+    let to_attachment = ImageBarrier {
+        image: output.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COLOR_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COLOR_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [0.0, 0.0, 0.0, 1.0],
+        },
+    };
+    let render_requirements = api::render_scratch_requirements(1).unwrap();
+    let (mut render_scratch, render_offset) = aligned_scratch(render_requirements);
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: 0,
+        color_count: 1,
+        colors: &attachment,
+        depth: ptr::null(),
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { render_scratch.as_mut_ptr().add(render_offset) }.cast(),
+            size: render_requirements.size,
+        },
+    };
+    let viewport = ViewportState {
+        header: Record::new::<ViewportState>(VIEWPORT_STATE),
+        x: 0.0,
+        y: 0.0,
+        width: extent as f32,
+        height: extent as f32,
+        min_depth: 0.0,
+        max_depth: 1.0,
+        scissor_x: 0,
+        scissor_y: 0,
+        scissor_width: extent,
+        scissor_height: extent,
+    };
+    let draw = DrawDesc {
+        count: 3,
+        instances: 1,
+        first: 0,
+        first_instance: 0,
+        vertex_offset: 0,
+    };
+    let copy = ImageCopy {
+        region: ImageRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offset: Offset { x: 0, y: 0, z: 0 },
+            extent: Extent {
+                x: extent,
+                y: extent,
+                z: 1,
+            },
+        },
+        row_pitch: 256,
+        slice_pitch: 0,
+        state: STATE_COPY_SRC,
+        reserved: 0,
+    };
+
+    let mut scope = |list: api::ListHandle, round: u64, closure: bool| {
+        let to_attachment = ImageBarrier {
+            before: 0,
+            after: ACCESS_COLOR_WRITE,
+            old_state: STATE_UNDEFINED,
+            new_state: STATE_COLOR_ATTACHMENT,
+            ..to_attachment
+        };
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_COLOR,
+            after: STAGE_COLOR,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+            images: &to_attachment,
+        };
+        let _ = closure;
+        unsafe { api::barrier(list, &dependency) };
+        unsafe { api::render_begin(list, &render) };
+        unsafe { api::bind_executable(list, executable) };
+        unsafe { api::set_graphics_state(list, &viewport) };
+        unsafe { api::draw(list, &draw) };
+        unsafe { api::render_end(list) };
+        let to_copy = ImageBarrier {
+            before: ACCESS_COLOR_WRITE,
+            after: ACCESS_COPY_READ,
+            old_state: STATE_COLOR_ATTACHMENT,
+            new_state: STATE_COPY_SRC,
+            ..to_attachment
+        };
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_COLOR,
+            after: STAGE_TRANSFER,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+            images: &to_copy,
+        };
+        unsafe { api::barrier(list, &dependency) };
+        unsafe {
+            api::copy_from_image(
+                list,
+                readback.span(round * out_bytes, out_bytes),
+                output,
+                &copy,
+            )
+        };
+    };
+
+    // Round 0 through the closure; round 1 through an identical inline body.
+    scope(list, 0, true);
+    {
+        let to_attachment = ImageBarrier {
+            before: 0,
+            after: ACCESS_COLOR_WRITE,
+            old_state: STATE_UNDEFINED,
+            new_state: STATE_COLOR_ATTACHMENT,
+            ..to_attachment
+        };
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_COLOR,
+            after: STAGE_COLOR,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+            images: &to_attachment,
+        };
+        unsafe { api::barrier(list, &dependency) };
+        unsafe { api::render_begin(list, &render) };
+        unsafe { api::bind_executable(list, executable) };
+        unsafe { api::set_graphics_state(list, &viewport) };
+        unsafe { api::draw(list, &draw) };
+        unsafe { api::render_end(list) };
+        let to_copy = ImageBarrier {
+            before: ACCESS_COLOR_WRITE,
+            after: ACCESS_COPY_READ,
+            old_state: STATE_COLOR_ATTACHMENT,
+            new_state: STATE_COPY_SRC,
+            ..to_attachment
+        };
+        let dependency = Dependency {
+            header: Record::new::<Dependency>(DEPENDENCY),
+            before: STAGE_COLOR,
+            after: STAGE_TRANSFER,
+            global_before: 0,
+            global_after: 0,
+            memory_count: 0,
+            image_count: 1,
+            flags: 0,
+            memory: ptr::null(),
+            scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+            scratch_size: scratch_requirements.size,
+            images: &to_copy,
+        };
+        unsafe { api::barrier(list, &dependency) };
+        unsafe {
+            api::copy_from_image(list, readback.span(out_bytes, out_bytes), output, &copy)
+        };
+    }
+
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut submit_scratch, submit_offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: submit_scratch.as_mut_ptr().add(submit_offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+
+    let pixels = read_back(readback, out_bytes * 2);
+    for round in [0usize, 1] {
+        let base = round * out_bytes as usize + 32 * 256 + 32 * 4;
+        let got: [u8; 4] = pixels[base..base + 4].try_into().unwrap();
+        assert_eq!(got, [255, 0, 0, 255], "round {round} centre");
+    }
+
+    unsafe {
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::view_destroy(view);
+        api::image_destroy(output);
+        api::memory_destroy(readback);
+        api::memory_destroy(indices);
+        api::memory_destroy(arguments);
+        api::memory_destroy(backing);
         api::timeline_destroy(timeline);
         api::device_destroy(device);
     }

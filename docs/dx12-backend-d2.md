@@ -476,3 +476,30 @@ not rasterise" is worth a focused session with a debugger and the debug
 layer's verbose messages; the indirect variants themselves verify
 pixel-exactly in the later slots. The suite keeps it as the single labeled
 blocker alongside the now-green mixed fixture.
+
+### First-phase quirk: narrowed to one test, counter-evidence recorded
+
+A controlled AB probe (`gpu_closure_ab_probe`) records the same draw scope
+through a closure (round 0) and inline (round 1) on one list: **both draw
+pixel-exactly** — so neither the closure nor the first-scope position is the
+trigger in general. Adding the indirect-test's argument/index memories with
+their map/unmap to the probe changes nothing. The remaining delta between
+the probe and `gpu_draw_indirect`'s first phase is small (the Indirect
+record construction in the closure, the three-region readback, and this
+test's particular captures) and the phenomenon is confined to that one test:
+every other graphics test — including the mixed compute-to-raster fixture's
+first scope and the scene test's three closure phases — draws in its first
+scope. `gpu_draw_indirect` keeps the reliable arrangement (the zero-count
+phase, which must draw nothing, in the first slot) and its drawn variants
+verify pixel-exactly; the counter-evidence lives in `gpu_closure_ab_probe`
+for whoever picks this up with a debugger.
+
+Notes from the follow-up run: `memory_flush` on a coherent UPLOAD-heap
+memory rejects with `INVALID` (such memory needs no flush), so the
+host-write-visibility hypothesis is closed from the API side too; the flush
+call was a test error, not an API gap. `gpu_draw_indirect` verifies its
+count-based suppression with a *late* zero-count phase — after a drawn phase
+on the same list, so a stale record would show red — which makes that check
+meaningful regardless of the first-slot quirk. Suite: 23 GPU + 18 host tests
+pass on Windows with `gpu_closure_ab_probe` kept as the counter-evidence
+probe; Linux unchanged.
