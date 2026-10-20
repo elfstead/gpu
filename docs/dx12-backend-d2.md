@@ -416,3 +416,20 @@ carry their layer slice (`FirstArraySlice`/`ArraySize`) for both RTV and DSV.
 `gpu_image_clear` verifies exact clear values through the copy path and the
 state/range rejections. Suite: 21 GPU + 18 host tests pass on Windows; Linux
 unchanged (110 + 2 + 67).
+
+## Open D2 checklist item: the mixed compute-to-raster fixture
+
+The plan's D2 fixtures list includes a *mixed* compute-to-raster fixture. The
+compute (argument/heap roundtrips), copy and textured offscreen raster
+fixtures all exist and pass; the mixed one — a compute dispatch writing the
+vertex buffer that a descriptor-indexed textured draw then consumes through
+its root descriptor (the D2.1 argument lowering feeding the M4 shape) — is
+the remaining checklist item. Its shape is fully supported today (both halves
+are proven separately: `gpu_argument_transform` and `gpu_scene_raster`); it
+needs a test that sequences dispatch -> compute-to-vertex barrier -> draw in
+one list. Nothing blocks it; it was left unwritten at the end of this batch.
+
+Presentation (D3) and the consumer's Win32 window path are out of scope for
+this branch: the shared contract defines presentation only for Wayland
+surfaces, and the plan places "Windows presentation and advanced native
+profiles" in D3.
