@@ -503,3 +503,13 @@ on the same list, so a stale record would show red — which makes that check
 meaningful regardless of the first-slot quirk. Suite: 23 GPU + 18 host tests
 pass on Windows with `gpu_closure_ab_probe` kept as the counter-evidence
 probe; Linux unchanged.
+
+**Intermittency note (important for the reviewer):** the first-slot symptom
+is *flaky*, not deterministic — after removing the bad `memory_flush` calls
+the suite passed 23/23 in three consecutive full runs, while one earlier full
+run in the same session failed exactly one phase-0 assertion in
+`gpu_draw_indirect`. A roughly 1-in-N first-draw-in-a-list intermittency on
+this AMD driver would be worth ruling out before D3's interactive work; the
+`gpu_closure_ab_probe` and the mixed fixture are the instruments (run them in
+a loop under load). Nothing else in the suite has shown flakiness across the
+session's hundreds of runs.
