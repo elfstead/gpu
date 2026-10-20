@@ -228,8 +228,39 @@ impl Swapchain {
         if desc.domain_count != 1 || desc.domains.is_null() {
             return Err(UNSUPPORTED);
         }
+        // DXGI resizes the live chain rather than recreating swapchains;
+        // old_swapchain maps to ResizeBuffers on its native chain (the design
+        // record: no invented recreation semantics).
         if !desc.old_swapchain.is_null() {
-            return Err(UNSUPPORTED);
+            // SAFETY: live retired chain by caller contract.
+            let old = unsafe { desc.old_swapchain.as_ref() }.ok_or(INVALID)?;
+            let format = formats::dxgi_format(desc.format);
+            let extent = Extent {
+                x: desc.extent[0],
+                y: desc.extent[1],
+                z: 1,
+            };
+            // SAFETY: live chain with no pending work per the caller's
+            // retirement obligations.
+            unsafe {
+                old.chain.ResizeBuffers(
+                    desc.min_image_count,
+                    extent.x,
+                    extent.y,
+                    format,
+                    dxgi::DXGI_SWAP_CHAIN_FLAG(0),
+                )
+            }
+            .map_err(map_error)?;
+            let images = Self::wrap_buffers(d, &old.chain, desc.format, desc.usage, extent)?;
+            return Ok(Box::new(Self {
+                device: d,
+                chain: old.chain.clone(),
+                queue: old.queue.clone(),
+                images,
+                extent,
+                sync_interval: u32::from(desc.present_mode == 2),
+            }));
         }
         let surface = unsafe { desc.surface.as_ref() }.ok_or(INVALID)?;
         let domains = unsafe { native_slice(desc.domains, 1) }?;
@@ -286,20 +317,7 @@ impl Swapchain {
         .map_err(map_error)?
         .cast::<dxgi::IDXGISwapChain3>()
         .map_err(map_error)?;
-        let count = unsafe { chain.GetDesc1() }.map_err(map_error)?.BufferCount;
-        let mut images = Vec::new();
-        images
-            .try_reserve_exact(count as usize)
-            .map_err(|_| OUT_OF_MEMORY)?;
-        for index in 0..count {
-            let resource: d3d::ID3D12Resource =
-                unsafe { chain.GetBuffer(index) }.map_err(map_error)?;
-            let native = unsafe { resource.GetDesc() };
-            let image = unsafe {
-                Image::wrap(d, desc.format, desc.usage, extent, native, &resource)
-            };
-            images.push(image);
-        }
+        let images = Self::wrap_buffers(d, &chain, desc.format, desc.usage, extent)?;
         Ok(Box::new(Self {
             device: d,
             chain,
@@ -390,6 +408,33 @@ impl Swapchain {
     ) -> Result<(), Status> {
         // SAFETY: live queue and fence; the wait orders against prior signals.
         unsafe { self.queue.Wait(fence, value) }.map_err(map_error)
+    }
+
+    /// Wrap every chain buffer as a borrowed foundation image.
+    fn wrap_buffers(
+        d: &Device,
+        chain: &dxgi::IDXGISwapChain3,
+        format: u32,
+        usage: u64,
+        extent: Extent,
+    ) -> Result<Vec<Box<Image>>, Status> {
+        let count = unsafe { chain.GetDesc1() }.map_err(map_error)?.BufferCount;
+        let mut images = Vec::new();
+        images
+            .try_reserve_exact(count as usize)
+            .map_err(|_| OUT_OF_MEMORY)?;
+        for index in 0..count {
+            // SAFETY: live chain; the buffer reference is adopted and borrowed.
+            let resource: d3d::ID3D12Resource =
+                unsafe { chain.GetBuffer(index) }.map_err(map_error)?;
+            let native = unsafe { resource.GetDesc() };
+            // SAFETY: the chain owns the buffer for the chain's lifetime.
+            let image = unsafe {
+                Image::wrap(d, format, usage, extent, native, &resource)
+            };
+            images.push(image);
+        }
+        Ok(images)
     }
 
     /// Borrowed image count of the chain (release/present validation).
