@@ -417,7 +417,16 @@ carry their layer slice (`FirstArraySlice`/`ArraySize`) for both RTV and DSV.
 state/range rejections. Suite: 21 GPU + 18 host tests pass on Windows; Linux
 unchanged (110 + 2 + 67).
 
-## The mixed compute-to-raster fixture (labeled blocker)
+## The mixed compute-to-raster fixture (green)
+
+Resolved: the `CAPACITY` poison was `scratch()`'s insufficient-scratch
+rejection in the barrier path — the test's barrier scratch allocation
+under-counted the records (the scratch-size helper's parameter pairing
+mattered). The fix is the caller sizing the scratch for both record kinds; a
+symmetric `(1, 1)` allocation is valid regardless of ordering. The encoding
+trace (two lines in `foundation/rust.rs`) located it in one run.
+
+## The mixed compute-to-raster fixture (history)
 
 `gpu_compute_to_raster` is written and compiles: the D2.1 argument transform
 dispatches `value * multiplier + count` over uploaded vertex words (the
@@ -429,14 +438,9 @@ rendered pixels prove the compute ran and its writes reached the vertex
 fetch. One test-side defect was already found and fixed this way (the index
 buffer needed `USAGE_COPY_DST` when written by copy rather than map).
 
-Remaining symptom: one recording call poisons the list with `CAPACITY`
-(-5), after which everything cascades; `commands_end` then reports it. The
-trace narrowed it past the uploads and the compute dispatch (those record
-cleanly) — the suspects are the render-scope/bind/draw sequence or the
-descriptor-heap binds. The encoding-error trace used to find it is two lines
-in `foundation/rust.rs`'s `encode` (`if let Err(code) = f(list) { eprintln }`).
-Known `CAPACITY` sources to check first: `next_view_slot` (view-heap slot
-counter) in the render path.
+Two test-side defects were found this way and fixed: the index buffer needs
+`USAGE_COPY_DST` when written by copy rather than map, and the barrier
+scratch must cover the declared memory and image records.
 
 ## Open D2 checklist item: the mixed compute-to-raster fixture
 
@@ -454,3 +458,21 @@ Presentation (D3) and the consumer's Win32 window path are out of scope for
 this branch: the shared contract defines presentation only for Wayland
 surfaces, and the plan places "Windows presentation and advanced native
 profiles" in D3.
+
+## gpu_draw_indirect: the first-phase quirk is real (labeled blocker)
+
+Correcting the earlier "non-issue" conclusion: the symptom is reproducible in
+the current tree — the first phase's draw through the test's closure renders
+nothing (the clear lands, the draw does not), while identical later phases
+draw pixel-exactly. Control evidence this session: the mixed
+compute-to-raster fixture's first scope draws through the same closure
+structure; the two-scope inline probe draws in both scopes; and every
+passing gpu_draw_indirect configuration had a non-drawing first phase
+(count-zero or the direct control in a later slot). Host-write visibility was
+hypothesised and tested (memory_flush after the map/unmap, matching the
+consumer's documented flow) — no change. The pattern "the first
+render-scope draw in a descriptor-free, argument-free closure sometimes does
+not rasterise" is worth a focused session with a debugger and the debug
+layer's verbose messages; the indirect variants themselves verify
+pixel-exactly in the later slots. The suite keeps it as the single labeled
+blocker alongside the now-green mixed fixture.

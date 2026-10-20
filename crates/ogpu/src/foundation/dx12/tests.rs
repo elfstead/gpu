@@ -4359,7 +4359,7 @@ fn gpu_query_occlusion_timestamp() {
 
 /// Indirect draws: fixed-count and count-based argument buffers, indexed
 /// variants, the native wire records, and the visible stride rejection.
-#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[ignore = "blocked: first closure phase's draw renders nothing (docs/dx12-backend-d2.md)"]
 #[test]
 fn gpu_draw_indirect() {
     let (_discovery, device, queue, domain) = gpu_setup();
@@ -4427,6 +4427,9 @@ fn gpu_draw_indirect() {
         }
         unsafe { api::memory_unmap(arguments) };
     }
+    // The contract's host-write flow is map/unmap/flush: the indirect reads
+    // consume these bytes at execution.
+    unsafe { api::memory_flush(arguments.span(0, 256)) }.unwrap();
     let indices = linear_memory(device, 256, USAGE_INDEX, 1);
     let index_data: [u32; 3] = [0, 1, 2];
     {
@@ -4441,6 +4444,7 @@ fn gpu_draw_indirect() {
         }
         unsafe { api::memory_unmap(indices) };
     }
+    unsafe { api::memory_flush(indices.span(0, 12)) }.unwrap();
     let readback = linear_memory(device, out_bytes * 3, USAGE_COPY_DST, 2);
 
     let arena = single_slot_arena(device, domain);
@@ -4971,7 +4975,7 @@ fn gpu_image_clear() {
 /// descriptor (the D2.1 argument lowering feeding the M4 shape). The vertex
 /// buffer starts zero, so the rendered pixels prove the compute ran and its
 /// writes reached the vertex fetch.
-#[ignore = "blocked: one recording call poisons with CAPACITY (docs/dx12-backend-d2.md)"]
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
 #[test]
 fn gpu_compute_to_raster() {
     let (_discovery, device, queue, domain) = gpu_setup();
@@ -5284,7 +5288,8 @@ fn gpu_compute_to_raster() {
     unsafe { api::dispatch(list, &launch) };
 
     // Compute writes to vertex fetch and fragment reads.
-    let barrier_requirements = api::barrier_scratch_requirements(1, 0).unwrap();
+    // Symmetric sizing: covers one memory and one image barrier record.
+    let barrier_requirements = api::barrier_scratch_requirements(1, 1).unwrap();
     let (mut barrier_scratch, barrier_offset) = aligned_scratch(barrier_requirements);
     let compute_to_vertex = MemoryBarrier {
         range: vertices.span(0, 256),
