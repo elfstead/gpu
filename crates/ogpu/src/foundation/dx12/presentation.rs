@@ -48,6 +48,7 @@ pub struct Surface {
 pub struct Swapchain {
     device: *const Device,
     chain: dxgi::IDXGISwapChain3,
+    queue: d3d::ID3D12CommandQueue,
     images: Vec<Box<Image>>,
     extent: Extent,
     sync_interval: u32,
@@ -302,6 +303,7 @@ impl Swapchain {
         Ok(Box::new(Self {
             device: d,
             chain,
+            queue: queue.clone(),
             images,
             extent,
             sync_interval: u32::from(desc.present_mode == 2),
@@ -341,10 +343,19 @@ impl Swapchain {
         binary: *mut Binary,
         fence: *mut Fence,
     ) -> Result<(u32, bool), Status> {
-        if !binary.is_null() || !fence.is_null() {
-            return Err(UNSUPPORTED);
-        }
         let index = unsafe { self.chain.GetCurrentBackBufferIndex() };
+        // OK/SUBOPTIMAL schedules the caller's native signals at the
+        // acquisition point on the chain's queue.
+        if !binary.is_null() {
+            // SAFETY: live acquisition object by caller contract.
+            let binary = unsafe { binary.as_ref() }.ok_or(INVALID)?;
+            unsafe { binary.schedule(&self.queue) }?;
+        }
+        if !fence.is_null() {
+            // SAFETY: live acquisition object by caller contract.
+            let fence = unsafe { fence.as_ref() }.ok_or(INVALID)?;
+            unsafe { fence.schedule(&self.queue) }?;
+        }
         Ok((index, false))
     }
 
@@ -362,6 +373,23 @@ impl Swapchain {
             seen[index as usize] = true;
         }
         Ok(())
+    }
+
+    /// The chain's command queue (present wait/signal ordering).
+    pub(in crate::foundation) fn queue(&self) -> &d3d::ID3D12CommandQueue {
+        &self.queue
+    }
+
+    /// Order one binary signal against this chain's queue (present waits).
+    /// # Safety
+    /// Live fence and exclusive queue access per the contract.
+    pub(in crate::foundation) unsafe fn queue_wait(
+        &self,
+        fence: &d3d::ID3D12Fence,
+        value: u64,
+    ) -> Result<(), Status> {
+        // SAFETY: live queue and fence; the wait orders against prior signals.
+        unsafe { self.queue.Wait(fence, value) }.map_err(map_error)
     }
 
     /// Borrowed image count of the chain (release/present validation).

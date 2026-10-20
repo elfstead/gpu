@@ -96,9 +96,8 @@ impl Queue {
         if desc.image_count == 0 {
             return Err(INVALID);
         }
-        if desc.wait_count != 0 || !desc.waits.is_null() {
-            return Err(UNSUPPORTED);
-        }
+        // SAFETY: trusted wait array of the declared count.
+        let waits = unsafe { super::slice(desc.waits, desc.wait_count) }?;
         // SAFETY: trusted image array of the declared count.
         let images = unsafe { super::slice(desc.images, desc.image_count) }?;
         for index in 0..desc.image_count as usize {
@@ -106,16 +105,28 @@ impl Queue {
             if image.reserved != 0 {
                 return Err(INVALID);
             }
-            if !image.fence.is_null() {
-                return Err(UNSUPPORTED);
-            }
             // SAFETY: live swapchain behind the borrowed pointer.
             let chain = unsafe { image.swapchain.as_ref() }.ok_or(INVALID)?;
             if image.index as usize >= chain.image_count() {
                 return Err(INVALID);
             }
+            // The batch's waits order against the present on its queue.
+            // SAFETY: live binary objects and queue access per the contract.
+            unsafe {
+                for wait in waits.iter() {
+                    let binary = wait.as_ref().ok_or(INVALID)?;
+                    let (fence, value, _) = binary.native();
+                    chain.queue_wait(fence, value)?;
+                }
+            }
             // SAFETY: exclusive queue access per the contract.
             let status = unsafe { chain.present_native() };
+            // A present fence retires against native presentation.
+            if !image.fence.is_null() {
+                // SAFETY: live fence object by caller contract.
+                let fence = unsafe { image.fence.as_ref() }.ok_or(INVALID)?;
+                unsafe { fence.schedule(chain.queue()) }?;
+            }
             if !desc.results.is_null() {
                 // SAFETY: caller storage covers one status per image.
                 unsafe { *desc.results.add(index) = status };
