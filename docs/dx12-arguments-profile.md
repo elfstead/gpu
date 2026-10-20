@@ -151,3 +151,16 @@ against this backend's topology mapping; the graphics state's dynamic-state
 bits; the vertex-input record; the blend enum values (`src_color: 6`,
 `dst_color: 7`). Each is a small, visible rejection to either accept or
 document — nothing here is emulated.
+
+### The scene consumer's actual gate: presentation, not graphics
+
+The remaining `UNSUPPORTED` before any scene case executes is the very first
+call: `discover_presentation(PRESENTATION_WAYLAND)`. The M4 scene consumer is
+a Wayland-window application — even its `--scene-check` mode opens a surface
+— and this backend's presentation boundary is unimplemented (D1 deferred DXGI
+swapchains to the window-system profile). The graphics argument work it needs
+is complete and wired (DXIL variant, root slot, descriptor tables); running
+the consumer to completion on Windows therefore requires (a) the DXGI
+swapchain/surface implementation on this backend and (b) a Win32 window path
+in the consumer alongside its Wayland one. Neither is an arguments-profile
+gap — both are named, visible work items.
