@@ -334,3 +334,35 @@ partial-export clause. The synchronization field accepts both modes;
 `CALLER_SYNCHRONIZATION` requires the `CACHE_CONTROL` feature.
 
 Suite: 18 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).
+
+## Queries (D2.4: `gpu_query_occlusion_timestamp`)
+
+Native query heaps (`ID3D12QueryHeap`) with caller-owned reset, issue and
+resolve order. Mapping: kind 1/2/3 to TIMESTAMP/OCCLUSION/PIPELINE_STATISTICS
+heaps; `query_begin/end` to `BeginQuery`/`EndQuery`; `timestamp` to a single
+`EndQuery` of a TIMESTAMP query whose scope lowers to exactly one native stage
+bit (HOST, zero and multi-bit lowerings rejected); `queries_resolve` to
+`ResolveQueryData` with `WAIT` mapping to the native in-queue resolve
+ordering. One active begin/end query per type per list; inside-scope queries
+must end before `render_end` (enforced).
+
+Evidence-backed boundary found during the run: resolving a **never-issued**
+query slot hung the GPU until TDR, exactly the contract's "do not resolve
+never-issued slots" clause. The test now issues every resolved slot; the
+clause is a real device requirement on this backend, not just a portability
+rule.
+
+Visible rejections on this backend (native result data is 64-bit and packed
+with no stride control): the contract's 32-bit result width (would require a
+format conversion this profile does not hide), strides other than the native
+record stride (8 bytes per occlusion/timestamp query, 88 bytes per statistics
+query), AVAILABILITY and PARTIAL results. `queries_reset` validates its range
+and records no native command: D3D12 query slots are implicitly reusable
+after resolve and have no reset. Statistics pools require the full native
+counter mask (11 counters, ascending bit order = the native struct order);
+subset masks would change the record layout and stay visible. The snapshot
+now reports the physically supported features (RASTER, PIPELINE_STATISTICS,
+PRECISE_OCCLUSION, CACHE_CONTROL) and the eleven statistics counters as
+capabilities.
+
+Suite: 19 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).

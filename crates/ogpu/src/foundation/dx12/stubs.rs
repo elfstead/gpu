@@ -45,24 +45,12 @@ pub(in crate::foundation) fn split_scratch(_count: u32) -> Result<HostRequiremen
     no_scratch()
 }
 
-pub struct QueryPool;
 pub struct Split;
 pub struct GeneratedLayout;
 pub struct GeneratedSet;
 pub struct Binary;
 pub struct Fence;
 pub struct Swapchain;
-
-impl QueryPool {
-    /// # Safety
-    /// Live device with declared query features; device outlives the pool.
-    pub(in crate::foundation) fn create(
-        _d: &Device,
-        _desc: &QueryPoolDesc,
-    ) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
-    }
-}
 
 impl Split {
     pub(in crate::foundation) fn create(_d: &Device) -> Result<Box<Self>, Status> {
@@ -249,44 +237,6 @@ impl List {
         _count: u32,
         _lists: *const *mut List,
         _scratch: HostSpan,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn queries_reset(
-        &self,
-        _pool: &QueryPool,
-        _first: u32,
-        _count: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn query(
-        &self,
-        _pool: &QueryPool,
-        _index: u32,
-        _begin: bool,
-        _flags: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn timestamp(
-        &self,
-        _pool: &QueryPool,
-        _index: u32,
-        _scope: u64,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Destination span is live and writable through all recorded uses.
-    pub(in crate::foundation) unsafe fn queries_resolve(
-        &self,
-        _pool: &QueryPool,
-        _first: u32,
-        _count: u32,
-        _dst: Span,
-        _stride: u64,
-        _flags: u32,
     ) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }

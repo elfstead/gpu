@@ -39,6 +39,8 @@ pub struct List {
     sampler_binding: RefCell<Option<TableBinding>>,
     /// Whether a render scope is active on this recording.
     pub(super) rendering: Cell<bool>,
+    /// One active begin/end query per query type (occlusion, statistics).
+    pub(super) active_queries: [Cell<Option<super::queries::ActiveQuery>>; 2],
     /// Argument namespace shadow. Root arguments are invalidated by a root
     /// signature change, so binding re-emits these recorded bytes to preserve
     /// the contract's byte-preservation rule. Preallocated per slot; recording
@@ -119,6 +121,7 @@ impl Arena {
                 graphics: Cell::new(ptr::null()),
                 resource_binding: RefCell::new(None),
                 sampler_binding: RefCell::new(None),
+                active_queries: super::queries::active_cells(),
                 rendering: Cell::new(false),
                 arguments: RefCell::new(vec![0; MAX_ARGUMENT_BYTES as usize]),
             }));
@@ -245,6 +248,15 @@ impl Drop for Arena {
 }
 
 impl List {
+    /// Recording state with no render scope active (queries reset/resolve).
+    pub(super) fn outside_render(&self) -> Result<&Device, Status> {
+        let d = self.recording()?;
+        if self.rendering.get() {
+            return Err(INVALID);
+        }
+        Ok(d)
+    }
+
     pub(super) fn recording(&self) -> Result<&Device, Status> {
         if self.state.get() != 1 {
         return Err(INVALID);
@@ -684,7 +696,7 @@ pub(in crate::foundation) fn submit_batch_scratch(_count: u32) -> Result<HostReq
 /// Stage scope translation. HOST has no D3D12 barrier equivalent and is rejected
 /// rather than dropped; unenabled shader profiles (mesh/task/preprocess) are
 /// rejected until their feature mappings exist.
-fn stages(mask: u64) -> Result<d3d::D3D12_BARRIER_SYNC, Status> {
+pub(super) fn stages(mask: u64) -> Result<d3d::D3D12_BARRIER_SYNC, Status> {
     const KNOWN: u64 = (1 << 23) - 1;
     if mask & !KNOWN != 0 {
         return Err(UNSUPPORTED);

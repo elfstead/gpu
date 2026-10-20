@@ -186,6 +186,13 @@ impl List {
         if !self.rendering.replace(false) {
         return Err(INVALID);
         }
+        // An inside-scope query must end before render_end.
+        if self.active_queries.iter().any(|active| {
+            active.get().is_some_and(|active| active.inside)
+        }) {
+            self.rendering.set(true);
+            return Err(INVALID);
+        }
         Ok(())
     }
 }

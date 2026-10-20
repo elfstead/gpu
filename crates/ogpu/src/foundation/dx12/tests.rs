@@ -100,6 +100,12 @@ fn dump_validation(device: api::DeviceHandle) {
 }
 
 fn gpu_setup() -> (Box<Discovery>, api::DeviceHandle, api::QueueHandle, u32) {
+    gpu_setup_features(0)
+}
+
+fn gpu_setup_features(
+    features: u64,
+) -> (Box<Discovery>, api::DeviceHandle, api::QueueHandle, u32) {
     // Test runs execute under the D3D12 debug layer when it is installed:
     // validation evidence for the review gate (best-effort, never required).
     static ENABLE: std::sync::Once = std::sync::Once::new();
@@ -129,7 +135,7 @@ fn gpu_setup() -> (Box<Discovery>, api::DeviceHandle, api::QueueHandle, u32) {
             count: 1,
             priority: 1.0,
         }],
-        0,
+        features,
     )
     .unwrap();
     let queue = unsafe { api::device_queue(device, domain, 0) }.unwrap();
@@ -4079,5 +4085,274 @@ fn gpu_executable_cache_roundtrip() {
         api::executable_destroy(graphics2);
         api::executable_destroy(graphics);
         api::executable_destroy(compute);
+    }
+}
+
+/// Query contract on the native backend: occlusion around a render scope,
+/// timestamp pairs, native 64-bit resolves, and the visible rejections
+/// (32-bit result width, non-native strides, availability/partials).
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_query_occlusion_timestamp() {
+    let (_discovery, device, queue, domain) =
+        gpu_setup_features(RASTER | PIPELINE_STATISTICS | PRECISE_OCCLUSION);
+    let extent = 32u32;
+    let image_desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent {
+            x: extent,
+            y: extent,
+            z: 1,
+        },
+        usage: IMAGE_COLOR_ATTACHMENT,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut requirements = Requirements::default();
+    unsafe { api::image_requirements(device, &image_desc, &mut requirements) }.unwrap();
+    let backing = unsafe {
+        api::memory_create(
+            device,
+            &MemoryDesc {
+                header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                size: requirements.size,
+                alignment: 1,
+                usage: 0,
+                memory_type: 0,
+                kind: 2,
+                concurrent_domains: ptr::null(),
+                concurrent_domain_count: 0,
+                flags: 0,
+            },
+        )
+    }
+    .unwrap();
+    let output = unsafe { api::image_create_unbound(device, &image_desc) }.unwrap();
+    unsafe { api::image_bind(output, backing.span(0, requirements.size)) }.unwrap();
+    let view = attachment_view(device, output, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
+
+    let occlusion_desc = QueryPoolDesc {
+        header: Record::new::<QueryPoolDesc>(QUERY_POOL_DESC),
+        kind: 2,
+        count: 4,
+        statistics: 0,
+    };
+    let timestamp_desc = QueryPoolDesc {
+        kind: 1,
+        ..occlusion_desc
+    };
+    let occlusion = unsafe { api::query_pool_create(device, &occlusion_desc) }.unwrap();
+    let timestamps = unsafe { api::query_pool_create(device, &timestamp_desc) }.unwrap();
+    // Statistics pool: the physical counter mask is the full native set.
+    let statistics_desc = QueryPoolDesc {
+        kind: 3,
+        statistics: (1 << 11) - 1,
+        ..occlusion_desc
+    };
+    let statistics = unsafe { api::query_pool_create(device, &statistics_desc) }.unwrap();
+    let result = linear_memory(device, 256, USAGE_COPY_DST, 2);
+
+    let executable = triangle_executable(device).unwrap();
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::queries_reset(list, occlusion, 0, 1) };
+    unsafe { api::queries_reset(list, timestamps, 0, 2) };
+    unsafe { api::queries_reset(list, statistics, 0, 1) };
+
+    // A timestamp pair around the draw, one narrow scope bit each.
+    unsafe { api::timestamp(list, timestamps, 0, STAGE_COPY) };
+    let state_requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut state_scratch, state_offset) = aligned_scratch(state_requirements);
+    let to_attachment = ImageBarrier {
+        image: output.as_raw(),
+        range: Subresources {
+            aspects: ASPECT_COLOR,
+            first_mip: 0,
+            mip_count: 1,
+            first_layer: 0,
+            layer_count: 1,
+        },
+        before: 0,
+        after: ACCESS_COLOR_WRITE,
+        old_state: STATE_UNDEFINED,
+        new_state: STATE_COLOR_ATTACHMENT,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+        discard: 1,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_FRAGMENT,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        scratch: unsafe { state_scratch.as_mut_ptr().add(state_offset) }.cast(),
+        scratch_size: state_requirements.size,
+        images: &to_attachment,
+    };
+    unsafe { api::barrier(list, &dependency) };
+
+    // The occlusion query encloses the complete render scope.
+    unsafe { api::query_begin(list, occlusion, 0, 1) };
+    unsafe { api::query_begin(list, statistics, 0, 0) };
+    let attachment = Attachment {
+        view: view.as_raw(),
+        resolve_view: ptr::null_mut(),
+        state: STATE_COLOR_ATTACHMENT,
+        resolve_state: 0,
+        load_op: CLEAR,
+        store_op: STORE,
+        resolve_mode: 0,
+        clear: ClearValue {
+            f32: [0.0, 0.0, 0.0, 1.0],
+        },
+    };
+    let render_requirements = api::render_scratch_requirements(1).unwrap();
+    let (mut render_scratch, render_offset) = aligned_scratch(render_requirements);
+    let render = RenderDesc {
+        header: Record::new::<RenderDesc>(RENDER_DESC),
+        x: 0,
+        y: 0,
+        width: extent,
+        height: extent,
+        layers: 1,
+        view_mask: 0,
+        samples: 1,
+        flags: 0,
+        color_count: 1,
+        colors: &attachment,
+        depth: ptr::null(),
+        stencil: ptr::null(),
+        scratch: HostSpan {
+            data: unsafe { render_scratch.as_mut_ptr().add(render_offset) }.cast(),
+            size: render_requirements.size,
+        },
+    };
+    unsafe { api::render_begin(list, &render) };
+    unsafe { api::bind_executable(list, executable) };
+    let viewport = ViewportState {
+        header: Record::new::<ViewportState>(VIEWPORT_STATE),
+        x: 0.0,
+        y: 0.0,
+        width: extent as f32,
+        height: extent as f32,
+        min_depth: 0.0,
+        max_depth: 1.0,
+        scissor_x: 0,
+        scissor_y: 0,
+        scissor_width: extent,
+        scissor_height: extent,
+    };
+    unsafe { api::set_graphics_state(list, &viewport) };
+    let draw = DrawDesc {
+        count: 3,
+        instances: 1,
+        first: 0,
+        first_instance: 0,
+        vertex_offset: 0,
+    };
+    unsafe { api::draw(list, &draw) };
+    unsafe { api::render_end(list) };
+    unsafe { api::query_end(list, statistics, 0) };
+    unsafe { api::query_end(list, occlusion, 0) };
+    unsafe { api::timestamp(list, timestamps, 1, STAGE_FRAGMENT) };
+
+    // Native resolves: 64-bit results at the native record stride.
+    unsafe { api::queries_resolve(list, occlusion, 0, 1, result.span(0, 256), 8, 1) };
+    unsafe { api::queries_resolve(list, timestamps, 0, 2, result.span(64, 64), 8, 1) };
+    unsafe { api::queries_resolve(list, statistics, 0, 1, result.span(128, 88), 88, 1) };
+
+    let list = unsafe { api::commands_end(list) };
+    if list.is_err() {
+        dump_validation(device);
+    }
+    let list = list.unwrap();
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let signal = SyncPoint {
+        point: Point {
+            timeline: timeline.as_raw(),
+            value: 1,
+        },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: scratch.as_mut_ptr().add(offset).cast(),
+                size: requirements.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+    dump_validation(device);
+
+    // Visible rejections, each on its own list (error-at-end semantics): the
+    // contract's 32-bit width and foreign strides have no native form;
+    // availability and partial results do not exist natively.
+    for (count, stride, flags) in [
+        (1u32, 8u64, 0u32),
+        (2, 16, 1),
+        (1, 8, 2),
+        (1, 8, 8),
+    ] {
+        let rejection_arena = single_slot_arena(device, domain);
+        let rejected = unsafe { api::commands_begin(rejection_arena, &one_shot()) }.unwrap();
+        unsafe {
+            api::queries_resolve(
+                rejected,
+                occlusion,
+                0,
+                count,
+                result.span(0, 256),
+                stride,
+                flags,
+            )
+        };
+        assert_eq!(unsafe { api::commands_end(rejected) }, Err(UNSUPPORTED));
+        unsafe { api::arena_destroy(rejection_arena) };
+    }
+
+    let bytes = read_back(result, 256);
+    let value = |offset: usize| -> u64 {
+        u64::from_le_bytes(bytes[offset..offset + 8].try_into().unwrap())
+    };
+    // The triangle covers the image centre: some samples passed, not all.
+    let samples = value(0);
+    assert!(samples > 0 && samples < u64::from(extent) * u64::from(extent));
+    // Timestamps advance across the draw and are nonzero GPU-clock values.
+    let (t0, t1) = (value(64), value(72));
+    assert!(t0 != 0 && t1 >= t0);
+
+    unsafe {
+        api::query_pool_destroy(statistics);
+        api::query_pool_destroy(timestamps);
+        api::query_pool_destroy(occlusion);
+        api::executable_destroy(executable);
+        api::arena_destroy(arena);
+        api::view_destroy(view);
+        api::image_destroy(output);
+        api::memory_destroy(result);
+        api::memory_destroy(backing);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
     }
 }

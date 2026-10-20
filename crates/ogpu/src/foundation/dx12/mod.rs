@@ -44,6 +44,8 @@ mod images;
 mod cache;
 #[path = "memory.rs"]
 mod memory;
+#[path = "queries.rs"]
+mod queries;
 #[path = "stubs.rs"]
 mod stubs;
 
@@ -52,8 +54,9 @@ pub use images::{Image, View};
 pub use memory::Memory;
 pub use executables::Executable;
 pub use cache::ExecutableCache;
+pub use queries::QueryPool;
 pub use stubs::{
-    Binary, Fence, GeneratedLayout, GeneratedSet, QueryPool, Split, Swapchain,
+    Binary, Fence, GeneratedLayout, GeneratedSet, Split, Swapchain,
 };
 
 pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch};
@@ -202,7 +205,10 @@ fn probe(adapter: dxgi::IDXGIAdapter1) -> Result<(Snapshot, AdapterState), Statu
     snapshot.execution_limits = execution_limits();
     snapshot.formats = formats::format_snapshot(&device);
     snapshot.features = FeatureInfo {
-        available: 0,
+        // Physically supported optional features on this backend: exact
+        // occlusion, the native pipeline-statistics counters, and explicit
+        // executable-cache synchronization control.
+        available: RASTER | PIPELINE_STATISTICS | PRECISE_OCCLUSION | CACHE_CONTROL,
         enabled: 0,
         max_timeline_difference: u64::MAX,
         baseline_supported: u32::from(baseline),
@@ -258,7 +264,13 @@ fn empty_snapshot() -> Snapshot {
         descriptor_limits: DescriptorLimits::default(),
         execution_limits: ExecutionLimits::default(),
         graphics_limits: GraphicsLimits::default(),
-        query_limits: QueryLimits::default(),
+        query_limits: QueryLimits {
+            // All eleven native pipeline-statistics counters are physical.
+            statistics: (1 << 11) - 1,
+            // D3D12 timestamps work on every queue type.
+            timestamp_compute_graphics: 1,
+            timestamp_period_ns: 0.0,
+        },
         subgroup_limits: SubgroupLimits::default(),
         float_controls: FloatControls::default(),
         matrix_tuples: Vec::new(),
