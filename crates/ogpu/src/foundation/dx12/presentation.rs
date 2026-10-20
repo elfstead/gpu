@@ -3,10 +3,12 @@
 use super::types::*;
 use super::native::formats;
 use super::native::Image;
-use super::native::{map_error, slice as native_slice};
+use super::native::{map_error, slice as native_slice, Binary, Fence};
 use super::Adapter;
 use super::Device;
 use std::slice;
+use windows::core::Interface;
+use windows::Win32::Graphics::Direct3D12 as d3d;
 use windows::Win32::Graphics::Dxgi as dxgi;
 use windows::Win32::Graphics::Dxgi::Common as dxgic;
 
@@ -206,6 +208,176 @@ impl Surface {
                 Err(UNSUPPORTED)
             }
             _ => Err(INVALID),
+        }
+    }
+}
+
+impl Swapchain {
+    /// # Safety
+    /// Live device/surface descriptions; external window objects stay live.
+    pub(in crate::foundation) unsafe fn create(
+        d: &Device,
+        desc: &SwapchainDesc,
+    ) -> Result<Box<Self>, Status> {
+        desc.header.validate::<SwapchainDesc>(SWAPCHAIN_DESC)?;
+        if desc.layer_count != 1 || desc.min_image_count == 0 {
+            return Err(INVALID);
+        }
+        if desc.domain_count != 1 || desc.domains.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        if !desc.old_swapchain.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        let surface = unsafe { desc.surface.as_ref() }.ok_or(INVALID)?;
+        let domains = unsafe { native_slice(desc.domains, 1) }?;
+        let domain = domains[0];
+        let queue = d.command_queue(domain).ok_or(INVALID)?;
+        let factory: dxgi::IDXGIFactory2 = unsafe {
+            surface
+                .adapter
+                .as_ref()
+                .ok_or(INVALID)?
+                .state
+                .adapter
+                .GetParent::<dxgi::IDXGIFactory2>()
+        }
+        .map_err(map_error)?;
+        let extent = Extent {
+            x: desc.extent[0],
+            y: desc.extent[1],
+            z: 1,
+        };
+        let chain_desc = dxgi::DXGI_SWAP_CHAIN_DESC1 {
+            Width: extent.x,
+            Height: extent.y,
+            Format: formats::dxgi_format(desc.format),
+            Stereo: Default::default(),
+            SampleDesc: dxgic::DXGI_SAMPLE_DESC {
+                Count: 1,
+                Quality: 0,
+            },
+            BufferUsage: if desc.usage & 16 != 0 {
+                dxgi::DXGI_USAGE_RENDER_TARGET_OUTPUT
+            } else {
+                dxgi::DXGI_USAGE(0)
+            },
+            BufferCount: desc.min_image_count,
+            Scaling: dxgi::DXGI_SCALING_STRETCH,
+            SwapEffect: if desc.present_mode == 2 {
+                dxgi::DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL
+            } else {
+                dxgi::DXGI_SWAP_EFFECT_FLIP_DISCARD
+            },
+            AlphaMode: Default::default(),
+            Flags: 0,
+        };
+        let chain: dxgi::IDXGISwapChain3 = unsafe {
+            factory.CreateSwapChainForHwnd(
+                queue,
+                windows::Win32::Foundation::HWND(surface.window as *mut _),
+                &chain_desc,
+                None,
+                None,
+            )
+        }
+        .map_err(map_error)?
+        .cast::<dxgi::IDXGISwapChain3>()
+        .map_err(map_error)?;
+        let count = unsafe { chain.GetDesc1() }.map_err(map_error)?.BufferCount;
+        let mut images = Vec::new();
+        images
+            .try_reserve_exact(count as usize)
+            .map_err(|_| OUT_OF_MEMORY)?;
+        for index in 0..count {
+            let resource: d3d::ID3D12Resource =
+                unsafe { chain.GetBuffer(index) }.map_err(map_error)?;
+            let native = unsafe { resource.GetDesc() };
+            let image = unsafe {
+                Image::wrap(d, desc.format, desc.usage, extent, native, &resource)
+            };
+            images.push(image);
+        }
+        Ok(Box::new(Self {
+            device: d,
+            chain,
+            images,
+            extent,
+            sync_interval: u32::from(desc.present_mode == 2),
+        }))
+    }
+
+    /// # Safety
+    /// Live chain; writable borrowed-image output storage.
+    pub(in crate::foundation) unsafe fn images(
+        &self,
+        count: u32,
+        out: *mut *mut Image,
+        count_out: *mut u32,
+    ) -> Result<(), Status> {
+        if count_out.is_null() {
+            return Err(INVALID);
+        }
+        unsafe { *count_out = self.images.len() as u32 };
+        if count == 0 {
+            return Ok(());
+        }
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let out = unsafe { slice::from_raw_parts_mut(out, count as usize) };
+        for (slot, image) in out.iter_mut().zip(self.images.iter()) {
+            *slot = &**image as *const Image as *mut Image;
+        }
+        Ok(())
+    }
+
+    /// # Safety
+    /// Exclusive chain host access; valid acquire objects.
+    pub(in crate::foundation) unsafe fn acquire(
+        &self,
+        _timeout_ns: u64,
+        binary: *mut Binary,
+        fence: *mut Fence,
+    ) -> Result<(u32, bool), Status> {
+        if !binary.is_null() || !fence.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        let index = unsafe { self.chain.GetCurrentBackBufferIndex() };
+        Ok((index, false))
+    }
+
+    /// # Safety
+    /// Exclusive chain host access; unique acquired indices.
+    pub(in crate::foundation) fn release(&self, indices: &[u32]) -> Result<(), Status> {
+        if indices.is_empty() {
+            return Err(INVALID);
+        }
+        let mut seen = [false; 16];
+        for &index in indices {
+            if index as usize >= self.images.len() || seen[index as usize] {
+                return Err(INVALID);
+            }
+            seen[index as usize] = true;
+        }
+        Ok(())
+    }
+
+    /// Borrowed image count of the chain (release/present validation).
+    pub(in crate::foundation) fn image_count(&self) -> usize {
+        self.images.len()
+    }
+
+    /// One native present of the chain; the status maps the contract's
+    /// unspecified-native clause to BACKEND_ERROR.
+    /// # Safety
+    /// Exclusive queue access through the native present call.
+    pub(in crate::foundation) unsafe fn present_native(&self) -> Status {
+        let outcome = unsafe { self.chain.Present(self.sync_interval, dxgi::DXGI_PRESENT(0)) };
+        if outcome.is_ok() {
+            OK
+        } else {
+            BACKEND_ERROR
         }
     }
 }

@@ -46,7 +46,7 @@ crate::foundation::format_catalog::format_catalog!(collect);
 
 /// Native format of each OGPU format ID. Entries without a DXGI equivalent are
 /// UNKNOWN and advertise zero capabilities; they are never substituted.
-pub(super) fn dxgi_format(id: u32) -> dxgic::DXGI_FORMAT {
+pub(in crate::foundation) fn dxgi_format(id: u32) -> dxgic::DXGI_FORMAT {
     use dxgic::*;
     use windows::Win32::Graphics::Dxgi::Common::{
         DXGI_FORMAT_B4G4R4A4_UNORM, DXGI_FORMAT_B5G6R5_UNORM,

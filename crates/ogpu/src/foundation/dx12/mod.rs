@@ -55,9 +55,8 @@ pub use memory::Memory;
 pub use executables::Executable;
 pub use cache::ExecutableCache;
 pub use queries::QueryPool;
-pub use stubs::{
-    Binary, Fence, GeneratedLayout, GeneratedSet, Split, Swapchain,
-};
+pub use crate::foundation::presentation::Swapchain;
+pub use stubs::{Binary, Fence, GeneratedLayout, GeneratedSet, Split};
 
 pub(super) use commands::{barrier_scratch, submit_batch_scratch, submit_scratch};
 pub(super) use descriptors::descriptor_scratch;

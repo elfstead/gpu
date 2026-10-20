@@ -50,7 +50,6 @@ pub struct GeneratedLayout;
 pub struct GeneratedSet;
 pub struct Binary;
 pub struct Fence;
-pub struct Swapchain;
 
 impl Split {
     pub(in crate::foundation) fn create(_d: &Device) -> Result<Box<Self>, Status> {
@@ -109,52 +108,49 @@ impl Fence {
     }
 }
 
-impl Swapchain {
-    /// # Safety
-    /// Live device/surface descriptions; external window objects stay live.
-    pub(in crate::foundation) unsafe fn create(
-        _d: &Device,
-        _desc: &SwapchainDesc,
-    ) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Live chain; writable borrowed-image output storage.
-    pub(in crate::foundation) unsafe fn images(
-        &self,
-        _count: u32,
-        _out: *mut *mut Image,
-        _count_out: *mut u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Exclusive chain host access; valid acquire objects.
-    pub(in crate::foundation) unsafe fn acquire(
-        &self,
-        _timeout_ns: u64,
-        _binary: *mut Binary,
-        _fence: *mut Fence,
-    ) -> Result<(u32, bool), Status> {
-        Err(UNSUPPORTED)
-    }
-    /// # Safety
-    /// Exclusive chain host access; unique acquired indices.
-    pub(in crate::foundation) fn release(&self, _indices: &[u32]) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-}
-
 impl Queue {
     /// # Safety
     /// Exclusive queue access; see the presentation contract in ogpu_next.h.
     pub(in crate::foundation) unsafe fn present(
         &self,
-        _desc: &PresentDesc,
+        desc: &PresentDesc,
     ) -> Result<bool, Status> {
-        Err(UNSUPPORTED)
+        desc.header.validate::<PresentDesc>(PRESENT_DESC)?;
+        if desc.image_count == 0 {
+            return Err(INVALID);
+        }
+        if desc.wait_count != 0 || !desc.waits.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        // SAFETY: trusted image array of the declared count.
+        let images = unsafe { super::slice(desc.images, desc.image_count) }?;
+        for index in 0..desc.image_count as usize {
+            let image = &images[index];
+            if image.reserved != 0 {
+                return Err(INVALID);
+            }
+            if !image.fence.is_null() {
+                return Err(UNSUPPORTED);
+            }
+            // SAFETY: live swapchain behind the borrowed pointer.
+            let chain = unsafe { image.swapchain.as_ref() }.ok_or(INVALID)?;
+            if image.index as usize >= chain.image_count() {
+                return Err(INVALID);
+            }
+            // SAFETY: exclusive queue access per the contract.
+            let status = unsafe { chain.present_native() };
+            if !desc.results.is_null() {
+                // SAFETY: caller storage covers one status per image.
+                unsafe { *desc.results.add(index) = status };
+            }
+            if status != OK {
+                return Ok(false);
+            }
+        }
+        Ok(false)
     }
 }
+
 
 impl Device {
     pub(in crate::foundation) unsafe fn generated_requirements(
