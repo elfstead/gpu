@@ -3,9 +3,10 @@
 use super::types::*;
 use super::native::formats;
 use super::native::Image;
-use super::native::{map_error, slice as native_slice, Binary, Fence};
+use super::native::{map_error, slice as native_slice};
 use super::Adapter;
 use super::Device;
+use std::cell::Cell;
 use std::slice;
 use windows::core::Interface;
 use windows::Win32::Graphics::Direct3D12 as d3d;
@@ -378,6 +379,189 @@ impl Swapchain {
             OK
         } else {
             BACKEND_ERROR
+        }
+    }
+}
+
+/// A binary semaphore: one pending GPU signal over a native fence value.
+/// Signal/wait are queue operations (the acquisition and present paths);
+/// the host state tracks idle/signaled exactly as the contract describes.
+pub struct Binary {
+    fence: d3d::ID3D12Fence,
+    value: Cell<u64>,
+    pending: Cell<bool>,
+}
+
+impl Binary {
+    /// Create an idle, unsignaled binary (the contract's acquisition object).
+    /// The device outlives the binary and all its uses.
+    pub(in crate::foundation) fn create(d: &Device) -> Result<Box<Self>, Status> {
+        // SAFETY: well-formed fence description; the output adopts a reference.
+        let fence: d3d::ID3D12Fence = unsafe {
+            d.device
+                .CreateFence(0, d3d::D3D12_FENCE_FLAG_NONE)
+                .map_err(map_error)?
+        };
+        Ok(Box::new(Self {
+            fence,
+            value: Cell::new(0),
+            pending: Cell::new(false),
+        }))
+    }
+
+    /// The native fence and its pending signal value (queue signal/wait).
+    pub(in crate::foundation) fn native(&self) -> (&d3d::ID3D12Fence, u64, bool) {
+        (&self.fence, self.value.get(), self.pending.get())
+    }
+
+    /// Schedule one native signal at a queue point (acquire/present paths).
+    /// # Safety
+    /// Exclusive binary host access; the queue is live and externally
+    /// synchronized per the contract.
+    pub(in crate::foundation) unsafe fn schedule(
+        &self,
+        queue: &d3d::ID3D12CommandQueue,
+    ) -> Result<(), Status> {
+        if self.pending.get() {
+            // One pending signal at most: the binary is not a counter.
+            return Err(INVALID);
+        }
+        let value = self.value.get() + 1;
+        self.value.set(value);
+        self.pending.set(true);
+        // SAFETY: live queue and fence; the signal orders against recorded work.
+        unsafe { queue.Signal(&self.fence, value) }.map_err(map_error)?;
+        Ok(())
+    }
+
+    /// Whether the scheduled signal has retired on the device.
+    pub(in crate::foundation) fn retired(&self) -> bool {
+        // SAFETY: live fence; the returned value is an opaque counter.
+        let completed = unsafe { self.fence.GetCompletedValue() };
+        completed >= self.value.get()
+    }
+
+    /// Release the binary back to idle after its signal retired.
+    pub(in crate::foundation) fn reset(&self) {
+        self.pending.set(false);
+    }
+}
+
+/// A CPU-visible fence: signaled at native completion points, pollable and
+/// waitable with a bounded timeout, resettable to unsignaled.
+pub struct Fence {
+    device: *const Device,
+    fence: d3d::ID3D12Fence,
+    event: windows::Win32::Foundation::HANDLE,
+    value: Cell<u64>,
+    signaled: Cell<bool>,
+}
+
+impl Fence {
+    /// The device outlives the fence and all its uses.
+    pub(in crate::foundation) fn create(
+        d: &Device,
+        signaled: bool,
+    ) -> Result<Box<Self>, Status> {
+        let value = u64::from(signaled);
+        // SAFETY: well-formed fence description; the output adopts a reference.
+        let fence: d3d::ID3D12Fence = unsafe {
+            d.device
+                .CreateFence(value, d3d::D3D12_FENCE_FLAG_NONE)
+                .map_err(map_error)?
+        };
+        // SAFETY: manual-reset event for bounded fence waits.
+        let event = unsafe {
+            windows::Win32::System::Threading::CreateEventW(
+                None,
+                false,
+                false,
+                windows::core::w!("ogpu fence"),
+            )
+        }
+        .map_err(map_error)?;
+        Ok(Box::new(Self {
+            device: d,
+            fence,
+            event,
+            value: Cell::new(value),
+            signaled: Cell::new(signaled),
+        }))
+    }
+
+    /// Schedule one native signal at a queue point (present retirement).
+    /// # Safety
+    /// Exclusive fence host access; the queue is live and externally
+    /// synchronized per the contract.
+    pub(in crate::foundation) unsafe fn schedule(
+        &self,
+        queue: &d3d::ID3D12CommandQueue,
+    ) -> Result<(), Status> {
+        let value = self.value.get() + 1;
+        self.value.set(value);
+        self.signaled.set(false);
+        // SAFETY: live queue and fence; the signal orders against recorded work.
+        unsafe { queue.Signal(&self.fence, value) }.map_err(map_error)?;
+        Ok(())
+    }
+
+    /// Poll the native completion counter (no wait).
+    pub(in crate::foundation) fn poll(&self) -> Result<bool, Status> {
+        // SAFETY: live fence; the returned value is an opaque counter.
+        let completed = unsafe { self.fence.GetCompletedValue() };
+        Ok(completed >= self.value.get())
+    }
+
+    /// Bounded native wait; `UINT64_MAX` waits without a bound. Exclusive
+    /// fence host access through the wait is the caller's.
+    pub(in crate::foundation) fn wait(&self, timeout_ns: u64) -> Result<(), Status> {
+        if self.poll()? {
+            self.signaled.set(true);
+            return Ok(());
+        }
+        // SAFETY: live fence and event handle.
+        unsafe {
+            self.fence
+                .SetEventOnCompletion(self.value.get(), self.event)
+        }
+        .map_err(map_error)?;
+        let timeout = if timeout_ns == u64::MAX {
+            u32::MAX
+        } else {
+            (timeout_ns / 1_000_000) as u32
+        };
+        // SAFETY: live event handle from creation.
+        let outcome =
+            unsafe { windows::Win32::System::Threading::WaitForSingleObject(self.event, timeout) };
+        match outcome {
+            windows::Win32::Foundation::WAIT_OBJECT_0 => {
+                self.signaled.set(true);
+                Ok(())
+            }
+            windows::Win32::Foundation::WAIT_TIMEOUT => Err(TIMEOUT),
+            _ => Err(BACKEND_ERROR),
+        }
+    }
+
+    /// Return the fence to the unsignaled state for its next cycle.
+    pub(in crate::foundation) fn reset(&self) -> Result<(), Status> {
+        self.signaled.set(false);
+        self.value.set(self.value.get() + 1);
+        Ok(())
+    }
+}
+
+impl Drop for Binary {
+    fn drop(&mut self) {
+        // COM references drop with the field; the caller retired all uses.
+    }
+}
+
+impl Drop for Fence {
+    fn drop(&mut self) {
+        // SAFETY: the event handle is owned by this fence.
+        unsafe {
+            windows::Win32::Foundation::CloseHandle(self.event);
         }
     }
 }

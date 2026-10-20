@@ -48,8 +48,6 @@ pub(in crate::foundation) fn split_scratch(_count: u32) -> Result<HostRequiremen
 pub struct Split;
 pub struct GeneratedLayout;
 pub struct GeneratedSet;
-pub struct Binary;
-pub struct Fence;
 
 impl Split {
     pub(in crate::foundation) fn create(_d: &Device) -> Result<Box<Self>, Status> {
@@ -83,27 +81,6 @@ impl GeneratedSet {
         &self,
         _writes: &[GeneratedSetWrite],
     ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-}
-
-impl Binary {
-    pub(in crate::foundation) fn create(_d: &Device) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
-    }
-}
-
-impl Fence {
-    pub(in crate::foundation) fn create(_d: &Device, _signaled: bool) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn poll(&self) -> Result<bool, Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn wait(&self, _timeout: u64) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn reset(&self) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }
 }
