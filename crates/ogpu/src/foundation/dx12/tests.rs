@@ -5852,3 +5852,4 @@ fn gpu_closure_ab_probe() {
         api::device_destroy(device);
     }
 }
+
