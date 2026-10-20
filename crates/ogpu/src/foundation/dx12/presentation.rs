@@ -4,8 +4,13 @@ use super::types::*;
 use super::Adapter;
 use windows::Win32::Graphics::Dxgi as dxgi;
 
-/// Opaque surface owner; creation is unsupported in this batch.
-pub struct Surface;
+/// Opaque surface owner: the externally supplied native window this
+/// backend's swapchains bind to. The window stays the caller's (the contract:
+/// window/input handling is external and borrowed, never owned).
+pub struct Surface {
+    window: isize,
+    adapter: *const Adapter,
+}
 
 /// Report the physical presentation profiles of this adapter, without a
 /// window and without enabling anything (the contract's headless
@@ -31,12 +36,26 @@ pub(in crate::foundation) fn support(adapter: &Adapter) -> Result<PresentationSu
 
 impl Surface {
     /// # Safety
-    /// Non-null native window handles would have to remain live; unsupported here.
+    /// The record's `surface` pointer is the native window handle on this
+    /// backend (provisional: `docs/dx12-presentation-profile.md`); the window
+    /// must remain live and valid for every later surface/swapchain use.
     pub(in crate::foundation) unsafe fn create(
-        _adapter: &Adapter,
-        _desc: &WaylandSurfaceDesc,
+        adapter: &Adapter,
+        desc: &WaylandSurfaceDesc,
     ) -> Result<Box<Self>, Status> {
-        Err(UNSUPPORTED)
+        desc.header.validate::<WaylandSurfaceDesc>(WAYLAND_SURFACE_DESC)?;
+        // The provisional surface decision: `display` is unused on Windows
+        // and `surface` carries the externally supplied window handle.
+        if !desc.display.is_null() {
+            return Err(UNSUPPORTED);
+        }
+        if desc.surface.is_null() {
+            return Err(INVALID);
+        }
+        Ok(Box::new(Self {
+            window: desc.surface as isize,
+            adapter,
+        }))
     }
     /// # Safety
     /// Live surface and writable query storage; unsupported here.
