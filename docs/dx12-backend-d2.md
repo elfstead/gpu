@@ -383,14 +383,14 @@ have no native form and reject with `UNSUPPORTED`; stride zero is accepted for
 a single draw. `maximum_count` is checked against `max_indirect_count`, which
 the snapshot now reports as the native u32 bound.
 
-Open question for the reviewer (test-side, not a backend defect as far as the
-evidence goes): in `gpu_draw_indirect` the *first* recorded render scope draws
-nothing while identical later scopes draw correctly — with any draw variant,
-including the direct `draw` that `gpu_graphics_triangle_raster` exercises
-successfully in its own test. The phases are ordered so the zero-count case
-(which must draw nothing) takes that slot; the drawn variants verify
-pixel-exact in the later slots. Worth a fresh pair of eyes: the same closure
-body, argument and state sequence as the scene test, which draws correctly in
-its first scope.
+An apparent "first recorded render scope draws nothing" symptom appeared
+during development and is **resolved as a non-issue**: controlled probes (two
+identical scopes on one list; the direct draw in every slot; the exact
+original arrangement) all render pixel-exactly. The symptom only ever occurred
+while the test file was in corrupted intermediate states from scripted edits
+(duplicated test bodies and mis-targeted replacements — a recurring hazard of
+this work, recorded here as a development note). The final arrangement
+verifies all three phases in order: fixed-count draw, fixed-count indexed
+draw, and a zero-count count-based draw that must issue nothing.
 
 Suite: 20 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).

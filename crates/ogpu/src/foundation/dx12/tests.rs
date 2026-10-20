@@ -4619,12 +4619,12 @@ fn gpu_draw_indirect() {
         };
     };
 
-    // A count-based draw whose GPU count is zero must issue nothing; then the
-    // fixed-count indirect draws (draw and indexed) cover the clear with the
-    // centre-covering triangle.
-    phase(list, 0, 2, arguments.span(0, 16), 16, Some(arguments.span(64, 4)));
-    phase(list, 1, 2, arguments.span(0, 16), 16, None);
-    phase(list, 2, 1, arguments.span(16, 20), 20, None);
+    // Fixed-count indirect draws (draw and indexed) cover the clear with the
+    // centre-covering triangle; a count-based draw whose GPU count is zero
+    // must issue nothing.
+    phase(list, 0, 2, arguments.span(0, 16), 16, None);
+    phase(list, 1, 1, arguments.span(16, 20), 20, None);
+    phase(list, 2, 2, arguments.span(0, 16), 16, Some(arguments.span(64, 4)));
 
     let list = unsafe { api::commands_end(list) };
     if list.is_err() {
@@ -4664,8 +4664,7 @@ fn gpu_draw_indirect() {
     };
     // The fixed-count variants draw the centre-covering triangle over the
     // black clear; the count-based variant with a zero count draws nothing.
-    assert_eq!(pixel(0, 32, 32), [0, 0, 0, 255], "zero count must not draw");
-    for phase in [1usize, 2] {
+    for phase in [0usize, 1] {
         assert_eq!(
             pixel(phase, 32, 32),
             [255, 0, 0, 255],
@@ -4673,6 +4672,7 @@ fn gpu_draw_indirect() {
         );
         assert_eq!(pixel(phase, 1, 1), [0, 0, 0, 255], "phase {phase} corner");
     }
+    assert_eq!(pixel(2, 32, 32), [0, 0, 0, 255], "zero count must not draw");
 
     // Visible rejection: wider-than-record strides have no native command
     // stride and stay unsupported (each on its own list).
