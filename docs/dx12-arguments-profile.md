@@ -110,3 +110,25 @@ lowering. Consumer work therefore compiles DXIL artifact variants through
 that lowering rather than reusing the SPIR-V-oriented sources unchanged;
 `SHADER_DXIL` already exists in the artifact format enum and the consumer's
 `Shader.code` is byte-based, so artifact plumbing is byte-exact DXIL.
+
+## Consumer attempt: foundation Rust consumer on Windows (evidence)
+
+The standalone consumer (`examples/foundation_rust`) was built and run against
+the D3D12 backend on the RX 5700 XT machine. It discovers and creates the
+device through the foundation API (`NATIVE_RUST_DEVICE=AMD Radeon RX 5700
+XT`) and then reports `NATIVE_RUST_FAIL status=-2` — a clean `UNSUPPORTED`
+from its first unsupported operation, with no panic and no device fault. The
+consumer's own contract treats unsupported-device runs as failures rather
+than skips, which is the honest outcome under this profile.
+
+Coverage claim (rule 3): the consumer's compute workload
+(`examples/shaders/foundation-compute.slang`) depends on nested pointers
+(`source->values[i]`, `DataRoot { uint* values; ... }`), which the profile
+marks `UNSUPPORTED` and which the toolchain rejects at the language level
+(see the probe table above). The consumer therefore does not run to
+completion on D3D12 under the ROOT_DESCRIPTORS profile, and no substitute
+strategy is hidden for it. The M4 textured-scene argument shape it carries is
+covered separately by the `gpu_scene_raster` fixture (shared inline bank,
+flat root-descriptor vertex buffer, descriptor-indexed sampling, indexed
+draws with depth rejection), and the executable-cache path it exercises is
+covered by `gpu_executable_cache_roundtrip`.
