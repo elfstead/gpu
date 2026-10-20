@@ -394,3 +394,25 @@ verifies all three phases in order: fixed-count draw, fixed-count indexed
 draw, and a zero-count count-based draw that must issue nothing.
 
 Suite: 20 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).
+
+## Image clears (D2.4: `gpu_image_clear`)
+
+`clear_image` maps to native `ClearRenderTargetView`/`ClearDepthStencilView`
+with one temporary RTV/DSV per mip slice of the range (D3D12 clears whole
+views; the descriptor is consumed at record time and never retained). The
+format's numeric class selects the value member: float/normalized colors
+clear through the float member, depth/stencil formats validate the
+depth_stencil member (finite, in [0,1]) and clear with the aspect-matching
+flags. Visible boundaries: integer-format clears need the UAV clear path this
+profile does not expose (`UNSUPPORTED`), compressed clears are never
+synthesized, and native clears are render-target operations so they require a
+graphics-capable list on this backend (the contract's compute-queue color
+clear would need `ClearUnorderedAccessView*` on a storage view).
+
+Also fixed with it: the attachment view builders filled the 2D union member
+while declaring the 2D-array dimension for multi-layer views; array views now
+carry their layer slice (`FirstArraySlice`/`ArraySize`) for both RTV and DSV.
+
+`gpu_image_clear` verifies exact clear values through the copy path and the
+state/range rejections. Suite: 21 GPU + 18 host tests pass on Windows; Linux
+unchanged (110 + 2 + 67).

@@ -588,11 +588,22 @@ impl Device {
         let view = d3d::D3D12_RENDER_TARGET_VIEW_DESC {
             Format: format,
             ViewDimension: dimension,
-            Anonymous: d3d::D3D12_RENDER_TARGET_VIEW_DESC_0 {
-                Texture2D: d3d::D3D12_TEX2D_RTV {
-                    MipSlice: desc.range.first_mip,
-                    PlaneSlice: 0,
-                },
+            Anonymous: if desc.range.layer_count > 1 {
+                d3d::D3D12_RENDER_TARGET_VIEW_DESC_0 {
+                    Texture2DArray: d3d::D3D12_TEX2D_ARRAY_RTV {
+                        MipSlice: desc.range.first_mip,
+                        FirstArraySlice: desc.range.first_layer,
+                        ArraySize: desc.range.layer_count,
+                        PlaneSlice: 0,
+                    },
+                }
+            } else {
+                d3d::D3D12_RENDER_TARGET_VIEW_DESC_0 {
+                    Texture2D: d3d::D3D12_TEX2D_RTV {
+                        MipSlice: desc.range.first_mip,
+                        PlaneSlice: 0,
+                    },
+                }
             },
         };
         // SAFETY: validated image and view record; output slot is owned by the view.
@@ -626,10 +637,20 @@ impl Device {
             Format: format,
             ViewDimension: dimension,
             Flags: d3d::D3D12_DSV_FLAG_NONE,
-            Anonymous: d3d::D3D12_DEPTH_STENCIL_VIEW_DESC_0 {
-                Texture2D: d3d::D3D12_TEX2D_DSV {
-                    MipSlice: desc.range.first_mip,
-                },
+            Anonymous: if desc.range.layer_count > 1 {
+                d3d::D3D12_DEPTH_STENCIL_VIEW_DESC_0 {
+                    Texture2DArray: d3d::D3D12_TEX2D_ARRAY_DSV {
+                        MipSlice: desc.range.first_mip,
+                        FirstArraySlice: desc.range.first_layer,
+                        ArraySize: desc.range.layer_count,
+                    },
+                }
+            } else {
+                d3d::D3D12_DEPTH_STENCIL_VIEW_DESC_0 {
+                    Texture2D: d3d::D3D12_TEX2D_DSV {
+                        MipSlice: desc.range.first_mip,
+                    },
+                }
             },
         };
         // SAFETY: validated image and view record; output slot is owned by the view.
@@ -645,6 +666,136 @@ impl Device {
 }
 
 impl List {
+    /// Clear an image subresource range through native render-target or
+    /// depth/stencil clears. D3D12 clears whole views: one temporary RTV/DSV
+    /// per mip slice covers the layer range, with no retention (the native
+    /// clear consumes the descriptor at record time). Float/normalized color
+    /// and depth/stencil formats clear through their matching value member;
+    /// integer-format clears need the UAV clear path this profile does not
+    /// expose and stay visible. Compressed clears are never synthesized.
+    pub(in crate::foundation) fn clear_image(
+        &self,
+        image: &Image,
+        state: u32,
+        range: Subresources,
+        value: ClearValue,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        // Native clears are render-target operations on this backend.
+        let domain = d
+            .snapshot
+            .queues
+            .iter()
+            .find(|q| q.domain == self.domain)
+            .ok_or(INVALID)?;
+        if domain.flags & super::GRAPHICS == 0 {
+            return Err(UNSUPPORTED);
+        }
+        let meta = super::formats::meta(image.facts.format).ok_or(UNSUPPORTED)?;
+        if meta.block != [1, 1] {
+            // Compressed clears are UNSUPPORTED, never synthesized.
+            return Err(UNSUPPORTED);
+        }
+        if range.first_mip >= image.facts.mip_count
+            || range.mip_count == 0
+            || range.first_layer >= image.facts.layer_count
+            || range.layer_count == 0
+        {
+            return Err(INVALID);
+        }
+        let mips = if range.mip_count == u32::MAX {
+            image.facts.mip_count - range.first_mip
+        } else {
+            range.mip_count
+        };
+        let layers = if range.layer_count == u32::MAX {
+            image.facts.layer_count - range.first_layer
+        } else {
+            range.layer_count
+        };
+        if range.first_mip + mips > image.facts.mip_count
+            || range.first_layer + layers > image.facts.layer_count
+        {
+            return Err(INVALID);
+        }
+        let depth = meta.aspects & 6 != 0;
+        // The state names the matching attachment state; the caller owns it.
+        let expected = if depth {
+            STATE_GENERAL | STATE_DEPTH_STENCIL_ATTACHMENT
+        } else {
+            STATE_GENERAL | STATE_COLOR_ATTACHMENT
+        };
+        if state & !expected != 0 || state == 0 {
+            return Err(INVALID);
+        }
+        match meta.numeric {
+            4 => {
+                // Depth/stencil clears validate their value member.
+                // SAFETY: the caller selected the depth_stencil member.
+                let clear = unsafe { value.depth_stencil };
+                if !clear.depth.is_finite() || !(0.0..=1.0).contains(&clear.depth) {
+                    return Err(INVALID);
+                }
+            }
+            1 => {
+                // SAFETY: the caller selected the float member.
+                let clear = unsafe { value.f32 };
+                if clear.iter().any(|v| !v.is_finite()) {
+                    return Err(INVALID);
+                }
+            }
+            // Integer-format clears have no float-free native path here.
+            _ => return Err(UNSUPPORTED),
+        }
+        for mip in range.first_mip..range.first_mip + mips {
+            let view = ViewDesc {
+                header: Record::new::<ViewDesc>(VIEW_DESC),
+                format: image.facts.format,
+                dimension: VIEW_2D,
+                usage: if depth {
+                    IMAGE_DEPTH_STENCIL_ATTACHMENT as u32
+                } else {
+                    IMAGE_COLOR_ATTACHMENT as u32
+                },
+                component_mapping: [0, 0, 0, 0],
+                range: Subresources {
+                    aspects: meta.aspects,
+                    first_mip: mip,
+                    mip_count: 1,
+                    first_layer: range.first_layer,
+                    layer_count: layers,
+                },
+            };
+            // SAFETY: validated image and per-mip view record; the slot is
+            // consumed at record time and never retained.
+            unsafe {
+                if depth {
+                    let handle = d.depth_stencil_view(image, &view)?;
+                    let clear = value.depth_stencil;
+                    let mut flags = d3d::D3D12_CLEAR_FLAGS(0);
+                    if meta.aspects & 2 != 0 {
+                        flags |= d3d::D3D12_CLEAR_FLAG_DEPTH;
+                    }
+                    if meta.aspects & 4 != 0 {
+                        flags |= d3d::D3D12_CLEAR_FLAG_STENCIL;
+                    }
+                    self.command.ClearDepthStencilView(
+                        handle,
+                        flags,
+                        clear.depth,
+                        clear.stencil as u8,
+                        None,
+                    );
+                } else {
+                    let handle = d.render_target_view(image, &view)?;
+                    self.command
+                        .ClearRenderTargetView(handle, &value.f32, None);
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Buffer/image copy in either direction through one placed footprint per
     /// layer. D3D12 copies one subresource per native call; a multi-layer region
     /// records one CopyTextureRegion per layer without allocation. Row pitches

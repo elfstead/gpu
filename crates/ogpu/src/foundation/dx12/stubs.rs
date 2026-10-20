@@ -193,19 +193,6 @@ impl List {
     ) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }
-    /// # Safety
-    /// Image and clear value follow the clear-value member contract.
-    pub(in crate::foundation) fn clear_image(
-        &self,
-        _image: &Image,
-        _state: u32,
-        _range: Subresources,
-        _value: ClearValue,
-    ) -> Result<(), Status> {
-        // D3D12 clears need view descriptors; the descriptor profile (D2) owns
-        // the native alternative. Never synthesized via staging here.
-        Err(UNSUPPORTED)
-    }
     pub(in crate::foundation) fn transfer_image(
         &self,
         _dst: &Image,
