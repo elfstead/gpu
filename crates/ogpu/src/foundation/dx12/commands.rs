@@ -1141,6 +1141,93 @@ impl List {
         }
         Ok(())
     }
+
+    /// Indirect draws through the device's draw command signatures. The wire
+    /// records are the native draw argument layouts; the optional count span
+    /// supplies one u32 argument count (native min(count, maximum) semantics).
+    /// # Safety
+    /// The argument and count spans stay live and valid for all recorded and
+    /// pending uses; execution-time index/binding obligations are the caller's.
+    pub(in crate::foundation) unsafe fn draw_indirect(
+        &self,
+        desc: &Indirect,
+        indexed: bool,
+    ) -> Result<(), Status> {
+        self.bound_executable(STAGE_VERTEX)?;
+        if !self.rendering.get() {
+            return Err(INVALID);
+        }
+        // SAFETY: device pointer is live for every list operation.
+        let d = unsafe { &*self.device };
+        if desc.maximum_count > d.snapshot.graphics_limits.max_indirect_count {
+            return Err(UNSUPPORTED);
+        }
+        // Native wire records are the D3D12 draw argument layouts.
+        let record = if indexed { 20u32 } else { 16u32 };
+        let stride = desc.stride;
+        if desc.maximum_count > 1 {
+            // The native command stride is fixed to the record size; packed
+            // records are the portable shape and wider strides stay visible.
+            if stride != record {
+                return Err(UNSUPPORTED);
+            }
+        } else if stride != 0 && (stride % 4 != 0 || stride < record) {
+            return Err(INVALID);
+        }
+        if desc.maximum_count == 0 {
+            return Err(INVALID);
+        }
+        // SAFETY: span memory handle is a trusted live object by contract.
+        let arguments = unsafe { desc.arguments.memory.as_ref() }.ok_or(INVALID)?;
+        let span = desc.arguments;
+        let (buffer, offset, _) =
+            arguments.command_range(d, self.domain, span.offset, span.size, USAGE_INDIRECT)?;
+        if offset % 4 != 0 {
+            return Err(INVALID);
+        }
+        let covered = u64::from(desc.maximum_count - 1) * u64::from(stride) + u64::from(record);
+        if span.size < covered {
+            return Err(INVALID);
+        }
+        let count_span = desc.count;
+        let (count_buffer, count_offset) = if count_span.memory.is_null() {
+            if count_span.offset != 0 || count_span.size != 0 {
+                return Err(INVALID);
+            }
+            (None, 0)
+        } else {
+            // SAFETY: span memory handle is a trusted live object by contract.
+            let memory = unsafe { count_span.memory.as_ref() }.ok_or(INVALID)?;
+            let (count_buffer, count_offset, _) = memory.command_range(
+                d,
+                self.domain,
+                count_span.offset,
+                count_span.size,
+                USAGE_INDIRECT,
+            )?;
+            if count_offset % 4 != 0 || count_span.size < 4 {
+                return Err(INVALID);
+            }
+            (Some(count_buffer), count_offset as u64)
+        };
+        let signature = if indexed {
+            &d.draw_indexed_signature
+        } else {
+            &d.draw_signature
+        };
+        // SAFETY: validated argument/count ranges of live buffers; recording only.
+        unsafe {
+            self.command.ExecuteIndirect(
+                signature,
+                desc.maximum_count,
+                buffer,
+                offset as u64,
+                count_buffer,
+                count_offset,
+            );
+        }
+        Ok(())
+    }
 }
 
 impl List {

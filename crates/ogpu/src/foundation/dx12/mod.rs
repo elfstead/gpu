@@ -263,7 +263,11 @@ fn empty_snapshot() -> Snapshot {
         memory_limits: MemoryLimits::default(),
         descriptor_limits: DescriptorLimits::default(),
         execution_limits: ExecutionLimits::default(),
-        graphics_limits: GraphicsLimits::default(),
+        graphics_limits: GraphicsLimits {
+            // ExecuteIndirect command counts are u32 with no lower native cap.
+            max_indirect_count: u32::MAX,
+            ..Default::default()
+        },
         query_limits: QueryLimits {
             // All eleven native pipeline-statistics counters are physical.
             statistics: (1 << 11) - 1,
@@ -508,6 +512,11 @@ pub struct Device {
     pub(super) device: d3d::ID3D12Device,
     /// Device-level dispatch command signature for indirect dispatch.
     pub(super) dispatch_signature: d3d::ID3D12CommandSignature,
+    /// Device-level draw command signatures for indirect draws. The native
+    /// command stride equals the wire record size; larger argument strides
+    /// have no native form and stay visible.
+    pub(super) draw_signature: d3d::ID3D12CommandSignature,
+    pub(super) draw_indexed_signature: d3d::ID3D12CommandSignature,
     pub(super) heap_tier: u32,
     /// Retained for the live budget query; no other adapter dependency exists.
     adapter: dxgi::IDXGIAdapter1,
@@ -634,6 +643,49 @@ impl Device {
                 )
                 .map_err(map_error)?
         };
+        let draw_argument = d3d::D3D12_INDIRECT_ARGUMENT_DESC {
+            Type: d3d::D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,
+            Anonymous: unsafe { core::mem::zeroed() },
+        };
+        let draw_desc = d3d::D3D12_COMMAND_SIGNATURE_DESC {
+            ByteStride: size_of::<d3d::D3D12_DRAW_ARGUMENTS>() as u32,
+            NumArgumentDescs: 1,
+            pArgumentDescs: &draw_argument,
+            NodeMask: 0,
+        };
+        // SAFETY: self-contained description; output signature is adopted.
+        let mut draw_signature: Option<d3d::ID3D12CommandSignature> = None;
+        unsafe {
+            device
+                .CreateCommandSignature(
+                    &draw_desc,
+                    None::<&d3d::ID3D12RootSignature>,
+                    &mut draw_signature,
+                )
+                .map_err(map_error)?
+        };
+        let draw_indexed_argument = d3d::D3D12_INDIRECT_ARGUMENT_DESC {
+            Type: d3d::D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED,
+            Anonymous: unsafe { core::mem::zeroed() },
+        };
+        let draw_indexed_desc = d3d::D3D12_COMMAND_SIGNATURE_DESC {
+            ByteStride: size_of::<d3d::D3D12_DRAW_INDEXED_ARGUMENTS>() as u32,
+            NumArgumentDescs: 1,
+            pArgumentDescs: &draw_indexed_argument,
+            NodeMask: 0,
+        };
+        // SAFETY: self-contained description; output signature is adopted.
+        let mut draw_indexed_signature: Option<d3d::ID3D12CommandSignature> = None;
+        unsafe {
+            device
+                .CreateCommandSignature(
+                    &draw_indexed_desc,
+                    None::<&d3d::ID3D12RootSignature>,
+                    &mut draw_indexed_signature,
+                )
+                .map_err(map_error)?
+        };
+
         // SAFETY: well-formed heap descriptions; outputs are adopted.
         let view_heaps = ViewHeaps {
             rtv: unsafe {
@@ -648,6 +700,8 @@ impl Device {
         let mut result = Box::new(Self {
             snapshot,
             device,
+            draw_signature: draw_signature.ok_or(BACKEND_ERROR)?,
+            draw_indexed_signature: draw_indexed_signature.ok_or(BACKEND_ERROR)?,
             dispatch_signature: dispatch_signature.ok_or(BACKEND_ERROR)?,
             heap_tier: adapter.state.heap_tier,
             adapter: adapter.state.adapter.clone(),

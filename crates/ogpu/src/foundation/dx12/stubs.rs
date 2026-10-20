@@ -166,13 +166,6 @@ impl Device {
 }
 
 impl List {
-    pub(in crate::foundation) fn draw_indirect(
-        &self,
-        _desc: &Indirect,
-        _indexed: bool,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
     pub(in crate::foundation) fn draw_mesh(&self, _groups: Extent) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }

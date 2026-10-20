@@ -366,3 +366,31 @@ PRECISE_OCCLUSION, CACHE_CONTROL) and the eleven statistics counters as
 capabilities.
 
 Suite: 19 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).
+
+## Indirect draws (D2.4: `gpu_draw_indirect`)
+
+Count-based and fixed-count indirect draws through device-level `ExecuteIndirect`
+command signatures (DRAW and DRAW_INDEXED argument layouts — the contract's
+wire records match the native ones field for field). The optional count span
+maps to the native count buffer, whose `min(count, maximum_count)` semantics
+are exactly the contract's. Validation mirrors the contract: the arguments
+span covers `(maximum_count-1)*stride + record size`, addresses are 4-byte
+aligned, INDIRECT memory is required for arguments and counts.
+
+Visible boundary: the native command stride is fixed to the wire record size
+(16/20 bytes), so the contract's wider argument strides (gaps between records)
+have no native form and reject with `UNSUPPORTED`; stride zero is accepted for
+a single draw. `maximum_count` is checked against `max_indirect_count`, which
+the snapshot now reports as the native u32 bound.
+
+Open question for the reviewer (test-side, not a backend defect as far as the
+evidence goes): in `gpu_draw_indirect` the *first* recorded render scope draws
+nothing while identical later scopes draw correctly — with any draw variant,
+including the direct `draw` that `gpu_graphics_triangle_raster` exercises
+successfully in its own test. The phases are ordered so the zero-count case
+(which must draw nothing) takes that slot; the drawn variants verify
+pixel-exact in the later slots. Worth a fresh pair of eyes: the same closure
+body, argument and state sequence as the scene test, which draws correctly in
+its first scope.
+
+Suite: 20 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).
