@@ -522,3 +522,9 @@ low single-digit-percent intermittency under this driver that a dedicated
 soak (hundreds of runs, ideally under GPU load) should characterize before
 D3's interactive work. The instruments and the counter-evidence probe are
 checked in for exactly that purpose.
+
+**Second soak data point:** another full-suite run failed exactly one
+gpu_draw_indirect phase-0 assertion (and the immediately following runs were
+clean), bringing the observed rate to roughly 2 in 15 full-suite runs. The
+intermittency reproduces across sessions of work and remains confined to that
+one test's first-slot draw.
