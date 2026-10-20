@@ -1,8 +1,14 @@
 //! D3D12 presentation boundary. Not implemented in D1: DXGI swapchains bind to
 //! externally supplied windows through a surface record that lands in D3.
 use super::types::*;
+use super::native::formats;
+use super::native::Image;
+use super::native::{map_error, slice as native_slice};
 use super::Adapter;
+use super::Device;
+use std::slice;
 use windows::Win32::Graphics::Dxgi as dxgi;
+use windows::Win32::Graphics::Dxgi::Common as dxgic;
 
 /// Copy query values into caller storage with the contract's capacity
 /// semantics: the capacity names element slots and the count reports how
@@ -30,6 +36,17 @@ unsafe fn copy_out<T: Copy>(query: &mut Query, values: &[T]) -> Result<(), Statu
 pub struct Surface {
     window: isize,
     adapter: *const Adapter,
+}
+
+/// A DXGI swapchain bound to one surface. Images are the chain's buffers
+/// wrapped as borrowed foundation images; the chain owns nothing about
+/// windowing and no acquire protocol is invented (DXGI's native model is the
+/// current back buffer plus frame latency).
+pub struct Swapchain {
+    device: *const Device,
+    chain: dxgi::IDXGISwapChain3,
+    images: Vec<Box<Image>>,
+    extent: Extent,
 }
 
 /// Report the physical presentation profiles of this adapter, without a
@@ -159,7 +176,7 @@ impl Surface {
                         &mut rect,
                     )
                 }
-                .map_err(super::native::map_error)?;
+                .map_err(map_error)?;
                 let extent = [
                     (rect.right - rect.left).max(0) as u32,
                     (rect.bottom - rect.top).max(0) as u32,

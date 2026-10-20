@@ -360,6 +360,40 @@ impl Image {
         self.borrowed
     }
 
+    /// Wrap an externally owned resource as a foundation image (swapchain
+    /// buffers). The image never drops the resource and carries the identity
+    /// facts of the wrapped buffer.
+    /// # Safety
+    /// The resource stays live and externally owned for the image's lifetime.
+    pub(in crate::foundation) unsafe fn wrap(
+        device: *const Device,
+        format: u32,
+        usage: u64,
+        extent: Extent,
+        native: d3d::D3D12_RESOURCE_DESC,
+        resource: &d3d::ID3D12Resource,
+    ) -> Box<Self> {
+        let facts = Facts {
+            format,
+            dimension: IMAGE_2D,
+            flags: 0,
+            mip_count: 1,
+            layer_count: 1,
+            sample_count: 1,
+            extent,
+            usage,
+        };
+        Box::new(Self {
+            device,
+            facts,
+            native,
+            size: 0,
+            alignment: 1,
+            resource: std::cell::OnceCell::from(resource.clone()),
+            borrowed: true,
+        })
+    }
+
     pub(super) fn resource(&self) -> Result<&d3d::ID3D12Resource, Status> {
         self.resource.get().ok_or(INVALID)
     }

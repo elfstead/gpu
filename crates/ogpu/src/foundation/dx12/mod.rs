@@ -35,7 +35,7 @@ mod rendering;
 #[path = "executables.rs"]
 mod executables;
 #[path = "formats.rs"]
-mod formats;
+pub(in crate::foundation) mod formats;
 #[path = "graphics.rs"]
 mod graphics;
 #[path = "images.rs"]
@@ -547,6 +547,19 @@ pub struct Queue {
 // destruction are externally synchronized by the C/Rust contract.
 unsafe impl Send for Device {}
 unsafe impl Sync for Device {}
+
+impl Device {
+    /// The native command queue of one recorded domain (swapchain binding).
+    pub(in crate::foundation) fn command_queue(
+        &self,
+        domain: u32,
+    ) -> Option<&d3d::ID3D12CommandQueue> {
+        self.queues
+            .iter()
+            .find(|queue| queue.domain == domain)
+            .map(|queue| &queue.handle)
+    }
+}
 
 impl Drop for Device {
     fn drop(&mut self) {
