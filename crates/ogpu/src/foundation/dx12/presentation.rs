@@ -4,6 +4,26 @@ use super::types::*;
 use super::Adapter;
 use windows::Win32::Graphics::Dxgi as dxgi;
 
+/// Copy query values into caller storage with the contract's capacity
+/// semantics: the capacity names element slots and the count reports how
+/// many were written.
+unsafe fn copy_out<T: Copy>(query: &mut Query, values: &[T]) -> Result<(), Status> {
+    let count = values.len().min(query.capacity as usize);
+    // SAFETY: caller storage covers capacity elements of the queried type.
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            values.as_ptr(),
+            query.data.cast::<T>(),
+            count,
+        );
+    }
+    query.count = count as u32;
+    if count < values.len() {
+        return Err(CAPACITY);
+    }
+    Ok(())
+}
+
 /// Opaque surface owner: the externally supplied native window this
 /// backend's swapchains bind to. The window stays the caller's (the contract:
 /// window/input handling is external and borrowed, never owned).
@@ -58,13 +78,116 @@ impl Surface {
         }))
     }
     /// # Safety
-    /// Live surface and writable query storage; unsupported here.
+    /// Live surface and writable query storage.
     pub(in crate::foundation) unsafe fn query(
         &self,
-        _adapter: &Adapter,
-        _mode: Option<u32>,
-        _query: *mut Query,
+        adapter: &Adapter,
+        mode: Option<u32>,
+        query: *mut Query,
     ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
+        let q = unsafe { query.as_mut() }.ok_or(INVALID)?;
+        // The same element contract as the shared query validation: the
+        // element size names the query's value type exactly.
+        let size = match q.header.kind {
+            SURFACE_CAPABILITIES => size_of::<SurfaceCapabilities>(),
+            SURFACE_FORMATS => size_of::<SurfaceFormat>(),
+            SURFACE_PRESENT_MODES => size_of::<u32>(),
+            SURFACE_QUEUES => size_of::<SurfaceQueue>(),
+            SURFACE_SCALING => size_of::<SurfaceScaling>(),
+            SURFACE_COMPATIBLE_MODES => size_of::<u32>(),
+            _ => return Err(UNSUPPORTED),
+        };
+        if q.reserved != 0
+            || q.element_size as usize != size
+            || (q.capacity != 0 && q.data.is_null())
+        {
+            return Err(INVALID);
+        }
+        if mode.is_some() {
+            // Mode-scoped queries arrive with the swapchain work.
+            return Err(UNSUPPORTED);
+        }
+        match q.header.kind {
+            SURFACE_QUEUES => {
+                // DXGI presents from any graphics-capable direct queue: the
+                // swapchain binds to the device and its command queue.
+                let mut queues = Vec::new();
+                for queue in &adapter.snapshot.queues {
+                    queues
+                        .push(SurfaceQueue {
+                            domain: queue.domain,
+                            supported: u32::from(queue.flags & GRAPHICS != 0),
+                        });
+                }
+                unsafe { copy_out(q, &queues) }
+            }
+            SURFACE_FORMATS => {
+                // The DXGI flip-model swapchain formats; native_format carries
+                // the DXGI_FORMAT value.
+                let formats = [
+                    (RGBA8_UNORM, 28u32),
+                    (0, 87u32),
+                    (0, 24u32),
+                    (0, 29u32),
+                    (0, 28u32),
+                ];
+                let values: Vec<SurfaceFormat> = formats
+                    .iter()
+                    .map(|&(format, native)| SurfaceFormat {
+                        format,
+                        native_format: native,
+                        color_space: 0,
+                        reserved: 0,
+                    })
+                    .collect();
+                unsafe { copy_out(q, &values) }
+            }
+            SURFACE_PRESENT_MODES => {
+                // DXGI sync intervals: immediate (0) and the vsync fifo (2 in
+                // the shared present-mode numbering). Mailbox has no DXGI
+                // analog and is not reported.
+                let modes = [0u32, 2];
+                unsafe { copy_out(q, &modes) }
+            }
+            SURFACE_CAPABILITIES => {
+                // The window extent is measured, not guessed.
+                let mut rect = windows::Win32::Foundation::RECT::default();
+                // SAFETY: the borrowed window is live per the surface contract.
+                unsafe {
+                    windows::Win32::UI::WindowsAndMessaging::GetClientRect(
+                        windows::Win32::Foundation::HWND(self.window as *mut _),
+                        &mut rect,
+                    )
+                }
+                .map_err(super::native::map_error)?;
+                let extent = [
+                    (rect.right - rect.left).max(0) as u32,
+                    (rect.bottom - rect.top).max(0) as u32,
+                ];
+                let capabilities = SurfaceCapabilities {
+                    // DXGI flip-model buffer counts; the swapchain work
+                    // measures what the driver accepts beyond these.
+                    min_image_count: 2,
+                    max_image_count: 16,
+                    current_extent: extent,
+                    min_extent: [0, 0],
+                    max_extent: [16384, 16384],
+                    max_layers: 1,
+                    supported_transforms: 1,
+                    current_transform: 1,
+                    supported_alpha: 1,
+                    image_usage: 16 | 4 | 8,
+                    native_image_usage: 16 | 4 | 8,
+                    reserved: 0,
+                };
+                unsafe { copy_out(q, &[capabilities]) }
+            }
+            SURFACE_SCALING | SURFACE_COMPATIBLE_MODES => {
+                // Measured with the swapchain work (what DXGI reports for the
+                // live chain), never guessed.
+                Err(UNSUPPORTED)
+            }
+            _ => Err(INVALID),
+        }
     }
 }
