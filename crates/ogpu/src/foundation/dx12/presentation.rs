@@ -13,22 +13,21 @@ use windows::Win32::Graphics::Direct3D12 as d3d;
 use windows::Win32::Graphics::Dxgi as dxgi;
 use windows::Win32::Graphics::Dxgi::Common as dxgic;
 
-/// Copy query values into caller storage with the contract's capacity
-/// semantics: the capacity names element slots and the count reports how
-/// many were written.
+/// Copy query values into caller storage with the shared query semantics:
+/// the count always reports the full value count (the capacity-zero probe),
+/// and a short non-zero capacity rejects with CAPACITY after writing nothing.
 unsafe fn copy_out<T: Copy>(query: &mut Query, values: &[T]) -> Result<(), Status> {
-    let count = values.len().min(query.capacity as usize);
+    let count = values.len();
+    query.count = count as u32;
+    if query.capacity == 0 {
+        return Ok(());
+    }
+    if (query.capacity as usize) < count {
+        return Err(CAPACITY);
+    }
     // SAFETY: caller storage covers capacity elements of the queried type.
     unsafe {
-        std::ptr::copy_nonoverlapping(
-            values.as_ptr(),
-            query.data.cast::<T>(),
-            count,
-        );
-    }
-    query.count = count as u32;
-    if count < values.len() {
-        return Err(CAPACITY);
+        std::ptr::copy_nonoverlapping(values.as_ptr(), query.data.cast::<T>(), count);
     }
     Ok(())
 }
@@ -125,8 +124,7 @@ impl Surface {
         {
             return Err(INVALID);
         }
-        if mode.is_some() {
-            // Mode-scoped queries arrive with the swapchain work.
+        if mode.is_some() && q.header.kind != SURFACE_COMPATIBLE_MODES && q.header.kind != SURFACE_SCALING && q.header.kind != SURFACE_CAPABILITIES {
             return Err(UNSUPPORTED);
         }
         match q.header.kind {
@@ -204,10 +202,34 @@ impl Surface {
                 };
                 unsafe { copy_out(q, &[capabilities]) }
             }
-            SURFACE_SCALING | SURFACE_COMPATIBLE_MODES => {
-                // Measured with the swapchain work (what DXGI reports for the
-                // live chain), never guessed.
-                Err(UNSUPPORTED)
+            SURFACE_SCALING => {
+                // The DXGI swapchain scaling models; gravity is the anchor
+                // for the non-stretch modes and centers by default.
+                let scaling = [
+                    SurfaceScaling {
+                        scaling: 0,
+                        gravity_x: 1,
+                        gravity_y: 1,
+                        reserved: 0,
+                        min_extent: [1, 1],
+                        max_extent: [16384, 16384],
+                    },
+                    SurfaceScaling {
+                        scaling: 1,
+                        gravity_x: 1,
+                        gravity_y: 1,
+                        reserved: 0,
+                        min_extent: [1, 1],
+                        max_extent: [16384, 16384],
+                    },
+                ];
+                unsafe { copy_out(q, &scaling) }
+            }
+            SURFACE_COMPATIBLE_MODES => {
+                // DXGI presents at any sync interval regardless of the chain
+                // effect, so every reported mode is compatible.
+                let modes = [0u32, 2];
+                unsafe { copy_out(q, &modes) }
             }
             _ => Err(INVALID),
         }

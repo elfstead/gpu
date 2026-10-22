@@ -85,7 +85,11 @@ impl Window {
     }
     fn create() -> Self {
         // Deliberate executable-library selection, never accept untrusted paths.
-        let path = std::env::var_os("OGPU_GLFW_LIBRARY").unwrap_or_else(|| "libglfw.so.3".into());
+        #[cfg(not(target_os = "windows"))]
+        let default_library = "libglfw.so.3";
+        #[cfg(target_os = "windows")]
+        let default_library = "glfw3.dll";
+        let path = std::env::var_os("OGPU_GLFW_LIBRARY").unwrap_or_else(|| default_library.into());
         unsafe {
             let library = Library::new(path).expect("load GLFW 3.4 (set OGPU_GLFW_LIBRARY)");
             let init = *library
@@ -106,11 +110,22 @@ impl Window {
                     *mut c_void,
                 ) -> *mut c_void>(b"glfwCreateWindow\0")
                 .unwrap();
+            // The surface record's provisional D3D12 binding: the window
+            // handle travels in `surface` with `display` null; the Wayland
+            // path carries its native pair.
+            #[cfg(not(target_os = "windows"))]
             let display = *library
                 .get::<unsafe extern "C" fn() -> *mut c_void>(b"glfwGetWaylandDisplay\0")
                 .unwrap();
+            #[cfg(target_os = "windows")]
+            let display: *mut c_void = std::ptr::null_mut();
+            #[cfg(not(target_os = "windows"))]
             let surface = *library
                 .get::<unsafe extern "C" fn(*mut c_void) -> *mut c_void>(b"glfwGetWaylandWindow\0")
+                .unwrap();
+            #[cfg(target_os = "windows")]
+            let surface = *library
+                .get::<unsafe extern "C" fn(*mut c_void) -> *mut c_void>(b"glfwGetWin32Window\0")
                 .unwrap();
             let destroy = *library
                 .get::<unsafe extern "C" fn(*mut c_void)>(b"glfwDestroyWindow\0")
@@ -133,8 +148,12 @@ impl Window {
                 }
             }
             callback(Some(error));
-            init_hint(0x00050003, 0x00060003); // GLFW_PLATFORM = WAYLAND, no fallback.
-            assert_ne!(init(), 0, "GLFW Wayland initialization failed");
+            // GLFW_PLATFORM: WAYLAND on Linux, WIN32 on Windows; no fallback.
+            #[cfg(not(target_os = "windows"))]
+            init_hint(0x00050003, 0x00060003);
+            #[cfg(target_os = "windows")]
+            init_hint(0x00050003, 0x00060001);
+            assert_ne!(init(), 0, "GLFW platform initialization failed");
             let mut owner = Self {
                 handle: ptr::null_mut(),
                 display: ptr::null_mut(),
@@ -152,10 +171,20 @@ impl Window {
                 ptr::null_mut(),
                 ptr::null_mut(),
             );
-            assert!(!owner.handle.is_null(), "create hidden GLFW Wayland window");
-            owner.display = display();
-            owner.surface = surface(owner.handle);
-            assert!(!owner.display.is_null() && !owner.surface.is_null());
+            assert!(!owner.handle.is_null(), "create hidden GLFW window");
+            #[cfg(not(target_os = "windows"))]
+            {
+                owner.display = display();
+                owner.surface = surface(owner.handle);
+                assert!(!owner.display.is_null() && !owner.surface.is_null());
+            }
+            #[cfg(target_os = "windows")]
+            {
+                // The provisional D3D12 binding carries the window handle in
+                // `surface` with `display` null.
+                owner.surface = surface(owner.handle);
+                assert!(!owner.surface.is_null());
+            }
             owner
         }
     }
