@@ -5853,3 +5853,173 @@ fn gpu_closure_ab_probe() {
     }
 }
 
+
+/// D3 presentation path end to end: a borrowed Win32 window, the surface
+/// capability queries, swapchain creation, borrowed images, acquisition with
+/// a binary signal, and one native present with binary wait and fence
+/// retirement. The window is created and destroyed by the test; the surface
+/// only ever borrows it.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_swapchain_present() {
+    use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        CreateWindowExW, DefWindowProcW, DestroyWindow, RegisterClassW, CS_HREDRAW,
+        CS_VREDRAW, CW_USEDEFAULT, WNDCLASSW, WS_OVERLAPPEDWINDOW,
+    };
+
+    let (_discovery, device, queue, domain) =
+        gpu_setup_features(1 | 16 | 65536 | RASTER | PRESENTATION);
+    unsafe extern "system" fn window_proc(
+        hwnd: HWND,
+        msg: u32,
+        wparam: WPARAM,
+        lparam: LPARAM,
+    ) -> LRESULT {
+        unsafe { DefWindowProcW(hwnd, msg, wparam, lparam) }
+    }
+    let class = WNDCLASSW {
+        style: CS_HREDRAW | CS_VREDRAW,
+        lpfnWndProc: Some(window_proc),
+        hInstance: HINSTANCE(std::ptr::null_mut()),
+        lpszClassName: windows::core::w!("ogpu_swapchain_test"),
+        ..Default::default()
+    };
+    let atom = unsafe { RegisterClassW(&class) };
+    assert_ne!(atom, 0);
+    let window = unsafe {
+        CreateWindowExW(
+            Default::default(),
+            windows::core::w!("ogpu_swapchain_test"),
+            windows::core::w!("ogpu swapchain test"),
+            WS_OVERLAPPEDWINDOW,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            128,
+            128,
+            None,
+            None,
+            None,
+            None,
+        )
+    }
+    .expect("test window");
+
+    let discovery = unsafe { api::discover_presentation(1) }.unwrap();
+    let adapter = &api::adapters(&discovery)[0];
+    let surface = unsafe {
+        api::surface_wayland_create(
+            adapter,
+            &WaylandSurfaceDesc {
+                header: Record::new::<WaylandSurfaceDesc>(WAYLAND_SURFACE_DESC),
+                display: std::ptr::null_mut(),
+                surface: window.0.cast(),
+            },
+        )
+    }
+    .unwrap();
+
+    // The surface capability queries report the DXGI facts and the measured
+    // window extent.
+    let mut caps_storage = SurfaceCapabilities::default();
+    let mut caps_query = Query {
+        header: Record::new::<Query>(SURFACE_CAPABILITIES),
+        data: std::ptr::addr_of_mut!(caps_storage).cast(),
+        capacity: 1,
+        count: 0,
+        element_size: std::mem::size_of::<SurfaceCapabilities>() as u32,
+        reserved: 0,
+    };
+    unsafe { api::surface_query(adapter, surface, &mut caps_query) }.unwrap();
+    assert_eq!(caps_query.count, 1);
+    assert!(caps_storage.min_image_count >= 2);
+    assert!(caps_storage.current_extent[0] > 0);
+
+    let mut queue_storage = [SurfaceQueue::default(); 4];
+    let mut queue_query = Query {
+        header: Record::new::<Query>(SURFACE_QUEUES),
+        data: queue_storage.as_mut_ptr().cast(),
+        capacity: 4,
+        count: 0,
+        element_size: std::mem::size_of::<SurfaceQueue>() as u32,
+        reserved: 0,
+    };
+    unsafe { api::surface_query(adapter, surface, &mut queue_query) }.unwrap();
+    assert!(queue_storage[..queue_query.count as usize]
+        .iter()
+        .any(|q| q.domain == domain && q.supported != 0));
+
+    // The swapchain binds the borrowed window through the domain's queue.
+    let swapchain = unsafe {
+        api::swapchain_create(
+            device,
+            &SwapchainDesc {
+                header: Record::new::<SwapchainDesc>(SWAPCHAIN_DESC),
+                surface: surface.as_raw(),
+                old_swapchain: std::ptr::null_mut(),
+                format: RGBA8_UNORM,
+                color_space: 0,
+                extent: [64, 64],
+                layer_count: 1,
+                min_image_count: 2,
+                usage: IMAGE_COLOR_ATTACHMENT,
+                transform: 1,
+                alpha: 0,
+                present_mode: 2,
+                clipped: 1,
+                domain_count: 1,
+                mode_count: 0,
+                domains: &domain,
+                modes: std::ptr::null(),
+            },
+        )
+    }
+    .unwrap();
+
+    // Borrowed images: the chain owns the buffers.
+    let mut image_slots: [*mut Image; 16] = [std::ptr::null_mut(); 16];
+    let mut image_count = 0u32;
+    unsafe { api::swapchain_images(swapchain, &mut image_slots, &mut image_count) }.unwrap();
+    assert!(image_count >= 2);
+
+    // Acquisition schedules one binary signal on the chain's queue.
+    let binary = unsafe { api::binary_create(device) }.unwrap();
+    let (index, _suboptimal) =
+        unsafe { api::acquire(swapchain, u64::MAX, Some(binary), None) }.unwrap();
+    assert!((index as u32) < image_count);
+
+    // One native present per chain: binary wait first, fence retirement after.
+    let fence = unsafe { api::fence_create(device, false) }.unwrap();
+    let image = PresentImage {
+        swapchain: swapchain.as_raw(),
+        index,
+        reserved: 0,
+        fence: fence.as_raw(),
+    };
+    let mut results = [OK; 1];
+    let mut scratch = vec![0u8; 256];
+    let waits = [binary.as_raw()];
+    let present = PresentDesc {
+        header: Record::new::<PresentDesc>(PRESENT_DESC),
+        wait_count: 1,
+        image_count: 1,
+        waits: waits.as_ptr(),
+        images: &image,
+        results: results.as_mut_ptr(),
+        scratch: HostSpan {
+            data: scratch.as_mut_ptr().cast(),
+            size: scratch.len() as u64,
+        },
+    };
+    unsafe { api::queue_present(queue, &present) }.unwrap();
+    assert_eq!(results[0], OK);
+    assert!(unsafe { api::fence_wait(fence, 2_000_000_000) }.is_ok());
+
+    unsafe {
+        api::fence_destroy(fence);
+        api::binary_destroy(binary);
+        api::swapchain_destroy(swapchain);
+        api::surface_destroy(surface);
+        DestroyWindow(window).expect("window destroyed");
+    }
+}

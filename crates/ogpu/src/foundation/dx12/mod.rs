@@ -91,10 +91,12 @@ pub(super) fn discover() -> Result<Box<Discovery>, Status> {
     discover_factory(&factory)
 }
 
-/// Presentation-enabled discovery is not part of the D1 D3D12 profile: DXGI
-/// swapchains need an explicit external-window surface record (D3).
+/// Presentation-enabled discovery on this backend is the ordinary DXGI
+/// discovery: nothing is instance-level here, and swapchains bind to the
+/// explicit external-window surface record at chain creation (the D3
+/// presentation profile).
 pub(super) fn discover_presentation() -> Result<Box<Discovery>, Status> {
-    Err(UNSUPPORTED)
+    discover()
 }
 
 fn discover_factory(factory: &dxgi::IDXGIFactory2) -> Result<Box<Discovery>, Status> {
@@ -207,7 +209,7 @@ fn probe(adapter: dxgi::IDXGIAdapter1) -> Result<(Snapshot, AdapterState), Statu
         // Physically supported optional features on this backend: exact
         // occlusion, the native pipeline-statistics counters, and explicit
         // executable-cache synchronization control.
-        available: RASTER | PIPELINE_STATISTICS | PRECISE_OCCLUSION | CACHE_CONTROL,
+        available: RASTER | PIPELINE_STATISTICS | PRECISE_OCCLUSION | CACHE_CONTROL | PRESENTATION,
         enabled: 0,
         max_timeline_difference: u64::MAX,
         baseline_supported: u32::from(baseline),
