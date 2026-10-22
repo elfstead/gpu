@@ -247,8 +247,13 @@ impl Swapchain {
         if desc.layer_count != 1 || desc.min_image_count == 0 {
             return Err(INVALID);
         }
-        if desc.domain_count != 1 || desc.domains.is_null() {
+        // DXGI binds one command queue per chain: an empty domain list is the
+        // unconstrained default, one name binds it, more stay visible.
+        if desc.domain_count > 1 {
             return Err(UNSUPPORTED);
+        }
+        if desc.domain_count == 1 && desc.domains.is_null() {
+            return Err(INVALID);
         }
         // DXGI resizes the live chain rather than recreating swapchains;
         // old_swapchain maps to ResizeBuffers on its native chain (the design
@@ -285,8 +290,19 @@ impl Swapchain {
             }));
         }
         let surface = unsafe { desc.surface.as_ref() }.ok_or(INVALID)?;
-        let domains = unsafe { native_slice(desc.domains, 1) }?;
-        let domain = domains[0];
+        let domain = if desc.domain_count == 0 {
+            // The unconstrained default binds the first graphics-capable
+            // queue (the DXGI present path).
+            d.snapshot
+                .queues
+                .iter()
+                .find(|q| q.flags & GRAPHICS != 0)
+                .ok_or(UNSUPPORTED)?
+                .domain
+        } else {
+            let domains = unsafe { native_slice(desc.domains, 1) }?;
+            domains[0]
+        };
         let queue = d.command_queue(domain).ok_or(INVALID)?;
         let factory: dxgi::IDXGIFactory2 = unsafe {
             surface
