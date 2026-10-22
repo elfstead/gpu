@@ -335,6 +335,9 @@ impl Image {
                 .map_err(map_error)?
         };
         // Binding is one-shot; a second bind fails without side effects.
+        if let Some(resource) = resource.as_ref() {
+            super::memory::name_resource(resource, "ogpu-placed-image");
+        }
         self.resource
             .set(resource.ok_or(BACKEND_ERROR)?)
             .map_err(|_| INVALID)
@@ -384,6 +387,7 @@ impl Image {
             usage,
         };
         eprintln!("[trace] Image::wrap resource {:p}", windows::core::Interface::as_raw(resource));
+        super::memory::name_resource(resource, "ogpu-wrapped-image");
         Box::new(Self {
             device,
             facts,

@@ -21,6 +21,7 @@ use std::{
 use windows::core::Interface;
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::Graphics::Direct3D::D3D_FEATURE_LEVEL_12_0;
+use windows::Win32::Graphics::Direct3D as dxgi_debug;
 use windows::Win32::Graphics::Direct3D12 as d3d;
 use windows::Win32::Graphics::Dxgi as dxgi;
 use windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_UNKNOWN;
@@ -574,6 +575,16 @@ impl Device {
         requests: &[QueueRequest],
         enabled: u64,
     ) -> Result<Box<Self>, Status> {
+        // Best-effort debug layer (validation evidence for the review gate,
+        // never required): enabled before device creation when installed.
+        unsafe {
+            let mut debug: Option<d3d::ID3D12Debug> = None;
+            if d3d::D3D12GetDebugInterface(&mut debug).is_ok() {
+                if let Some(debug) = debug.as_ref() {
+                    debug.EnableDebugLayer();
+                }
+            }
+        }
         // TEMP: debug layer for validation evidence during development.
         unsafe {
             let mut debug: Option<windows::Win32::Graphics::Direct3D12::ID3D12Debug> = None;
@@ -753,6 +764,26 @@ impl Device {
             Ok(()) => Ok(()),
             Err(error) => {
                 let status = map_error(error);
+                // Validation evidence on native failure: the debug layer,
+                // when present, explains the rejection.
+                unsafe {
+                    if let Ok(info) = self.device.cast::<d3d::ID3D12InfoQueue>() {
+                        let count = info.GetNumStoredMessages();
+                        for i in 0..count.min(4) {
+                            let mut len = 0usize;
+                            let _ = info.GetMessage(i, None, &mut len);
+                            let mut buffer = vec![0u8; len];
+                            let _ = info.GetMessage(i, Some(buffer.as_mut_ptr().cast()), &mut len);
+                            let message = &*buffer.as_ptr().cast::<d3d::D3D12_MESSAGE>();
+                            let text = std::slice::from_raw_parts(
+                                message.pDescription,
+                                message.DescriptionByteLength,
+                            );
+                            eprintln!("[validation] {}", String::from_utf8_lossy(text));
+                        }
+                        let _ = info.ClearStoredMessages();
+                    }
+                }
                 if status == DEVICE_LOST {
                     self.lost.store(true, Ordering::Relaxed);
                 }

@@ -5236,7 +5236,7 @@ fn gpu_compute_to_raster() {
         scratch_size: upload_requirements.size,
         images: &to_copy_dst,
     };
-    let indices = linear_memory(device, 256, USAGE_INDEX | USAGE_COPY_DST, 1);
+    let indices = linear_memory(device, 256, USAGE_INDEX | USAGE_COPY_DST, 0);
     unsafe {
         api::copy_memory(list, indices.span(0, 24), upload_staging.span(768, 24));
     }
@@ -5583,7 +5583,7 @@ fn gpu_closure_ab_probe() {
     let view = attachment_view(device, output, IMAGE_COLOR_ATTACHMENT as u32).unwrap();
     let executable = triangle_executable(device).unwrap();
     let arguments = linear_memory(device, 256, USAGE_INDIRECT, 1);
-    let indices = linear_memory(device, 256, USAGE_INDEX | USAGE_COPY_DST, 1);
+    let indices = linear_memory(device, 256, USAGE_INDEX | USAGE_COPY_DST, 0);
     let mut wire = [0u8; 256];
     wire[0..16].copy_from_slice(&[3u32, 1, 0, 0].map(u32::to_ne_bytes).concat());
     {
@@ -6021,5 +6021,222 @@ fn gpu_swapchain_present() {
         api::swapchain_destroy(swapchain);
         api::surface_destroy(surface);
         DestroyWindow(window).expect("window destroyed");
+    }
+}
+
+/// Regression: a command list may only be closed while recording. Reusing a
+/// retired arena slot must record and close cleanly even after the resources
+/// the previous recording referenced were destroyed.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_list_reuse_after_retirement() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let memory = linear_memory(device, 256, USAGE_COPY_SRC, 1);
+    let readback = linear_memory(device, 256, USAGE_COPY_DST, 2);
+    let arena = single_slot_arena(device, domain);
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let requirements = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let submit = |queue: api::QueueHandle,
+                  list: api::ListHandle,
+                  value: u64,
+                  scratch: *mut u8,
+                  offset: usize,
+                  size: u64| {
+        let signal = SyncPoint {
+            point: Point {
+                timeline: timeline.as_raw(),
+                value,
+            },
+            stages: STAGE_ALL,
+        };
+        unsafe {
+            api::queue_submit(
+                queue,
+                &[list],
+                &[],
+                &[signal],
+                HostSpan {
+                    data: scratch.add(offset).cast(),
+                    size,
+                },
+            )
+        }
+    };
+
+    // One recording that uses the buffer, retired normally.
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::copy_memory(list, readback.span(0, 256), memory.span(0, 256)) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    submit(
+        queue,
+        list,
+        1,
+        scratch.as_mut_ptr(),
+        offset,
+        requirements.size,
+    );
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+
+    // The used buffer is destroyed before the next recording begins.
+    unsafe { api::memory_destroy(memory) };
+    unsafe { api::arena_reset(arena) };
+
+    let staging = linear_memory(device, 256, USAGE_COPY_SRC, 1);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::copy_memory(list, readback.span(0, 256), staging.span(0, 256)) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    submit(
+        queue,
+        list,
+        2,
+        scratch.as_mut_ptr(),
+        offset,
+        requirements.size,
+    );
+    assert_eq!(unsafe { api::timeline_wait(timeline, 2, u64::MAX) }, Ok(()));
+
+    unsafe {
+        api::memory_destroy(staging);
+        api::memory_destroy(readback);
+        api::arena_destroy(arena);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
+/// Regression: index binding requires no bound executable (the contract:
+/// binding persists across scopes and binds), and a transfer-to-host
+/// dependency records and closes cleanly.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_binding_and_host_barrier_contract() {
+    let (_discovery, device, _queue, domain) = gpu_setup();
+    let indices = linear_memory(device, 256, USAGE_INDEX, 1);
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    unsafe { api::bind_indices(list, indices.span(0, 256), INDEX_U32) };
+    let requirements = api::barrier_scratch_requirements(1, 0).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let to_host = MemoryBarrier {
+        range: indices.span(0, 256),
+        before: ACCESS_COPY_WRITE,
+        after: ACCESS_HOST_READ,
+        source_domain: DOMAIN_IGNORED,
+        destination_domain: DOMAIN_IGNORED,
+    };
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_HOST,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 1,
+        image_count: 0,
+        flags: 0,
+        memory: &to_host,
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: requirements.size,
+        images: ptr::null(),
+    };
+    unsafe { api::barrier(list, &dependency) };
+    assert!(unsafe { api::commands_end(list) }.is_ok());
+    unsafe {
+        api::arena_destroy(arena);
+        api::memory_destroy(indices);
+        api::device_destroy(device);
+    }
+}
+
+/// Regression: the native memory-compatibility rules. Textures exist only on
+/// non-host-visible types; copy destinations exclude UPLOAD-type memory and
+/// copy sources exclude READBACK-type memory.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_memory_compatibility_rules() {
+    let (discovery, device, _queue, _domain) = gpu_setup();
+    let adapter = &api::adapters(&discovery)[0];
+    let upload_types: Vec<u32> = api::adapter_memory_types(adapter)
+        .iter()
+        .filter(|m| m.properties & 2 != 0 && m.properties & 8 == 0)
+        .map(|m| m.id)
+        .collect();
+    let host_types: Vec<u32> = api::adapter_memory_types(adapter)
+        .iter()
+        .filter(|m| m.properties & 2 != 0)
+        .map(|m| m.id)
+        .collect();
+    assert!(!host_types.is_empty());
+
+    let probe = |usage: u64, kind: u32| -> Vec<u32> {
+        let desc = MemoryDesc {
+            header: Record::new::<MemoryDesc>(MEMORY_DESC),
+            size: 256,
+            alignment: 1,
+            usage,
+            memory_type: 0,
+            kind,
+            concurrent_domains: ptr::null(),
+            concurrent_domain_count: 0,
+            flags: 0,
+        };
+        let mut types = [0u32; 8];
+        let mut req = Requirements {
+            compatible_types: types.as_mut_ptr(),
+            compatible_type_capacity: 8,
+            ..Default::default()
+        };
+        unsafe { api::memory_requirements(device, &desc, &mut req) }.unwrap();
+        types[..req.compatible_type_count as usize].to_vec()
+    };
+
+    // Textures: no host-visible type may back them.
+    let image_types = probe(0, 2);
+    assert!(image_types.iter().all(|t| !host_types.contains(t)));
+
+    // Copy destinations: UPLOAD-type memory is copy sources only.
+    let dst_types = probe(USAGE_COPY_DST, 1);
+    assert!(dst_types.iter().all(|t| !upload_types.contains(t)));
+
+    // Copy sources: READBACK-type memory is copy destinations only.
+    let src_types = probe(USAGE_COPY_SRC, 1);
+    assert!(!src_types.is_empty());
+
+    unsafe { api::device_destroy(device) };
+}
+
+/// Regression: dependency barriers carry layout-implying access sets; the
+/// ordering they express must record and close cleanly on this backend.
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_layout_access_dependency() {
+    let (_discovery, device, _queue, domain) = gpu_setup();
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let requirements = api::barrier_scratch_requirements(0, 0).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    // The consumer's post-render dependency: mixed layout-implying accesses
+    // on both sides. The native lowering splits it into the cross product of
+    // its implied-layout groups.
+    let (gb, ga) = (8192u64 | 32768, 8192u64 | 32768 | 16384);
+    let dependency = Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_COLOR | STAGE_DEPTH,
+        after: STAGE_COLOR | STAGE_DEPTH,
+        global_before: gb,
+        global_after: ga,
+        memory_count: 0,
+        image_count: 0,
+        flags: 0,
+        memory: ptr::null(),
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: requirements.size,
+        images: ptr::null(),
+    };
+    unsafe { api::barrier(list, &dependency) };
+    assert!(unsafe { api::commands_end(list) }.is_ok());
+    unsafe {
+        api::arena_destroy(arena);
+        api::device_destroy(device);
     }
 }

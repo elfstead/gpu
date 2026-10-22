@@ -172,8 +172,11 @@ impl Arena {
         let d = unsafe { &*self.device };
         d.ready()?;
         for slot in &self.slots {
-            // Defensive close of abandoned recordings; ignored if already closed.
-            let _ = unsafe { slot.command.Close() };
+            // Defensive close of abandoned recordings only: closing an
+            // already-closed list is invalid and re-examines its references.
+            if slot.state.get() == 1 {
+                let _ = unsafe { slot.command.Close() };
+            }
             if release {
                 // SAFETY: caller proves no pending use of this allocator.
                 unsafe {
@@ -219,6 +222,10 @@ impl Arena {
         }
         let slot = self.slots.get_mut(self.used).ok_or(CAPACITY)?;
         self.used += 1;
+        // Only an abandoned recording (state 1) needs the defensive close:
+        // closing an already-closed list is invalid and the debug layer
+        // re-examines its recorded references against current resources.
+        let abandoned = slot.state.get() == 1;
         slot.state.set(0);
         slot.error.set(OK);
         slot.mode = desc.replay_mode;
@@ -226,7 +233,9 @@ impl Arena {
         // allocator/list pair is exclusively owned by this slot. The defensive
         // close discards any abandoned recording so reset can proceed.
         let result = unsafe {
-            let _ = slot.command.Close();
+            if abandoned {
+                let _ = slot.command.Close();
+            }
             slot.allocator.Reset().and_then(|_| {
                 slot.command
                     .Reset(&slot.allocator, None::<&d3d::ID3D12PipelineState>)
@@ -280,15 +289,25 @@ impl List {
         let recording = self.recording();
         // Close even when poisoned: a list left in the recording state would
         // block the allocator at the next begin. Contents are discarded by 0.
-        let close = unsafe { self.command.Close() };
+        // An already-closed list must not be closed again: the native close of
+        // a closed list is invalid and re-examines its recorded references.
+        eprintln!("[trace] end() state {} list {:p}", self.state.get(), windows::core::Interface::as_raw(&self.command));
+        let close = if self.state.get() == 1 {
+            unsafe { self.command.Close() }
+        } else {
+            Ok(())
+        };
         let result = recording.and_then(|d| d.result(close));
         self.state.set(if result.is_ok() { 2 } else { 0 });
         result
     }
 
     pub(in crate::foundation) fn cancel(&self) {
-        // Closing releases the allocator's recording state; contents are discarded.
-        let _ = unsafe { self.command.Close() };
+        // Closing releases the allocator's recording state; contents are
+        // discarded. Only an open recording is closed.
+        if self.state.get() == 1 {
+            let _ = unsafe { self.command.Close() };
+        }
         self.state.set(0);
     }
 
@@ -404,17 +423,24 @@ impl List {
         }
         let scope_before = stages(dep.before)?;
         let scope_after = stages(dep.after)?;
-        let global_before = access(dep.global_before)?;
-        let global_after = access(dep.global_after)?;
         if (dep.before == 0 && dep.global_before != 0) || (dep.after == 0 && dep.global_after != 0) {
         return Err(INVALID);
         }
+        // The native global barrier expresses one implied layout per side.
+        // A mask mixing layout-implying accesses splits into the cross
+        // product of its layout groups: every before group is ordered before
+        // every after group, exactly the contract's ordering, with the
+        // layout-free accesses joining every record (conservative, never
+        // less). The sync bits order the stages on every record.
+        let before_groups = global_groups(dep.global_before);
+        let after_groups = global_groups(dep.global_after);
+        let free_before = dep.global_before & ACCESS_GENERIC_FREE;
+        let free_after = dep.global_after & ACCESS_GENERIC_FREE;
         // D3D12 pairs each sync bit with the accesses it justifies: the native
         // sync scope is derived from the declared accesses and narrowed to the
-        // declared stage scope. Stages that cannot produce the declared access
-        // are exact to drop; the fallback keeps the full required set.
-        let before = sync_for_access(global_before, scope_before);
-        let after = sync_for_access(global_after, scope_after);
+        // declared stage scope.
+        let before = sync_for_access(access(dep.global_before)?, scope_before);
+        let after = sync_for_access(access(dep.global_after)?, scope_after);
         let (groups_offset, global_offset, buffers_offset, textures_offset) =
             barrier_offsets(dep.memory_count, dep.image_count)?;
         let groups = unsafe { storage.add(groups_offset) }.cast::<d3d::D3D12_BARRIER_GROUP>();
@@ -422,28 +448,75 @@ impl List {
         let buffers = unsafe { storage.add(buffers_offset) }.cast::<d3d::D3D12_BUFFER_BARRIER>();
         let textures = unsafe { storage.add(textures_offset) }.cast::<d3d::D3D12_TEXTURE_BARRIER>();
         let mut count = 0;
-        if global_before != d3d::D3D12_BARRIER_ACCESS_NO_ACCESS
-            || global_after != d3d::D3D12_BARRIER_ACCESS_NO_ACCESS
         {
-            // SAFETY: scratch slot for the global barrier record.
-            unsafe {
-                global.write(d3d::D3D12_GLOBAL_BARRIER {
-                    SyncBefore: before,
-                    SyncAfter: after,
-                    AccessBefore: global_before,
-                    AccessAfter: global_after,
-                });
-                groups
-                    .add(count)
-                    .write(d3d::D3D12_BARRIER_GROUP {
+            let mut emitted = 0u32;
+            for b in &before_groups {
+                for a in &after_groups {
+                    if *b == 0 || *a == 0 {
+                        continue;
+                    }
+                    let global_before = access(*b | free_before)?;
+                    let global_after = access(*a | free_after)?;
+                    // The native global barrier accepts a DEPTH_STENCIL_WRITE
+                    // before-side only against a DEPTH_STENCIL_READ after-side;
+                    // other depth-write pairs express their ordering through
+                    // the sync bits alone (the caller's resource barriers
+                    // carry the cache ordering per image).
+                    let depth_write_before = *b & ACCESS_DEPTH_WRITE != 0;
+                    let depth_read_after = *a & ACCESS_DEPTH_READ != 0;
+                    let (global_before, global_after) =
+                        if depth_write_before && !depth_read_after {
+                            (
+                                d3d::D3D12_BARRIER_ACCESS_NO_ACCESS,
+                                d3d::D3D12_BARRIER_ACCESS_NO_ACCESS,
+                            )
+                        } else {
+                            (global_before, global_after)
+                        };
+                    // Each record's sync bits pair with its own accesses.
+                    let sync_before = sync_for_access(global_before, scope_before);
+                    let sync_after = sync_for_access(global_after, scope_after);
+                    // SAFETY: scratch holds MAX_GLOBAL_BARRIERS records.
+                    unsafe {
+                        global.add(emitted as usize).write(d3d::D3D12_GLOBAL_BARRIER {
+                            SyncBefore: sync_before,
+                            SyncAfter: sync_after,
+                            AccessBefore: global_before,
+                            AccessAfter: global_after,
+                        });
+                    }
+                    emitted += 1;
+                }
+            }
+            if before_groups.iter().all(|g| *g == 0) && after_groups.iter().all(|g| *g == 0) {
+                let global_before = access(free_before)?;
+                let global_after = access(free_after)?;
+                if global_before.0 != 0 || global_after.0 != 0 {
+                    // SAFETY: scratch holds MAX_GLOBAL_BARRIERS records.
+                    unsafe {
+                        global.add(emitted as usize).write(d3d::D3D12_GLOBAL_BARRIER {
+                            SyncBefore: sync_for_access(global_before, scope_before),
+                            SyncAfter: sync_for_access(global_after, scope_after),
+                            AccessBefore: global_before,
+                            AccessAfter: global_after,
+                        });
+                    }
+                    emitted += 1;
+                }
+            }
+            if emitted != 0 {
+                // SAFETY: one global group covering the emitted records.
+                unsafe {
+                    groups.add(count).write(d3d::D3D12_BARRIER_GROUP {
                         Type: d3d::D3D12_BARRIER_TYPE_GLOBAL,
-                        NumBarriers: 1,
+                        NumBarriers: emitted,
                         Anonymous: d3d::D3D12_BARRIER_GROUP_0 {
                             pGlobalBarriers: global,
                         },
                     });
+                }
+                count += 1;
             }
-            count += 1;
         }
         let memory_count = dep.memory_count as usize;
         if memory_count != 0 {
@@ -510,6 +583,19 @@ impl List {
                 domains(d, barrier.source_domain, barrier.destination_domain)?;
                 let before_access = access(barrier.before)?;
                 let after_access = access(barrier.after)?;
+                // The native pairing rule: an UNDEFINED layout pairs with
+                // NO_ACCESS only. A discarded side has no prior access to
+                // express, whatever the caller's access mask names.
+                let before_access = if barrier.old_state == STATE_UNDEFINED {
+                    d3d::D3D12_BARRIER_ACCESS_NO_ACCESS
+                } else {
+                    before_access
+                };
+                let after_access = if barrier.new_state == STATE_UNDEFINED {
+                    d3d::D3D12_BARRIER_ACCESS_NO_ACCESS
+                } else {
+                    after_access
+                };
                 let before = sync_for_access(before_access, scope_before);
                 let after = sync_for_access(after_access, scope_after);
                 eprintln!("[trace] barrier states {} -> {} access {} -> {}", barrier.old_state, barrier.new_state, barrier.before, barrier.after);
@@ -629,6 +715,11 @@ fn buffer_sync(sync: d3d::D3D12_BARRIER_SYNC) -> d3d::D3D12_BARRIER_SYNC {
     d3d::D3D12_BARRIER_SYNC(sync.0 & !texture_only)
 }
 
+/// Worst-case native global records for one dependency: a mixed-access global
+/// barrier splits into the cross product of its implied-layout groups (five
+/// groups per side by the access classification below).
+const MAX_GLOBAL_BARRIERS: u32 = 25;
+
 fn barrier_offsets(
     memory: u32,
     images: u32,
@@ -638,7 +729,7 @@ fn barrier_offsets(
         .map_err(|_| INVALID)?
         .0;
     let (layout, global_offset) = groups
-        .extend(std::alloc::Layout::new::<d3d::D3D12_GLOBAL_BARRIER>())
+        .extend(array_layout::<d3d::D3D12_GLOBAL_BARRIER>(MAX_GLOBAL_BARRIERS)?)
         .map_err(|_| INVALID)?;
     let (layout, buffers_offset) = layout
         .extend(array_layout::<d3d::D3D12_BUFFER_BARRIER>(memory)?)
@@ -657,15 +748,17 @@ pub(in crate::foundation) fn barrier_scratch(
     memory: u32,
     images: u32,
 ) -> Result<HostRequirements, Status> {
+    // The same layout as translate_dependency builds in scratch: one source
+    // of truth for the record groups (including the global-barrier split).
     let (groups_offset, global_offset, buffers_offset, textures_offset) =
         barrier_offsets(memory, images)?;
-    let _ = (groups_offset, global_offset, buffers_offset, textures_offset);
+    let _ = (groups_offset, global_offset);
     let groups = std::alloc::Layout::new::<d3d::D3D12_BARRIER_GROUP>()
         .repeat(3)
         .map_err(|_| INVALID)?
         .0;
     let (layout, _) = groups
-        .extend(std::alloc::Layout::new::<d3d::D3D12_GLOBAL_BARRIER>())
+        .extend(array_layout::<d3d::D3D12_GLOBAL_BARRIER>(MAX_GLOBAL_BARRIERS)?)
         .map_err(|_| INVALID)?;
     let (layout, _) = layout
         .extend(array_layout::<d3d::D3D12_BUFFER_BARRIER>(memory)?)
@@ -744,6 +837,34 @@ pub(super) fn stages(mask: u64) -> Result<d3d::D3D12_BARRIER_SYNC, Status> {
         return Err(UNSUPPORTED);
     }
     Ok(result)
+}
+
+/// Accesses that imply no native layout: they join every split global barrier.
+const ACCESS_GENERIC_FREE: u64 = ACCESS_COPY_READ
+    | ACCESS_COPY_WRITE
+    | ACCESS_INDIRECT_READ
+    | ACCESS_INDEX_READ
+    | ACCESS_VERTEX_READ
+    | ACCESS_UNIFORM_READ
+    | ACCESS_HOST_READ
+    | ACCESS_HOST_WRITE;
+
+/// Partition one access mask into its implied-layout groups. Each group maps
+/// to exactly one native layout; the generic read/write bits expand into the
+/// groups they cover. The order is render target, depth write, depth read,
+/// shader resource, unordered access.
+fn global_groups(mask: u64) -> [u64; 5] {
+    let read = mask & ACCESS_READ != 0;
+    let write = mask & ACCESS_WRITE != 0;
+    let expand = |bit: u64, on: bool| -> u64 { if on { bit } else { 0 } };
+    [
+        (mask & (ACCESS_COLOR_READ | ACCESS_COLOR_WRITE)) | expand(ACCESS_COLOR_WRITE, write),
+        (mask & ACCESS_DEPTH_WRITE) | expand(ACCESS_DEPTH_WRITE, write),
+        (mask & ACCESS_DEPTH_READ) | expand(ACCESS_DEPTH_READ, read),
+        (mask & (ACCESS_SHADER_READ | ACCESS_SAMPLED_READ)) | expand(ACCESS_SHADER_READ, read),
+        (mask & (ACCESS_SHADER_WRITE | ACCESS_STORAGE_READ | ACCESS_STORAGE_WRITE))
+            | expand(ACCESS_SHADER_WRITE, write),
+    ]
 }
 
 /// Access translation. Broad generic reads/writes map to the conservative union
@@ -1700,11 +1821,20 @@ impl Queue {
     unsafe fn validate_submit(&self, _d: &Device, desc: &SubmitDesc) -> Result<(), Status> {
         SubmitDesc::validate_header(desc.header)?;
         if !desc.header.next.is_null() {
-            // Binary semaphores map to the presentation profile (D3); validate
-            // the record shape first so malformed extensions stay distinguishable.
-            // SAFETY: reads only the extension record header.
+            // Binary semaphores lower to native queue wait/signal pairs.
+            // SAFETY: complete extension record behind the chained header.
             unsafe { desc.header.next.read() }.validate::<BinarySubmitDesc>(BINARY_SUBMIT_DESC)?;
-            return Err(UNSUPPORTED);
+            // SAFETY: complete extension record behind the chained header.
+            let extension = unsafe { &*desc.header.next.cast::<BinarySubmitDesc>() };
+            // SAFETY: trusted point arrays of the declared counts.
+            let waits = unsafe { slice(extension.waits, extension.wait_count)? };
+            let signals = unsafe { slice(extension.signals, extension.signal_count)? };
+            for point in waits.iter().chain(signals.iter()) {
+                // SAFETY: binary handles are trusted live objects by contract.
+                if unsafe { point.binary.as_ref() }.is_none() {
+                    return Err(INVALID);
+                }
+            }
         }
         // SAFETY: caller-provided arrays of declared counts.
         let lists = unsafe { slice(desc.lists, desc.list_count)? };
@@ -1768,6 +1898,18 @@ impl Queue {
                     )));
             }
         }
+        // Binary waits order against earlier submissions' signals.
+        if !desc.header.next.is_null() {
+            // SAFETY: complete extension record behind the chained header.
+            let extension = unsafe { &*desc.header.next.cast::<BinarySubmitDesc>() };
+            // SAFETY: validated point arrays of the declared counts.
+            let binary_waits = unsafe { slice(extension.waits, extension.wait_count)? };
+            for point in binary_waits {
+                // SAFETY: validated binary above.
+                let binary = unsafe { point.binary.as_ref() }.unwrap();
+                unsafe { binary.wait_on(&self.handle) }?;
+            }
+        }
         for point in waits {
             // SAFETY: validated timeline above.
             let timeline = unsafe { point.point.timeline.as_ref() }.unwrap();
@@ -1784,6 +1926,18 @@ impl Queue {
             // SAFETY: validated timeline above.
             let timeline = unsafe { point.point.timeline.as_ref() }.unwrap();
             d.submission_result(unsafe { self.handle.Signal(timeline.fence(), point.point.value) })?;
+        }
+        // Binary signals retire against later waits on their queue.
+        if !desc.header.next.is_null() {
+            // SAFETY: complete extension record behind the chained header.
+            let extension = unsafe { &*desc.header.next.cast::<BinarySubmitDesc>() };
+            // SAFETY: validated point arrays of the declared counts.
+            let binary_signals = unsafe { slice(extension.signals, extension.signal_count)? };
+            for point in binary_signals {
+                // SAFETY: validated binary above.
+                let binary = unsafe { point.binary.as_ref() }.unwrap();
+                unsafe { binary.schedule(&self.handle) }?;
+            }
         }
         Ok(())
     }

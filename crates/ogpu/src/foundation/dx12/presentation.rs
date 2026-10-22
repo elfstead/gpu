@@ -568,6 +568,17 @@ impl Binary {
         completed >= self.value.get()
     }
 
+    /// Order this binary's last scheduled value on a queue (submission waits).
+    /// # Safety
+    /// Live queue, exclusive queue access per the contract.
+    pub(in crate::foundation) unsafe fn wait_on(
+        &self,
+        queue: &d3d::ID3D12CommandQueue,
+    ) -> Result<(), Status> {
+        // SAFETY: live queue and fence; the wait orders against prior signals.
+        unsafe { queue.Wait(&self.fence, self.value.get()) }.map_err(map_error)
+    }
+
     /// Release the binary back to idle after its signal retired.
     pub(in crate::foundation) fn reset(&self) {
         self.pending.set(false);

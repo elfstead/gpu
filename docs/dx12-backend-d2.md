@@ -563,3 +563,39 @@ Tight image-copy pitches (the contract's `row_pitch: 0` form) are now
 accepted and forwarded to the native footprint: the consumer's tight uploads
 recorded without driver complaint, and the 256-alignment check remains
 removed pending a driver-level verdict during that final debugging.
+
+## Presentation validated end to end; four more defects fixed
+
+The consumer's presentation path executes on the driver: the swapchain
+presents successfully (`Present` returns S_OK with the tearing mapping),
+binary signals retire, and the interactive scene banner appears. Four more
+real defects were found and fixed, each with a regression test in the suite:
+
+1. **Global barrier lowering.** The native global barrier expresses one
+   implied layout per side (validated by the debug layer): a mask mixing
+   layout-implying accesses splits into the cross product of its layout
+   groups, each record's sync bits pairing with its own accesses. The one
+   native exception discovered empirically: a DEPTH_STENCIL_WRITE before-side
+   is accepted only against a DEPTH_STENCIL_READ after-side; other
+   depth-write pairs lower to sync-only records whose cache ordering rides
+   on the caller's per-image texture barriers (the contract's own model).
+   `gpu_layout_access_dependency` covers the consumer's exact shape.
+2. **Binary semaphores in submissions** lower to native queue wait/signal
+   pairs around the submitted lists (the frame-sync extension records).
+3. **Copy-direction memory rules** (native D3D12): textures exist only on
+   non-host-visible types, UPLOAD-heap resources are copy sources only and
+   READBACK-heap resources copy destinations only. `gpu_memory_compatibility_rules`
+   pins the report.
+4. **Command-list closing** (from the previous batch's diagnosis): only open
+   recordings are closed; `gpu_list_reuse_after_retirement` pins it.
+
+The debug layer is now enabled best-effort at device creation and native
+failures dump the info queue (validation evidence per the review gate), with
+resources named at creation so reports identify them.
+
+Open: after the first successful present, the consumer's next `commands_end`
+reports INTERNAL_ERROR (a poisoned recording; no panic and no debug-layer
+rejection accompany it). The poison source is the last hop to the M4 scene
+executing on Windows; the suite is the right vehicle to reproduce it.
+
+Suite: 28 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).

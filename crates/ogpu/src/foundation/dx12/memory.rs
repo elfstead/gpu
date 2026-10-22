@@ -71,6 +71,9 @@ impl DescriptorHeaps {
 
 impl Drop for Memory {
     fn drop(&mut self) {
+        if let Some(resource) = self.buffer.as_ref().or(self.committed.as_ref()) {
+            eprintln!("[name] Memory drop {:p} usage {} size {}\n{:?}", windows::core::Interface::as_raw(resource), self.usage, self.size, std::backtrace::Backtrace::force_capture());
+        }
         // COM references drop with the fields; the caller retired all uses and
         // kept the device alive. No implicit wait.
     }
@@ -167,16 +170,29 @@ impl Device {
         } else {
             d3d::D3D12_RESOURCE_FLAG_NONE
         };
-        // Storage usage normally carries the native unordered-access flag,
-        // which the UPLOAD and READBACK heap types reject. Raw root-descriptor
-        // reads need no flag, so host-visible storage buffers are legal on
-        // this profile with the flag omitted; descriptor-table views of them
-        // reject visibly at bind instead of failing here.
+        // Textures exist only on the DEFAULT heap natively (D3D12 forbids
+        // them on UPLOAD/READBACK); buffers may live on host-visible types,
+        // where the unordered-access flag is omitted and descriptor-table
+        // views of them reject visibly at bind. Storage usage normally
+        // carries that flag, which UPLOAD/READBACK reject.
+        // Copy-direction rules are native: UPLOAD-heap resources are copy
+        // sources only, READBACK-heap resources copy destinations only.
+        let image_kind = desc.kind == 2;
+        let wants_dst = desc.usage & USAGE_COPY_DST != 0;
+        let wants_src = desc.usage & USAGE_COPY_SRC != 0;
         let types: Vec<u32> = self
             .snapshot
             .memory_types
             .iter()
             .filter(|m| m.properties & (32 | 64 | 128) == 0)
+            .filter(|m| !image_kind || m.properties & MEMORY_HOST_VISIBLE == 0)
+            .filter(|m| {
+                let host_visible = m.properties & MEMORY_HOST_VISIBLE != 0;
+                let readback = m.properties & 8 != 0;
+                let upload_only = host_visible && !readback;
+                let readback_only = readback;
+                !(wants_dst && upload_only) && !(wants_src && readback_only)
+            })
             .map(|m| m.id)
             .collect();
         if types.is_empty() {
@@ -354,6 +370,10 @@ impl Memory {
                 .to_vec()
             },
         });
+        // TEMP: identify this resource in debug-layer reports.
+        if let Some(resource) = result.buffer.as_ref().or(result.committed.as_ref()) {
+            name_resource(resource, "ogpu-memory-buffer");
+        }
         if desc.usage & USAGE_DESCRIPTOR_HEAP != 0 {
             if properties & MEMORY_HOST_VISIBLE == 0 {
                 // Recipes materialize at bind from host-visible heap memory.
@@ -405,6 +425,7 @@ impl Memory {
             result.prefix = (desc.alignment - base % desc.alignment) % desc.alignment;
             result.address = base.checked_add(result.prefix).ok_or(BACKEND_ERROR)?;
             result.address.checked_add(desc.size).ok_or(BACKEND_ERROR)?;
+            name_resource(&buffer, &format!("ogpu-buffer-{:p}", windows::core::Interface::as_raw(&buffer)));
             result.buffer = Some(buffer);
         }
         Ok(result)
@@ -434,6 +455,7 @@ impl Memory {
             VisibleNodeMask: 1,
         };
         let mut committed: Option<d3d::ID3D12Resource> = None;
+        // (naming below)
         // SAFETY: well-formed committed description; the output reference is adopted.
         unsafe {
             d.device
@@ -448,7 +470,12 @@ impl Memory {
                 .map_err(map_error)?
         };
         let requirements = image.requirements();
-        Ok(Box::new(Self {
+        {
+        if let Some(resource) = committed.as_ref() {
+            name_resource(resource, "ogpu-committed-image");
+        }
+    }
+    Ok(Box::new(Self {
             device: d,
             // Committed resources own their heap; no placement is possible.
             heap: None,
@@ -628,5 +655,18 @@ impl Memory {
             return Ok(());
         }
         Ok(())
+    }
+}
+
+
+/// TEMP: name a resource so debug-layer reports identify it.
+pub(super) fn name_resource(resource: &d3d::ID3D12Resource, name: &str) {
+    use windows::core::{Interface, PCWSTR};
+    use std::os::windows::ffi::OsStrExt;
+    let wide: Vec<u16> = std::ffi::OsStr::new(name).encode_wide().chain(Some(0)).collect();
+    if let Ok(object) = resource.cast::<d3d::ID3D12Object>() {
+        let outcome = unsafe { object.SetName(PCWSTR(wide.as_ptr())) };
+        eprintln!("[name] {name}: {:?}", outcome);
+    } else {
     }
 }
