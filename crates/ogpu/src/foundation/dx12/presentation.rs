@@ -341,7 +341,13 @@ impl Swapchain {
                 dxgi::DXGI_SWAP_EFFECT_FLIP_DISCARD
             },
             AlphaMode: Default::default(),
-            Flags: 0,
+            // DXGI's immediate present requires the tearing flag and the
+            // matching swapchain flag; the vsync fifo needs neither.
+            Flags: if desc.present_mode == 2 {
+                0
+            } else {
+                dxgi::DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING.0 as u32
+            },
         };
         let chain: dxgi::IDXGISwapChain3 = unsafe {
             factory.CreateSwapChainForHwnd(
@@ -485,7 +491,14 @@ impl Swapchain {
     /// # Safety
     /// Exclusive queue access through the native present call.
     pub(in crate::foundation) unsafe fn present_native(&self) -> Status {
-        let outcome = unsafe { self.chain.Present(self.sync_interval, dxgi::DXGI_PRESENT(0)) };
+        let flags = if self.sync_interval == 0 {
+            dxgi::DXGI_PRESENT_ALLOW_TEARING
+        } else {
+            dxgi::DXGI_PRESENT(0)
+        };
+        eprintln!("[trace] Present sync {} flags {}", self.sync_interval, flags.0);
+        let outcome = unsafe { self.chain.Present(self.sync_interval, flags) };
+        eprintln!("[trace] Present returned {:?}", outcome);
         if outcome.is_ok() {
             OK
         } else {
@@ -538,10 +551,13 @@ impl Binary {
             return Err(INVALID);
         }
         let value = self.value.get() + 1;
+        eprintln!("[trace] binary schedule value {value} fence {:p}", &*self.fence);
         self.value.set(value);
         self.pending.set(true);
         // SAFETY: live queue and fence; the signal orders against recorded work.
-        unsafe { queue.Signal(&self.fence, value) }.map_err(map_error)?;
+        let outcome = unsafe { queue.Signal(&self.fence, value) };
+        eprintln!("[trace] binary signal returned {:?}", outcome);
+        outcome.map_err(map_error)?;
         Ok(())
     }
 
@@ -612,7 +628,9 @@ impl Fence {
         self.value.set(value);
         self.signaled.set(false);
         // SAFETY: live queue and fence; the signal orders against recorded work.
-        unsafe { queue.Signal(&self.fence, value) }.map_err(map_error)?;
+        let outcome = unsafe { queue.Signal(&self.fence, value) };
+        eprintln!("[trace] fence signal returned {:?}", outcome);
+        outcome.map_err(map_error)?;
         Ok(())
     }
 

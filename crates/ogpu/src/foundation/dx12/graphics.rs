@@ -38,6 +38,7 @@ pub(super) unsafe fn prepare(
         // DXIL containers are byte-granular (their header declares the size);
         // the word-granular size rule describes SPIR-V artifacts. The pointer
         // stays word-aligned for the native artifact readers.
+        eprintln!("[trace] shader code ptr {:p} size {}", shader.code.data, shader.code.size);
         if shader.code.data.is_null()
             || shader.code.data as usize % 4 != 0
             || shader.code.size < 20

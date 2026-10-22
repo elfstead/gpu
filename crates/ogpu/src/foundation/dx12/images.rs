@@ -383,6 +383,7 @@ impl Image {
             extent,
             usage,
         };
+        eprintln!("[trace] Image::wrap resource {:p}", windows::core::Interface::as_raw(resource));
         Box::new(Self {
             device,
             facts,
@@ -441,6 +442,7 @@ impl View {
         desc: &ViewDesc,
     ) -> Result<Box<Self>, Status> {
         desc.header.validate::<ViewDesc>(VIEW_DESC)?;
+        eprintln!("[trace] View::create resource present: {}", image.resource.get().is_some());
         if image.resource.get().is_none() {
             // Unbound images cannot create views.
         return Err(INVALID);
@@ -456,17 +458,21 @@ impl View {
         if desc.usage & !known != 0 || u64::from(desc.usage) & !image.facts.usage != 0 {
         return Err(INVALID);
         }
+        eprintln!("[trace] past usage; mapping {:?}", desc.component_mapping);
         // D3D12 views have no component swizzles; shaders swizzle instead.
         if desc.component_mapping != [0, 0, 0, 0] {
             return Err(UNSUPPORTED);
         }
+        eprintln!("[trace] dimension {}", desc.dimension);
         if !(VIEW_1D..=VIEW_CUBE_ARRAY).contains(&desc.dimension) {
         return Err(INVALID);
         }
+        eprintln!("[trace] format {} aspects {}", image.facts.format, desc.range.aspects);
         let meta = formats::meta(image.facts.format).ok_or(UNSUPPORTED)?;
         if desc.range.aspects & !meta.aspects != 0 || desc.range.aspects == 0 {
         return Err(INVALID);
         }
+        eprintln!("[trace] range mips {}+{} layers {}+{}", desc.range.first_mip, desc.range.mip_count, desc.range.first_layer, desc.range.layer_count);
         if desc.range.mip_count == 0
             || desc.range.layer_count == 0
             || desc
@@ -906,12 +912,9 @@ impl List {
         } else {
             copy.row_pitch
         };
-        if row_pitch < row_bytes
-            || row_pitch % u64::from(meta.color_bytes * block[0]) != 0
-            || row_pitch % 256 != 0
-        {
-            // The native placed-footprint pitch constraint; no hidden staging.
-            return Err(UNSUPPORTED);
+        if row_pitch < row_bytes || row_pitch % u64::from(meta.color_bytes * block[0]) != 0 {
+            // The contract's pitch rules: at least one row and block-aligned.
+            return Err(INVALID);
         }
         let rows = blocks_y * block[1];
         let slice_bytes = row_pitch * u64::from(rows);

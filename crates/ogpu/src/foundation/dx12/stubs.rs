@@ -110,6 +110,7 @@ impl Queue {
             if image.index as usize >= chain.image_count() {
                 return Err(INVALID);
             }
+            eprintln!("[trace] present waits {} images {}", waits.len(), images.len());
             // The batch's waits order against the present on its queue.
             // SAFETY: live binary objects and queue access per the contract.
             unsafe {

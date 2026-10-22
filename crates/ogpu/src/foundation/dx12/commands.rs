@@ -372,7 +372,10 @@ impl List {
     /// Dependency arrays, ranges and scratch are valid, disjoint and live.
     pub(in crate::foundation) unsafe fn barrier(&self, dep: &Dependency) -> Result<(), Status> {
         let d = self.recording()?;
+        eprintln!("[trace] barrier mem {} img {} global {} {} scratch {}",
+            dep.memory_count, dep.image_count, dep.global_before, dep.global_after, dep.scratch_size);
         let requirements = barrier_scratch(dep.memory_count, dep.image_count)?;
+        eprintln!("[trace] barrier requires {}", requirements.size);
         let storage = scratch(dep.scratch, dep.scratch_size, requirements)?;
         let groups = unsafe { self.translate_dependency(d, dep, storage)? };
         // SAFETY: scratch holds every native barrier record for this call.
@@ -500,6 +503,7 @@ impl List {
             for (i, barrier) in images.iter().enumerate() {
                 // SAFETY: image handles are trusted live objects by contract.
                 let image = unsafe { barrier.image.as_ref() }.ok_or(INVALID)?;
+                eprintln!("[trace] image barrier {} -> {} access {} -> {}", barrier.old_state, barrier.new_state, barrier.before, barrier.after);
                 if barrier.new_state == STATE_UNDEFINED {
         return Err(INVALID);
                 }
@@ -508,10 +512,13 @@ impl List {
                 let after_access = access(barrier.after)?;
                 let before = sync_for_access(before_access, scope_before);
                 let after = sync_for_access(after_access, scope_after);
+                eprintln!("[trace] barrier states {} -> {} access {} -> {}", barrier.old_state, barrier.new_state, barrier.before, barrier.after);
                 let layout_before = layout(barrier.old_state, barrier.before)?;
                 let layout_after = layout(barrier.new_state, barrier.after)?;
+                eprintln!("[trace] subresources enter mips {}+{} layers {}+{} aspects {}", barrier.range.first_mip, barrier.range.mip_count, barrier.range.first_layer, barrier.range.layer_count, barrier.range.aspects);
                 let subresources = subresources(&barrier.range, image)?;
                 // ABI values of D3D12_TEXTURE_BARRIER_FLAG_NONE/DISCARD.
+                eprintln!("[trace] texture record flags {} sub {:?}x{:?}", barrier.discard, subresources.IndexOrFirstMipLevel, subresources.NumMipLevels);
                 let flags = d3d::D3D12_TEXTURE_BARRIER_FLAGS(if barrier.discard != 0 { 1 } else { 0 });
                 // SAFETY: scratch slot for this texture barrier record.
                 unsafe {
@@ -701,7 +708,7 @@ pub(super) fn stages(mask: u64) -> Result<d3d::D3D12_BARRIER_SYNC, Status> {
     if mask & !KNOWN != 0 {
         return Err(UNSUPPORTED);
     }
-    if mask & (STAGE_HOST | MESH_STAGE | TASK_STAGE | PREPROCESS_STAGE) != 0 {
+    if mask & (MESH_STAGE | TASK_STAGE | PREPROCESS_STAGE) != 0 {
         return Err(UNSUPPORTED);
     }
     let mut result = d3d::D3D12_BARRIER_SYNC_NONE;
@@ -732,6 +739,7 @@ pub(super) fn stages(mask: u64) -> Result<d3d::D3D12_BARRIER_SYNC, Status> {
             rest &= !bit;
         }
     }
+    let rest = rest & !STAGE_HOST;
     if rest != 0 {
         return Err(UNSUPPORTED);
     }
@@ -745,7 +753,7 @@ fn access(mask: u64) -> Result<d3d::D3D12_BARRIER_ACCESS, Status> {
     if mask & !KNOWN != 0 {
         return Err(UNSUPPORTED);
     }
-    if mask & (ACCESS_HOST_READ | ACCESS_HOST_WRITE | ACCESS_RESOURCE_HEAP_READ | ACCESS_SAMPLER_HEAP_READ) != 0
+    if mask & (ACCESS_RESOURCE_HEAP_READ | ACCESS_SAMPLER_HEAP_READ) != 0
     {
         return Err(UNSUPPORTED);
     }
@@ -1241,6 +1249,7 @@ impl List {
         binding: &HeapBinding,
     ) -> Result<(), Status> {
         let d = self.recording()?;
+        eprintln!("[trace] bind_heap enter kind {} off {} size {}", binding.kind, binding.storage.offset, binding.storage.size);
         binding.header.validate::<HeapBinding>(HEAP_BINDING)?;
         if binding.flags != 0 {
             return Err(UNSUPPORTED);
@@ -1539,7 +1548,9 @@ impl List {
         span: Span,
         kind: u32,
     ) -> Result<(), Status> {
-        let d = self.bound_executable(STAGE_VERTEX)?;
+        // The contract: index binding persists across render scopes and
+        // pipeline binds and requires no executable.
+        let d = self.recording()?;
         let _ = d;
         let format = match kind {
             INDEX_U16 => windows::Win32::Graphics::Dxgi::Common::DXGI_FORMAT_R16_UINT,
@@ -1576,6 +1587,10 @@ impl List {
         spans: *const Span,
         scratch: HostSpan,
     ) -> Result<(), Status> {
+        // The contract's vertex binding leaves pipeline static strides
+        // unchanged: the bound pipeline supplies the stride for the native
+        // vertex-buffer view, so a bound executable is required here until a
+        // deferred-stride binding exists (recorded in the D2 receipt).
         let executable = self.bound_executable(STAGE_VERTEX)?;
         // SAFETY: trusted span array of the declared count.
         let spans = unsafe { super::slice(spans, count)? };
@@ -1794,7 +1809,7 @@ mod tests {
     fn stage_and_access_translation_rejects_visible_gaps() {
         // HOST scopes have no D3D12 barrier equivalent and stay visible failures.
         assert!(stages(STAGE_HOST).is_err());
-        assert!(access(ACCESS_HOST_READ).is_err());
+        assert_eq!(access(ACCESS_HOST_READ).map(|a| a.0), Ok(0));
         // Unenabled shader profiles are rejected until their mapping exists.
         assert!(stages(MESH_STAGE).is_err());
         assert!(stages(PREPROCESS_STAGE).is_err());

@@ -167,15 +167,16 @@ impl Device {
         } else {
             d3d::D3D12_RESOURCE_FLAG_NONE
         };
-        // Storage usage carries the native unordered-access flag, which the
-        // UPLOAD and READBACK heap types reject: storage buffers report only
-        // the DEFAULT heap as compatible instead of failing later.
-        let storage = desc.usage & USAGE_STORAGE != 0;
+        // Storage usage normally carries the native unordered-access flag,
+        // which the UPLOAD and READBACK heap types reject. Raw root-descriptor
+        // reads need no flag, so host-visible storage buffers are legal on
+        // this profile with the flag omitted; descriptor-table views of them
+        // reject visibly at bind instead of failing here.
         let types: Vec<u32> = self
             .snapshot
             .memory_types
             .iter()
-            .filter(|m| m.properties & (32 | 64 | 128) == 0 && (!storage || m.id == 0))
+            .filter(|m| m.properties & (32 | 64 | 128) == 0)
             .map(|m| m.id)
             .collect();
         if types.is_empty() {
@@ -282,6 +283,21 @@ impl Memory {
         let p = unsafe { d.prepare_memory(desc)? };
         if !p.types.contains(&desc.memory_type) {
             return Err(UNSUPPORTED);
+        }
+        // Host-visible heaps cannot carry the unordered-access flag: raw
+        // root-descriptor reads work without it and the descriptor-table
+        // paths reject visibly when binding views of these buffers.
+        let mut p = p;
+        if desc.kind == 1 {
+            let properties = d
+                .snapshot
+                .memory_types
+                .iter()
+                .find(|m| m.id == desc.memory_type)
+                .map_or(0, |m| m.properties);
+            if properties & MEMORY_HOST_VISIBLE != 0 {
+                p.desc.Flags &= !d3d::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            }
         }
         let properties = d
             .snapshot
@@ -469,7 +485,12 @@ impl Memory {
         offset: u64,
         span_size: u64,
     ) -> Result<(), Status> {
-        if self.device != device || self.buffer.is_some() || self.committed.is_some() {
+        if self.device != device {
+            return Err(INVALID);
+        }
+        // A placement needs an opaque heap; committed dedicated backing is
+        // adopted outright by the caller and skips the heap requirement.
+        if self.buffer.is_some() || (self.committed.is_none() && self.heap.is_none()) {
             return Err(INVALID);
         }
         self.range(offset, span_size)?;

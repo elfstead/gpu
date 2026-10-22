@@ -401,6 +401,7 @@ unsafe fn record_frame(
                         COLOR | DEPTH,
                         COLOR_WRITE | DEPTH_WRITE,
                         4096 | COLOR_WRITE | 16384 | DEPTH_WRITE,
+                        barriers,
                     ),
                 );
             }
@@ -448,6 +449,7 @@ unsafe fn record_frame(
                     STAGE_HOST,
                     ACCESS_COPY_WRITE,
                     ACCESS_HOST_READ,
+                    barriers,
                 ),
             );
             transition(

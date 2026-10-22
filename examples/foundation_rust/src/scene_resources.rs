@@ -185,7 +185,16 @@ impl Image {
         }
     }
 }
-pub fn dependency(before: u64, after: u64, src: u64, dst: u64) -> Dependency {
+pub fn dependency(
+    before: u64,
+    after: u64,
+    src: u64,
+    dst: u64,
+    scratch: &mut Scratch,
+) -> Dependency {
+    // The contract's barrier scratch covers the native barrier records,
+    // including the global one.
+    let span = scratch.span();
     Dependency {
         header: Record::new::<Dependency>(DEPENDENCY),
         before,
@@ -197,8 +206,8 @@ pub fn dependency(before: u64, after: u64, src: u64, dst: u64) -> Dependency {
         flags: 0,
         memory: ptr::null(),
         images: ptr::null(),
-        scratch: ptr::null_mut(),
-        scratch_size: 0,
+        scratch: span.data,
+        scratch_size: span.size,
     }
 }
 #[allow(clippy::too_many_arguments)]
@@ -226,7 +235,7 @@ pub unsafe fn transition(
         discard: u32::from(old == STATE_UNDEFINED),
     };
     let storage = scratch.span();
-    let mut dep = dependency(before, after, 0, 0);
+    let mut dep = dependency(before, after, 0, 0, scratch);
     dep.image_count = 1;
     dep.images = &barrier;
     dep.scratch = storage.data;

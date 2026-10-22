@@ -157,6 +157,7 @@ impl Executable {
         d: &Device,
         desc: &ExecutableDesc,
     ) -> Result<Box<Self>, Status> {
+        eprintln!("[trace] Executable::create enter kind {}", desc.kind);
         d.ready()?;
         desc.header.validate::<ExecutableDesc>(EXECUTABLE_DESC)?;
         if desc.compile_flags != 0 || desc.reserved != 0 {
@@ -393,7 +394,9 @@ pub(in crate::foundation) fn root_signature(
             Some(ptr::from_mut(&mut errors)),
         )
     };
+    eprintln!("[trace] serialize byte_size {} roots {}", abi.byte_size, abi.root_count);
     if let Err(error) = serialized_result {
+        eprintln!("[trace] serialize error {:?}", error);
         if let Some(blob) = errors.as_ref() {
             // SAFETY: blob bytes are immutable and length-reported.
             let text = unsafe {

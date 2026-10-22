@@ -50,14 +50,22 @@ fn main() {
         ));
     }
     // The D3D12 variant artifacts of the same M4 scene (byte arrays; DXIL
-    // containers are byte-granular). Source: graphics_scene/textured_dxil.slang.
+    // containers are byte-granular). The native artifact readers require a
+    // word-aligned pointer, so each array is emitted into aligned storage and
+    // re-exported as a slice. Source: graphics_scene/textured_dxil.slang.
+    generated.push_str("#[repr(align(4))]\nstruct Align4<const N: usize>([u8; N]);\n");
     for (name, path) in [
         ("VERTEX_DXIL", "../graphics_scene/textured.vs.dxil"),
         ("FRAGMENT_DXIL", "../graphics_scene/textured.fs.dxil"),
     ] {
         println!("cargo:rerun-if-changed={path}");
         let bytes = fs::read(path).expect("M4 DXIL artifact");
-        generated.push_str(&format!("pub const {name}: &[u8] = &{:?};\n", bytes));
+        generated.push_str(&format!(
+            "static {name}_STORAGE: Align4<{}> = Align4({:?});\n",
+            bytes.len(),
+            bytes
+        ));
+        generated.push_str(&format!("pub static {name}: &[u8] = &{name}_STORAGE.0;\n"));
     }
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("textured.rs"),

@@ -21,6 +21,7 @@ impl List {
     /// Attachment views and scratch stay live through all recorded/pending uses.
     pub(in crate::foundation) unsafe fn render_begin(&self, desc: &RenderDesc) -> Result<(), Status> {
         let d = self.recording()?;
+        eprintln!("[trace] render_begin enter colors {} depth {}", desc.color_count, !desc.depth.is_null());
         desc.header.validate::<RenderDesc>(RENDER_DESC)?;
         if desc.flags != 0 {
             // RENDER_SECONDARY maps to bundles/secondaries (D2 follow-up).

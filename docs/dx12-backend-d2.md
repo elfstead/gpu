@@ -528,3 +528,38 @@ gpu_draw_indirect phase-0 assertion (and the immediately following runs were
 clean), bringing the observed rate to roughly 2 in 15 full-suite runs. The
 intermittency reproduces across sessions of work and remains confined to that
 one test's first-slot draw.
+
+## The M4 scene on Windows: one resource-lifetime bug remains
+
+The scene consumer now runs through its entire setup and frame recording on
+the D3D12 backend: Win32 window, surface and every capability query, swapchain
+with borrowed images, the scene and overlay pipelines (DXIL variants), the
+geometry/index/descriptor-heap resources, all state transitions (including
+the PRESENT state and the transfer-to-host readback barrier), and the full
+render and copy recording. Four real defects were found and fixed on the way:
+
+1. `image_placement` rejected committed dedicated backing — the exact kind it
+   exists to adopt (a binding-order bug).
+2. `bind_indices` demanded a bound executable; the contract says index
+   binding persists across binds and needs none. (`bind_vertices` keeps its
+   executable because the contract's "pipeline static strides are left
+   unchanged" makes the bound pipeline the stride source.)
+3. Host-side barrier parts (`STAGE_HOST`, host accesses) were rejected; they
+   lower to no native sync bit, which is the D3D12 truth (map and fence order
+   host access). Valid contract readback barriers now record.
+4. `Present(0, 0)` is invalid in DXGI: immediate present requires
+   `ALLOW_TEARING` on both the swapchain and the Present flags; the mapping is
+   now mode-driven.
+
+The remaining failure is precisely characterized: `ID3D12GraphicsCommandList::
+Close` rejects with E_INVALIDARG because "An ID3D12Resource object ... was
+deleted prior to closing the command list" — one recorded resource dies
+before the list closes. The debug layer names the object address; no Memory
+or Image drop precedes it, so the owner is a temporary reference in the
+recorded path (or a consumer-side binding). This is the last line to the M4
+scene executing on Windows.
+
+Tight image-copy pitches (the contract's `row_pitch: 0` form) are now
+accepted and forwarded to the native footprint: the consumer's tight uploads
+recorded without driver complaint, and the 256-alignment check remains
+removed pending a driver-level verdict during that final debugging.

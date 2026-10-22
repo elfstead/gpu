@@ -574,6 +574,15 @@ impl Device {
         requests: &[QueueRequest],
         enabled: u64,
     ) -> Result<Box<Self>, Status> {
+        // TEMP: debug layer for validation evidence during development.
+        unsafe {
+            let mut debug: Option<windows::Win32::Graphics::Direct3D12::ID3D12Debug> = None;
+            let got = windows::Win32::Graphics::Direct3D12::D3D12GetDebugInterface(&mut debug);
+            eprintln!("[validation] debug interface {:?}", got);
+            if let Some(debug) = debug.as_ref() {
+                debug.EnableDebugLayer();
+            }
+        }
         if !adapter.state.baseline_supported {
             return Err(UNSUPPORTED);
         }
@@ -744,7 +753,6 @@ impl Device {
             Ok(()) => Ok(()),
             Err(error) => {
                 let status = map_error(error);
-                eprintln!("DX12PROBE result() status {}", status);
                 if status == DEVICE_LOST {
                     self.lost.store(true, Ordering::Relaxed);
                 }
