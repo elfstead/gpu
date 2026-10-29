@@ -25,7 +25,11 @@ pub use descriptors_api::*;
 pub use executables_api::*;
 pub use images_api::*;
 pub use memory_api::*;
-pub use presentation::{Surface, Swapchain};
+pub use presentation::Surface;
+#[cfg(target_os = "windows")]
+pub use presentation::Swapchain;
+#[cfg(target_os = "linux")]
+pub use native::Swapchain;
 pub use presentation_api::*;
 pub mod rust;
 pub mod types;

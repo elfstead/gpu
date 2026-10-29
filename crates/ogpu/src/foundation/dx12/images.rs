@@ -1019,6 +1019,249 @@ impl List {
         }
         Ok(())
     }
+
+    /// Image-to-image copy (`mode == 0`) via `CopyTextureRegion`. Resolve
+    /// (`mode != 0`) and depth/stencil copies stay visible: this profile has
+    /// no MSAA mapping and no graphics-family depth copy path yet.
+    pub(in crate::foundation) fn transfer_image(
+        &self,
+        dst: &Image,
+        src: &Image,
+        transfer: &ImageTransfer,
+        mode: u32,
+    ) -> Result<(), Status> {
+        self.recording()?;
+        if mode != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if !matches!(transfer.source_state, STATE_GENERAL | STATE_COPY_SRC)
+            || !matches!(transfer.destination_state, STATE_GENERAL | STATE_COPY_DST)
+        {
+            return Err(INVALID);
+        }
+        if src.facts.dimension != dst.facts.dimension {
+            return Err(UNSUPPORTED);
+        }
+        if src.facts.sample_count != 1 || dst.facts.sample_count != 1 {
+            return Err(UNSUPPORTED);
+        }
+        if transfer.source.aspect != ASPECT_COLOR || transfer.destination.aspect != ASPECT_COLOR {
+            return Err(UNSUPPORTED);
+        }
+        if transfer.source.aspect != transfer.destination.aspect
+            || transfer.source.layer_count != transfer.destination.layer_count
+            || [
+                transfer.source.extent.x,
+                transfer.source.extent.y,
+                transfer.source.extent.z,
+            ] != [
+                transfer.destination.extent.x,
+                transfer.destination.extent.y,
+                transfer.destination.extent.z,
+            ]
+        {
+            return Err(INVALID);
+        }
+        let src_meta = formats::meta(src.facts.format).ok_or(UNSUPPORTED)?;
+        let dst_meta = formats::meta(dst.facts.format).ok_or(UNSUPPORTED)?;
+        if src_meta.block != dst_meta.block || src_meta.color_bytes != dst_meta.color_bytes {
+            return Err(UNSUPPORTED);
+        }
+        if src.facts.usage & IMAGE_COPY_SRC == 0 || dst.facts.usage & IMAGE_COPY_DST == 0 {
+            return Err(INVALID);
+        }
+        copy_texture_region(
+            &self.command,
+            dst,
+            src,
+            &transfer.destination,
+            &transfer.source,
+        )
+    }
+
+    /// Native blit exists only as a same-size, same-format, unreversed
+    /// nearest copy. Scaling, axis reversal, LINEAR filter and format
+    /// conversion have no D3D12 copy form and stay `UNSUPPORTED` rather than
+    /// a shader blit.
+    pub(in crate::foundation) fn blit_image(
+        &self,
+        dst: &Image,
+        src: &Image,
+        blit: &ImageBlit,
+    ) -> Result<(), Status> {
+        self.recording()?;
+        if blit.reserved != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if blit.filter != 0 {
+            return Err(UNSUPPORTED);
+        }
+        if !matches!(blit.source_state, STATE_GENERAL | STATE_COPY_SRC)
+            || !matches!(blit.destination_state, STATE_GENERAL | STATE_COPY_DST)
+        {
+            return Err(INVALID);
+        }
+        if blit.source.aspect != blit.destination.aspect
+            || blit.source.layer_count != blit.destination.layer_count
+        {
+            return Err(INVALID);
+        }
+        if src.facts.sample_count != 1 || dst.facts.sample_count != 1 {
+            return Err(INVALID);
+        }
+        if src.facts.format != dst.facts.format {
+            return Err(UNSUPPORTED);
+        }
+        let src_box = blit_box(&blit.source)?;
+        let dst_box = blit_box(&blit.destination)?;
+        if dst_box[1][0] == dst_box[0][0] || dst_box[1][1] == dst_box[0][1] {
+            return Err(INVALID);
+        }
+        if src_box[1][0] < src_box[0][0]
+            || src_box[1][1] < src_box[0][1]
+            || dst_box[1][0] < dst_box[0][0]
+            || dst_box[1][1] < dst_box[0][1]
+        {
+            return Err(UNSUPPORTED);
+        }
+        let src_extent = [
+            src_box[1][0] - src_box[0][0],
+            src_box[1][1] - src_box[0][1],
+        ];
+        let dst_extent = [
+            dst_box[1][0] - dst_box[0][0],
+            dst_box[1][1] - dst_box[0][1],
+        ];
+        if src_extent != dst_extent {
+            return Err(UNSUPPORTED);
+        }
+        let source = ImageRegion {
+            aspect: blit.source.aspect,
+            mip: blit.source.mip,
+            first_layer: blit.source.first_layer,
+            layer_count: blit.source.layer_count,
+            offset: Offset {
+                x: src_box[0][0],
+                y: src_box[0][1],
+                z: 0,
+            },
+            extent: Extent {
+                x: src_extent[0] as u32,
+                y: src_extent[1] as u32,
+                z: 1,
+            },
+        };
+        let destination = ImageRegion {
+            aspect: blit.destination.aspect,
+            mip: blit.destination.mip,
+            first_layer: blit.destination.first_layer,
+            layer_count: blit.destination.layer_count,
+            offset: Offset {
+                x: dst_box[0][0],
+                y: dst_box[0][1],
+                z: 0,
+            },
+            extent: Extent {
+                x: dst_extent[0] as u32,
+                y: dst_extent[1] as u32,
+                z: 1,
+            },
+        };
+        if src.facts.usage & IMAGE_COPY_SRC == 0 || dst.facts.usage & IMAGE_COPY_DST == 0 {
+            return Err(INVALID);
+        }
+        copy_texture_region(&self.command, dst, src, &destination, &source)
+    }
+}
+
+fn blit_box(region: &BlitRegion) -> Result<[[i32; 2]; 2], Status> {
+    Ok([
+        [region.offsets[0].x, region.offsets[0].y],
+        [region.offsets[1].x, region.offsets[1].y],
+    ])
+}
+
+fn copy_texture_region(
+    command: &d3d::ID3D12GraphicsCommandList,
+    dst: &Image,
+    src: &Image,
+    destination: &ImageRegion,
+    source: &ImageRegion,
+) -> Result<(), Status> {
+    let src_resource = src.resource()?;
+    let dst_resource = dst.resource()?;
+    let src_extent = src.mip_extent(source.mip)?;
+    let dst_extent = dst.mip_extent(destination.mip)?;
+    if source.offset.x < 0 || source.offset.y < 0 || destination.offset.x < 0 || destination.offset.y < 0 {
+        return Err(INVALID);
+    }
+    let sx = u32::try_from(source.offset.x).map_err(|_| INVALID)?;
+    let sy = source.offset.y as u32;
+    let dx = u32::try_from(destination.offset.x).map_err(|_| INVALID)?;
+    let dy = destination.offset.y as u32;
+    if source.layer_count == 0
+        || source
+            .first_layer
+            .checked_add(source.layer_count)
+            .ok_or(INVALID)?
+            > src.facts.layer_count
+        || destination
+            .first_layer
+            .checked_add(destination.layer_count)
+            .ok_or(INVALID)?
+            > dst.facts.layer_count
+    {
+        return Err(INVALID);
+    }
+    if source.extent.z != 1
+        || sx.checked_add(source.extent.x).ok_or(INVALID)? > src_extent.x
+        || sy.checked_add(source.extent.y).ok_or(INVALID)? > src_extent.y
+        || dx.checked_add(destination.extent.x).ok_or(INVALID)? > dst_extent.x
+        || dy.checked_add(destination.extent.y).ok_or(INVALID)? > dst_extent.y
+    {
+        return Err(INVALID);
+    }
+    for layer in 0..source.layer_count {
+        let src_sub = source.mip + (source.first_layer + layer) * src.facts.mip_count;
+        let dst_sub = destination.mip + (destination.first_layer + layer) * dst.facts.mip_count;
+        let src_loc = d3d::D3D12_TEXTURE_COPY_LOCATION {
+            pResource: core::mem::ManuallyDrop::new(Some(unsafe {
+                d3d::ID3D12Resource::from_raw(src_resource.as_raw())
+            })),
+            Type: d3d::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
+                SubresourceIndex: src_sub,
+            },
+        };
+        let dst_loc = d3d::D3D12_TEXTURE_COPY_LOCATION {
+            pResource: core::mem::ManuallyDrop::new(Some(unsafe {
+                d3d::ID3D12Resource::from_raw(dst_resource.as_raw())
+            })),
+            Type: d3d::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+            Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
+                SubresourceIndex: dst_sub,
+            },
+        };
+        let box_ = d3d::D3D12_BOX {
+            left: sx,
+            top: sy,
+            front: 0,
+            right: sx + source.extent.x,
+            bottom: sy + source.extent.y,
+            back: 1,
+        };
+        unsafe {
+            command.CopyTextureRegion(
+                &dst_loc,
+                dx,
+                dy,
+                0,
+                &src_loc,
+                Some(ptr::from_ref(&box_)),
+            );
+        }
+    }
+    Ok(())
 }
 fn memory_span_end(span: Span) -> u64 {
     span.offset.saturating_add(span.size)

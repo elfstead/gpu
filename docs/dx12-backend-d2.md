@@ -635,10 +635,29 @@ The remaining hops after clip Y, each reduced to a suite pin before the fix:
    oracle now uses `row_bytes(w) = (w*4).next_multiple_of(256)` for copy pitch,
    buffer size, and sampling. 64- and 128-wide unit tests are unchanged.
 
-Open (unchanged): `transfer_image`/`blit`, `Split`/`GeneratedLayout`/`GeneratedSet`,
-`draw_mesh*` (RDNA1 has no mesh shaders), learned-image nested pointers, and the
-~1-in-10 `gpu_draw_indirect` first-slot intermittency.
+### Image-to-image copy (native) and blit (honest subset)
 
-Suite: GPU tests on Windows include the clip-Y, consumer-order, swapchain
-readback, binary-reuse, and tight-copy pins; Linux regression of the shared
-consumer oracle (64/128 widths) is pitch-identical.
+`copy_image` lowers to `CopyTextureRegion` between textures (`gpu_copy_image_and_blit`).
+Same-size, unreversed, nearest, same-format `blit_image` uses that copy; scaling,
+axis reversal, LINEAR filter, format conversion and MSAA resolve stay
+`UNSUPPORTED` (no shader blit, no resolve profile). `present` moved out of
+`stubs.rs` onto `Queue` next to submit (stub-shadowing).
+
+Linux `cargo test -p ogpu`: 110 + 2 host tests pass (the Windows-only
+`presentation::{Surface, Swapchain}` re-export was cfg-gated).
+
+### Remaining honest gaps
+
+| Surface | Status |
+| --- | --- |
+| `Split` / split barriers | `UNSUPPORTED` (enhanced barriers cover the recorded dependency model) |
+| `GeneratedLayout` / `GeneratedSet` / preprocess | `UNSUPPORTED` (plan: do not force Vulkan generated-command objects onto D3D12) |
+| `draw_mesh*` | `UNSUPPORTED` on this RDNA1 adapter |
+| Learned-image / nested GPU pointers | `UNSUPPORTED` (ROOT_DESCRIPTORS profile; toolchain has no DXIL nested pointers) |
+| M5 transformer consumer | not attempted; same argument-profile limit |
+| Secondary bundles (`execute` lists) | `UNSUPPORTED` |
+| `gpu_draw_indirect` first-slot | ~1-in-10 intermittency under load, labeled |
+| `PRESENTATION_WIN32` | reviewer: HWND still travels in the Wayland surface record |
+
+Initial-acceptance evidence for this branch: D1 core, D2 compute/descriptors/
+offscreen graphics, D3 DXGI presentation, M4 `--scene-check` on the RX 5700 XT.

@@ -85,61 +85,6 @@ impl GeneratedSet {
     }
 }
 
-impl Queue {
-    /// # Safety
-    /// Exclusive queue access; see the presentation contract in ogpu_next.h.
-    pub(in crate::foundation) unsafe fn present(
-        &self,
-        desc: &PresentDesc,
-    ) -> Result<bool, Status> {
-        desc.header.validate::<PresentDesc>(PRESENT_DESC)?;
-        if desc.image_count == 0 {
-            return Err(INVALID);
-        }
-        // SAFETY: trusted wait array of the declared count.
-        let waits = unsafe { super::slice(desc.waits, desc.wait_count) }?;
-        // SAFETY: trusted image array of the declared count.
-        let images = unsafe { super::slice(desc.images, desc.image_count) }?;
-        for index in 0..desc.image_count as usize {
-            let image = &images[index];
-            if image.reserved != 0 {
-                return Err(INVALID);
-            }
-            // SAFETY: live swapchain behind the borrowed pointer.
-            let chain = unsafe { image.swapchain.as_ref() }.ok_or(INVALID)?;
-            if image.index as usize >= chain.image_count() {
-                return Err(INVALID);
-            }
-            eprintln!("[trace] present waits {} images {}", waits.len(), images.len());
-            // The batch's waits order against the present on its queue.
-            // SAFETY: live binary objects and queue access per the contract.
-            unsafe {
-                for wait in waits.iter() {
-                    let binary = wait.as_ref().ok_or(INVALID)?;
-                    binary.wait_on(chain.queue())?;
-                }
-            }
-            // SAFETY: exclusive queue access per the contract.
-            let status = unsafe { chain.present_native() };
-            // A present fence retires against native presentation.
-            if !image.fence.is_null() {
-                // SAFETY: live fence object by caller contract.
-                let fence = unsafe { image.fence.as_ref() }.ok_or(INVALID)?;
-                unsafe { fence.schedule(chain.queue()) }?;
-            }
-            if !desc.results.is_null() {
-                // SAFETY: caller storage covers one status per image.
-                unsafe { *desc.results.add(index) = status };
-            }
-            if status != OK {
-                return Ok(false);
-            }
-        }
-        Ok(false)
-    }
-}
-
-
 impl Device {
     pub(in crate::foundation) unsafe fn generated_requirements(
         &self,
@@ -174,23 +119,6 @@ impl List {
         &self,
         _batch: &GeneratedBatch,
         _preprocessed: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn transfer_image(
-        &self,
-        _dst: &Image,
-        _src: &Image,
-        _transfer: &ImageTransfer,
-        _mode: u32,
-    ) -> Result<(), Status> {
-        Err(UNSUPPORTED)
-    }
-    pub(in crate::foundation) fn blit_image(
-        &self,
-        _dst: &Image,
-        _src: &Image,
-        _blit: &ImageBlit,
     ) -> Result<(), Status> {
         Err(UNSUPPORTED)
     }

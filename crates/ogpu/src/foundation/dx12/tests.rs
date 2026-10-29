@@ -7445,4 +7445,198 @@ fn gpu_tight_image_copies() {
     }
 }
 
+/// Image-to-image copy and same-size nearest blit. Scaling blit and resolve
+/// stay visible as UNSUPPORTED (no shader blit, no MSAA profile).
+#[ignore = "requires a live D3D12 adapter; run with --ignored"]
+#[test]
+fn gpu_copy_image_and_blit() {
+    let (_discovery, device, queue, domain) = gpu_setup();
+    let side = 8u32;
+    let bytes = 256u64;
+    let desc = ImageDesc {
+        header: Record::new::<ImageDesc>(IMAGE_DESC),
+        format: RGBA8_UNORM,
+        dimension: IMAGE_2D,
+        mip_count: 1,
+        layer_count: 1,
+        sample_count: 1,
+        extent: Extent { x: side, y: side, z: 1 },
+        usage: IMAGE_COPY_DST | IMAGE_COPY_SRC,
+        flags: 0,
+        view_formats: ptr::null(),
+        view_format_count: 0,
+        concurrent_domain_count: 0,
+        concurrent_domains: ptr::null(),
+    };
+    let mut req = Requirements::default();
+    unsafe { api::image_requirements(device, &desc, &mut req) }.unwrap();
+    let make = || {
+        let backing = unsafe {
+            api::memory_create(
+                device,
+                &MemoryDesc {
+                    header: Record::new::<MemoryDesc>(MEMORY_DESC),
+                    size: req.size,
+                    alignment: 1,
+                    usage: 0,
+                    memory_type: 0,
+                    kind: 2,
+                    concurrent_domains: ptr::null(),
+                    concurrent_domain_count: 0,
+                    flags: 0,
+                },
+            )
+        }
+        .unwrap();
+        let image = unsafe { api::image_create_unbound(device, &desc) }.unwrap();
+        unsafe { api::image_bind(image, backing.span(0, req.size)) }.unwrap();
+        (image, backing)
+    };
+    let (src, src_backing) = make();
+    let (dst, dst_backing) = make();
+    let staging = linear_memory(device, bytes, USAGE_COPY_SRC, 1);
+    let readback = linear_memory(device, bytes, USAGE_COPY_DST, 2);
+    let pattern: Vec<u8> = (0..bytes).map(|i| (i % 251) as u8).collect();
+    {
+        let mapping = unsafe { api::memory_map(staging.span(0, bytes)) }.unwrap();
+        unsafe { ptr::copy_nonoverlapping(pattern.as_ptr(), mapping.data.cast::<u8>(), bytes as usize) };
+        unsafe { api::memory_unmap(staging) };
+    }
+    let region = ImageRegion {
+        aspect: ASPECT_COLOR,
+        mip: 0,
+        first_layer: 0,
+        layer_count: 1,
+        offset: Offset { x: 0, y: 0, z: 0 },
+        extent: Extent { x: side, y: side, z: 1 },
+    };
+    let arena = single_slot_arena(device, domain);
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let requirements = api::barrier_scratch_requirements(0, 1).unwrap();
+    let (mut scratch, offset) = aligned_scratch(requirements);
+    let barrier = |image: api::ImageHandle, old_state: u32, new_state: u32, access_before: u64, access_after: u64| {
+        ImageBarrier {
+            image: image.as_raw(),
+            range: Subresources {
+                aspects: ASPECT_COLOR,
+                first_mip: 0,
+                mip_count: 1,
+                first_layer: 0,
+                layer_count: 1,
+            },
+            before: access_before,
+            after: access_after,
+            old_state,
+            new_state,
+            source_domain: DOMAIN_IGNORED,
+            destination_domain: DOMAIN_IGNORED,
+            discard: u32::from(old_state == STATE_UNDEFINED),
+        }
+    };
+    let mut dep = |images: &ImageBarrier| Dependency {
+        header: Record::new::<Dependency>(DEPENDENCY),
+        before: STAGE_TRANSFER,
+        after: STAGE_TRANSFER,
+        global_before: 0,
+        global_after: 0,
+        memory_count: 0,
+        image_count: 1,
+        flags: 0,
+        memory: ptr::null(),
+        scratch: unsafe { scratch.as_mut_ptr().add(offset) }.cast(),
+        scratch_size: requirements.size,
+        images,
+    };
+    let to_dst = barrier(src, STATE_UNDEFINED, STATE_COPY_DST, 0, ACCESS_COPY_WRITE);
+    unsafe { api::barrier(list, &dep(&to_dst)) };
+    let upload = ImageCopy {
+        region,
+        row_pitch: 0,
+        slice_pitch: 0,
+        state: STATE_COPY_DST,
+        reserved: 0,
+    };
+    unsafe { api::copy_to_image(list, src, staging.span(0, bytes), &upload) };
+    let src_to_read = barrier(src, STATE_COPY_DST, STATE_COPY_SRC, ACCESS_COPY_WRITE, ACCESS_COPY_READ);
+    unsafe { api::barrier(list, &dep(&src_to_read)) };
+    let dst_to_write = barrier(dst, STATE_UNDEFINED, STATE_COPY_DST, 0, ACCESS_COPY_WRITE);
+    unsafe { api::barrier(list, &dep(&dst_to_write)) };
+    let transfer = ImageTransfer {
+        source: region,
+        destination: region,
+        source_state: STATE_COPY_SRC,
+        destination_state: STATE_COPY_DST,
+    };
+    unsafe { api::copy_image(list, dst, src, &transfer) };
+    let dst_to_read = barrier(dst, STATE_COPY_DST, STATE_COPY_SRC, ACCESS_COPY_WRITE, ACCESS_COPY_READ);
+    unsafe { api::barrier(list, &dep(&dst_to_read)) };
+    let mut read = upload;
+    read.state = STATE_COPY_SRC;
+    unsafe { api::copy_from_image(list, readback.span(0, bytes), dst, &read) };
+    let list = unsafe { api::commands_end(list) }.unwrap();
+    let timeline = unsafe { api::timeline_create(device, 0) }.unwrap();
+    let submit_req = api::submit_scratch_requirements(1, 0, 1).unwrap();
+    let (mut submit_scratch, submit_offset) = aligned_scratch(submit_req);
+    let signal = SyncPoint {
+        point: Point { timeline: timeline.as_raw(), value: 1 },
+        stages: STAGE_ALL,
+    };
+    unsafe {
+        api::queue_submit(
+            queue,
+            &[list],
+            &[],
+            &[signal],
+            HostSpan {
+                data: submit_scratch.as_mut_ptr().add(submit_offset).cast(),
+                size: submit_req.size,
+            },
+        )
+    }
+    .unwrap();
+    assert_eq!(unsafe { api::timeline_wait(timeline, 1, u64::MAX) }, Ok(()));
+    assert_eq!(read_back(readback, bytes), pattern);
+
+    unsafe { api::arena_reset(arena) }.unwrap();
+    let list = unsafe { api::commands_begin(arena, &one_shot()) }.unwrap();
+    let blit = ImageBlit {
+        source: BlitRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offsets: [Offset { x: 0, y: 0, z: 0 }, Offset { x: side as i32, y: side as i32, z: 1 }],
+        },
+        destination: BlitRegion {
+            aspect: ASPECT_COLOR,
+            mip: 0,
+            first_layer: 0,
+            layer_count: 1,
+            offsets: [Offset { x: 0, y: 0, z: 0 }, Offset { x: side as i32, y: side as i32, z: 1 }],
+        },
+        source_state: STATE_COPY_SRC,
+        destination_state: STATE_COPY_DST,
+        filter: 0,
+        reserved: 0,
+    };
+    unsafe { api::blit_image(list, dst, src, &blit) };
+    let mut scaled = blit;
+    scaled.destination.offsets[1] = Offset { x: 4, y: 4, z: 1 };
+    unsafe { api::blit_image(list, dst, src, &scaled) };
+    unsafe { api::resolve_image(list, dst, src, &transfer, 1) };
+    assert_eq!(unsafe { api::commands_end(list) }, Err(UNSUPPORTED));
+
+    unsafe {
+        api::arena_destroy(arena);
+        api::image_destroy(src);
+        api::image_destroy(dst);
+        api::memory_destroy(src_backing);
+        api::memory_destroy(dst_backing);
+        api::memory_destroy(staging);
+        api::memory_destroy(readback);
+        api::timeline_destroy(timeline);
+        api::device_destroy(device);
+    }
+}
+
 
