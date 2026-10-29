@@ -593,9 +593,52 @@ The debug layer is now enabled best-effort at device creation and native
 failures dump the info queue (validation evidence per the review gate), with
 resources named at creation so reports identify them.
 
-Open: after the first successful present, the consumer's next `commands_end`
-reports INTERNAL_ERROR (a poisoned recording; no panic and no debug-layer
-rejection accompany it). The poison source is the last hop to the M4 scene
-executing on Windows; the suite is the right vehicle to reproduce it.
+### Clip-space Y (Vulkan NDC on D3D12)
 
-Suite: 28 GPU + 18 host tests pass on Windows; Linux unchanged (110 + 2 + 67).
+ogpu clip space is Vulkan's: `+Y` is down in framebuffer space. D3D12's native
+viewport maps `+Y` up. `RSSetViewports` therefore uses a negated height and a
+shifted `TopLeftY` so the same clip-space positions produce the same pixels as
+Vulkan. Scissor stays in framebuffer pixels (top-left origin) and is not
+flipped. Winding is computed after the viewport transform, so matching
+framebuffer positions also match Vulkan front-face without a PSO invert.
+`gpu_scene_raster` samples the asymmetric second quad at Vulkan top-right
+`(30, 2)` rather than D3D bottom-right. Tight `row_pitch: 0` copies whose pitch
+is not 256-aligned record one native `CopyTextureRegion` per row (D3D12's
+placed-footprint rule) instead of silently changing the layout.
+
+### M4 `--scene-check` on Windows (green)
+
+`examples/foundation_rust --bin surface -- --scene-check` completes:
+`SCENE_PASS frames=18 slots=3 peak_pending=3 resize=2 checked_pixels=36729`.
+The remaining hops after clip Y, each reduced to a suite pin before the fix:
+
+1. **Heap-then-executable tables.** The consumer binds descriptor heaps before
+   the graphics executable. `bind_executable` applied tables from the stored
+   pointers *before* storing the new bind, so graphics tables never landed and
+   samples were unbound (`[1,0,3,255]`). Store the pointer, then
+   `apply_descriptor_state`. `gpu_scene_consumer_clip_sample` uses the consumer
+   bind order.
+2. **Binary wait consumes the signal.** A waited binary stayed `pending`, so
+   the fourth acquire (same slot) returned `INVALID`. `wait_on` clears pending
+   (Vulkan unsignal). `gpu_swapchain_present` acquires and presents twice with
+   the same objects.
+3. **Recording bind state dies with the list.** `commands_begin` reuses a slot
+   after `arena_reset` without clearing executable/heap pointers, so `bind_heap`
+   on a fresh list called `SetComputeRoot32BitConstants` with no root signature.
+   Begin now clears bind state.
+4. **`ResizeBuffers` flags and GetBuffer refs.** Immediate chains are created
+   with `ALLOW_TEARING`; resize must pass the same flags. DXGI also forbids
+   `ResizeBuffers` while `GetBuffer` references remain: the old chain drops its
+   image vec first.
+5. **480-wide readback pitch.** D3D12 placed-footprint pitch is 256-aligned.
+   640×480 is already aligned; 480×320 is not (`1920 % 256 != 0`). The consumer
+   oracle now uses `row_bytes(w) = (w*4).next_multiple_of(256)` for copy pitch,
+   buffer size, and sampling. 64- and 128-wide unit tests are unchanged.
+
+Open (unchanged): `transfer_image`/`blit`, `Split`/`GeneratedLayout`/`GeneratedSet`,
+`draw_mesh*` (RDNA1 has no mesh shaders), learned-image nested pointers, and the
+~1-in-10 `gpu_draw_indirect` first-slot intermittency.
+
+Suite: GPU tests on Windows include the clip-Y, consumer-order, swapchain
+readback, binary-reuse, and tight-copy pins; Linux regression of the shared
+consumer oracle (64/128 widths) is pitch-identical.

@@ -91,7 +91,7 @@ impl Frame {
                     Some(Buffer::new(
                         d,
                         adapter,
-                        u64::from(size[0]) * u64::from(size[1]) * 4 + 64,
+                        (row_bytes(size[0]) * size[1] as usize + 64) as u64,
                         USAGE_COPY_DST,
                         4,
                     )?)
@@ -436,7 +436,7 @@ unsafe fn record_frame(
                             z: 1,
                         },
                     },
-                    row_pitch: 0,
+                    row_pitch: row_bytes(generation.size[0]) as u64,
                     slice_pitch: 0,
                     state: STATE_COPY_SRC,
                     reserved: 0,
@@ -483,8 +483,13 @@ unsafe fn record_frame(
     }
 }
 
+fn row_bytes(width: u32) -> usize {
+    (width as usize * 4).next_multiple_of(256)
+}
+
 fn check_pixels(bytes: &[u8], camera: Camera, [w, h]: [u32; 2], format: u32) -> gpu::Result<usize> {
-    let size = w as usize * h as usize * 4;
+    let pitch = row_bytes(w);
+    let size = pitch * h as usize;
     if bytes.len() != size + 64 || bytes[size..].iter().any(|b| *b != 0xa5) {
         return Err(INTERNAL_ERROR);
     }
@@ -542,7 +547,7 @@ fn check_pixels(bytes: &[u8], camera: Camera, [w, h]: [u32; 2], format: u32) -> 
             if format == 5 {
                 expected.swap(0, 2);
             }
-            let at = (y as usize * w as usize + x as usize) * 4;
+            let at = y as usize * pitch + x as usize * 4;
             if (0..4).any(|c| (bytes[at + c] as i32 - expected[c]).abs() > 2) {
                 eprintln!(
                     "scene oracle ({x},{y}) actual={:?} expected={expected:?}",

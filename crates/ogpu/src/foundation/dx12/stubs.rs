@@ -116,8 +116,7 @@ impl Queue {
             unsafe {
                 for wait in waits.iter() {
                     let binary = wait.as_ref().ok_or(INVALID)?;
-                    let (fence, value, _) = binary.native();
-                    chain.queue_wait(fence, value)?;
+                    binary.wait_on(chain.queue())?;
                 }
             }
             // SAFETY: exclusive queue access per the contract.

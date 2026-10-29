@@ -229,6 +229,12 @@ impl Arena {
         slot.state.set(0);
         slot.error.set(OK);
         slot.mode = desc.replay_mode;
+        slot.executable.set(ptr::null());
+        slot.graphics.set(ptr::null());
+        *slot.resource_binding.borrow_mut() = None;
+        *slot.sampler_binding.borrow_mut() = None;
+        slot.rendering.set(false);
+        slot.arguments.borrow_mut().fill(0);
         // SAFETY: caller proves no pending use of this arena generation; the
         // allocator/list pair is exclusively owned by this slot. The defensive
         // close discards any abandoned recording so reset can proceed.
@@ -1057,9 +1063,7 @@ impl List {
             self.command.SetComputeRootSignature(&executable.signature);
             self.command.SetGraphicsRootSignature(&executable.signature);
             self.command.SetPipelineState(&executable.pipeline);
-            self.emit_arguments(executable)?;
         }
-        self.apply_descriptor_state(d)?;
         if compute {
             self.executable.set(executable);
         } else {
@@ -1070,6 +1074,10 @@ impl List {
             }
             self.graphics.set(executable);
         }
+        // Heaps may have been bound before this executable. Tables are issued
+        // from the stored pointers, so the new bind must be visible first
+        // (the consumer binds heaps, then the graphics executable).
+        self.apply_descriptor_state(d)?;
         Ok(())
     }
 
@@ -1564,11 +1572,17 @@ impl List {
         if state.width == 0.0 || state.height == 0.0 {
         return Err(INVALID);
         }
+        // ogpu clip space is Vulkan's: +Y is down in framebuffer space.
+        // D3D12's native viewport maps +Y up, so the height is negated and
+        // TopLeftY is shifted to the opposite edge. Scissor stays in
+        // framebuffer pixels (top-left origin) and is not flipped. Winding
+        // is computed after the viewport transform, so matching framebuffer
+        // positions also matches Vulkan front-face without a PSO invert.
         let viewport = d3d::D3D12_VIEWPORT {
             TopLeftX: state.x,
-            TopLeftY: state.y,
+            TopLeftY: state.y + state.height,
             Width: state.width,
-            Height: state.height,
+            Height: -state.height,
             MinDepth: state.min_depth,
             MaxDepth: state.max_depth,
         };

@@ -941,66 +941,85 @@ impl List {
         for layer in 0..copy.region.layer_count {
             let subresource = copy.region.mip
                 + (copy.region.first_layer + layer) * image.facts.mip_count;
-            let offset = buffer_offset + u64::from(layer) * slice_pitch;
-            let placed = d3d::D3D12_TEXTURE_COPY_LOCATION {
-                // Borrowed resource reference: the location is never dropped.
-                pResource: core::mem::ManuallyDrop::new(Some(unsafe {
-                    d3d::ID3D12Resource::from_raw(buffer.as_raw())
-                })),
-                Type: d3d::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-                Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
-                    PlacedFootprint: d3d::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
-                        Offset: offset,
-                        Footprint: d3d::D3D12_SUBRESOURCE_FOOTPRINT {
-                            Format: image.native.Format,
-                            Width: copy.region.extent.x,
-                            Height: copy.region.extent.y,
-                            Depth: 1,
-                            RowPitch: u32::try_from(row_pitch).map_err(|_| INVALID)?,
+            // D3D12 requires a 256-byte-aligned placed-footprint pitch. For
+            // any other caller pitch, record one native copy per row instead
+            // of silently changing the layout or allocating a staging buffer.
+            let row_copies = row_pitch % 256 != 0;
+            let native_pitch = if row_copies { 256 } else { row_pitch };
+            for row in 0..rows {
+                if !row_copies && row != 0 {
+                    break;
+                }
+                let offset = buffer_offset
+                    + u64::from(layer) * slice_pitch
+                    + u64::from(row) * row_pitch;
+                let height = if row_copies { 1 } else { rows };
+                let placed = d3d::D3D12_TEXTURE_COPY_LOCATION {
+                    // Borrowed resource reference: the location is never dropped.
+                    pResource: core::mem::ManuallyDrop::new(Some(unsafe {
+                        d3d::ID3D12Resource::from_raw(buffer.as_raw())
+                    })),
+                    Type: d3d::D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                    Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
+                        PlacedFootprint: d3d::D3D12_PLACED_SUBRESOURCE_FOOTPRINT {
+                            Offset: offset,
+                            Footprint: d3d::D3D12_SUBRESOURCE_FOOTPRINT {
+                                Format: image.native.Format,
+                                Width: copy.region.extent.x,
+                                Height: height,
+                                Depth: 1,
+                                RowPitch: u32::try_from(native_pitch).map_err(|_| INVALID)?,
+                            },
                         },
                     },
-                },
-            };
-            let texture = d3d::D3D12_TEXTURE_COPY_LOCATION {
-                // Borrowed resource reference: the location is never dropped.
-                pResource: core::mem::ManuallyDrop::new(Some(unsafe {
-                    d3d::ID3D12Resource::from_raw(resource.as_raw())
-                })),
-                Type: d3d::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-                Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
-                    SubresourceIndex: subresource,
-                },
-            };
-            // SAFETY: validated disjoint ranges of live resources; recording only.
-            // A placed-footprint endpoint takes zero coordinates; region offsets
-            // belong to the texture endpoint or its explicit source box.
-            unsafe {
-                if to_image {
-                    self.command.CopyTextureRegion(&texture, x, y, 0, &placed, None);
-                } else {
-                    let box_ = d3d::D3D12_BOX {
-                        left: x,
-                        top: y,
-                        front: 0,
-                        right: x + copy.region.extent.x,
-                        bottom: y + copy.region.extent.y,
-                        back: 1,
-                    };
-                    self.command.CopyTextureRegion(
-                        &placed,
-                        0,
-                        0,
-                        0,
-                        &texture,
-                        Some(ptr::from_ref(&box_)),
-                    );
-                }
-            };
+                };
+                let texture = d3d::D3D12_TEXTURE_COPY_LOCATION {
+                    // Borrowed resource reference: the location is never dropped.
+                    pResource: core::mem::ManuallyDrop::new(Some(unsafe {
+                        d3d::ID3D12Resource::from_raw(resource.as_raw())
+                    })),
+                    Type: d3d::D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                    Anonymous: d3d::D3D12_TEXTURE_COPY_LOCATION_0 {
+                        SubresourceIndex: subresource,
+                    },
+                };
+                // SAFETY: validated disjoint ranges of live resources; recording only.
+                // A placed-footprint endpoint takes zero coordinates; region offsets
+                // belong to the texture endpoint or its explicit source box.
+                unsafe {
+                    if to_image {
+                        self.command.CopyTextureRegion(
+                            &texture,
+                            x,
+                            y + row,
+                            0,
+                            &placed,
+                            None,
+                        );
+                    } else {
+                        let box_ = d3d::D3D12_BOX {
+                            left: x,
+                            top: y + row,
+                            front: 0,
+                            right: x + copy.region.extent.x,
+                            bottom: y + row + height,
+                            back: 1,
+                        };
+                        self.command.CopyTextureRegion(
+                            &placed,
+                            0,
+                            0,
+                            0,
+                            &texture,
+                            Some(ptr::from_ref(&box_)),
+                        );
+                    }
+                };
+            }
         }
         Ok(())
     }
 }
-
 fn memory_span_end(span: Span) -> u64 {
     span.offset.saturating_add(span.size)
 }

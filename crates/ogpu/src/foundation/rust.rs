@@ -311,8 +311,6 @@ pub(super) unsafe fn encode(list: ListHandle, f: impl FnOnce(&super::List) -> Re
     }
     let mut guard = Poison(list, true);
     let result = f(list);
-    if let Err(code) = result {
-    }
     list.poison(result.err().unwrap_or(OK));
     guard.1 = false;
 }

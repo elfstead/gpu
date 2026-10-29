@@ -260,7 +260,7 @@ impl Swapchain {
         // record: no invented recreation semantics).
         if !desc.old_swapchain.is_null() {
             // SAFETY: live retired chain by caller contract.
-            let old = unsafe { desc.old_swapchain.as_ref() }.ok_or(INVALID)?;
+            let old = unsafe { desc.old_swapchain.as_mut() }.ok_or(INVALID)?;
             let format = formats::dxgi_format(desc.format);
             let extent = Extent {
                 x: desc.extent[0],
@@ -268,14 +268,21 @@ impl Swapchain {
                 z: 1,
             };
             // SAFETY: live chain with no pending work per the caller's
-            // retirement obligations.
+            // retirement obligations. DXGI forbids ResizeBuffers while
+            // GetBuffer references remain; drop this object's buffer refs.
+            old.images.clear();
+            let flags = if desc.present_mode == 2 {
+                dxgi::DXGI_SWAP_CHAIN_FLAG(0)
+            } else {
+                dxgi::DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+            };
             unsafe {
                 old.chain.ResizeBuffers(
                     desc.min_image_count,
                     extent.x,
                     extent.y,
                     format,
-                    dxgi::DXGI_SWAP_CHAIN_FLAG(0),
+                    flags,
                 )
             }
             .map_err(map_error)?;
@@ -576,7 +583,10 @@ impl Binary {
         queue: &d3d::ID3D12CommandQueue,
     ) -> Result<(), Status> {
         // SAFETY: live queue and fence; the wait orders against prior signals.
-        unsafe { queue.Wait(&self.fence, self.value.get()) }.map_err(map_error)
+        unsafe { queue.Wait(&self.fence, self.value.get()) }.map_err(map_error)?;
+        // A binary wait consumes the signal, matching the Vulkan unsignal.
+        self.pending.set(false);
+        Ok(())
     }
 
     /// Release the binary back to idle after its signal retired.
