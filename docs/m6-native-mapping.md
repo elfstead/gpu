@@ -6,6 +6,14 @@ validated foundation backend.** This completes the first design item of the
 No Mac is available here. The existing [legacy Metal backend](metal.md) stays
 intact until a replacement has native acceptance; it is not a fallback strategy.
 
+Direction amendment, 2026-10-30: [minimal-core composition](design.md#minimal-composable-core)
+and the [C1–C3 roadmap](roadmap.md#minimal-core-revision) now govern implementation.
+The profile matrix and detailed records below are earlier candidate mappings,
+not instructions to retain every representation or add a profile per backend.
+C1 must select the smallest sufficient common mechanism and document any
+irreducible differences. Native Metal guarantees still need verification; M6
+implementation remains deferred until a Mac is available.
+
 ## Direction
 
 Keep explicit allocation, lifetimes, command storage, synchronization and prepared
@@ -162,10 +170,12 @@ separate from the fundamental copy operation.
 
 ## Implementation and verification handoff
 
-1. Add the profile/query vocabulary and precise records for arguments, command
-   modes and residency, with C/Rust layout checks and unsupported-path tests.
-   Leave Vulkan's current profile semantics intact. Profile selection must happen
-   before choosing artifacts/recording strategy, not after a failed submission.
+1. Map the C1-selected contract to Metal before adding vocabulary. Derive user
+   alternatives from the shared primitives; add capability-dependent records only
+   for concrete gaps. Check C/Rust layouts and unsupported behavior. Preserve
+   Vulkan capability through the migration, not necessarily its old signatures.
+   Any unavoidable capability selection precedes artifacts/recording, not a failed
+   submission.
 2. Extract backend-independent records and validation only where they really are
    independent. Introduce native module selection below the shared Rust operations
    and C adapters. Do not just ungate the Vulkan-specific `foundation` module or

@@ -1,9 +1,22 @@
 # Working status and next milestone
 
-Updated 2026-10-17. **M1–M5 and foundation-contract consolidation are complete for
+Updated 2026-10-31. **Next work is C1: select the minimal composable foundation
+contract, then C2: implement the coordinated revision, and C3: accept the available
+native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
+This is a plan change, not a runtime change or new native acceptance.
+
+Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
+Carry the design/review documents without the DX12 implementation. Use that branch
+as evidence for the mapping constraints, then hand the selected contract back to
+Windows later. Neither DX12 fixes nor unavailable native validation block local
+C1–C3 or subsequent M8 work.
+
+M1–M5 and foundation-contract consolidation are complete for
 their declared scope. P1 presentation has reached partial human acceptance;
-M6 Metal implementation is deferred until a Mac is available; current work moves
-to M8 compressed textures, native task/mesh shading and GPU-generated commands. P1's native Rust operation extraction and opt-in
+M6 Metal implementation is deferred until a Mac is available. M8 compressed
+textures, task/mesh and initial generated-command work is implemented within the
+receipts below; its remaining coverage resumes after the revision's local acceptance.
+P1's native Rust operation extraction and opt-in
 Wayland surface setup, explicit device enabling, mode queries and binary submission
 dependencies are implemented. Borrowed swapchain images and acquire/present/release
 now pass a bounded two-window lifecycle probe. The interactive textured Rust scene
@@ -12,7 +25,7 @@ observed framebuffer resizes. The SDK now packages a self-contained native Rust
 source/consumer/shader bundle and a manual acceptance checklist. Partial human
 checks confirm controls, resize, pause and close; resume and real minimize/restore
 remain unverified. M6's initial mapping proposal is complete; backend implementation
-and native acceptance have not started.**
+and native acceptance have not started.
 The earlier stop at the M6 entry checkpoint is complete. Scheduled work is not
 implemented or natively validated unless explicitly reported below.
 
@@ -21,6 +34,11 @@ The [current design](design.md) describes the model; the
 evidence. The [roadmap](roadmap.md) owns broader coverage. The [whole-API
 design](whole-api-design.md) is a target, not an assertion that its remaining
 [sketch](drafts/ogpu_next.h) is implemented.
+
+On `dx12-backend`, native D3D12 implementation now reaches reported Windows M4
+scene execution. The [D1 receipt](https://github.com/elfstead/gpu/blob/34930b0/docs/dx12-backend-d1.md) is an earlier checkpoint;
+the [2026-10-30 review handoff](dx12-review-handoff-2026-10-30.md) owns the open
+corrections. The branch is unmerged and backend acceptance remains open.
 
 ## Completed checkpoints
 
@@ -45,6 +63,44 @@ The consolidation refresh passes 46 ordinary foundation-build tests, 16 GPU test
 per driver and the public-C fixture on Radeon. llvmpipe retains its explicit
 combined depth/stencil copy/readback exclusion. One Radeon plus llvmpipe is not
 cross-vendor physical coverage.
+
+## Current: minimal composable foundation revision
+
+The [design rule](design.md#minimal-composable-core) prefers one simple mechanism
+when users can derive the alternatives without losing capability or efficient
+execution. The core must not absorb abstractions just because applications need
+them. Native API alternatives and current implementation weight are insufficient
+justification for multiple public representations.
+
+Proceed with [C1–C3](roadmap.md#minimal-core-revision):
+
+1. **C1, next concrete deliverable:** revise the whole-API draft and add a
+   mechanism disposition/migration table. Derive argument grouping, descriptor
+   allocation/caching, replay and frame loops from the proposed primitives. Resolve
+   root observation semantics, descriptor storage/update capabilities and command/
+   synchronization composition before selecting additional profiles. Record actual
+   counterexamples and unknowns, rather than assuming all previous alternatives
+   must survive.
+2. **C2:** implement the selected contract across Rust/C, compiler artifacts,
+   Vulkan/Linux and affected consumers as a coordinated batch; remove redundant
+   paths and move policy outside core. Keep a DX12 mapping/migration table and
+   defer backend updates to the native Windows handoff.
+3. **C3:** run focused contract/native/consumer checks, update the install/support
+   handoff and record per-backend acceptance. Windows validation remains with the
+   native lane; unavailable Mac work remains deferred. Resume remaining M8 after
+   local acceptance, without treating external validation as passed.
+
+M8 → M9 → M10 → M11 remains the hardware-coverage order after this revision, with
+prerequisites pulled forward as needed. Each batch applies the composition rule
+before adding host operations. Shader/compiler capabilities need no new host
+abstraction when the selected primitive already expresses them. M7 packaging
+continues throughout; M6 resumes only with native development available.
+
+General safe wrappers, allocators, render graphs, frame schedulers and tensor
+runtimes belong outside core. Each removal must identify its replacement and
+preserved capability in C1 before implementation.
+The complete target remains graphics, general compute and ML, including the
+scheduled specialized hardware facilities.
 
 ## P1: implemented, partial human acceptance
 
@@ -151,10 +207,11 @@ M11, pullable earlier independently of codecs; no conversion fallback is planned
 
 Follow the [M6 entry handoff](m6-entry.md):
 
-1. Initial [native mapping/profile proposal](m6-native-mapping.md) complete:
+1. Initial [native mapping/profile proposal](m6-native-mapping.md) recorded:
    native address-binding arguments, conservative one-shot scope pending replay
    guarantees, explicit residency and precise synchronization/presentation profiles.
-   These are proposed contracts, not implemented support.
+   These are proposed contracts, not implemented support. C1 now reassesses their
+   representation choices under the composition rule before implementation.
 2. Implement the explicit resource/command foundation without hidden copies,
    waits, retained resource graphs or Vulkan-shaped emulation.
 3. Generate native executable interfaces and run the mixed learned-image and
@@ -168,7 +225,7 @@ handoff can be prepared here, but native acceptance cannot be inferred from Linu
 tests. By user decision, defer implementation until a Mac is available. Preserve
 the mapping as design input, not a reason to refactor around untested assumptions.
 
-## Current: M8 formats, task/mesh and GPU-generated commands
+## M8: implemented tranches and next coverage after C1–C3
 
 The first [compressed-format tranche](results/m8-compressed-formats-2026-10-17.md)
 is implemented: 54 new BC/ETC2/EAC/ASTC LDR IDs, per-aspect copy-block metadata,
@@ -193,20 +250,38 @@ sequence identity, set updates, whole-buffer guards and 20 rejected recordings.
 Graphics/mesh and nested-count actions have lowering and layout coverage, but
 their execution remains unverified. No host readback or command-time allocation
 is introduced; this is not a timing or full-M8 acceptance claim.
-Next: generated graphics execution and the GPU-culled scene, followed by the
+After C2/local C3: generated graphics execution and the GPU-culled scene, followed by the
 remaining advanced raster profiles and vertex/index-state token gaps. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 
 ## Parallel candidate: native DX12 on Windows
 
+Review checkpoint, 2026-10-30: branch `34930b0` has native implementation and
+reported Windows scene evidence, but is **not ready to merge**. Follow the
+[DX12 correction handoff](dx12-review-handoff-2026-10-30.md), including barrier,
+binding, presentation, loss and copy fixes plus native-profile redesign and
+validation. Linux host/headless regression passed during review; Windows
+acceptance must be rerun after corrections. The candidate brief below describes
+the original scope, not the current implementation status.
+
+The [API-shape assessment](cross-backend-api-shape-2026-10-30.md) and
+[NGPU source comparison](ngpu-comparison-2026-10-30.md) identify contract questions,
+not an obligation to retain all native representations. C1 now replaces their
+earlier profile-expansion prescription: derive a minimal contract, preserve
+efficient compositions and add primitives only for demonstrated gaps. Architectural
+fixes must resolve arguments, descriptor updates, submission outcomes, presentation
+lifetimes and copy footprints; their public shape is not preselected. No review
+finding is closed by these design documents.
+
 The [DX12 implementation handoff](dx12-candidate-plan.md) is approved for a
 separate `dx12-backend` branch implemented and tested by the Windows agent, then
-returned for review. It is a candidate, not implemented or supported yet. Resolve
+returned for review. It remains a candidate, not an accepted supported backend. Resolve
 native shader addresses/arguments and descriptor/synchronization profiles first;
 API changes are welcome when they expose a better API alternative. No emulation
 to claim Vulkan parity. Deliver the core, compute/offscreen graphics, then native
-presentation and available advanced profiles with separate evidence. Linux M8
-continues independently; M6 remains deferred. No WebGPU backend is scheduled.
+presentation and available advanced capabilities with separate evidence. Ordinary
+Windows correctness fixes can proceed during C1; new coverage follows C2/local C3.
+M6 remains deferred. No WebGPU backend is scheduled.
 
 ## Packaging and compatibility
 
@@ -239,7 +314,8 @@ The [roadmap](roadmap.md#scheduled-hardware-coverage) assigns implementation bat
 - M10: mixed backing, native interoperability, virtual/sparse memory and residency.
 - M11: advanced compute/numerical execution and video encode/decode profiles.
 
-This is the default order after M6, not a ban on pulling prerequisites forward:
+This is the default coverage order after C2/local C3, independent of deferred M6,
+not a ban on pulling prerequisites forward:
 Metal residency or imported presentation resources belong earlier when needed.
 Missing hardware blocks native acceptance of a profile, not its specification or
 implementable backend work. Track specified, implemented and natively validated

@@ -1,8 +1,16 @@
 # Roadmap: from runtime candidate to a usable GPU programming foundation
 
-Proposed 2026-09-18; M1 completed 2026-09-19. The [working plan](plan.md) owns completed/active status;
+Proposed 2026-09-18; sequence revised 2026-10-30. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
-Sequence revised 2026-10-08: the [whole-API design](whole-api-design.md) selects a
+**Next: C1 minimal composable contract → C2 coordinated implementation → C3
+available-backend acceptance, then remaining M8 → M9 → M10 → M11.** C1–C3
+are defined [below](#minimal-core-revision). Windows correctness fixes can proceed
+independently; unavailable Windows/Mac acceptance does not block later local
+coverage. M6 stays deferred until a Mac is available; M7 remains ongoing.
+The DX12 branch is implemented through reported scene execution but remains
+unmerged with [open review findings](dx12-review-handoff-2026-10-30.md).
+
+Earlier sequence checkpoints: on 2026-10-08 the [whole-API design](whole-api-design.md) selected a
 coordinated foundation revision before completing the remaining M4/M5 consumers.
 As of 2026-10-13, M4/M5 and [foundation-contract consolidation](core-contract-review.md)
 are complete for their declared scopes. Sequence revised 2026-10-15: next is
@@ -36,7 +44,12 @@ runtime free of tensor operators or an application scheduler.
 Do not measure completion by matching every Vulkan/CUDA feature. Broader graphics,
 numeric profiles and concurrency need explicit native mappings and verification;
 named consumers exercise the integrated result but are not prerequisites to
-designing or implementing a clearly useful native strategy. API changes
+designing or implementing a clearly useful hardware capability. Apply the
+[minimal composable core rule](design.md#minimal-composable-core): prefer one
+mechanism, derive user-level alternatives, and add another primitive only for a
+concrete capability or efficient-execution gap that composition cannot resolve.
+Native API vocabulary and existing implementation weight are not reasons to keep
+duplicate mechanisms. API changes
 are welcome when evidence exposes a better API alternative, whether or not the
 existing API could be made to work. Do not add legacy fallback implementations.
 
@@ -58,16 +71,17 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
+| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | Immediate next work; [scope and exit criteria](#minimal-core-revision); no runtime changes or new acceptance claimed by this plan |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
-| DX12 candidate — Parallel native backend | Native Windows foundation, artifact/binding profiles, compute/offscreen graphics, then presentation and available advanced profiles | [Branch implementation handoff](dx12-candidate-plan.md) approved; Windows agent implements/tests, review before merge; no current support claim |
+| DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
-| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and explicit advanced raster profiles | Active while M6 is deferred; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
+| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and justified advanced raster primitives | Resume after C2/local C3; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
 | M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
 | M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |
 
 Current local implementation order: **completed M1–M5/foundation and consolidation →
-P1 (partial human acceptance) → M8 → M9 → M10 → M11**, with **M6 deferred until
+P1 (partial human acceptance) → C1 → C2 → local C3 → remaining M8 → M9 → M10 → M11**, with **M6 deferred until
 a Mac is available** and **M7 an ongoing packaging/adoption track**,
 not the end of functional development. Prerequisites can move earlier without
 claiming the entire later milestone. Missing Mac or feature hardware must not
@@ -77,6 +91,93 @@ or M8–M11 acceptance; native validation remains a separate evidence track.
 No calendar estimates are assigned by this document.
 Each milestone ends in a committed result and decision, not another open-ended
 list of experiments.
+
+## Minimal-core revision
+
+Execution decision, 2026-10-31: **Vulkan/Linux first.** Work on `minimal-core`,
+branched from Vulkan `master` (`2374635`), carrying the design/review documents but
+no DX12 implementation commits. Keep `dx12-backend` as the implementation reference
+and future Windows handoff. Its reviewed mapping constraints inform C1; updating
+or accepting that backend is not a prerequisite for C2 or local C3.
+
+C1–C3 revise the foundation after DX12/NGPU review and the 2026-10-30 design
+decision. They do not restart M1–M5, erase accepted consumer results or make the
+existing public header stable. Do not add parallel native profiles simply to
+preserve every earlier representation. Keep hardware capability coverage while
+reducing mechanisms that users can compose efficiently themselves.
+
+### C1 — Derive and select the minimal contract
+
+Produce one revised whole-API draft, including C/Rust operation correspondence,
+shader/artifact ABI, lifetimes, observation points, invalidation, capabilities and
+failure outcomes. Start with one logical argument interface, one descriptor-storage
+model and one command model. These are design candidates, not a decision to force
+pointer-only roots, CPU-only descriptor mutation or one-shot commands.
+
+Maintain a disposition table for existing and proposed mechanisms: **core
+primitive / user composition / capability-dependent primitive / unresolved**.
+Every additional primitive needs a concrete counterexample to efficient composition;
+every removal needs a replacement recipe. Each row records native mapping,
+unavoidable work, safety obligations and any remaining validation question.
+
+| Decision | Starting point and required analysis | Existing assumption to reconsider |
+|---|---|---|
+| Arguments | One logical root; show independent data groups, changing scalars, GPU-written data and repeated launches. Compare inline versus referenced observation/lifetime semantics and native access. | Multiple roots, separate binding APIs and a universal byte bank are not independently mandatory. Pointer-only roots are not preselected either. |
+| Descriptors | One explicit storage/update/bind model; derive slot allocation, caching and transient tables. Check GPU-selected copies, placement and disjoint pending updates. | Raw bytes and opaque heaps need not both be public. Preserve needed capabilities through the smallest sufficient mechanism. |
+| Commands and dependencies | One command-storage model serving recording/reuse; preserve GPU-selected work and needed scheduling freedom. Show fixed inference replay and a fragment-only cross-queue dependency. | Do not duplicate command models for convenience. Global versus ranged barriers, exclusive sharing and layout controls require individual justification. |
+| Presentation | Independent surfaces with explicit availability, completion, reuse and error semantics; derive a single-window loop and multi-window use. | Do not copy every Vulkan lifecycle operation or add a backend-specific public profile by default. |
+| Memory, transfer and failures | Explicit placement/requirements, representable copy footprints and honest submission outcomes; derive staging, reuse and deferred deletion outside core. | Automatic residency is not rejected merely because it is automatic; establish whether caller control is needed. No silent copy expansion or invented atomicity/retry guarantees. |
+
+Show user-side recipes through the public contract for an argument arena, descriptor
+allocator, repeated inference, GPU-culling/rendering and a multi-frame/multi-window
+loop. Reuse existing consumers as evidence where applicable. These are composition
+examples, not a commitment to ship general allocator/render-graph/ML libraries.
+Compare Vulkan and D3D12 source mappings plus documented Metal constraints; Mac
+execution is not a prerequisite for selecting a proposal with explicit unknowns.
+Maintain a compact DX12 mapping table for each selected primitive, its native
+constraints and unresolved questions. Do not emulate DX12 on Linux or infer
+native acceptance from source inspection.
+
+**Exit:** one chosen contract and migration/deletion map, exact remaining questions
+and targeted checks. Mark proposals separately from implementation. Structural
+reasoning is sufficient for clear cases; do not insert a benchmark gate for each
+operation. Keep already justified hardware batches in the complete draft rather
+than restarting an experiment-per-feature design process.
+
+### C2 — Implement one coordinated foundation revision
+
+Update the shared Rust operations, thin C adapters, Vulkan mapping,
+generated Slang interfaces, installed headers and consumers as one coherent batch.
+Use the DX12 mapping table to check the design without importing its backend into
+this branch. Defer DX12 implementation updates to a later native Windows handoff;
+R2/R3/R8 then use the selected contract. Correctness work on that branch can proceed
+independently and does not gate the Linux revision.
+
+Move convenience policy into consumers/helpers and delete redundant production
+paths once replacements work. Do not retain a second implementation merely to
+preserve an experimental signature. Preserve the separate legacy Metal path until
+its replacement has native acceptance; it must not constrain the new foundation.
+Document source/artifact migration and capability differences. No hidden emulation
+or capability loss may be disguised as simplification.
+
+**Exit:** the selected surface is implemented for Vulkan/Linux;
+changed host/ABI/compiler/lowering checks pass, affected Linux consumers work and
+the mapping/migration table identifies deferred Windows work. This is an implementation
+checkpoint, not an assertion of Windows or Metal acceptance.
+
+### C3 — Accept mappings and refresh the consumer handoff
+
+Run the changed-contract tests and the relevant offscreen, ML, replay, GPU-driven
+and presentation regressions on available hardware. Inspect mandatory work first;
+measure only unresolved tradeoffs. Refresh the isolated C/native Rust SDK workflow,
+support matrix and disposition table. These local checks do not require a Windows
+implementation update. Later Windows acceptance requires native validation and
+closure of each DX12 review finding; Mac acceptance remains M6.
+
+**Exit per backend:** exact revision, contract checks, native evidence and unresolved
+limits are recorded. Linux completion permits resuming M8 while external backend
+acceptance stays open. Do not mark all C3 complete from Linux results or block the
+rest of the roadmap on an unavailable machine. No new GPU is assumed.
 
 Historical sequence clarification 2026-09-30 (ordering superseded above): finish M4's **draw-contract decision** before
 the remaining graphics slices; begin M5 with an executable-capability/numerical
@@ -387,9 +488,10 @@ packaging. Native Metal and broader hardware evidence remain independently scope
 
 ## Scheduled hardware coverage
 
-M8–M11 are implementation batches; only the explicitly recorded M8 tranches are
-implemented so far. Each batch begins
-with an exact native mapping and profile list, then implements the coherent API,
+M8–M11 are hardware-capability batches; only the explicitly recorded M8 tranches
+are implemented so far. Each batch first applies the composition rule to the
+C1-selected foundation: separate user/shader compositions from genuinely missing
+hardware primitives, with exact native mappings and capability limits. Then implement the coherent API,
 backend and compiler/artifact changes together. Consumers verify integration;
 they are not prerequisites to implementing an already understood native strategy.
 Use structural cost analysis first; measure when a lowering or tradeoff is uncertain,
@@ -445,8 +547,10 @@ attachment and pass-continuation strategies. Audit remaining vertex-fetch,
 tessellation and geometry-stage gaps and implement native profiles where absent.
 Add compressed-texture format/copy/sampling profiles with explicit block layout
 and usage queries, rather than assuming every native format combination works.
-Expose materially different native strategies explicitly, without duplicating
-equivalent mechanisms merely to match another API's naming.
+Prefer a composition through the revised primitives; add an operation only for
+hardware execution or scheduling that cannot be preserved that way. A GPU culling
+algorithm and render-graph scheduler stay in the consumer. Preserve task/mesh and
+generated-work capability even if their entry points consolidate.
 
 **Consumer:** a GPU-culled scene with generated draw/mesh work, plus small raster
 fixtures for the additional profiles. A conventional draw path can be a separately
@@ -460,10 +564,13 @@ command features retain explicit native-test debt.
 
 ### M9 — Ray tracing
 
-**Deliver:** acceleration-structure requirements, caller-controlled backing and
+**Deliver:** the non-derivable hardware boundary for acceleration structures and
+ray execution, reusing ordinary memory, arguments, commands and dependencies.
+This includes acceleration-structure requirements, caller-controlled backing and
 scratch, build/update/copy/compaction and query operations; shader ray queries;
 ray executable groups, shader tables, and direct/indirect trace profiles. Keep ray
-queries independently usable without a ray pipeline. Preserve native capability
+queries independently usable without a ray pipeline. Scene graphs, build scheduling
+and acceleration-structure allocation policy stay outside core. Preserve native capability
 differences rather than assuming every backend implements every execution model.
 
 **Consumer:** a deterministic scene using both inline ray queries and a ray-pipeline
@@ -481,7 +588,9 @@ as hardware acceptance. Pull M10 backing/interop prerequisites forward if needed
 owned/borrowed device/resource handles; external memory and synchronization
 import/export with device identity and initial/final state contracts; virtual
 address reservation, map/unmap/access, sparse image binding and explicit residency
-profiles. Audit raw-address command endpoints so foreign resources are not forced
+operations only where the composition audit establishes a missing primitive.
+Allocators, streaming/eviction policy and interop convenience wrappers stay outside
+core. Audit raw-address command endpoints so foreign resources are not forced
 through unnecessary allocation or registration strategies.
 
 **Consumers:** an external native presenter or GPU producer sharing resources with
@@ -501,7 +610,9 @@ cluster/device-enqueue execution where native APIs support it, pipeline artifact
 binary interfaces, and remaining numerical/subgroup/matrix profiles. Extend
 generated artifact requirements and implement a hardware matrix variant of the
 bounded ML consumer with explicit layout, accumulation and numerical permissions.
-Do not add host tensor operators or an automatic precision selector to the core.
+First use shader/toolchain capability declarations and the existing launch model;
+add host records only for a native facility not expressible that way. Do not add
+host tensor operators, graph execution or an automatic precision selector to the core.
 
 **Media deliverables:** explicit codec/session capabilities, plane-aware images,
 bitstream ranges, parameter/reference records, decode/encode operations and status
@@ -545,7 +656,7 @@ explicit entry criterion; they are not silently included in milestone completion
 | General GGML backend / GPU training | M5 remains bounded inference. Broader operator coverage or forward/backward/optimizer training is a separate consumer milestone, not a new host tensor API |
 | Hardware matrix acceleration / wider numeric types | M11 extends existing requirements/discovery to remaining execution profiles and a hardware matrix consumer. Unsupported tuples stay unaccepted; M5 scalar Q8 is not acceleration |
 | Fine profiling / capture-replay / GPU debugging | Foundation exposes explicit timestamp/occlusion/statistics pools. Consumer logs exist; foundation native labels and full address-aware capture/debugging remain separate tooling work |
-| Windows and other platform builds | Deferred until a platform-specific build/loader/consumer acceptance lane can be maintained; public C does not imply tested platform support |
+| Windows and other platform builds | DX12 candidate implemented on its branch with open review corrections and C1–C3 acceptance; other platforms need their own maintained build/loader/consumer lane. Public C does not imply tested platform support |
 | macOS installation/package support | After M6 artifact workflow, or a separately selected compute-only packaging pass; native install/link tests required |
 | Portable binary bundles | M7 starts source/local-build distribution; bundles need a chosen libc/deployment policy and tests on that target, not repackaged Nix binaries |
 | Independent adoption, cross-vendor coverage | M7 evidence track; record actual external results, no hardware acquisition or outreach assumed |

@@ -1,6 +1,7 @@
 # Open GPU Interface: current design
 
-Updated 2026-10-13. OGPU is an experimental low-level foundation for graphics,
+Design principle revised 2026-10-30; implementation descriptions below retain
+their declared evidence scope. OGPU is an experimental low-level foundation for graphics,
 general compute and ML: memory, GPU pointers, prepared executable code, explicit
 commands and dependencies. Applications and compilers own data interpretation,
 scheduling, allocation policy and numerical choices. The runtime is Rust with a
@@ -13,7 +14,63 @@ The [whole-API design](whole-api-design.md) describes the broader target; its
 Pin one exact source revision for headers, runtime and artifacts. Version 1 is a
 mutable experimental record version, not a cross-commit compatibility guarantee.
 
+## Minimal composable core
+
+Selected 2026-10-30. **Offer one simple mechanism wherever users can build the
+desired alternatives on top without sacrificing capability or efficient
+execution.** The foundation supplies primitives; applications and independent
+libraries supply abstractions, policies and conveniences. Universality concerns
+what users can build, not how many programming styles OGPU directly exposes.
+
+One logical argument structure, one descriptor-storage model and one command
+model are preferred starting points. Multiple logical argument groups, allocators,
+upload rings, descriptor caching, frame loops, deferred deletion, render graphs
+and tensor runtimes do not become core merely because they are useful. They must
+be implementable through the same public interface available to third parties,
+without privileged access to backend internals.
+
+For each proposed primitive or alternative representation:
+
+1. Describe the required capability and a concrete use case.
+2. Show its best composition from the existing or proposed simpler mechanism.
+3. Identify any unavoidable loss: extra copying, allocation, synchronization,
+   recording, indirection, restricted lifetime or unavailable hardware execution.
+   Distinguish contract-imposed work from an avoidable implementation cost.
+4. First improve the shared primitive if that resolves the limitation. Add an
+   independent primitive only when efficient composition cannot do so.
+
+Source and semantic reasoning can establish a lost capability or forced work;
+measure only when the performance consequence or mapping is uncertain. Existence
+of another Vulkan/Metal/D3D12 operation is not sufficient justification. Nor is
+the mere presence of a helper function evidence of overhead. Compare equivalent
+correctness, lifetime, memory and latency requirements, including a prospective
+direct native OGPU implementation rather than only today's compatibility backend.
+
+The smallest function count is not the objective. Distinct hardware facilities
+such as rasterization or ray traversal can need primitives; an allegedly minimal
+API that forces readbacks or serializes independent work is insufficient. Optional
+capability queries and exact native limits remain necessary. Additional public
+profiles are a last resort for irreducible semantic differences, not a default
+answer to every backend mismatch. Require modern features where justified instead
+of adding legacy fallback machinery.
+
+Safety follows the same boundary: prefer types, generated layouts and preparation-
+time checks; retain explicit synchronization/lifetime/error obligations. Do not
+invent guarantees that need mandatory resource tracking, hidden waits or copying.
+General safe wrappers and dynamic instrumentation can be built outside the core.
+
+This decision supersedes the assumption that existing or proposed alternatives
+must be retained individually. It does not remove any implemented capability by
+declaration. The [contract revision sequence](roadmap.md#minimal-core-revision)
+must supply a composition or a concrete counterexample before retaining,
+consolidating, moving out or removing a mechanism. Historical validation remains
+evidence for its tested implementation, not an obligation to freeze its API shape.
+
 ## Model and ownership
+
+The table and execution details describe the current foundation. Its byte-storage,
+argument and command representations are inputs to the revision above, not settled
+requirements for every backend.
 
 | Concept | Fundamental responsibility | Policy outside the core |
 |---|---|---|

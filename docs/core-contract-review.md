@@ -5,6 +5,12 @@ and [M5](m5-results.md), before starting M6. This replaces the old ABI20 concern
 table, not its historical evidence. The [current design](design.md) describes the
 implemented model; [whole-API design](whole-api-design.md) remains the broader target.
 
+Direction amendment, 2026-10-30: this completed review remains evidence for the
+tested foundation. It does not require its individual representations to survive
+the [minimal-core revision](roadmap.md#minimal-core-revision). The new
+[composition rule](design.md#minimal-composable-core) requires a replacement recipe
+or concrete counterexample before consolidating or retaining each mechanism.
+
 Review rule: compare a strong native strategy, the best expressible public
 strategy and today's implementation. Preserve native choices under equal
 correctness, memory and latency requirements. A structural counterexample is

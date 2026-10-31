@@ -12,6 +12,14 @@ only declarations in `include/ogpu_next.h` are implemented on Linux. The combine
 sketch imports them and adds the remaining proposal. Pin a full source revision;
 foundation revision 1 is not a stable ABI promise.
 
+Direction amendment, 2026-10-30: the [minimal composable core rule](design.md#minimal-composable-core)
+governs this target and its sketch. Capability coverage below remains scheduled;
+the proposed representations and profile count are candidates, not individually
+approved additions. First derive user-level alternatives from one simple mechanism.
+The [C1–C3 revision](roadmap.md#minimal-core-revision) replaces profile expansion
+as the next design/implementation sequence. Completed results remain valid within
+their original scopes.
+
 ## Decision in brief
 
 Design the complete foundation now and implement it as one coordinated revision.
@@ -94,6 +102,11 @@ zero host instructions. The enforceable promise is no extra mandatory OGPU polic
 command-storage exhaustion and any OGPU-side growth policy must be explicit.
 
 ## 2. Latest Aaltonen comparison
+
+Historical checkpoint: the comparison below is pinned to 2026-10-08. See the
+[2026-10-30 implementation comparison](ngpu-comparison-2026-10-30.md) for the
+freshly fetched Vulkan/Metal implementation and its implications for the
+[cross-backend contract revision](cross-backend-api-shape-2026-10-30.md).
 
 Freshly cloned `sebbbi/NoGraphicsAPI` on 2026-10-08, HEAD
 [`04004140f5b3b8ec7c566fd43bfed77d586155f8`](https://github.com/sebbbi/NoGraphicsAPI/commit/04004140f5b3b8ec7c566fd43bfed77d586155f8),
