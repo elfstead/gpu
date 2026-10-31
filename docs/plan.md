@@ -1,9 +1,12 @@
 # Working status and next milestone
 
-Updated 2026-10-31. **Next work is C1: select the minimal composable foundation
+Updated 2026-10-31. **C1 is active: select the minimal composable foundation
 contract, then C2: implement the coordinated revision, and C3: accept the available
 native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
-This is a plan change, not a runtime change or new native acceptance.
+The [first contract draft](minimal-core-contract.md) now records conceptual
+decisions, a whole-surface disposition table, user compositions and DX12 mapping
+constraints. Exact argument, descriptor and presentation records remain open;
+C1 is not complete. Runtime code and native acceptance are unchanged.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -101,6 +104,12 @@ runtimes belong outside core. Each removal must identify its replacement and
 preserved capability in C1 before implementation.
 The complete target remains graphics, general compute and ML, including the
 scheduled specialized hardware facilities.
+
+Current C1 checkpoint: [contract draft](minimal-core-contract.md). The existing
+argument reuse and partial-update evidence is reused, not rerun. Next resolve
+argument update granularity and compatibility (A/B), descriptor locations/storage
+(D) and frame availability/retirement records (P); then publish exact signatures
+and the migration/deletion list before C2. No final profile count is assumed.
 
 ## P1: implemented, partial human acceptance
 

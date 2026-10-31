@@ -1,0 +1,313 @@
+# C1: minimal composable foundation draft
+
+Started 2026-10-31 on `minimal-core`, based on Vulkan `master` at `2374635`.
+**Design draft, not implemented API. C1 remains active until the open decisions
+below are resolved.** The installed header and runtime are unchanged. This is
+the next revision of the [whole-API target](whole-api-design.md), governed by the
+[composition rule](design.md#minimal-composable-core) and [C1–C3 sequence](roadmap.md#minimal-core-revision).
+
+## Decisions made in this draft
+
+- Keep one logical argument interface per prepared executable. User code groups
+  arguments, allocates persistent records and chooses when to update them.
+- Preserve recording-time values and execution-time referenced data. They differ
+  in lifetime and observation semantics, not merely in convenience. Investigate
+  expressing both through one argument-update operation before retaining separate
+  root and inline entry points.
+- Prefer one descriptor-heap abstraction with explicit writes, copies and binding.
+  Slot allocation, caching and transient-table construction stay outside core.
+  Native memory access, when available, is a capability of the same storage object,
+  not a second descriptor system with independently maintained contents.
+- Keep one recorded-list model. Replaying an existing recording and recording
+  different commands are different operations on its storage, not separate APIs
+  for a frame runtime and an inference runtime.
+- Keep independent surfaces. Build single-window and multi-window frame loops in
+  consumers. A device owns neither a window nor a frame scheduler.
+- Use existing memory, execution and synchronization primitives for higher-level
+  graphics/ML algorithms. Specialized hardware capabilities remain scheduled;
+  their existence does not justify a parallel allocation or scheduling system.
+
+These decisions select the conceptual shape. They do not yet fix the argument
+field schema, descriptor location units or portable presentation record layout.
+Those are the bounded next C1 tasks, not reasons to implement several alternatives.
+
+## Ordinary operation sequence
+
+1. Discover capabilities; create a device and explicit queues.
+2. Allocate backing and prepare resources, descriptor storage, executable
+   interfaces and command storage. These operations may allocate/compile.
+3. Record bindings, argument updates, work and dependencies. Ordinary work does
+   not allocate argument buffers, inspect reachable resources or rebuild heaps.
+4. Submit recorded lists with explicit waits and signals. Caller-owned reusable
+   scratch accommodates native description translation when needed.
+5. Observe completion, then reuse application storage or replay the list. Reset,
+   destruction and resource reuse never insert a hidden wait.
+
+Native Rust implements these operations directly; C adapts the same operations.
+Neither interface adds ownership policy. Generated typed helpers can translate
+user argument structures at build time and are replaceable by third-party tools.
+
+## Arguments: one interface, distinct observation semantics
+
+The present `set_root` implementation validates a slot and delegates to the same
+eight-byte push-data update as `set_inline`; it is not a distinct Vulkan hardware
+operation. See [command encoding](../crates/ogpu/src/foundation/commands.rs) and
+[interface preparation](../crates/ogpu/src/foundation/executables.rs).
+That makes separate public operations candidates for consolidation. It does not
+prove that a raw byte bank is the correct universal contract.
+
+The existing [reuse result](argument-reuse-results.md) demonstrates a real
+bind-once workload; [partial-update evidence](argument-patch-results.md) covers
+changing a small portion of a larger argument record. Requiring a full argument
+resupply on every draw would discard known behavior. These are historical bounded
+results, not new measurements or proof of a particular cross-backend ABI.
+
+Proposed operation shape, intentionally pseudocode:
+
+```text
+prepare(artifact, argument_interface, state) -> executable
+bind_executable(encoder, executable)
+update_arguments(encoder, interface, selected_fields_or_ranges, values)
+dispatch/draw/trace(encoder, work_parameters)
+```
+
+An argument interface describes values, their interpretation by the artifact and
+their native update granularity. It is prepared outside recording. A reference
+value captures an address/binding; the referenced bytes are consumed at execution.
+An inline value is captured during recording. Address lifetime, alignment, resource
+access and arbitrary shader dereference support are distinct requirements.
+Do not infer nested shader pointers from a backend accepting a root buffer address.
+
+An interface consisting of one address supports the NGPU-style root. A compact
+inline record can hold several scalar values and addresses. Logical material,
+scene and tensor groups are user structures; they do not require independently
+named root objects in the core. A user may place a pointer table in GPU memory,
+but the core must not force the extra indirection when direct argument delivery
+can avoid it. D3D12's native root cost model confirms that inline values and
+buffer references are not interchangeable representations. [Root costs][root-costs]
+
+Cold metadata must distinguish actual constant-buffer/resource bindings from
+arbitrary integer address bits. The shader ABI, binding role and native budget
+must agree. The runtime must not reinterpret pointer bits as a different resource
+kind, silently spill inline data into a buffer, or merge incomplete address writes
+using a retained host copy.
+
+**Next decision A:** choose between a byte-range interface with declared atomic
+fields and a field-indexed interface with subranges for inline values. Show the
+lowering for one root address, one scalar patch and a combined address/scalar
+update. Reject any choice that adds a whole-interface scan, shadow bank or mandatory
+resupply to those cases. This is one update mechanism; different field roles are
+data semantics, not permission for a profile per backend.
+
+**Next decision B:** specify compatibility and invalidation. The old guarantee
+that equal byte offsets persist across every executable change is not retained
+automatically. However, invalidating everything on every bind would also force
+work. Compare prepared compatible interfaces, incompatible interfaces and mixed
+compute/graphics use; expose only guarantees the native mapping can preserve
+without restoration. D3D12 has distinct compute/graphics root signatures, so a
+Vulkan-wide bank cannot simply be assumed. [Native root state][root-state]
+
+## Descriptors: storage and mutation, not allocation policy
+
+Proposed operation shape:
+
+```text
+heap_requirements(kind, capacity, requested_capabilities) -> requirements
+heap_create(requirements, explicit_storage_choice) -> heap
+write_descriptors(heap, destinations, descriptions, scratch)
+copy_descriptors(destination_heap, source_heap, ranges)
+bind_heap(encoder, heap)
+heap_memory_view(heap) -> optional borrowed memory span + restrictions
+```
+
+Creation is cold. Writes/copies affect only selected locations and are independent
+of binding. Binding never materializes recipes or traverses all descriptors.
+Descriptor contents are observed according to their declared update/execution
+boundary; applications order mutation against consuming work. Resource lifetimes
+are not retained by descriptor entries. Disjoint updates obey reported native
+granularity and reserved-storage restrictions.
+
+The optional memory view is a candidate composition point: if supported, ordinary
+mapping, buffer copies and shader accesses operate on the heap's actual storage.
+There must be no shadow recipe buffer requiring a later commit/rebuild. If absent,
+the heap remains opaque and those memory operations are unsupported. This is not
+a portable GPU descriptor-editing promise: D3D12 exposes CPU editing, while Vulkan
+descriptor heaps expose memory access. [D3D12 heaps][descriptor-heaps],
+[Vulkan heaps][vulkan-heaps]
+
+Applications normally keep stable descriptors and generate indices. GPU selection
+of indices is not equivalent to GPU mutation of a descriptor. Preserve the latter
+capability only through a native mapping, without CPU readback. Likewise, explicit
+allocation/placement cannot be replaced by an automatic staging policy.
+
+**Next decision D:** specify heap locations, backing and view capabilities before
+writing declarations. A fixed maximum-sized slot can waste memory compared with
+the current mixed Vulkan layout; an unqualified byte offset falsely describes a
+DX12 heap. Compare native-unit offsets with generated typed accessors against
+indexed typed regions. Include CPU staging, device-local upload and mixed resource
+types. Select one location model and one authoritative storage representation.
+Do not adopt two heaps plus a mirroring mechanism to avoid this decision.
+
+## Commands, memory and dependencies
+
+Keep the current arena/encoder/list lifetime structure. Reuse flags describe
+whether a list can be submitted once, serially or concurrently; they do not create
+different scheduler abstractions. A user frame loop can choose never to replay.
+A fixed inference loop can update data and resubmit. Pool reset is not command
+replay. Secondary and generated execution remain capability-dependent because
+recording composition and GPU selection cannot generally be derived from ordinary
+CPU recording without extra work.
+
+Keep explicit backing, ranges, placed images, views and queried requirements.
+Application allocators compose them without mandatory registration per suballocation.
+Host spans carry backing identity for native operations that need it; device pointers
+remain shader values. M10 must resolve foreign/raw-address command endpoints rather
+than assuming that every address is a known OGPU allocation.
+
+Global stage/access dependencies are the default. Stage-scoped queue waits preserve
+the fragment-only producer/consumer case without holding back a draw's independent
+vertex work. Resource-specific transitions still need resource identity when native
+state changes demand it. Do not equate the scope of memory visibility with the scope
+of execution ordering. Existing ranged/split/ownership mechanisms are reviewed
+individually in the migration table, not deleted or expanded as a group.
+
+Memory placement, cache management, aliases, image transitions and copy footprints
+remain explicit requirements. Query a supported footprint and use one native copy
+where possible; row conversion, format conversion and staging allocation are user
+algorithms. No compatibility lowering may silently expand one image transfer into
+hundreds of row commands. Ordinary modern image access remains the default; legacy
+layout alternatives are not restored without a concrete need.
+
+Local validation failures occur before native side effects where promised.
+Recording errors poison the recording. Submission distinguishes rejection before
+acceptance, accepted work, and unknown/partial acceptance requiring conservative
+recovery. Do not promise native batch atomicity, retryability or resource retirement
+merely because one backend uses a single native submit call. Timeout is not
+completion; device loss must not masquerade as a completed timeline value.
+
+## Presentation and platform boundary
+
+Keep surfaces independent of devices and input/window creation outside OGPU.
+A surface identifies its native platform honestly. Prepared presentation storage
+belongs to the caller's explicit lifecycle; acquisition must not allocate a new
+ownership graph per frame.
+
+**Next decision P:** draft a common acquired-frame record that distinguishes
+availability, render completion, presentation retirement and image reuse, with
+explicit native capabilities where guarantees differ. Test its paper mapping for
+Wayland/Vulkan acquisition and DXGI current-image/resize behavior. It must not
+require an invented semaphore, host wait or bridge submission on DX12, or hide
+the actual Vulkan availability dependency. Query/return unsupported guarantees
+honestly. Resize failure must report which old resources remain valid.
+
+The user-level loop chooses frame count, queue, pacing, resize policy, minimized
+window behavior and retirement strategy. Multi-window uses the same primitives
+with independent surface state. This boundary remains optional for compute.
+
+## Whole-surface disposition and migration
+
+“Keep” means capability retained in the target, not every existing signature.
+“Review” leaves today's code intact until an explicit decision and migration.
+
+| Family / current entry points | Disposition | Migration or user composition |
+|---|---|---|
+| Discovery, queries, device/queue creation | Keep core | Explicit enabled capabilities and native limits; no implicit current device. |
+| Memory requirements/allocate/map/address/flush | Keep core | Arenas, suballocation, upload rings and deferred frees are user code. |
+| Images/views and explicit backing | Keep core | Loaders, mip chains and render-target pools compose resources and transfers. |
+| `write_*_descriptors`, `bind_heap` | Revise, decision D | One heap model; migrate existing raw storage and generated shader offsets together. No retained recipe path. |
+| `set_inline`, `set_root`, argument metadata | Consolidate, decisions A/B | One update mechanism and prepared interpretation; generated root setters become ordinary user/tooling helpers. |
+| Executable preparation and native cache | Keep core | Artifact/compiler cache policy stays outside; no command-time variant compilation. |
+| Arena/encoder/list, reset/trim/reuse | Keep one model | Frame slots, repeated inference and retirement queues use the same storage. |
+| Direct/indirect/count draw and dispatch | Keep hardware operations | Native GPU count consumption cannot be replaced by host readback or maximum-count empty work without changing cost. |
+| Secondary/generated layouts, sets and preprocessing | Keep capability-dependent | Caller builds command topology; no render graph or automatic preprocessing allocation. |
+| Queues, timeline points, scoped waits/signals | Keep core | User scheduler owns dependency graph and queue selection. |
+| Global barriers and image state transitions | Keep necessary semantics | Default global visibility; native image/interop/alias transitions carry identities. |
+| Buffer-range barriers, ownership modes, split events | Review individually | Use existing split-dependency evidence; identify a lost schedule/state transition before keeping an extra mechanism. No new broad benchmark gate. |
+| Transfer/fill/clear/resolve/blit | Keep hardware operations where non-derivable | Explicit footprint preparation and conversion kernels are user code; no hidden CPU/GPU conversion. |
+| Raster state, attachments, vertex/index fetch | Keep hardware coverage | Scene graphs, materials and PSO selection are user code; remove duplicate setters only with equivalent native encoding. |
+| Queries and diagnostics | Keep native observation | Profilers/capture tools compose explicit queries; instrumentation is opt-in. |
+| Presentation extension and binary/fence operations | Revise boundary, decision P | Independent surfaces; derive frame loops. Do not delete native synchronization needed for presentation/interop. |
+| Native Rust and C ABI | Same operations | Rust uses backend operations directly; C adapts errors/records. No safe wrapper hidden in either path. |
+| Numerical, subgroup and matrix capabilities | Shader/artifact requirements first | Tensor shapes, kernels, fusion and numerical policy belong in consumer/compiler libraries. |
+| M8 task/mesh and remaining advanced raster | Capability-dependent core | Reuse argument/execution/resource primitives; GPU culling remains an application algorithm. |
+| M9 rays | Capability-dependent hardware | AS requirements/build/query/trace and shader tables; allocation/build scheduling and scene abstractions remain outside. |
+| M10 interop, VM/sparse/residency | Capability-dependent hardware | Explicit shared memory/sync and mapping control where needed; eviction/streaming policy belongs above. |
+| M11 richer launch and media | Capability-dependent hardware | Reuse shader/command capabilities; codec sessions expose native work, not a playback/model runtime. |
+
+This table covers the whole target by mechanism family. Exact public-operation
+deletions and replacement signatures follow A/B/D/P; this is not permission to
+remove unlisted native facilities or an assertion that future families are implemented.
+
+## Public user-composition recipes
+
+**Argument arena:** allocate mapped memory, suballocate aligned root records in
+user code, populate and flush them when needed, and update the referenced argument
+value. Track the maximum outstanding completion for each reused range. Small
+recorded constants use the same interface's captured-value semantics, without an
+application root allocation. No upload allocator is built into dispatch.
+
+**Descriptor allocator/cache:** reserve locations inside one heap, memoize resource
+descriptions in the library if useful, write only changed entries and recycle
+locations after their last use. Stable descriptors plus a GPU-written index buffer
+support ordinary bindless selection. Descriptor relocation uses native storage
+capabilities only; the library does not receive a privileged backend API.
+
+**Repeated inference:** prepare kernels once, record the fixed sequence and its
+dependencies, then submit it repeatedly with ordered updates to input/argument
+storage. Inline arguments remain recorded values. Changing command topology
+requires rerecording or explicit generated work; the runtime does not infer it.
+
+**GPU-culled rendering:** a compute kernel writes indirect work/counts and selected
+data; an explicit dependency makes them visible to native indirect/generated
+execution. Materials and root data are user structures. CPU readback of the count
+is not an equivalent composition.
+
+**Frame loop:** allocate several user frame slots; each owns recording storage,
+application ranges and the presentation synchronization required by the chosen
+surface. Wait/poll only the slot being reused, acquire, record, submit and present.
+Retire old surface resources using their actual guarantees, not frame-number
+guessing. Multiple windows instantiate this state independently on one device.
+
+## DX12 mapping constraints, without a DX12 implementation on this branch
+
+| Primitive | Native mapping to preserve | Constraint / outstanding check |
+|---|---|---|
+| Captured argument values | Root constants | Exact budget and update range; no buffer allocation/spill hidden by OGPU. |
+| Address/resource arguments | Appropriate root buffer binding or shader-visible address representation | Shader ABI must declare the role; nested physical pointers are not established by a host root binding. |
+| Interface reuse | Compatible prepared root signatures | Compute/graphics namespaces are distinct; no unconditional dual writes or host replay. A/B select exact guarantees. |
+| Descriptor storage | Native resource/sampler heaps with explicit CPU writes/copies | Bind does no rebuild. GPU byte editing is unsupported through current D3D12; D must represent this honestly. |
+| Commands/replay | Native allocator/list lifecycle | Native reuse/allocator retirement must match declared mode; no rerecording sold as replay. |
+| Dependencies | Enhanced barriers and queue fence ordering | Grouped/free-access lowering must be corrected; stage-scoped cross-queue guarantees cannot be fabricated from a whole-queue wait. |
+| Transfers | Native footprints and copy operations | Query pitch/placement requirements; no automatic per-row fallback. |
+| Presentation | Typed HWND surface and DXGI lifecycle | Availability, resize and retirement are not Vulkan acquisition/replacement; P selects a common honest contract. |
+| Failure | Per-operation native outcome | Queue wait/execute/signal can have partial acceptance; device-removed completion sentinels are failures. |
+
+These constraints come from the [pinned review](dx12-review-handoff-2026-10-30.md)
+and native documentation; they are not newly validated Windows behavior. The
+reference stays on `dx12-backend`. Metal's [mapping proposal](m6-native-mapping.md)
+remains an additional design check, with native execution deferred.
+
+## Remaining C1 work and verification
+
+1. Resolve A/B with exact C/Rust records and compiler metadata for captured values,
+   native buffer references, partial updates and compatibility/invalidation. Trace
+   one root, scalar patch, repeated work, incompatible rebind and compute/graphics
+   alternation to native operations. Reuse existing snapshot/reuse/patch fixtures.
+2. Resolve D with exact location/layout/placement records. Map mixed descriptors,
+   explicit device-local upload, disjoint in-flight updates and optional native
+   memory access. No bind-time rebuild and no duplicated authoritative storage.
+3. Resolve P with frame/availability/retirement records and a Linux/Windows lifecycle
+   table, including resize failure and abandonment. Native Windows execution stays
+   deferred; state any guarantee that source review cannot establish.
+4. Close the reviewed ranged/split/ownership dispositions against existing evidence.
+   Produce a signature-level migration/deletion list and revise the whole-surface
+   sketch. Then C1 can close and C2 can change runtime/tooling/consumers together.
+
+C2 acceptance will check host ABI, generated layouts, lowering and affected Linux
+consumers. Only uncertain native costs need targeted measurements. No fresh GPU,
+new model download, DX12 emulation or per-feature benchmark campaign is required.
+
+[root-costs]: https://learn.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
+[root-state]: https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-a-root-signature
+[descriptor-heaps]: https://learn.microsoft.com/en-us/windows/win32/direct3d12/descriptor-heaps-overview
+[vulkan-heaps]: https://docs.vulkan.org/features/latest/features/proposals/VK_EXT_descriptor_heap.html

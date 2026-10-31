@@ -108,6 +108,11 @@ reducing mechanisms that users can compose efficiently themselves.
 
 ### C1 — Derive and select the minimal contract
 
+Started 2026-10-31: [first contract draft](minimal-core-contract.md), whole-surface
+dispositions, public user compositions and a DX12 mapping table are written.
+The bounded remaining record/compatibility decisions are listed there. This is
+design progress, not C1 completion or implemented support.
+
 Produce one revised whole-API draft, including C/Rust operation correspondence,
 shader/artifact ABI, lifetimes, observation points, invalidation, capabilities and
 failure outcomes. Start with one logical argument interface, one descriptor-storage

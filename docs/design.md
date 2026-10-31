@@ -65,6 +65,8 @@ declaration. The [contract revision sequence](roadmap.md#minimal-core-revision)
 must supply a composition or a concrete counterexample before retaining,
 consolidating, moving out or removing a mechanism. Historical validation remains
 evidence for its tested implementation, not an obligation to freeze its API shape.
+The [active C1 draft](minimal-core-contract.md) now records the first dispositions
+and the precise remaining argument, descriptor and presentation decisions.
 
 ## Model and ownership
 
