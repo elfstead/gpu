@@ -1,12 +1,13 @@
 # Working status and next milestone
 
-Updated 2026-10-31. **C1 is active: select the minimal composable foundation
+Updated 2026-11-03. **C1 is active: select the minimal composable foundation
 contract, then C2: implement the coordinated revision, and C3: accept the available
 native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
-constraints. Exact argument, descriptor and presentation records remain open;
-C1 is not complete. Runtime code and native acceptance are unchanged.
+constraints. [Argument update/reuse A/B](minimal-core-arguments.md) now has selected
+semantics and exact C/Rust draft records. Descriptor and presentation records
+remain open; C1 is not complete. Runtime code and native acceptance are unchanged.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -105,11 +106,13 @@ preserved capability in C1 before implementation.
 The complete target remains graphics, general compute and ML, including the
 scheduled specialized hardware facilities.
 
-Current C1 checkpoint: [contract draft](minimal-core-contract.md). The existing
-argument reuse and partial-update evidence is reused, not rerun. Next resolve
-argument update granularity and compatibility (A/B), descriptor locations/storage
-(D) and frame availability/retirement records (P); then publish exact signatures
-and the migration/deletion list before C2. No final profile count is assumed.
+Current C1 checkpoint: [contract draft](minimal-core-contract.md) plus selected
+[A/B records and migration](minimal-core-arguments.md). One range-update operation
+replaces separate root/inline operations; native domains/compatibility metadata
+describe reuse without shadow restoration. Existing argument reuse/partial-update
+evidence is reused, not rerun. Next resolve descriptor locations/storage (D), frame
+availability/retirement (P) and reviewed dependency dispositions; consolidate their
+signatures and deletion map before C2. No final profile count is assumed.
 
 ## P1: implemented, partial human acceptance
 

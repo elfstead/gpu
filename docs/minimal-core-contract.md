@@ -27,9 +27,10 @@ the next revision of the [whole-API target](whole-api-design.md), governed by th
   graphics/ML algorithms. Specialized hardware capabilities remain scheduled;
   their existence does not justify a parallel allocation or scheduling system.
 
-These decisions select the conceptual shape. They do not yet fix the argument
-field schema, descriptor location units or portable presentation record layout.
-Those are the bounded next C1 tasks, not reasons to implement several alternatives.
+These decisions select the conceptual shape. Argument decisions A/B now have a
+[selected contract and exact record sketches](minimal-core-arguments.md).
+Descriptor locations and presentation records remain bounded C1 tasks, not reasons
+to implement several alternatives.
 
 ## Ordinary operation sequence
 
@@ -62,12 +63,13 @@ changing a small portion of a larger argument record. Requiring a full argument
 resupply on every draw would discard known behavior. These are historical bounded
 results, not new measurements or proof of a particular cross-backend ABI.
 
-Proposed operation shape, intentionally pseudocode:
+Selected operation shape (record details in the A/B contract):
 
 ```text
-prepare(artifact, argument_interface, state) -> executable
+prepare_argument_layout(fields, execution_class) -> layout
+prepare(artifact, layout, state) -> executable
 bind_executable(encoder, executable)
-update_arguments(encoder, interface, selected_fields_or_ranges, values)
+set_arguments(encoder, layout, byte_offset, byte_count, values)
 dispatch/draw/trace(encoder, work_parameters)
 ```
 
@@ -92,20 +94,18 @@ must agree. The runtime must not reinterpret pointer bits as a different resourc
 kind, silently spill inline data into a buffer, or merge incomplete address writes
 using a retained host copy.
 
-**Next decision A:** choose between a byte-range interface with declared atomic
-fields and a field-indexed interface with subranges for inline values. Show the
-lowering for one root address, one scalar patch and a combined address/scalar
-update. Reject any choice that adds a whole-interface scan, shadow bank or mandatory
-resupply to those cases. This is one update mechanism; different field roles are
-data semantics, not permission for a profile per backend.
+**A selected, 2026-11-03:** one byte-range update with declared atomic native
+address fields and partially writable inline fields. One root, a scalar patch and
+a combined address/scalar update have explicit lowerings. Separate exported
+`set_root` and `set_inline` paths consolidate; generated typed helpers use that
+same operation. No argument shadow or mandatory per-draw resupply.
 
-**Next decision B:** specify compatibility and invalidation. The old guarantee
-that equal byte offsets persist across every executable change is not retained
-automatically. However, invalidating everything on every bind would also force
-work. Compare prepared compatible interfaces, incompatible interfaces and mixed
-compute/graphics use; expose only guarantees the native mapping can preserve
-without restoration. D3D12 has distinct compute/graphics root signatures, so a
-Vulkan-wide bank cannot simply be assumed. [Native root state][root-state]
+**B selected, 2026-11-03:** immutable layout metadata reports native storage
+domain/base, binding-compatibility key and bind invalidation. Preserve native reuse
+without promising a universal bank or universal stage isolation. Bind does not
+restore cached values. See the [A/B rules, examples and migration](minimal-core-arguments.md)
+and [C sketch](drafts/ogpu_arguments.h)/[Rust records](drafts/arguments.rs).
+These are design decisions; runtime and native validation are still pending.
 
 ## Descriptors: storage and mutation, not allocation policy
 
@@ -215,7 +215,7 @@ with independent surface state. This boundary remains optional for compute.
 | Memory requirements/allocate/map/address/flush | Keep core | Arenas, suballocation, upload rings and deferred frees are user code. |
 | Images/views and explicit backing | Keep core | Loaders, mip chains and render-target pools compose resources and transfers. |
 | `write_*_descriptors`, `bind_heap` | Revise, decision D | One heap model; migrate existing raw storage and generated shader offsets together. No retained recipe path. |
-| `set_inline`, `set_root`, argument metadata | Consolidate, decisions A/B | One update mechanism and prepared interpretation; generated root setters become ordinary user/tooling helpers. |
+| `set_inline`, `set_root`, argument metadata | A/B selected; migration pending | One byte-range update and prepared layout; generated root setters become ordinary user/tooling helpers. |
 | Executable preparation and native cache | Keep core | Artifact/compiler cache policy stays outside; no command-time variant compilation. |
 | Arena/encoder/list, reset/trim/reuse | Keep one model | Frame slots, repeated inference and retirement queues use the same storage. |
 | Direct/indirect/count draw and dispatch | Keep hardware operations | Native GPU count consumption cannot be replaced by host readback or maximum-count empty work without changing cost. |
@@ -274,7 +274,7 @@ guessing. Multiple windows instantiate this state independently on one device.
 |---|---|---|
 | Captured argument values | Root constants | Exact budget and update range; no buffer allocation/spill hidden by OGPU. |
 | Address/resource arguments | Appropriate root buffer binding or shader-visible address representation | Shader ABI must declare the role; nested physical pointers are not established by a host root binding. |
-| Interface reuse | Compatible prepared root signatures | Compute/graphics namespaces are distinct; no unconditional dual writes or host replay. A/B select exact guarantees. |
+| Interface reuse | Compatible prepared root signatures | A/B report native domains and bind invalidation; no unconditional dual writes or host replay. |
 | Descriptor storage | Native resource/sampler heaps with explicit CPU writes/copies | Bind does no rebuild. GPU byte editing is unsupported through current D3D12; D must represent this honestly. |
 | Commands/replay | Native allocator/list lifecycle | Native reuse/allocator retirement must match declared mode; no rerecording sold as replay. |
 | Dependencies | Enhanced barriers and queue fence ordering | Grouped/free-access lowering must be corrected; stage-scoped cross-queue guarantees cannot be fabricated from a whole-queue wait. |
@@ -289,10 +289,10 @@ remains an additional design check, with native execution deferred.
 
 ## Remaining C1 work and verification
 
-1. Resolve A/B with exact C/Rust records and compiler metadata for captured values,
-   native buffer references, partial updates and compatibility/invalidation. Trace
-   one root, scalar patch, repeated work, incompatible rebind and compute/graphics
-   alternation to native operations. Reuse existing snapshot/reuse/patch fixtures.
+1. A/B's [contract and records](minimal-core-arguments.md) are selected. Integrate
+   their signatures into the full revised surface after D/P; ensure descriptor and
+   generated-work state effects compose with the declared argument domains. Runtime
+   lowering and existing snapshot/reuse/patch regressions belong to C2/C3.
 2. Resolve D with exact location/layout/placement records. Map mixed descriptors,
    explicit device-local upload, disjoint in-flight updates and optional native
    memory access. No bind-time rebuild and no duplicated authoritative storage.

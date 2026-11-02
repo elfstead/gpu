@@ -110,8 +110,10 @@ reducing mechanisms that users can compose efficiently themselves.
 
 Started 2026-10-31: [first contract draft](minimal-core-contract.md), whole-surface
 dispositions, public user compositions and a DX12 mapping table are written.
-The bounded remaining record/compatibility decisions are listed there. This is
-design progress, not C1 completion or implemented support.
+On 2026-11-03, [A/B argument updates and reuse](minimal-core-arguments.md) select
+one range update, atomic native address fields and explicit storage/compatibility
+metadata, with C/Rust record sketches. D/P and the dependency dispositions remain.
+This is design progress, not C1 completion or implemented support.
 
 Produce one revised whole-API draft, including C/Rust operation correspondence,
 shader/artifact ABI, lifetimes, observation points, invalidation, capabilities and
