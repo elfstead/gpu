@@ -219,14 +219,26 @@ C/Rust ABI values (including the actual new runtime records); reproducible nativ
 bindings; and both C1 draft/surface audits pass. The new native test creates a real
 pipeline with a borrowed layout, instruments command emission, checks late-address
 rejection, exact one-call updates, layout mismatch and poisoned recording behavior.
-It does not dispatch a shader consuming the newly mapped buffer declarations.
+That first native test does not dispatch mapped buffer declarations. A follow-up
+execution fixture now covers that gap: pinned Slang's `foundation-arguments`
+shader uses bound inline constants, uniform/read/read-write buffer addresses and
+a direct physical pointer in one prepared layout. Two real pipelines share the
+layout, with a four-byte inline update and an eight-byte destination-address update
+between dispatches. Two executions change every pointee while retaining captured
+argument values. Both outputs and all surrounding guard words pass on the same
+RADV device, including four-byte storage addresses that do not meet a blanket
+storage-descriptor offset alignment. The run also passes with Khronos validation
+and synchronization validation enabled, with no validation messages. All checked-in
+foundation shaders, including this fixture, reproduce with Slang 2026.14.1 and
+validate for Vulkan 1.4.
+
 Existing native/consumer receipts cover the transitional all-inline path. Unsupported
 hardware profiles remain explicit exclusions in the consumer, not acceptance.
 
 **Next:** cut the public C/Rust records, layout operations, compiler-generated
-metadata and argument consumers over together. Add shader execution/readback for
-bound inline constants and uniform/read/read-write address fields, preserve direct
-physical-pointer consumers, and remove the temporary root/inline adapters. Shader
+metadata and argument consumers over together. Reuse the mapped shader execution/
+readback fixture through the final public interface, preserve direct physical-pointer
+consumers, and remove the temporary root/inline adapters. Shader
 resource/type agreement is an artifact-generation/caller obligation on this unsafe
 internal path; no SPIR-V reflection or additional shader traversal was added to
 pipeline creation. C2 and local C3 remain incomplete.

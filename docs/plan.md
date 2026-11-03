@@ -126,6 +126,9 @@ scheduler. Dependencies now retain justified ranges/split/ownership, independent
 scoped entries and one submission operation. The complete signatures/deletion map
 is now [consolidated](minimal-core-migration.md). C2 shared argument records and
 the internal prepared-layout/updater engine are implemented and locally checked.
+A pinned mixed-mapping shader now passes real uniform/storage/inline access,
+shared-layout pipeline binding, partial updates and changed-pointee replay with
+guards and synchronization validation on RADV.
 Next cut compiler metadata, public C/Rust signatures and argument consumers over
 and delete the temporary adapters; then migrate
 descriptor/composition, dependencies/submission and presentation before local C3.

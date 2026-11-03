@@ -779,3 +779,7 @@ mod tests {
         assert!(tested > 0, "No suitable device, not a passing skip");
     }
 }
+
+#[cfg(test)]
+#[path = "argument_execution.rs"]
+mod execution;

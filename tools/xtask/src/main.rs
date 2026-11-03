@@ -314,6 +314,7 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
     }
     for (name, entry, stage, suffix) in [
         ("foundation-compute", "transform", "compute", "comp"),
+        ("foundation-arguments", "mappedArguments", "compute", "comp"),
         ("foundation-heaps", "consume", "compute", "comp"),
         ("foundation-cube", "cubeMain", "compute", "comp"),
         ("foundation-compressed", "compressedMain", "compute", "comp"),
