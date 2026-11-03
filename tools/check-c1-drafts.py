@@ -54,15 +54,28 @@ PRESENT_RETIRE_FENCE PRESENT_PACING_HANDLE PRESENT_BINARY_WAIT CHAIN_NONE CHAIN_
 CHAIN_RETIRED CHAIN_NO_IMAGES CHAIN_LOST IMAGES_UNCHANGED IMAGES_REPLACED IMAGES_INVALIDATED
 FRAME_RETAINED FRAME_RELEASED FRAME_UNKNOWN EFFECT_NONE EFFECT_ENQUEUED EFFECT_UNKNOWN
 WAITABLE_WIN32""".split()
+DEPENDENCY_RECORDS = [
+    ("dependency_limits", "DependencyLimits", "domain flags memory_scope reserved wait_stages signal_stages split_stages"),
+    ("barrier_scope", "BarrierScope", "stages_before stages_after access_before access_after"),
+    ("memory_barrier", "MemoryBarrier", "scope range source_domain destination_domain"),
+    ("image_barrier", "ImageBarrier", "scope image range old_state new_state source_domain destination_domain discard reserved"),
+    ("dependency", "Dependency", "global_count memory_count image_count flags global memory images"),
+    ("split_dependency", "SplitDependency", "split dependency"),
+    ("submit_desc", "SubmitDesc", "list_count wait_count signal_count binary_wait_count binary_signal_count flags lists waits signals binary_waits binary_signals"),
+    ("submit_outcome", "SubmitOutcome", "status acceptance"),
+]
+DEPENDENCY_CONSTANTS = """QUERY_DEPENDENCY_LIMITS DEPENDENCY_SPLIT DEPENDENCY_OWNERSHIP
+DEPENDENCY_BINARY MEMORY_SCOPE_NONE MEMORY_SCOPE_OBJECT MEMORY_SCOPE_BYTES
+SUBMIT_REJECTED SUBMIT_ACCEPTED SUBMIT_UNKNOWN""".split()
 
 
 def main():
     cc = os.environ.get("CC", "cc")
     rustc = os.environ.get("RUSTC", "rustc")
-    headers = ["ogpu_arguments.h", "ogpu_descriptors.h", "ogpu_presentation.h"]
+    headers = ["ogpu_arguments.h", "ogpu_descriptors.h", "ogpu_presentation.h", "ogpu_dependencies.h"]
     c = ['#include <stdio.h>', '#include <stddef.h>',
          *[f'#include "docs/drafts/{h}"' for h in headers], 'int main(void) {']
-    rust = ['mod arguments;', 'mod descriptors;', 'mod presentation;',
+    rust = ['mod arguments;', 'mod descriptors;', 'mod presentation;', 'mod dependencies;',
             'use std::mem::{size_of, align_of, offset_of};', 'fn main() {']
     records = [("ogpu_draft_" + name, f"arguments::{rn}", fields)
                for name, rn, fields in ARGUMENT_RECORDS]
@@ -70,10 +83,16 @@ def main():
                 for name, rn, fields in DESCRIPTOR_RECORDS]
     records += [("ogpu_draft_" + name, f"presentation::{rn}", fields)
                 for name, rn, fields in PRESENTATION_RECORDS]
+    records += [("ogpu_draft_" + name, f"dependencies::{rn}", fields)
+                for name, rn, fields in DEPENDENCY_RECORDS]
     # Verify imported layouts too: descriptor drafts mirror borrowed spans.
     records += [("ogpu_next_span", "descriptors::Span", "memory offset size"),
                 ("ogpu_next_host_span", "descriptors::HostSpan", "data size"),
-                ("ogpu_next_record", "presentation::Record", "kind version byte_size flags next")]
+                ("ogpu_next_record", "presentation::Record", "kind version byte_size flags next"),
+                ("ogpu_next_point", "dependencies::Point", "timeline value"),
+                ("ogpu_next_sync_point", "dependencies::SyncPoint", "point stages"),
+                ("ogpu_next_binary_point", "dependencies::BinaryPoint", "binary stages"),
+                ("ogpu_next_subresources", "dependencies::Subresources", "aspects first_mip mip_count first_layer layer_count")]
     for ct, rt, fields in records:
         values = [("size", f"sizeof({ct})", f"size_of::<{rt}>()"),
                   ("align", f"_Alignof({ct})", f"align_of::<{rt}>()")]
@@ -87,6 +106,7 @@ def main():
                  for name in ARGUMENT_CONSTANTS]
     constants += [(name, "descriptors::" + name) for name in DESCRIPTOR_CONSTANTS]
     constants += [(name, "presentation::" + name) for name in PRESENTATION_CONSTANTS]
+    constants += [(name, "dependencies::" + name) for name in DEPENDENCY_CONSTANTS]
     for name, rt in constants:
         c.append(f'printf("{name}=%llu\\n", (unsigned long long)OGPU_DRAFT_{name});')
         rust.append(f'println!("{name}={{}}", {rt});')
@@ -96,7 +116,7 @@ def main():
         temp = Path(directory)
         (temp / "check.c").write_text("\n".join(c))
         (temp / "check.rs").write_text("\n".join(rust))
-        for module in ("arguments", "descriptors", "presentation"):
+        for module in ("arguments", "descriptors", "presentation", "dependencies"):
             (temp / f"{module}.rs").write_bytes((ROOT / f"docs/drafts/{module}.rs").read_bytes())
         flags = ["-Wall", "-Wextra", "-Werror", "-pedantic"]
         subprocess.run([cc, "-std=c11", *flags, "-I", str(ROOT),

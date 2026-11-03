@@ -31,7 +31,8 @@ These decisions select the conceptual shape. Argument decisions A/B now have a
 [selected contract and exact record sketches](minimal-core-arguments.md).
 Descriptor decision D also has a [selected storage contract and records](minimal-core-descriptors.md).
 Presentation decision P has a [selected lifecycle and record sketch](minimal-core-presentation.md).
-Dependency dispositions and full-surface integration remain C1 tasks.
+[Dependency and submission decisions](minimal-core-dependencies.md) are also selected.
+Full-surface integration remains the last C1 task.
 
 ## Ordinary operation sequence
 
@@ -169,7 +170,10 @@ the fragment-only producer/consumer case without holding back a draw's independe
 vertex work. Resource-specific transitions still need resource identity when native
 state changes demand it. Do not equate the scope of memory visibility with the scope
 of execution ordering. Existing ranged/split/ownership mechanisms are reviewed
-individually in the migration table, not deleted or expanded as a group.
+individually in the [selected disposition](minimal-core-dependencies.md): retain
+their justified native scopes, with per-entry stages in one batched dependency.
+Submit uses one array operation with explicit acceptance outcomes and one caller
+scratch span. Single-batch and binary variants become ordinary input shapes.
 
 Memory placement, cache management, aliases, image transitions and copy footprints
 remain explicit requirements. Query a supported footprint and use one native copy
@@ -222,7 +226,8 @@ with independent surface state. This boundary remains optional for compute.
 | Secondary/generated layouts, sets and preprocessing | Keep capability-dependent | Caller builds command topology; no render graph or automatic preprocessing allocation. |
 | Queues, timeline points, scoped waits/signals | Keep core | User scheduler owns dependency graph and queue selection. |
 | Global barriers and image state transitions | Keep necessary semantics | Default global visibility; native image/interop/alias transitions carry identities. |
-| Buffer-range barriers, ownership modes, split events | Review individually | Use existing split-dependency evidence; identify a lost schedule/state transition before keeping an extra mechanism. No new broad benchmark gate. |
+| Buffer-range barriers, ownership modes, split events | Selected capability-dependent core | Preserve bounded native visibility/ownership and split producer scopes; per-entry stages avoid forced scope unions. No new benchmark gate. |
+| Single/batched/binary submission | Consolidate | One batch-array operation, explicit acceptance outcomes and one translation span; no binary extension or duplicate runtime paths. |
 | Transfer/fill/clear/resolve/blit | Keep hardware operations where non-derivable | Explicit footprint preparation and conversion kernels are user code; no hidden CPU/GPU conversion. |
 | Raster state, attachments, vertex/index fetch | Keep hardware coverage | Scene graphs, materials and PSO selection are user code; remove duplicate setters only with equivalent native encoding. |
 | Queries and diagnostics | Keep native observation | Profilers/capture tools compose explicit queries; instrumentation is opt-in. |
@@ -301,9 +306,10 @@ remains an additional design check, with native execution deferred.
    including resize failure, abandonment and explicit native acceptance effects.
    Integrate the surface-query/platform/status namespaces. Windows cross-queue,
    native failure and teardown validation remain explicit later checks.
-4. Close the reviewed ranged/split/ownership dispositions against existing evidence.
-   Produce a signature-level migration/deletion list and revise the whole-surface
-   sketch. Then C1 can close and C2 can change runtime/tooling/consumers together.
+4. [Dependency/submission dispositions and records](minimal-core-dependencies.md)
+   are selected. Integrate them with the other drafts, produce a signature-level
+   migration/deletion list and revise the whole-surface sketch. Then C1 can close
+   and C2 can change runtime/tooling/consumers together.
 
 C2 acceptance will check host ABI, generated layouts, lowering and affected Linux
 consumers. Only uncertain native costs need targeted measurements. No fresh GPU,

@@ -10,7 +10,8 @@ semantics and exact C/Rust draft records. [Descriptor storage D](minimal-core-de
 now selects native-unit locations, explicit backing/copy rights and one authoritative
 representation. [Presentation P](minimal-core-presentation.md) now selects borrowed
 frames, native availability, explicit outcome effects and replacement/resize lifetimes.
-Dependency dispositions and full-surface integration remain; C1 is not complete.
+[Dependency/submission decisions](minimal-core-dependencies.md) now preserve justified
+scopes and consolidate submission. Full-surface integration remains; C1 is not complete.
 Runtime code and native acceptance are unchanged.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
@@ -118,8 +119,9 @@ describe reuse without shadow restoration. Existing argument reuse/partial-updat
 evidence is reused, not rerun. Descriptor storage now has one native-unit location
 model and explicit CPU-copy/source rights without a mirror. Presentation separates
 availability, render completion, native retirement and image reuse without a frame
-scheduler. Next close the reviewed dependency dispositions and consolidate the
-complete signatures/deletion map before C2. No final profile count is assumed.
+scheduler. Dependencies now retain justified ranges/split/ownership, independently
+scoped entries and one submission operation. Next consolidate the complete
+signatures/deletion map before C2. No final profile count is assumed.
 
 ## P1: implemented, partial human acceptance
 

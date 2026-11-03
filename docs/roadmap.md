@@ -116,7 +116,9 @@ metadata, with C/Rust record sketches. [D descriptor storage](minimal-core-descr
 also selects native-unit locations, explicit backing/copy rights and accessible
 native spans, with record sketches. [P presentation lifecycle](minimal-core-presentation.md)
 selects borrowed frames, native availability and explicit acceptance/resize effects.
-Dependency dispositions and full-surface integration remain.
+[Dependency/submission decisions](minimal-core-dependencies.md) preserve justified
+ranged/split/ownership scopes and select one submission operation with outcomes.
+Full-surface integration remains.
 This is design progress, not C1 completion or implemented support.
 
 Produce one revised whole-API draft, including C/Rust operation correspondence,
