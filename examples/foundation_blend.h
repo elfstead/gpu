@@ -2,6 +2,7 @@
  * RGBA32_FLOAT and binary fractions avoid UNORM rounding policy in the oracle. */
 static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                                  const char *vertex_path, const char *fragment_path) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL; void *code[2] = {NULL}, *bs = NULL, *rs = NULL, *ss = NULL;
     ogpu_next_executable *pipelines[16] = {NULL};
@@ -15,8 +16,9 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
     }
     ogpu_next_graphics_limits limits = {0}; q = query(OGPU_NEXT_QUERY_GRAPHICS_LIMITS,&limits,1,sizeof(limits));
     TRY(ogpu_next_device_query(device,&q)); REQUIRE(limits.max_dual_source_attachments >= 1);
-    ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,16};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,1,&slot};
+    ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_GRAPHICS,8,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_shader shaders[2]; const char *paths[2] = {vertex_path,fragment_path};
     for (uint32_t i = 0; i < 2; ++i) {
         file = fopen(paths[i],"rb"); REQUIRE(file != NULL);
@@ -24,7 +26,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
         REQUIRE(fseek(file,0,SEEK_SET) == 0); code[i] = malloc((size_t)size); REQUIRE(code[i] != NULL);
         REQUIRE(fread(code[i],1,(size_t)size,file) == (size_t)size); fclose(file); file = NULL;
         shaders[i] = (ogpu_next_shader){i ? OGPU_NEXT_STAGE_FRAGMENT : OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,
-            {code[i],(size_t)size},i ? "fragmentMain" : "vertexMain",&abi.header,NULL,NULL};
+            {code[i],(size_t)size},i ? "fragmentMain" : "vertexMain",NULL,NULL};
     }
     ogpu_next_color_state color = {OGPU_NEXT_RGBA32_FLOAT,15,1,1,1,0,1,1,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
@@ -37,7 +39,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
         color.src_color = color.dst_color = color.src_alpha = color.dst_alpha = OGPU_NEXT_BLEND_ONE;
         uint32_t *factor_fields[4] = {&color.src_color,&color.dst_color,&color.src_alpha,&color.dst_alpha};
         *factor_fields[i/4] = OGPU_NEXT_BLEND_SRC1_COLOR+i%4;
-        TRY(ogpu_next_executable_create(device,&ed,&pipelines[i]));
+        TRY(ogpu_next_executable_create(device, &ed, arguments, &pipelines[i]));
     }
     for (uint32_t i = 0; i < 2; ++i) { free(code[i]); code[i] = NULL; }
     md.size = 32768; TRY(ogpu_next_memory_create(device,&md,&memory));
@@ -81,7 +83,7 @@ static int dual_source_execution(ogpu_next_device *device, ogpu_next_memory_desc
         }
         ogpu_next_barrier(encoder,&dep);
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,pipelines[i]);
-        ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_root(encoder,slot.stages,0,address);
+        ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
         ogpu_next_draw(encoder,&draw); ogpu_next_draw(encoder,&draw); ogpu_next_render_end(encoder);
         barrier.before = OGPU_NEXT_ACCESS_COLOR_WRITE; barrier.after = OGPU_NEXT_ACCESS_COPY_READ;
         barrier.old_state = OGPU_NEXT_STATE_COLOR_ATTACHMENT; barrier.new_state = OGPU_NEXT_STATE_COPY_SRC; barrier.discard = 0;
@@ -125,5 +127,6 @@ cleanup:
     ogpu_next_timeline_destroy(done); ogpu_next_view_destroy(view); ogpu_next_image_destroy(image);
     ogpu_next_memory_destroy(backing); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
-    free(code[0]); free(code[1]); free(bs); free(rs); free(ss); return result;
+    free(code[0]); free(code[1]); free(bs); free(rs); free(ss);     ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

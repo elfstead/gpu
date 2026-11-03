@@ -64,20 +64,21 @@ static const uint32_t scene_pair_vertex_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
 #define scene_pair_vertex_required_features (OGPU_NEXT_FEATURE_RASTER)
-static const ogpu_next_argument_interface scene_pair_vertex_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 8, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field scene_pair_vertex_argument_field = {
+    0, 8, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc scene_pair_vertex_arguments = {
+    OGPU_NEXT_ARGUMENT_GRAPHICS, 8, (8) != 0, 0, (8) ? &scene_pair_vertex_argument_field : NULL};
 static const ogpu_next_shader_requirements scene_pair_vertex_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = scene_pair_vertex_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader scene_pair_vertex_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_VERTEX, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {scene_pair_vertex_code, sizeof(scene_pair_vertex_code)}, .entry = "main",
-        .interface_metadata = &scene_pair_vertex_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int scene_pair_vertex_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & scene_pair_vertex_required_features) == scene_pair_vertex_required_features
-        && l->max_inline_size >= 8;
+        && l->max_inline_bytes >= 8;
 }
 #endif
 
@@ -115,16 +116,17 @@ static const uint32_t scene_pair_fragment_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
 #define scene_pair_fragment_required_features (OGPU_NEXT_FEATURE_RASTER)
-static const ogpu_next_argument_interface scene_pair_fragment_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 0, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field scene_pair_fragment_argument_field = {
+    0, 0, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc scene_pair_fragment_arguments = {
+    OGPU_NEXT_ARGUMENT_GRAPHICS, 0, (0) != 0, 0, (0) ? &scene_pair_fragment_argument_field : NULL};
 static const ogpu_next_shader_requirements scene_pair_fragment_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = scene_pair_fragment_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader scene_pair_fragment_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_FRAGMENT, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {scene_pair_fragment_code, sizeof(scene_pair_fragment_code)}, .entry = "main",
-        .interface_metadata = &scene_pair_fragment_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int scene_pair_fragment_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     (void)l;
@@ -137,15 +139,15 @@ enum { scene_pair_push_size = 8 };
  * Stage structs are views of these SAME bytes. The caller must supply
  * simultaneously valid values; this linker never relocates or packs roots. */
 #define scene_pair_required_features (scene_pair_vertex_required_features | scene_pair_fragment_required_features)
-static const ogpu_next_argument_interface scene_pair_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = scene_pair_push_size, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field scene_pair_argument_field = {
+    0, scene_pair_push_size, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc scene_pair_arguments = {
+    OGPU_NEXT_ARGUMENT_GRAPHICS, scene_pair_push_size, (scene_pair_push_size) != 0, 0, (scene_pair_push_size) ? &scene_pair_argument_field : NULL};
 static const ogpu_next_shader_requirements scene_pair_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = scene_pair_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline void scene_pair_shaders(ogpu_next_shader out[2]) {
     out[0] = scene_pair_vertex_shader(); out[1] = scene_pair_fragment_shader();
-    out[0].interface_metadata = out[1].interface_metadata = &scene_pair_interface.header;
 }
 static inline int scene_pair_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return scene_pair_vertex_compatible(c, l) && scene_pair_fragment_compatible(c, l);

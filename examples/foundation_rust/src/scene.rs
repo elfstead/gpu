@@ -244,6 +244,7 @@ unsafe fn record_frame(
     index: u32,
     texture: &Texture,
     pipelines: &[gpu::ExecutableHandle; 2],
+    arguments: gpu::ArgumentLayoutHandle,
     camera: Camera,
     barriers: &mut Scratch,
     rendering: &mut Scratch,
@@ -376,9 +377,9 @@ unsafe fn record_frame(
                 lod: camera.lod as f32,
                 overlay: overlay as u32,
             };
-            gpu::set_inline(
+            gpu::set_arguments(
                 list,
-                VERTEX | FRAGMENT,
+                arguments,
                 0,
                 std::slice::from_raw_parts(ptr::from_ref(&root).cast(), size_of::<Root>()),
             );
@@ -615,9 +616,28 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
         let done = gpu::timeline_create(d, 0)?;
         let mut generation =
             Generation::new(d, adapter, surface, window.framebuffer(), None, check)?;
+        let field = ArgumentField {
+            offset: 0,
+            size: 24,
+            kind: ARGUMENT_INLINE,
+            address_alignment: 0,
+            stages: VERTEX | FRAGMENT,
+            space: ARGUMENT_DIRECT,
+            binding: ARGUMENT_DIRECT,
+        };
+        let arguments = gpu::argument_layout_create(
+            d,
+            &ArgumentLayoutDesc {
+                execution_class: ARGUMENT_GRAPHICS,
+                byte_size: 24,
+                field_count: 1,
+                flags: 0,
+                fields: &field,
+            },
+        )?;
         let mut pipelines = [
-            raster(d, generation.format, false)?,
-            raster(d, generation.format, true)?,
+            raster(d, generation.format, false, arguments)?,
+            raster(d, generation.format, true, arguments)?,
         ];
         let mut barriers = Scratch::new(gpu::barrier_scratch_requirements(0, 1)?);
         let mut rendering = Scratch::new(gpu::render_scratch_requirements(1)?);
@@ -741,8 +761,8 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
                         gpu::executable_destroy(p);
                     }
                     pipelines = [
-                        raster(d, next.format, false)?,
-                        raster(d, next.format, true)?,
+                        raster(d, next.format, false, arguments)?,
+                        raster(d, next.format, true, arguments)?,
                     ];
                 }
                 for frame in frames.drain(..) {
@@ -777,6 +797,7 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
                 index,
                 &texture,
                 &pipelines,
+                arguments,
                 camera,
                 &mut barriers,
                 &mut rendering,
@@ -838,6 +859,7 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
         for p in pipelines {
             gpu::executable_destroy(p);
         }
+        gpu::argument_layout_destroy(arguments);
         gpu::timeline_destroy(done);
         gpu::device_destroy(d);
         gpu::surface_destroy(surface);

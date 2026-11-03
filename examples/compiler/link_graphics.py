@@ -36,15 +36,13 @@ def foundation_pair(name, vertex=None, fragment=None):
             " * Stage structs are views of these SAME bytes. The caller must supply",
             " * simultaneously valid values; this linker never relocates or packs roots. */",
             f"#define {name}_required_features ({vertex}_required_features | {fragment}_required_features)",
-            f"static const ogpu_next_argument_interface {name}_interface = {{",
-            "    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},",
-            f"    .byte_size = {name}_push_size, .root_count = 0, .roots = NULL}};",
+            *g.foundation_layout(name, name+"_push_size", "graphics"),
             f"static const ogpu_next_shader_requirements {name}_requirements = {{",
             "    .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},",
             f"    .features = {name}_required_features, .local_size = {{0, 0, 0}}, .shared_memory = 0}};",
             f"static inline void {name}_shaders(ogpu_next_shader out[2]) {{",
             f"    out[0] = {vertex}_shader(); out[1] = {fragment}_shader();",
-            f"    out[0].interface_metadata = out[1].interface_metadata = &{name}_interface.header;", "}",
+            "}",
             f"static inline int {name}_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {{",
             f"    return {vertex}_compatible(c, l) && {fragment}_compatible(c, l);", "}"]
 

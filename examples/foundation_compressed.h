@@ -1,6 +1,7 @@
 /* Block-copy matrix plus native BC1 sampling. Caller owns allocation, encoded
  * payloads and synchronization. Unsupported formats are reported, not emulated. */
 static int compressed_formats(ogpu_next_device *device, uint32_t domain, const char *path) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     ogpu_next_format_info *formats = NULL;
     ogpu_next_image *images[2] = {NULL}; ogpu_next_view *views[2] = {NULL};
@@ -49,12 +50,13 @@ static int compressed_formats(ogpu_next_device *device, uint32_t domain, const c
     long code_size = ftell(file); REQUIRE(code_size >= 20 && code_size % 4 == 0); REQUIRE(fseek(file,0,SEEK_SET) == 0);
     code = malloc((size_t)code_size); REQUIRE(code); REQUIRE(fread(code,1,(size_t)code_size,file) == (size_t)code_size);
     fclose(file); file = NULL;
-    ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_COMPUTE,8,8};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),32,1,&slot};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)code_size},"compressedMain",&abi.header,NULL,NULL};
+    ogpu_next_argument_field argument_field = {0,32,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,32,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)code_size},"compressedMain",NULL,NULL};
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{64,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline)); free(code); code = NULL;
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline)); free(code); code = NULL;
     for (uint32_t i = 0; i < q.count; ++i) {
         const ogpu_next_format_info *f = &formats[i];
         if (f->copy_block_extent[0] == 1) continue;
@@ -152,9 +154,9 @@ static int compressed_formats(ogpu_next_device *device, uint32_t domain, const c
                 for (uint32_t n = 0; n < 2; ++n) ogpu_next_bind_heap(encoder,&bindings[n]);
                 ogpu_next_bind_executable(encoder,pipeline);
                 uint32_t indices[] = {0,0}, dimensions[] = {width,height,0,0};
-                ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(indices),indices);
-                ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_COMPUTE,0,address+out);
-                ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,16,sizeof(dimensions),dimensions);
+                ogpu_next_set_arguments(encoder, arguments, 0, sizeof(indices), indices);
+                ogpu_next_set_arguments(encoder, arguments, 8, 8, &(uint64_t){address+out});
+                ogpu_next_set_arguments(encoder, arguments, 16, sizeof(dimensions), dimensions);
                 ogpu_next_launch launch = {{(width*height*2+63)/64,1,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
             }
             dep.before = OGPU_NEXT_STAGE_COPY | (sample ? OGPU_NEXT_STAGE_COMPUTE : 0); dep.after = OGPU_NEXT_STAGE_HOST;
@@ -215,5 +217,6 @@ cleanup:
     }
     ogpu_next_memory_destroy(host); if (file) fclose(file);
     free(formats); free(code); free(barrier_scratch); free(submit_scratch); free(descriptor_scratch);
-    return result;
+        ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

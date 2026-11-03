@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
-"""Audit the selected C1 operation inventory against its unchanged SDK baseline.
+"""Audit the selected C1 operation inventory against its pinned SDK baseline and C2 argument cutover.
 
-This checks design completeness, not runtime implementation or ABI compatibility.
-At C2 cutover replace this baseline audit with the installed-surface checks.
+This checks operation coverage, not runtime/native correctness or ABI compatibility.
+The pinned original inventory remains immutable; C2 tranches explicitly update the
+current installed-operation check below.
 """
 import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def strip_comments(text):
+    return re.sub(r"/\*.*?\*/|//[^\n]*", "", text, flags=re.S)
+
 def source(path):
-    return re.sub(r"/\*.*?\*/|//[^\n]*", "", path.read_text(), flags=re.S)
+    return strip_comments(path.read_text())
 
 
 def operation_names(text, prefix):
@@ -30,9 +35,10 @@ def main():
     manifest = json.loads((ROOT / "docs/drafts/minimal-core-migration.json").read_text())
     header = ROOT / manifest["baseline_header"]
     require(manifest["design_only"] is True, "Manifest must remain design-only until cutover")
-    require(hashlib.sha256(header.read_bytes()).hexdigest() == manifest["baseline_sha256"],
+    baseline = subprocess.check_output(["git", "show", manifest["baseline_revision"]+":"+manifest["baseline_header"]], cwd=ROOT)
+    require(hashlib.sha256(baseline).hexdigest() == manifest["baseline_sha256"],
             "SDK baseline changed: review the C1 inventory or retire this audit at C2 cutover")
-    text = source(header)
+    text = strip_comments(baseline.decode())
     installed = operation_names(text, "ogpu_next_")
     table = re.search(r"typedef struct ogpu_next_presentation_functions \{(.*?)\}", text, re.S)
     require(table is not None, "Presentation table missing from baseline")
@@ -62,7 +68,17 @@ def main():
     require(all(re.fullmatch(r"(?:ogpu_next_|presentation\.)\w+", n) for n in c_targets),
             "Invalid target C name")
     require(all(re.fullmatch(r"[a-z][a-z0-9_]*", n) for n in rust_targets), "Invalid target Rust name")
-    print(f"{len(installed)} installed operations covered: {len(retained)} retained, {len(replaced)} replaced.")
+    # C2 argument tranche: assert the actual partially migrated operation set,
+    # while keeping the full design inventory audited against its pinned source.
+    current = operation_names(source(header), "ogpu_next_")
+    current.update("presentation." + n for n in re.findall(r"\(\*(\w+)\)\s*\(",
+        re.search(r"typedef struct ogpu_next_presentation_functions \{(.*?)\}", source(header), re.S).group(1)))
+    added = {"ogpu_next_argument_layout_create", "ogpu_next_argument_layout_destroy",
+             "ogpu_next_argument_layout_info", "ogpu_next_set_arguments"}
+    removed = {"ogpu_next_set_inline", "ogpu_next_set_root"}
+    require(current == (installed - removed) | added, "C2 installed operation inventory drift")
+    print(f"{len(current)} current operations match the C2 argument cutover; old setters removed.")
+    print(f"{len(installed)} baseline operations covered: {len(retained)} retained, {len(replaced)} replaced.")
     print(f"{len(drafts)} draft operations have exact destinations and C/Rust names; no unclassified entries.")
 
 

@@ -171,7 +171,7 @@ def main():
                                  if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports installed API')
             report['public']=dict(executable_sha256=digest(public),compile_command=public_command,
                                   runtime_sha256=digest(ROOT/'target/release/libogpu.so'),
-                                  foundation=1)
+                                  foundation=2)
             executables['public']=public
             failure_command=[part.replace(str(public_source),str(HERE/'foundation_failures.c')).replace(str(public),str(dest/'failures'))
                              for part in public_command]
@@ -213,7 +213,7 @@ def main():
                 if backend=='public':
                     context=[json.loads(line.removeprefix('PUBLIC_SCENE ')) for line in stdout.splitlines() if line.startswith('PUBLIC_SCENE ')]
                     expected_context=dict(index_bytes=report['index_bytes'],gpu_generated=True,
-                                          foundation=1)
+                                          foundation=2)
                     generate.require(context==[expected_context],'wrong public scene configuration')
                     if args.generated:
                         generated=[json.loads(line.removeprefix('GENERATED_SCENE ')) for line in stdout.splitlines() if line.startswith('GENERATED_SCENE ')]

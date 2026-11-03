@@ -106,20 +106,21 @@ static const uint32_t textured_scene_vertex_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
 #define textured_scene_vertex_required_features (OGPU_NEXT_FEATURE_RASTER)
-static const ogpu_next_argument_interface textured_scene_vertex_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 24, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field textured_scene_vertex_argument_field = {
+    0, 24, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc textured_scene_vertex_arguments = {
+    OGPU_NEXT_ARGUMENT_GRAPHICS, 24, (24) != 0, 0, (24) ? &textured_scene_vertex_argument_field : NULL};
 static const ogpu_next_shader_requirements textured_scene_vertex_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = textured_scene_vertex_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader textured_scene_vertex_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_VERTEX, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {textured_scene_vertex_code, sizeof(textured_scene_vertex_code)}, .entry = "main",
-        .interface_metadata = &textured_scene_vertex_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int textured_scene_vertex_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & textured_scene_vertex_required_features) == textured_scene_vertex_required_features
-        && l->max_inline_size >= 24;
+        && l->max_inline_bytes >= 24;
 }
 #endif
 
@@ -228,20 +229,21 @@ static const uint32_t textured_scene_fragment_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a graphics queue and proves pointer bounds/lifetimes. */
 #define textured_scene_fragment_required_features (OGPU_NEXT_FEATURE_RASTER)
-static const ogpu_next_argument_interface textured_scene_fragment_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 24, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field textured_scene_fragment_argument_field = {
+    0, 24, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc textured_scene_fragment_arguments = {
+    OGPU_NEXT_ARGUMENT_GRAPHICS, 24, (24) != 0, 0, (24) ? &textured_scene_fragment_argument_field : NULL};
 static const ogpu_next_shader_requirements textured_scene_fragment_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = textured_scene_fragment_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline ogpu_next_shader textured_scene_fragment_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_FRAGMENT, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {textured_scene_fragment_code, sizeof(textured_scene_fragment_code)}, .entry = "main",
-        .interface_metadata = &textured_scene_fragment_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int textured_scene_fragment_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & textured_scene_fragment_required_features) == textured_scene_fragment_required_features
-        && l->max_inline_size >= 24;
+        && l->max_inline_bytes >= 24;
 }
 #endif
 
@@ -250,15 +252,15 @@ enum { textured_scene_push_size = 24 };
  * Stage structs are views of these SAME bytes. The caller must supply
  * simultaneously valid values; this linker never relocates or packs roots. */
 #define textured_scene_required_features (textured_scene_vertex_required_features | textured_scene_fragment_required_features)
-static const ogpu_next_argument_interface textured_scene_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = textured_scene_push_size, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field textured_scene_argument_field = {
+    0, textured_scene_push_size, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc textured_scene_arguments = {
+    OGPU_NEXT_ARGUMENT_GRAPHICS, textured_scene_push_size, (textured_scene_push_size) != 0, 0, (textured_scene_push_size) ? &textured_scene_argument_field : NULL};
 static const ogpu_next_shader_requirements textured_scene_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = textured_scene_required_features, .local_size = {0, 0, 0}, .shared_memory = 0};
 static inline void textured_scene_shaders(ogpu_next_shader out[2]) {
     out[0] = textured_scene_vertex_shader(); out[1] = textured_scene_fragment_shader();
-    out[0].interface_metadata = out[1].interface_metadata = &textured_scene_interface.header;
 }
 static inline int textured_scene_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return textured_scene_vertex_compatible(c, l) && textured_scene_fragment_compatible(c, l);

@@ -174,19 +174,20 @@ static const uint32_t process_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a compute queue and proves pointer bounds/lifetimes. */
 #define process_required_features (UINT64_C(0))
-static const ogpu_next_argument_interface process_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 40, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field process_argument_field = {
+    0, 40, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc process_arguments = {
+    OGPU_NEXT_ARGUMENT_COMPUTE, 40, (40) != 0, 0, (40) ? &process_argument_field : NULL};
 static const ogpu_next_shader_requirements process_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = process_required_features, .local_size = {64, 1, 1}, .shared_memory = 0};
 static inline ogpu_next_shader process_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_COMPUTE, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {process_code, sizeof(process_code)}, .entry = "main",
-        .interface_metadata = &process_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int process_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & process_required_features) == process_required_features
-        && l->max_inline_size >= 40 && l->max_local_invocations >= 64 && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
+        && l->max_inline_bytes >= 40 && l->max_local_invocations >= 64 && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
 }
 #endif

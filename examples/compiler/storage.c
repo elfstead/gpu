@@ -61,7 +61,7 @@ int main(void) {
     ogpu_next_format_info *formats = NULL;
     ogpu_next_memory *host = NULL, *heap = NULL, *backing[2] = {NULL,NULL};
     ogpu_next_image *images[2] = {NULL,NULL}; ogpu_next_view *views[2] = {NULL,NULL};
-    ogpu_next_executable *pipeline = NULL; ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
+    ogpu_next_executable *pipeline = NULL; ogpu_next_argument_layout *arguments = NULL; ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
     void *descriptor_scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
     const uint32_t width = 8, height = 4;
     const uint64_t bytes = width*height*TEXEL_BYTES, host_size = 2048;
@@ -146,7 +146,8 @@ int main(void) {
     ogpu_next_shader shader = storage_shader();
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
         1,&shader,NULL,0,&storage_requirements.header,NULL,0,0};
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline));
+    TRY(ogpu_next_argument_layout_create(device,&storage_arguments,&arguments));
+    TRY(ogpu_next_executable_create(device,&ed,arguments,&pipeline));
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
@@ -167,7 +168,7 @@ int main(void) {
     ogpu_next_bind_heap(encoder,&binding); ogpu_next_bind_executable(encoder,pipeline);
     StorageArguments args = {0}; args.arg_source = 0; args.arg_destination = (uint32_t)(stride/limits.image_size);
     args.arg_width = width; args.arg_height = height;
-    ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    ogpu_next_set_arguments(encoder, arguments, 0, sizeof(args), &args);
     ogpu_next_launch launch = {{width/storage_local[0],height,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
     barriers[1].before = OGPU_NEXT_ACCESS_STORAGE_WRITE; barriers[1].after = OGPU_NEXT_ACCESS_COPY_READ;
     barriers[1].old_state = OGPU_NEXT_STATE_GENERAL; barriers[1].discard = 0;
@@ -200,7 +201,7 @@ int main(void) {
            IMAGE_FORMAT,FORMATLESS_MODE); result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending storage-image work after failure\n"); _Exit(EXIT_FAILURE); }
-    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_executable_destroy(pipeline);
+    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_executable_destroy(pipeline); ogpu_next_argument_layout_destroy(arguments);
     for (uint32_t i = 0; i < 2; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     ogpu_next_memory_destroy(heap); ogpu_next_memory_destroy(host); ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery);
     free(formats); free(descriptor_scratch); free(barrier_scratch); free(submit_scratch); return result;

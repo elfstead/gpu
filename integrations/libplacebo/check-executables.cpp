@@ -86,8 +86,14 @@ int main(int argc, char **argv) {
             const auto metadata = pass.compute ? compute_metadata(primary.data(), primary.size(), pass.values) : shader_metadata{};
             ogpu_next_shader_requirements requirements{RECORD(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS),
                 0, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
-            const ogpu_next_argument_interface interface{RECORD(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE),
-                pass.compute ? pass.push : 8, 0, nullptr};
+            const uint32_t bytes = pass.compute ? pass.push : 8;
+            const ogpu_next_argument_field field{0,bytes,OGPU_NEXT_ARGUMENT_INLINE,0,
+                pass.compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+            const ogpu_next_argument_layout_desc layout_desc{pass.compute ? OGPU_NEXT_ARGUMENT_COMPUTE : OGPU_NEXT_ARGUMENT_GRAPHICS,
+                bytes,bytes ? 1u : 0u,0,bytes ? &field : nullptr};
+            ogpu_next_argument_layout *layout = nullptr;
+            check(ogpu_next_argument_layout_create(device.get(), &layout_desc, &layout));
+            Owner<ogpu_next_argument_layout, ogpu_next_argument_layout_destroy> arguments(layout, ogpu_next_argument_layout_destroy);
             std::vector<ogpu_next_specialization_entry> entries;
             std::vector<uint32_t> bits;
             for (const auto &value : pass.values) {
@@ -99,9 +105,9 @@ int main(int argc, char **argv) {
             if (!pass.compute) vertex = read_words(stem.string() + ".vert.spv");
             ogpu_next_shader shaders[] = {
                 {static_cast<uint32_t>(pass.compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_FRAGMENT), OGPU_NEXT_SHADER_SPIRV,
-                    {primary.data(), primary.size() * 4}, "main", &interface.header, &specialization.header, nullptr},
+                    {primary.data(), primary.size() * 4}, "main", &specialization.header, nullptr},
                 {OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_SHADER_SPIRV, {vertex.data(), vertex.size() * 4}, "main",
-                    &interface.header, &specialization.header, nullptr},
+                    &specialization.header, nullptr},
             };
             if (!pass.compute) std::swap(shaders[0], shaders[1]);
             const ogpu_next_color_state color{OGPU_NEXT_RGBA8_UNORM, 15, 0, 0, 0, 0, 0, 0, 0};
@@ -114,7 +120,7 @@ int main(int argc, char **argv) {
                 pass.compute ? 1u : 2u, shaders, pass.compute ? nullptr : &graphics.header,
                 pass.compute ? UINT64_C(0) : OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &requirements.header, nullptr, 0, 0};
             ogpu_next_executable *raw = nullptr;
-            check(ogpu_next_executable_create(device.get(), &desc, &raw));
+            check(ogpu_next_executable_create(device.get(), &desc, layout, &raw));
             Owner<ogpu_next_executable, ogpu_next_executable_destroy> executable(raw, ogpu_next_executable_destroy);
             std::cout << "prepared pass=" << pass.id << " constants=" << pass.constants
                       << " local=" << metadata.local[0] << ',' << metadata.local[1] << ',' << metadata.local[2]

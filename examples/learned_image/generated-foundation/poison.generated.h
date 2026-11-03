@@ -55,19 +55,20 @@ static const uint32_t poison_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a compute queue and proves pointer bounds/lifetimes. */
 #define poison_required_features (UINT64_C(0))
-static const ogpu_next_argument_interface poison_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 16, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field poison_argument_field = {
+    0, 16, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc poison_arguments = {
+    OGPU_NEXT_ARGUMENT_COMPUTE, 16, (16) != 0, 0, (16) ? &poison_argument_field : NULL};
 static const ogpu_next_shader_requirements poison_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = poison_required_features, .local_size = {64, 1, 1}, .shared_memory = 0};
 static inline ogpu_next_shader poison_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_COMPUTE, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {poison_code, sizeof(poison_code)}, .entry = "main",
-        .interface_metadata = &poison_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int poison_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & poison_required_features) == poison_required_features
-        && l->max_inline_size >= 16 && l->max_local_invocations >= 64 && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
+        && l->max_inline_bytes >= 16 && l->max_local_invocations >= 64 && l->max_local_size[0] >= 64 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
 }
 #endif

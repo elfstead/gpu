@@ -1,6 +1,8 @@
 # C1 A/B: one argument update and explicit native reuse
 
-Selected design, 2026-11-03. **Not implemented.** Resolves the argument-update
+Selected design, 2026-11-03. **Implemented on Vulkan in foundation schema 2.**
+See the [public cutover receipt](minimal-core-migration.md#c2-argument-public-cutover).
+Resolves the argument-update
 and reuse decisions A/B in the [C1 draft](minimal-core-contract.md). The exact
 [C record/signature sketch](drafts/ogpu_arguments.h) is separate from the installed
 header. [Descriptor D](minimal-core-descriptors.md) and
@@ -204,7 +206,7 @@ No Rust object has implicit wait-on-drop or transitively owns GPU data. The C sk
 imports current opaque types only to make signatures concrete; its `ogpu_draft_*`
 names are intentionally uninstalled and not an additional supported API version.
 
-C2 must validate the range mapper and atomic-field rejection, emitted offsets and
+Acceptance checks cover the range mapper and atomic-field rejection, emitted offsets and
 call counts, same-layout reuse, incompatible layouts and overlapping/independent
 domains. Reuse the existing snapshot, partial-patch and argument-reuse consumers;
 extend their generated interfaces rather than invent a new performance workload.
@@ -212,10 +214,11 @@ Include zero-length, overflow, wrong-device/layout, bad alignment and poisoned-l
 cases. Compile the C/Rust record correspondence and test actual artifacts' bindings.
 
 The checked-in sketch selects A/B's contract; syntax/layout checks alone do not
-prove a backend mapping. Runtime migration, shader generation, native validation
-and any disputed timing remain C2/C3. Metal must report supported roles and native
+prove a backend mapping. The Vulkan public cutover now has runtime, generated
+artifact and native execution evidence; full C2/C3 and other backends remain pending.
+Metal must report supported roles and native
 state effects; a missing inline fast path is unsupported rather than an invisible
-upload. No additional hardware is needed to begin the Vulkan implementation.
+upload. No additional hardware is needed for the remaining Vulkan cutover.
 
 ## Record check, 2026-11-03
 

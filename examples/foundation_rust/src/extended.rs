@@ -115,24 +115,25 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
     };
     unsafe {
         let cache = gpu::executable_cache_create(c.device, &cache_desc)?;
-        let slots = [
-            RootSlot {
-                stages: STAGE_COMPUTE,
-                offset: 0,
-                alignment: 8,
-            },
-            RootSlot {
-                stages: STAGE_COMPUTE,
-                offset: 8,
-                alignment: 8,
-            },
-        ];
-        let abi = ArgumentInterface {
-            header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-            byte_size: 24,
-            root_count: 2,
-            roots: slots.as_ptr(),
+        let field = ArgumentField {
+            offset: 0,
+            size: 24,
+            kind: ARGUMENT_INLINE,
+            address_alignment: 0,
+            stages: STAGE_COMPUTE,
+            space: ARGUMENT_DIRECT,
+            binding: ARGUMENT_DIRECT,
         };
+        let arguments = gpu::argument_layout_create(
+            c.device,
+            &ArgumentLayoutDesc {
+                execution_class: ARGUMENT_COMPUTE,
+                byte_size: 24,
+                field_count: 1,
+                flags: 0,
+                fields: &field,
+            },
+        )?;
         let mut requirements = ShaderRequirements {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
             features: 0,
@@ -163,7 +164,6 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                 size: code.len() * 4,
             },
             entry: c"transform".as_ptr(),
-            interface_metadata: &abi.header,
             specialization: &spec.header,
             subgroup: ptr::null(),
         };
@@ -181,10 +181,13 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
         };
         requirements.local_size[0] = 0;
         desc.requirements = &requirements.header;
-        assert_eq!(gpu::executable_create(c.device, &desc), Err(INVALID));
+        assert_eq!(
+            gpu::executable_create(c.device, &desc, arguments),
+            Err(INVALID)
+        );
         requirements.local_size[0] = 64;
         desc.requirements = &requirements.header;
-        let executable = gpu::executable_create(c.device, &desc)?;
+        let executable = gpu::executable_create(c.device, &desc, arguments)?;
         drop(code); // Prepared executable does not borrow artifact storage.
         let mut size = 0;
         gpu::executable_cache_data(cache, &mut size, None)?;
@@ -232,11 +235,11 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             gpu::memory_flush(c.memory.span(0, 4096))?;
             let list = gpu::commands_begin(c.arena, &recording())?;
             gpu::bind_executable(list, executable);
-            gpu::set_root(list, STAGE_COMPUTE, 0, base + 1024);
-            gpu::set_root(list, STAGE_COMPUTE, 1, base + 1040);
+            gpu::set_arguments(list, arguments, 0, &(base + 1024).to_ne_bytes());
+            gpu::set_arguments(list, arguments, 8, &(base + 1040).to_ne_bytes());
             let mut control = [0u8; 8];
             control[..4].copy_from_slice(&3u32.to_ne_bytes());
-            gpu::set_inline(list, STAGE_COMPUTE, 16, &control);
+            gpu::set_arguments(list, arguments, 16, &control);
             gpu::dispatch(
                 list,
                 &Launch {
@@ -245,8 +248,8 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                     extensions: ptr::null(),
                 },
             );
-            gpu::set_root(list, STAGE_COMPUTE, 1, base + 1056);
-            gpu::set_inline(list, STAGE_COMPUTE, 16, &5u32.to_ne_bytes());
+            gpu::set_arguments(list, arguments, 8, &(base + 1056).to_ne_bytes());
+            gpu::set_arguments(list, arguments, 16, &5u32.to_ne_bytes());
             gpu::fill_memory(list, c.memory.span(1536, 4), 2);
             gpu::fill_memory(list, c.memory.span(1540, 8), 1);
             gpu::barrier(
@@ -285,6 +288,7 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             assert_eq!(words.add(512 + 65).read(), 0xa5a5_a5a5);
         }
         gpu::executable_destroy(executable);
+        gpu::argument_layout_destroy(arguments);
     }
     Ok(())
 }

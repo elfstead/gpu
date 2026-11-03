@@ -1,6 +1,6 @@
 /* C1 argument contract, 2026-11-03. DESIGN ONLY: not installed or linkable.
  * Semantics and migration: ../minimal-core-arguments.md
- * Existing scalar/opaque types are imported; none of these symbols exist yet.
+ * Draft names remain uninstalled; foundation schema 2 implements this argument contract.
  */
 #ifndef OGPU_DRAFT_ARGUMENTS_H
 #define OGPU_DRAFT_ARGUMENTS_H

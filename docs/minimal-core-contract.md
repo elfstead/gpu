@@ -1,10 +1,10 @@
 # C1: minimal composable foundation draft
 
 Started 2026-10-31 on `minimal-core`, based on Vulkan `master` at `2374635`.
-**C1 contract selected and consolidated, 2026-11-03; not implemented API.**
+**C1 contract selected and consolidated, 2026-11-03; C2 implementation active.**
 The [complete disposition and C2 cutover](minimal-core-migration.md) close the
-foundation design checkpoint. The installed header and runtime are unchanged. This is
-the next revision of the [whole-API target](whole-api-design.md), governed by the
+foundation design checkpoint. The public Vulkan argument cutover is implemented
+in foundation schema 2; the remaining families are pending. This is the next revision of the [whole-API target](whole-api-design.md), governed by the
 [composition rule](design.md#minimal-composable-core) and [C1–C3 sequence](roadmap.md#minimal-core-revision).
 
 ## Decisions made in this draft
@@ -34,7 +34,7 @@ Descriptor decision D also has a [selected storage contract and records](minimal
 Presentation decision P has a [selected lifecycle and record sketch](minimal-core-presentation.md).
 [Dependency and submission decisions](minimal-core-dependencies.md) are also selected.
 The [combined index, exact operation inventory and record migration](minimal-core-migration.md)
-integrate those decisions. C2 is the next implementation step.
+integrate those decisions and track the ongoing C2 implementation.
 
 ## Ordinary operation sequence
 

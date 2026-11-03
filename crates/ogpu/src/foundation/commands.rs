@@ -612,17 +612,6 @@ impl List {
         };
         unsafe { p.as_ref() }.ok_or(INVALID)
     }
-    pub(in crate::foundation) unsafe fn inline(
-        &self,
-        scope: u64,
-        offset: u32,
-        size: u32,
-        data: *const c_void,
-    ) -> Result<(), Status> {
-        let executable = self.executable(scope)?;
-        unsafe { self.set_arguments(executable.arguments(), offset, size, data) }
-    }
-
     pub(in crate::foundation) unsafe fn set_arguments(
         &self,
         layout: &ArgumentLayout,
@@ -660,23 +649,6 @@ impl List {
             (d.f.vkCmdPushDataEXT.unwrap())(self.command, &info);
         }
         Ok(())
-    }
-    pub(in crate::foundation) fn root(
-        &self,
-        scope: u64,
-        slot: u32,
-        address: u64,
-    ) -> Result<(), Status> {
-        let executable = self.executable(scope)?;
-        let root = executable.roots.get(slot as usize).ok_or(INVALID)?;
-        if root.stages != scope {
-            return Err(UNSUPPORTED);
-        }
-        if address % u64::from(root.alignment) != 0 {
-            return Err(INVALID);
-        }
-        // Only the address is copied. No pointer lookup, backing retention or pointee copy.
-        unsafe { self.inline(scope, root.offset, 8, ptr::from_ref(&address).cast()) }
     }
     pub(in crate::foundation) fn dispatch(&self, launch: &Launch) -> Result<(), Status> {
         self.executable(4)?;

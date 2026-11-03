@@ -74,6 +74,7 @@ pub unsafe extern "C" fn ogpu_next_executable_cache_destroy(cache: *mut Executab
 pub unsafe extern "C" fn ogpu_next_executable_create(
     device: *mut Device,
     desc: *const ExecutableDesc,
+    layout: *mut ArgumentLayout,
     out: *mut *mut Executable,
 ) -> Status {
     if out.is_null() {
@@ -85,7 +86,8 @@ pub unsafe extern "C" fn ogpu_next_executable_create(
     boundary(|| {
         let d = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
         let desc = unsafe { native::executable_record(desc.cast(), EXECUTABLE_DESC)? };
-        let executable = unsafe { rust::executable_create(d, desc)? };
+        let layout = unsafe { rust::ArgumentLayoutHandle::from_raw(layout) }.ok_or(INVALID)?;
+        let executable = unsafe { rust::executable_create(d, desc, layout)? };
         unsafe {
             out.write(executable.as_raw());
         }
@@ -100,5 +102,51 @@ pub unsafe extern "C" fn ogpu_next_executable_destroy(executable: *mut Executabl
         unsafe {
             rust::executable_destroy(executable);
         }
+    }
+}
+
+/// # Safety
+/// Live device, readable fields, disjoint writable output. See the C header.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_argument_layout_create(
+    device: *mut Device,
+    desc: *const ArgumentLayoutDesc,
+    out: *mut *mut ArgumentLayout,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ptr::null_mut());
+    }
+    boundary(|| {
+        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let desc = unsafe { desc.as_ref() }.ok_or(INVALID)?;
+        let layout = unsafe { rust::argument_layout_create(device, desc)? };
+        unsafe {
+            out.write(layout.as_raw());
+        }
+        Ok(())
+    })
+}
+/// # Safety
+/// NULL or uniquely owned layout; live device; no borrowing executables/recorded uses.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_argument_layout_destroy(layout: *mut ArgumentLayout) {
+    if let Some(layout) = unsafe { rust::ArgumentLayoutHandle::from_raw(layout) } {
+        unsafe {
+            rust::argument_layout_destroy(layout);
+        }
+    }
+}
+/// # Safety
+/// Live layout/device, disjoint writable output.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_argument_layout_info(
+    layout: *const ArgumentLayout,
+    out: *mut ArgumentStateInfo,
+) {
+    unsafe {
+        out.write((&*layout).state_info());
     }
 }

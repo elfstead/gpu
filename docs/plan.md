@@ -13,9 +13,11 @@ frames, native availability, explicit outcome effects and replacement/resize lif
 [Dependency/submission decisions](minimal-core-dependencies.md) now preserve justified
 scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
 covers every installed operation, cross-family records and the ordered C2 cutover.
-The [first C2 checkpoint](minimal-core-migration.md#c2-first-implementation-checkpoint-prepared-argument-engine) implements the Vulkan argument engine.
-Installed signatures and compiler artifacts still use temporary adapters; the
-coordinated cutover and C3 acceptance remain incomplete.
+The [C2 argument cutover](minimal-core-migration.md#c2-argument-public-cutover) is complete
+on Vulkan: foundation schema 2 exposes prepared layouts and one argument updater
+through C and direct Rust, with migrated compiler artifacts and consumers. The old
+argument adapters are deleted. Descriptor storage and command composition are next;
+the rest of the coordinated cutover and C3 acceptance remain incomplete.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -124,14 +126,13 @@ model and explicit CPU-copy/source rights without a mirror. Presentation separat
 availability, render completion, native retirement and image reuse without a frame
 scheduler. Dependencies now retain justified ranges/split/ownership, independently
 scoped entries and one submission operation. The complete signatures/deletion map
-is now [consolidated](minimal-core-migration.md). C2 shared argument records and
-the internal prepared-layout/updater engine are implemented and locally checked.
+is now [consolidated](minimal-core-migration.md). C2 public argument records, prepared
+layouts, the updater, compiler metadata and consumers are implemented and locally checked.
 A pinned mixed-mapping shader now passes real uniform/storage/inline access,
 shared-layout pipeline binding, partial updates and changed-pointee replay with
 guards and synchronization validation on RADV.
-Next cut compiler metadata, public C/Rust signatures and argument consumers over
-and delete the temporary adapters; then migrate
-descriptor/composition, dependencies/submission and presentation before local C3.
+The temporary argument adapters are deleted. Next migrate descriptor storage and
+command composition, then dependencies/submission and presentation before local C3.
 No final profile count is assumed.
 
 ## P1: implemented, partial human acceptance

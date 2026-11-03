@@ -10,7 +10,7 @@
 static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint32_t size) {
     return (ogpu_next_query){HEADER(ogpu_next_query,kind),data,capacity,0,size,0};
 }
-static int run_case(ogpu_next_device *device, ogpu_next_executable *pipeline, uint32_t domain, uint32_t width, uint32_t height) {
+static int run_case(ogpu_next_device *device, ogpu_next_executable *pipeline, ogpu_next_argument_layout *arguments, uint32_t domain, uint32_t width, uint32_t height) {
     int result = EXIT_FAILURE, pending = 0;
     ogpu_next_image *image = NULL; ogpu_next_view *view = NULL;
     ogpu_next_memory *backing = NULL, *host = NULL;
@@ -57,7 +57,7 @@ static int run_case(ogpu_next_device *device, ogpu_next_executable *pipeline, ui
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)width,(float)height,0,1,0,0,width,height};
     ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_graphics_state(encoder,&vp.header);
     Pattern_fragmentArguments args = {.arg_width=width,.arg_height=height};
-    ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(args),&args);
+    ogpu_next_set_arguments(encoder, arguments, 0, sizeof(args), &args);
     memset(&args,0xcc,sizeof(args));
     ogpu_next_indirect draw = {{host,0,16},16,1,{NULL,0,0}};
     ogpu_next_draw_indirect(encoder,&draw); ogpu_next_render_end(encoder);
@@ -94,7 +94,7 @@ cleanup:
 }
 int main(void) {
     int result = EXIT_FAILURE;
-    ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL; ogpu_next_executable *pipeline = NULL;
+    ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL; ogpu_next_executable *pipeline = NULL; ogpu_next_argument_layout *arguments = NULL;
     uint32_t domain = UINT32_MAX;
     TRY(ogpu_next_discovery_create(OGPU_NEXT_VERSION,&discovery));
     for (uint32_t index = 0; index < ogpu_next_discovery_count(discovery); ++index) {
@@ -114,19 +114,19 @@ int main(void) {
     q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
     REQUIRE(pattern_compatible(&f,&limits));
     ogpu_next_feature_info missing = f; missing.enabled &= ~OGPU_NEXT_FEATURE_RASTER; REQUIRE(!pattern_compatible(&missing,&limits));
-    ogpu_next_execution_limits small = limits; small.max_inline_size = pattern_push_size-1; REQUIRE(!pattern_compatible(&f,&small));
+    ogpu_next_execution_limits small = limits; small.max_inline_bytes = pattern_push_size-1; REQUIRE(!pattern_compatible(&f,&small));
     ogpu_next_shader shaders[2]; pattern_shaders(shaders);
-    REQUIRE(shaders[0].interface_metadata == &pattern_interface.header && shaders[1].interface_metadata == &pattern_interface.header);
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),
         OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,2,shaders,
         &gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&pattern_requirements.header,NULL,0,0};
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline));
+    TRY(ogpu_next_argument_layout_create(device,&pattern_arguments,&arguments));
+    TRY(ogpu_next_executable_create(device,&ed,arguments,&pipeline));
     const uint32_t sizes[][2] = {{1,1},{2,3},{63,65},{64,64},{65,63},{97,65}};
     for (uint32_t i = 0; i < sizeof(sizes)/sizeof(sizes[0]); ++i)
-        REQUIRE(run_case(device,pipeline,domain,sizes[i][0],sizes[i][1]) == EXIT_SUCCESS);
+        REQUIRE(run_case(device,pipeline,arguments,domain,sizes[i][0],sizes[i][1]) == EXIT_SUCCESS);
     result = EXIT_SUCCESS;
 cleanup:
-    ogpu_next_executable_destroy(pipeline); ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery); return result;
+    ogpu_next_executable_destroy(pipeline); ogpu_next_argument_layout_destroy(arguments); ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery); return result;
 }

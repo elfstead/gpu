@@ -65,7 +65,7 @@ def check_log(stdout,stderr,backend,size):
     limits=f.rows(stdout,'ARGUMENT_LIMIT ');device=f.rows(stdout,'DEVICE ')
     require(len(limits)==len(device)==1 and limits[0]['max_push_data_bytes']>=size,'missing device/limit')
     if backend in ('public','foundation'):
-        api={'foundation':1} if backend=='foundation' else {'abi':20}
+        api={'foundation':2} if backend=='foundation' else {'abi':20}
         require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**api,index_bytes=4,gpu_generated=True)],'wrong public profile')
     else:require(f.rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'missing native draw identity')
     return limits[0],device[0]
@@ -139,7 +139,7 @@ def main():
                 deps=subprocess.check_output([*flags,'-MM',str(source)],text=True)
                 for path in shlex.split(deps.replace('\\\n','').split(':',1)[1]):sources[str(Path(path).resolve())]=digest(Path(path))
                 symbols=subprocess.check_output(['nm','-u',str(target/'probe')],text=True)
-                require(('ogpu' not in symbols.lower()) if backend=='native' else ('ogpu_next_set_inline' in symbols
+                require(('ogpu' not in symbols.lower()) if backend=='native' else ('ogpu_next_set_arguments' in symbols
                         and not any(line.split()[-1].startswith('vk') for line in symbols.splitlines() if line.split())), 'wrong linkage')
                 if backend=='foundation':require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
                 report['builds'][f'{size}-{backend}']=dict(command=command,sha256=digest(target/'probe'))

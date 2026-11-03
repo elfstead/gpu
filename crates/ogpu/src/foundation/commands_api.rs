@@ -668,30 +668,20 @@ pub unsafe extern "C" fn ogpu_next_bind_executable(
     }
 }
 /// # Safety
-/// Recording pool exclusion; readable bytes borrowed only during this call.
+/// Recording pool exclusion; live layout/device; readable bytes borrowed only
+/// during this call. Referenced GPU data remains valid for every execution.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_next_set_inline(
+pub unsafe extern "C" fn ogpu_next_set_arguments(
     encoder: *mut List,
-    stages: u64,
+    layout: *const ArgumentLayout,
     offset: u32,
     size: u32,
     data: *const std::ffi::c_void,
 ) {
     unsafe {
-        encode(encoder, |e| e.inline(stages, offset, size, data));
-    }
-}
-/// # Safety
-/// Recording pool exclusion; address and reachable data valid at every execution.
-#[no_mangle]
-pub unsafe extern "C" fn ogpu_next_set_root(
-    encoder: *mut List,
-    stages: u64,
-    slot: u32,
-    address: u64,
-) {
-    unsafe {
-        encode(encoder, |e| e.root(stages, slot, address));
+        encode(encoder, |e| {
+            e.set_arguments(layout.as_ref().ok_or(INVALID)?, offset, size, data)
+        });
     }
 }
 /// # Safety

@@ -563,34 +563,39 @@ compatibility is promised. No runtime API addition was needed for this consumer.
 ## Implemented compute preparation and arguments
 
 The source-only surface now creates native compute executables from SPIR-V with
-an explicit UTF-8 entry name, byte-typed specialization records, argument interface
+an explicit UTF-8 entry name, byte-typed specialization records, a borrowed prepared argument layout
 and shader requirements. The producer states the actual post-specialization local
 size, shared-memory use and optional features; OGPU checks limits/enabling but does
 not reflect or validate shader semantics. Valid device code, descriptor interfaces,
 reachable address bounds, alignment, races and uniformity remain caller contracts.
-Prepared metadata is copied; shader bytes and specialization storage are borrowed
-only during creation. Executables borrow their device and do not retain resources.
+Layout creation copies field metadata; shader bytes and specialization storage are
+borrowed only during executable creation. Executables borrow their device and layout;
+they do not retain resources.
 
 Preparation creates a native compute pipeline with descriptor-heap access and no
 pipeline layout; it needs no shader-object feature or runtime translation. Shader
 modules are released immediately after preparation. Pipeline failure outputs are
 cleaned up according to Vulkan's partial-creation contract. This differs from
 unspecified failed shader-module outputs, which are never adopted. Additional
-artifact formats, set/binding mappings, additional shader stages
+artifact formats, non-buffer set/binding mappings, additional shader stages
 and richer numerical/launch requirements remain unimplemented, not silently
 substituted. See [native compute preparation](https://docs.vulkan.org/refpages/latest/refpages/source/VkComputePipelineCreateInfo.html).
 
-Argument metadata names a byte footprint and any number of nonoverlapping root
-slots with explicit offsets, stages and pointee alignments. The implemented compute
-and graphics profiles expose **one shared byte namespace**, not fictitious independent native
-stage banks. Inline updates copy specified bytes during recording. Root updates
-copy only an eight-byte address into the declared slot: no pointee copy, address
-registry, implicit upload allocation, refcount or retained backing. Pointees are
-read at execution, including replay. Root updates do not touch other slots/inline
-bytes. Explicit inline writes may target the same bytes; callers own initialization
-and compatible interpretation across executable binds. Stage-isolated graphics
-domains still need an explicit mapping/profile, not hidden shadow copies. See the
-[native push-data model](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdPushDataEXT.html).
+Foundation revision 2 uses prepared layout fields: inline values, uniform-buffer
+addresses, read-only storage addresses and read-write storage addresses. Inline
+fields may target direct push data or a compiler-declared constant buffer; addresses
+map directly to Vulkan push-address resources. Fields have explicit byte offsets,
+stages and source bindings. `set_arguments` validates a complete update before
+emitting one `vkCmdPushDataEXT`; touched native addresses must be supplied in full.
+Physical-pointer bits remain ordinary inline data with caller-proven dereference
+alignment and bounds. No pointee copy, address registry, implicit allocation,
+retention or payload restoration occurs. Pointees are read at execution and replay.
+
+Compute and graphics share one preserving Vulkan push-data domain, reported by
+`argument_layout_info`. Executable binds do not restore arguments. Callers initialize
+required bytes and use the reported domain/base/key/rule to reason about reuse.
+The [argument contract](minimal-core-arguments.md) defines the layout and lifetime
+rules; the [migration receipt](minimal-core-migration.md) records the current cutover.
 
 Direct launch preserves group dimensions; indirect launch reads three u32 values
 from an application-selected INDIRECT span, without readback or argument staging.
@@ -671,7 +676,7 @@ strict C/C++ headers, 944 ABI values and generated bindings. These tests do not
 establish all stencil operations, asymmetric per-face operations, dynamic topology,
 dynamic vertex input or tile-local profiles. Installed ABI 20 and Metal are unchanged.
 
-Vertex and fragment interfaces describe the same byte namespace, with root slots
+Vertex and fragment shaders share one prepared layout, whose fields may be
 visible to either or both stages. Compute and graphics pipeline binds are independent,
 but push bytes are shared even across those bind points: callers own compatible
 interpretation and initialization, not hidden per-stage state restoration.
@@ -822,7 +827,7 @@ The ordinary suite now has 80 passing tests. No timing or Metal claim follows.
 The fragment shader is optional independently of raster discard. A vertex-only
 pipeline still rasterizes and performs fixed depth/stencil operations; OGPU creates
 no placeholder fragment artifact and records no additional commands. Present stages
-share one argument interface, and the executable reports only its actual stage mask.
+share one prepared argument layout, and the executable reports only its actual stage mask.
 Color outputs without a fragment shader are undefined, not implicitly zero: callers
 disable color writes/alpha coverage or use depth-only scopes. This follows the native
 [graphics pipeline contract](https://docs.vulkan.org/refpages/latest/refpages/source/VkGraphicsPipelineCreateInfo.html).

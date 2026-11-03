@@ -16,7 +16,7 @@ struct Boundary {
     inside_address: bool,
 }
 
-pub(in crate::foundation) struct ArgumentLayout {
+pub struct ArgumentLayout {
     pub(super) device: *const Device,
     pub(super) execution_class: u32,
     byte_size: u32,
@@ -49,7 +49,7 @@ impl ArgumentLayout {
             device,
             desc,
             fields,
-            device.snapshot.execution_limits.max_inline_size,
+            device.snapshot.execution_limits.max_inline_bytes,
             device.snapshot.features.enabled,
             device.snapshot.descriptor_limits.uniform_address_alignment,
         )?))
@@ -229,7 +229,6 @@ impl ArgumentLayout {
         self.byte_size
     }
 
-    #[allow(dead_code)] // Used by the C2 layout-info export after public cutover.
     pub(in crate::foundation) fn state_info(&self) -> ArgumentStateInfo {
         ArgumentStateInfo {
             // All descriptor-heap push data uses one native storage domain.
@@ -300,36 +299,6 @@ impl ArgumentLayout {
             }
         }
         Ok(())
-    }
-
-    // Transitional installed ABI adapter. Existing physical-pointer root slots
-    // are inline bits, not silently reinterpreted native buffer declarations.
-    pub(in crate::foundation) fn legacy_inline(
-        device: &Device,
-        byte_size: u32,
-        stages: u64,
-    ) -> Result<Box<Self>, Status> {
-        let field = ArgumentField {
-            offset: 0,
-            size: byte_size,
-            kind: ARGUMENT_INLINE,
-            address_alignment: 0,
-            stages,
-            space: ARGUMENT_DIRECT,
-            binding: ARGUMENT_DIRECT,
-        };
-        let desc = ArgumentLayoutDesc {
-            execution_class: if stages == 4 {
-                ARGUMENT_COMPUTE
-            } else {
-                ARGUMENT_GRAPHICS
-            },
-            byte_size,
-            field_count: u32::from(byte_size != 0),
-            flags: 0,
-            fields: &field,
-        };
-        unsafe { Self::create(device, &desc) }
     }
 }
 
@@ -690,7 +659,6 @@ mod tests {
                     size: code.len() * 4,
                 },
                 entry: c"transform".as_ptr(),
-                interface_metadata: ptr::null(),
                 specialization: ptr::null(),
                 subgroup: ptr::null(),
             };
@@ -712,9 +680,8 @@ mod tests {
                 compile_flags: 0,
                 reserved: 0,
             };
-            // Explicit-layout creation must never consult the old per-shader ABI.
-            let executable =
-                unsafe { Executable::create_with_layout(&device, &description, &layout) }.unwrap();
+            // Pipeline creation borrows the explicitly prepared layout.
+            let executable = unsafe { Executable::create(&device, &description, &layout) }.unwrap();
             let mut arena = Arena::create(
                 &device,
                 &ArenaDesc {

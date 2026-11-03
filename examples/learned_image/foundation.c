@@ -61,8 +61,8 @@ static void dependency(ogpu_next_encoder *encoder, uint64_t before, uint64_t aft
     ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),before,after,before_access,after_access,0,0,0,NULL,NULL,NULL,0};
     ogpu_next_barrier(encoder,&dep);
 }
-static void dispatch(ogpu_next_encoder *encoder, ogpu_next_executable *pipeline, Launch grid, const void *args, uint32_t bytes) {
-    ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,bytes,args);
+static void dispatch(ogpu_next_encoder *encoder, ogpu_next_executable *pipeline, ogpu_next_argument_layout *arguments, Launch grid, const void *args, uint32_t bytes) {
+    ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_arguments(encoder, arguments, 0, bytes, args);
     ogpu_next_launch launch = {{grid.x,grid.y,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
 }
 static void image_readback(ogpu_next_encoder *encoder, ogpu_next_image *target, ogpu_next_memory *readback,
@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
     ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL;
     ogpu_next_memory *buffers[BUFFER_COUNT] = {NULL}, *upload = NULL, *readback = NULL, *draw = NULL, *backing = NULL, *input_b = NULL;
     ogpu_next_executable *kernels[4] = {NULL}, *raster = NULL;
+    ogpu_next_argument_layout *arguments[4] = {NULL}, *raster_arguments = NULL;
     ogpu_next_image *target = NULL; ogpu_next_view *view = NULL;
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
     ogpu_next_query_pool *timestamps = NULL; ogpu_next_memory *query_results = NULL;
@@ -140,16 +141,19 @@ int main(int argc, char **argv) {
     for (uint32_t i = HIDDEN; i < BUFFER_COUNT; ++i) REQUIRE(launch((uint32_t)(sizes[i]/4),poison_local,limits.max_groups,&poison_grid[i]));
     ogpu_next_shader shaders[] = {hidden_shader(),denoise_shader(),process_shader(),poison_shader()};
     const ogpu_next_shader_requirements *requirements[] = {&hidden_requirements,&denoise_requirements,&process_requirements,&poison_requirements};
+    const ogpu_next_argument_layout_desc *layouts[] = {&hidden_arguments,&denoise_arguments,&process_arguments,&poison_arguments};
     for (uint32_t i = 0; i < 4; ++i) {
+        TRY(ogpu_next_argument_layout_create(device,layouts[i],&arguments[i]));
         ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
-            1,&shaders[i],NULL,0,&requirements[i]->header,NULL,0,0}; TRY(ogpu_next_executable_create(device,&ed,&kernels[i]));
+            1,&shaders[i],NULL,0,&requirements[i]->header,NULL,0,0}; TRY(ogpu_next_executable_create(device,&ed,arguments[i],&kernels[i]));
     }
     ogpu_next_shader graphics[2]; application_shaders(graphics);
     ogpu_next_color_state color = {OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
     ogpu_next_graphics_state gs = {HEADER(ogpu_next_graphics_state,OGPU_NEXT_GRAPHICS_STATE),OGPU_NEXT_TRIANGLES,OGPU_NEXT_CULL_NONE,
         OGPU_NEXT_FRONT_CCW,1,1,&color,0,0,0,0,{0},0,{0},{0},NULL,NULL,0,0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,2,graphics,
-        &gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&application_requirements.header,NULL,0,0}; TRY(ogpu_next_executable_create(device,&ed,&raster));
+        &gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&application_requirements.header,NULL,0,0}; TRY(ogpu_next_argument_layout_create(device,&application_arguments,&raster_arguments));
+    TRY(ogpu_next_executable_create(device,&ed,raster_arguments,&raster));
     for (uint32_t i = 0; i < BUFFER_COUNT; ++i) {
         REQUIRE(memory_create(device,sizes[i],OGPU_NEXT_USAGE_STORAGE | OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST,
             OGPU_NEXT_MEMORY_LOCAL,&buffers[i]) == EXIT_SUCCESS);
@@ -193,7 +197,7 @@ int main(int argc, char **argv) {
     ogpu_next_copy_memory(encoder,(ogpu_next_span){buffers[WEIGHTS],0,sizes[WEIGHTS]},(ogpu_next_span){upload,0,sizes[WEIGHTS]});
     for (uint32_t i = HIDDEN; i < BUFFER_COUNT; ++i) {
         PoisonArguments args = {.arg_output_data=addresses[i]-GUARD,.arg_count=(uint32_t)(sizes[i]/4),.arg_dispatch_width=poison_grid[i].stride};
-        dispatch(encoder,kernels[3],poison_grid[i],&args,sizeof(args));
+        dispatch(encoder, kernels[3], arguments[3], poison_grid[i], &args, sizeof(args));
     }
     TRY(ogpu_next_commands_end(encoder,&list)); ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
@@ -238,15 +242,15 @@ int main(int argc, char **argv) {
         if (diagnostic) {
             for (uint32_t i = HIDDEN; i < BUFFER_COUNT; ++i) {
                 PoisonArguments args = {.arg_output_data=addresses[i]-GUARD,.arg_count=(uint32_t)(sizes[i]/4),.arg_dispatch_width=poison_grid[i].stride};
-                dispatch(encoder,kernels[3],poison_grid[i],&args,sizeof(args));
+                dispatch(encoder, kernels[3], arguments[3], poison_grid[i], &args, sizeof(args));
             }
             dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_WRITE);
         }
-        dispatch(encoder,kernels[0],hidden_grid,&hidden,sizeof(hidden));
+        dispatch(encoder, kernels[0], arguments[0], hidden_grid, &hidden, sizeof(hidden));
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
-        dispatch(encoder,kernels[1],denoise_grid,&denoise,sizeof(denoise));
+        dispatch(encoder, kernels[1], arguments[1], denoise_grid, &denoise, sizeof(denoise));
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
-        dispatch(encoder,kernels[2],process_grid,&process,sizeof(process));
+        dispatch(encoder, kernels[2], arguments[2], process_grid, &process, sizeof(process));
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
         ogpu_next_image_barrier barrier = {target,range,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COLOR_WRITE,
             OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1};
@@ -256,7 +260,7 @@ int main(int argc, char **argv) {
         ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,ow,oh,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size}};
         ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)ow,(float)oh,0,1,0,0,ow,oh};
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,raster); ogpu_next_set_graphics_state(encoder,&vp.header);
-        ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(display),&display);
+        ogpu_next_set_arguments(encoder, raster_arguments, 0, sizeof(display), &display);
         ogpu_next_indirect indirect = {{draw,0,16},16,1,{NULL,0,0}}; ogpu_next_draw_indirect(encoder,&indirect); ogpu_next_render_end(encoder);
         if (!resident || diagnostic) image_readback(encoder,target,readback,ow,oh,final_bytes,bs,br.size);
         if (diagnostic) {
@@ -358,8 +362,8 @@ cleanup:
     if (pending) { fprintf(stderr,"Pending learned-image foundation work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_query_pool_destroy(timestamps);
     ogpu_next_memory_destroy(query_results); ogpu_next_view_destroy(view); ogpu_next_image_destroy(target);
-    ogpu_next_memory_destroy(backing); ogpu_next_executable_destroy(raster);
-    for (uint32_t i = 0; i < 4; ++i) ogpu_next_executable_destroy(kernels[i]);
+    ogpu_next_memory_destroy(backing); ogpu_next_executable_destroy(raster); ogpu_next_argument_layout_destroy(raster_arguments);
+    for (uint32_t i = 0; i < 4; ++i) { ogpu_next_executable_destroy(kernels[i]); ogpu_next_argument_layout_destroy(arguments[i]); }
     for (uint32_t i = 0; i < BUFFER_COUNT; ++i) ogpu_next_memory_destroy(buffers[i]);
     ogpu_next_memory_destroy(upload); ogpu_next_memory_destroy(readback); ogpu_next_memory_destroy(draw);
     ogpu_next_memory_destroy(input_b);

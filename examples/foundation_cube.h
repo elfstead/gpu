@@ -4,6 +4,7 @@ static uint32_t cube_pixel(uint32_t layer, uint32_t mip, uint32_t replay) {
     return UINT32_C(0xff000000) | (17+layer*7+replay*3) | ((31+mip*47+replay*5)<<8) | ((layer+mip*19+replay*11)<<16);
 }
 static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc, uint32_t domain, const char *path) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL; void *code = NULL, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
     ogpu_next_memory *backing = NULL, *data = NULL, *heaps[2] = {NULL};
@@ -66,12 +67,13 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     file = fopen(path,"rb"); REQUIRE(file != NULL); REQUIRE(fseek(file,0,SEEK_END) == 0);
     long size = ftell(file); REQUIRE(size >= 20 && size % 4 == 0); REQUIRE(fseek(file,0,SEEK_SET) == 0);
     code = malloc((size_t)size); REQUIRE(code != NULL); REQUIRE(fread(code,1,(size_t)size,file) == (size_t)size); fclose(file); file = NULL;
-    ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_COMPUTE,8,8};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),16,1,&slot};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"cubeMain",&abi.header,NULL,NULL};
+    ogpu_next_argument_field argument_field = {0,16,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,16,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"cubeMain",NULL,NULL};
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),OGPU_NEXT_FEATURE_CUBE_ARRAY,{32,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline)); free(code); code = NULL;
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline)); free(code); code = NULL;
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     TRY(ogpu_next_barrier_scratch_requirements(0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
@@ -95,8 +97,8 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_barrier(encoder,&dep);
     for (uint32_t i = 0; i < 2; ++i) ogpu_next_bind_heap(encoder,&bindings[i]);
     ogpu_next_bind_executable(encoder,pipeline); uint32_t indices[] = {0,0};
-    ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(indices),indices);
-    ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_COMPUTE,0,output_address);
+    ogpu_next_set_arguments(encoder, arguments, 0, sizeof(indices), indices);
+    ogpu_next_set_arguments(encoder, arguments, 8, 8, &(uint64_t){output_address});
     ogpu_next_launch launch = {{1,1,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
     ogpu_next_dependency host = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_HOST,
         OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0}; ogpu_next_barrier(encoder,&host);
@@ -131,5 +133,6 @@ cleanup:
     for (uint32_t i = 0; i < 3; ++i) ogpu_next_view_destroy(views[i]);
     ogpu_next_image_destroy(image); ogpu_next_memory_destroy(backing); ogpu_next_memory_destroy(data);
     if (file) fclose(file);
-    free(code); free(scratch); free(barrier_scratch); free(submit_scratch); return result;
+    free(code); free(scratch); free(barrier_scratch); free(submit_scratch);     ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

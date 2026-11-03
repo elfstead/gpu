@@ -203,6 +203,16 @@ def header(reflection, assembly, binary, source, name="transform", api="installe
     return "\n".join(lines)
 
 
+def foundation_layout(name, size, stage):
+    stages = {"compute": "OGPU_NEXT_STAGE_COMPUTE", "vertex": "OGPU_NEXT_STAGE_VERTEX",
+              "fragment": "OGPU_NEXT_STAGE_FRAGMENT", "graphics": "OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT"}[stage]
+    execution = "OGPU_NEXT_ARGUMENT_COMPUTE" if stage == "compute" else "OGPU_NEXT_ARGUMENT_GRAPHICS"
+    return [f"static const ogpu_next_argument_field {name}_argument_field = {{",
+            f"    0, {size}, OGPU_NEXT_ARGUMENT_INLINE, 0, {stages}, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT}};",
+            f"static const ogpu_next_argument_layout_desc {name}_arguments = {{",
+            f"    {execution}, {size}, ({size}) != 0, 0, ({size}) ? &{name}_argument_field : NULL}};"]
+
+
 def foundation_records(name, size, local, requirements, stage="compute"):
     """Same inspected artifact/layout, different host records; no runtime policy.
 
@@ -221,7 +231,7 @@ def foundation_records(name, size, local, requirements, stage="compute"):
     require(bool(local) == (stage == "compute"), "foundation stage/local mismatch")
     dimensions = local or [0, 0, 0]
     checks = []
-    if size: checks.append(f"l->max_inline_size >= {size}")
+    if size: checks.append(f"l->max_inline_bytes >= {size}")
     if local:
         checks.append(f"l->max_local_invocations >= {local[0]*local[1]*local[2]}")
         checks += [f"l->max_local_size[{i}] >= {n}" for i, n in enumerate(local)]
@@ -230,16 +240,14 @@ def foundation_records(name, size, local, requirements, stage="compute"):
             " * Inline bytes contain addresses, not pointee copies or retained owners.",
             f" * The caller selects a {'compute' if stage == 'compute' else 'graphics'} queue and proves pointer bounds/lifetimes. */",
             f"#define {name}_required_features ({required})",
-            f"static const ogpu_next_argument_interface {name}_interface = {{",
-            f"    .header = {record('ogpu_next_argument_interface', 'OGPU_NEXT_ARGUMENT_INTERFACE')},",
-            f"    .byte_size = {size}, .root_count = 0, .roots = NULL}};",
+            *foundation_layout(name, size, stage),
             f"static const ogpu_next_shader_requirements {name}_requirements = {{",
             f"    .header = {record('ogpu_next_shader_requirements', 'OGPU_NEXT_SHADER_REQUIREMENTS')},",
             f"    .features = {name}_required_features, .local_size = {{{', '.join(map(str, dimensions))}}}, .shared_memory = 0}};",
             f"static inline ogpu_next_shader {name}_shader(void) {{",
             f"    return (ogpu_next_shader){{.stage = OGPU_NEXT_STAGE_{stage.upper()}, .format = OGPU_NEXT_SHADER_SPIRV,",
             f"        .code = {{{name}_code, sizeof({name}_code)}}, .entry = \"main\",",
-            f"        .interface_metadata = &{name}_interface.header, .specialization = NULL, .subgroup = NULL}};", "}",
+            f"        .specialization = NULL, .subgroup = NULL}};", "}",
             f"static inline int {name}_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {{",
             *([] if checks else ["    (void)l;"]),
             f"    return c->baseline_supported && (c->enabled & {name}_required_features) == {name}_required_features" +

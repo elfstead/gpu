@@ -37,9 +37,9 @@ class FoundationGraphicsTests(unittest.TestCase):
 
     def test_pair_records(self):
         text = (g.HERE / "foundation-pattern.generated.h").read_text()
-        for expected in ("pattern_push_size = 8", ".byte_size = pattern_push_size",
+        for expected in ("pattern_push_size = 8", "OGPU_NEXT_ARGUMENT_GRAPHICS, pattern_push_size",
                          "pattern_vertex_required_features | pattern_fragment_required_features",
-                         "out[0].interface_metadata = out[1].interface_metadata = &pattern_interface.header",
+                         "static const ogpu_next_argument_layout_desc pattern_arguments",
                          ".local_size = {0, 0, 0}"):
             self.assertIn(expected,text)
 

@@ -188,19 +188,20 @@ static const uint32_t scene_range_prepare_code[] = {
  * Inline bytes contain addresses, not pointee copies or retained owners.
  * The caller selects a compute queue and proves pointer bounds/lifetimes. */
 #define scene_range_prepare_required_features (UINT64_C(0))
-static const ogpu_next_argument_interface scene_range_prepare_interface = {
-    .header = {OGPU_NEXT_ARGUMENT_INTERFACE, OGPU_NEXT_VERSION, sizeof(ogpu_next_argument_interface), 0, NULL},
-    .byte_size = 32, .root_count = 0, .roots = NULL};
+static const ogpu_next_argument_field scene_range_prepare_argument_field = {
+    0, 32, OGPU_NEXT_ARGUMENT_INLINE, 0, OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_ARGUMENT_DIRECT, OGPU_NEXT_ARGUMENT_DIRECT};
+static const ogpu_next_argument_layout_desc scene_range_prepare_arguments = {
+    OGPU_NEXT_ARGUMENT_COMPUTE, 32, (32) != 0, 0, (32) ? &scene_range_prepare_argument_field : NULL};
 static const ogpu_next_shader_requirements scene_range_prepare_requirements = {
     .header = {OGPU_NEXT_SHADER_REQUIREMENTS, OGPU_NEXT_VERSION, sizeof(ogpu_next_shader_requirements), 0, NULL},
     .features = scene_range_prepare_required_features, .local_size = {8, 1, 1}, .shared_memory = 0};
 static inline ogpu_next_shader scene_range_prepare_shader(void) {
     return (ogpu_next_shader){.stage = OGPU_NEXT_STAGE_COMPUTE, .format = OGPU_NEXT_SHADER_SPIRV,
         .code = {scene_range_prepare_code, sizeof(scene_range_prepare_code)}, .entry = "main",
-        .interface_metadata = &scene_range_prepare_interface.header, .specialization = NULL, .subgroup = NULL};
+        .specialization = NULL, .subgroup = NULL};
 }
 static inline int scene_range_prepare_compatible(const ogpu_next_feature_info *c, const ogpu_next_execution_limits *l) {
     return c->baseline_supported && (c->enabled & scene_range_prepare_required_features) == scene_range_prepare_required_features
-        && l->max_inline_size >= 32 && l->max_local_invocations >= 8 && l->max_local_size[0] >= 8 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
+        && l->max_inline_bytes >= 32 && l->max_local_invocations >= 8 && l->max_local_size[0] >= 8 && l->max_local_size[1] >= 1 && l->max_local_size[2] >= 1;
 }
 #endif

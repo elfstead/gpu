@@ -240,24 +240,28 @@ mod tests {
                     } else {
                         None
                     };
-                    let roots = [
-                        RootSlot {
-                            stages: 4,
-                            offset: 0,
-                            alignment: 8,
-                        },
-                        RootSlot {
-                            stages: 4,
-                            offset: 8,
-                            alignment: 8,
-                        },
-                    ];
-                    let abi = ArgumentInterface {
-                        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-                        byte_size: 24,
-                        root_count: 2,
-                        roots: roots.as_ptr(),
+                    let field = ArgumentField {
+                        offset: 0,
+                        size: 24,
+                        kind: ARGUMENT_INLINE,
+                        address_alignment: 0,
+                        stages: 4,
+                        space: ARGUMENT_DIRECT,
+                        binding: ARGUMENT_DIRECT,
                     };
+                    let layout = unsafe {
+                        ArgumentLayout::create(
+                            d,
+                            &ArgumentLayoutDesc {
+                                execution_class: ARGUMENT_COMPUTE,
+                                byte_size: 24,
+                                field_count: 1,
+                                flags: 0,
+                                fields: &field,
+                            },
+                        )
+                    }
+                    .unwrap();
                     let req = ShaderRequirements {
                         header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
                         features: 0,
@@ -272,7 +276,7 @@ mod tests {
                             size: size_of_val(code.as_slice()),
                         },
                         entry: c"transform".as_ptr(),
-                        interface_metadata: &abi.header,
+
                         specialization: ptr::null(),
                         subgroup: ptr::null(),
                     };
@@ -290,7 +294,7 @@ mod tests {
                         compile_flags: 0,
                         reserved: 0,
                     };
-                    let executable = unsafe { Executable::create(d, &desc).unwrap() };
+                    let executable = unsafe { Executable::create(d, &desc, &layout).unwrap() };
                     drop(local); // Executable does not retain even the local cache.
                     drop(executable);
                 });

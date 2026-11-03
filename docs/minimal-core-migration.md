@@ -1,8 +1,8 @@
 # C1 consolidation and C2 cutover
 
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
-The installed SDK/runtime still has the old signatures. This document does not
-declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
+The Vulkan argument family is now installed as foundation schema 2; the remaining
+families are still being migrated. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
 
@@ -19,7 +19,7 @@ of the target: its operation set is the inventory's retained operations plus dra
 destinations. This is a design index, not a drop-in replacement installed header.
 At C2 cutover rewrite the real header and Rust types; do not ship both contracts.
 
-The inventory covers all 138 current C operations, including presentation-table
+The inventory covers all 138 original C operations, including presentation-table
 members: 114 signatures remain, 24 are replaced. The 37 draft operations include
 the replacements and new explicit storage/layout/query/lifecycle operations.
 Each has an exact target C name and direct Rust name. More functions do not imply
@@ -30,7 +30,8 @@ Retained operations retain their signatures and unaffected obligations, not an
 old embedded record that this document replaces. Discovery, allocation/placement,
 mapping/cache control, image/view creation, command arenas/replay, work commands,
 render state, copies, queries and timeline operations remain. The installed header
-is pinned at `40bde34` and its content hash is in the inventory. No unlisted entry
+baseline is pinned at `40bde34` and its content hash is in the inventory. The audit
+reads that baseline from Git and separately checks the current 140-operation surface. No unlisted entry
 point is silently deleted or added to the selected core.
 
 ## Signature and record migration
@@ -186,7 +187,8 @@ No DX12 runtime commits are imported into this branch.
 
 ## C2 first implementation checkpoint: prepared argument engine
 
-Implemented 2026-11-03 on Vulkan/Linux, below the installed API:
+Historical checkpoint (`b20a235`, followed by `c3d1a78`), superseded by the public
+cutover below. Implemented 2026-11-03 on Vulkan/Linux, below the installed API:
 
 - Shared field/layout/state records and a prepared device-scoped layout. Cold
   validation checks byte extents, stage classes, address alignment, native budget
@@ -235,13 +237,54 @@ validate for Vulkan 1.4.
 Existing native/consumer receipts cover the transitional all-inline path. Unsupported
 hardware profiles remain explicit exclusions in the consumer, not acceptance.
 
-**Next:** cut the public C/Rust records, layout operations, compiler-generated
+**Next at that checkpoint (now completed below):** cut the public C/Rust records, layout operations, compiler-generated
 metadata and argument consumers over together. Reuse the mapped shader execution/
 readback fixture through the final public interface, preserve direct physical-pointer
 consumers, and remove the temporary root/inline adapters. Shader
 resource/type agreement is an artifact-generation/caller obligation on this unsafe
 internal path; no SPIR-V reflection or additional shader traversal was added to
 pipeline creation. C2 and local C3 remain incomplete.
+
+## C2 argument public cutover
+
+Implemented 2026-11-03 on Vulkan/Linux. Step 1 is complete:
+
+- C and direct Rust expose explicit argument-layout creation, immutable info and
+  destruction, plus one `set_arguments` range update. Executable creation borrows
+  the layout. Layout ownership and recorded-use lifetimes belong to the caller.
+- Deleted the old root/inline setters, root-slot and per-shader interface records,
+  owned compatibility layouts and conversion path. Physical-pointer arguments
+  remain ordinary inline bytes; mapped buffer fields retain native address roles.
+- Foundation schema 2 rejects schema-1 discovery before loading Vulkan. Shader
+  records and execution limits changed; consumers must rebuild against this SDK.
+  This remains an experimental ABI, with no compatibility implementation.
+- Compiler generators emit explicit direct-inline layouts for existing artifacts.
+  The mixed native-mapping fixture uses the public C and Rust APIs for inline,
+  uniform/read/read-write addresses, partial updates and replay. Automatic inference
+  of native buffer roles from arbitrary shader code is not claimed.
+- C/Rust examples, generated headers, scene reuse and the GGML/libplacebo consumers
+  explicitly own and share layouts. Per-frame scene slots borrow both shared
+  executables and layouts; consumer cleanup destroys executables before layouts.
+
+Local evidence on the existing RADV NAVI10 device: 70 CPU unit tests and 23 native
+unit tests pass; the public foundation consumer passes; 1,405 installed C/Rust ABI
+values and 376 draft values agree. Strict Clippy and compiler generator checks pass.
+All six relocated C consumers pass (compute, graphics, learned-image, indexed
+scene, indexed ranges and textured scene), including 36 textured frames. Independent
+relocated Rust, GGML and libplacebo handoffs pass; 47 scene-runner host tests pass.
+The scene migration checks caught missing shared layout handles in frame slots and
+a textured layout incorrectly using the plain scene extent; both are fixed. Native
+coverage includes mapped buffer execution, reuse/partial updates, guards and
+changed-pointee replay. The public mixed-mapping fixture also passes with Khronos
+validation and synchronization validation enabled, without validation messages. These are correctness/lowering checks, not new performance claims or
+Windows/Metal acceptance.
+
+**Next:** step 2, descriptor storage and command composition. Implement explicit
+heap backing, locations, writes/copies and immutable queries; migrate secondary
+inheritance and generated layouts to borrowed heap/layout objects. Generated work
+currently reads the executable's prepared argument extent; its explicit layout
+contract is still pending. Dependencies/submission and presentation follow before
+the full C2 audit and local C3. C2 as a whole is not complete.
 
 ## Verification and open native questions
 

@@ -109,7 +109,7 @@ def main():
                 if public_path(path):command+=['-L'+str(ROOT/'target/release'),'-Wl,-rpath,'+str(ROOT/'target/release'),'-logpu']
                 command+=['-o',str(folder/'probe')];subprocess.run(command,check=True);dependencies(flags,source)
                 symbols=subprocess.check_output(['nm','-u',str(folder/'probe')],text=True)
-                require('ogpu' not in symbols.lower() if not public_path(path) else 'ogpu_next_set_inline' in symbols,'wrong linkage')
+                require('ogpu' not in symbols.lower() if not public_path(path) else 'ogpu_next_set_arguments' in symbols,'wrong linkage')
                 if path.startswith('foundation'):require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines() if line.split() and line.split()[-1].startswith('ogpu_')),'foundation imports legacy runtime')
                 report['builds'][folder.name]=dict(command=command,sha256=digest(folder/'probe'))
                 if args.build_only:continue

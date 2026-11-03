@@ -4,6 +4,7 @@
 /* Scalar-width proof, not a tensor runtime or a numerical-throughput benchmark. */
 static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc desc, uint32_t domain, const char *path, uint32_t mode, uint32_t subgroup_size, uint32_t subgroup_flags) {
     uint32_t atomics = mode == 1, subgroups = mode == 2, dot = mode == 3;
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL;
@@ -32,22 +33,23 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     code = malloc((size_t)size); REQUIRE(code != NULL);
     REQUIRE(fread(code,1,(size_t)size,file) == (size_t)size);
     fclose(file); file = NULL;
-    ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_COMPUTE,0,8};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,1,&slot};
+    ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,8,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{64,1,1},atomics ? 8u : 0u};
     ogpu_next_subgroup_state subgroup = {HEADER(ogpu_next_subgroup_state,OGPU_NEXT_SUBGROUP_STATE),
         OGPU_NEXT_SUBGROUP_BASIC | OGPU_NEXT_SUBGROUP_ARITHMETIC | OGPU_NEXT_SUBGROUP_BALLOT,subgroup_size,subgroup_flags,0};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},subgroups ? "subgroupMain" : atomics ? "atomicMain" : dot ? "dotMain" : "numericMain",&abi.header,NULL,subgroups ? &subgroup.header : NULL};
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},subgroups ? "subgroupMain" : atomics ? "atomicMain" : dot ? "dotMain" : "numericMain",NULL,subgroups ? &subgroup.header : NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&requirements.header,NULL,0,0};
     if (subgroups) {
         subgroup.required_size = 3;
-        REQUIRE(ogpu_next_executable_create(device,&ed,&executable) == OGPU_NEXT_INVALID && executable == NULL);
+        REQUIRE(ogpu_next_executable_create(device, &ed, arguments, &executable) == OGPU_NEXT_INVALID && executable == NULL);
         subgroup.required_size = subgroup_size;
         subgroup.operations |= 256;
-        REQUIRE(ogpu_next_executable_create(device,&ed,&executable) == OGPU_NEXT_UNSUPPORTED && executable == NULL);
+        REQUIRE(ogpu_next_executable_create(device, &ed, arguments, &executable) == OGPU_NEXT_UNSUPPORTED && executable == NULL);
         subgroup.operations &= ~256u;
     }
-    TRY(ogpu_next_executable_create(device,&ed,&executable));
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &executable));
     free(code); code = NULL;
     TRY(ogpu_next_memory_create(device,&desc,&memory));
     ogpu_next_span all = {memory,0,desc.size};
@@ -60,7 +62,7 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL;
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_bind_executable(encoder,executable);
-    ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_COMPUTE,0,address);
+    ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     ogpu_next_launch launch = {{atomics ? 2u : 1u,1,1},0,NULL};
     ogpu_next_dispatch(encoder,&launch);
     ogpu_next_dependency dependency = {0};
@@ -177,5 +179,6 @@ cleanup:
     ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
     free(code); free(scratch);
-    return result;
+        ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

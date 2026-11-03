@@ -25,6 +25,7 @@ static int slot_record(Slot *slot,Reuse *r) {
 }
 static int slot_create(Slot *slot,Scene *shared,Reuse *r) {
     Scene *s=&slot->scene; s->device=shared->device; s->queue=shared->queue; s->domain=shared->domain;
+    s->compute_arguments=shared->compute_arguments; s->raster_arguments=shared->raster_arguments;
     s->prepare=shared->prepare; memcpy(s->raster,shared->raster,sizeof(s->raster));
     s->width=r->width; s->height=r->height; s->pixels=(size_t)r->width*r->height*4; s->index_bytes=r->index_bytes;
     NEED(storage(s) && resources(s) && buffer_create(s,CONTROL,REUSE_CONTROL_BYTES,OGPU_NEXT_USAGE_STORAGE,OGPU_NEXT_MEMORY_HOST_VISIBLE));

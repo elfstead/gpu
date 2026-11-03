@@ -283,7 +283,7 @@ mod tests {
                 ..dep
             };
             let mut bad = Dependency { ..dep };
-            bad.header.version = 2;
+            bad.header.version = VERSION + 1;
             let waits = [
                 SplitDependency {
                     split: &*a,

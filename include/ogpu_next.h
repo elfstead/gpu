@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 1u
+#define OGPU_NEXT_VERSION 2u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -74,7 +74,7 @@ enum {
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
     OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
     OGPU_NEXT_SAMPLER_DESC = 108, OGPU_NEXT_HEAP_BINDING = 109,
-    OGPU_NEXT_EXECUTABLE_DESC = 110, OGPU_NEXT_ARGUMENT_INTERFACE = 111,
+    OGPU_NEXT_EXECUTABLE_DESC = 110,
     OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
     OGPU_NEXT_VIEWPORT_STATE = 116, OGPU_NEXT_QUERY_POOL_DESC = 117,
@@ -902,7 +902,7 @@ ogpu_next_status ogpu_next_execute_scratch_requirements(uint32_t count, ogpu_nex
 /* Execute from a primary only. Inputs and aligned scratch are borrowed only for
  * this call; the lists, arenas and their resources survive all future/pending use.
  * Entire array is validated before native execution. count=0 is a no-op.
- * Nonempty execution invalidates the primary's pipeline, inline/root bytes,
+ * Nonempty execution invalidates the primary's pipeline, argument bytes,
  * viewport/scissor and vertex/index bindings: re-establish before using.
  * A heap binding survives only when EVERY executed child inherits that heap;
  * otherwise it becomes undefined. No implicit binding restoration.
@@ -994,11 +994,10 @@ void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
  */
 enum { OGPU_NEXT_EXECUTABLE_COMPUTE = 1, OGPU_NEXT_EXECUTABLE_GRAPHICS = 2 };
 enum { OGPU_NEXT_SHADER_SPIRV = 0 };
-enum { OGPU_NEXT_ARGUMENT_SHARED_BYTES = 1 };
 typedef struct ogpu_next_execution_limits {
-    uint64_t max_inline_size;
+    uint64_t max_inline_bytes;
     uint32_t max_groups[3], max_local_size[3], max_local_invocations;
-    uint32_t max_shared_memory, argument_flags;
+    uint32_t max_shared_memory, argument_kinds;
 } ogpu_next_execution_limits;
 /* Optional mesh shading: explicitly enable MESH with RASTER; TASK additionally
  * requires MESH. No vertex-stage fallback. QUERY_MESH_LIMITS returns physical
@@ -1047,15 +1046,6 @@ typedef struct ogpu_next_mesh_requirements {
     uint32_t output_components, output_layers;
 } ogpu_next_mesh_requirements;
 typedef struct ogpu_next_bytes { const void *data; size_t size; } ogpu_next_bytes;
-typedef struct ogpu_next_root_slot {
-    ogpu_next_stages stages;
-    uint32_t offset, alignment;
-} ogpu_next_root_slot;
-typedef struct ogpu_next_argument_interface {
-    ogpu_next_record header;
-    uint32_t byte_size, root_count;
-    const ogpu_next_root_slot *roots;
-} ogpu_next_argument_interface;
 typedef struct ogpu_next_shader_requirements {
     ogpu_next_record header;
     ogpu_next_features features;
@@ -1068,11 +1058,83 @@ typedef struct ogpu_next_specialization {
     const ogpu_next_specialization_entry *entries;
     ogpu_next_bytes data;
 } ogpu_next_specialization;
+typedef struct ogpu_next_argument_layout ogpu_next_argument_layout;
+enum {
+    OGPU_NEXT_ARGUMENT_INLINE = 0,
+    OGPU_NEXT_ARGUMENT_UNIFORM_ADDRESS = 1,
+    OGPU_NEXT_ARGUMENT_READ_ADDRESS = 2,
+    OGPU_NEXT_ARGUMENT_READ_WRITE_ADDRESS = 3
+};
+enum {
+    OGPU_NEXT_ARGUMENT_COMPUTE = 0,
+    OGPU_NEXT_ARGUMENT_GRAPHICS = 1
+};
+/* INLINE may target a direct push-data declaration. Otherwise space/binding
+ * identify a compiler-declared buffer resource, whose role is given by kind.
+ * Both must be DIRECT together; DIRECT is legal only for INLINE.
+ */
+#define OGPU_NEXT_ARGUMENT_DIRECT UINT32_MAX
+typedef struct ogpu_next_argument_field {
+    uint32_t offset;
+    uint32_t size;
+    uint32_t kind;
+    uint32_t address_alignment; /* INLINE: 0; address: requested power of two */
+    ogpu_next_stages stages;    /* artifact visibility, not isolated storage */
+    uint32_t space;
+    uint32_t binding;
+} ogpu_next_argument_field;
+
+/* Fields are ordered, nonoverlapping, nonempty and within byte_size; padding is
+ * allowed. Empty layouts have zero size/fields. Extents are four-byte aligned;
+ * native addresses occupy eight bytes at eight-byte aligned offsets. Their
+ * requested pointee alignment must satisfy the native binding. INLINE alignment
+ * is zero. Field stages belong to the execution class; source resource/type/layout
+ * agreement is the artifact producer's contract, without runtime reflection.
+ * Creation copies field metadata and checks the complete native budget; it never
+ * spills values. The device outlives the layout, which outlives all borrowing
+ * executables and recorded/future/pending uses. Destruction never waits. */
+typedef struct ogpu_next_argument_layout_desc {
+    uint32_t execution_class;
+    uint32_t byte_size;
+    uint32_t field_count;
+    uint32_t flags; /* zero */
+    const ogpu_next_argument_field *fields;
+} ogpu_next_argument_layout_desc;
+
+enum {
+    OGPU_NEXT_ARGUMENT_BIND_PRESERVES = 0,
+    OGPU_NEXT_ARGUMENT_BIND_INVALIDATES_ON_CHANGE = 1
+};
+/* Read-only facts about command-local argument storage. These are not handles.
+ * IDs compare only within one live device; zero is not a valid domain/key.
+ * domain identifies potentially overlapping argument storage. Byte coordinates
+ * are offset_base + logical offset. bind_rule applies to that domain.
+ * Different layouts may have the same binding_key when natively compatible;
+ * sharing the same layout always shares the key. The application must not
+ * fabricate keys or compare them across devices/recreations.
+ */
+typedef struct ogpu_next_argument_state_info {
+    uint64_t domain;
+    uint64_t binding_key;
+    uint32_t offset_base;
+    uint32_t byte_size;
+    uint32_t bind_rule;
+    uint32_t reserved; /* zero */
+} ogpu_next_argument_state_info;
+
+ogpu_next_status ogpu_next_argument_layout_create(
+    ogpu_next_device *, const ogpu_next_argument_layout_desc *,
+    ogpu_next_argument_layout **);
+void ogpu_next_argument_layout_destroy(ogpu_next_argument_layout *);
+void ogpu_next_argument_layout_info(
+    const ogpu_next_argument_layout *, ogpu_next_argument_state_info *);
+
+
 typedef struct ogpu_next_shader {
     uint32_t stage, format;
     ogpu_next_bytes code;
     const char *entry;
-    const ogpu_next_record *interface_metadata, *specialization;
+    const ogpu_next_record *specialization;
     const ogpu_next_record *subgroup;
 } ogpu_next_shader;
 typedef struct ogpu_next_subgroup_limits {
@@ -1213,17 +1275,17 @@ void ogpu_next_executable_cache_destroy(ogpu_next_executable_cache *);
 /* stage=COMPUTE; kind=COMPUTE; shader_count=1; static_state=NULL, dynamic_state=0,
  * cache=NULL or an explicit cache above. Explicit nonempty UTF-8 entry name (not forced to main).
  * code is aligned SPIR-V words, valid for this device and its enabled features.
- * interface_metadata names ARGUMENT_INTERFACE; requirements names
- * SHADER_REQUIREMENTS. Both are mandatory even when no argument bytes are used.
+ * The explicitly borrowed layout is mandatory, including empty layouts.
+ * requirements names SHADER_REQUIREMENTS.
  * Shader semantics and metadata agreement are trusted: callers supply the actual
  * post-specialization local size and shared-memory use. This is not a SPIR-V
  * validator/reflection engine. Capabilities, memory safety, uniformity promises
  * and every reachable GPU access remain the artifact producer/caller's contract.
- * Set/binding resource variables are not supported yet; direct heap access is.
+ * Buffer set/binding variables map through layout fields; direct heap access remains available.
  * Optional SPECIALIZATION entries have unique IDs, nonempty bounded byte spans,
  * and sizes/types matching the shader (including 4-byte native bools); reserved=0.
- * Inputs are borrowed during creation only; argument metadata is copied. Device
- * is borrowed through destruction; no current context or implicit shared cache.
+ * Code/metadata inputs are borrowed during creation. Layout and device remain
+ * borrowed through destruction and recorded uses; no current context or implicit cache.
  * compile_flags=0 permits native compilation. COMPILE_INDIRECT_BINDABLE (below)
  * opts into native generated-command executable selection, requires enabled
  * GENERATED_COMMANDS and matching pipeline_binding_stages, and may be combined
@@ -1236,30 +1298,29 @@ void ogpu_next_executable_cache_destroy(ogpu_next_executable_cache *);
  * bounded-latency guarantee, nor a cache-hit guarantee, even after an earlier
  * successful preparation or cache import. reserved=0; unknown flags are rejected.
  */
-ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_executable **);
+ogpu_next_status ogpu_next_executable_create(ogpu_next_device *, const ogpu_next_executable_desc *, ogpu_next_argument_layout *, ogpu_next_executable **);
 void ogpu_next_executable_destroy(ogpu_next_executable *);
-/* Bind borrows executable through all recorded future/pending use. COMPUTE only
- * and requires a compute domain. Inline/root commands require a bound executable.
- * byte_size is a multiple of four <= queried maximum. Root slots are array IDs,
- * each occupying 8 bytes at an 8-aligned offset within byte_size, with nonoverlap,
- * COMPUTE visibility and power-of-two pointee alignment. No fixed single root.
- * SHARED_BYTES means inline and roots address one byte namespace, not separate
- * stage banks. set_root changes only its 8 bytes; inline may intentionally change
- * those same bytes. The caller initializes every byte read by each dispatch.
- * Binding preserves bytes at identical offsets, even between different executables;
- * only compatible meanings may be reused. Begin has undefined argument contents.
- * offset/size must be multiples of four and in bounds; empty inline is a no-op.
- * Input host bytes are copied during recording, address pointees are never copied.
- * Null addresses can be encoded but must not be dereferenced. Address alignment,
- * lifetime, bounds and hazards apply at execution, including every replay.
- * Stage-isolated banks are NOT emulated with hidden copies on this profile.
- * Graphics extends this below: VERTEX/FRAGMENT/MESH/TASK share the same native bytes,
- * including with compute. A stage mask does not isolate an update from other
- * stages reading the same offsets. Use distinct offsets for independent values.
- */
+/* Binding borrows the executable and layout through all recorded/pending uses.
+ * It does not restore arguments. Use argument_layout_info for native reuse rules.
+ * Vulkan shares one preserving push-data domain across compute and graphics. */
 void ogpu_next_bind_executable(ogpu_next_encoder *, ogpu_next_executable *);
-void ogpu_next_set_inline(ogpu_next_encoder *, ogpu_next_stages, uint32_t offset, uint32_t size, const void *);
-void ogpu_next_set_root(ogpu_next_encoder *, ogpu_next_stages, uint32_t slot, ogpu_next_address);
+/* The layout must belong to the executable
+ * currently bound for its execution class. Record values now, pointees never.
+ * offset/size are 4-aligned, in bounds; size=0 permits data=NULL.
+ * Any intersected address field must be covered completely (8 bytes).
+ * INLINE fields allow 4-byte subranges. Padding is uninterpreted.
+ * The caller initializes every byte read by work; begin has undefined contents.
+ * Pointee lifetime, bounds and hazards apply to every execution/replay. Null
+ * addresses may be encoded but not dereferenced; native address fields enforce
+ * their declared alignment. Inline physical-pointer bits remain caller-validated.
+ * Full local preflight precedes native writes; invalid recording is poisoned.
+ * No heap allocation, payload cache, resource retention or implicit update at
+ * dispatch/draw. data need only be valid during this call.
+ */
+void ogpu_next_set_arguments(
+    ogpu_next_encoder *, const ogpu_next_argument_layout *,
+    uint32_t offset, uint32_t size, const void *data);
+
 typedef struct ogpu_next_launch {
     ogpu_next_extent groups;
     uint32_t dynamic_shared_bytes;
@@ -1472,14 +1533,14 @@ typedef struct ogpu_next_vertex_input {
  * by optional FRAGMENT (FRAGMENT must be absent when discard is enabled), static_state=GRAPHICS_STATE,
  * dynamic_state includes DYNAMIC_VIEWPORT_SCISSOR and any selected supported
  * optional bits (graphics_limits.dynamic_states). requirements local_size/shared_memory=0.
- * Supplied shaders provide identical full argument interfaces; root visibility is
- * VERTEX, FRAGMENT or both. With MESH_SHADER enabled, the alternative shader order
+ * The executable borrows one graphics argument layout; fields carry shader visibility.
+ * With MESH_SHADER enabled, the alternative shader order
  * is MESH then optional FRAGMENT, or TASK/MESH then optional FRAGMENT when
  * TASK_SHADER is also enabled. Mesh pipelines supply MESH_REQUIREMENTS instead;
  * vertex_input=NULL, primitive_restart=0, and topology is ignored (the artifact
- * defines output topology). Their roots name participating MESH/TASK stages and/or
- * FRAGMENT. All shaders still share one argument interface and byte namespace.
- * Fragment must be absent with discard for either path. Independent roots use
+ * defines output topology). Layout fields name participating MESH/TASK stages and/or
+ * FRAGMENT. All shaders share the borrowed layout and native byte namespace.
+ * Fragment must be absent with discard for either path. Independent values use
  * distinct offsets. No reflected
  * resource list, automatic per-stage remapping or hidden upload/PSO compilation.
  * Color format count may be zero or up to max_colors. depth_format selects the

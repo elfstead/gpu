@@ -97,7 +97,7 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
     ogpu_next_bind_indices(s->encoder,span(s,INDICES,GUARD,32),OGPU_NEXT_INDEX_U32);
     Textured_scene_vertexArguments root={.arg_vertices=s->root.vertices,.arg_image=0,.arg_samplerIndex=0,
         .arg_lod=mode==1 ? 1.f : mode==3 || mode==5 ? .5f : 0.f,.arg_overlay=(uint32_t)overlay};
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(root),&root);
+    ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, sizeof(root), &root);
     for(unsigned i=0;i<(overlay ? 1u : 2u);++i) {
         ogpu_next_indirect draw={span(s,DRAWS,GUARD+20*i,20),20,1,{0}}; ogpu_next_draw_indexed_indirect(s->encoder,&draw);
     }
@@ -119,7 +119,7 @@ static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *d
     dependency(s,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ|OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_SHADER_WRITE);
     ogpu_next_bind_executable(s->encoder,s->prepare);
     Scene_prepareArguments root={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,.arg_draws=s->root.draws,.arg_phase=frame==1,.arg_empty=0};
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(root),&root);
+    ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(root), &root);
     ogpu_next_launch launch={{1,1,1},0,NULL}; ogpu_next_dispatch(s->encoder,&launch);
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_INDEX_INPUT|OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_INDIRECT,
         OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_INDEX_READ|OGPU_NEXT_ACCESS_SHADER_READ|OGPU_NEXT_ACCESS_INDIRECT_READ);

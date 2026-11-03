@@ -14,8 +14,17 @@
 namespace gpu {
 #define GGML_RECORD(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,nullptr}
 template <class T, void (*Destroy)(T *)> using Owner = std::unique_ptr<T, decltype(Destroy)>;
-using Kernel = Owner<ogpu_next_executable,ogpu_next_executable_destroy>;
-inline Kernel empty_kernel() { return Kernel(nullptr,ogpu_next_executable_destroy); }
+struct Kernel {
+    Owner<ogpu_next_argument_layout,ogpu_next_argument_layout_destroy> arguments{nullptr,ogpu_next_argument_layout_destroy};
+    Owner<ogpu_next_executable,ogpu_next_executable_destroy> executable{nullptr,ogpu_next_executable_destroy};
+    Kernel() = default;
+    Kernel(Kernel &&) = default;
+    Kernel &operator=(Kernel other) noexcept {
+        arguments.swap(other.arguments); executable.swap(other.executable); return *this;
+    }
+    ogpu_next_executable *get() const { return executable.get(); }
+};
+inline Kernel empty_kernel() { return Kernel{}; }
 inline void check(ogpu_next_status status) {
     if (status != OGPU_NEXT_OK) throw std::runtime_error("OGPU foundation status "+std::to_string(status));
 }
@@ -70,7 +79,7 @@ struct Runtime {
         ogpu_next_device *d = nullptr; check(ogpu_next_device_create(adapter,&desc,&d)); device.reset(d);
         queue = ogpu_next_device_queue(d,domain,0);
         q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); check(ogpu_next_device_query(d,&q));
-        if (limits.max_groups[0] < 16384 || limits.max_inline_size < 40 || limits.max_local_size[0] < 64 ||
+        if (limits.max_groups[0] < 16384 || limits.max_inline_bytes < 40 || limits.max_local_size[0] < 64 ||
             limits.max_local_invocations < 64 || limits.max_shared_memory < 512)
             throw std::runtime_error("GGML shader profile exceeds device limits");
         q = query(OGPU_NEXT_QUERY_MEMORY_TYPES,nullptr,0,sizeof(ogpu_next_memory_type_info)); check(ogpu_next_device_query(d,&q));
@@ -98,12 +107,15 @@ struct Runtime {
         return memory;
     }
     Kernel kernel(const void *code,size_t bytes,uint32_t root_size,uint32_t shared) {
-        const ogpu_next_argument_interface interface{GGML_RECORD(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),root_size,0,nullptr};
-        const ogpu_next_shader shader{OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,bytes},"main",&interface.header,nullptr,nullptr};
+        Kernel result;
+        const ogpu_next_argument_field field{0,root_size,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+        const ogpu_next_argument_layout_desc layout{OGPU_NEXT_ARGUMENT_COMPUTE,root_size,root_size ? 1u : 0u,0,root_size ? &field : nullptr};
+        ogpu_next_argument_layout *arguments = nullptr; check(ogpu_next_argument_layout_create(device.get(),&layout,&arguments)); result.arguments.reset(arguments);
+        const ogpu_next_shader shader{OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,bytes},"main",nullptr,nullptr};
         const ogpu_next_shader_requirements requirements{GGML_RECORD(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{64,1,1},shared};
         const ogpu_next_executable_desc desc{GGML_RECORD(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),
             OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,nullptr,0,&requirements.header,nullptr,0,0};
-        ogpu_next_executable *raw = nullptr; check(ogpu_next_executable_create(device.get(),&desc,&raw)); return Kernel(raw,ogpu_next_executable_destroy);
+        ogpu_next_executable *raw = nullptr; check(ogpu_next_executable_create(device.get(),&desc,arguments,&raw)); result.executable.reset(raw); return result;
     }
     void begin() {
         // Successful callbacks already discarded their references. Reset here
@@ -125,7 +137,7 @@ struct Runtime {
         ogpu_next_copy_memory(encoder,{dst.handle.get(),dst_off,bytes},{src.handle.get(),src_off,bytes});
     }
     void dispatch(const Kernel &kernel,uint32_t groups,const void *root,uint32_t size) {
-        ogpu_next_bind_executable(encoder,kernel.get()); ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,size,root);
+        ogpu_next_bind_executable(encoder,kernel.get()); ogpu_next_set_arguments(encoder,kernel.arguments.get(),0,size,root);
         const ogpu_next_launch launch{{groups,1,1},0,nullptr}; ogpu_next_dispatch(encoder,&launch);
     }
     void finish() {

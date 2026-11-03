@@ -17,10 +17,9 @@ macro_rules! record {
 }
 record!(/// Bind prepared execution state without compilation.
     fn bind_executable(list, executable: ExecutableHandle) |e| e.bind_executable(executable.get()));
-record!(/// Copy inline bytes into command state; bytes are borrowed only for this call.
-    fn set_inline(list, stages: u64, offset: u32, bytes: &[u8]) |e| e.inline(stages, offset, count(bytes.len())?, bytes.as_ptr().cast()));
-record!(/// Set a non-owning device address root; all reachable shader data is caller-owned.
-    fn set_root(list, stages: u64, slot: u32, address: u64) |e| e.root(stages, slot, address));
+record!(/// Update a range in the bound executable's prepared argument layout.
+    fn set_arguments(list, layout: ArgumentLayoutHandle, offset: u32, bytes: &[u8]) |e|
+        e.set_arguments(layout.get(), offset, count(bytes.len())?, bytes.as_ptr().cast()));
 record!(fn dispatch(list, launch: &Launch) |e| e.dispatch(launch));
 record!(/// GPU dimensions must satisfy enabled limits when the command executes.
     fn dispatch_indirect(list, args: Span, dynamic_shared_bytes: u32) |e| e.dispatch_indirect(args, dynamic_shared_bytes));

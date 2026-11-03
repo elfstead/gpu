@@ -288,11 +288,11 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<SamplerDesc>(), 80);
     assert_eq!(size_of::<HeapBinding>(), 72);
     assert_eq!(size_of::<ExecutionLimits>(), 48);
-    assert_eq!(size_of::<ArgumentInterface>(), 40);
-    assert_eq!(size_of::<RootSlot>(), 16);
+    assert_eq!(size_of::<ArgumentLayoutDesc>(), 24);
+    assert_eq!(size_of::<ArgumentField>(), 32);
     assert_eq!(size_of::<ShaderRequirements>(), 48);
     assert_eq!(size_of::<Specialization>(), 56);
-    assert_eq!(size_of::<Shader>(), 56);
+    assert_eq!(size_of::<Shader>(), 48);
     assert_eq!(size_of::<SubgroupLimits>(), 40);
     assert_eq!(size_of::<SubgroupState>(), 40);
     assert_eq!(size_of::<ExecutableDesc>(), 80);
@@ -635,4 +635,14 @@ fn gpu_foundation_setup() {
             "No suitable physical device; not a passing skip"
         );
     }
+}
+
+#[test]
+fn previous_foundation_schema_is_rejected_before_loader_access() {
+    let mut output = ptr::dangling_mut();
+    assert_eq!(
+        unsafe { ogpu_next_discovery_create(1, &mut output) },
+        VERSION_MISMATCH
+    );
+    assert!(output.is_null());
 }

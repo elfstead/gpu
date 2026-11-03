@@ -1,17 +1,17 @@
 /* Consumer policy: first forbid compilation, then explicitly allow it if needed.
  * The runtime itself never retries. Native cache hits/misses are not deterministic. */
-static int prepare_with_compile_policy(ogpu_next_device *device, const ogpu_next_executable_desc *input, ogpu_next_executable **out) {
+static int prepare_with_compile_policy(ogpu_next_device *device, const ogpu_next_executable_desc *input, ogpu_next_argument_layout *arguments, ogpu_next_executable **out) {
     ogpu_next_feature_info features = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_FEATURES, &features, 1, sizeof(features));
     ogpu_next_executable_desc desc = *input;
     int result = EXIT_FAILURE;
     TRY(ogpu_next_device_query(device, &q));
     desc.compile_flags = 4;
-    REQUIRE(ogpu_next_executable_create(device, &desc, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);
+    REQUIRE(ogpu_next_executable_create(device, &desc, arguments, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);
     desc.compile_flags = 0; desc.reserved = 1;
-    REQUIRE(ogpu_next_executable_create(device, &desc, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);
+    REQUIRE(ogpu_next_executable_create(device, &desc, arguments, out) == OGPU_NEXT_UNSUPPORTED && *out == NULL);
     desc.reserved = 0; desc.compile_flags = OGPU_NEXT_COMPILE_FAIL_IF_REQUIRED;
-    ogpu_next_status status = ogpu_next_executable_create(device, &desc, out);
+    ogpu_next_status status = ogpu_next_executable_create(device, &desc, arguments, out);
     if (!(features.enabled & OGPU_NEXT_FEATURE_CACHE_CONTROL)) {
         REQUIRE(status == OGPU_NEXT_UNSUPPORTED && *out == NULL);
     } else {
@@ -22,7 +22,7 @@ static int prepare_with_compile_policy(ogpu_next_device *device, const ogpu_next
         if (status == OGPU_NEXT_OK) return EXIT_SUCCESS;
     }
     desc.compile_flags = 0;
-    TRY(ogpu_next_executable_create(device, &desc, out));
+    TRY(ogpu_next_executable_create(device, &desc, arguments, out));
     result = EXIT_SUCCESS;
 cleanup:
     return result;

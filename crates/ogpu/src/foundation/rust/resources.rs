@@ -2,15 +2,33 @@
 use super::super::{Executable, ExecutableCache, Image, QueryPool, Split, View};
 use super::*;
 
+/// Prepare a native argument mapping. Fields are copied; no values are stored.
+/// # Safety
+/// Live device and readable fields; device outlives layout and all its uses.
+pub unsafe fn argument_layout_create(
+    device: DeviceHandle,
+    desc: &ArgumentLayoutDesc,
+) -> Result<ArgumentLayoutHandle> {
+    Ok(ArgumentLayoutHandle(NonNull::from(Box::leak(unsafe {
+        native::ArgumentLayout::create(device.get(), desc)?
+    }))))
+}
+/// # Safety
+/// Live immutable layout and parent device.
+pub unsafe fn argument_layout_info(layout: ArgumentLayoutHandle) -> ArgumentStateInfo {
+    unsafe { layout.get() }.state_info()
+}
+
 /// # Safety
 /// Live device; readable trusted artifact/metadata arrays and correctly synchronized
-/// optional cache. Device outlives executable and all recorded/pending uses.
+/// optional cache. Device and layout outlive executable and all recorded/pending uses.
 pub unsafe fn executable_create(
     device: DeviceHandle,
     desc: &ExecutableDesc,
+    layout: ArgumentLayoutHandle,
 ) -> Result<ExecutableHandle> {
     Ok(ExecutableHandle(NonNull::from(Box::leak(unsafe {
-        Executable::create(device.get(), desc)?
+        Executable::create(device.get(), desc, layout.get())?
     }))))
 }
 /// # Safety
@@ -160,6 +178,11 @@ macro_rules! destroy {
         }
     };
 }
+destroy!(
+    argument_layout_destroy,
+    ArgumentLayoutHandle,
+    "Destroy a layout after all borrowing executables and recorded uses have ended."
+);
 destroy!(
     executable_destroy,
     ExecutableHandle,

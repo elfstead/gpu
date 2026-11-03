@@ -22,7 +22,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -422,7 +422,6 @@ pub const DESCRIPTOR_LIMITS: u32 = 7;
 pub const SAMPLER_ANISOTROPY: u64 = 8;
 pub const EXECUTION_LIMITS: u32 = 8;
 pub const EXECUTABLE_DESC: u32 = 110;
-pub const ARGUMENT_INTERFACE: u32 = 111;
 pub const SHADER_REQUIREMENTS: u32 = 112;
 pub const SPECIALIZATION: u32 = 113;
 pub const GRAPHICS_STATE: u32 = 114;
@@ -825,12 +824,12 @@ pub struct Indirect {
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct ExecutionLimits {
-    pub max_inline_size: u64,
+    pub max_inline_bytes: u64,
     pub max_groups: [u32; 3],
     pub max_local_size: [u32; 3],
     pub max_local_invocations: u32,
     pub max_shared_memory: u32,
-    pub argument_flags: u32,
+    pub argument_kinds: u32,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -838,15 +837,7 @@ pub struct Bytes {
     pub data: *const c_void,
     pub size: usize,
 }
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct RootSlot {
-    pub stages: u64,
-    pub offset: u32,
-    pub alignment: u32,
-}
-// C2 prepared argument records. Installed C signatures migrate after the
-// runtime/compiler checkpoint; exact selected C layouts are in the C1 draft.
+// Prepared arguments: one byte namespace and explicit native resource roles.
 pub const ARGUMENT_INLINE: u32 = 0;
 pub const ARGUMENT_UNIFORM_ADDRESS: u32 = 1;
 pub const ARGUMENT_READ_ADDRESS: u32 = 2;
@@ -887,13 +878,6 @@ pub struct ArgumentStateInfo {
     pub reserved: u32,
 }
 #[repr(C)]
-pub struct ArgumentInterface {
-    pub header: Record,
-    pub byte_size: u32,
-    pub root_count: u32,
-    pub roots: *const RootSlot,
-}
-#[repr(C)]
 pub struct ShaderRequirements {
     pub header: Record,
     pub features: u64,
@@ -920,7 +904,6 @@ pub struct Shader {
     pub format: u32,
     pub code: Bytes,
     pub entry: *const c_char,
-    pub interface_metadata: *const Record,
     pub specialization: *const Record,
     pub subgroup: *const Record,
 }

@@ -26,7 +26,7 @@ def main():
     try:
         pkg=os.getenv('PKG_CONFIG','pkg-config')
         def variable(name):return subprocess.check_output([pkg,'--variable='+name,'ogpu-foundation'],text=True).strip()
-        require(variable('ogpu_foundation')=='1','foundation revision mismatch')
+        require(variable('ogpu_foundation')=='2','foundation revision mismatch')
         report['sdk']=dict(revision=variable('ogpu_revision'),runtime_sha256=digest(Path(variable('libdir'))/'libogpu.so'),
             header_sha256=digest(Path(variable('includedir'))/'ogpu_next.h'))
         report['sources']={p.name:digest(p) for p in HERE.iterdir() if p.is_file() and p.suffix in ('.c','.h','.py','.slang')}

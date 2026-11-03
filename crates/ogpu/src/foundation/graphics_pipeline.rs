@@ -696,8 +696,6 @@ pub(super) unsafe fn prepare(
         device: d,
         pipeline: ptr::null_mut(),
         arguments: layout,
-        compatibility_layout: None,
-        roots: Vec::new(),
         stages: stage_mask,
         indirect_bindable: desc.compile_flags & 2 != 0,
     });
@@ -781,7 +779,7 @@ mod tests {
                         size: 0,
                     },
                     entry: ptr::null(),
-                    interface_metadata: ptr::null(),
+
                     specialization: ptr::null(),
                     subgroup: ptr::null(),
                 })

@@ -26,6 +26,7 @@ cleanup:
 
 static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
                           uint32_t domain, const char *shader_path, uint32_t secondary) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL, *execute_scratch = NULL;
@@ -130,13 +131,15 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     code = malloc((size_t)code_size); REQUIRE(code != NULL);
     REQUIRE(fread(code, 1, (size_t)code_size, file) == (size_t)code_size);
     fclose(file); file = NULL;
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE), 24, 0, NULL};
+    ogpu_next_argument_field argument_field = {0,24,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,24,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), 0, {64, 1, 1}, 0};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
-        {code, (size_t)code_size}, "consume", &abi.header, NULL, NULL};
+        {code, (size_t)code_size}, "consume",  NULL, NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL, 0, 0};
-    TRY(ogpu_next_executable_create(device, &ed, &executable));
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &executable));
     free(code); code = NULL;
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
@@ -204,7 +207,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_bind_executable(dispatch_encoder, executable);
     uint32_t control[6] = {0, (uint32_t)(resource_stride / image_stride), 0,
         (uint32_t)(resource_stride * 2 / buffer_stride), width, height};
-    ogpu_next_set_inline(dispatch_encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
+    ogpu_next_set_arguments(dispatch_encoder, arguments, 0, sizeof(control), control);
     ogpu_next_launch launch = {{1, 1, 1}, 0, NULL};
     ogpu_next_dispatch(dispatch_encoder, &launch);
     if (secondary) {
@@ -222,7 +225,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
             if (!(secondary & (1u << i))) ogpu_next_bind_heap(encoder, &bindings[i]);
         ogpu_next_bind_executable(encoder, executable);
         control[5] = height / 2;
-        ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, sizeof(control), control);
+        ogpu_next_set_arguments(encoder, arguments, 0, sizeof(control), control);
         ogpu_next_dispatch(encoder, &launch);
     }
     barriers[1].before = OGPU_NEXT_ACCESS_STORAGE_WRITE; barriers[1].after = OGPU_NEXT_ACCESS_COPY_READ;
@@ -285,5 +288,6 @@ cleanup:
     ogpu_next_memory_destroy(staging); ogpu_next_memory_destroy(data);
     if (file) fclose(file);
     free(code); free(scratch); free(barrier_scratch); free(submit_scratch); free(execute_scratch);
-    return result;
+        ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

@@ -13,7 +13,7 @@ static ogpu_next_query query(uint32_t kind, void *data, uint32_t capacity, uint3
 int main(void) {
     int result = EXIT_FAILURE, pending = 0;
     ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL;
-    ogpu_next_memory *memory = NULL; ogpu_next_executable *pipeline = NULL;
+    ogpu_next_memory *memory = NULL; ogpu_next_executable *pipeline = NULL; ogpu_next_argument_layout *arguments = NULL;
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL; void *scratch = NULL;
     const uint32_t count = 4099, sentinel = UINT32_C(0xa55adead);
     uint32_t domain = UINT32_MAX;
@@ -38,7 +38,7 @@ int main(void) {
     q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&limits,1,sizeof(limits)); TRY(ogpu_next_device_query(device,&q));
     REQUIRE(transform_compatible(&features,&limits));
     ogpu_next_feature_info missing = features; missing.baseline_supported = 0; REQUIRE(!transform_compatible(&missing,&limits));
-    ogpu_next_execution_limits small = limits; small.max_inline_size = sizeof(TransformArguments)-1;
+    ogpu_next_execution_limits small = limits; small.max_inline_bytes = sizeof(TransformArguments)-1;
     REQUIRE(!transform_compatible(&features,&small));
     small = limits; small.max_local_invocations = 0; REQUIRE(!transform_compatible(&features,&small));
     for (uint32_t axis = 0; axis < 3; ++axis) { small = limits; small.max_local_size[axis] = 0; REQUIRE(!transform_compatible(&features,&small)); }
@@ -48,7 +48,8 @@ int main(void) {
     ogpu_next_shader shader = transform_shader();
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
         1,&shader,NULL,0,&transform_requirements.header,NULL,0,0};
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline));
+    TRY(ogpu_next_argument_layout_create(device,&transform_arguments,&arguments));
+    TRY(ogpu_next_executable_create(device,&ed,arguments,&pipeline));
     ogpu_next_memory_desc md = {HEADER(ogpu_next_memory_desc,OGPU_NEXT_MEMORY_DESC),64+(uint64_t)(count+2)*4,8,
         OGPU_NEXT_USAGE_STORAGE,UINT32_MAX,OGPU_NEXT_MEMORY_LINEAR,NULL,0,0};
     uint32_t compatible[32]; ogpu_next_requirements req = {0}; req.compatible_types = compatible; req.compatible_type_capacity = 32;
@@ -68,7 +69,7 @@ int main(void) {
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_bind_executable(encoder,pipeline);
     TransformArguments args = {0}; args.arg_data = address; args.arg_count = count;
-    ogpu_next_set_inline(encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    ogpu_next_set_arguments(encoder, arguments, 0, sizeof(args), &args);
     memset(&args,0xcc,sizeof(args)); /* Command owns immediate bytes, not this host struct. */
     ogpu_next_launch launch = {{groups,1,1},0,NULL};
     ogpu_next_dependency edge = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,
@@ -104,7 +105,7 @@ int main(void) {
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending compiler-consumer work after failure.\n"); _Exit(EXIT_FAILURE); }
-    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_executable_destroy(pipeline);
+    ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_executable_destroy(pipeline); ogpu_next_argument_layout_destroy(arguments);
     ogpu_next_memory_destroy(memory); ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery);
     free(scratch); return result;
 }

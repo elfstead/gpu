@@ -6,6 +6,7 @@
  * depth-write, compare, cull and front-face. Every list replays changed roots. */
 static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                            const char *vertex_path, uint32_t mode) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     uint32_t layered = mode == 7, layers = layered ? 3 : 1;
     uint32_t stencil_resolve = mode >= 12 && mode <= 14;
@@ -35,9 +36,10 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     REQUIRE(fseek(file,0,SEEK_END) == 0); long size = ftell(file); REQUIRE(size >= 20 && size % 4 == 0);
     REQUIRE(fseek(file,0,SEEK_SET) == 0); code = malloc((size_t)size); REQUIRE(code != NULL);
     REQUIRE(fread(code,1,(size_t)size,file) == (size_t)size); fclose(file); file = NULL;
-    ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_VERTEX,0,16};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,1,&slot};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"vertexMain",&abi.header,NULL,NULL};
+    ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_GRAPHICS,8,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"vertexMain",NULL,NULL};
     ogpu_next_raster_options options = {HEADER(ogpu_next_raster_options,OGPU_NEXT_RASTER_OPTIONS),
         0,mode == 1,0,OGPU_NEXT_POLYGON_FILL,mode >= 4 && mode <= 6,0,0,0,1,0,0,1,UINT64_MAX,0,0,0,0};
     if (mode == 4 || mode == 5) {
@@ -62,21 +64,21 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         gs.stencil_front = (ogpu_next_stencil_state){OGPU_NEXT_STENCIL_KEEP,OGPU_NEXT_STENCIL_REPLACE,
             OGPU_NEXT_STENCIL_KEEP,OGPU_NEXT_COMPARE_ALWAYS,255,255,1}; gs.stencil_back = gs.stencil_front;
     }
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline));
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline));
     if (mode == 3) {
         options.depth_bounds = 1; options.max_depth_bounds = 0.5f;
-        TRY(ogpu_next_executable_create(device,&ed,&bounded));
+        TRY(ogpu_next_executable_create(device, &ed, arguments, &bounded));
     }
     if (resolving) {
         options.sample_mask = 12; if (stencil_resolve) gs.stencil_front.reference = gs.stencil_back.reference = 3;
-        TRY(ogpu_next_executable_create(device,&ed,&bounded));
+        TRY(ogpu_next_executable_create(device, &ed, arguments, &bounded));
     }
     if (stencil_resolve) {
         options.sample_mask = UINT64_MAX; gs.samples = 1; gs.depth_test = gs.depth_write = 0;
         gs.stencil_front = (ogpu_next_stencil_state){OGPU_NEXT_STENCIL_KEEP,OGPU_NEXT_STENCIL_KEEP,
             OGPU_NEXT_STENCIL_KEEP,OGPU_NEXT_COMPARE_EQUAL,255,0,0}; gs.stencil_back = gs.stencil_front;
         ed.dynamic_state |= OGPU_NEXT_DYNAMIC_STENCIL_REFERENCE;
-        TRY(ogpu_next_executable_create(device,&ed,&probe));
+        TRY(ogpu_next_executable_create(device, &ed, arguments, &probe));
         ogpu_next_query_pool_desc qd = {HEADER(ogpu_next_query_pool_desc,OGPU_NEXT_QUERY_POOL_DESC),OGPU_NEXT_QUERY_OCCLUSION,2,0};
         TRY(ogpu_next_query_pool_create(device,&qd,&occlusion));
     }
@@ -156,12 +158,12 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         if (mode == 17) ogpu_next_set_depth_compare(encoder,half ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_NEVER);
         if (mode == 18) ogpu_next_set_cull(encoder,half ? OGPU_NEXT_CULL_NONE : OGPU_NEXT_CULL_BOTH);
         if (mode == 19) ogpu_next_set_front_face(encoder,half ? OGPU_NEXT_FRONT_CCW : OGPU_NEXT_FRONT_CW);
-        ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_VERTEX,0,address+half*32);
+        ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address+half*32});
         ogpu_next_draw(encoder,&draw);
     }
     if (mode == 3) {
         ogpu_next_bind_executable(encoder,bounded); vp.scissor_x = 0; vp.scissor_width = 8;
-        ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_VERTEX,0,address+64);
+        ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address+64});
         ogpu_next_draw(encoder,&draw);
     }
     ogpu_next_render_end(encoder);
@@ -287,5 +289,6 @@ cleanup:
     ogpu_next_view_destroy(other_target_view); ogpu_next_view_destroy(target_view); ogpu_next_image_destroy(target); ogpu_next_memory_destroy(target_backing);
     ogpu_next_memory_destroy(backing); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
-    free(code); free(bs); free(ss); return result;
+    free(code); free(bs); free(ss);     ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

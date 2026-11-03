@@ -19,7 +19,7 @@ with caller-owned scratch, waits on a timeline, invalidates and checks all bytes
 Three A/B/A phases reuse the same arena/backing; malformed creation, poisoned
 recording, timeout and insufficient submission scratch exercise errors and retry.
 Additional A/B/A phases cover prepared compute with specialization, two address
-roots, partial inline updates, direct/indirect dispatch and guarded CPU-reference
+values in a caller-owned prepared layout, partial range updates, direct/indirect dispatch and guarded CPU-reference
 output checks. Cache export/import/merge, dedicated image placement, views,
 descriptor/sampler encoding, explicit transitions and clear/readback are exercised
 through native Rust, including malformed executable/view/descriptor requests.

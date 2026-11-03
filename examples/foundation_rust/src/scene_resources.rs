@@ -239,13 +239,8 @@ pub unsafe fn raster(
     d: gpu::DeviceHandle,
     format: u32,
     overlay: bool,
+    arguments: gpu::ArgumentLayoutHandle,
 ) -> gpu::Result<gpu::ExecutableHandle> {
-    let abi = ArgumentInterface {
-        header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-        byte_size: 24,
-        root_count: 0,
-        roots: ptr::null(),
-    };
     let shaders =
         [(VERTEX, shaders::VERTEX), (FRAGMENT, shaders::FRAGMENT)].map(|(stage, code)| Shader {
             stage: stage as u32,
@@ -255,7 +250,6 @@ pub unsafe fn raster(
                 size: std::mem::size_of_val(code),
             },
             entry: c"main".as_ptr(),
-            interface_metadata: &abi.header,
             specialization: ptr::null(),
             subgroup: ptr::null(),
         });
@@ -312,6 +306,7 @@ pub unsafe fn raster(
                 compile_flags: 0,
                 reserved: 0,
             },
+            arguments,
         )
     }
 }

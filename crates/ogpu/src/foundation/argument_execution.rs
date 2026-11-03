@@ -1,5 +1,9 @@
 //! Native execution acceptance for the C2 argument mapping, before SDK cutover.
 use super::*;
+use crate::foundation::{
+    ogpu_next_argument_layout_create, ogpu_next_argument_layout_info, ogpu_next_executable_create,
+    ogpu_next_set_arguments, rust as api,
+};
 
 #[repr(C)]
 struct Values {
@@ -99,7 +103,23 @@ fn gpu_mapped_argument_execution() {
             flags: 0,
             fields: fields.as_ptr(),
         };
-        let layout = unsafe { ArgumentLayout::create(&device, &description) }.unwrap();
+        let device_pointer = ptr::from_ref(&*device).cast_mut();
+        let mut layout_pointer = ptr::null_mut();
+        assert_eq!(
+            unsafe {
+                ogpu_next_argument_layout_create(device_pointer, &description, &mut layout_pointer)
+            },
+            OK
+        );
+        let _layout = unsafe { Box::from_raw(layout_pointer) };
+        let layout_handle = unsafe { api::ArgumentLayoutHandle::from_raw(layout_pointer) }.unwrap();
+        let mut info = std::mem::MaybeUninit::uninit();
+        unsafe {
+            ogpu_next_argument_layout_info(layout_pointer, info.as_mut_ptr());
+        }
+        assert_eq!(unsafe { info.assume_init() }, unsafe {
+            api::argument_layout_info(layout_handle)
+        });
         let code: Vec<u32> =
             include_bytes!("../../../../examples/shaders/foundation-arguments.comp.spv")
                 .chunks_exact(4)
@@ -113,7 +133,7 @@ fn gpu_mapped_argument_execution() {
                 size: code.len() * 4,
             },
             entry: c"mappedArguments".as_ptr(),
-            interface_metadata: ptr::null(),
+
             specialization: ptr::null(),
             subgroup: ptr::null(),
         };
@@ -135,8 +155,19 @@ fn gpu_mapped_argument_execution() {
             compile_flags: 0,
             reserved: 0,
         };
-        let first =
-            unsafe { Executable::create_with_layout(&device, &executable_desc, &layout) }.unwrap();
+        let mut executable_pointer = ptr::null_mut();
+        assert_eq!(
+            unsafe {
+                ogpu_next_executable_create(
+                    device_pointer,
+                    &executable_desc,
+                    layout_pointer,
+                    &mut executable_pointer,
+                )
+            },
+            OK
+        );
+        let first = unsafe { Box::from_raw(executable_pointer) };
         let bias = 11u32;
         let entry = SpecializationEntry {
             id: 7,
@@ -158,8 +189,15 @@ fn gpu_mapped_argument_execution() {
             ..shader
         };
         executable_desc.shaders = &shader2;
-        let second =
-            unsafe { Executable::create_with_layout(&device, &executable_desc, &layout) }.unwrap();
+        let second_handle = unsafe {
+            api::executable_create(
+                api::DeviceHandle::from_raw(device_pointer).unwrap(),
+                &executable_desc,
+                layout_handle,
+            )
+        }
+        .unwrap();
+        let second = unsafe { Box::from_raw(second_handle.as_raw()) };
 
         // One explicit allocation supplies all four pointees. Storage addresses
         // intentionally have only four-byte alignment, unlike descriptor offsets.
@@ -223,7 +261,9 @@ fn gpu_mapped_argument_execution() {
             .unwrap();
         let encoder = unsafe { &*list };
         encoder.bind_executable(&first).unwrap();
-        unsafe { encoder.set_arguments(&layout, 0, 40, ptr::from_ref(&values).cast()) }.unwrap();
+        unsafe {
+            ogpu_next_set_arguments(list, layout_pointer, 0, 40, ptr::from_ref(&values).cast());
+        }
         let launch = Launch {
             groups: Extent { x: 2, y: 1, z: 1 },
             dynamic_shared_bytes: 0,
@@ -235,12 +275,9 @@ fn gpu_mapped_argument_execution() {
         values.multiplier = 5;
         values.destination = base + stride * 4 + 4;
         unsafe {
-            encoder
-                .set_arguments(&layout, 4, 4, ptr::from_ref(&values.multiplier).cast())
-                .unwrap();
-            encoder
-                .set_arguments(&layout, 24, 8, ptr::from_ref(&values.destination).cast())
-                .unwrap();
+            let handle = api::ListHandle::from_raw(list).unwrap();
+            api::set_arguments(handle, layout_handle, 4, &values.multiplier.to_ne_bytes());
+            api::set_arguments(handle, layout_handle, 24, &values.destination.to_ne_bytes());
         }
         encoder.dispatch(&launch).unwrap();
         unsafe {

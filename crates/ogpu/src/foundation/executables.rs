@@ -11,9 +11,6 @@ pub struct Executable {
     pub(super) device: *const Device,
     pub(super) pipeline: vk::VkPipeline,
     pub(super) arguments: *const ArgumentLayout,
-    // Removed with the installed argument-interface adapter in C2.
-    compatibility_layout: Option<Box<ArgumentLayout>>,
-    pub(super) roots: Vec<RootSlot>,
     pub(super) stages: u64,
     pub(super) indirect_bindable: bool,
 }
@@ -44,86 +41,6 @@ unsafe fn array<'a, T>(p: *const T, count: u32) -> Result<&'a [T], Status> {
     }
     Ok(unsafe { std::slice::from_raw_parts(p, count as usize) })
 }
-fn interface(
-    limits: &ExecutionLimits,
-    input: &ArgumentInterface,
-    roots: &[RootSlot],
-) -> Result<(), Status> {
-    if input.byte_size % 4 != 0 {
-        return Err(INVALID);
-    }
-    if u64::from(input.byte_size) > limits.max_inline_size {
-        return Err(UNSUPPORTED);
-    }
-    for (i, root) in roots.iter().enumerate() {
-        if root.stages == 0 || root.stages & !(4 | 8 | 16 | MESH_STAGE | TASK_STAGE) != 0 {
-            return Err(UNSUPPORTED);
-        }
-        if root.offset % 8 != 0
-            || root
-                .offset
-                .checked_add(8)
-                .is_none_or(|end| end > input.byte_size)
-            || !root.alignment.is_power_of_two()
-        {
-            return Err(INVALID);
-        }
-        // Cold preparation only. No overlap scan or hash map in set_root.
-        if roots[..i].iter().any(|r| r.offset == root.offset) {
-            return Err(INVALID);
-        }
-    }
-    Ok(())
-}
-// Temporary conversion from the installed per-shader byte/root metadata. The
-// common pipeline path below consumes only a prepared layout.
-unsafe fn legacy_arguments(
-    d: &Device,
-    desc: &ExecutableDesc,
-) -> Result<(Box<ArgumentLayout>, Vec<RootSlot>), Status> {
-    let stages = match desc.kind {
-        1 if desc.shader_count == 1 => 4,
-        2 if (1..=3).contains(&desc.shader_count) => {
-            graphics_pipeline::graphics_stages(unsafe { array(desc.shaders, desc.shader_count)? })?
-        }
-        _ => return Err(UNSUPPORTED),
-    };
-    let shaders = unsafe { array(desc.shaders, desc.shader_count)? };
-    let permitted = if stages == 4 {
-        4
-    } else if stages & MESH_STAGE != 0 {
-        stages | 16
-    } else {
-        24
-    };
-    let mut owned = Vec::<RootSlot>::new();
-    let mut byte_size = 0;
-    for (i, shader) in shaders.iter().enumerate() {
-        let abi =
-            unsafe { record::<ArgumentInterface>(shader.interface_metadata, ARGUMENT_INTERFACE)? };
-        let roots = unsafe { array(abi.roots, abi.root_count)? };
-        interface(&d.snapshot.execution_limits, abi, roots)?;
-        if roots.iter().any(|r| r.stages & !permitted != 0) {
-            return Err(UNSUPPORTED);
-        }
-        if i == 0 {
-            byte_size = abi.byte_size;
-            owned
-                .try_reserve_exact(roots.len())
-                .map_err(|_| OUT_OF_MEMORY)?;
-            owned.extend_from_slice(roots);
-        } else if abi.byte_size != byte_size
-            || roots.len() != owned.len()
-            || roots.iter().zip(&owned).any(|(a, b)| {
-                a.offset != b.offset || a.alignment != b.alignment || a.stages != b.stages
-            })
-        {
-            return Err(INVALID);
-        }
-    }
-    Ok((ArgumentLayout::legacy_inline(d, byte_size, stages)?, owned))
-}
-
 fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Status> {
     if req.features & !d.snapshot.features.enabled != 0 {
         return Err(UNSUPPORTED);
@@ -170,19 +87,6 @@ fn compile_flags(enabled: u64, flags: u32, reserved: u32) -> Result<u64, Status>
         })
 }
 impl Executable {
-    pub(in crate::foundation) unsafe fn create(
-        d: &Device,
-        desc: &ExecutableDesc,
-    ) -> Result<Box<Self>, Status> {
-        d.ready()?;
-        desc.header.validate::<ExecutableDesc>(EXECUTABLE_DESC)?;
-        let (layout, roots) = unsafe { legacy_arguments(d, desc)? };
-        let mut result = unsafe { Self::create_with_layout(d, desc, &layout)? };
-        result.compatibility_layout = Some(layout);
-        result.roots = roots;
-        Ok(result)
-    }
-
     pub(in crate::foundation) fn arguments(&self) -> &ArgumentLayout {
         // The explicit-layout path borrows caller-owned, device-scoped storage.
         unsafe { &*self.arguments }
@@ -190,7 +94,7 @@ impl Executable {
 
     /// The device and layout must outlive this executable and every recorded use.
     /// Shader bindings must match the supplied layout; no runtime reflection.
-    pub(in crate::foundation) unsafe fn create_with_layout(
+    pub(in crate::foundation) unsafe fn create(
         d: &Device,
         desc: &ExecutableDesc,
         layout: &ArgumentLayout,
@@ -288,8 +192,6 @@ impl Executable {
             device: d,
             pipeline: ptr::null_mut(),
             arguments: layout,
-            compatibility_layout: None,
-            roots: Vec::new(),
             stages: 4,
             indirect_bindable: desc.compile_flags & 2 != 0,
         });
@@ -357,6 +259,46 @@ impl Executable {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn test_layout(d: &Device, bytes: u32, stages: u64) -> Box<ArgumentLayout> {
+        let field = ArgumentField {
+            offset: 0,
+            size: bytes,
+            kind: ARGUMENT_INLINE,
+            address_alignment: 0,
+            stages,
+            space: ARGUMENT_DIRECT,
+            binding: ARGUMENT_DIRECT,
+        };
+        unsafe {
+            ArgumentLayout::create(
+                d,
+                &ArgumentLayoutDesc {
+                    execution_class: if stages == 4 {
+                        ARGUMENT_COMPUTE
+                    } else {
+                        ARGUMENT_GRAPHICS
+                    },
+                    byte_size: bytes,
+                    field_count: 1,
+                    flags: 0,
+                    fields: &field,
+                },
+            )
+        }
+        .unwrap()
+    }
+    unsafe fn check_pipeline(
+        d: &Device,
+        desc: &ExecutableDesc,
+        bytes: u32,
+        stages: u64,
+    ) -> Result<u64, Status> {
+        let layout = test_layout(d, bytes, stages);
+        let executable = unsafe { Executable::create(d, desc, &layout)? };
+        let stages = executable.stages;
+        drop(executable);
+        Ok(stages)
+    }
     #[test]
     fn compilation_policy_is_explicit() {
         let base = vk::VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
@@ -442,17 +384,6 @@ mod tests {
             .chunks_exact(4)
             .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
             .collect();
-        let root = RootSlot {
-            stages: 4,
-            offset: 0,
-            alignment: 8,
-        };
-        let abi = ArgumentInterface {
-            header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-            byte_size: 8,
-            root_count: 1,
-            roots: &root,
-        };
         let requirements = ShaderRequirements {
             header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
             features: all,
@@ -467,7 +398,7 @@ mod tests {
                 size: size_of_val(code.as_slice()),
             },
             entry: entry.as_ptr(),
-            interface_metadata: &abi.header,
+
             specialization: ptr::null(),
             subgroup: ptr::null(),
         };
@@ -527,7 +458,7 @@ mod tests {
                 }
                 let device = Device::create(&adapter, &request, enabled).unwrap();
                 assert_eq!(device.snapshot.features.enabled, enabled);
-                let executable = unsafe { Executable::create(&device, &desc) };
+                let executable = unsafe { check_pipeline(&device, &desc, 8, 4) };
                 if enabled == all {
                     assert!(executable.is_ok());
                 } else {
@@ -539,48 +470,6 @@ mod tests {
         assert!(tested > 0, "No suitable device; not a passing skip");
     }
 
-    #[test]
-    fn argument_abi_limits_and_root_layout() {
-        let limits = ExecutionLimits {
-            max_inline_size: 64,
-            ..Default::default()
-        };
-        let mut input = ArgumentInterface {
-            header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-            byte_size: 24,
-            root_count: 2,
-            roots: ptr::null(),
-        };
-        let mut roots = [
-            RootSlot {
-                stages: 4,
-                offset: 0,
-                alignment: 8,
-            },
-            RootSlot {
-                stages: 4,
-                offset: 8,
-                alignment: 4,
-            },
-        ];
-        assert_eq!(interface(&limits, &input, &roots), Ok(()));
-        roots[1].offset = 0;
-        assert_eq!(interface(&limits, &input, &roots), Err(INVALID));
-        roots[1].offset = 20;
-        assert_eq!(interface(&limits, &input, &roots), Err(INVALID));
-        roots[1].offset = 8;
-        roots[1].alignment = 3;
-        assert_eq!(interface(&limits, &input, &roots), Err(INVALID));
-        roots[1].alignment = 4;
-        roots[1].stages = 32;
-        assert_eq!(interface(&limits, &input, &roots), Err(UNSUPPORTED));
-        input.byte_size = 68;
-        assert_eq!(interface(&limits, &input, &[]), Err(UNSUPPORTED));
-        input.byte_size = 3;
-        assert_eq!(interface(&limits, &input, &[]), Err(INVALID));
-        input.byte_size = 0;
-        assert_eq!(interface(&limits, &input, &[]), Ok(()));
-    }
     thread_local! {
         static FAILURE: Cell<u32> = const { Cell::new(0) };
         static CREATE_MODULE: Cell<vk::PFN_vkCreateShaderModule> = const { Cell::new(None) };
@@ -780,17 +669,7 @@ mod tests {
                         .collect()
                 })
                 .collect();
-            let root = RootSlot {
-                stages: 24,
-                offset: 0,
-                alignment: 16,
-            };
-            let abi = ArgumentInterface {
-                header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-                byte_size: 8,
-                root_count: 1,
-                roots: &root,
-            };
+            let layout = test_layout(&device, 8, 24);
             let shaders: Vec<Shader> = (0..2)
                 .map(|i| Shader {
                     stage: if i == 0 { 8 } else { 16 },
@@ -804,7 +683,7 @@ mod tests {
                     } else {
                         c"fragmentMain".as_ptr()
                     },
-                    interface_metadata: &abi.header,
+
                     specialization: ptr::null(),
                     subgroup: ptr::null(),
                 })
@@ -876,7 +755,14 @@ mod tests {
                 MODULE_DROPS.set(0);
                 PIPELINE_DROPS.set(0);
                 let mut out = ptr::dangling_mut();
-                let status = unsafe { ogpu_next_executable_create(d, &desc, &mut out) };
+                let status = unsafe {
+                    ogpu_next_executable_create(
+                        d,
+                        &desc,
+                        ptr::from_ref(&*layout).cast_mut(),
+                        &mut out,
+                    )
+                };
                 assert_eq!(
                     status,
                     match mode {
@@ -926,7 +812,14 @@ mod tests {
                 let mut out = ptr::null_mut();
                 DYNAMIC_MASK.set(u64::MAX);
                 assert_eq!(
-                    unsafe { ogpu_next_executable_create(d, &desc, &mut out) },
+                    unsafe {
+                        ogpu_next_executable_create(
+                            d,
+                            &desc,
+                            ptr::from_ref(&*layout).cast_mut(),
+                            &mut out,
+                        )
+                    },
                     OK
                 );
                 assert_eq!(DYNAMIC_MASK.get(), desc.dynamic_state);
@@ -939,7 +832,14 @@ mod tests {
                 let mut out = ptr::dangling_mut();
                 DYNAMIC_MASK.set(0);
                 assert_eq!(
-                    unsafe { ogpu_next_executable_create(d, &desc, &mut out) },
+                    unsafe {
+                        ogpu_next_executable_create(
+                            d,
+                            &desc,
+                            ptr::from_ref(&*layout).cast_mut(),
+                            &mut out,
+                        )
+                    },
                     UNSUPPORTED
                 );
                 assert!(out.is_null());
@@ -1004,7 +904,7 @@ mod tests {
                     desc.requirements = &requirements.header;
                     // The harmless artifact lets us verify requirements without issuing
                     // an invalid shader on disabled devices. C executes the writing artifacts.
-                    let result = unsafe { Executable::create(&profile_device, &desc) };
+                    let result = unsafe { check_pipeline(&profile_device, &desc, 8, 24) };
                     if required & !enabled == 0 {
                         assert!(result.is_ok());
                     } else {
@@ -1028,7 +928,7 @@ mod tests {
                     requirements: &req.header,
                     ..desc
                 };
-                let result = unsafe { Executable::create(&profile_device, &mixed_desc) };
+                let result = unsafe { check_pipeline(&profile_device, &mixed_desc, 8, 24) };
                 if enabled & INDEPENDENT_BLEND != 0 {
                     assert!(result.is_ok());
                 } else {
@@ -1065,7 +965,7 @@ mod tests {
                             ..desc
                         };
                         COLOR_LOGIC.set((u32::MAX, u32::MAX, u32::MAX));
-                        let result = unsafe { Executable::create(&profile_device, &dual_desc) };
+                        let result = unsafe { check_pipeline(&profile_device, &dual_desc, 8, 24) };
                         if factor == 19 {
                             assert!(matches!(result, Err(INVALID)));
                         } else if enabled & DUAL_SOURCE_BLEND != 0 {
@@ -1099,7 +999,7 @@ mod tests {
                         ..desc
                     };
                     COLOR_LOGIC.set((u32::MAX, u32::MAX, u32::MAX));
-                    let result = unsafe { Executable::create(&profile_device, &logic_desc) };
+                    let result = unsafe { check_pipeline(&profile_device, &logic_desc, 8, 24) };
                     if enabled & LOGIC_OP != 0 {
                         assert!(result.is_ok());
                         assert_eq!(COLOR_LOGIC.get(), (1, op, 1)); // Native precedence; no mask/blend rewriting.
@@ -1120,7 +1020,7 @@ mod tests {
                         ..desc
                     };
                     assert!(matches!(
-                        unsafe { Executable::create(&profile_device, &logic_desc) },
+                        unsafe { check_pipeline(&profile_device, &logic_desc, 8, 24) },
                         Err(INVALID)
                     ));
                 }
@@ -1139,8 +1039,8 @@ mod tests {
                     ..desc
                 };
                 let depth_pipeline =
-                    unsafe { Executable::create(&profile_device, &depth_desc) }.unwrap();
-                assert_eq!(depth_pipeline.stages, 8);
+                    unsafe { check_pipeline(&profile_device, &depth_desc, 8, 24) }.unwrap();
+                assert_eq!(depth_pipeline, 8);
                 // Stencil-only must declare no native depth attachment and must
                 // not intersect depth sample masks or permit depth operations.
                 let stencil_only = GraphicsState {
@@ -1159,7 +1059,7 @@ mod tests {
                         f.format == image_formats::S8_UINT && f.optimal_features & 32 != 0
                     });
                 let stencil_pipeline =
-                    unsafe { Executable::create(&profile_device, &stencil_desc) };
+                    unsafe { check_pipeline(&profile_device, &stencil_desc, 8, 24) };
                 if stencil_supported {
                     assert!(stencil_pipeline.is_ok());
                 } else {
@@ -1174,7 +1074,7 @@ mod tests {
                     ..stencil_desc
                 };
                 assert!(matches!(
-                    unsafe { Executable::create(&profile_device, &invalid_stencil_desc) },
+                    unsafe { check_pipeline(&profile_device, &invalid_stencil_desc, 8, 24) },
                     Err(INVALID)
                 ));
                 let layer_shader = Shader {
@@ -1194,7 +1094,7 @@ mod tests {
                     ..depth_desc
                 };
                 COLOR_LOGIC.set((u32::MAX, u32::MAX, u32::MAX));
-                let layered = unsafe { Executable::create(&profile_device, &layer_desc) };
+                let layered = unsafe { check_pipeline(&profile_device, &layer_desc, 8, 24) };
                 if enabled & SHADER_OUTPUT_LAYER != 0 {
                     assert!(layered.is_ok());
                 } else {
@@ -1207,7 +1107,7 @@ mod tests {
                         ..depth_desc
                     };
                     assert!(matches!(
-                        unsafe { Executable::create(&profile_device, &invalid) },
+                        unsafe { check_pipeline(&profile_device, &invalid, 8, 24) },
                         Err(UNSUPPORTED)
                     ));
                 }
@@ -1223,7 +1123,7 @@ mod tests {
                     requirements: &req.header,
                     ..desc
                 };
-                assert!(unsafe { Executable::create(&profile_device, &unused_desc) }.is_ok());
+                assert!(unsafe { check_pipeline(&profile_device, &unused_desc, 8, 24) }.is_ok());
                 for (bit, options) in [
                     (0, defaults),
                     (
@@ -1327,7 +1227,7 @@ mod tests {
                         requirements: &req.header,
                         ..desc
                     };
-                    let result = unsafe { Executable::create(&profile_device, &profile_desc) };
+                    let result = unsafe { check_pipeline(&profile_device, &profile_desc, 8, 24) };
                     let width_supported = bit != WIDE_LINES
                         || profile_device.snapshot.graphics_limits.line_width_range[1] >= 2.0;
                     if bit & !enabled == 0 && width_supported {
@@ -1397,17 +1297,7 @@ mod tests {
                 .chunks_exact(4)
                 .map(|b| u32::from_le_bytes(b.try_into().unwrap()))
                 .collect();
-            let root = RootSlot {
-                stages: 4,
-                offset: 0,
-                alignment: 8,
-            };
-            let abi = ArgumentInterface {
-                header: Record::new::<ArgumentInterface>(ARGUMENT_INTERFACE),
-                byte_size: 24,
-                root_count: 1,
-                roots: &root,
-            };
+            let layout = test_layout(&device, 24, 4);
             let req = ShaderRequirements {
                 header: Record::new::<ShaderRequirements>(SHADER_REQUIREMENTS),
                 features: 0,
@@ -1422,7 +1312,7 @@ mod tests {
                     size: size_of_val(code.as_slice()),
                 },
                 entry: c"transform".as_ptr(),
-                interface_metadata: &abi.header,
+
                 specialization: ptr::null(),
                 subgroup: ptr::null(),
             };
@@ -1449,7 +1339,14 @@ mod tests {
                 MODULE_DROPS.set(0);
                 PIPELINE_DROPS.set(0);
                 let mut out = ptr::dangling_mut();
-                let status = unsafe { ogpu_next_executable_create(d, &desc, &mut out) };
+                let status = unsafe {
+                    ogpu_next_executable_create(
+                        d,
+                        &desc,
+                        ptr::from_ref(&*layout).cast_mut(),
+                        &mut out,
+                    )
+                };
                 assert_eq!(
                     status,
                     match mode {

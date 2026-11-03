@@ -26,12 +26,12 @@ static void snapshot_draw(Scene *s) {
         }
 #endif
 #ifdef ARGUMENT_FOUNDATION_PARTIAL
-        if(draw==0) ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,arguments.bytes);
-        else if(changed) ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,SCENE_RASTER_BYTES-4,4,arguments.bytes+SCENE_RASTER_BYTES-4);
+        if(draw==0) ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, SCENE_RASTER_BYTES, arguments.bytes);
+        else if(changed) ogpu_next_set_arguments(s->encoder, s->raster_arguments, SCENE_RASTER_BYTES-4, 4, arguments.bytes+SCENE_RASTER_BYTES-4);
 #else
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,arguments.bytes);
+        ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, SCENE_RASTER_BYTES, arguments.bytes);
 #endif
-        /* Host storage can change immediately after set_inline, even before draw. */
+        /* Host storage can change immediately after set_arguments, even before draw. */
         memset(arguments.bytes,0xa5,sizeof(arguments.bytes));
         ogpu_next_indirect indirect={span(s,DRAWS,GUARD+20*draw,20),20,1,{NULL,0,0}};
         ogpu_next_draw_indexed_indirect(s->encoder,&indirect);
@@ -67,7 +67,7 @@ static int run(Scene *s,const char *shaders,const char *output) {
      * Reject eight separate recordings, reset them, then build valid work. */
     for(unsigned i=0;i<8;++i) {
         NEED(begin(s)); uint32_t value=0; ogpu_next_list *invalid=NULL;
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX,1,sizeof(value),&value);
+        ogpu_next_set_arguments(s->encoder, s->raster_arguments, 1, sizeof(value), &value);
         ogpu_next_status status=ogpu_next_commands_end(s->encoder,&invalid); s->encoder=NULL;
         NEED(status==OGPU_NEXT_INVALID && invalid==NULL); GPU(ogpu_next_arena_reset(s->arena));
     }

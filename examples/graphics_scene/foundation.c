@@ -60,6 +60,7 @@ typedef struct {
     ogpu_next_encoder *encoder;
     ogpu_next_timeline *done;
     ogpu_next_executable *prepare, *raster[4];
+    ogpu_next_argument_layout *compute_arguments, *raster_arguments;
     ogpu_next_memory *buffers[BUFFER_COUNT], *backing[2];
     ogpu_next_image *images[2];
     ogpu_next_view *views[2];
@@ -160,8 +161,8 @@ static int context(Scene *s,const char *directory) {
 #if defined(SCENE_ARGUMENT_REUSE) || defined(SCENE_ARGUMENT_SNAPSHOT)
     ogpu_next_execution_limits argument_limits;
     q=query(OGPU_NEXT_QUERY_EXECUTION_LIMITS,&argument_limits,1,sizeof(argument_limits));
-    GPU(ogpu_next_device_query(s->device,&q)); NEED(argument_limits.max_inline_size>=SCENE_RASTER_BYTES);
-    printf("ARGUMENT_LIMIT {\"max_push_data_bytes\":%" PRIu64 "}\n",argument_limits.max_inline_size);
+    GPU(ogpu_next_device_query(s->device,&q)); NEED(argument_limits.max_inline_bytes>=SCENE_RASTER_BYTES);
+    printf("ARGUMENT_LIMIT {\"max_push_data_bytes\":%" PRIu64 "}\n",argument_limits.max_inline_bytes);
 #endif
 #ifdef SCENE_GENERATED
     (void)directory;
@@ -199,16 +200,30 @@ static int context(Scene *s,const char *directory) {
     NEED(shader_read(s,0,directory,"compute.spv") && shader_read(s,1,directory,"vertex.spv") && shader_read(s,2,directory,"fragment.spv"));
     /* Metadata is checked against compiler reflection by run.py. Same native
      * shader bytes as the Vulkan control, with no runtime shader inspection. */
-    ogpu_next_argument_interface compute={HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),32,0,NULL};
-    ogpu_next_argument_interface raster={HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),SCENE_RASTER_BYTES,0,NULL};
+    uint32_t compute_bytes=32;
     ogpu_next_shader shaders[]={
-        {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{s->code[0],s->code_size[0]},"main",&compute.header,NULL,NULL},
-        {OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,{s->code[1],s->code_size[1]},"main",&raster.header,NULL,NULL},
-        {OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_SHADER_SPIRV,{s->code[2],s->code_size[2]},"main",&raster.header,NULL,NULL}};
+        {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{s->code[0],s->code_size[0]},"main",NULL,NULL},
+        {OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,{s->code[1],s->code_size[1]},"main",NULL,NULL},
+        {OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_SHADER_SPIRV,{s->code[2],s->code_size[2]},"main",NULL,NULL}};
     ogpu_next_shader_requirements req={HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{8,1,1},0};
     ogpu_next_executable_desc ed={HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,shaders,NULL,0,&req.header,NULL,0,0};
 #endif
-    GPU(ogpu_next_executable_create(s->device,&ed,&s->prepare));
+#ifdef SCENE_GENERATED
+#ifdef SCENE_FOUNDATION_FRONTIER
+    uint32_t raster_bytes=scene_identity_pair_push_size;
+#else
+    uint32_t raster_bytes=scene_pair_push_size;
+#endif
+#else
+    uint32_t raster_bytes=SCENE_RASTER_BYTES;
+#endif
+    ogpu_next_argument_field compute_field={0,compute_bytes,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_field raster_field={0,raster_bytes,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc compute_layout={OGPU_NEXT_ARGUMENT_COMPUTE,compute_bytes,1,0,&compute_field};
+    ogpu_next_argument_layout_desc raster_layout={OGPU_NEXT_ARGUMENT_GRAPHICS,raster_bytes,1,0,&raster_field};
+    GPU(ogpu_next_argument_layout_create(s->device,&compute_layout,&s->compute_arguments));
+    GPU(ogpu_next_argument_layout_create(s->device,&raster_layout,&s->raster_arguments));
+    GPU(ogpu_next_executable_create(s->device,&ed,s->compute_arguments,&s->prepare));
     ogpu_next_color_state color={OGPU_NEXT_RGBA8_UNORM,15,0,1,0,0,1,0,0};
 #ifdef SCENE_TEXTURE_CONSUMER
     color.blend=1; color.src_color=OGPU_NEXT_BLEND_SRC_ALPHA;
@@ -234,7 +249,7 @@ static int context(Scene *s,const char *directory) {
     for(unsigned i=0;i<4;++i) {
         gs.depth_test=i!=1; gs.depth_write=i!=2; gs.depth_compare=i==3 ? OGPU_NEXT_COMPARE_ALWAYS : OGPU_NEXT_COMPARE_LESS;
 #endif
-        GPU(ogpu_next_executable_create(s->device,&ed,&s->raster[i]));
+        GPU(ogpu_next_executable_create(s->device,&ed,s->raster_arguments,&s->raster[i]));
     }
     return 1;
 }
@@ -330,7 +345,7 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #elif defined(SCENE_ARGUMENT_REUSE)
 #ifndef SCENE_ARGUMENT_RESUPPLY
     ARGUMENT_SUPPLIED();
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,s->argument_root);
+    ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, SCENE_RASTER_BYTES, s->argument_root);
 #endif
 #elif defined(SCENE_GENERATED)
 #ifdef SCENE_FOUNDATION_FRONTIER
@@ -338,9 +353,9 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
 #else
     const Scene_pair_vertexArguments args={.arg_vertices=s->root.vertices};
 #endif
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,sizeof(args),&args);
+    ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, sizeof(args), &args);
 #else
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,8,&s->root.vertices);
+    ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, 8, &s->root.vertices);
 #endif
 #ifdef SCENE_RANGE_SCOPES
     }
@@ -357,7 +372,7 @@ static void pass(Scene *s,unsigned pipeline,int color_load,int depth_load,float 
         draw.arguments=span(s,DRAWS,GUARD+20*argument_index(i,frontier_records),20); draw.maximum_count=1;
 #ifdef SCENE_ARGUMENT_RESUPPLY
         ARGUMENT_SUPPLIED();
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,0,SCENE_RASTER_BYTES,s->argument_root);
+        ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, SCENE_RASTER_BYTES, s->argument_root);
 #endif
         ogpu_next_draw_indexed_indirect(s->encoder,&draw);
     }
@@ -398,33 +413,33 @@ static void commands(Scene *s,unsigned mode) {
 #ifdef SCENE_FOUNDATION_FRONTIER
     const Scene_range_prepareArguments args={.arg_vertices=s->reuse_root[0],.arg_indices=s->reuse_root[1],
         .arg_draws=s->reuse_root[2],.arg_control=s->reuse_root[3]};
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+    ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(args), &args);
 #else
     if(s->index_bytes==2) {
         const Scene_reuse_prepare16Arguments args={.arg_vertices=s->reuse_root[0],.arg_indices=s->reuse_root[1],
             .arg_draws=s->reuse_root[2],.arg_control=s->reuse_root[3]};
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+        ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(args), &args);
     } else {
         const Scene_reuse_prepareArguments args={.arg_vertices=s->reuse_root[0],.arg_indices=s->reuse_root[1],
             .arg_draws=s->reuse_root[2],.arg_control=s->reuse_root[3]};
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+        ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(args), &args);
     }
 #endif
 #else
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(s->reuse_root),s->reuse_root);
+    ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(s->reuse_root), s->reuse_root);
 #endif
 #elif defined(SCENE_GENERATED)
     if(s->index_bytes==2) {
         const Scene_prepare16Arguments args={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
             .arg_draws=s->root.draws,.arg_phase=s->root.phase,.arg_empty=s->root.empty};
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+        ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(args), &args);
     } else {
         const Scene_prepareArguments args={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,
             .arg_draws=s->root.draws,.arg_phase=s->root.phase,.arg_empty=s->root.empty};
-        ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,sizeof(args),&args);
+        ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, sizeof(args), &args);
     }
 #else
-    ogpu_next_set_inline(s->encoder,OGPU_NEXT_STAGE_COMPUTE,0,32,&s->root);
+    ogpu_next_set_arguments(s->encoder, s->compute_arguments, 0, 32, &s->root);
 #endif
     ogpu_next_launch launch={{1,1,1},0,NULL}; ogpu_next_dispatch(s->encoder,&launch);
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_INDEX_INPUT|OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_INDIRECT,
@@ -478,6 +493,7 @@ static void destroy_resources(Scene *s) {
 static void destroy_context(Scene *s) {
     for(unsigned i=0;i<4;++i) ogpu_next_executable_destroy(s->raster[i]);
     ogpu_next_executable_destroy(s->prepare);
+    ogpu_next_argument_layout_destroy(s->compute_arguments); ogpu_next_argument_layout_destroy(s->raster_arguments);
     ogpu_next_device_destroy(s->device); ogpu_next_discovery_destroy(s->discovery);
     for(unsigned i=0;i<3;++i) free(s->code[i]);
 }

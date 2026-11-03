@@ -309,7 +309,7 @@ impl GeneratedLayout {
         let (extent, argument_end) = layout_contract(
             &d.snapshot.generated_limits,
             d.snapshot.features.enabled,
-            d.snapshot.execution_limits.max_inline_size,
+            d.snapshot.execution_limits.max_inline_bytes,
             desc,
             tokens,
         )?;
@@ -539,7 +539,10 @@ pub(super) unsafe fn work<'a>(
             ptr::null_mut(),
         )
     };
-    if !ptr::eq(e.device, d) || layout.stages != e.stages || layout.argument_end > e.arguments().byte_size() {
+    if !ptr::eq(e.device, d)
+        || layout.stages != e.stages
+        || layout.argument_end > e.arguments().byte_size()
+    {
         return Err(INVALID);
     }
     Ok((layout, e, set))

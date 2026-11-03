@@ -14,7 +14,7 @@
 #define RECORD(type, kind) {kind, OGPU_NEXT_VERSION, sizeof(type), 0, NULL}
 struct memory { ogpu_next_memory *handle; ogpu_next_mapping map; uint64_t size; };
 struct heap { struct memory *storage; ogpu_next_heap_binding binding; uint64_t stride, payload; };
-struct variant { ogpu_next_executable *executable; unsigned references; };
+struct variant { ogpu_next_executable *executable; ogpu_next_argument_layout *arguments; unsigned references; };
 struct bank {
     bool reusable;
     struct heap images, samplers;
@@ -158,7 +158,7 @@ fail:
 }
 static void variant_release(struct variant *v)
 {
-    if (v && !--v->references) { ogpu_next_executable_destroy(v->executable); free(v); }
+    if (v && !--v->references) { ogpu_next_executable_destroy(v->executable); ogpu_next_argument_layout_destroy(v->arguments); free(v); }
 }
 static void drain(struct backend *b, uint64_t value)
 {
@@ -525,15 +525,13 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
     if (compute) REQUIRE(reflect_compute_native(&p->primary, values, count, &metadata), "shader metadata failed");
     const ogpu_next_shader_requirements requirements = {RECORD(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS),
         0, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
-    const ogpu_next_argument_interface interface = {RECORD(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE),
-        p->root_size, 0, NULL};
     const ogpu_next_specialization specialization = {RECORD(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION),
         count, 0, entries, {bits, count * 4}};
     ogpu_next_shader shaders[2] = {
         {compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_FRAGMENT, OGPU_NEXT_SHADER_SPIRV,
-            {p->primary.words, p->primary.count * 4}, "main", &interface.header, count ? &specialization.header : NULL, NULL},
+            {p->primary.words, p->primary.count * 4}, "main", count ? &specialization.header : NULL, NULL},
         {OGPU_NEXT_STAGE_VERTEX, OGPU_NEXT_SHADER_SPIRV,
-            {p->vertex.words, p->vertex.count * 4}, "main", &interface.header, count ? &specialization.header : NULL, NULL},
+            {p->vertex.words, p->vertex.count * 4}, "main", count ? &specialization.header : NULL, NULL},
     };
     ogpu_next_color_state color = {.write_mask=15};
     if (!compute) {
@@ -550,7 +548,12 @@ static bool specialize(pl_gpu gpu, pl_pass pass, const void *data)
         &requirements.header, NULL, 0, 0};
     variant = calloc(1, sizeof(*variant)); REQUIRE(variant, "variant allocation failed");
     variant->references = 1;
-    TRY(ogpu_next_executable_create(b->device, &desc, &variant->executable));
+    const ogpu_next_argument_field field = {0,p->root_size,OGPU_NEXT_ARGUMENT_INLINE,0,
+        compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    const ogpu_next_argument_layout_desc layout = {compute ? OGPU_NEXT_ARGUMENT_COMPUTE : OGPU_NEXT_ARGUMENT_GRAPHICS,
+        p->root_size,p->root_size ? 1u : 0u,0,p->root_size ? &field : NULL};
+    TRY(ogpu_next_argument_layout_create(b->device, &layout, &variant->arguments));
+    TRY(ogpu_next_executable_create(b->device, &desc, variant->arguments, &variant->executable));
     variant_release(p->current); p->current = variant;
     memcpy(p->values, values, sizeof(values));
     return true;
@@ -718,7 +721,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     ogpu_next_bind_heap(batch, &bank->samplers.binding);
     ogpu_next_bind_executable(batch, p->current->executable);
     if (compute) {
-        ogpu_next_set_inline(batch, OGPU_NEXT_STAGE_COMPUTE, 0, params->push_constants_size, in->push_constants);
+        ogpu_next_set_arguments(batch, p->current->arguments, 0, params->push_constants_size, in->push_constants);
         const ogpu_next_launch launch = {{in->compute_groups[0], in->compute_groups[1], in->compute_groups[2]}, 0, NULL};
         ogpu_next_dispatch(batch, &launch);
     } else {
@@ -741,7 +744,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
             .scissor_width=in->target->params.w, .scissor_height=in->target->params.h};
         ogpu_next_render_begin(batch, &rendering);
         ogpu_next_set_graphics_state(batch, &viewport.header);
-        ogpu_next_set_inline(batch, OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT, 0, p->root_size, root);
+        ogpu_next_set_arguments(batch, p->current->arguments, 0, p->root_size, root);
         const ogpu_next_indirect draws = {span(p->indirect), 16, 1, {NULL, 0, 0}};
         ogpu_next_draw_indirect(batch, &draws);
         ogpu_next_render_end(batch);
@@ -894,7 +897,7 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
         .callbacks=true,
         .max_tex_1d_dim=dimensions[0], .max_tex_2d_dim=dimensions[1],
         .max_constants=CONSTANTS, .array_size_constants=true,
-        .max_pushc_size=PL_MIN(limits.max_inline_size >= 8 ? (limits.max_inline_size - 8) & ~7ull : 0, PARAMETERS),
+        .max_pushc_size=PL_MIN(limits.max_inline_bytes >= 8 ? (limits.max_inline_bytes - 8) & ~7ull : 0, PARAMETERS),
         .align_vertex_stride=1, .align_tex_xfer_pitch=4, .align_tex_xfer_offset=4,
         .fragment_queues=1, .compute_queues=1,
     };

@@ -26,6 +26,7 @@ static uint32_t logic_reference(uint32_t op, uint32_t s, uint32_t d) {
 }
 static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                          const char *vertex_path, const char *fragment_path, uint32_t mode) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code[2] = {NULL}, *bs = NULL, *rs = NULL, *ss = NULL;
@@ -50,8 +51,9 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     if (!(limits.color_samples & samples)) {
         printf("Raster options mode %u NOT exercised: sample count unavailable.\n",mode); return EXIT_SUCCESS;
     }
-    ogpu_next_root_slot root = {OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,16};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,1,&root};
+    ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_GRAPHICS,8,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     const char *paths[2] = {vertex_path,fragment_path}; ogpu_next_shader shaders[2];
     for (uint32_t i = 0; i < 2; ++i) {
         file = fopen(paths[i],"rb"); REQUIRE(file != NULL);
@@ -59,7 +61,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
         REQUIRE(fseek(file,0,SEEK_SET) == 0); code[i] = malloc((size_t)size); REQUIRE(code[i] != NULL);
         REQUIRE(fread(code[i],1,(size_t)size,file) == (size_t)size); fclose(file); file = NULL;
         shaders[i] = (ogpu_next_shader){i ? OGPU_NEXT_STAGE_FRAGMENT : OGPU_NEXT_STAGE_VERTEX,OGPU_NEXT_SHADER_SPIRV,
-            {code[i],(size_t)size},i ? "fragmentMain" : "vertexMain",&abi.header,NULL,NULL};
+            {code[i],(size_t)size},i ? "fragmentMain" : "vertexMain",NULL,NULL};
     }
     ogpu_next_color_state states[2] = {
         {OGPU_NEXT_RGBA8_UNORM,15,1,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ADD,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ONE,OGPU_NEXT_BLEND_ADD},
@@ -91,7 +93,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_GRAPHICS,
         2,shaders,&gs.header,OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR,&req.header,NULL,0,0};
     if (options.discard) ed.shader_count = 1;
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline));
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline));
     for (uint32_t i = 0; i < 2; ++i) { free(code[i]); code[i] = NULL; }
     TRY(ogpu_next_memory_create(device,&md,&memory));
     ogpu_next_span all = {memory,0,md.size}; ogpu_next_mapping map = {0};
@@ -145,9 +147,9 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     }
     ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,pipeline);
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,8,8};
-    ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,address);
+    ogpu_next_set_graphics_state(encoder,&vp.header); ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     ogpu_next_draw_desc draw = {3,1,0,0,0}; ogpu_next_draw(encoder,&draw);
-    if (mode >= 15) ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,0,address+32);
+    if (mode >= 15) ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address+32});
     ogpu_next_draw(encoder,&draw);
     ogpu_next_render_end(encoder);
     for (uint32_t i = 0; i < image_count; ++i) {
@@ -204,5 +206,6 @@ cleanup:
     for (uint32_t i = 0; i < 4; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
     for (uint32_t i = 0; i < 2; ++i) free(code[i]);
     ogpu_next_memory_destroy(memory); if (file) fclose(file);
-    free(bs); free(rs); free(ss); return result;
+    free(bs); free(rs); free(ss);     ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

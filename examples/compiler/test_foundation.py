@@ -29,7 +29,7 @@ class FoundationTests(unittest.TestCase):
         self.assertEqual(artifact(installed), artifact(foundation))
         self.assertIn('#include "ogpu_next.h"', foundation)
         self.assertIn('.local_size = {64, 1, 1}', foundation)
-        self.assertIn('.byte_size = 16, .root_count = 0', foundation)
+        self.assertIn('OGPU_NEXT_ARGUMENT_COMPUTE, 16, (16) != 0', foundation)
         self.assertIn('transform_required_features (UINT64_C(0))', foundation)
         self.assertNotIn('OgpuShaderDesc', foundation)
 
@@ -54,7 +54,7 @@ class FoundationTests(unittest.TestCase):
             generate.ROOT / "target/foundation-compiler/vertex-rejection", os.getenv("SLANGC", "slangc"), "vertex")
         text = generate.header(reflected, assembly, binary, source.read_bytes(), api="foundation")
         for expected in ("OGPU_NEXT_STAGE_VERTEX", "transform_required_features (OGPU_NEXT_FEATURE_RASTER)",
-                         ".local_size = {0, 0, 0}", ".byte_size = 0", "(void)l;"):
+                         ".local_size = {0, 0, 0}", "OGPU_NEXT_ARGUMENT_GRAPHICS, 0, (0) != 0", "(void)l;"):
             self.assertIn(expected, text)
         self.assertNotIn("max_local_invocations", text)
 

@@ -45,11 +45,11 @@ pub use images::{Image, View};
 #[path = "descriptors.rs"]
 mod descriptors;
 pub(super) use descriptors::descriptor_scratch;
-#[path = "executables.rs"]
-mod executables;
 #[path = "arguments.rs"]
 mod arguments;
-pub(in crate::foundation) use arguments::ArgumentLayout;
+#[path = "executables.rs"]
+mod executables;
+pub use arguments::ArgumentLayout;
 pub(super) use executables::record as executable_record;
 #[path = "rendering.rs"]
 mod rendering;
@@ -455,12 +455,12 @@ pub(super) fn snapshot(
             features.available |= SAMPLER_ANISOTROPY;
         }
         execution_limits = ExecutionLimits {
-            max_inline_size: heaps.maxPushDataSize,
+            max_inline_bytes: heaps.maxPushDataSize,
             max_groups: properties.properties.limits.maxComputeWorkGroupCount,
             max_local_size: properties.properties.limits.maxComputeWorkGroupSize,
             max_local_invocations: properties.properties.limits.maxComputeWorkGroupInvocations,
             max_shared_memory: properties.properties.limits.maxComputeSharedMemorySize,
-            argument_flags: 1, // One native byte namespace, not isolated stage banks.
+            argument_kinds: 0b1111, // INLINE and three native buffer-address roles.
         };
         let p = &properties.properties.limits;
         query_limits = QueryLimits {

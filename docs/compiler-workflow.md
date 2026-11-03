@@ -31,7 +31,7 @@ FP16 to the **enabled** feature mask; physical addresses and native heaps are mo
 foundation baseline capabilities. The predicate checks baseline support and static
 inline/workgroup limits, not queue creation, pointer validity or algorithm semantics.
 The caller explicitly requests features and a compute queue, selects memory, records
-dependencies and controls replay. The helper declares no named root slots: addresses
+dependencies and controls replay. The helper emits a prepared-layout description for direct inline data: addresses
 inside the generated inline struct are immediate address bytes, not copied pointees.
 It neither mandates inline arguments for the whole API nor introduces a root allocator.
 

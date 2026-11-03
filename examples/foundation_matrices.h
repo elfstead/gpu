@@ -30,6 +30,7 @@ cleanup:
 
 #define MATRIX_FEATURES (OGPU_NEXT_FEATURE_COOPERATIVE_MATRIX | OGPU_NEXT_FEATURE_VULKAN_MEMORY_MODEL)
 static int matrix_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain, const char *path) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0; FILE *file = NULL; void *code = NULL, *scratch = NULL;
     ogpu_next_matrix_tuple *tuples = NULL; ogpu_next_executable *pipeline = NULL;
     ogpu_next_memory *memory = NULL; ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
@@ -55,22 +56,23 @@ static int matrix_execution(ogpu_next_device *device, ogpu_next_memory_desc md, 
     file = fopen(path,"rb"); REQUIRE(file != NULL); REQUIRE(fseek(file,0,SEEK_END) == 0);
     long size = ftell(file); REQUIRE(size >= 20 && size % 4 == 0); REQUIRE(fseek(file,0,SEEK_SET) == 0);
     code = malloc((size_t)size); REQUIRE(code != NULL); REQUIRE(fread(code,1,(size_t)size,file) == (size_t)size); fclose(file); file = NULL;
-    ogpu_next_root_slot slot = {OGPU_NEXT_STAGE_COMPUTE,0,8};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface,OGPU_NEXT_ARGUMENT_INTERFACE),8,1,&slot};
+    ogpu_next_argument_field argument_field = {0,8,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,8,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_specialization_entry entry = {0,0,4};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization,OGPU_NEXT_SPECIALIZATION),1,0,&entry,{&width,4}};
     ogpu_next_subgroup_state subgroup = {HEADER(ogpu_next_subgroup_state,OGPU_NEXT_SUBGROUP_STATE),0,width,OGPU_NEXT_SUBGROUP_REQUIRE_FULL,0};
-    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"matrixMain",&abi.header,&spec.header,&subgroup.header};
+    ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},"matrixMain",&spec.header,&subgroup.header};
     ogpu_next_shader_requirements req = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),required,{width,1,1},0};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,1,&shader,NULL,0,&req.header,NULL,0,0};
-    TRY(ogpu_next_executable_create(device,&ed,&pipeline)); free(code); code = NULL;
+    TRY(ogpu_next_executable_create(device, &ed, arguments, &pipeline)); free(code); code = NULL;
     TRY(ogpu_next_memory_create(device,&md,&memory)); ogpu_next_span all = {memory,0,md.size}; ogpu_next_mapping map = {0};
     TRY(ogpu_next_memory_map(all,&map)); uint64_t address = 0; TRY(ogpu_next_memory_address(all,&address));
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
-    ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_root(encoder,OGPU_NEXT_STAGE_COMPUTE,0,address);
+    ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     ogpu_next_launch launch = {{2,1,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
     ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_HOST,
         OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0}; ogpu_next_barrier(encoder,&dep);
@@ -110,5 +112,6 @@ cleanup:
     if (pending) { fprintf(stderr,"Pending matrix work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_executable_destroy(pipeline); ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
-    free(tuples); free(code); free(scratch); return result;
+    free(tuples); free(code); free(scratch);     ogpu_next_argument_layout_destroy(arguments);
+return result;
 }

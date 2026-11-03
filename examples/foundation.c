@@ -51,11 +51,11 @@ _Static_assert(sizeof(ogpu_next_resource_descriptor) == 40, "resource descriptor
 _Static_assert(sizeof(ogpu_next_sampler_desc) == 80, "sampler ABI");
 _Static_assert(sizeof(ogpu_next_heap_binding) == 72, "heap binding ABI");
 _Static_assert(sizeof(ogpu_next_execution_limits) == 48, "execution limits ABI");
-_Static_assert(sizeof(ogpu_next_argument_interface) == 40, "argument interface ABI");
-_Static_assert(sizeof(ogpu_next_root_slot) == 16, "root slot ABI");
+_Static_assert(sizeof(ogpu_next_argument_layout_desc) == 24, "argument interface ABI");
+_Static_assert(sizeof(ogpu_next_argument_field) == 32, "root slot ABI");
 _Static_assert(sizeof(ogpu_next_shader_requirements) == 48, "shader requirements ABI");
 _Static_assert(sizeof(ogpu_next_specialization) == 56, "specialization ABI");
-_Static_assert(sizeof(ogpu_next_shader) == 56, "shader ABI");
+_Static_assert(sizeof(ogpu_next_shader) == 48, "shader ABI");
 _Static_assert(sizeof(ogpu_next_subgroup_limits) == 40, "subgroup limits ABI");
 _Static_assert(sizeof(ogpu_next_subgroup_state) == 40, "subgroup state ABI");
 _Static_assert(sizeof(ogpu_next_executable_desc) == 80, "executable ABI");
@@ -117,6 +117,7 @@ uint64_t enabled = OGPU_NEXT_FEATURE_RASTER | (available & (FOUNDATION_FEATURES 
 
 static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
                    uint32_t domain, const char *shader_path, uint32_t secondary) {
+    ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL, *execute_scratch = NULL;
@@ -136,39 +137,37 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_execution_limits limits = {0};
     ogpu_next_query q = query(OGPU_NEXT_QUERY_EXECUTION_LIMITS, &limits, 1, sizeof(limits));
     TRY(ogpu_next_device_query(device, &q));
-    REQUIRE(limits.max_inline_size >= 24 && limits.argument_flags == OGPU_NEXT_ARGUMENT_SHARED_BYTES);
-    ogpu_next_root_slot slots[2] = {{OGPU_NEXT_STAGE_COMPUTE, 0, 8}, {OGPU_NEXT_STAGE_COMPUTE, 8, 8}};
-    ogpu_next_argument_interface abi = {HEADER(ogpu_next_argument_interface, OGPU_NEXT_ARGUMENT_INTERFACE), 24, 2, slots};
+    REQUIRE(limits.max_inline_bytes >= 24 && (limits.argument_kinds & (1u << OGPU_NEXT_ARGUMENT_INLINE)));
+    ogpu_next_argument_field argument_field = {0,24,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,24,1,0,&argument_field};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS), 0, {64, 1, 1}, 0};
     uint32_t extra = 13;
     ogpu_next_specialization_entry entry = {7, 0, sizeof(extra)};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization, OGPU_NEXT_SPECIALIZATION), 1, 0, &entry, {&extra, sizeof(extra)}};
     ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE, OGPU_NEXT_SHADER_SPIRV,
-        {code, (size_t)code_size}, "transform", &abi.header, &spec.header, NULL};
+        {code, (size_t)code_size}, "transform",  &spec.header, NULL};
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
         OGPU_NEXT_EXECUTABLE_COMPUTE, 1, &shader, NULL, 0, &requirements.header, NULL, 0, 0};
-    slots[1].offset = 0;
-    REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
-    slots[1].offset = 8;
     requirements.local_size[0] = 0;
-    REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
+    REQUIRE(ogpu_next_executable_create(device, &ed, arguments, &executable) == OGPU_NEXT_INVALID && executable == NULL);
     requirements.local_size[0] = 64;
     entry.size = 8;
-    REQUIRE(ogpu_next_executable_create(device, &ed, &executable) == OGPU_NEXT_INVALID && executable == NULL);
+    REQUIRE(ogpu_next_executable_create(device, &ed, arguments, &executable) == OGPU_NEXT_INVALID && executable == NULL);
     entry.size = 4;
-    REQUIRE(prepare_with_compile_policy(device, &ed, &executable) == EXIT_SUCCESS);
+    REQUIRE(prepare_with_compile_policy(device, &ed, arguments, &executable) == EXIT_SUCCESS);
     ogpu_next_executable_destroy(executable); executable = NULL;
     ogpu_next_executable_cache_desc cache_desc = {HEADER(ogpu_next_executable_cache_desc, OGPU_NEXT_EXECUTABLE_CACHE_DESC),
         OGPU_NEXT_CACHE_NATIVE_SYNCHRONIZATION, 0, {NULL, 0}};
     TRY(ogpu_next_executable_cache_create(device, &cache_desc, &cache)); ed.cache = cache;
-    REQUIRE(prepare_with_compile_policy(device, &ed, &executable) == EXIT_SUCCESS);
+    REQUIRE(prepare_with_compile_policy(device, &ed, arguments, &executable) == EXIT_SUCCESS);
     REQUIRE(cache_roundtrip(device, &cache, cache_desc.synchronization) == EXIT_SUCCESS);
     ogpu_next_executable_destroy(executable); executable = NULL; ed.cache = cache;
-    REQUIRE(prepare_with_compile_policy(device, &ed, &executable) == EXIT_SUCCESS);
+    REQUIRE(prepare_with_compile_policy(device, &ed, arguments, &executable) == EXIT_SUCCESS);
     ogpu_next_executable_cache_destroy(cache); cache = NULL; ed.cache = NULL;
     /* Preparation does not retain artifact bytes or metadata. */
     free(code); code = NULL;
-    slots[0].offset = UINT32_MAX; extra = 99;
+    argument_field.offset = UINT32_MAX; extra = 99;
     TRY(ogpu_next_memory_create(device, &desc, &memory));
     ogpu_next_span all = {memory, 0, desc.size};
     ogpu_next_mapping mapping = {0};
@@ -196,17 +195,17 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
         ogpu_next_query_begin(encoder, statistics, 0, 0);
     }
     ogpu_next_bind_executable(encoder, executable);
-    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, base + 1024);
-    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 1, base + 1040);
+    ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){base + 1024});
+    ogpu_next_set_arguments(encoder, arguments, 8, 8, &(uint64_t){base + 1040});
     uint32_t multiplier = 3;
     uint32_t control[2] = {multiplier, 0};
-    ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 16, sizeof(control), control);
+    ogpu_next_set_arguments(encoder, arguments, 16, sizeof(control), control);
     ogpu_next_launch launch = {{2, 1, 1}, 0, NULL};
     ogpu_next_dispatch(encoder, &launch);
     /* Different destination root and one changed inline word; source root survives. */
-    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 1, base + 1056);
+    ogpu_next_set_arguments(encoder, arguments, 8, 8, &(uint64_t){base + 1056});
     multiplier = 5;
-    ogpu_next_set_inline(encoder, OGPU_NEXT_STAGE_COMPUTE, 16, 4, &multiplier);
+    ogpu_next_set_arguments(encoder, arguments, 16, 4, &multiplier);
     multiplier = 999; /* Recorded bytes, not a borrowed host argument block. */
     ogpu_next_fill_memory(encoder, (ogpu_next_span){memory, 1536, 4}, 2);
     ogpu_next_fill_memory(encoder, (ogpu_next_span){memory, 1540, 8}, 1);
@@ -285,7 +284,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     ogpu_next_bind_executable(encoder, executable);
-    ogpu_next_set_root(encoder, OGPU_NEXT_STAGE_COMPUTE, 0, base + 1);
+    ogpu_next_set_arguments(encoder, arguments, 1, 8, &(uint64_t){base + 1});
     REQUIRE(ogpu_next_commands_end(encoder, &list) == OGPU_NEXT_INVALID && list == NULL);
     printf("Compute passes: named entry, specialization, two device roots, partial inline updates, GPU-written indirect dimensions and changed-data replay.\n");
     if (statistics) printf("Compute statistics pass: direct/indirect invocation counts, empty query, availability, padded records and replay.\n");
@@ -299,6 +298,7 @@ cleanup:
     ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
     free(code); free(scratch); free(execute_scratch);
+    ogpu_next_argument_layout_destroy(arguments);
     return result;
 }
 
