@@ -9,6 +9,16 @@ extern "C" {
 #endif
 
 typedef struct ogpu_draft_descriptor_heap ogpu_draft_descriptor_heap;
+/* Replaces QUERY_DESCRIPTOR_LIMITS. Capacities are native units and apply to
+ * shader-visible heaps; requirements_query validates other storage requests.
+ * Per-description sizes/strides and backing/reservations use their exact queries.
+ */
+typedef struct ogpu_draft_descriptor_limits {
+    uint64_t max_resource_capacity, max_sampler_capacity;
+    uint64_t uniform_address_alignment, storage_address_alignment;
+    uint64_t max_uniform_range, max_storage_range;
+    float max_sampler_lod_bias, max_sampler_anisotropy;
+} ogpu_draft_descriptor_limits;
 enum {
     OGPU_DRAFT_HEAP_HOST = 0,   /* borrow ordinary host bytes; never shader visible */
     OGPU_DRAFT_HEAP_MEMORY = 1, /* borrow explicit GPU backing and optional mapping */

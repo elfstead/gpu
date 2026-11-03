@@ -8,6 +8,9 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ARGUMENT_RECORDS = [
+    ("execution_limits", "ExecutionLimits", "max_inline_bytes max_groups max_local_size max_local_invocations max_shared_memory argument_kinds"),
+    ("shader", "Shader", "stage format code entry specialization subgroup"),
+    ("executable_desc", "ExecutableDesc", "header kind shader_count shaders static_state dynamic_state requirements cache compile_flags reserved"),
     ("argument_field", "ArgumentField",
      "offset size kind address_alignment stages space binding"),
     ("argument_layout_desc", "ArgumentLayoutDesc",
@@ -18,6 +21,7 @@ ARGUMENT_RECORDS = [
 ARGUMENT_CONSTANTS = """INLINE UNIFORM_ADDRESS READ_ADDRESS READ_WRITE_ADDRESS COMPUTE
 GRAPHICS DIRECT BIND_PRESERVES BIND_INVALIDATES_ON_CHANGE""".split()
 DESCRIPTOR_RECORDS = [
+    ("descriptor_limits", "DescriptorLimits", "max_resource_capacity max_sampler_capacity uniform_address_alignment storage_address_alignment max_uniform_range max_storage_range max_sampler_lod_bias max_sampler_anisotropy"),
     ("heap_request", "HeapRequest", "kind storage usage flags capacity"),
     ("heap_requirements", "HeapRequirements",
      "unit_bytes backing_size backing_alignment reserved_size reserved_alignment memory_usage"),
@@ -67,15 +71,20 @@ DEPENDENCY_RECORDS = [
 DEPENDENCY_CONSTANTS = """QUERY_DEPENDENCY_LIMITS DEPENDENCY_SPLIT DEPENDENCY_OWNERSHIP
 DEPENDENCY_BINARY MEMORY_SCOPE_NONE MEMORY_SCOPE_OBJECT MEMORY_SCOPE_BYTES
 SUBMIT_REJECTED SUBMIT_ACCEPTED SUBMIT_UNKNOWN""".split()
+MINIMAL_RECORDS = [
+    ("inheritance", "Inheritance", "header occlusion query_flags statistics rendering resource_heap sampler_heap"),
+    ("generated_layout_desc", "GeneratedLayoutDesc", "header arguments stages flags stride token_count reserved tokens"),
+]
+MINIMAL_CONSTANTS = ["INHERITANCE_DESC", "GENERATED_ARGUMENT"]
 
 
 def main():
     cc = os.environ.get("CC", "cc")
     rustc = os.environ.get("RUSTC", "rustc")
-    headers = ["ogpu_arguments.h", "ogpu_descriptors.h", "ogpu_presentation.h", "ogpu_dependencies.h"]
+    headers = ["ogpu_arguments.h", "ogpu_descriptors.h", "ogpu_presentation.h", "ogpu_dependencies.h", "ogpu_minimal.h"]
     c = ['#include <stdio.h>', '#include <stddef.h>',
          *[f'#include "docs/drafts/{h}"' for h in headers], 'int main(void) {']
-    rust = ['mod arguments;', 'mod descriptors;', 'mod presentation;', 'mod dependencies;',
+    rust = ['mod arguments;', 'mod descriptors;', 'mod presentation;', 'mod dependencies;', 'mod minimal;',
             'use std::mem::{size_of, align_of, offset_of};', 'fn main() {']
     records = [("ogpu_draft_" + name, f"arguments::{rn}", fields)
                for name, rn, fields in ARGUMENT_RECORDS]
@@ -85,6 +94,8 @@ def main():
                 for name, rn, fields in PRESENTATION_RECORDS]
     records += [("ogpu_draft_" + name, f"dependencies::{rn}", fields)
                 for name, rn, fields in DEPENDENCY_RECORDS]
+    records += [("ogpu_draft_" + name, f"minimal::{rn}", fields)
+                for name, rn, fields in MINIMAL_RECORDS]
     # Verify imported layouts too: descriptor drafts mirror borrowed spans.
     records += [("ogpu_next_span", "descriptors::Span", "memory offset size"),
                 ("ogpu_next_host_span", "descriptors::HostSpan", "data size"),
@@ -92,7 +103,9 @@ def main():
                 ("ogpu_next_point", "dependencies::Point", "timeline value"),
                 ("ogpu_next_sync_point", "dependencies::SyncPoint", "point stages"),
                 ("ogpu_next_binary_point", "dependencies::BinaryPoint", "binary stages"),
-                ("ogpu_next_subresources", "dependencies::Subresources", "aspects first_mip mip_count first_layer layer_count")]
+                ("ogpu_next_subresources", "dependencies::Subresources", "aspects first_mip mip_count first_layer layer_count"),
+                ("ogpu_next_bytes", "arguments::Bytes", "data size"),
+                ("ogpu_next_generated_token", "minimal::GeneratedToken", "kind offset argument_offset argument_size")]
     for ct, rt, fields in records:
         values = [("size", f"sizeof({ct})", f"size_of::<{rt}>()"),
                   ("align", f"_Alignof({ct})", f"align_of::<{rt}>()")]
@@ -107,6 +120,7 @@ def main():
     constants += [(name, "descriptors::" + name) for name in DESCRIPTOR_CONSTANTS]
     constants += [(name, "presentation::" + name) for name in PRESENTATION_CONSTANTS]
     constants += [(name, "dependencies::" + name) for name in DEPENDENCY_CONSTANTS]
+    constants += [(name, "minimal::" + name) for name in MINIMAL_CONSTANTS]
     for name, rt in constants:
         c.append(f'printf("{name}=%llu\\n", (unsigned long long)OGPU_DRAFT_{name});')
         rust.append(f'println!("{name}={{}}", {rt});')
@@ -116,7 +130,7 @@ def main():
         temp = Path(directory)
         (temp / "check.c").write_text("\n".join(c))
         (temp / "check.rs").write_text("\n".join(rust))
-        for module in ("arguments", "descriptors", "presentation", "dependencies"):
+        for module in ("arguments", "descriptors", "presentation", "dependencies", "minimal"):
             (temp / f"{module}.rs").write_bytes((ROOT / f"docs/drafts/{module}.rs").read_bytes())
         flags = ["-Wall", "-Wextra", "-Werror", "-pedantic"]
         subprocess.run([cc, "-std=c11", *flags, "-I", str(ROOT),

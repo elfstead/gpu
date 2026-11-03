@@ -20,10 +20,12 @@ The [C1–C3 revision](roadmap.md#minimal-core-revision) replaces profile expans
 as the next design/implementation sequence. Completed results remain valid within
 their original scopes.
 
-Active revision, 2026-10-31: [C1 contract draft](minimal-core-contract.md). It
+Selected revision, 2026-11-03: [C1 contract](minimal-core-contract.md) and
+[consolidated surface/migration](minimal-core-migration.md). They
 supersedes representation assumptions below where explicitly revised; this
 document continues to supply the broader coverage inventory and historical
-reasoning. The installed header and remaining C sketch have not yet migrated.
+reasoning. The C sketch now links the combined design index; the installed header
+and runtime migrate in C2. C1 completion does not implement the future hardware families.
 
 ## Decision in brief
 

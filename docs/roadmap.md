@@ -2,7 +2,7 @@
 
 Proposed 2026-09-18; sequence revised 2026-10-30. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
-**Next: C1 minimal composable contract → C2 coordinated implementation → C3
+**C1 contract selected/consolidated. Next: C2 coordinated implementation → C3
 available-backend acceptance, then remaining M8 → M9 → M10 → M11.** C1–C3
 are defined [below](#minimal-core-revision). Windows correctness fixes can proceed
 independently; unavailable Windows/Mac acceptance does not block later local
@@ -71,7 +71,7 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
-| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | Immediate next work; [scope and exit criteria](#minimal-core-revision); no runtime changes or new acceptance claimed by this plan |
+| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated 2026-11-03; [C2 cutover next](minimal-core-migration.md#c2-implementation-sequence); no revised runtime/native acceptance yet |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
@@ -118,8 +118,9 @@ native spans, with record sketches. [P presentation lifecycle](minimal-core-pres
 selects borrowed frames, native availability and explicit acceptance/resize effects.
 [Dependency/submission decisions](minimal-core-dependencies.md) preserve justified
 ranged/split/ownership scopes and select one submission operation with outcomes.
-Full-surface integration remains.
-This is design progress, not C1 completion or implemented support.
+The [combined surface and migration inventory](minimal-core-migration.md) now cover
+all installed operations and cross-family records. **C1 complete, 2026-11-03.**
+This is a selected foundation design, not implemented support or native acceptance.
 
 Produce one revised whole-API draft, including C/Rust operation correspondence,
 shader/artifact ABI, lifetimes, observation points, invalidation, capabilities and
@@ -158,6 +159,10 @@ operation. Keep already justified hardware batches in the complete draft rather
 than restarting an experiment-per-feature design process.
 
 ### C2 — Implement one coordinated foundation revision
+
+Next implementation work. Follow the [concrete cutover sequence](minimal-core-migration.md#c2-implementation-sequence),
+starting with shared records, prepared argument layouts and compiler/consumer
+migration. C1's checked drafts are the selected target; no revised runtime is claimed yet.
 
 Update the shared Rust operations, thin C adapters, Vulkan mapping,
 generated Slang interfaces, installed headers and consumers as one coherent batch.

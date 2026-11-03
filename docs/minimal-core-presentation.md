@@ -1,8 +1,8 @@
 # C1 P: explicit presentation lifecycle
 
 Selected lifecycle design, 2026-11-03. **Not implemented.** Resolves P in the
-[minimal-core contract](minimal-core-contract.md); full-surface integration and
-dependency decisions still precede C2. The [C sketch](drafts/ogpu_presentation.h)
+[minimal-core contract](minimal-core-contract.md); the
+[consolidation](minimal-core-migration.md) now closes C1. The [C sketch](drafts/ogpu_presentation.h)
 and [Rust records](drafts/presentation.rs) are uninstalled design artifacts.
 The implemented [P1 contract](presentation-contract.md) remains the runtime contract.
 
@@ -306,16 +306,16 @@ a future drawable mapping may use `index=UINT32_MAX` and acquisition-scoped imag
 lifetime. Neither current mapping advertises that case. Do not emulate Vulkan
 objects or promise this draft's lifetime rules already cover Metal.
 
-Remaining C1 integration: merge records and C/Rust operation correspondence,
-platform/query/status namespaces and signature-level deletion map with A/B/D and
-the dependency disposition. These are integration tasks; P's lifecycle selection
-does not by itself close C1 or change the installed SDK.
+The [C1 consolidation](minimal-core-migration.md) integrates records, C/Rust
+correspondence, platform/query/status namespaces and the deletion map with A/B/D
+and dependencies. Runtime migration and native checks remain C2/C3.
 
 ## Record check, 2026-11-03
 
-`python3 tools/check-c1-drafts.py` checks A/B/D/P records together, including imported
-span and record-header layouts. GCC 16.2.0 and Rust 1.98.1 on Linux x86-64 pass
-C11/C++17 syntax and 216 C/Rust size/alignment/member-offset/constant comparisons.
+At the P checkpoint, `python3 tools/check-c1-drafts.py` checked A/B/D/P records
+together, including imported span and record-header layouts. GCC 16.2.0 and Rust
+1.98.1 on Linux x86-64 passed C11/C++17 syntax and 216 C/Rust comparisons.
+The checker now covers the consolidated C1 records.
 This is schema consistency, not native lifecycle or Windows acceptance.
 
 [dx-chains]: https://learn.microsoft.com/en-us/windows/win32/direct3d12/swap-chains

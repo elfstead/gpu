@@ -11,6 +11,32 @@ extern "C" {
 
 typedef struct ogpu_draft_argument_layout ogpu_draft_argument_layout;
 
+/* Replaces QUERY_EXECUTION_LIMITS: inline upper bound is not a combined native
+ * layout budget. argument_kinds is a bitset indexed by field kind. Creation
+ * validates the complete layout/artifact mapping and native budget.
+ */
+typedef struct ogpu_draft_execution_limits {
+    uint64_t max_inline_bytes;
+    uint32_t max_groups[3], max_local_size[3], max_local_invocations;
+    uint32_t max_shared_memory, argument_kinds;
+} ogpu_draft_execution_limits;
+typedef struct ogpu_draft_shader {
+    uint32_t stage, format;
+    ogpu_next_bytes code;
+    const char *entry;
+    const ogpu_next_record *specialization, *subgroup;
+} ogpu_draft_shader;
+typedef struct ogpu_draft_executable_desc {
+    ogpu_next_record header;
+    uint32_t kind, shader_count;
+    const ogpu_draft_shader *shaders;
+    const ogpu_next_record *static_state;
+    uint64_t dynamic_state;
+    const ogpu_next_record *requirements;
+    ogpu_next_executable_cache *cache;
+    uint32_t compile_flags, reserved;
+} ogpu_draft_executable_desc;
+
 enum {
     OGPU_DRAFT_ARGUMENT_INLINE = 0,
     OGPU_DRAFT_ARGUMENT_UNIFORM_ADDRESS = 1,
@@ -73,12 +99,12 @@ void ogpu_draft_argument_layout_info(
     const ogpu_draft_argument_layout *, ogpu_draft_argument_state_info *);
 
 /* Replaces executable preparation with an explicit borrowed layout. The old
- * shader.interface_metadata argument-layout record is superseded, not a second
- * authority. Other requirement/specialization metadata remains as documented.
+ * shader.interface_metadata field is deleted, not a second authority. Other
+ * requirement/specialization metadata remains as documented.
  * Layout must remain live through executable destruction and all command uses.
  */
 ogpu_next_status ogpu_draft_executable_create(
-    ogpu_next_device *, const ogpu_next_executable_desc *,
+    ogpu_next_device *, const ogpu_draft_executable_desc *,
     ogpu_draft_argument_layout *, ogpu_next_executable **);
 
 /* Replaces set_inline/set_root. The layout must belong to the executable

@@ -4,6 +4,8 @@ Selected design, 2026-11-03. **Not implemented.** Resolves decision D of the
 [minimal-core contract](minimal-core-contract.md). The [C sketch](drafts/ogpu_descriptors.h)
 and [Rust record mirror](drafts/descriptors.rs) are uninstalled draft artifacts.
 Vulkan/Linux implements first; the DX12 branch remains a source/mapping reference.
+The [C1 consolidation](minimal-core-migration.md) includes the revised descriptor
+limits record and secondary inheritance; runtime migration remains C2.
 
 ## Decision
 
@@ -75,6 +77,12 @@ returns the descriptor and requirements, including the actual borrowed spans.
 Capacity is nonzero; unknown kinds, storage values, usage bits or nonzero flags
 reject. All spans are trusted valid caller references with checked extents. Queries
 leave outputs unchanged on failure; creation publishes no heap on failure.
+
+The revised descriptor-limits query reports maximum shader-visible resource and
+sampler capacities in native units, plus address/sampler constraints. It no longer
+publishes a second fixed byte-geometry model. Shape queries and exact heap
+requirements determine encoding, alignment and reservations; requests for other
+storage configurations are validated by their own requirements query.
 
 | Backing source | Lifetime and placement | Vulkan-first mapping / DX12 constraint |
 |---|---|---|

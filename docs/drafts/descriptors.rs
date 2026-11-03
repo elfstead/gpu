@@ -22,6 +22,19 @@ pub struct DescriptorHeap { _private: [u8; 0] }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+pub struct DescriptorLimits {
+    pub max_resource_capacity: u64,
+    pub max_sampler_capacity: u64,
+    pub uniform_address_alignment: u64,
+    pub storage_address_alignment: u64,
+    pub max_uniform_range: u64,
+    pub max_storage_range: u64,
+    pub max_sampler_lod_bias: f32,
+    pub max_sampler_anisotropy: f32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct Span {
     pub memory: *mut Memory,
     pub offset: u64,

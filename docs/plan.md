@@ -1,7 +1,7 @@
 # Working status and next milestone
 
-Updated 2026-11-03. **C1 is active: select the minimal composable foundation
-contract, then C2: implement the coordinated revision, and C3: accept the available
+Updated 2026-11-03. **C1 is complete: the minimal composable foundation contract
+is selected. Next C2 implements the coordinated revision, then C3 accepts available
 native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
@@ -11,7 +11,8 @@ now selects native-unit locations, explicit backing/copy rights and one authorit
 representation. [Presentation P](minimal-core-presentation.md) now selects borrowed
 frames, native availability, explicit outcome effects and replacement/resize lifetimes.
 [Dependency/submission decisions](minimal-core-dependencies.md) now preserve justified
-scopes and consolidate submission. Full-surface integration remains; C1 is not complete.
+scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
+covers every installed operation, cross-family records and the ordered C2 cutover.
 Runtime code and native acceptance are unchanged.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
@@ -111,7 +112,7 @@ preserved capability in C1 before implementation.
 The complete target remains graphics, general compute and ML, including the
 scheduled specialized hardware facilities.
 
-Current C1 checkpoint: [contract draft](minimal-core-contract.md) plus selected
+C1 checkpoint: [selected contract](minimal-core-contract.md) plus selected
 [A/B](minimal-core-arguments.md), [D](minimal-core-descriptors.md) and
 [P records/migration](minimal-core-presentation.md).
 One range-update operation replaces separate root/inline operations; native domains/compatibility metadata
@@ -120,8 +121,11 @@ evidence is reused, not rerun. Descriptor storage now has one native-unit locati
 model and explicit CPU-copy/source rights without a mirror. Presentation separates
 availability, render completion, native retirement and image reuse without a frame
 scheduler. Dependencies now retain justified ranges/split/ownership, independently
-scoped entries and one submission operation. Next consolidate the complete
-signatures/deletion map before C2. No final profile count is assumed.
+scoped entries and one submission operation. The complete signatures/deletion map
+is now [consolidated](minimal-core-migration.md). Begin C2 with shared records,
+prepared argument layouts, compiler metadata and argument consumers; then migrate
+descriptor/composition, dependencies/submission and presentation before local C3.
+No final profile count is assumed.
 
 ## P1: implemented, partial human acceptance
 
@@ -290,9 +294,10 @@ The [API-shape assessment](cross-backend-api-shape-2026-10-30.md) and
 not an obligation to retain all native representations. C1 now replaces their
 earlier profile-expansion prescription: derive a minimal contract, preserve
 efficient compositions and add primitives only for demonstrated gaps. Architectural
-fixes must resolve arguments, descriptor updates, submission outcomes, presentation
-lifetimes and copy footprints; their public shape is not preselected. No review
-finding is closed by these design documents.
+fixes now follow the [selected C1 contract and migration](minimal-core-migration.md)
+for arguments, descriptors, submission and presentation. Copy-footprint and native
+correctness findings remain in the handoff. No review finding is closed by these
+design documents.
 
 The [DX12 implementation handoff](dx12-candidate-plan.md) is approved for a
 separate `dx12-backend` branch implemented and tested by the Windows agent, then

@@ -1,6 +1,8 @@
 /*
  * OGPU whole-surface C sketch, 2026-10-08. NOT a fully implemented/installed ABI.
- * Companion semantics: ../whole-api-design.md
+ * Companion semantics: ../whole-api-design.md. C1 selected revision 2026-11-03:
+ * ogpu_minimal.h and minimal-core-migration.json supersede the affected imported
+ * signatures/records. This file continues to inventory later hardware coverage.
  *
  * The ogpu_next_ prefix prevents confusion with include/ogpu.h (ABI 20).
  * Setup declarations now come from include/ogpu_next.h and are implemented on
@@ -18,7 +20,7 @@
  */
 #ifndef OGPU_NEXT_DESIGN_DRAFT_H
 #define OGPU_NEXT_DESIGN_DRAFT_H
-#include "../../include/ogpu_next.h"
+#include "ogpu_minimal.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,11 +47,12 @@ extern "C" {
  * are now in the implemented header above. Cube-array views use independent
  * enabling and explicit layer/mip windows. Broader format/feature profiles follow. */
 
-/* Descriptor byte encoding and borrowed GPU heap-range binding are implemented
- * in the imported header. No owned heap object or implicit allocation policy. */
+/* Current descriptor byte encoding/borrowed bindings are superseded in C1 by
+ * explicit heap objects and native-unit locations; see ogpu_descriptors.h.
+ * Runtime migration is C2. No implicit allocation policy is added. */
 
-/* Compute/graphics preparation, inline/device-root ABI and direct/indirect launch
- * come from the implemented header, together with independent preparation caches,
+/* Compute/graphics preparation and argument metadata migrate to ogpu_arguments.h.
+ * Direct/indirect launch comes from the implemented header, with preparation caches,
  * import/export, merge and explicit fail-if-compilation-required policy.
  * Wider graphics/native artifact profiles remain to
  * implement; no implicit translation or command-time JIT. */
@@ -58,8 +61,9 @@ extern "C" {
  * and primary/secondary execution are implemented in the imported header.
  * Nested secondary execution remains a separate profile. */
 
-/* Barriers separate execution scopes, memory access and optional ranges/state.
- * Zero resource ranges means a global memory dependency, not no dependency.
+/* C1 barriers separate execution scopes, memory access and optional ranges/state.
+ * Global/execution-only dependencies are explicit entries; empty is a no-op.
+ * See ogpu_dependencies.h for per-entry scopes and consolidated submission.
  * Ownership transfer endpoints use matching release/acquire records and a queue
  * timeline edge. Caller-owned split objects, explicit reset/release and batched
  * acquire are imported above; no arena lifetime or implicit replay reset.

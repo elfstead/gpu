@@ -1,0 +1,323 @@
+{
+  "design_only": true,
+  "baseline_revision": "40bde34",
+  "baseline_header": "include/ogpu_next.h",
+  "baseline_sha256": "49701bc605db5e12c6325f162da36a84da16aa5dfee140cc2f208b71523f03b8",
+  "draft_headers": [
+    "docs/drafts/ogpu_arguments.h",
+    "docs/drafts/ogpu_descriptors.h",
+    "docs/drafts/ogpu_presentation.h",
+    "docs/drafts/ogpu_dependencies.h",
+    "docs/drafts/ogpu_minimal.h"
+  ],
+  "retained": [
+    "ogpu_next_adapter_query",
+    "ogpu_next_arena_create",
+    "ogpu_next_arena_destroy",
+    "ogpu_next_arena_reserve",
+    "ogpu_next_arena_reset",
+    "ogpu_next_arena_trim",
+    "ogpu_next_bind_executable",
+    "ogpu_next_bind_indices",
+    "ogpu_next_bind_vertices",
+    "ogpu_next_blit_image",
+    "ogpu_next_clear_image",
+    "ogpu_next_commands_begin",
+    "ogpu_next_commands_cancel",
+    "ogpu_next_commands_end",
+    "ogpu_next_copy_from_image",
+    "ogpu_next_copy_image",
+    "ogpu_next_copy_memory",
+    "ogpu_next_copy_to_image",
+    "ogpu_next_device_create",
+    "ogpu_next_device_destroy",
+    "ogpu_next_device_query",
+    "ogpu_next_device_queue",
+    "ogpu_next_discovery_adapter",
+    "ogpu_next_discovery_count",
+    "ogpu_next_discovery_create",
+    "ogpu_next_discovery_destroy",
+    "ogpu_next_dispatch",
+    "ogpu_next_dispatch_indirect",
+    "ogpu_next_draw",
+    "ogpu_next_draw_indexed",
+    "ogpu_next_draw_indexed_indirect",
+    "ogpu_next_draw_indirect",
+    "ogpu_next_draw_mesh",
+    "ogpu_next_draw_mesh_indirect",
+    "ogpu_next_executable_cache_create",
+    "ogpu_next_executable_cache_data",
+    "ogpu_next_executable_cache_destroy",
+    "ogpu_next_executable_cache_merge",
+    "ogpu_next_executable_destroy",
+    "ogpu_next_execute_lists",
+    "ogpu_next_execute_scratch_requirements",
+    "ogpu_next_fill_memory",
+    "ogpu_next_generated_execute",
+    "ogpu_next_generated_layout_destroy",
+    "ogpu_next_generated_preprocess",
+    "ogpu_next_generated_requirements",
+    "ogpu_next_generated_set_create",
+    "ogpu_next_generated_set_destroy",
+    "ogpu_next_generated_set_update",
+    "ogpu_next_image_bind",
+    "ogpu_next_image_create",
+    "ogpu_next_image_create_unbound",
+    "ogpu_next_image_destroy",
+    "ogpu_next_image_limits_query",
+    "ogpu_next_image_requirements",
+    "ogpu_next_inheritance_scratch_requirements",
+    "ogpu_next_memory_address",
+    "ogpu_next_memory_budget_query",
+    "ogpu_next_memory_create",
+    "ogpu_next_memory_create_dedicated_image",
+    "ogpu_next_memory_destroy",
+    "ogpu_next_memory_flush",
+    "ogpu_next_memory_invalidate",
+    "ogpu_next_memory_map",
+    "ogpu_next_memory_requirements",
+    "ogpu_next_memory_unmap",
+    "ogpu_next_presentation_api",
+    "ogpu_next_queries_reset",
+    "ogpu_next_queries_resolve",
+    "ogpu_next_query_begin",
+    "ogpu_next_query_end",
+    "ogpu_next_query_pool_create",
+    "ogpu_next_query_pool_destroy",
+    "ogpu_next_render_begin",
+    "ogpu_next_render_end",
+    "ogpu_next_render_scratch_requirements",
+    "ogpu_next_resolve_image",
+    "ogpu_next_set_blend_constants",
+    "ogpu_next_set_cull",
+    "ogpu_next_set_depth_compare",
+    "ogpu_next_set_depth_test",
+    "ogpu_next_set_depth_write",
+    "ogpu_next_set_front_face",
+    "ogpu_next_set_graphics_state",
+    "ogpu_next_set_stencil_compare_mask",
+    "ogpu_next_set_stencil_ops",
+    "ogpu_next_set_stencil_reference",
+    "ogpu_next_set_stencil_test",
+    "ogpu_next_set_stencil_write_mask",
+    "ogpu_next_split_create",
+    "ogpu_next_split_destroy",
+    "ogpu_next_split_reset",
+    "ogpu_next_timeline_create",
+    "ogpu_next_timeline_destroy",
+    "ogpu_next_timeline_poll",
+    "ogpu_next_timeline_signal_host",
+    "ogpu_next_timeline_wait",
+    "ogpu_next_timestamp",
+    "ogpu_next_vertex_scratch_requirements",
+    "ogpu_next_view_create",
+    "ogpu_next_view_destroy",
+    "presentation.adapter_support",
+    "presentation.binary_create",
+    "presentation.binary_destroy",
+    "presentation.discovery_create",
+    "presentation.fence_create",
+    "presentation.fence_destroy",
+    "presentation.fence_poll",
+    "presentation.fence_reset",
+    "presentation.fence_wait",
+    "presentation.surface_destroy",
+    "presentation.surface_mode_query",
+    "presentation.surface_query",
+    "presentation.surface_wayland_create"
+  ],
+  "replaced": {
+    "ogpu_next_barrier": "ogpu_draft_barrier",
+    "ogpu_next_barrier_scratch_requirements": "ogpu_draft_barrier_scratch_requirements",
+    "ogpu_next_bind_heap": "ogpu_draft_bind_heap",
+    "ogpu_next_descriptor_scratch_requirements": "ogpu_draft_descriptor_scratch_requirements",
+    "ogpu_next_executable_create": "ogpu_draft_executable_create",
+    "ogpu_next_generated_layout_create": "ogpu_draft_generated_layout_create",
+    "ogpu_next_queue_submit": "ogpu_draft_queue_submit",
+    "ogpu_next_queue_submit_batch": "ogpu_draft_queue_submit",
+    "ogpu_next_set_inline": "ogpu_draft_set_arguments",
+    "ogpu_next_set_root": "ogpu_draft_set_arguments",
+    "ogpu_next_split_acquire": "ogpu_draft_split_acquire",
+    "ogpu_next_split_release": "ogpu_draft_split_release",
+    "ogpu_next_split_scratch_requirements": "ogpu_draft_split_scratch_requirements",
+    "ogpu_next_submit_batch_scratch_requirements": "ogpu_draft_submit_scratch_requirements",
+    "ogpu_next_submit_scratch_requirements": "ogpu_draft_submit_scratch_requirements",
+    "ogpu_next_write_resource_descriptors": "ogpu_draft_write_resource_descriptors",
+    "ogpu_next_write_sampler_descriptors": "ogpu_draft_write_sampler_descriptors",
+    "presentation.acquire": "ogpu_draft_acquire",
+    "presentation.present_scratch_requirements": "ogpu_draft_present_scratch_requirements",
+    "presentation.queue_present": "ogpu_draft_queue_present",
+    "presentation.release": "ogpu_draft_abandon",
+    "presentation.swapchain_create": "ogpu_draft_chain_create",
+    "presentation.swapchain_destroy": "ogpu_draft_chain_destroy",
+    "presentation.swapchain_images": "ogpu_draft_chain_images"
+  },
+  "added": [
+    "ogpu_draft_abandon_scratch_requirements",
+    "ogpu_draft_argument_layout_create",
+    "ogpu_draft_argument_layout_destroy",
+    "ogpu_draft_argument_layout_info",
+    "ogpu_draft_chain_info_query",
+    "ogpu_draft_chain_pacing_handle",
+    "ogpu_draft_chain_resize",
+    "ogpu_draft_copy_descriptors",
+    "ogpu_draft_heap_create",
+    "ogpu_draft_heap_destroy",
+    "ogpu_draft_heap_info",
+    "ogpu_draft_heap_requirements_query",
+    "ogpu_draft_presentation_contract_query",
+    "ogpu_draft_resource_descriptor_shape",
+    "ogpu_draft_sampler_descriptor_shape",
+    "ogpu_draft_surface_win32_create"
+  ],
+  "targets": {
+    "ogpu_draft_abandon": {
+      "c": "presentation.abandon",
+      "rust": "abandon"
+    },
+    "ogpu_draft_abandon_scratch_requirements": {
+      "c": "presentation.abandon_scratch_requirements",
+      "rust": "abandon_scratch_requirements"
+    },
+    "ogpu_draft_acquire": {
+      "c": "presentation.acquire",
+      "rust": "acquire"
+    },
+    "ogpu_draft_argument_layout_create": {
+      "c": "ogpu_next_argument_layout_create",
+      "rust": "argument_layout_create"
+    },
+    "ogpu_draft_argument_layout_destroy": {
+      "c": "ogpu_next_argument_layout_destroy",
+      "rust": "argument_layout_destroy"
+    },
+    "ogpu_draft_argument_layout_info": {
+      "c": "ogpu_next_argument_layout_info",
+      "rust": "argument_layout_info"
+    },
+    "ogpu_draft_barrier": {
+      "c": "ogpu_next_barrier",
+      "rust": "barrier"
+    },
+    "ogpu_draft_barrier_scratch_requirements": {
+      "c": "ogpu_next_barrier_scratch_requirements",
+      "rust": "barrier_scratch_requirements"
+    },
+    "ogpu_draft_bind_heap": {
+      "c": "ogpu_next_bind_heap",
+      "rust": "bind_heap"
+    },
+    "ogpu_draft_chain_create": {
+      "c": "presentation.chain_create",
+      "rust": "chain_create"
+    },
+    "ogpu_draft_chain_destroy": {
+      "c": "presentation.chain_destroy",
+      "rust": "chain_destroy"
+    },
+    "ogpu_draft_chain_images": {
+      "c": "presentation.chain_images",
+      "rust": "chain_images"
+    },
+    "ogpu_draft_chain_info_query": {
+      "c": "presentation.chain_info_query",
+      "rust": "chain_info_query"
+    },
+    "ogpu_draft_chain_pacing_handle": {
+      "c": "presentation.chain_pacing_handle",
+      "rust": "chain_pacing_handle"
+    },
+    "ogpu_draft_chain_resize": {
+      "c": "presentation.chain_resize",
+      "rust": "chain_resize"
+    },
+    "ogpu_draft_copy_descriptors": {
+      "c": "ogpu_next_copy_descriptors",
+      "rust": "copy_descriptors"
+    },
+    "ogpu_draft_descriptor_scratch_requirements": {
+      "c": "ogpu_next_descriptor_scratch_requirements",
+      "rust": "descriptor_scratch_requirements"
+    },
+    "ogpu_draft_executable_create": {
+      "c": "ogpu_next_executable_create",
+      "rust": "executable_create"
+    },
+    "ogpu_draft_generated_layout_create": {
+      "c": "ogpu_next_generated_layout_create",
+      "rust": "generated_layout_create"
+    },
+    "ogpu_draft_heap_create": {
+      "c": "ogpu_next_heap_create",
+      "rust": "heap_create"
+    },
+    "ogpu_draft_heap_destroy": {
+      "c": "ogpu_next_heap_destroy",
+      "rust": "heap_destroy"
+    },
+    "ogpu_draft_heap_info": {
+      "c": "ogpu_next_heap_info",
+      "rust": "heap_info"
+    },
+    "ogpu_draft_heap_requirements_query": {
+      "c": "ogpu_next_heap_requirements_query",
+      "rust": "heap_requirements_query"
+    },
+    "ogpu_draft_present_scratch_requirements": {
+      "c": "presentation.present_scratch_requirements",
+      "rust": "present_scratch_requirements"
+    },
+    "ogpu_draft_presentation_contract_query": {
+      "c": "presentation.presentation_contract_query",
+      "rust": "presentation_contract_query"
+    },
+    "ogpu_draft_queue_present": {
+      "c": "presentation.queue_present",
+      "rust": "queue_present"
+    },
+    "ogpu_draft_queue_submit": {
+      "c": "ogpu_next_queue_submit",
+      "rust": "queue_submit"
+    },
+    "ogpu_draft_resource_descriptor_shape": {
+      "c": "ogpu_next_resource_descriptor_shape",
+      "rust": "resource_descriptor_shape"
+    },
+    "ogpu_draft_sampler_descriptor_shape": {
+      "c": "ogpu_next_sampler_descriptor_shape",
+      "rust": "sampler_descriptor_shape"
+    },
+    "ogpu_draft_set_arguments": {
+      "c": "ogpu_next_set_arguments",
+      "rust": "set_arguments"
+    },
+    "ogpu_draft_split_acquire": {
+      "c": "ogpu_next_split_acquire",
+      "rust": "split_acquire"
+    },
+    "ogpu_draft_split_release": {
+      "c": "ogpu_next_split_release",
+      "rust": "split_release"
+    },
+    "ogpu_draft_split_scratch_requirements": {
+      "c": "ogpu_next_split_scratch_requirements",
+      "rust": "split_scratch_requirements"
+    },
+    "ogpu_draft_submit_scratch_requirements": {
+      "c": "ogpu_next_submit_scratch_requirements",
+      "rust": "submit_scratch_requirements"
+    },
+    "ogpu_draft_surface_win32_create": {
+      "c": "presentation.surface_win32_create",
+      "rust": "surface_win32_create"
+    },
+    "ogpu_draft_write_resource_descriptors": {
+      "c": "ogpu_next_write_resource_descriptors",
+      "rust": "write_resource_descriptors"
+    },
+    "ogpu_draft_write_sampler_descriptors": {
+      "c": "ogpu_next_write_sampler_descriptors",
+      "rust": "write_sampler_descriptors"
+    }
+  }
+}

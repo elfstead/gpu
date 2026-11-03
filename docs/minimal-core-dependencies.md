@@ -176,8 +176,9 @@ compute-written indirect, explicit transfer and ownership consumers. No fresh
 timing campaign is needed to choose these semantics. Newer DX12 fence barriers
 and native Metal ordering remain later mapping checks, not Linux prerequisites.
 
-Record check: GCC 16.2.0 and Rust 1.98.1 on Linux x86-64 pass C11/C++17 syntax and
-all 307 C/Rust comparisons in `tools/check-c1-drafts.py` after adding these records.
+At the dependency checkpoint, GCC 16.2.0 and Rust 1.98.1 on Linux x86-64 passed
+C11/C++17 syntax and all 307 C/Rust comparisons in `tools/check-c1-drafts.py`.
+The checker now also covers the [consolidated records](minimal-core-migration.md).
 This does not validate native execution of the revised signatures.
 
 [vk-barrier]: https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdPipelineBarrier2.html

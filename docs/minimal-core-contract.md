@@ -1,8 +1,9 @@
 # C1: minimal composable foundation draft
 
 Started 2026-10-31 on `minimal-core`, based on Vulkan `master` at `2374635`.
-**Design draft, not implemented API. C1 remains active until the open decisions
-below are resolved.** The installed header and runtime are unchanged. This is
+**C1 contract selected and consolidated, 2026-11-03; not implemented API.**
+The [complete disposition and C2 cutover](minimal-core-migration.md) close the
+foundation design checkpoint. The installed header and runtime are unchanged. This is
 the next revision of the [whole-API target](whole-api-design.md), governed by the
 [composition rule](design.md#minimal-composable-core) and [C1–C3 sequence](roadmap.md#minimal-core-revision).
 
@@ -32,7 +33,8 @@ These decisions select the conceptual shape. Argument decisions A/B now have a
 Descriptor decision D also has a [selected storage contract and records](minimal-core-descriptors.md).
 Presentation decision P has a [selected lifecycle and record sketch](minimal-core-presentation.md).
 [Dependency and submission decisions](minimal-core-dependencies.md) are also selected.
-Full-surface integration remains the last C1 task.
+The [combined index, exact operation inventory and record migration](minimal-core-migration.md)
+integrate those decisions. C2 is the next implementation step.
 
 ## Ordinary operation sequence
 
@@ -240,7 +242,7 @@ with independent surface state. This boundary remains optional for compute.
 | M11 richer launch and media | Capability-dependent hardware | Reuse shader/command capabilities; codec sessions expose native work, not a playback/model runtime. |
 
 This table covers the whole target by mechanism family. Exact public-operation
-deletions and replacement signatures follow A/B/D/P; this is not permission to
+deletions and replacement signatures are in the [consolidated inventory](minimal-core-migration.md); this is not permission to
 remove unlisted native facilities or an assertion that future families are implemented.
 
 ## Public user-composition recipes
@@ -292,24 +294,18 @@ and native documentation; they are not newly validated Windows behavior. The
 reference stays on `dx12-backend`. Metal's [mapping proposal](m6-native-mapping.md)
 remains an additional design check, with native execution deferred.
 
-## Remaining C1 work and verification
+## C1 closure and implementation verification
 
-1. A/B's [contract and records](minimal-core-arguments.md) are selected. Integrate
-   their signatures into the full revised surface; ensure descriptor and
-   generated-work state effects compose with the declared argument domains. Runtime
-   lowering and existing snapshot/reuse/patch regressions belong to C2/C3.
-2. D's [storage contract and records](minimal-core-descriptors.md) are selected:
-   native-unit locations, exact backing and CPU-copy rights, accessible spans and
-   explicit reservations. Integrate signatures and generated index metadata into
-   the complete draft; runtime/device checks remain C2/C3.
-3. P's [lifecycle contract and records](minimal-core-presentation.md) are selected,
-   including resize failure, abandonment and explicit native acceptance effects.
-   Integrate the surface-query/platform/status namespaces. Windows cross-queue,
-   native failure and teardown validation remain explicit later checks.
-4. [Dependency/submission dispositions and records](minimal-core-dependencies.md)
-   are selected. Integrate them with the other drafts, produce a signature-level
-   migration/deletion list and revise the whole-surface sketch. Then C1 can close
-   and C2 can change runtime/tooling/consumers together.
+The [consolidation](minimal-core-migration.md) supplies the combined C index,
+signature-level operation inventory, C/Rust correspondence, record deletions,
+shader/generated/secondary state rules and ordered C2 cutover. Every installed
+operation is retained or mapped explicitly. C1 is complete for this foundation
+revision; later hardware coverage and native backend acceptance stay separate.
+
+The remaining work is runtime/compiler/consumer migration under C2, followed by
+local C3 acceptance. Windows cross-queue, native failure and teardown checks remain
+in the handoff, as do Metal's native mapping questions. No runtime support follows
+from the draft's record and inventory checks.
 
 C2 acceptance will check host ABI, generated layouts, lowering and affected Linux
 consumers. Only uncertain native costs need targeted measurements. No fresh GPU,
