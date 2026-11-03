@@ -29,23 +29,51 @@ DESCRIPTOR_RECORDS = [
 DESCRIPTOR_CONSTANTS = """HEAP_HOST HEAP_MEMORY HEAP_NATIVE HEAP_SHADER_VISIBLE
 HEAP_CPU_WRITE HEAP_CPU_COPY_SOURCE HEAP_CPU_COPY_DESTINATION
 DESCRIPTOR_WRITE_RESOURCE DESCRIPTOR_WRITE_SAMPLER DESCRIPTOR_COPY""".split()
+PRESENTATION_RECORDS = [
+    ("win32_surface_desc", "Win32SurfaceDesc", "header hwnd"),
+    ("dxgi_chain_desc", "DxgiChainDesc",
+     "header surface queue format extent image_count usage swap_effect scaling alpha color_space chain_flags maximum_frame_latency"),
+    ("presentation_contract", "PresentationContract",
+     "profile availability capabilities max_present_count"),
+    ("chain_info", "ChainInfo", "generation state image_count ordered_queue"),
+    ("chain_create_outcome", "ChainCreateOutcome", "chain previous_state reserved"),
+    ("chain_resize_desc", "ChainResizeDesc", "format extent image_count chain_flags reserved"),
+    ("chain_resize_outcome", "ChainResizeOutcome", "generation state image_effect"),
+    ("acquire_desc", "AcquireDesc", "timeout_ns binary fence"),
+    ("frame", "Frame", "chain image generation index availability ordered_queue binary fence"),
+    ("present_item", "PresentItem", "frame retire_fence sync_interval native_flags"),
+    ("present_result", "PresentResult", "status frame_effect fence_effect reserved"),
+    ("present_desc", "PresentDesc", "wait_count item_count waits items results scratch"),
+    ("present_outcome", "PresentOutcome", "work_effect wait_effect"),
+    ("pacing_handle", "PacingHandle", "kind reserved handle"),
+]
+PRESENTATION_CONSTANTS = """PRESENT_VULKAN PRESENT_DXGI PRESENTATION_WIN32 OCCLUDED STILL_DRAWING
+WIN32_SURFACE_DESC DXGI_CHAIN_DESC
+AVAILABILITY_SIGNALS AVAILABILITY_QUEUE_ORDERED PRESENT_REPLACE PRESENT_RESIZE
+PRESENT_RETIRE_FENCE PRESENT_PACING_HANDLE PRESENT_BINARY_WAIT CHAIN_NONE CHAIN_ACTIVE
+CHAIN_RETIRED CHAIN_NO_IMAGES CHAIN_LOST IMAGES_UNCHANGED IMAGES_REPLACED IMAGES_INVALIDATED
+FRAME_RETAINED FRAME_RELEASED FRAME_UNKNOWN EFFECT_NONE EFFECT_ENQUEUED EFFECT_UNKNOWN
+WAITABLE_WIN32""".split()
 
 
 def main():
     cc = os.environ.get("CC", "cc")
     rustc = os.environ.get("RUSTC", "rustc")
-    headers = ["ogpu_arguments.h", "ogpu_descriptors.h"]
+    headers = ["ogpu_arguments.h", "ogpu_descriptors.h", "ogpu_presentation.h"]
     c = ['#include <stdio.h>', '#include <stddef.h>',
          *[f'#include "docs/drafts/{h}"' for h in headers], 'int main(void) {']
-    rust = ['mod arguments;', 'mod descriptors;',
+    rust = ['mod arguments;', 'mod descriptors;', 'mod presentation;',
             'use std::mem::{size_of, align_of, offset_of};', 'fn main() {']
     records = [("ogpu_draft_" + name, f"arguments::{rn}", fields)
                for name, rn, fields in ARGUMENT_RECORDS]
     records += [("ogpu_draft_" + name, f"descriptors::{rn}", fields)
                 for name, rn, fields in DESCRIPTOR_RECORDS]
+    records += [("ogpu_draft_" + name, f"presentation::{rn}", fields)
+                for name, rn, fields in PRESENTATION_RECORDS]
     # Verify imported layouts too: descriptor drafts mirror borrowed spans.
     records += [("ogpu_next_span", "descriptors::Span", "memory offset size"),
-                ("ogpu_next_host_span", "descriptors::HostSpan", "data size")]
+                ("ogpu_next_host_span", "descriptors::HostSpan", "data size"),
+                ("ogpu_next_record", "presentation::Record", "kind version byte_size flags next")]
     for ct, rt, fields in records:
         values = [("size", f"sizeof({ct})", f"size_of::<{rt}>()"),
                   ("align", f"_Alignof({ct})", f"align_of::<{rt}>()")]
@@ -58,6 +86,7 @@ def main():
     constants = [("ARGUMENT_" + name, "arguments::ARGUMENT_" + name)
                  for name in ARGUMENT_CONSTANTS]
     constants += [(name, "descriptors::" + name) for name in DESCRIPTOR_CONSTANTS]
+    constants += [(name, "presentation::" + name) for name in PRESENTATION_CONSTANTS]
     for name, rt in constants:
         c.append(f'printf("{name}=%llu\\n", (unsigned long long)OGPU_DRAFT_{name});')
         rust.append(f'println!("{name}={{}}", {rt});')
@@ -67,7 +96,7 @@ def main():
         temp = Path(directory)
         (temp / "check.c").write_text("\n".join(c))
         (temp / "check.rs").write_text("\n".join(rust))
-        for module in ("arguments", "descriptors"):
+        for module in ("arguments", "descriptors", "presentation"):
             (temp / f"{module}.rs").write_bytes((ROOT / f"docs/drafts/{module}.rs").read_bytes())
         flags = ["-Wall", "-Wextra", "-Werror", "-pedantic"]
         subprocess.run([cc, "-std=c11", *flags, "-I", str(ROOT),

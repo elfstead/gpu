@@ -30,8 +30,8 @@ the next revision of the [whole-API target](whole-api-design.md), governed by th
 These decisions select the conceptual shape. Argument decisions A/B now have a
 [selected contract and exact record sketches](minimal-core-arguments.md).
 Descriptor decision D also has a [selected storage contract and records](minimal-core-descriptors.md).
-Presentation records remain a bounded C1 task, not a reason to implement several
-alternatives.
+Presentation decision P has a [selected lifecycle and record sketch](minimal-core-presentation.md).
+Dependency dispositions and full-surface integration remain C1 tasks.
 
 ## Ordinary operation sequence
 
@@ -192,13 +192,13 @@ A surface identifies its native platform honestly. Prepared presentation storage
 belongs to the caller's explicit lifecycle; acquisition must not allocate a new
 ownership graph per frame.
 
-**Next decision P:** draft a common acquired-frame record that distinguishes
-availability, render completion, presentation retirement and image reuse, with
-explicit native capabilities where guarantees differ. Test its paper mapping for
-Wayland/Vulkan acquisition and DXGI current-image/resize behavior. It must not
-require an invented semaphore, host wait or bridge submission on DX12, or hide
-the actual Vulkan availability dependency. Query/return unsupported guarantees
-honestly. Resize failure must report which old resources remain valid.
+**P selected, 2026-11-03:** a borrowed frame distinguishes native acquisition
+signals from current-buffer/queue ordering. Explicit acceptance, frame and sync
+effects separate rendering completion, presentation retirement and image reuse.
+Native batch limits preserve Vulkan batching without hidden DXGI loops. Native
+replacement retains old acquired images; in-place resize explicitly invalidates
+borrowed images, including after a failed native attempt. No invented semaphore,
+host wait or bridge submission. See the [lifecycle, mapping and migration](minimal-core-presentation.md).
 
 The user-level loop chooses frame count, queue, pacing, resize policy, minimized
 window behavior and retirement strategy. Multi-window uses the same primitives
@@ -226,7 +226,7 @@ with independent surface state. This boundary remains optional for compute.
 | Transfer/fill/clear/resolve/blit | Keep hardware operations where non-derivable | Explicit footprint preparation and conversion kernels are user code; no hidden CPU/GPU conversion. |
 | Raster state, attachments, vertex/index fetch | Keep hardware coverage | Scene graphs, materials and PSO selection are user code; remove duplicate setters only with equivalent native encoding. |
 | Queries and diagnostics | Keep native observation | Profilers/capture tools compose explicit queries; instrumentation is opt-in. |
-| Presentation extension and binary/fence operations | Revise boundary, decision P | Independent surfaces; derive frame loops. Do not delete native synchronization needed for presentation/interop. |
+| Presentation extension and binary/fence operations | P selected; migration pending | Borrowed frames, explicit availability/effects and capability-dependent replacement/resize; retain necessary native synchronization. |
 | Native Rust and C ABI | Same operations | Rust uses backend operations directly; C adapts errors/records. No safe wrapper hidden in either path. |
 | Numerical, subgroup and matrix capabilities | Shader/artifact requirements first | Tensor shapes, kernels, fusion and numerical policy belong in consumer/compiler libraries. |
 | M8 task/mesh and remaining advanced raster | Capability-dependent core | Reuse argument/execution/resource primitives; GPU culling remains an application algorithm. |
@@ -279,7 +279,7 @@ guessing. Multiple windows instantiate this state independently on one device.
 | Commands/replay | Native allocator/list lifecycle | Native reuse/allocator retirement must match declared mode; no rerecording sold as replay. |
 | Dependencies | Enhanced barriers and queue fence ordering | Grouped/free-access lowering must be corrected; stage-scoped cross-queue guarantees cannot be fabricated from a whole-queue wait. |
 | Transfers | Native footprints and copy operations | Query pitch/placement requirements; no automatic per-row fallback. |
-| Presentation | Typed HWND surface and DXGI lifecycle | Availability, resize and retirement are not Vulkan acquisition/replacement; P selects a common honest contract. |
+| Presentation | Typed HWND surface and DXGI lifecycle | P selects queue-ordered current-buffer selection, explicit resize invalidation and honest native retirement capabilities; Windows validation remains open. |
 | Failure | Per-operation native outcome | Queue wait/execute/signal can have partial acceptance; device-removed completion sentinels are failures. |
 
 These constraints come from the [pinned review](dx12-review-handoff-2026-10-30.md)
@@ -290,16 +290,17 @@ remains an additional design check, with native execution deferred.
 ## Remaining C1 work and verification
 
 1. A/B's [contract and records](minimal-core-arguments.md) are selected. Integrate
-   their signatures into the full revised surface after P; ensure descriptor and
+   their signatures into the full revised surface; ensure descriptor and
    generated-work state effects compose with the declared argument domains. Runtime
    lowering and existing snapshot/reuse/patch regressions belong to C2/C3.
 2. D's [storage contract and records](minimal-core-descriptors.md) are selected:
    native-unit locations, exact backing and CPU-copy rights, accessible spans and
    explicit reservations. Integrate signatures and generated index metadata into
    the complete draft; runtime/device checks remain C2/C3.
-3. Resolve P with frame/availability/retirement records and a Linux/Windows lifecycle
-   table, including resize failure and abandonment. Native Windows execution stays
-   deferred; state any guarantee that source review cannot establish.
+3. P's [lifecycle contract and records](minimal-core-presentation.md) are selected,
+   including resize failure, abandonment and explicit native acceptance effects.
+   Integrate the surface-query/platform/status namespaces. Windows cross-queue,
+   native failure and teardown validation remain explicit later checks.
 4. Close the reviewed ranged/split/ownership dispositions against existing evidence.
    Produce a signature-level migration/deletion list and revise the whole-surface
    sketch. Then C1 can close and C2 can change runtime/tooling/consumers together.

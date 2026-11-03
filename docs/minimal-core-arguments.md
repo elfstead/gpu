@@ -3,9 +3,10 @@
 Selected design, 2026-11-03. **Not implemented.** Resolves the argument-update
 and reuse decisions A/B in the [C1 draft](minimal-core-contract.md). The exact
 [C record/signature sketch](drafts/ogpu_arguments.h) is separate from the installed
-header. [Descriptor decision D](minimal-core-descriptors.md) is now also selected;
-presentation P and the complete C1 migration remain open. No native Windows or
-Metal execution is claimed.
+header. [Descriptor D](minimal-core-descriptors.md) and
+[presentation P](minimal-core-presentation.md) are also selected. Dependency
+dispositions and the complete C1 migration remain open. No native Windows or Metal
+execution is claimed.
 
 ## Selected shape
 
@@ -224,7 +225,7 @@ compares the C/Rust sizes, alignments, member offsets and constants. Set `CC` an
 temporary files and runs no OGPU runtime or GPU work.
 
 The initial argument-only check on Linux x86-64 with GCC 16.2.0 and Rust 1.98.1
-passed all 33 argument comparisons; the checker now includes descriptor records.
+passed all 33 argument comparisons; the checker now includes descriptor and presentation records.
 Field/layout/state records are 32/24/32 bytes on this target. This checks record consistency,
 not portability to every host ABI, shader layout or native argument correctness.
 

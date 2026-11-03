@@ -214,11 +214,12 @@ backends simulate byte-addressable heaps.
 
 ## Record check, 2026-11-03
 
-`python3 tools/check-c1-drafts.py` now checks both argument and descriptor drafts,
-including the borrowed span records imported from the current C header. `CC` and
+At the descriptor checkpoint, `python3 tools/check-c1-drafts.py` checked argument
+and descriptor drafts, including borrowed span records imported from the current C header. `CC` and
 `RUSTC` select explicit compiler executables when needed. GCC 16.2.0 and Rust
-1.98.1 on Linux x86-64 pass C11/C++17 syntax and all 88 size/alignment/member-offset/
-constant comparisons. This is record consistency, not backend or shader acceptance.
+1.98.1 on Linux x86-64 passed C11/C++17 syntax and all 88 size/alignment/member-offset/
+constant comparisons. The checker now also includes [presentation records](minimal-core-presentation.md#record-check-2026-11-03).
+This is record consistency, not backend or shader acceptance.
 
 [dx-increment]: https://learn.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-getdescriptorhandleincrementsize
 [dx-copy]: https://learn.microsoft.com/en-us/windows/win32/direct3d12/copying-descriptors
