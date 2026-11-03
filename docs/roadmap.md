@@ -112,7 +112,9 @@ Started 2026-10-31: [first contract draft](minimal-core-contract.md), whole-surf
 dispositions, public user compositions and a DX12 mapping table are written.
 On 2026-11-03, [A/B argument updates and reuse](minimal-core-arguments.md) select
 one range update, atomic native address fields and explicit storage/compatibility
-metadata, with C/Rust record sketches. D/P and the dependency dispositions remain.
+metadata, with C/Rust record sketches. [D descriptor storage](minimal-core-descriptors.md)
+also selects native-unit locations, explicit backing/copy rights and accessible
+native spans, with record sketches. P and the dependency dispositions remain.
 This is design progress, not C1 completion or implemented support.
 
 Produce one revised whole-API draft, including C/Rust operation correspondence,

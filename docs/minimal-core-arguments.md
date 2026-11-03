@@ -3,8 +3,9 @@
 Selected design, 2026-11-03. **Not implemented.** Resolves the argument-update
 and reuse decisions A/B in the [C1 draft](minimal-core-contract.md). The exact
 [C record/signature sketch](drafts/ogpu_arguments.h) is separate from the installed
-header. Descriptor/presentation decisions D/P and the complete C1 migration remain
-open. No native Windows or Metal execution is claimed.
+header. [Descriptor decision D](minimal-core-descriptors.md) is now also selected;
+presentation P and the complete C1 migration remain open. No native Windows or
+Metal execution is claimed.
 
 ## Selected shape
 
@@ -217,13 +218,14 @@ upload. No additional hardware is needed to begin the Vulkan implementation.
 
 ## Record check, 2026-11-03
 
-`python3 tools/check-argument-draft.py` compiles the header as C11 and C++17 and
+`python3 tools/check-c1-drafts.py` compiles the headers as C11 and C++17 and
 compares the C/Rust sizes, alignments, member offsets and constants. Set `CC` and
 `RUSTC` to explicit compiler executables if they are not on PATH. The script uses
 temporary files and runs no OGPU runtime or GPU work.
 
-On Linux x86-64, GCC 16.2.0 and Rust 1.98.1 pass all 33 comparisons. Field/layout/
-state records are 32/24/32 bytes on this target. This checks record consistency,
+The initial argument-only check on Linux x86-64 with GCC 16.2.0 and Rust 1.98.1
+passed all 33 argument comparisons; the checker now includes descriptor records.
+Field/layout/state records are 32/24/32 bytes on this target. This checks record consistency,
 not portability to every host ABI, shader layout or native argument correctness.
 
 [vk-mapping]: https://docs.vulkan.org/refpages/latest/refpages/source/VkDescriptorSetAndBindingMappingEXT.html

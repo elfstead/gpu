@@ -29,8 +29,9 @@ the next revision of the [whole-API target](whole-api-design.md), governed by th
 
 These decisions select the conceptual shape. Argument decisions A/B now have a
 [selected contract and exact record sketches](minimal-core-arguments.md).
-Descriptor locations and presentation records remain bounded C1 tasks, not reasons
-to implement several alternatives.
+Descriptor decision D also has a [selected storage contract and records](minimal-core-descriptors.md).
+Presentation records remain a bounded C1 task, not a reason to implement several
+alternatives.
 
 ## Ordinary operation sequence
 
@@ -109,7 +110,7 @@ These are design decisions; runtime and native validation are still pending.
 
 ## Descriptors: storage and mutation, not allocation policy
 
-Proposed operation shape:
+Selected operation shape (record details in the D contract):
 
 ```text
 heap_requirements(kind, capacity, requested_capabilities) -> requirements
@@ -117,7 +118,7 @@ heap_create(requirements, explicit_storage_choice) -> heap
 write_descriptors(heap, destinations, descriptions, scratch)
 copy_descriptors(destination_heap, source_heap, ranges)
 bind_heap(encoder, heap)
-heap_memory_view(heap) -> optional borrowed memory span + restrictions
+heap_info(heap) -> actual borrowed spans when available + restrictions
 ```
 
 Creation is cold. Writes/copies affect only selected locations and are independent
@@ -127,7 +128,7 @@ boundary; applications order mutation against consuming work. Resource lifetimes
 are not retained by descriptor entries. Disjoint updates obey reported native
 granularity and reserved-storage restrictions.
 
-The optional memory view is a candidate composition point: if supported, ordinary
+The optional memory view is derived from heap info: if available, ordinary
 mapping, buffer copies and shader accesses operate on the heap's actual storage.
 There must be no shadow recipe buffer requiring a later commit/rebuild. If absent,
 the heap remains opaque and those memory operations are unsupported. This is not
@@ -140,13 +141,12 @@ of indices is not equivalent to GPU mutation of a descriptor. Preserve the latte
 capability only through a native mapping, without CPU readback. Likewise, explicit
 allocation/placement cannot be replaced by an automatic staging policy.
 
-**Next decision D:** specify heap locations, backing and view capabilities before
-writing declarations. A fixed maximum-sized slot can waste memory compared with
-the current mixed Vulkan layout; an unqualified byte offset falsely describes a
-DX12 heap. Compare native-unit offsets with generated typed accessors against
-indexed typed regions. Include CPU staging, device-local upload and mixed resource
-types. Select one location model and one authoritative storage representation.
-Do not adopt two heaps plus a mirroring mechanism to avoid this decision.
+**D selected, 2026-11-03:** native-unit locations and queried per-description shapes
+preserve compact Vulkan layouts and opaque D3D12 slots. One heap borrows actual
+host/GPU backing or explicitly allocates native opaque storage; writes/copies and
+binding use that same object. CPU copy-source capability exposes D3D12's restriction
+without a hidden mirror. GPU movement uses ordinary accessible memory. See the
+[contract and migration](minimal-core-descriptors.md) and its C/Rust records.
 
 ## Commands, memory and dependencies
 
@@ -214,7 +214,7 @@ with independent surface state. This boundary remains optional for compute.
 | Discovery, queries, device/queue creation | Keep core | Explicit enabled capabilities and native limits; no implicit current device. |
 | Memory requirements/allocate/map/address/flush | Keep core | Arenas, suballocation, upload rings and deferred frees are user code. |
 | Images/views and explicit backing | Keep core | Loaders, mip chains and render-target pools compose resources and transfers. |
-| `write_*_descriptors`, `bind_heap` | Revise, decision D | One heap model; migrate existing raw storage and generated shader offsets together. No retained recipe path. |
+| `write_*_descriptors`, `bind_heap` | D selected; migration pending | Native-unit heap locations and explicit storage/copy rights; migrate raw storage and generated indices together. No retained recipe path. |
 | `set_inline`, `set_root`, argument metadata | A/B selected; migration pending | One byte-range update and prepared layout; generated root setters become ordinary user/tooling helpers. |
 | Executable preparation and native cache | Keep core | Artifact/compiler cache policy stays outside; no command-time variant compilation. |
 | Arena/encoder/list, reset/trim/reuse | Keep one model | Frame slots, repeated inference and retirement queues use the same storage. |
@@ -275,7 +275,7 @@ guessing. Multiple windows instantiate this state independently on one device.
 | Captured argument values | Root constants | Exact budget and update range; no buffer allocation/spill hidden by OGPU. |
 | Address/resource arguments | Appropriate root buffer binding or shader-visible address representation | Shader ABI must declare the role; nested physical pointers are not established by a host root binding. |
 | Interface reuse | Compatible prepared root signatures | A/B report native domains and bind invalidation; no unconditional dual writes or host replay. |
-| Descriptor storage | Native resource/sampler heaps with explicit CPU writes/copies | Bind does no rebuild. GPU byte editing is unsupported through current D3D12; D must represent this honestly. |
+| Descriptor storage | Native resource/sampler heaps with explicit CPU writes/copies | D selects opaque native storage and explicit CPU-copy-source rights. Bind does no rebuild; no GPU byte-editing or shader-visible CPU-copy-source emulation. |
 | Commands/replay | Native allocator/list lifecycle | Native reuse/allocator retirement must match declared mode; no rerecording sold as replay. |
 | Dependencies | Enhanced barriers and queue fence ordering | Grouped/free-access lowering must be corrected; stage-scoped cross-queue guarantees cannot be fabricated from a whole-queue wait. |
 | Transfers | Native footprints and copy operations | Query pitch/placement requirements; no automatic per-row fallback. |
@@ -290,12 +290,13 @@ remains an additional design check, with native execution deferred.
 ## Remaining C1 work and verification
 
 1. A/B's [contract and records](minimal-core-arguments.md) are selected. Integrate
-   their signatures into the full revised surface after D/P; ensure descriptor and
+   their signatures into the full revised surface after P; ensure descriptor and
    generated-work state effects compose with the declared argument domains. Runtime
    lowering and existing snapshot/reuse/patch regressions belong to C2/C3.
-2. Resolve D with exact location/layout/placement records. Map mixed descriptors,
-   explicit device-local upload, disjoint in-flight updates and optional native
-   memory access. No bind-time rebuild and no duplicated authoritative storage.
+2. D's [storage contract and records](minimal-core-descriptors.md) are selected:
+   native-unit locations, exact backing and CPU-copy rights, accessible spans and
+   explicit reservations. Integrate signatures and generated index metadata into
+   the complete draft; runtime/device checks remain C2/C3.
 3. Resolve P with frame/availability/retirement records and a Linux/Windows lifecycle
    table, including resize failure and abandonment. Native Windows execution stays
    deferred; state any guarantee that source review cannot establish.

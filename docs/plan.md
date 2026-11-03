@@ -6,8 +6,10 @@ native mappings.** See the [revised sequence and exit criteria](roadmap.md#minim
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
 constraints. [Argument update/reuse A/B](minimal-core-arguments.md) now has selected
-semantics and exact C/Rust draft records. Descriptor and presentation records
-remain open; C1 is not complete. Runtime code and native acceptance are unchanged.
+semantics and exact C/Rust draft records. [Descriptor storage D](minimal-core-descriptors.md)
+now selects native-unit locations, explicit backing/copy rights and one authoritative
+representation. Presentation and dependency dispositions remain open; C1 is not
+complete. Runtime code and native acceptance are unchanged.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -107,10 +109,11 @@ The complete target remains graphics, general compute and ML, including the
 scheduled specialized hardware facilities.
 
 Current C1 checkpoint: [contract draft](minimal-core-contract.md) plus selected
-[A/B records and migration](minimal-core-arguments.md). One range-update operation
-replaces separate root/inline operations; native domains/compatibility metadata
+[A/B](minimal-core-arguments.md) and [D records/migration](minimal-core-descriptors.md).
+One range-update operation replaces separate root/inline operations; native domains/compatibility metadata
 describe reuse without shadow restoration. Existing argument reuse/partial-update
-evidence is reused, not rerun. Next resolve descriptor locations/storage (D), frame
+evidence is reused, not rerun. Descriptor storage now has one native-unit location
+model and explicit CPU-copy/source rights without a mirror. Next resolve frame
 availability/retirement (P) and reviewed dependency dispositions; consolidate their
 signatures and deletion map before C2. No final profile count is assumed.
 
