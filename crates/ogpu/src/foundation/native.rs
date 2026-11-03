@@ -47,6 +47,9 @@ mod descriptors;
 pub(super) use descriptors::descriptor_scratch;
 #[path = "executables.rs"]
 mod executables;
+#[path = "arguments.rs"]
+mod arguments;
+pub(in crate::foundation) use arguments::ArgumentLayout;
 pub(super) use executables::record as executable_record;
 #[path = "rendering.rs"]
 mod rendering;

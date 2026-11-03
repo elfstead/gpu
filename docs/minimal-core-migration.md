@@ -184,6 +184,53 @@ create a second core crate or runtime to avoid migrating these users. Keep the
 legacy Metal path isolated until its eventual native replacement is accepted.
 No DX12 runtime commits are imported into this branch.
 
+## C2 first implementation checkpoint: prepared argument engine
+
+Implemented 2026-11-03 on Vulkan/Linux, below the installed API:
+
+- Shared field/layout/state records and a prepared device-scoped layout. Cold
+  validation checks byte extents, stage classes, address alignment, native budget
+  and ambiguous resource mappings. Per-stage Vulkan mappings target push data or
+  a push-data address directly; no descriptor allocation or shader rewrite.
+- Compute and graphics pipeline creation borrow that layout. Native subgroup
+  requirements remain in the shader-stage extension chain. All Vulkan layouts
+  report one preserving push-data domain, base zero and a common compatibility
+  key; no interning registry is needed for these native facts.
+- One internal range updater checks the bound layout and preflights all touched
+  native addresses before a single `vkCmdPushDataEXT`. Partial inline updates stay
+  direct. Address updates are indivisible; no allocation, stored values, address
+  lookup, pointee copy or state restoration occurs during recording. All-inline
+  layouts allocate neither address-validation entries nor a boundary table.
+
+**Temporary migration weight:** the installed `set_inline`/`set_root` entries and
+per-shader interface records still exist. Executable creation converts those
+records into one owned all-inline layout; the common preparation path ignores
+per-shader interface metadata. Physical-pointer roots remain inline bits. The
+old root-slot validation and owned compatibility layout disappear with compiler/
+consumer cutover; they are not a second target API. Generated commands currently
+use the adapted executable's byte extent; their explicit borrowed-layout migration
+remains in step 2. No new public C operations or revised shader schema are shipped
+by this checkpoint.
+
+Validation on Linux x86-64, RADV NAVI10 (RX 5700 XT), Mesa 26.2.5:
+70 CPU unit tests; 16 existing foundation native tests; one new prepared-layout
+native test; the public C foundation compute/graphics/generated consumer; 1380
+C/Rust ABI values (including the actual new runtime records); reproducible native
+bindings; and both C1 draft/surface audits pass. The new native test creates a real
+pipeline with a borrowed layout, instruments command emission, checks late-address
+rejection, exact one-call updates, layout mismatch and poisoned recording behavior.
+It does not dispatch a shader consuming the newly mapped buffer declarations.
+Existing native/consumer receipts cover the transitional all-inline path. Unsupported
+hardware profiles remain explicit exclusions in the consumer, not acceptance.
+
+**Next:** cut the public C/Rust records, layout operations, compiler-generated
+metadata and argument consumers over together. Add shader execution/readback for
+bound inline constants and uniform/read/read-write address fields, preserve direct
+physical-pointer consumers, and remove the temporary root/inline adapters. Shader
+resource/type agreement is an artifact-generation/caller obligation on this unsafe
+internal path; no SPIR-V reflection or additional shader traversal was added to
+pipeline creation. C2 and local C3 remain incomplete.
+
 ## Verification and open native questions
 
 At this checkpoint, `tools/check-c1-drafts.py` passes C11/C++17 syntax and all

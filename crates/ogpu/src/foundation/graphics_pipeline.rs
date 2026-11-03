@@ -109,7 +109,7 @@ impl Drop for Module<'_> {
         }
     }
 }
-fn graphics_stages(shaders: &[Shader]) -> Result<u64, Status> {
+pub(super) fn graphics_stages(shaders: &[Shader]) -> Result<u64, Status> {
     let mut stages = [0; 3];
     if shaders.len() > stages.len() {
         return Err(UNSUPPORTED);
@@ -131,6 +131,7 @@ pub(super) unsafe fn prepare(
     d: &Device,
     desc: &ExecutableDesc,
     pipeline_flags: u64,
+    layout: &ArgumentLayout,
 ) -> Result<Box<Executable>, Status> {
     if d.snapshot.features.enabled & RASTER == 0
         || desc.dynamic_state & 1 == 0
@@ -435,13 +436,11 @@ pub(super) unsafe fn prepare(
     let mut stages = Vec::new();
     let mut specialization_entries = Vec::new();
     let mut specialization_data = Vec::new();
-    let mut owned_roots = Vec::new();
-    let mut byte_size = 0;
     let mut subgroup_states = Vec::new();
     subgroup_states
         .try_reserve_exact(shader_count as usize)
         .map_err(|_| OUT_OF_MEMORY)?;
-    for (i, shader) in shaders.iter().enumerate() {
+    for shader in shaders {
         if shader.format != 0 {
             return Err(UNSUPPORTED);
         }
@@ -465,31 +464,6 @@ pub(super) unsafe fn prepare(
         }
         let entry = unsafe { CStr::from_ptr(shader.entry) };
         if entry.to_bytes().is_empty() || entry.to_str().is_err() {
-            return Err(INVALID);
-        }
-        let abi =
-            unsafe { record::<ArgumentInterface>(shader.interface_metadata, ARGUMENT_INTERFACE)? };
-        let roots = unsafe { array(abi.roots, abi.root_count)? };
-        interface(&d.snapshot.execution_limits, abi, roots)?;
-        if roots
-            .iter()
-            .any(|r| r.stages & !(if mesh_pipeline { stage_mask | 16 } else { 24 }) != 0)
-        {
-            return Err(UNSUPPORTED);
-        }
-        // One shared argument namespace; all supplied stages use the same slot table.
-        if i == 0 {
-            byte_size = abi.byte_size;
-            owned_roots
-                .try_reserve_exact(roots.len())
-                .map_err(|_| OUT_OF_MEMORY)?;
-            owned_roots.extend_from_slice(roots);
-        } else if abi.byte_size != byte_size
-            || roots.len() != owned_roots.len()
-            || roots.iter().zip(&owned_roots).any(|(a, b)| {
-                a.offset != b.offset || a.alignment != b.alignment || a.stages != b.stages
-            })
-        {
             return Err(INVALID);
         }
         let mut entries = Vec::new();
@@ -554,15 +528,26 @@ pub(super) unsafe fn prepare(
             pData: b.data,
         })
         .collect();
+    // Reserve before storing pointers in stage create records.
+    let mut mappings = Vec::new();
+    mappings
+        .try_reserve_exact(shader_count as usize)
+        .map_err(|_| OUT_OF_MEMORY)?;
     for (i, shader) in shaders.iter().enumerate() {
-        stages.push(vk::VkPipelineShaderStageCreateInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            flags: subgroup_states[i].0,
-            pNext: if subgroup_states[i].1.requiredSubgroupSize == 0 {
+        mappings.push(layout.mapping_info(
+            shader.stage,
+            if subgroup_states[i].1.requiredSubgroupSize == 0 {
                 ptr::null()
             } else {
                 ptr::from_ref(&subgroup_states[i].1).cast()
             },
+        )?);
+    }
+    for (i, shader) in shaders.iter().enumerate() {
+        stages.push(vk::VkPipelineShaderStageCreateInfo {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            flags: subgroup_states[i].0,
+            pNext: ptr::from_ref(&mappings[i]).cast(),
             stage: match u64::from(shader.stage) {
                 8 => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT,
                 16 => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -710,8 +695,9 @@ pub(super) unsafe fn prepare(
     let mut result = Box::new(Executable {
         device: d,
         pipeline: ptr::null_mut(),
-        byte_size,
-        roots: owned_roots,
+        arguments: layout,
+        compatibility_layout: None,
+        roots: Vec::new(),
         stages: stage_mask,
         indirect_bindable: desc.compile_flags & 2 != 0,
     });

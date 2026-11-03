@@ -10,7 +10,9 @@ mod subgroups;
 pub struct Executable {
     pub(super) device: *const Device,
     pub(super) pipeline: vk::VkPipeline,
-    pub(super) byte_size: u32,
+    pub(super) arguments: *const ArgumentLayout,
+    // Removed with the installed argument-interface adapter in C2.
+    compatibility_layout: Option<Box<ArgumentLayout>>,
     pub(super) roots: Vec<RootSlot>,
     pub(super) stages: u64,
     pub(super) indirect_bindable: bool,
@@ -73,6 +75,55 @@ fn interface(
     }
     Ok(())
 }
+// Temporary conversion from the installed per-shader byte/root metadata. The
+// common pipeline path below consumes only a prepared layout.
+unsafe fn legacy_arguments(
+    d: &Device,
+    desc: &ExecutableDesc,
+) -> Result<(Box<ArgumentLayout>, Vec<RootSlot>), Status> {
+    let stages = match desc.kind {
+        1 if desc.shader_count == 1 => 4,
+        2 if (1..=3).contains(&desc.shader_count) => {
+            graphics_pipeline::graphics_stages(unsafe { array(desc.shaders, desc.shader_count)? })?
+        }
+        _ => return Err(UNSUPPORTED),
+    };
+    let shaders = unsafe { array(desc.shaders, desc.shader_count)? };
+    let permitted = if stages == 4 {
+        4
+    } else if stages & MESH_STAGE != 0 {
+        stages | 16
+    } else {
+        24
+    };
+    let mut owned = Vec::<RootSlot>::new();
+    let mut byte_size = 0;
+    for (i, shader) in shaders.iter().enumerate() {
+        let abi =
+            unsafe { record::<ArgumentInterface>(shader.interface_metadata, ARGUMENT_INTERFACE)? };
+        let roots = unsafe { array(abi.roots, abi.root_count)? };
+        interface(&d.snapshot.execution_limits, abi, roots)?;
+        if roots.iter().any(|r| r.stages & !permitted != 0) {
+            return Err(UNSUPPORTED);
+        }
+        if i == 0 {
+            byte_size = abi.byte_size;
+            owned
+                .try_reserve_exact(roots.len())
+                .map_err(|_| OUT_OF_MEMORY)?;
+            owned.extend_from_slice(roots);
+        } else if abi.byte_size != byte_size
+            || roots.len() != owned.len()
+            || roots.iter().zip(&owned).any(|(a, b)| {
+                a.offset != b.offset || a.alignment != b.alignment || a.stages != b.stages
+            })
+        {
+            return Err(INVALID);
+        }
+    }
+    Ok((ArgumentLayout::legacy_inline(d, byte_size, stages)?, owned))
+}
+
 fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Status> {
     if req.features & !d.snapshot.features.enabled != 0 {
         return Err(UNSUPPORTED);
@@ -125,13 +176,42 @@ impl Executable {
     ) -> Result<Box<Self>, Status> {
         d.ready()?;
         desc.header.validate::<ExecutableDesc>(EXECUTABLE_DESC)?;
+        let (layout, roots) = unsafe { legacy_arguments(d, desc)? };
+        let mut result = unsafe { Self::create_with_layout(d, desc, &layout)? };
+        result.compatibility_layout = Some(layout);
+        result.roots = roots;
+        Ok(result)
+    }
+
+    pub(in crate::foundation) fn arguments(&self) -> &ArgumentLayout {
+        // The explicit-layout path borrows caller-owned, device-scoped storage.
+        unsafe { &*self.arguments }
+    }
+
+    /// The device and layout must outlive this executable and every recorded use.
+    /// Shader bindings must match the supplied layout; no runtime reflection.
+    pub(in crate::foundation) unsafe fn create_with_layout(
+        d: &Device,
+        desc: &ExecutableDesc,
+        layout: &ArgumentLayout,
+    ) -> Result<Box<Self>, Status> {
+        d.ready()?;
+        desc.header.validate::<ExecutableDesc>(EXECUTABLE_DESC)?;
+        if !ptr::eq(layout.device, d)
+            || !matches!(
+                (desc.kind, layout.execution_class),
+                (1, ARGUMENT_COMPUTE) | (2, ARGUMENT_GRAPHICS)
+            )
+        {
+            return Err(INVALID);
+        }
         let pipeline_flags = compile_flags(
             d.snapshot.features.enabled,
             desc.compile_flags,
             desc.reserved,
         )?;
         if desc.kind == 2 {
-            return unsafe { graphics_pipeline::prepare(d, desc, pipeline_flags) };
+            return unsafe { graphics_pipeline::prepare(d, desc, pipeline_flags, layout) };
         }
         if desc.kind != 1
             || desc.shader_count != 1
@@ -165,13 +245,6 @@ impl Executable {
         }
         if unsafe { shader.code.data.cast::<u32>().read() } != 0x07230203 {
             return Err(INVALID);
-        }
-        let abi =
-            unsafe { record::<ArgumentInterface>(shader.interface_metadata, ARGUMENT_INTERFACE)? };
-        let roots = unsafe { array(abi.roots, abi.root_count)? };
-        interface(&d.snapshot.execution_limits, abi, roots)?;
-        if roots.iter().any(|r| r.stages != 4) {
-            return Err(UNSUPPORTED);
         }
         let req = unsafe { record::<ShaderRequirements>(desc.requirements, SHADER_REQUIREMENTS)? };
         requirements(d, req)?;
@@ -211,19 +284,23 @@ impl Executable {
                 pData: s.data.data,
             };
         }
-        let mut owned_roots = Vec::new();
-        owned_roots
-            .try_reserve_exact(roots.len())
-            .map_err(|_| OUT_OF_MEMORY)?;
-        owned_roots.extend_from_slice(roots);
         let mut result = Box::new(Self {
             device: d,
             pipeline: ptr::null_mut(),
-            byte_size: abi.byte_size,
-            roots: owned_roots,
+            arguments: layout,
+            compatibility_layout: None,
+            roots: Vec::new(),
             stages: 4,
             indirect_bindable: desc.compile_flags & 2 != 0,
         });
+        let mapping = layout.mapping_info(
+            shader.stage,
+            if subgroup.requiredSubgroupSize == 0 {
+                ptr::null()
+            } else {
+                ptr::from_ref(&subgroup).cast()
+            },
+        )?;
         let info = vk::VkShaderModuleCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             codeSize: shader.code.size,
@@ -250,11 +327,7 @@ impl Executable {
             stage: vk::VkPipelineShaderStageCreateInfo {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                 flags: subgroup_flags,
-                pNext: if subgroup.requiredSubgroupSize == 0 {
-                    ptr::null()
-                } else {
-                    ptr::from_ref(&subgroup).cast()
-                },
+                pNext: ptr::from_ref(&mapping).cast(),
                 stage: vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT,
                 module,
                 pName: shader.entry,

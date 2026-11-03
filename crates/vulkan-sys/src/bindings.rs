@@ -12438,7 +12438,34 @@ pub struct VkTensorARM_T {
     _unused: [u8; 0],
 }
 pub type VkTensorARM = *mut VkTensorARM_T;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT: VkDescriptorMappingSourceEXT = 0;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_PUSH_INDEX_EXT: VkDescriptorMappingSourceEXT = 1;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_INDIRECT_INDEX_EXT: VkDescriptorMappingSourceEXT = 2;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_INDIRECT_INDEX_ARRAY_EXT: VkDescriptorMappingSourceEXT = 3;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_RESOURCE_HEAP_DATA_EXT: VkDescriptorMappingSourceEXT = 4;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_PUSH_DATA_EXT: VkDescriptorMappingSourceEXT = 5;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_PUSH_ADDRESS_EXT: VkDescriptorMappingSourceEXT = 6;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_INDIRECT_ADDRESS_EXT: VkDescriptorMappingSourceEXT = 7;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_SHADER_RECORD_INDEX_EXT: VkDescriptorMappingSourceEXT = 8;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_SHADER_RECORD_DATA_EXT: VkDescriptorMappingSourceEXT = 9;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_SHADER_RECORD_ADDRESS_EXT: VkDescriptorMappingSourceEXT = 10;
+pub const VkDescriptorMappingSourceEXT_VK_DESCRIPTOR_MAPPING_SOURCE_MAX_ENUM_EXT: VkDescriptorMappingSourceEXT = 2147483647;
+pub type VkDescriptorMappingSourceEXT = ::std::os::raw::c_uint;
 pub type VkTensorViewCreateFlagsARM = VkFlags64;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_ALL_EXT: VkSpirvResourceTypeFlagBitsEXT = 2147483647;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 1;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 2;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_READ_ONLY_IMAGE_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 4;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 8;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_COMBINED_SAMPLED_IMAGE_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 16;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_UNIFORM_BUFFER_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 32;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_READ_ONLY_STORAGE_BUFFER_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 64;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_READ_WRITE_STORAGE_BUFFER_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 128;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_ACCELERATION_STRUCTURE_BIT_EXT: VkSpirvResourceTypeFlagBitsEXT = 256;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_TENSOR_BIT_ARM: VkSpirvResourceTypeFlagBitsEXT = 512;
+pub const VkSpirvResourceTypeFlagBitsEXT_VK_SPIRV_RESOURCE_TYPE_FLAG_BITS_MAX_ENUM_EXT: VkSpirvResourceTypeFlagBitsEXT = 2147483647;
+pub type VkSpirvResourceTypeFlagBitsEXT = ::std::os::raw::c_uint;
+pub type VkSpirvResourceTypeFlagsEXT = VkFlags;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkHostAddressRangeEXT {
@@ -12762,6 +12789,596 @@ const _: () = {
     ][::std::mem::offset_of!(VkPushDataInfoEXT, data) - 24usize];
 };
 impl Default for VkPushDataInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorMappingSourceConstantOffsetEXT {
+    pub heapOffset: u32,
+    pub heapArrayStride: u32,
+    pub pEmbeddedSampler: *const VkSamplerCreateInfo,
+    pub samplerHeapOffset: u32,
+    pub samplerHeapArrayStride: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceConstantOffsetEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceConstantOffsetEXT>() - 24usize];
+    [
+        "Alignment of VkDescriptorMappingSourceConstantOffsetEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceConstantOffsetEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceConstantOffsetEXT::heapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceConstantOffsetEXT, heapOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceConstantOffsetEXT::heapArrayStride",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceConstantOffsetEXT, heapArrayStride)
+        - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceConstantOffsetEXT::pEmbeddedSampler",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceConstantOffsetEXT, pEmbeddedSampler
+    ) - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceConstantOffsetEXT::samplerHeapOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceConstantOffsetEXT, samplerHeapOffset
+    ) - 16usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceConstantOffsetEXT::samplerHeapArrayStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceConstantOffsetEXT, samplerHeapArrayStride
+    ) - 20usize];
+};
+impl Default for VkDescriptorMappingSourceConstantOffsetEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorMappingSourcePushIndexEXT {
+    pub heapOffset: u32,
+    pub pushOffset: u32,
+    pub heapIndexStride: u32,
+    pub heapArrayStride: u32,
+    pub pEmbeddedSampler: *const VkSamplerCreateInfo,
+    pub useCombinedImageSamplerIndex: VkBool32,
+    pub samplerHeapOffset: u32,
+    pub samplerPushOffset: u32,
+    pub samplerHeapIndexStride: u32,
+    pub samplerHeapArrayStride: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourcePushIndexEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourcePushIndexEXT>() - 48usize];
+    [
+        "Alignment of VkDescriptorMappingSourcePushIndexEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourcePushIndexEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::heapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, heapOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::pushOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, pushOffset)
+        - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::heapIndexStride",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, heapIndexStride)
+        - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::heapArrayStride",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, heapArrayStride)
+        - 12usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::pEmbeddedSampler",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, pEmbeddedSampler)
+        - 16usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::useCombinedImageSamplerIndex",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourcePushIndexEXT, useCombinedImageSamplerIndex
+    ) - 24usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::samplerHeapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, samplerHeapOffset)
+        - 28usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::samplerPushOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourcePushIndexEXT, samplerPushOffset)
+        - 32usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::samplerHeapIndexStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourcePushIndexEXT, samplerHeapIndexStride
+    ) - 36usize];
+    [
+        "Offset of field: VkDescriptorMappingSourcePushIndexEXT::samplerHeapArrayStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourcePushIndexEXT, samplerHeapArrayStride
+    ) - 40usize];
+};
+impl Default for VkDescriptorMappingSourcePushIndexEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorMappingSourceIndirectIndexEXT {
+    pub heapOffset: u32,
+    pub pushOffset: u32,
+    pub addressOffset: u32,
+    pub heapIndexStride: u32,
+    pub heapArrayStride: u32,
+    pub pEmbeddedSampler: *const VkSamplerCreateInfo,
+    pub useCombinedImageSamplerIndex: VkBool32,
+    pub samplerHeapOffset: u32,
+    pub samplerPushOffset: u32,
+    pub samplerAddressOffset: u32,
+    pub samplerHeapIndexStride: u32,
+    pub samplerHeapArrayStride: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceIndirectIndexEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceIndirectIndexEXT>() - 56usize];
+    [
+        "Alignment of VkDescriptorMappingSourceIndirectIndexEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceIndirectIndexEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::heapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexEXT, heapOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::pushOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexEXT, pushOffset)
+        - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::addressOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexEXT, addressOffset)
+        - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::heapIndexStride",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexEXT, heapIndexStride)
+        - 12usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::heapArrayStride",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexEXT, heapArrayStride)
+        - 16usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::pEmbeddedSampler",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexEXT, pEmbeddedSampler)
+        - 24usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::useCombinedImageSamplerIndex",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexEXT, useCombinedImageSamplerIndex
+    ) - 32usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::samplerHeapOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexEXT, samplerHeapOffset
+    ) - 36usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::samplerPushOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexEXT, samplerPushOffset
+    ) - 40usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::samplerAddressOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexEXT, samplerAddressOffset
+    ) - 44usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::samplerHeapIndexStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexEXT, samplerHeapIndexStride
+    ) - 48usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexEXT::samplerHeapArrayStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexEXT, samplerHeapArrayStride
+    ) - 52usize];
+};
+impl Default for VkDescriptorMappingSourceIndirectIndexEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkDescriptorMappingSourceHeapDataEXT {
+    pub heapOffset: u32,
+    pub pushOffset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceHeapDataEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceHeapDataEXT>() - 8usize];
+    [
+        "Alignment of VkDescriptorMappingSourceHeapDataEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceHeapDataEXT>() - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceHeapDataEXT::heapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceHeapDataEXT, heapOffset) - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceHeapDataEXT::pushOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceHeapDataEXT, pushOffset) - 4usize];
+};
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkDescriptorMappingSourceIndirectAddressEXT {
+    pub pushOffset: u32,
+    pub addressOffset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceIndirectAddressEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceIndirectAddressEXT>() - 8usize];
+    [
+        "Alignment of VkDescriptorMappingSourceIndirectAddressEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceIndirectAddressEXT>() - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectAddressEXT::pushOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectAddressEXT, pushOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectAddressEXT::addressOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectAddressEXT, addressOffset)
+        - 4usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorMappingSourceShaderRecordIndexEXT {
+    pub heapOffset: u32,
+    pub shaderRecordOffset: u32,
+    pub heapIndexStride: u32,
+    pub heapArrayStride: u32,
+    pub pEmbeddedSampler: *const VkSamplerCreateInfo,
+    pub useCombinedImageSamplerIndex: VkBool32,
+    pub samplerHeapOffset: u32,
+    pub samplerShaderRecordOffset: u32,
+    pub samplerHeapIndexStride: u32,
+    pub samplerHeapArrayStride: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceShaderRecordIndexEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceShaderRecordIndexEXT>() - 48usize];
+    [
+        "Alignment of VkDescriptorMappingSourceShaderRecordIndexEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceShaderRecordIndexEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::heapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceShaderRecordIndexEXT, heapOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::shaderRecordOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, shaderRecordOffset
+    ) - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::heapIndexStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, heapIndexStride
+    ) - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::heapArrayStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, heapArrayStride
+    ) - 12usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::pEmbeddedSampler",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, pEmbeddedSampler
+    ) - 16usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::useCombinedImageSamplerIndex",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, useCombinedImageSamplerIndex
+    ) - 24usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::samplerHeapOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, samplerHeapOffset
+    ) - 28usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::samplerShaderRecordOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, samplerShaderRecordOffset
+    ) - 32usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::samplerHeapIndexStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, samplerHeapIndexStride
+    ) - 36usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceShaderRecordIndexEXT::samplerHeapArrayStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceShaderRecordIndexEXT, samplerHeapArrayStride
+    ) - 40usize];
+};
+impl Default for VkDescriptorMappingSourceShaderRecordIndexEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkDescriptorMappingSourceIndirectIndexArrayEXT {
+    pub heapOffset: u32,
+    pub pushOffset: u32,
+    pub addressOffset: u32,
+    pub heapIndexStride: u32,
+    pub pEmbeddedSampler: *const VkSamplerCreateInfo,
+    pub useCombinedImageSamplerIndex: VkBool32,
+    pub samplerHeapOffset: u32,
+    pub samplerPushOffset: u32,
+    pub samplerAddressOffset: u32,
+    pub samplerHeapIndexStride: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceIndirectIndexArrayEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceIndirectIndexArrayEXT>() - 48usize];
+    [
+        "Alignment of VkDescriptorMappingSourceIndirectIndexArrayEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceIndirectIndexArrayEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::heapOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexArrayEXT, heapOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::pushOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceIndirectIndexArrayEXT, pushOffset)
+        - 4usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::addressOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, addressOffset
+    ) - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::heapIndexStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, heapIndexStride
+    ) - 12usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::pEmbeddedSampler",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, pEmbeddedSampler
+    ) - 16usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::useCombinedImageSamplerIndex",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, useCombinedImageSamplerIndex
+    ) - 24usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::samplerHeapOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, samplerHeapOffset
+    ) - 28usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::samplerPushOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, samplerPushOffset
+    ) - 32usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::samplerAddressOffset",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, samplerAddressOffset
+    ) - 36usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceIndirectIndexArrayEXT::samplerHeapIndexStride",
+    ][::std::mem::offset_of!(
+        VkDescriptorMappingSourceIndirectIndexArrayEXT, samplerHeapIndexStride
+    ) - 40usize];
+};
+impl Default for VkDescriptorMappingSourceIndirectIndexArrayEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union VkDescriptorMappingSourceDataEXT {
+    pub constantOffset: VkDescriptorMappingSourceConstantOffsetEXT,
+    pub pushIndex: VkDescriptorMappingSourcePushIndexEXT,
+    pub indirectIndex: VkDescriptorMappingSourceIndirectIndexEXT,
+    pub indirectIndexArray: VkDescriptorMappingSourceIndirectIndexArrayEXT,
+    pub heapData: VkDescriptorMappingSourceHeapDataEXT,
+    pub pushDataOffset: u32,
+    pub pushAddressOffset: u32,
+    pub indirectAddress: VkDescriptorMappingSourceIndirectAddressEXT,
+    pub shaderRecordIndex: VkDescriptorMappingSourceShaderRecordIndexEXT,
+    pub shaderRecordDataOffset: u32,
+    pub shaderRecordAddressOffset: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorMappingSourceDataEXT",
+    ][::std::mem::size_of::<VkDescriptorMappingSourceDataEXT>() - 56usize];
+    [
+        "Alignment of VkDescriptorMappingSourceDataEXT",
+    ][::std::mem::align_of::<VkDescriptorMappingSourceDataEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::constantOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, constantOffset) - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::pushIndex",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, pushIndex) - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::indirectIndex",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, indirectIndex) - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::indirectIndexArray",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, indirectIndexArray)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::heapData",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, heapData) - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::pushDataOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, pushDataOffset) - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::pushAddressOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, pushAddressOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::indirectAddress",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, indirectAddress)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::shaderRecordIndex",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, shaderRecordIndex)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::shaderRecordDataOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, shaderRecordDataOffset)
+        - 0usize];
+    [
+        "Offset of field: VkDescriptorMappingSourceDataEXT::shaderRecordAddressOffset",
+    ][::std::mem::offset_of!(VkDescriptorMappingSourceDataEXT, shaderRecordAddressOffset)
+        - 0usize];
+};
+impl Default for VkDescriptorMappingSourceDataEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct VkDescriptorSetAndBindingMappingEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub descriptorSet: u32,
+    pub firstBinding: u32,
+    pub bindingCount: u32,
+    pub resourceMask: VkSpirvResourceTypeFlagsEXT,
+    pub source: VkDescriptorMappingSourceEXT,
+    pub sourceData: VkDescriptorMappingSourceDataEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkDescriptorSetAndBindingMappingEXT",
+    ][::std::mem::size_of::<VkDescriptorSetAndBindingMappingEXT>() - 96usize];
+    [
+        "Alignment of VkDescriptorSetAndBindingMappingEXT",
+    ][::std::mem::align_of::<VkDescriptorSetAndBindingMappingEXT>() - 8usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::sType",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, sType) - 0usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::pNext",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, pNext) - 8usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::descriptorSet",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, descriptorSet)
+        - 16usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::firstBinding",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, firstBinding)
+        - 20usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::bindingCount",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, bindingCount)
+        - 24usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::resourceMask",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, resourceMask)
+        - 28usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::source",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, source) - 32usize];
+    [
+        "Offset of field: VkDescriptorSetAndBindingMappingEXT::sourceData",
+    ][::std::mem::offset_of!(VkDescriptorSetAndBindingMappingEXT, sourceData) - 40usize];
+};
+impl Default for VkDescriptorSetAndBindingMappingEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkShaderDescriptorSetAndBindingMappingInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub mappingCount: u32,
+    pub pMappings: *const VkDescriptorSetAndBindingMappingEXT,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkShaderDescriptorSetAndBindingMappingInfoEXT",
+    ][::std::mem::size_of::<VkShaderDescriptorSetAndBindingMappingInfoEXT>() - 32usize];
+    [
+        "Alignment of VkShaderDescriptorSetAndBindingMappingInfoEXT",
+    ][::std::mem::align_of::<VkShaderDescriptorSetAndBindingMappingInfoEXT>() - 8usize];
+    [
+        "Offset of field: VkShaderDescriptorSetAndBindingMappingInfoEXT::sType",
+    ][::std::mem::offset_of!(VkShaderDescriptorSetAndBindingMappingInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkShaderDescriptorSetAndBindingMappingInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkShaderDescriptorSetAndBindingMappingInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkShaderDescriptorSetAndBindingMappingInfoEXT::mappingCount",
+    ][::std::mem::offset_of!(VkShaderDescriptorSetAndBindingMappingInfoEXT, mappingCount)
+        - 16usize];
+    [
+        "Offset of field: VkShaderDescriptorSetAndBindingMappingInfoEXT::pMappings",
+    ][::std::mem::offset_of!(VkShaderDescriptorSetAndBindingMappingInfoEXT, pMappings)
+        - 24usize];
+};
+impl Default for VkShaderDescriptorSetAndBindingMappingInfoEXT {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

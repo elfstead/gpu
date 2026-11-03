@@ -120,7 +120,7 @@ fn abi(root: &Path) -> Result {
     let target = root.join("target");
     let scratch = target.join("abi");
     fs::create_dir_all(&scratch)?;
-    let mut c = String::from("#include <stddef.h>\n#include <stdio.h>\n#include <vulkan/vulkan_core.h>\n#include <vulkan/vulkan_wayland.h>\n#include \"ogpu.h\"\n#include \"ogpu_next.h\"\nint main(void) {\n");
+    let mut c = String::from("#include <stddef.h>\n#include <stdio.h>\n#include <vulkan/vulkan_core.h>\n#include <vulkan/vulkan_wayland.h>\n#include \"ogpu.h\"\n#include \"ogpu_next.h\"\n#include \"../docs/drafts/ogpu_arguments.h\"\nint main(void) {\n");
     let mut rust = String::from("fn main() {\n");
     for line in fs::read_to_string(root.join("tests/abi.txt"))?.lines() {
         if line.is_empty() || line.starts_with('#') {

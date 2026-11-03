@@ -620,13 +620,28 @@ impl List {
         data: *const c_void,
     ) -> Result<(), Status> {
         let executable = self.executable(scope)?;
-        if offset % 4 != 0
-            || size % 4 != 0
-            || offset > executable.byte_size
-            || size > executable.byte_size - offset
-            || (size != 0 && data.is_null())
-        {
+        unsafe { self.set_arguments(executable.arguments(), offset, size, data) }
+    }
+
+    pub(in crate::foundation) unsafe fn set_arguments(
+        &self,
+        layout: &ArgumentLayout,
+        offset: u32,
+        size: u32,
+        data: *const c_void,
+    ) -> Result<(), Status> {
+        self.recording()?;
+        let bound = if layout.execution_class == ARGUMENT_COMPUTE {
+            self.executable.get()
+        } else {
+            self.graphics.get()
+        };
+        let executable = unsafe { bound.as_ref() }.ok_or(INVALID)?;
+        if !ptr::eq(layout.device, self.device) || !ptr::eq(executable.arguments, layout) {
             return Err(INVALID);
+        }
+        unsafe {
+            layout.validate_update(offset, size, data)?;
         }
         if size == 0 {
             return Ok(());

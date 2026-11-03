@@ -1,7 +1,7 @@
 # Working status and next milestone
 
 Updated 2026-11-03. **C1 is complete: the minimal composable foundation contract
-is selected. Next C2 implements the coordinated revision, then C3 accepts available
+is selected. C2 implementation is active, then C3 accepts available
 native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
@@ -13,7 +13,9 @@ frames, native availability, explicit outcome effects and replacement/resize lif
 [Dependency/submission decisions](minimal-core-dependencies.md) now preserve justified
 scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
 covers every installed operation, cross-family records and the ordered C2 cutover.
-Runtime code and native acceptance are unchanged.
+The [first C2 checkpoint](minimal-core-migration.md#c2-first-implementation-checkpoint-prepared-argument-engine) implements the Vulkan argument engine.
+Installed signatures and compiler artifacts still use temporary adapters; the
+coordinated cutover and C3 acceptance remain incomplete.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -84,7 +86,7 @@ justification for multiple public representations.
 
 Proceed with [C1–C3](roadmap.md#minimal-core-revision):
 
-1. **C1, next concrete deliverable:** revise the whole-API draft and add a
+1. **C1, completed contract selection:** revise the whole-API draft and add a
    mechanism disposition/migration table. Derive argument grouping, descriptor
    allocation/caching, replay and frame loops from the proposed primitives. Resolve
    root observation semantics, descriptor storage/update capabilities and command/
@@ -122,8 +124,10 @@ model and explicit CPU-copy/source rights without a mirror. Presentation separat
 availability, render completion, native retirement and image reuse without a frame
 scheduler. Dependencies now retain justified ranges/split/ownership, independently
 scoped entries and one submission operation. The complete signatures/deletion map
-is now [consolidated](minimal-core-migration.md). Begin C2 with shared records,
-prepared argument layouts, compiler metadata and argument consumers; then migrate
+is now [consolidated](minimal-core-migration.md). C2 shared argument records and
+the internal prepared-layout/updater engine are implemented and locally checked.
+Next cut compiler metadata, public C/Rust signatures and argument consumers over
+and delete the temporary adapters; then migrate
 descriptor/composition, dependencies/submission and presentation before local C3.
 No final profile count is assumed.
 

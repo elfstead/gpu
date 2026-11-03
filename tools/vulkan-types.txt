@@ -1,4 +1,7 @@
 # Additional pNext feature structures; command parameter types are recursive.
+VkShaderDescriptorSetAndBindingMappingInfoEXT
+VkDescriptorMappingSourceEXT
+VkSpirvResourceTypeFlagBitsEXT
 VkPhysicalDeviceMeshShaderFeaturesEXT
 VkPhysicalDeviceDeviceGeneratedCommandsFeaturesEXT
 VkPhysicalDeviceDeviceGeneratedCommandsPropertiesEXT

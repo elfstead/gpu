@@ -539,7 +539,7 @@ pub(super) unsafe fn work<'a>(
             ptr::null_mut(),
         )
     };
-    if !ptr::eq(e.device, d) || layout.stages != e.stages || layout.argument_end > e.byte_size {
+    if !ptr::eq(e.device, d) || layout.stages != e.stages || layout.argument_end > e.arguments().byte_size() {
         return Err(INVALID);
     }
     Ok((layout, e, set))
