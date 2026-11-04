@@ -279,12 +279,62 @@ changed-pointee replay. The public mixed-mapping fixture also passes with Khrono
 validation and synchronization validation enabled, without validation messages. These are correctness/lowering checks, not new performance claims or
 Windows/Metal acceptance.
 
-**Next:** step 2, descriptor storage and command composition. Implement explicit
-heap backing, locations, writes/copies and immutable queries; migrate secondary
-inheritance and generated layouts to borrowed heap/layout objects. Generated work
+**Next at the argument checkpoint:** step 2, descriptor storage and command
+composition. Its internal storage engine is now implemented below; the public
+cutover and borrowed heap/layout composition remain pending. Generated work
 currently reads the executable's prepared argument extent; its explicit layout
 contract is still pending. Dependencies/submission and presentation follow before
 the full C2 audit and local C3. C2 as a whole is not complete.
+
+## C2 descriptor storage engine
+
+Implemented 2026-11-04 on Vulkan/Linux, below the installed descriptor API:
+
+- Explicit HOST and MEMORY heaps borrow one backing and expose immutable creation
+  facts. Native descriptor size/alignment/typed-array stride remain distinct from
+  a portable slot. Exact capacity bounds the native bind even with oversized backing.
+  MEMORY creation validates usage, address alignment and the supplied live mapping;
+  HOST is never shader-visible. Vulkan NATIVE storage is explicitly unsupported.
+- Locations validate device/kind, permissions, alignment, capacity and reservation
+  exclusion. Resource shape queries share the actual descriptor validator with the
+  existing native writer; sampler shapes likewise validate the supplied description.
+- Resource/sampler locations feed the existing single native batch encoder. All
+  local validation precedes that write. No slot metadata, resource ownership,
+  descriptor recipes or duplicate encoding implementation is introduced.
+- CPU copies validate the entire batch, including aliases through distinct heap
+  wrappers, before copying any bytes. Caller scratch holds translated ranges and
+  sorted host intervals; no allocation, temporary descriptor contents or ordered
+  `memmove` semantics. Aliases not visible through these mappings remain caller proof.
+- Heap binding consumes prepared native information and validates command-domain
+  access, independently of capacity/initialized contents. It neither encodes nor
+  copies descriptors. The new command path retains the inherited-kind rebind rule.
+
+Local checks on RADV NAVI10: 71 CPU tests and all 24 native tests pass, as does the
+existing public foundation consumer (including mixed image/buffer heaps and
+secondary inheritance). The new native fixture covers HOST encoding, real sampler
+encoding, host-to-mapped-MEMORY CPU copying, mapping/permission/reservation failures,
+late-batch rejection without writes, and alias rejection without partial copying.
+A one-buffer heap shader is recorded before descriptors are written; two submissions
+then write different entries into the same heap location. Both target outputs and
+all guards pass with one native bind and exactly two native descriptor-write calls.
+The fixture passes with Khronos and synchronization validation enabled without
+messages. Pinned shader reproduction and strict Clippy also pass. No timing claim
+or cross-backend acceptance follows from these checks.
+
+**Temporary migration weight:** the installed schema-2 raw-output writers, byte
+limits, heap-binding records and secondary inheritance still exist. Old and new
+writer destinations share one validation/encoding path. The internal storage module
+and new bind method temporarily permit dead code until the public cutover; these
+annotations and old entry paths must be deleted in that cutover. This checkpoint
+adds no public API or second supported descriptor model.
+
+**Next:** replace descriptor limits/signatures in C and direct Rust, migrate generated
+native indices and all heap consumers, and make secondary inheritance borrow heap
+objects. Then give generated command layouts their explicit borrowed argument layout.
+Remove the raw-output/bind-record paths and validate the new public contract through
+those consumers. Device-local GPU upload and pending disjoint mutation still need
+coverage through the new storage interface; the legacy consumer receipts alone do
+not close those checks. Dependencies/submission, presentation and full C3 follow.
 
 ## Verification and open native questions
 

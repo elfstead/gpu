@@ -2,6 +2,10 @@
 //! retained resources, implicit allocation/flush/copy or heap-wide mutation lock.
 use super::*;
 use std::alloc::Layout;
+// C2 storage engine; public locations/composition migrate in the next checkpoint.
+#[path = "descriptor_storage.rs"]
+#[allow(dead_code)]
+pub(super) mod storage;
 
 #[derive(Default)]
 struct ResourceData {
@@ -139,6 +143,86 @@ fn sampler(
 }
 
 impl Device {
+    unsafe fn resource_data(
+        &self,
+        input: &ResourceDescriptor,
+        storage: *mut ResourceData,
+    ) -> Result<(ResourceData, vk::VkResourceDescriptorInfoEXT, u64), Status> {
+        let limits = &self.snapshot.descriptor_limits;
+        let mut info = vk::VkResourceDescriptorInfoEXT {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
+            ..Default::default()
+        };
+        let mut entry = ResourceData::default();
+        let size = match input.kind {
+            1 | 2 | 5 => {
+                if !input.buffer.memory.is_null()
+                    || input.buffer.offset != 0
+                    || input.buffer.size != 0
+                {
+                    return Err(INVALID);
+                }
+                let view = unsafe { input.view.as_ref() }.ok_or(INVALID)?;
+                let (native_view, image_layout) =
+                    view.descriptor(self, input.kind, input.image_state)?;
+                entry.view = native_view;
+                entry.image = vk::VkImageDescriptorInfoEXT {
+                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT,
+                    layout: image_layout,
+                    pView: unsafe { ptr::addr_of!((*storage).view) },
+                    ..Default::default()
+                };
+                info.type_ = match input.kind {
+                    1 => vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                    2 => vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                    _ => vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+                };
+                info.data = vk::VkResourceDescriptorDataEXT {
+                    pImage: unsafe { ptr::addr_of!((*storage).image) },
+                };
+                limits.image_size
+            }
+            3 | 4 => {
+                if !input.view.is_null() || input.image_state != 0 || input.buffer.size == 0 {
+                    return Err(INVALID);
+                }
+                let memory = unsafe { input.buffer.memory.as_ref() }.ok_or(INVALID)?;
+                let uniform = input.kind == 4;
+                let (_, _, address) = memory.descriptor_range(
+                    self,
+                    input.buffer.offset,
+                    input.buffer.size,
+                    if uniform { 32 } else { 64 },
+                )?;
+                let (alignment, maximum) = if uniform {
+                    (limits.uniform_address_alignment, limits.max_uniform_range)
+                } else {
+                    (limits.storage_address_alignment, limits.max_storage_range)
+                };
+                if alignment == 0 || address % alignment != 0 {
+                    return Err(INVALID);
+                }
+                if input.buffer.size > maximum {
+                    return Err(UNSUPPORTED);
+                }
+                entry.range = vk::VkDeviceAddressRangeKHR {
+                    address,
+                    size: input.buffer.size,
+                };
+                info.type_ = if uniform {
+                    vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                } else {
+                    vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+                };
+                info.data = vk::VkResourceDescriptorDataEXT {
+                    pAddressRange: unsafe { ptr::addr_of!((*storage).range) },
+                };
+                limits.buffer_size
+            }
+            _ => return Err(UNSUPPORTED),
+        };
+        Ok((entry, info, size))
+    }
     pub(in crate::foundation) unsafe fn write_resources(
         &self,
         count: u32,
@@ -146,14 +230,30 @@ impl Device {
         outputs: *const HostSpan,
         temporary: HostSpan,
     ) -> Result<(), Status> {
+        array::<HostSpan>(count)?;
+        if count != 0 && outputs.is_null() {
+            return Err(INVALID);
+        }
+        unsafe {
+            self.write_resources_to(count, inputs, temporary, |i, size| {
+                destination(outputs.add(i).read(), size)
+            })
+        }
+    }
+    unsafe fn write_resources_to(
+        &self,
+        count: u32,
+        inputs: *const ResourceDescriptor,
+        temporary: HostSpan,
+        mut output: impl FnMut(usize, u64) -> Result<vk::VkHostAddressRangeEXT, Status>,
+    ) -> Result<(), Status> {
         self.ready()?;
         array::<ResourceDescriptor>(count)?;
-        array::<HostSpan>(count)?;
         let (bytes, resource_offset, output_offset) = scratch(temporary, 1, count)?;
         if count == 0 {
             return Ok(());
         }
-        if inputs.is_null() || outputs.is_null() {
+        if inputs.is_null() {
             return Err(INVALID);
         }
         let data = bytes.cast::<ResourceData>();
@@ -163,83 +263,11 @@ impl Device {
         let destinations = bytes
             .wrapping_add(output_offset)
             .cast::<vk::VkHostAddressRangeEXT>();
-        let limits = &self.snapshot.descriptor_limits;
         for i in 0..count as usize {
             // SAFETY: trusted input/output arrays and disjoint caller scratch.
             let input = unsafe { &*inputs.add(i) };
-            let mut info = vk::VkResourceDescriptorInfoEXT {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
-                ..Default::default()
-            };
-            let mut entry = ResourceData::default();
-            let size = match input.kind {
-                1 | 2 | 5 => {
-                    if !input.buffer.memory.is_null()
-                        || input.buffer.offset != 0
-                        || input.buffer.size != 0
-                    {
-                        return Err(INVALID);
-                    }
-                    let view = unsafe { input.view.as_ref() }.ok_or(INVALID)?;
-                    let (native_view, image_layout) =
-                        view.descriptor(self, input.kind, input.image_state)?;
-                    entry.view = native_view;
-                    entry.image = vk::VkImageDescriptorInfoEXT {
-                        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT,
-                        layout: image_layout,
-                        pView: unsafe { ptr::addr_of!((*data.add(i)).view) },
-                        ..Default::default()
-                    };
-                    info.type_ = match input.kind {
-                        1 => vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                        2 => vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                        _ => vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-                    };
-                    info.data = vk::VkResourceDescriptorDataEXT {
-                        pImage: unsafe { ptr::addr_of!((*data.add(i)).image) },
-                    };
-                    limits.image_size
-                }
-                3 | 4 => {
-                    if !input.view.is_null() || input.image_state != 0 || input.buffer.size == 0 {
-                        return Err(INVALID);
-                    }
-                    let memory = unsafe { input.buffer.memory.as_ref() }.ok_or(INVALID)?;
-                    let uniform = input.kind == 4;
-                    let (_, _, address) = memory.descriptor_range(
-                        self,
-                        input.buffer.offset,
-                        input.buffer.size,
-                        if uniform { 32 } else { 64 },
-                    )?;
-                    let (alignment, maximum) = if uniform {
-                        (limits.uniform_address_alignment, limits.max_uniform_range)
-                    } else {
-                        (limits.storage_address_alignment, limits.max_storage_range)
-                    };
-                    if alignment == 0 || address % alignment != 0 {
-                        return Err(INVALID);
-                    }
-                    if input.buffer.size > maximum {
-                        return Err(UNSUPPORTED);
-                    }
-                    entry.range = vk::VkDeviceAddressRangeKHR {
-                        address,
-                        size: input.buffer.size,
-                    };
-                    info.type_ = if uniform {
-                        vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                    } else {
-                        vk::VkDescriptorType_VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
-                    };
-                    info.data = vk::VkResourceDescriptorDataEXT {
-                        pAddressRange: unsafe { ptr::addr_of!((*data.add(i)).range) },
-                    };
-                    limits.buffer_size
-                }
-                _ => return Err(UNSUPPORTED),
-            };
-            let dest = destination(unsafe { outputs.add(i).read() }, size)?;
+            let (entry, info, size) = unsafe { self.resource_data(input, data.add(i))? };
+            let dest = output(i, size)?;
             unsafe {
                 data.add(i).write(entry);
                 resources.add(i).write(info);
@@ -264,14 +292,30 @@ impl Device {
         outputs: *const HostSpan,
         temporary: HostSpan,
     ) -> Result<(), Status> {
+        array::<HostSpan>(count)?;
+        if count != 0 && outputs.is_null() {
+            return Err(INVALID);
+        }
+        unsafe {
+            self.write_samplers_to(count, inputs, temporary, |i, size| {
+                destination(outputs.add(i).read(), size)
+            })
+        }
+    }
+    unsafe fn write_samplers_to(
+        &self,
+        count: u32,
+        inputs: *const SamplerDesc,
+        temporary: HostSpan,
+        mut output: impl FnMut(usize, u64) -> Result<vk::VkHostAddressRangeEXT, Status>,
+    ) -> Result<(), Status> {
         self.ready()?;
         array::<SamplerDesc>(count)?;
-        array::<HostSpan>(count)?;
         let (bytes, _, output_offset) = scratch(temporary, 2, count)?;
         if count == 0 {
             return Ok(());
         }
-        if inputs.is_null() || outputs.is_null() {
+        if inputs.is_null() {
             return Err(INVALID);
         }
         let samplers = bytes.cast::<vk::VkSamplerCreateInfo>();
@@ -283,7 +327,7 @@ impl Device {
             let pointer = unsafe { inputs.add(i) };
             unsafe { pointer.cast::<Record>().read() }.validate::<SamplerDesc>(SAMPLER_DESC)?;
             let info = sampler(unsafe { &*pointer }, limits, self.snapshot.features.enabled)?;
-            let dest = destination(unsafe { outputs.add(i).read() }, limits.sampler_size)?;
+            let dest = output(i, limits.sampler_size)?;
             unsafe {
                 samplers.add(i).write(info);
                 destinations.add(i).write(dest);

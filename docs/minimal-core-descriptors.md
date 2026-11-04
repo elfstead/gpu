@@ -1,11 +1,13 @@
 # C1 D: one descriptor storage model
 
-Selected design, 2026-11-03. **Not implemented.** Resolves decision D of the
+Selected design, 2026-11-03. **Internal Vulkan storage engine implemented
+2026-11-04; public cutover pending.** See the [checkpoint receipt](minimal-core-migration.md#c2-descriptor-storage-engine).
+Resolves decision D of the
 [minimal-core contract](minimal-core-contract.md). The [C sketch](drafts/ogpu_descriptors.h)
 and [Rust record mirror](drafts/descriptors.rs) are uninstalled draft artifacts.
 Vulkan/Linux implements first; the DX12 branch remains a source/mapping reference.
 The [C1 consolidation](minimal-core-migration.md) includes the revised descriptor
-limits record and secondary inheritance; runtime migration remains C2.
+limits record and secondary inheritance; their public migration remains C2.
 
 ## Decision
 

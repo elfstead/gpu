@@ -316,6 +316,7 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
         ("foundation-compute", "transform", "compute", "comp"),
         ("foundation-arguments", "mappedArguments", "compute", "comp"),
         ("foundation-heaps", "consume", "compute", "comp"),
+        ("foundation-heap-storage", "writeHeap", "compute", "comp"),
         ("foundation-cube", "cubeMain", "compute", "comp"),
         ("foundation-compressed", "compressedMain", "compute", "comp"),
         ("foundation-mesh", "meshMain", "mesh", "mesh"),

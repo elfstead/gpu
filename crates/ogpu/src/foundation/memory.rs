@@ -475,6 +475,27 @@ impl Memory {
             self.address.checked_add(offset).ok_or(INVALID)?,
         ))
     }
+    // Check supplied heap host bytes without mapping or retaining them.
+    pub(super) fn matches_mapping(
+        &self,
+        offset: u64,
+        size: u64,
+        host: HostSpan,
+    ) -> Result<(), Status> {
+        let native_offset = self.range(offset, host.size)?;
+        if self.mapped.get().is_null()
+            || host.size < size
+            || host.data
+                != self
+                    .mapped
+                    .get()
+                    .wrapping_add(native_offset as usize)
+                    .cast()
+        {
+            return Err(INVALID);
+        }
+        Ok(())
+    }
     pub(super) fn concurrent(&self) -> bool {
         !self.domains.is_empty()
     }

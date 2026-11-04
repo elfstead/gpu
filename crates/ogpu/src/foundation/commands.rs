@@ -692,6 +692,18 @@ impl List {
         }
         Ok(())
     }
+    // C2: becomes the only heap bind when the public descriptor family migrates.
+    #[allow(dead_code)]
+    pub(in crate::foundation) unsafe fn bind_descriptor_heap(
+        &self,
+        heap: &descriptors::storage::DescriptorHeap,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        if self.inherited_heaps & (1 << (heap.kind() - 1)) != 0 {
+            return Err(INVALID);
+        }
+        unsafe { heap.bind(d, self.command, self.domain) }
+    }
     pub(in crate::foundation) unsafe fn bind_heap(
         &self,
         binding: &HeapBinding,
