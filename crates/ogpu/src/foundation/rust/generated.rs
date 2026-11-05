@@ -1,7 +1,9 @@
 //! Native generated-command operations, sharing the C contract without calling C.
 use super::*;
 /// # Safety
-/// Live device and readable description/token array. Objects borrow their device.
+/// Live device, argument layout and readable description/token array. The device
+/// and borrowed argument layout outlive the generated layout and every recorded,
+/// preprocessed or pending use. No token array is retained.
 pub unsafe fn generated_layout_create(
     device: DeviceHandle,
     desc: &GeneratedLayoutDesc,
@@ -31,7 +33,9 @@ pub unsafe fn generated_set_update(
     unsafe { set.get().update(writes) }
 }
 /// # Safety
-/// Live device/layout/set/executable; excludes set updates and destruction.
+/// Live device/layout/argument layout/set/executable; excludes set updates and
+/// destruction. Query each distinct work pairing before recording: this checks
+/// native argument mapping compatibility, which the recording path trusts.
 pub unsafe fn generated_requirements(
     device: DeviceHandle,
     work: &GeneratedWork,

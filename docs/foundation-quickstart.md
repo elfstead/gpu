@@ -17,7 +17,7 @@ export PKG_CONFIG_PATH=/absolute/path/to/new-preview/lib/pkgconfig
 ```
 
 The manifest records both the source commit and foundation revision. Match the
-header, library and generated artifacts from that **exact commit**: revision 3
+header, library and generated artifacts from that **exact commit**: revision 4
 alone does not promise compatibility across commits. New prefixes are mandatory;
 the installer never overwrites or merges an existing installation. ABI-20 headers,
 examples and `ogpu.pc` require explicit `--legacy` installation. Foundation consumers use
@@ -27,9 +27,12 @@ Revision 2 replaces per-shader argument metadata and separate root/inline setter
 Create a prepared argument layout, pass it to executable creation, and call
 `ogpu_next_set_arguments` with that layout for range updates. Destroy executables
 and discard recorded uses before destroying their layout. Native Rust exposes the
-same operations directly. Rebuild generated headers and consumers together; revision-1
-callers are rejected. The remaining descriptor/submission/presentation C2 changes
-are still scheduled; this is not a stable ABI release.
+same operations directly. Revision 3 adds explicit descriptor heaps and borrowed
+heap inheritance. Revision 4 gives generated-command layouts a borrowed argument
+layout and checks native mapping compatibility during cold setup. Rebuild generated
+headers and consumers together; older schema callers are rejected. The remaining
+dependency/submission/presentation C2 changes are still scheduled; this is not a
+stable ABI release.
 
 Copy any of these entire directories to an application directory outside the repo:
 
@@ -253,7 +256,7 @@ dataset with FP32 and FP16 weights; llvmpipe covers matrix/lifetime cases, not t
 full dataset. These are dependency-isolation/correctness checks, not new timing,
 broader graph support or Metal evidence.
 
-Descriptor storage in schema 3 uses explicitly created heaps and native-unit
+Descriptor storage in schema 4 uses explicitly created heaps and native-unit
 locations. Query a shape from each actual resource/sampler description, choose
 capacity/backing with `heap_requirements_query`, create the heap and write/copy to
 its locations. `heap_info` exposes the same borrowed backing; binding and secondary

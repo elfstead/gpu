@@ -27,7 +27,7 @@ class ReceiptTests(unittest.TestCase):
             (here/'libogpu.so').write_bytes(b'fixture runtime');(here/'ogpu_next.h').write_text('fixture header')
             def variable(command,**kwargs):
                 key=command[1].removeprefix('--variable=')
-                return {'ogpu_foundation':'3','ogpu_revision':'test-revision','libdir':str(here),'includedir':str(here)}[key]
+                return {'ogpu_foundation':'4','ogpu_revision':'test-revision','libdir':str(here),'includedir':str(here)}[key]
             def run(command,**kwargs):
                 code,stdout,stderr=outputs.pop(0)
                 return subprocess.CompletedProcess(command,code,stdout,stderr)

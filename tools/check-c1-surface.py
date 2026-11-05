@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit the selected C1 operation inventory against its pinned SDK baseline and C2 argument/descriptor cutover.
+"""Audit the selected C1 operation inventory against its pinned SDK baseline and C2 argument/descriptor/generated-layout cutover.
 
 This checks operation coverage, not runtime/native correctness or ABI compatibility.
 The pinned original inventory remains immutable; C2 tranches explicitly update the
@@ -79,7 +79,7 @@ def main():
              "ogpu_next_heap_create", "ogpu_next_heap_destroy", "ogpu_next_heap_info", "ogpu_next_copy_descriptors"}
     removed = {"ogpu_next_set_inline", "ogpu_next_set_root"}
     require(current == (installed - removed) | added, "C2 installed operation inventory drift")
-    print(f"{len(current)} current operations match the C2 argument/descriptor cutover; old setters removed.")
+    print(f"{len(current)} current operations match the C2 argument/descriptor/generated-layout cutover; old setters removed.")
     print(f"{len(installed)} baseline operations covered: {len(retained)} retained, {len(replaced)} replaced.")
     print(f"{len(drafts)} draft operations have exact destinations and C/Rust names; no unclassified entries.")
 

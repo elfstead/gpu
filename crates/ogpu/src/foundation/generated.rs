@@ -171,6 +171,7 @@ pub(super) fn snapshot(
 }
 
 pub struct GeneratedLayout {
+    arguments: *const ArgumentLayout,
     pub(super) device: *const Device,
     pub(super) handle: vk::VkIndirectCommandsLayoutEXT,
     pub(super) stages: u64,
@@ -184,7 +185,7 @@ pub struct GeneratedLayout {
 fn layout_contract(
     p: &GeneratedLimits,
     enabled: u64,
-    inline_size: u64,
+    argument_bytes: u64,
     desc: &GeneratedLayoutDesc,
     tokens: &[GeneratedToken],
 ) -> Result<(u64, u32), Status> {
@@ -256,8 +257,8 @@ fn layout_contract(
                 .argument_offset
                 .checked_add(t.argument_size)
                 .ok_or(INVALID)?;
-            if u64::from(end) > inline_size {
-                return Err(UNSUPPORTED);
+            if u64::from(end) > argument_bytes {
+                return Err(INVALID);
             }
             for prev in &tokens[..i] {
                 if matches!(prev.kind, 2 | 3)
@@ -299,6 +300,15 @@ impl GeneratedLayout {
         let f = functions(d)?;
         desc.header
             .validate::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC)?;
+        let arguments = unsafe { desc.arguments.as_ref() }.ok_or(INVALID)?;
+        let class = if desc.stages == 4 {
+            ARGUMENT_COMPUTE
+        } else {
+            ARGUMENT_GRAPHICS
+        };
+        if !ptr::eq(arguments.device, d) || arguments.execution_class != class {
+            return Err(INVALID);
+        }
         if desc.token_count == 0 || desc.tokens.is_null() {
             return Err(INVALID);
         }
@@ -309,10 +319,13 @@ impl GeneratedLayout {
         let (extent, argument_end) = layout_contract(
             &d.snapshot.generated_limits,
             d.snapshot.features.enabled,
-            d.snapshot.execution_limits.max_inline_bytes,
+            u64::from(arguments.byte_size()),
             desc,
             tokens,
         )?;
+        for t in tokens.iter().filter(|t| matches!(t.kind, 2 | 3)) {
+            arguments.generated_range(t.argument_offset, t.argument_size, t.kind == 3)?;
+        }
         let push: Vec<_> = tokens
             .iter()
             .map(|t| vk::VkIndirectCommandsPushConstantTokenEXT {
@@ -365,6 +378,7 @@ impl GeneratedLayout {
         Ok(Box::new(Self {
             device: d,
             handle,
+            arguments,
             stages: desc.stages,
             flags: desc.flags,
             stride: desc.stride,
@@ -460,6 +474,7 @@ impl GeneratedSet {
                 || !ptr::eq(e.device, d)
                 || !e.indirect_bindable
                 || e.stages != initial.stages
+                || !e.arguments().generated_compatible(initial.arguments())
                 || writes[..i].iter().any(|p| p.index == w.index)
             {
                 return Err(INVALID);
@@ -539,6 +554,9 @@ pub(super) unsafe fn work<'a>(
             ptr::null_mut(),
         )
     };
+    // Mapping compatibility is checked by the mandatory cold requirements query
+    // and by set updates. Recording trusts that pairing, just as it trusts the
+    // native scratch requirements, without walking argument fields here.
     if !ptr::eq(e.device, d)
         || layout.stages != e.stages
         || layout.argument_end > e.arguments().byte_size()
@@ -553,6 +571,9 @@ impl Device {
         input: &GeneratedWork,
     ) -> Result<GeneratedRequirements, Status> {
         let (layout, e, set) = unsafe { work(self, input)? };
+        if !unsafe { &*layout.arguments }.generated_compatible(e.arguments()) {
+            return Err(INVALID);
+        }
         let pipeline = vk::VkGeneratedCommandsPipelineInfoEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GENERATED_COMMANDS_PIPELINE_INFO_EXT,
             pipeline: e.pipeline,
@@ -621,6 +642,7 @@ mod tests {
         ];
         let mut desc = GeneratedLayoutDesc {
             header: Record::new::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC),
+            arguments: ptr::null_mut(),
             stages: 4,
             flags: 0,
             stride: 24,
@@ -676,6 +698,7 @@ mod tests {
         ] {
             let desc = GeneratedLayoutDesc {
                 header: Record::new::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC),
+                arguments: ptr::null_mut(),
                 stages: stage,
                 flags: 0,
                 stride: 32,
@@ -746,6 +769,7 @@ mod tests {
             };
             let desc = GeneratedLayoutDesc {
                 header: Record::new::<GeneratedLayoutDesc>(GENERATED_LAYOUT_DESC),
+                arguments: ptr::null_mut(),
                 stages: 4,
                 flags: 0,
                 stride: 12,
@@ -763,19 +787,55 @@ mod tests {
             unsafe { rust::device_destroy(d) };
             if a.snapshot.features.available & GENERATED_COMMANDS != 0 {
                 let d = rust::device_create(a, &request, GENERATED_COMMANDS).unwrap();
+                let arguments = unsafe {
+                    ArgumentLayout::create(
+                        &*d.as_raw(),
+                        &ArgumentLayoutDesc {
+                            execution_class: ARGUMENT_COMPUTE,
+                            byte_size: 0,
+                            field_count: 0,
+                            flags: 0,
+                            fields: ptr::null(),
+                        },
+                    )
+                }
+                .unwrap();
                 if a.snapshot.generated_limits.stages & 4 != 0 {
                     for flags in 0..4 {
-                        let desc = GeneratedLayoutDesc { flags, ..desc };
+                        let desc = GeneratedLayoutDesc {
+                            flags,
+                            arguments: ptr::from_ref(&*arguments).cast_mut(),
+                            ..desc
+                        };
                         let layout = unsafe { rust::generated_layout_create(d, &desc) }.unwrap();
                         unsafe { rust::generated_layout_destroy(layout) };
                     }
                 }
+                drop(arguments);
                 unsafe { rust::device_destroy(d) };
                 // Native layout creation for other advertised action families is
                 // distinct from execution evidence (the C consumer is compute).
                 let enabled = a.snapshot.features.available
                     & (GENERATED_COMMANDS | RASTER | MESH_SHADER | TASK_SHADER);
                 let d = rust::device_create(a, &request, enabled).unwrap();
+                if enabled & RASTER == 0 {
+                    unsafe { rust::device_destroy(d) };
+                    tested += 1;
+                    continue;
+                }
+                let arguments = unsafe {
+                    ArgumentLayout::create(
+                        &*d.as_raw(),
+                        &ArgumentLayoutDesc {
+                            execution_class: ARGUMENT_GRAPHICS,
+                            byte_size: 0,
+                            field_count: 0,
+                            flags: 0,
+                            fields: ptr::null(),
+                        },
+                    )
+                }
+                .unwrap();
                 for (stage, kind) in [
                     (24, 5),
                     (24, 6),
@@ -790,6 +850,7 @@ mod tests {
                         ..Default::default()
                     };
                     let desc = GeneratedLayoutDesc {
+                        arguments: ptr::from_ref(&*arguments).cast_mut(),
                         stages: stage,
                         stride: 32,
                         tokens: &token,
@@ -808,6 +869,7 @@ mod tests {
                         unsafe { rust::generated_layout_destroy(layout) };
                     }
                 }
+                drop(arguments);
                 unsafe { rust::device_destroy(d) };
             } else {
                 assert!(matches!(

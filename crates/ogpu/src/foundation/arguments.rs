@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 const SHADER_STAGES: [u64; 5] = [4, 8, 16, TASK_STAGE, MESH_STAGE];
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct AddressField {
     offset: u32,
     alignment: u32,
@@ -23,6 +23,7 @@ pub struct ArgumentLayout {
     mappings: [Vec<vk::VkDescriptorSetAndBindingMappingEXT>; 5],
     addresses: Vec<AddressField>,
     boundaries: Vec<Boundary>,
+    sequence_fields: Vec<u32>,
 }
 
 impl ArgumentLayout {
@@ -145,6 +146,7 @@ impl ArgumentLayout {
             mappings: std::array::from_fn(|_| Vec::new()),
             addresses: Vec::new(),
             boundaries: Vec::new(),
+            sequence_fields: Vec::new(),
         };
         result
             .addresses
@@ -204,6 +206,21 @@ impl ArgumentLayout {
                 alignment: field.address_alignment,
             });
         }
+        result
+            .sequence_fields
+            .try_reserve_exact(
+                fields
+                    .iter()
+                    .filter(|f| f.kind == ARGUMENT_INLINE && f.size == 4)
+                    .count(),
+            )
+            .map_err(|_| OUT_OF_MEMORY)?;
+        for field in fields
+            .iter()
+            .filter(|f| f.kind == ARGUMENT_INLINE && f.size == 4)
+        {
+            result.sequence_fields.push(field.offset);
+        }
         // No table for the common all-inline path. Otherwise two lookups locate
         // the affected address fields; recording never scans unrelated fields.
         if !result.addresses.is_empty() {
@@ -226,6 +243,62 @@ impl ArgumentLayout {
             }
         }
         Ok(result)
+    }
+
+    // Cold compatibility check. Binding-preservation keys describe native state
+    // storage, not artifact mappings. No global layout registry or hot scan.
+    pub(super) fn generated_compatible(&self, other: &Self) -> bool {
+        if ptr::eq(self, other) {
+            return true;
+        }
+        self.device == other.device
+            && self.execution_class == other.execution_class
+            && self.byte_size == other.byte_size
+            && self.addresses == other.addresses
+            && self.mappings.iter().zip(&other.mappings).all(|(a, b)| {
+                a.len() == b.len()
+                    && a.iter().zip(b).all(|(a, b)| {
+                        a.descriptorSet == b.descriptorSet && a.firstBinding == b.firstBinding
+                        && a.bindingCount == b.bindingCount && a.resourceMask == b.resourceMask
+                        && a.source == b.source
+                        // Both sources used by this layout store one u32 offset.
+                        && unsafe { a.sourceData.pushDataOffset == b.sourceData.pushDataOffset }
+                    })
+            })
+    }
+
+    fn update_range(&self, offset: u32, size: u32) -> Result<std::ops::Range<usize>, Status> {
+        if offset % 4 != 0
+            || size % 4 != 0
+            || offset > self.byte_size
+            || size > self.byte_size - offset
+        {
+            return Err(INVALID);
+        }
+        if size == 0 || self.addresses.is_empty() {
+            return Ok(0..0);
+        }
+        let first = self.boundaries[(offset / 4) as usize];
+        let last = self.boundaries[((offset + size) / 4) as usize];
+        if first.inside_address || last.inside_address {
+            return Err(INVALID);
+        }
+        Ok(first.addresses_before as usize..last.addresses_before as usize)
+    }
+
+    pub(super) fn generated_range(
+        &self,
+        offset: u32,
+        size: u32,
+        sequence: bool,
+    ) -> Result<(), Status> {
+        self.update_range(offset, size)?;
+        if size == 0
+            || sequence && (size != 4 || self.sequence_fields.binary_search(&offset).is_err())
+        {
+            return Err(INVALID);
+        }
+        Ok(())
     }
 
     pub(in crate::foundation) fn byte_size(&self) -> u32 {
@@ -272,25 +345,11 @@ impl ArgumentLayout {
         size: u32,
         data: *const c_void,
     ) -> Result<(), Status> {
-        if offset % 4 != 0
-            || size % 4 != 0
-            || offset > self.byte_size
-            || size > self.byte_size - offset
-            || (size != 0 && data.is_null())
-        {
+        let range = self.update_range(offset, size)?;
+        if size != 0 && data.is_null() {
             return Err(INVALID);
         }
-        if size == 0 || self.addresses.is_empty() {
-            return Ok(());
-        }
-        let first = self.boundaries[(offset / 4) as usize];
-        let last = self.boundaries[((offset + size) / 4) as usize];
-        if first.inside_address || last.inside_address {
-            return Err(INVALID);
-        }
-        for address in
-            &self.addresses[first.addresses_before as usize..last.addresses_before as usize]
-        {
+        for address in &self.addresses[range] {
             let value = unsafe {
                 data.cast::<u8>()
                     .add((address.offset - offset) as usize)
@@ -535,6 +594,111 @@ mod tests {
     }
 
     #[test]
+    fn generated_identity_requires_a_declared_inline_word() {
+        let fields = [
+            field(0, ARGUMENT_READ_WRITE_ADDRESS, 0),
+            ArgumentField {
+                size: 4,
+                ..field(8, ARGUMENT_INLINE, 1)
+            },
+            field(16, ARGUMENT_INLINE, 2),
+        ];
+        let layout = prepare(&fields, 32).unwrap();
+        assert_eq!(layout.generated_range(8, 4, true), Ok(()));
+        for (offset, size) in [
+            (0, 4),
+            (4, 4),
+            (8, 8),
+            (12, 4),
+            (16, 4),
+            (20, 4),
+            (28, 4),
+            (32, 4),
+            (u32::MAX - 3, 8),
+        ] {
+            assert_eq!(layout.generated_range(offset, size, true), Err(INVALID));
+        }
+    }
+
+    #[test]
+    fn generated_compatibility_is_mapping_equality_not_binding_preservation() {
+        let fields = [
+            field(0, ARGUMENT_READ_WRITE_ADDRESS, 0),
+            field(8, ARGUMENT_INLINE, 1),
+        ];
+        let layout = prepare(&fields, 16).unwrap();
+        assert!(layout.generated_compatible(&prepare(&fields, 16).unwrap()));
+        for (index, replacement) in [
+            (
+                0,
+                ArgumentField {
+                    kind: ARGUMENT_READ_ADDRESS,
+                    ..fields[0]
+                },
+            ),
+            (
+                0,
+                ArgumentField {
+                    address_alignment: 32,
+                    ..fields[0]
+                },
+            ),
+            (
+                0,
+                ArgumentField {
+                    binding: 2,
+                    ..fields[0]
+                },
+            ),
+            (
+                1,
+                ArgumentField {
+                    space: ARGUMENT_DIRECT,
+                    binding: ARGUMENT_DIRECT,
+                    ..fields[1]
+                },
+            ),
+        ] {
+            let mut changed = fields;
+            changed[index] = replacement;
+            let other = prepare(&changed, 16).unwrap();
+            assert_eq!(
+                layout.state_info().binding_key,
+                other.state_info().binding_key
+            );
+            assert!(!layout.generated_compatible(&other));
+        }
+        assert!(!layout.generated_compatible(&prepare(&fields, 20).unwrap()));
+        let mut other = prepare(&fields, 16).unwrap();
+        other.device = ptr::dangling();
+        assert!(!layout.generated_compatible(&other));
+        other.device = layout.device;
+        other.execution_class = ARGUMENT_GRAPHICS;
+        assert!(!layout.generated_compatible(&other));
+        // Direct inline declarations may be partitioned differently: the caller
+        // owns their artifact semantics; they introduce no native resource map.
+        let direct = ArgumentField {
+            space: ARGUMENT_DIRECT,
+            binding: ARGUMENT_DIRECT,
+            ..field(0, ARGUMENT_INLINE, 0)
+        };
+        assert!(prepare(&[direct], 8).unwrap().generated_compatible(
+            &prepare(
+                &[
+                    ArgumentField { size: 4, ..direct },
+                    ArgumentField {
+                        offset: 4,
+                        size: 4,
+                        ..direct
+                    }
+                ],
+                8
+            )
+            .unwrap()
+        ));
+    }
+
+    #[test]
     fn partial_updates_match_address_atomicity_for_every_range() {
         let fields = [
             field(0, ARGUMENT_INLINE, 0),
@@ -558,6 +722,11 @@ mod tests {
                 let result =
                     unsafe { layout.validate_update(offset, size, data.as_ptr().add(1).cast()) };
                 assert_eq!(result.is_ok(), expected, "offset={offset} size={size}");
+                assert_eq!(
+                    layout.generated_range(offset, size, false).is_ok(),
+                    expected && size != 0,
+                    "generated offset={offset} size={size}"
+                );
             }
         }
         assert_eq!(

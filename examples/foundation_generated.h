@@ -1,10 +1,10 @@
 /* GPU-produced executable choice, pointer/inline bytes, identity, launch and count.
  * No host readback or command expansion between producer and generated work. */
 static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain, char **paths) {
-    ogpu_next_argument_layout *arguments = NULL;
+    ogpu_next_argument_layout *arguments = NULL, *producer_arguments = NULL, *equivalent = NULL, *incompatible = NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL; void *code = NULL, *ss = NULL;
-    ogpu_next_executable *pipelines[3] = {NULL};
+    ogpu_next_executable *pipelines[4] = {NULL};
     ogpu_next_generated_layout *layout = NULL; ogpu_next_generated_set *set = NULL;
     ogpu_next_memory *memory = NULL, *preprocess = NULL;
     ogpu_next_arena *arena = NULL; ogpu_next_timeline *done = NULL;
@@ -15,14 +15,26 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
         || !(limits.pipeline_binding_stages & OGPU_NEXT_STAGE_COMPUTE)) {
         printf("GENERATED_UNVERIFIED native compute/executable selection unavailable; no fallback.\n"); return EXIT_SUCCESS;
     }
-    ogpu_next_argument_field argument_field = {0,32,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
-    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,32,1,0,&argument_field};
+    ogpu_next_argument_field argument_fields[] = {
+        {0,24,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT},
+        {24,4,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT},
+        {28,4,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT}};
+    ogpu_next_argument_layout_desc argument_desc = {OGPU_NEXT_ARGUMENT_COMPUTE,32,3,0,argument_fields};
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&producer_arguments));
+    ogpu_next_argument_field consumer_fields[] = {
+        {0,8,OGPU_NEXT_ARGUMENT_READ_WRITE_ADDRESS,4,OGPU_NEXT_STAGE_COMPUTE,0,0},
+        {8,16,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT},
+        argument_fields[1],argument_fields[2]};
+    argument_desc.field_count = 4; argument_desc.fields = consumer_fields;
     TRY(ogpu_next_argument_layout_create(device,&argument_desc,&arguments));
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&equivalent));
+    consumer_fields[0].address_alignment = 8;
+    TRY(ogpu_next_argument_layout_create(device,&argument_desc,&incompatible));
     ogpu_next_shader_requirements requirements = {HEADER(ogpu_next_shader_requirements,OGPU_NEXT_SHADER_REQUIREMENTS),0,{1,1,1},0};
     uint32_t extra = 0;
     ogpu_next_specialization_entry entry = {9,0,4};
     ogpu_next_specialization spec = {HEADER(ogpu_next_specialization,OGPU_NEXT_SPECIALIZATION),1,0,&entry,{&extra,4}};
-    for (uint32_t i = 0; i < 3; ++i) {
+    for (uint32_t i = 0; i < 4; ++i) {
         file = fopen(paths[i != 0],"rb"); REQUIRE(file);
         REQUIRE(fseek(file,0,SEEK_END) == 0); long size = ftell(file); REQUIRE(size >= 20 && size % 4 == 0);
         REQUIRE(fseek(file,0,SEEK_SET) == 0); code = malloc((size_t)size); REQUIRE(code);
@@ -31,11 +43,13 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
         ogpu_next_shader shader = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_SHADER_SPIRV,{code,(size_t)size},i ? "consume" : "produce",i ? &spec.header : NULL,NULL};
         ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
             1,&shader,NULL,0,&requirements.header,NULL,i ? OGPU_NEXT_COMPILE_INDIRECT_BINDABLE : 0,0};
-        TRY(ogpu_next_executable_create(device, &ed, arguments, &pipelines[i])); free(code); code = NULL;
+        TRY(ogpu_next_executable_create(device, &ed, i ? (i == 1 ? arguments : i == 2 ? equivalent : incompatible) : producer_arguments, &pipelines[i])); free(code); code = NULL;
     }
     ogpu_next_generated_set_desc sd = {HEADER(ogpu_next_generated_set_desc,OGPU_NEXT_GENERATED_SET_DESC),pipelines[0],2,0};
     REQUIRE(ogpu_next_generated_set_create(device,&sd,&set) == OGPU_NEXT_INVALID && !set);
     sd.initial = pipelines[1]; TRY(ogpu_next_generated_set_create(device,&sd,&set));
+    ogpu_next_generated_set_write incompatible_write = {1,0,pipelines[3]};
+    REQUIRE(ogpu_next_generated_set_update(set,1,&incompatible_write) == OGPU_NEXT_INVALID);
     md.size = 4096; TRY(ogpu_next_memory_create(device,&md,&memory));
     ogpu_next_span all = {memory,0,md.size}; ogpu_next_mapping map = {0}; TRY(ogpu_next_memory_map(all,&map));
     uint64_t base = 0; TRY(ogpu_next_memory_address(all,&base));
@@ -47,12 +61,29 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
     uint64_t value = 0;
     for (uint32_t selection = 0; selection < 2; ++selection) for (uint32_t separate = 0; separate < 2; ++separate) {
         ogpu_next_generated_token tokens[] = {
-            {OGPU_NEXT_GENERATED_EXECUTABLE,0,0,0}, {OGPU_NEXT_GENERATED_INLINE,8,0,24},
-            {OGPU_NEXT_GENERATED_INLINE,36,28,4}, {OGPU_NEXT_GENERATED_SEQUENCE_INDEX,40,24,4},
+            {OGPU_NEXT_GENERATED_EXECUTABLE,0,0,0}, {OGPU_NEXT_GENERATED_ARGUMENT,8,0,24},
+            {OGPU_NEXT_GENERATED_ARGUMENT,36,28,4}, {OGPU_NEXT_GENERATED_SEQUENCE_INDEX,40,24,4},
             {OGPU_NEXT_GENERATED_DISPATCH,40,0,0}};
         ogpu_next_generated_layout_desc ld = {HEADER(ogpu_next_generated_layout_desc,OGPU_NEXT_GENERATED_LAYOUT_DESC),
-            OGPU_NEXT_STAGE_COMPUTE,separate | (selection ? OGPU_NEXT_GENERATED_UNORDERED : 0),56,selection ? 5 : 4,0,tokens+(selection ? 0 : 1)};
+            arguments,OGPU_NEXT_STAGE_COMPUTE,separate | (selection ? OGPU_NEXT_GENERATED_UNORDERED : 0),56,selection ? 5 : 4,0,tokens+(selection ? 0 : 1)};
+        ogpu_next_generated_layout *rejected = NULL;
+        uint32_t saved_size = tokens[1].argument_size;
+        tokens[1].argument_size = 4; /* Cannot split the native 8-byte address. */
+        REQUIRE(ogpu_next_generated_layout_create(device,&ld,&rejected) == OGPU_NEXT_INVALID && !rejected);
+        tokens[1].argument_size = saved_size;
+        tokens[3].argument_offset = 32; /* Undeclared/out-of-bounds identity. */
+        REQUIRE(ogpu_next_generated_layout_create(device,&ld,&rejected) != OGPU_NEXT_OK && !rejected);
+        tokens[3].argument_offset = 24;
+        ld.arguments = NULL;
+        REQUIRE(ogpu_next_generated_layout_create(device,&ld,&rejected) == OGPU_NEXT_INVALID && !rejected);
+        ld.arguments = arguments;
         TRY(ogpu_next_generated_layout_create(device,&ld,&layout));
+        ogpu_next_generated_work incompatible_work = {layout,selection ? set : NULL,selection ? NULL : pipelines[3],2,0};
+        ogpu_next_generated_requirements_info untouched = {123,456,789,0}, check = untouched;
+        if (!selection) {
+            REQUIRE(ogpu_next_generated_requirements(device,&incompatible_work,&check) == OGPU_NEXT_INVALID);
+            REQUIRE(memcmp(&check,&untouched,sizeof(check)) == 0);
+        }
         for (uint32_t seed = 0; seed < 5; ++seed) {
             ogpu_next_generated_set_write write = {1,0,pipelines[seed == 4 ? 1 : 2]}; TRY(ogpu_next_generated_set_update(set,1,&write));
             ogpu_next_generated_set_write duplicates[2] = {{1,0,pipelines[1]},{1,0,pipelines[1]}};
@@ -75,7 +106,7 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
             struct { uint64_t output, records, count; uint32_t sequence, seed; } control = {base+1024,base+64,base+512,0,seed};
             _Static_assert(sizeof(control) == 32, "generated shader control layout");
             ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
-            ogpu_next_bind_executable(encoder,pipelines[0]); ogpu_next_set_arguments(encoder, arguments, 0, sizeof(control), &control);
+            ogpu_next_bind_executable(encoder,pipelines[0]); ogpu_next_set_arguments(encoder, producer_arguments, 0, sizeof(control), &control);
             ogpu_next_launch launch = {{1,1,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
             ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,
                 separate ? OGPU_NEXT_STAGE_PREPROCESS : OGPU_NEXT_STAGE_INDIRECT,OGPU_NEXT_ACCESS_STORAGE_WRITE,
@@ -127,14 +158,15 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
         }
         ogpu_next_generated_layout_destroy(layout); layout = NULL;
     }
-    printf("GENERATED_PASS submissions=%llu modes=4 gpu_choice=1 gpu_count=1 gpu_arguments=1 sequence_identity=1 set_update=1 guards=1 rejected_recordings=20\n",(unsigned long long)value);
+    printf("GENERATED_PASS submissions=%llu modes=4 gpu_choice=1 gpu_count=1 gpu_arguments=1 native_address=1 equivalent_layouts=1 sequence_identity=1 set_update=1 guards=1 rejected_recordings=20\n",(unsigned long long)value);
     result = EXIT_SUCCESS;
 cleanup:
     if (pending) { fprintf(stderr,"Pending generated work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_generated_layout_destroy(layout); ogpu_next_generated_set_destroy(set);
-    for (uint32_t i = 0; i < 3; ++i) ogpu_next_executable_destroy(pipelines[i]);
+    for (uint32_t i = 0; i < 4; ++i) ogpu_next_executable_destroy(pipelines[i]);
     ogpu_next_timeline_destroy(done); ogpu_next_memory_destroy(preprocess); ogpu_next_memory_destroy(memory);
     if (file) fclose(file);
     free(code); free(ss);     ogpu_next_argument_layout_destroy(arguments);
+    ogpu_next_argument_layout_destroy(equivalent); ogpu_next_argument_layout_destroy(incompatible); ogpu_next_argument_layout_destroy(producer_arguments);
 return result;
 }

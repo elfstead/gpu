@@ -18,6 +18,9 @@ void produce() {
     }
     control.count[0] = control.seed % 3;
 }
+// The generated wire address feeds a native PUSH_ADDRESS mapping, independently
+// of the producer's ordinary pointer-valued push data.
+[[vk::binding(0, 0)]] RWStructuredBuffer<uint> output;
 [shader("compute")]
 [numthreads(1, 1, 1)]
-void consume() { control.output[control.sequence] = control.seed + extra; }
+void consume() { output[control.sequence] = control.seed + extra; }

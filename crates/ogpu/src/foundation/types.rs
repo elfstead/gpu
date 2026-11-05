@@ -22,7 +22,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 3;
+pub const VERSION: u32 = 4;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -57,7 +57,7 @@ pub const PREPROCESS_READ: u64 = 1 << 21;
 pub const PREPROCESS_WRITE: u64 = 1 << 22;
 pub const COMPILE_INDIRECT_BINDABLE: u32 = 2;
 pub const GENERATED_EXECUTABLE: u32 = 1;
-pub const GENERATED_INLINE: u32 = 2;
+pub const GENERATED_ARGUMENT: u32 = 2;
 pub const GENERATED_SEQUENCE_INDEX: u32 = 3;
 pub const GENERATED_DISPATCH: u32 = 4;
 pub const GENERATED_DRAW: u32 = 5;
@@ -92,6 +92,7 @@ pub struct GeneratedToken {
 #[repr(C)]
 pub struct GeneratedLayoutDesc {
     pub header: Record,
+    pub arguments: *mut super::ArgumentLayout,
     pub stages: u64,
     pub flags: u32,
     pub stride: u32,

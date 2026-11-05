@@ -1,9 +1,9 @@
 # C1 consolidation and C2 cutover
 
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
-The Vulkan argument and descriptor families are installed as foundation schema 3,
-including borrowed heap inheritance. Generated layouts and the remaining families
-are still being migrated. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
+The Vulkan argument, descriptor and generated-layout families are installed as
+foundation schema 4, including borrowed heap inheritance. Dependencies/submission
+and presentation remain to migrate. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
 
@@ -380,10 +380,57 @@ GGML transformer/quantized/matrix/lifetime handoffs pass. Scene-runner host test
 pass all 47 cases. No Windows/Metal acceptance or new
 performance measurement is claimed.
 
-**Next:** finish step 2 by giving generated command layouts their explicit borrowed
+**Next at that checkpoint (completed below):** finish step 2 by giving generated command layouts their explicit borrowed
 argument layout, including token bounds and mapping compatibility. Then migrate
 per-entry dependencies and unified submission, followed by presentation and the
 full C2 audit/local C3. The descriptor/secondary cutover is complete; C2 is not.
+
+## C2 generated argument-layout cutover
+
+Implemented 2026-11-05 on Vulkan/Linux. Foundation schema **4** adds the borrowed
+`ArgumentLayout*` to `GeneratedLayoutDesc` and names token kind 2 `GENERATED_ARGUMENT`.
+C and direct Rust use the same operations. Rebuild consumers against the matching
+header/library; no old generated-layout record shape or token alias is retained.
+
+- Creation checks device/class, argument bounds and indivisible native-address
+  updates using the CPU updater's boundary logic. Sequence identity targets one
+  declared four-byte INLINE field. Token arrays remain borrowed only for creation.
+- Native PUSH_DATA tokens can supply PUSH_ADDRESS mappings directly. GPU-produced
+  addresses retain caller-owned alignment, lifetime and access obligations; no
+  CPU readback, expansion or shader rewrite is added.
+- Set updates check each executable against the original initial executable's
+  native mappings before making any native mutation. The mandatory cold requirements
+  query checks the generated layout against the fixed executable or initial member.
+  Requery each distinct work pairing and after set changes. Recording trusts that
+  pairing and native scratch requirements without field scans or a compatibility cache.
+- Equal mappings, extent, execution class and address offsets/alignments are accepted
+  across separately created layouts. The common layout-pointer case is immediate.
+  Native state-preservation keys are not used as mapping identity. Direct INLINE
+  field partitioning may differ; artifact meaning remains a caller/compiler contract.
+- Existing set/preprocess lifetimes, synchronization and argument-domain invalidation
+  remain explicit. Generated layouts borrow their argument layout through every use.
+
+The compute fixture now uses a GPU-produced native buffer address, alongside GPU
+executable selection, count, inline seed and sequence identity. It executes both
+fixed/selected modes with integrated/explicit preprocessing, 20 submissions total,
+and uses separately created equivalent layouts for selected executables. Negative
+cases cover split addresses, undeclared/out-of-bounds identity, missing layouts,
+incompatible set updates, and incompatible work queries with unchanged output.
+CPU tests check all update ranges against address atomicity, sequence-field rules,
+and mapping compatibility independently of state-preservation keys.
+
+**Verification:** 73 CPU unit tests and all 24 native tests pass on RX 5700 XT
+(RADV/Mesa 26.2.5). The public C fixture passes with synchronization validation
+and no validation messages. The 1453 installed ABI layout values, 376 draft
+comparisons, 147-operation surface audit, strict Clippy and pinned Slang shader
+reproduction checks pass. All six relocated C consumers and the isolated native
+Rust consumer pass; the scene-runner suite passes all 47 host cases. The earlier
+GGML/libplacebo integrations were not rerun for this generated-layout change;
+their schema checks are migrated with the installed SDK.
+
+**Next:** C2 step 3, per-entry dependencies and unified submission; then presentation,
+full cutover audit and local C3. No new generated graphics execution, Windows/Metal
+acceptance or performance measurement is claimed. C2 as a whole remains incomplete.
 
 ## Verification and open native questions
 

@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 3u
+#define OGPU_NEXT_VERSION 4u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -1853,7 +1853,7 @@ typedef struct ogpu_next_generated_limits {
     uint32_t max_pipelines, max_sequences, max_tokens, max_token_offset, max_stride, reserved;
 } ogpu_next_generated_limits;
 enum {
-    OGPU_NEXT_GENERATED_EXECUTABLE = 1, OGPU_NEXT_GENERATED_INLINE = 2,
+    OGPU_NEXT_GENERATED_EXECUTABLE = 1, OGPU_NEXT_GENERATED_ARGUMENT = 2,
     OGPU_NEXT_GENERATED_SEQUENCE_INDEX = 3, OGPU_NEXT_GENERATED_DISPATCH = 4,
     OGPU_NEXT_GENERATED_DRAW = 5, OGPU_NEXT_GENERATED_DRAW_INDEXED = 6,
     OGPU_NEXT_GENERATED_MESH = 7, OGPU_NEXT_GENERATED_DRAW_COUNT = 8,
@@ -1865,6 +1865,7 @@ typedef struct ogpu_next_generated_token {
 } ogpu_next_generated_token;
 typedef struct ogpu_next_generated_layout_desc {
     ogpu_next_record header;
+    ogpu_next_argument_layout *arguments;
     ogpu_next_stages stages;
     uint32_t flags, stride, token_count, reserved;
     const ogpu_next_generated_token *tokens;
@@ -1898,12 +1899,16 @@ typedef struct ogpu_next_generated_draw_count {
     ogpu_next_address address;
     uint32_t stride, command_count;
 } ogpu_next_generated_draw_count;
-/* Layouts are cold objects, with no retained token array. One action token is
- * last, with optional EXECUTABLE selection first (one u32 table index). INLINE
- * copies argument_size bytes from record+offset into the shared argument bank at
- * argument_offset; SEQUENCE_INDEX writes the native u32 sequence index (size=4),
- * consumes no record bytes, at most one. Argument destinations cannot overlap.
- * Root pointers are ordinary 8-byte INLINE payloads, not a new binding strategy.
+/* Layouts borrow a same-device argument layout of the matching execution class;
+ * it outlives the generated layout and all recorded/preprocessed/pending uses.
+ * No token array is retained. One action token is last, with optional EXECUTABLE
+ * selection first (one u32 table index). ARGUMENT copies argument_size bytes from
+ * record+offset to argument_offset in that layout. Bounds and indivisible 8-byte
+ * native-address updates are the same as set_arguments. Native addresses are
+ * supplied directly by the native generated token, never decoded on the CPU.
+ * GPU-produced address values must satisfy the field's alignment/access contract.
+ * SEQUENCE_INDEX targets one declared four-byte INLINE field and writes the native
+ * u32 index; it consumes no record bytes, at most one. Destinations cannot overlap.
  * Other tokens require argument_offset=argument_size=0. Token offsets are ordered,
  * 4-aligned and queried-limit-bounded. Stride is 4-aligned, may be zero or smaller
  * than the record extent: overlapping source records are not forcibly repacked.
@@ -1921,9 +1926,12 @@ void ogpu_next_generated_layout_destroy(ogpu_next_generated_layout *);
 /* Set creation stores initial in slot 0; other slots are undefined until written.
  * Every member must have COMPILE_INDIRECT_BINDABLE enabled at executable creation;
  * ordinary pipelines are not implicitly recompiled. All members have the same
- * stages, and the caller guarantees identical native static/dynamic graphics state,
- * fragment output interface and depth/sample-mask/stencil export use. Shared-byte
- * argument meaning and bounds across members are also a caller/artifact contract.
+ * stages and compatible argument layouts (checked before the native update).
+ * Compatibility requires equal byte extent, execution class, native resource
+ * mappings and address offsets/alignments; separate equivalent layouts are valid.
+ * Direct INLINE field partitioning need not match. The caller guarantees identical
+ * native static/dynamic graphics state, fragment output interface and depth/sample-
+ * mask/stencil export use, and compatible artifact argument meaning across members.
  * No native pipeline reflection or host shader rewriting. Initial executable stays
  * alive until set destruction, even if slot 0 is updated. Other members stay alive
  * while referenced by set slots or recorded/preprocessed/pending execution.
@@ -1939,6 +1947,9 @@ void ogpu_next_generated_set_destroy(ogpu_next_generated_set *);
  * each nested *_COUNT action; ignored for other actions. When used, their product
  * must be <2^24 in this Vulkan profile. Query after set changes and before backing
  * allocation; output is unchanged on failure. No GPU object is allocated by query.
+ * This cold query checks argument-layout compatibility with the fixed executable
+ * or set's initial executable. Query each distinct work pairing before recording;
+ * recording trusts this compatibility proof, without scanning mappings or fields.
  * PREPROCESS backing must satisfy BOTH this returned size/alignment/type mask and
  * ordinary memory_requirements. Bits index queried memory-type IDs. Recording
  * trusts this native requirement match: no driver query or size cache on the hot
@@ -1966,7 +1977,7 @@ ogpu_next_status ogpu_next_generated_requirements(ogpu_next_device *, const ogpu
  * inputs use INDIRECT/READ. PREPROCESS accesses do not imply compute shader access.
  * Preserve native state (including argument bytes/heaps) between snapshot and use.
  * Executable-selection tokens invalidate the corresponding executable binding;
- * inline/sequence tokens make the shared argument bytes undefined afterward.
+ * argument/sequence tokens make the affected native argument domain undefined afterward.
  * Restore those explicitly for subsequent work. No hidden state restoration,
  * CPU readback, per-sequence host loop, compilation or allocation during recording.
  */
