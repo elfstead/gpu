@@ -296,16 +296,16 @@ adds native layouts, executable selection, explicit storage requirements and
 separate or integrated preprocessing through C and native Rust. Both drivers pass
 20 compute submissions with GPU-written executable indices, arguments and counts,
 sequence identity, set updates, whole-buffer guards and 20 rejected recordings.
-Graphics/mesh and nested-count actions have lowering and layout coverage, but
-their execution remains unverified. No host readback or command-time allocation
+Graphics/mesh and nested-count actions had only lowering/layout coverage at
+that checkpoint; the graphics execution follow-up is recorded below. No host readback or command-time allocation
 is introduced; this is not a timing or full-M8 acceptance claim.
-The [first generated-graphics/culling consumer](results/m8-generated-graphics-2026-11-06.md)
-now passes on Radeon through the unchanged revision-7 API: ten fixed-executable
-submissions, explicit/integrated preprocessing, GPU compaction/count/identity and
-20,480 pixels with full-buffer guards. Graphics pipeline selection is unsupported
-locally and remains independently gated; no fallback is introduced.
-Next: generated indexed/nested-count graphics coverage and vertex/index-state token
-gaps, then remaining advanced raster profiles. Larger textured/depth and external
+The [generated-graphics/culling consumer](results/m8-generated-indexed-counts-2026-11-06.md)
+now passes all four ordinary/indexed/nested-count action forms on Radeon through
+unchanged revision 7: 48 submissions, explicit/integrated preprocessing, GPU
+compaction/count/identity, signed index offsets, nested count clamping and 98,304
+pixels with full-buffer guards. Graphics pipeline selection is unsupported locally
+and independently gated; no fallback is introduced.
+Next: native generated vertex/index-state token gaps, then remaining advanced raster profiles. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 

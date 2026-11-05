@@ -16,7 +16,7 @@ following the argument, descriptor, generated-layout, dependency and submission
 cutovers. Borrowed frames and explicit effects replace index-only acquisition and
 status-only presentation. Bounded Wayland consumers, the C2 audit and [clean local C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) pass. Remaining M8 is active, as recorded in the [working plan](plan.md).
 
-M8 continuation, 2026-11-06: [generated graphics with consumer-owned culling](results/m8-generated-graphics-2026-11-06.md) passes the fixed-executable profile on Radeon using the existing API. Graphics pipeline selection remains unavailable locally; indexed/nested-count and richer raster/scene coverage remain open.
+M8 continuation, 2026-11-06: [generated ordinary/indexed/nested-count graphics with consumer-owned culling](results/m8-generated-indexed-counts-2026-11-06.md) passes on Radeon using the existing API (48 submissions, 98,304 pixels). Graphics pipeline selection remains unavailable locally; generated vertex/index-state tokens and richer raster/scene coverage remain open.
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
@@ -55,8 +55,9 @@ The [generated-command tranche](results/m8-generated-commands-2026-10-17.md)
 adds optional native token layouts, executable sets, queryable preprocessing
 storage and separate/integrated execution through the same C/Rust backend.
 GPU-produced compute selection, arguments, counts and sequence identity pass on
-both local drivers. Graphics/mesh and nested-count actions are lowered but have
-only layout-creation evidence; vertex/index-state tokens are not implemented.
+both local drivers in the initial receipt. Generated ordinary/indexed/nested-count
+graphics now passes on Radeon in the follow-up above; generated mesh remains
+unverified locally. Vertex/index-state tokens are not implemented.
 Preparation storage, synchronization and lifetimes remain caller-controlled;
 recording adds no query, allocation, readback or implicit pipeline restoration.
 

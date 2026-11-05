@@ -60,6 +60,8 @@ acceptance; it is not yet a separately installed consumer bundle.
 
 ## Remaining M8 work
 
+Follow-up: the [indexed/nested-count receipt](m8-generated-indexed-counts-2026-11-06.md) closes the first two execution gaps below, corrects native shader index semantics and moves preparation queries after set updates. The remainder of this section records the initial checkpoint.
+
 Generated indexed draws, nested-count graphics actions and mesh-generated work
 still need execution coverage; physical task/mesh and graphics selection remain
 unverified locally. Vertex/index-state tokens and the remaining advanced raster
