@@ -203,7 +203,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     TRY(ogpu_next_vertex_scratch_requirements(2, &vr));
     REQUIRE(vr.alignment <= _Alignof(max_align_t));
     vertex_scratch = malloc((size_t)vr.size); REQUIRE(vertex_scratch != NULL);
-    TRY(ogpu_next_render_scratch_requirements(1, &rr)); TRY(ogpu_next_barrier_scratch_requirements(0, image_count, &br));
+    TRY(ogpu_next_render_scratch_requirements(1, &rr)); TRY(ogpu_next_barrier_scratch_requirements(device,1,0, image_count, &br));
     TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &sr));
     REQUIRE(rr.alignment <= _Alignof(max_align_t) && br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)rr.size); barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size);
@@ -217,9 +217,11 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         /* GPU produces the first-instance fields; CPU initializes them to zero. */
         ogpu_next_fill_memory(encoder,(ogpu_next_span){host,284,4},1);
         ogpu_next_fill_memory(encoder,(ogpu_next_span){host,336,4},1);
-        ogpu_next_dependency generated = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),
-            OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_INDIRECT,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_INDIRECT_READ,0,0,0,NULL,NULL,NULL,0};
-        ogpu_next_barrier(encoder,&generated);
+        ogpu_next_barrier_scope generated_scope = {OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_INDIRECT,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_INDIRECT_READ};
+    max_align_t generated_bytes[16];
+    ogpu_next_host_span generated_scratch = {generated_bytes,sizeof(generated_bytes)};
+    ogpu_next_dependency generated = {1,0,0,0,&generated_scope,NULL,NULL};
+        common_barrier(encoder,&generated,&generated_scope,generated_scratch);
     }
     ogpu_next_span vertex_spans[2] = {{host,2048,48},{host,2112,32}};
     if (vertex_fetch) ogpu_next_bind_vertices(encoder,3,2,vertex_spans,(ogpu_next_host_span){vertex_scratch,vr.size});
@@ -228,14 +230,11 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     if (statistics) ogpu_next_queries_reset(encoder, statistics, 0, 2);
     ogpu_next_timestamp(encoder, timestamps, 0, OGPU_NEXT_STAGE_VERTEX);
     ogpu_next_image_barrier barriers[3];
-    for (uint32_t i = 0; i < image_count; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
-        {i == 1 ? depth_aspects : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
-        i == 1 ? OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE,
-        OGPU_NEXT_STATE_UNDEFINED, i == 1 ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT,
-        OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 1};
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_ALL,
-        OGPU_NEXT_STAGE_COLOR | OGPU_NEXT_STAGE_EARLY_DEPTH | OGPU_NEXT_STAGE_LATE_DEPTH, 0, 0, 0, image_count, 0, NULL, barriers, barrier_scratch, br.size};
-    ogpu_next_barrier(encoder, &dep);
+    for (uint32_t i = 0; i < image_count; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,i == 1 ? OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE},images[i],{i == 1 ? depth_aspects : OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1},OGPU_NEXT_STATE_UNDEFINED,i == 1 ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COLOR | OGPU_NEXT_STAGE_EARLY_DEPTH | OGPU_NEXT_STAGE_LATE_DEPTH,0,0};
+    ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
+    ogpu_next_dependency dep = {1,0,image_count,0,&dep_scope,NULL,barriers};
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     ogpu_next_attachment colors = {views[0], NULL, OGPU_NEXT_STATE_COLOR_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.f32 = {0,0,0,1}}};
     ogpu_next_attachment depth = {views[1], NULL, OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT, 0, OGPU_NEXT_CLEAR, OGPU_NEXT_STORE, 0, {.depth_stencil = {1,0}}};
     ogpu_next_attachment stencil = depth;
@@ -304,11 +303,11 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     ogpu_next_render_end(encoder);
     render.flags = 0;
     /* LOAD in a new scope is explicit, including inter-scope attachment hazards. */
-    dep.before = dep.after;
+    dep_scope.stages_before = dep_scope.stages_after;
     dep.image_count = 2;
-    for (uint32_t i = 0; i < 2; ++i) { barriers[i].before = barriers[i].after; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; }
-    barriers[0].after |= OGPU_NEXT_ACCESS_COLOR_READ;
-    ogpu_next_barrier(encoder, &dep);
+    for (uint32_t i = 0; i < 2; ++i) { barriers[i].scope.access_before = barriers[i].scope.access_after; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; }
+    barriers[0].scope.access_after |= OGPU_NEXT_ACCESS_COLOR_READ;
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     colors.load_op = OGPU_NEXT_LOAD; depth.load_op = OGPU_NEXT_LOAD; stencil.load_op = OGPU_NEXT_LOAD;
     if (samples > 1) {
         colors.resolve_view = views[2]; colors.resolve_state = OGPU_NEXT_STATE_COLOR_ATTACHMENT;
@@ -352,9 +351,9 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     }
     ogpu_next_render_end(encoder);
     dep.image_count = image_count;
-    for (uint32_t i = 0; i < image_count; ++i) { barriers[i].before = barriers[i].after; barriers[i].after = OGPU_NEXT_ACCESS_COPY_READ; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; barriers[i].new_state = OGPU_NEXT_STATE_COPY_SRC; }
-    dep.after = OGPU_NEXT_STAGE_COPY;
-    ogpu_next_barrier(encoder, &dep);
+    for (uint32_t i = 0; i < image_count; ++i) { barriers[i].scope.access_before = barriers[i].scope.access_after; barriers[i].scope.access_after = OGPU_NEXT_ACCESS_COPY_READ; barriers[i].old_state = barriers[i].new_state; barriers[i].discard = 0; barriers[i].new_state = OGPU_NEXT_STATE_COPY_SRC; }
+    dep_scope.stages_after = OGPU_NEXT_STAGE_COPY;
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR, 0, 0, 1, {0,0,0}, {16,8,1}}, 0, 0, OGPU_NEXT_STATE_COPY_SRC, 0};
     ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,512,512}, images[samples > 1 ? 2 : 0], &copy);
     copy.region.aspect = OGPU_NEXT_ASPECT_DEPTH;
@@ -374,10 +373,10 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         ogpu_next_queries_resolve(encoder, statistics, 0, 1, (ogpu_next_span){host,2432,20}, 0,
             OGPU_NEXT_QUERY_RESULT_AVAILABILITY | OGPU_NEXT_QUERY_RESULT_WAIT);
     }
-    dep.image_count = 0; dep.images = NULL; dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;
-    if (indirect_first) dep.before |= OGPU_NEXT_STAGE_CLEAR;
-    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
-    ogpu_next_barrier(encoder, &dep);
+    dep.image_count = 0; dep.images = NULL; dep_scope.stages_before = OGPU_NEXT_STAGE_COPY; dep_scope.stages_after = OGPU_NEXT_STAGE_HOST;
+    if (indirect_first) dep_scope.stages_before |= OGPU_NEXT_STAGE_CLEAR;
+    dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ;
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder, &list));
     if (secondary == 1) {
         ogpu_next_list *child = list;
@@ -484,7 +483,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         OGPU_NEXT_QUERY_RESULT_WAIT | OGPU_NEXT_QUERY_RESULT_AVAILABILITY);
     /* Prior host wait proved this timestamp ready; no GPU wait is requested. */
     ogpu_next_queries_resolve(encoder,timestamps,0,1,(ogpu_next_span){host,488,8},0,OGPU_NEXT_QUERY_RESULT_64);
-    ogpu_next_barrier(encoder,&dep);
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list));
     signal.point.value = 3;
     pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));

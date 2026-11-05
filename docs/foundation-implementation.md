@@ -236,6 +236,26 @@ local rejection, OOM retry, successful one-shot consumption and terminal loss.
 No performance
 equivalence claim follows merely from the absence of OGPU hot-path allocation.
 
+### Per-entry dependencies
+
+Foundation schema 5 exposes arrays of global, memory-range and image entries,
+each with its own execution/access pair. One barrier records the native batch;
+there is no forced stage union. An empty description is a no-op. An explicit
+global entry with zero accesses carries execution-only ordering. Caller scratch
+is separate from semantic records and queried using the device and entry counts.
+The device-only dependency-limits query reports one immutable record per enabled
+queue domain, including native wait/signal/split stages and memory-scope granularity.
+These capabilities describe representability, not measured physical overlap.
+
+The old shared-stage records and translator are deleted. Some fixtures compose
+common stage pairs by editing their own entry arrays before calling the API;
+that policy is not present in the runtime. Bounded caller stack scratch is used
+for small fixed global-only batches; runtime capacity/alignment validation still
+applies. General consumers can query and allocate the exact native requirement.
+See the [cutover receipt](minimal-core-migration.md#c2-dependency-public-cutover)
+for public boundary, native lowering, consumer and scratch checks. Submission
+still uses its existing forms pending the next C2 cutover.
+
 ### Caller-owned split dependencies
 
 Independent device-only split objects map to native events. They are initially
@@ -252,7 +272,7 @@ dependency values and array ordering (not necessarily the same host pointers).
 The caller guarantees matching endpoints; no hidden registry, resource retention,
 dependency comparison walk or device-wide lock is added. Multiple acquires map to
 one native wait with caller-owned scratch for events, native dependency headers and
-global barriers, plus each dependency's separate range scratch. All descriptions
+all global, buffer and image entries in one span. All descriptions
 validate before issuing that call; a bad last record emits no partial wait. All
 scratch and description arrays may be reused as soon as the call returns.
 

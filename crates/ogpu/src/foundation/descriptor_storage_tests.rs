@@ -556,20 +556,22 @@ fn gpu_descriptor_storage_and_replay() {
             })
             .unwrap();
         unsafe {
-            encoder.barrier(&Dependency {
-                header: Record::new::<Dependency>(DEPENDENCY),
-                before: 4,
-                after: 256,
-                global_before: 32,
-                global_after: 64,
-                memory_count: 0,
-                image_count: 0,
-                flags: 0,
-                memory: ptr::null(),
-                images: ptr::null(),
-                scratch: ptr::null_mut(),
-                scratch_size: 0,
-            })
+            encoder.barrier(
+                &Dependency {
+                    global_count: 1,
+                    global: &BarrierScope {
+                        stages_before: 4,
+                        stages_after: 256,
+                        access_before: 32,
+                        access_after: 64,
+                    },
+                    ..Default::default()
+                },
+                HostSpan {
+                    data: [0u64; 64].as_mut_ptr().cast(),
+                    size: 512,
+                },
+            )
         }
         .unwrap();
         encoder.end().unwrap();

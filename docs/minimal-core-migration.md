@@ -2,8 +2,8 @@
 
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
 The Vulkan argument, descriptor and generated-layout families are installed as
-foundation schema 4, including borrowed heap inheritance. Dependencies/submission
-and presentation remain to migrate. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
+foundation schema 5, including borrowed heap inheritance and per-entry dependencies.
+Unified submission/outcomes and presentation remain to migrate. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
 
@@ -471,12 +471,63 @@ The full existing C foundation fixture also passes, including its transfer,
 ownership and split consumers. Synchronization validation emits no errors.
 Strict Clippy passes. No timing campaign or new platform acceptance is claimed.
 
-**Next:** expose the selected dependency records, device-domain limits and scratch
+**Next at that checkpoint (completed below):** expose the selected dependency records, device-domain limits and scratch
 signatures in C/direct Rust; migrate all barrier/split consumers. Delete the old
 shared-stage translator, old nested scratch paths, temporary image record and
 private-module dead-code allowance in that cutover. Then consolidate submission
 and classify its outcomes, followed by presentation and the full C2 audit/local C3.
 This checkpoint does not complete C2 step 3 or C2 as a whole.
+
+## C2 dependency public cutover
+
+Implemented 2026-11-05 on Vulkan/Linux. Foundation schema **5** exposes the selected
+per-entry dependency records through C and direct Rust. Rebuild consumers against
+the matching SDK. This completes the dependency half of C2 step 3; submission is
+still pending.
+
+- `BarrierScope` supplies independent stages/accesses for every global, bounded
+  memory and image entry. `Dependency` has counted arrays and flags, with no record
+  header, common stages or embedded scratch. Empty batches are no-ops; execution-only
+  dependencies are explicit global entries with zero accesses.
+- Barrier/release take a separate caller `HostSpan`. Barrier requirements take a
+  device and global/memory/image counts. Split requirements take a device and wait
+  descriptions, read only dependency counts/flags, and cover headers plus all nested
+  native arrays in one span. Failures preserve requirements outputs. No endpoint
+  registry, host allocation, scope union or implicit reset is introduced.
+- `QUERY_DEPENDENCY_LIMITS=19` is device-only and reports one immutable record per
+  enabled queue domain. The Vulkan mapping reports byte-range memory scope and
+  native split/ownership/binary capabilities with exact enabled stage masks.
+  Adapter queries reject this device-specific query; capacity failures preserve data.
+- Deleted the old shared-stage translator, nested dependency scratch path, obsolete
+  record kind, temporary image record conversion and private engine allowance.
+  Image state/subresource/ownership checks have one implementation. Existing split
+  creation/reset/destruction and explicit lifetime/ordering contracts remain.
+- C fixtures, installed C applications, native Rust headless/presentation sources
+  and GGML/libplacebo consumers use the new records. Common-stage fixture helpers
+  edit caller-owned entry arrays; the runtime receives independent scopes. Small
+  fixed global-only batches may use bounded aligned stack scratch, with native
+  capacity checks; larger consumer batches query their required storage.
+
+Public C boundary checks cover exact native scopes, unchanged outputs on query
+failure, zero scratch requirements, and sticky recording rejection without a native
+prefix. The device query checks enabled-domain filtering; host tests cover device-only
+queries and atomic capacity/size rejection. The split fixture retains reverse CPU
+recording order, independently prepared endpoints, immediate scratch overwrite,
+reset/replay and changed data checks through public C.
+
+**Verification:** 75 CPU unit tests, all 25 native GPU tests and the full public C
+foundation fixture pass on RX 5700 XT (RADV/Mesa 26.2.5), with no synchronization
+validation errors. The final public-boundary test also passes after cleanup.
+Checks cover 1,492 C/Rust ABI values, 376 draft layout/constant values, all 147
+current surface operations, 47 scene host tests and strict Clippy. All six relocated
+C consumers, the isolated native Rust consumer, and the independent GGML and
+libplacebo GPU handoffs pass. Native Rust presentation sources compile; interactive
+presentation was not rerun for this cutover.
+
+**Next:** unify single/batch/binary submission, move its translation into one caller
+scratch span, expose per-batch acceptance outcomes and delete the superseded paths.
+Then migrate presentation and run the full C2 audit/local C3. No Windows/Metal,
+new generated-graphics coverage or performance measurement is claimed here.
 
 ## Verification and open native questions
 

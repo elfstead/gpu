@@ -1,13 +1,12 @@
 # C1: dependency and submission decisions
 
-Selected 2026-11-03. **C2 private Vulkan dependency engine implemented 2026-11-05;
-public dependency/submission cutover pending.** The
+Selected 2026-11-03. **Public Vulkan dependency cutover implemented 2026-11-05
+in foundation schema 5; unified submission/outcomes remain pending.** The
 [C records](drafts/ogpu_dependencies.h) and [Rust mirror](drafts/dependencies.rs)
-replace the affected parts of the installed header during C2. They complete the
-dependency dispositions in the [minimal-core contract](minimal-core-contract.md).
-The [engine checkpoint](minimal-core-migration.md#c2-dependency-engine) preserves
-per-entry scopes and explicit split scratch. Installed schema 4 still uses the old
-records; this is not public acceptance of the revised signatures.
+record the selected target, including submission's remaining changes. The
+[public checkpoint](minimal-core-migration.md#c2-dependency-public-cutover)
+installs independent scopes, explicit scratch and enabled-domain capabilities,
+with migrated C/direct Rust consumers and native execution/rejection evidence.
 
 ## Keep one dependency description, with independent scopes
 
@@ -17,7 +16,7 @@ records the complete batch using caller scratch. An empty description is a no-op
 an execution-only dependency is an explicit global entry with zero access masks.
 There is no implicit all-stage dependency and no state/hazard inference.
 
-This corrects an existing limitation: `Dependency.before/after` currently supplies
+This corrects the previous limitation: `Dependency.before/after` supplied
 the same stage pair to every native barrier. For example, compute→indirect and
 color-output→fragment dependencies at the same recording point need not become
 the cross-product of both stage sets. Separate calls can express those edges, but

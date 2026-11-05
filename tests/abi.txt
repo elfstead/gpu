@@ -235,3 +235,11 @@ next DescriptorShape ogpu_next_descriptor_shape size alignment array_stride
 next HeapLocation ogpu_next_heap_location heap offset
 next DescriptorCopy ogpu_next_descriptor_copy source destination size
 next Inheritance ogpu_next_inheritance header occlusion query_flags statistics rendering resource_heap sampler_heap
+
+# C2 installed dependency records.
+next DependencyLimits ogpu_next_dependency_limits domain flags memory_scope reserved wait_stages signal_stages split_stages
+next BarrierScope ogpu_next_barrier_scope stages_before stages_after access_before access_after
+next MemoryBarrier ogpu_next_memory_barrier scope range source_domain destination_domain
+next ImageBarrier ogpu_next_image_barrier scope image range old_state new_state source_domain destination_domain discard reserved
+next Dependency ogpu_next_dependency global_count memory_count image_count flags global memory images
+next SplitDependency ogpu_next_split_dependency split dependency

@@ -4,20 +4,32 @@ use std::{ffi::CStr, ptr};
 mod extended;
 mod synchronization;
 
-fn dependency(before: u64, after: u64, read: u64, write: u64) -> Dependency {
-    Dependency {
-        header: Record::new::<Dependency>(DEPENDENCY),
-        before,
-        after,
-        global_before: read,
-        global_after: write,
-        memory_count: 0,
-        image_count: 0,
-        flags: 0,
-        memory: ptr::null(),
-        images: ptr::null(),
-        scratch: ptr::null_mut(),
-        scratch_size: 0,
+fn dependency(before: u64, after: u64, src: u64, dst: u64) -> BarrierScope {
+    BarrierScope {
+        stages_before: before,
+        stages_after: after,
+        access_before: src,
+        access_after: dst,
+    }
+}
+/// Caller-owned bounded scratch for these single-global dependencies. A future
+/// backend needing more storage reports a recording failure; no native ABI assumed.
+unsafe fn global_barrier(list: gpu::ListHandle, scope: BarrierScope) {
+    let mut bytes = [0u64; 64];
+    let dep = Dependency {
+        global_count: 1,
+        global: &scope,
+        ..Default::default()
+    };
+    unsafe {
+        gpu::barrier(
+            list,
+            &dep,
+            HostSpan {
+                data: bytes.as_mut_ptr().cast(),
+                size: std::mem::size_of_val(&bytes) as u64,
+            },
+        );
     }
 }
 
@@ -113,9 +125,9 @@ pub fn run() -> gpu::Result<()> {
         {
             let list = gpu::commands_begin(arena, &recording)?;
             gpu::fill_memory(list, memory.span(0, 256), pattern);
-            gpu::barrier(
+            global_barrier(
                 list,
-                &dependency(
+                dependency(
                     STAGE_TRANSFER,
                     STAGE_TRANSFER,
                     ACCESS_COPY_WRITE,
@@ -123,9 +135,9 @@ pub fn run() -> gpu::Result<()> {
                 ),
             );
             gpu::copy_memory(list, memory.span(256, 256), memory.span(0, 256));
-            gpu::barrier(
+            global_barrier(
                 list,
-                &dependency(
+                dependency(
                     STAGE_TRANSFER,
                     STAGE_HOST,
                     ACCESS_COPY_WRITE,

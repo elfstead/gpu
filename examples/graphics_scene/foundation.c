@@ -5,6 +5,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Caller policy for these fixtures: resource entries share one stage pair.
+ * The API itself takes independent scopes; this helper edits caller-owned entries
+ * before recording. Arrays must be mutable; no resources or payloads are copied. */
+static inline void common_barrier_scopes(ogpu_next_dependency *d, ogpu_next_barrier_scope *s) {
+    d->global = s;
+    d->global_count = (s->access_before || s->access_after || (!d->memory_count && !d->image_count)) ? 1u : 0u;
+    for (uint32_t i=0;i<d->memory_count;++i) {
+        ogpu_next_memory_barrier *b=(ogpu_next_memory_barrier *)d->memory+i;
+        b->scope.stages_before=s->stages_before; b->scope.stages_after=s->stages_after;
+    }
+    for (uint32_t i=0;i<d->image_count;++i) {
+        ogpu_next_image_barrier *b=(ogpu_next_image_barrier *)d->images+i;
+        b->scope.stages_before=s->stages_before; b->scope.stages_after=s->stages_after;
+    }
+}
+static inline void common_barrier(ogpu_next_encoder *e, ogpu_next_dependency *d,
+    ogpu_next_barrier_scope *s, ogpu_next_host_span scratch) {
+    common_barrier_scopes(d,s); ogpu_next_barrier(e,d,scratch);
+}
+
 #ifndef SCENE_DRAW_BYTES
 #define SCENE_DRAW_BYTES 168u
 #endif
@@ -36,6 +57,7 @@ _Static_assert(SCENE_RASTER_BYTES>=8 && SCENE_RASTER_BYTES<=4096 && SCENE_RASTER
 #define scene_pair_push_size textured_scene_push_size
 #else
 #include <foundation_scene_pair.generated.h>
+
 #endif
 #endif
 #endif
@@ -254,7 +276,7 @@ static int context(Scene *s,const char *directory) {
     return 1;
 }
 static int storage(Scene *s) {
-    GPU(ogpu_next_barrier_scratch_requirements(0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(1,&s->render_scratch));
+    GPU(ogpu_next_barrier_scratch_requirements(s->device,1,0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(1,&s->render_scratch));
     GPU(ogpu_next_submit_scratch_requirements(1,0,1,&s->submit_scratch));
     NEED(s->barrier_scratch.alignment<=_Alignof(max_align_t) && s->render_scratch.alignment<=_Alignof(max_align_t) && s->submit_scratch.alignment<=_Alignof(max_align_t));
     s->bs=malloc(s->barrier_scratch.size); s->rs=malloc(s->render_scratch.size); s->ss=malloc(s->submit_scratch.size); NEED(s->bs && s->rs && s->ss);
@@ -277,19 +299,21 @@ static int submit_wait(Scene *s) {
     GPU(ogpu_next_arena_reset(s->arena)); return 1;
 }
 static void dependency(Scene *s,uint64_t before,uint64_t after,uint64_t src,uint64_t dst) {
-    ogpu_next_dependency dep={HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),before,after,src,dst,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(s->encoder,&dep);
+    ogpu_next_barrier_scope dep_scope = {before,after,src,dst};
+    max_align_t dep_bytes[16];
+    ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+    ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
+    common_barrier(s->encoder,&dep,&dep_scope,dep_scratch);
 }
 static void transition(Scene *s,unsigned i,int discard) {
     uint32_t aspect=i ? OGPU_NEXT_ASPECT_DEPTH : OGPU_NEXT_ASPECT_COLOR;
     uint32_t state=i ? OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT : OGPU_NEXT_STATE_COLOR_ATTACHMENT;
     uint64_t access=i ? OGPU_NEXT_ACCESS_DEPTH_READ|OGPU_NEXT_ACCESS_DEPTH_WRITE : OGPU_NEXT_ACCESS_COLOR_WRITE;
     uint64_t stage=i ? OGPU_NEXT_STAGE_DEPTH : OGPU_NEXT_STAGE_COLOR;
-    ogpu_next_image_barrier b={s->images[i],{aspect,0,1,0,1},discard ? OGPU_NEXT_ACCESS_COPY_READ : access,
-        discard ? access : OGPU_NEXT_ACCESS_COPY_READ,discard ? OGPU_NEXT_STATE_UNDEFINED : state,
-        discard ? state : OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,(uint32_t)discard};
-    ogpu_next_dependency dep={HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),discard ? OGPU_NEXT_STAGE_COPY : stage,
-        discard ? stage : OGPU_NEXT_STAGE_COPY,0,0,0,1,0,NULL,&b,s->bs,s->barrier_scratch.size}; ogpu_next_barrier(s->encoder,&dep);
+    ogpu_next_image_barrier b={{0,0,discard ? OGPU_NEXT_ACCESS_COPY_READ : access,discard ? access : OGPU_NEXT_ACCESS_COPY_READ},s->images[i],{aspect,0,1,0,1},discard ? OGPU_NEXT_STATE_UNDEFINED : state,discard ? state : OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,(uint32_t)discard,0};
+    ogpu_next_barrier_scope dep_scope = {discard ? OGPU_NEXT_STAGE_COPY : stage,discard ? stage : OGPU_NEXT_STAGE_COPY,0,0};
+    ogpu_next_host_span dep_scratch = {s->bs,s->barrier_scratch.size};
+    ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&b}; common_barrier(s->encoder,&dep,&dep_scope,dep_scratch);
 }
 static int resources(Scene *s) {
     for(unsigned i=0;i<2;++i) {

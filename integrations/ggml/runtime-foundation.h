@@ -126,12 +126,11 @@ struct Runtime {
         check(ogpu_next_commands_begin(arena.get(),&desc,&encoder));
     }
     void barrier(bool compute) {
-        const ogpu_next_dependency dep{GGML_RECORD(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE | OGPU_NEXT_STAGE_COPY,
-            compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_COPY,
-            OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE | OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE,
-            compute ? OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE : OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE,
-            0,0,0,nullptr,nullptr,nullptr,0};
-        ogpu_next_barrier(encoder,&dep);
+        const ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COMPUTE | OGPU_NEXT_STAGE_COPY,compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE | OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE,compute ? OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE : OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE};
+        alignas(std::max_align_t) unsigned char dep_bytes[512];
+        const ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+        const ogpu_next_dependency dep = {1,0,0,0,&dep_scope,nullptr,nullptr};
+        ogpu_next_barrier(encoder,&dep,dep_scratch);
     }
     void copy(Memory &dst,size_t dst_off,Memory &src,size_t src_off,size_t bytes) {
         ogpu_next_copy_memory(encoder,{dst.handle.get(),dst_off,bytes},{src.handle.get(),src_off,bytes});
@@ -142,10 +141,11 @@ struct Runtime {
     }
     void finish() {
         // HOST reads after graph/copy completion use explicit visibility + invalidate.
-        const ogpu_next_dependency dep{GGML_RECORD(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE | OGPU_NEXT_STAGE_COPY,
-            OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_STORAGE_WRITE | OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ,
-            0,0,0,nullptr,nullptr,nullptr,0};
-        ogpu_next_barrier(encoder,&dep);
+        const ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COMPUTE | OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_STORAGE_WRITE | OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+        alignas(std::max_align_t) unsigned char dep_bytes[512];
+        const ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+        const ogpu_next_dependency dep = {1,0,0,0,&dep_scope,nullptr,nullptr};
+        ogpu_next_barrier(encoder,&dep,dep_scratch);
         ogpu_next_list *list = nullptr; check(ogpu_next_commands_end(encoder,&list)); encoder = nullptr;
         if (value == std::numeric_limits<uint64_t>::max()) throw std::runtime_error("timeline exhausted");
         const ogpu_next_sync_point signal{{timeline.get(),++value},OGPU_NEXT_STAGE_ALL};

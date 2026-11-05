@@ -40,49 +40,11 @@ impl Drop for Split {
         }
     }
 }
-fn split_layout(count: u32) -> Result<(Layout, usize, usize), Status> {
-    let (layout, info) = array_layout::<vk::VkEvent>(count)?
-        .extend(array_layout::<vk::VkDependencyInfo>(count)?)
-        .map_err(|_| INVALID)?;
-    let (layout, global) = layout
-        .extend(array_layout::<vk::VkMemoryBarrier2>(count)?)
-        .map_err(|_| INVALID)?;
-    Ok((layout.pad_to_align(), info, global))
-}
-pub(in crate::foundation) fn split_scratch(count: u32) -> Result<HostRequirements, Status> {
-    let (layout, _, _) = split_layout(count)?;
-    Ok(HostRequirements {
-        size: layout.size() as u64,
-        alignment: layout.align() as u64,
-    })
-}
-fn scopes(dep: &Dependency) -> Result<(), Status> {
-    // Device-only event operations never include the host in either scope.
-    if (dep.before | dep.after) & 256 != 0 {
-        return Err(INVALID);
-    }
-    Ok(())
-}
 impl List {
     pub(super) fn split_recording(&self) -> Result<&Device, Status> {
         let d = self.outside_render()?;
         stages(d, self.domain, 32, false)?; // event commands need graphics/compute, not transfer-only
         Ok(d)
-    }
-    pub(in crate::foundation) unsafe fn split_release(
-        &self,
-        split: &Split,
-        dep: &Dependency,
-    ) -> Result<(), Status> {
-        let d = self.split_recording()?;
-        split.check(d)?;
-        scopes(dep)?;
-        let mut global = vk::VkMemoryBarrier2::default();
-        let info = unsafe { self.translate_dependency(dep, &mut global)? };
-        unsafe {
-            (d.f.vkCmdSetEvent2.unwrap())(self.command, split.handle, &info);
-        }
-        Ok(())
     }
     pub(in crate::foundation) fn split_reset(
         &self,
@@ -97,54 +59,8 @@ impl List {
         }
         Ok(())
     }
-    pub(in crate::foundation) unsafe fn split_acquire(
-        &self,
-        count: u32,
-        waits: *const SplitDependency,
-        storage: HostSpan,
-    ) -> Result<(), Status> {
-        let d = self.split_recording()?;
-        if count == 0 {
-            return Ok(());
-        }
-        let waits = unsafe { slice(waits, count)? };
-        let (layout, info_offset, global_offset) = split_layout(count)?;
-        let base = scratch(
-            storage.data,
-            storage.size,
-            HostRequirements {
-                size: layout.size() as u64,
-                alignment: layout.align() as u64,
-            },
-        )?
-        .cast::<u8>();
-        let events = base.cast::<vk::VkEvent>();
-        let infos = base
-            .wrapping_add(info_offset)
-            .cast::<vk::VkDependencyInfo>();
-        let globals = base
-            .wrapping_add(global_offset)
-            .cast::<vk::VkMemoryBarrier2>();
-        for (i, wait) in waits.iter().enumerate() {
-            let split = unsafe { wait.split.as_ref() }.ok_or(INVALID)?;
-            let dep =
-                unsafe { executable_record::<Dependency>(wait.dependency.cast(), DEPENDENCY)? };
-            split.check(d)?;
-            scopes(dep)?;
-            unsafe {
-                globals.add(i).write(vk::VkMemoryBarrier2::default());
-                let info = self.translate_dependency(dep, &mut *globals.add(i))?;
-                events.add(i).write(split.handle);
-                infos.add(i).write(info);
-            }
-        }
-        // All records and their scratch translations validate before one native wait.
-        unsafe {
-            (d.f.vkCmdWaitEvents2.unwrap())(self.command, count, events, infos);
-        }
-        Ok(())
-    }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,26 +180,30 @@ mod tests {
             FAILURE.set(0);
             let a = Split::create(&device).unwrap();
             let b = Split::create(&device).unwrap();
+            let scopes = [
+                BarrierScope {
+                    stages_before: 512,
+                    stages_after: 512,
+                    access_before: 8,
+                    access_after: 4,
+                },
+                BarrierScope {
+                    stages_before: 16384,
+                    stages_after: 512,
+                    access_before: 8,
+                    access_after: 4,
+                },
+            ];
             let dep = Dependency {
-                header: Record::new::<Dependency>(DEPENDENCY),
-                before: 512,
-                after: 512,
-                global_before: 8,
-                global_after: 4,
-                memory_count: 0,
-                image_count: 0,
-                flags: 0,
-                memory: ptr::null(),
-                images: ptr::null(),
-                scratch: ptr::null_mut(),
-                scratch_size: 0,
+                global_count: 1,
+                global: &scopes[0],
+                ..Default::default()
             };
             let dep_b = Dependency {
-                before: 16384,
+                global: &scopes[1],
                 ..dep
             };
-            let mut bad = Dependency { ..dep };
-            bad.header.version = VERSION + 1;
+            let bad = Dependency { flags: 1, ..dep };
             let waits = [
                 SplitDependency {
                     split: &*a,
@@ -294,7 +214,7 @@ mod tests {
                     dependency: &dep_b,
                 },
             ];
-            let requirements = split_scratch(2).unwrap();
+            let requirements = unsafe { split_scratch(&device, &waits) }.unwrap();
             let mut data = vec![0u64; requirements.size.div_ceil(8) as usize];
             let storage = HostSpan {
                 data: data.as_mut_ptr().cast(),
@@ -326,8 +246,7 @@ mod tests {
                 assert_eq!(
                     unsafe {
                         list.split_acquire(
-                            0,
-                            ptr::null(),
+                            &[],
                             HostSpan {
                                 data: ptr::null_mut(),
                                 size: 0,
@@ -339,8 +258,7 @@ mod tests {
                 assert_eq!(
                     unsafe {
                         list.split_acquire(
-                            2,
-                            waits.as_ptr(),
+                            &waits,
                             HostSpan {
                                 size: storage.size - 1,
                                 ..storage
@@ -357,19 +275,31 @@ mod tests {
                     },
                 ];
                 assert_eq!(
-                    unsafe { list.split_acquire(2, invalid.as_ptr(), storage) },
+                    unsafe { list.split_acquire(&invalid, storage) },
                     Err(UNSUPPORTED)
                 );
                 assert_eq!(WAITS.get(), 0); // No valid prefix leaks a native wait.
                 assert_eq!(list.split_reset(&a, 256), Err(INVALID));
                 assert_eq!(
-                    unsafe { list.split_release(&a, &Dependency { before: 256, ..dep }) },
+                    unsafe {
+                        list.split_release(
+                            &a,
+                            &Dependency {
+                                global: &BarrierScope {
+                                    stages_before: 256,
+                                    ..scopes[0]
+                                },
+                                ..dep
+                            },
+                            storage,
+                        )
+                    },
                     Err(INVALID)
                 );
                 unsafe {
-                    list.split_release(&a, &dep).unwrap();
-                    list.split_release(&b, &dep_b).unwrap();
-                    list.split_acquire(2, waits.as_ptr(), storage).unwrap();
+                    list.split_release(&a, &dep, storage).unwrap();
+                    list.split_release(&b, &dep_b, storage).unwrap();
+                    list.split_acquire(&waits, storage).unwrap();
                 }
                 assert_eq!(WAITS.get(), 1);
                 assert!(TRANSLATED.get());
@@ -390,23 +320,5 @@ mod tests {
             tested += 1;
         }
         assert!(tested > 0, "No suitable device; not a passing skip");
-    }
-    #[test]
-    fn split_scratch_preserves_all_native_array_alignments() {
-        assert_eq!(
-            split_scratch(0).unwrap(),
-            HostRequirements {
-                size: 0,
-                alignment: 1
-            }
-        );
-        for count in [1, 2, 17] {
-            let (layout, info, global) = split_layout(count).unwrap();
-            assert!(info >= count as usize * size_of::<vk::VkEvent>());
-            assert!(global >= info + count as usize * size_of::<vk::VkDependencyInfo>());
-            assert!(layout.size() >= global + count as usize * size_of::<vk::VkMemoryBarrier2>());
-            assert_eq!(info % align_of::<vk::VkDependencyInfo>(), 0);
-            assert_eq!(global % align_of::<vk::VkMemoryBarrier2>(), 0);
-        }
     }
 }

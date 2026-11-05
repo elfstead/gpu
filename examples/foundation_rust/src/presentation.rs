@@ -152,7 +152,7 @@ pub unsafe fn run() -> gpu::Result<()> {
     let mut borrowed = [unsafe { images(chains[0])? }, unsafe { images(chains[1])? }];
     let mut submit_storage = storage(gpu::submit_scratch_requirements(1, 2, 2)?);
     let mut present_storage = storage(gpu::present_scratch_requirements(1, 2)?);
-    let mut barrier_storage = storage(gpu::barrier_scratch_requirements(0, 1)?);
+    let mut barrier_storage = storage(gpu::barrier_scratch_requirements(device, 0, 0, 1)?);
     let mut value = 0;
     let full = Subresources {
         aspects: ASPECT_COLOR,
@@ -231,10 +231,15 @@ pub unsafe fn run() -> gpu::Result<()> {
                         gpu::acquire(chains[i], 1_000_000_000, Some(acquired[i]), None)?;
                     let image = borrowed[i][index as usize];
                     let mut barrier = ImageBarrier {
+                        scope: BarrierScope {
+                            stages_before: STAGE_TRANSFER,
+                            stages_after: STAGE_TRANSFER,
+                            access_before: 0,
+                            access_after: ACCESS_COPY_WRITE,
+                        },
+                        reserved: 0,
                         image: image.as_raw(),
                         range: full,
-                        before: 0,
-                        after: ACCESS_COPY_WRITE,
                         old_state: STATE_UNDEFINED,
                         new_state: STATE_COPY_DST,
                         source_domain: DOMAIN_IGNORED,
@@ -243,20 +248,11 @@ pub unsafe fn run() -> gpu::Result<()> {
                     };
                     let scratch = span(&mut barrier_storage);
                     let mut dep = Dependency {
-                        header: Record::new::<Dependency>(DEPENDENCY),
-                        before: STAGE_TRANSFER,
-                        after: STAGE_TRANSFER,
-                        global_before: 0,
-                        global_after: 0,
-                        memory_count: 0,
                         image_count: 1,
-                        flags: 0,
-                        memory: ptr::null(),
                         images: &barrier,
-                        scratch: scratch.data,
-                        scratch_size: scratch.size,
+                        ..Default::default()
                     };
-                    gpu::barrier(list, &dep);
+                    gpu::barrier(list, &dep, scratch);
                     gpu::clear_image(
                         list,
                         image,
@@ -270,14 +266,14 @@ pub unsafe fn run() -> gpu::Result<()> {
                             },
                         },
                     );
-                    barrier.before = ACCESS_COPY_WRITE;
-                    barrier.after = 0;
+                    barrier.scope.access_before = ACCESS_COPY_WRITE;
+                    barrier.scope.access_after = 0;
                     barrier.old_state = STATE_COPY_DST;
                     barrier.new_state = STATE_PRESENT;
                     barrier.discard = 0;
+                    barrier.scope.stages_after = 0;
                     dep.images = &barrier;
-                    dep.after = 0;
-                    gpu::barrier(list, &dep);
+                    gpu::barrier(list, &dep, scratch);
                     entries.push(PresentImage {
                         swapchain: chains[i].as_raw(),
                         index,

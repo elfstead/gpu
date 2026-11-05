@@ -112,7 +112,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         TRY(ogpu_next_view_create(target,&vd,&target_view));
     }
     ogpu_next_host_requirements br = {0}, sr = {0};
-    TRY(ogpu_next_barrier_scratch_requirements(0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); ss = malloc((size_t)sr.size); REQUIRE(bs && ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
@@ -120,22 +120,23 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     if (stencil_resolve) ogpu_next_queries_reset(encoder,occlusion,0,2);
-    ogpu_next_image_barrier barrier = {image,range,0,OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE,
-        OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1};
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),0,OGPU_NEXT_STAGE_DEPTH,0,0,0,1,0,NULL,&barrier,bs,br.size};
+    ogpu_next_image_barrier barrier = {{0,0,0,OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE},image,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_barrier_scope dep_scope = {0,OGPU_NEXT_STAGE_DEPTH,0,0};
+    ogpu_next_host_span dep_scratch = {bs,br.size};
+    ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier};
     if (layered) {
-        barrier.new_state = OGPU_NEXT_STATE_COPY_DST; barrier.after = OGPU_NEXT_ACCESS_COPY_WRITE; dep.after = OGPU_NEXT_STAGE_CLEAR;
-        ogpu_next_barrier(encoder,&dep);
+        barrier.new_state = OGPU_NEXT_STATE_COPY_DST; barrier.scope.access_after = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.stages_after = OGPU_NEXT_STAGE_CLEAR;
+        common_barrier(encoder,&dep,&dep_scope,dep_scratch);
         ogpu_next_clear_value clear = {.depth_stencil={0.5f,0}};
         ogpu_next_clear_image(encoder,image,OGPU_NEXT_STATE_COPY_DST,&range,&clear);
         barrier.old_state = OGPU_NEXT_STATE_COPY_DST; barrier.new_state = OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT;
-        barrier.before = OGPU_NEXT_ACCESS_COPY_WRITE; barrier.after = OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE; barrier.discard = 0;
-        dep.before = OGPU_NEXT_STAGE_CLEAR; dep.after = OGPU_NEXT_STAGE_DEPTH;
+        barrier.scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; barrier.scope.access_after = OGPU_NEXT_ACCESS_DEPTH_READ | OGPU_NEXT_ACCESS_DEPTH_WRITE; barrier.discard = 0;
+        dep_scope.stages_before = OGPU_NEXT_STAGE_CLEAR; dep_scope.stages_after = OGPU_NEXT_STAGE_DEPTH;
     }
-    ogpu_next_barrier(encoder,&dep);
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     if (resolving) {
-        barrier.image = target; barrier.after = OGPU_NEXT_ACCESS_COLOR_WRITE;
-        dep.after = OGPU_NEXT_STAGE_COLOR; ogpu_next_barrier(encoder,&dep);
+        barrier.image = target; barrier.scope.access_after = OGPU_NEXT_ACCESS_COLOR_WRITE;
+        dep_scope.stages_after = OGPU_NEXT_STAGE_COLOR; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     }
     ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.depth_stencil={1,0}}};
     ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,8,8,1,0,1,0,0,NULL,&attachment,NULL,{NULL,0}};
@@ -168,9 +169,9 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     }
     ogpu_next_render_end(encoder);
     if (stencil_resolve) {
-        barrier.before = OGPU_NEXT_ACCESS_COLOR_WRITE; barrier.after = OGPU_NEXT_ACCESS_DEPTH_READ;
+        barrier.scope.access_before = OGPU_NEXT_ACCESS_COLOR_WRITE; barrier.scope.access_after = OGPU_NEXT_ACCESS_DEPTH_READ;
         barrier.old_state = OGPU_NEXT_STATE_DEPTH_STENCIL_ATTACHMENT; barrier.new_state = OGPU_NEXT_STATE_DEPTH_STENCIL_READ; barrier.discard = 0;
-        dep.before = OGPU_NEXT_STAGE_COLOR; dep.after = OGPU_NEXT_STAGE_DEPTH; ogpu_next_barrier(encoder,&dep);
+        dep_scope.stages_before = OGPU_NEXT_STAGE_COLOR; dep_scope.stages_after = OGPU_NEXT_STAGE_DEPTH; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
         attachment = (ogpu_next_attachment){target_view,NULL,OGPU_NEXT_STATE_DEPTH_STENCIL_READ,0,OGPU_NEXT_LOAD,OGPU_NEXT_STORE,0,{.depth_stencil={0,0}}};
         stencil = attachment; render.samples = 1;
         ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,probe);
@@ -182,15 +183,15 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         ogpu_next_render_end(encoder);
         ogpu_next_queries_resolve(encoder,occlusion,0,2,(ogpu_next_span){memory,512,16},8,OGPU_NEXT_QUERY_RESULT_64 | OGPU_NEXT_QUERY_RESULT_WAIT);
     } else {
-        barrier.before = barrier.after | (layered ? OGPU_NEXT_ACCESS_COPY_WRITE : 0); barrier.after = OGPU_NEXT_ACCESS_COPY_READ;
+        barrier.scope.access_before = barrier.scope.access_after | (layered ? OGPU_NEXT_ACCESS_COPY_WRITE : 0); barrier.scope.access_after = OGPU_NEXT_ACCESS_COPY_READ;
         barrier.old_state = barrier.new_state; barrier.new_state = OGPU_NEXT_STATE_COPY_SRC; barrier.discard = 0;
-        dep.before = resolving ? OGPU_NEXT_STAGE_COLOR : OGPU_NEXT_STAGE_DEPTH | (layered ? OGPU_NEXT_STAGE_CLEAR : 0);
-        dep.after = OGPU_NEXT_STAGE_COPY; ogpu_next_barrier(encoder,&dep);
+        dep_scope.stages_before = resolving ? OGPU_NEXT_STAGE_COLOR : OGPU_NEXT_STAGE_DEPTH | (layered ? OGPU_NEXT_STAGE_CLEAR : 0);
+        dep_scope.stages_after = OGPU_NEXT_STAGE_COPY; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
         ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_DEPTH,0,0,layers,{0,0,0},{8,8,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
         ogpu_next_copy_from_image(encoder,(ogpu_next_span){memory,512,256*layers},resolving ? target : image,&copy);
     }
-    dep.image_count = 0; dep.images = NULL; dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;
-    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ; ogpu_next_barrier(encoder,&dep);
+    dep.image_count = 0; dep.images = NULL; dep_scope.stages_before = OGPU_NEXT_STAGE_COPY; dep_scope.stages_after = OGPU_NEXT_STAGE_HOST;
+    dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};

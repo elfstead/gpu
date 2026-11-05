@@ -14,18 +14,18 @@ frames, native availability, explicit outcome effects and replacement/resize lif
 scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
 covers every installed operation, cross-family records and the ordered C2 cutover.
 The [C2 argument cutover](minimal-core-migration.md#c2-argument-public-cutover) is complete
-on Vulkan: foundation schema 4 exposes prepared layouts and one argument updater
+on Vulkan: foundation schema 5 exposes prepared layouts and one argument updater
 through C and direct Rust, with migrated compiler artifacts and consumers. The old
 argument adapters are deleted. The [public descriptor cutover](minimal-core-migration.md#c2-descriptor-public-cutover)
 is also complete: C/Rust heap locations, native shape/requirements queries and
 secondary inheritance use explicit heap objects. Raw-output/bind-record paths are
 deleted. The [generated-layout cutover](minimal-core-migration.md#c2-generated-argument-layout-cutover)
 is complete: explicit borrowed argument layouts, native address tokens, cold
-mapping checks and equivalent-layout execution pass locally. Per-entry dependencies
-and unified submission are active. The [private dependency engine](minimal-core-migration.md#c2-dependency-engine)
-now passes native per-entry lowering, split batching and replay checks. Next expose
-its records/query/scratch operations and migrate consumers, then implement unified
-submission outcomes. Presentation and the full C2 audit/local C3 follow.
+mapping checks and equivalent-layout execution pass locally. The [public dependency cutover](minimal-core-migration.md#c2-dependency-public-cutover)
+is complete: C/direct Rust use per-entry scopes, explicit shared scratch and enabled-domain
+limits. Old shared-stage/nested-scratch paths are removed and consumers migrated.
+Unified submission and explicit acceptance outcomes are next, followed by presentation
+and the full C2 audit/local C3.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch

@@ -344,9 +344,9 @@ pub unsafe fn copy_memory(list: ListHandle, dst: Span, src: Span) {
 /// # Safety
 /// Exclusive live pool; dependency arrays and scratch valid/disjoint, referenced
 /// resources live; caller supplies correct execution/access/ownership ordering.
-pub unsafe fn barrier(list: ListHandle, dependency: &Dependency) {
+pub unsafe fn barrier(list: ListHandle, dependency: &Dependency, scratch: HostSpan) {
     unsafe {
-        encode(list, |e| e.barrier(dependency));
+        encode(list, |e| e.barrier(dependency, scratch));
     }
 }
 pub fn submit_scratch_requirements(
@@ -356,8 +356,15 @@ pub fn submit_scratch_requirements(
 ) -> Result<HostRequirements> {
     native::submit_scratch(lists, waits, signals)
 }
-pub fn barrier_scratch_requirements(memory: u32, images: u32) -> Result<HostRequirements> {
-    native::barrier_scratch(memory, images)
+/// # Safety
+/// Live device.
+pub unsafe fn barrier_scratch_requirements(
+    device: DeviceHandle,
+    globals: u32,
+    memory: u32,
+    images: u32,
+) -> Result<HostRequirements> {
+    native::barrier_scratch(unsafe { device.get() }, globals, memory, images)
 }
 /// # Safety
 /// Live queue with exclusive host access; valid disjoint descriptor arrays/scratch.

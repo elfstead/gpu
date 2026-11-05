@@ -1,5 +1,5 @@
 //! Public native Rust compute/image checks; no C entry points or native GPU API.
-use super::{dependency, gpu};
+use super::{dependency, global_barrier, gpu};
 use ogpu::foundation::types::*;
 use std::{
     alloc::{alloc_zeroed, dealloc, Layout},
@@ -252,9 +252,9 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             gpu::set_arguments(list, arguments, 16, &5u32.to_ne_bytes());
             gpu::fill_memory(list, c.memory.span(1536, 4), 2);
             gpu::fill_memory(list, c.memory.span(1540, 8), 1);
-            gpu::barrier(
+            global_barrier(
                 list,
-                &dependency(
+                dependency(
                     STAGE_TRANSFER,
                     STAGE_INDIRECT,
                     ACCESS_COPY_WRITE,
@@ -262,9 +262,9 @@ unsafe fn compute(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                 ),
             );
             gpu::dispatch_indirect(list, c.memory.span(1536, 12), 0);
-            gpu::barrier(
+            global_barrier(
                 list,
-                &dependency(
+                dependency(
                     STAGE_COMPUTE,
                     STAGE_HOST,
                     ACCESS_SHADER_WRITE,
@@ -453,16 +453,21 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
         )?;
         gpu::heap_destroy(sampler_heap);
         gpu::heap_destroy(output_heap);
-        let mut bs = Storage::new(gpu::barrier_scratch_requirements(0, 1)?)?;
+        let mut bs = Storage::new(gpu::barrier_scratch_requirements(c.device, 0, 0, 1)?)?;
         for (phase, green) in [false, true, false].into_iter().enumerate() {
             ptr::write_bytes(c.mapping.data, 0xa5, 4096);
             gpu::memory_flush(c.memory.span(0, 4096))?;
             let list = gpu::commands_begin(c.arena, &recording())?;
             let mut barrier = ImageBarrier {
+                scope: BarrierScope {
+                    stages_before: 0,
+                    stages_after: STAGE_TRANSFER,
+                    access_before: 0,
+                    access_after: ACCESS_COPY_WRITE,
+                },
+                reserved: 0,
                 image: image.as_raw(),
                 range: full,
-                before: 0,
-                after: ACCESS_COPY_WRITE,
                 old_state: STATE_UNDEFINED,
                 new_state: STATE_COPY_DST,
                 source_domain: DOMAIN_IGNORED,
@@ -470,26 +475,26 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                 discard: 1,
             };
             let scratch = bs.span();
-            let mut dep = dependency(0, STAGE_TRANSFER, 0, 0);
-            dep.image_count = 1;
-            dep.images = &barrier;
-            dep.scratch = scratch.data;
-            dep.scratch_size = scratch.size;
-            gpu::barrier(list, &dep);
+            let mut dep = Dependency {
+                image_count: 1,
+                images: &barrier,
+                ..Default::default()
+            };
+            gpu::barrier(list, &dep, scratch);
             let color = if green {
                 [0.0, 1.0, 0.0, 1.0]
             } else {
                 [1.0, 0.0, 0.0, 1.0]
             };
             gpu::clear_image(list, image, STATE_COPY_DST, full, ClearValue { f32: color });
-            barrier.before = ACCESS_COPY_WRITE;
-            barrier.after = ACCESS_COPY_READ;
+            barrier.scope.access_before = ACCESS_COPY_WRITE;
+            barrier.scope.access_after = ACCESS_COPY_READ;
             barrier.old_state = STATE_COPY_DST;
             barrier.new_state = STATE_COPY_SRC;
             barrier.discard = 0;
+            barrier.scope.stages_before = STAGE_TRANSFER;
             dep.images = &barrier;
-            dep.before = STAGE_TRANSFER;
-            gpu::barrier(list, &dep);
+            gpu::barrier(list, &dep, scratch);
             gpu::copy_from_image(
                 list,
                 c.memory.span(256, 256),
@@ -509,9 +514,9 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                     reserved: 0,
                 },
             );
-            gpu::barrier(
+            global_barrier(
                 list,
-                &dependency(
+                dependency(
                     STAGE_TRANSFER,
                     STAGE_HOST,
                     ACCESS_COPY_WRITE,

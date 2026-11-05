@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 4u
+#define OGPU_NEXT_VERSION 5u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -72,7 +72,7 @@ enum {
     OGPU_NEXT_QUERY_MEMORY_BUDGETS = 16, /* Only memory_budget_query, not immutable queries. */
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
-    OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
+    OGPU_NEXT_SUBMIT_DESC = 104,
     OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
     OGPU_NEXT_SAMPLER_DESC = 108,
     OGPU_NEXT_EXECUTABLE_DESC = 110,
@@ -2103,9 +2103,22 @@ ogpu_next_status ogpu_next_submit_batch_scratch_requirements(uint32_t count, ogp
 ogpu_next_status ogpu_next_queue_submit_batch(ogpu_next_queue *, uint32_t count, const ogpu_next_submit_desc *descs, ogpu_next_host_span scratch);
 
 #define OGPU_NEXT_DOMAIN_IGNORED UINT32_MAX
+enum { OGPU_NEXT_QUERY_DEPENDENCY_LIMITS = 19,
+    OGPU_NEXT_DEPENDENCY_SPLIT = 1, OGPU_NEXT_DEPENDENCY_OWNERSHIP = 2, OGPU_NEXT_DEPENDENCY_BINARY = 4,
+    OGPU_NEXT_MEMORY_SCOPE_NONE = 0, OGPU_NEXT_MEMORY_SCOPE_OBJECT = 1, OGPU_NEXT_MEMORY_SCOPE_BYTES = 2 };
+/* Device-only query: one immutable record per enabled queue domain. Masks report
+ * representable scopes, not measured overlap. Other native validity rules apply. */
+typedef struct ogpu_next_dependency_limits {
+    uint32_t domain, flags, memory_scope, reserved;
+    ogpu_next_stages wait_stages, signal_stages, split_stages;
+} ogpu_next_dependency_limits;
+typedef struct ogpu_next_barrier_scope {
+    ogpu_next_stages stages_before, stages_after;
+    ogpu_next_access access_before, access_after;
+} ogpu_next_barrier_scope;
 typedef struct ogpu_next_memory_barrier {
+    ogpu_next_barrier_scope scope;
     ogpu_next_span range;
-    ogpu_next_access before, after;
     ogpu_next_queue_domain source_domain, destination_domain;
 } ogpu_next_memory_barrier;
 enum {
@@ -2116,24 +2129,23 @@ enum {
     OGPU_NEXT_STATE_PRESENT = 8 /* Borrowed swapchain images only; never elided. */
 };
 struct ogpu_next_image_barrier {
+    ogpu_next_barrier_scope scope;
     ogpu_next_image *image;
     ogpu_next_subresources range;
-    ogpu_next_access before, after;
     ogpu_next_image_state old_state, new_state;
     ogpu_next_queue_domain source_domain, destination_domain;
-    uint32_t discard;
+    uint32_t discard, reserved;
 };
 typedef struct ogpu_next_dependency {
-    ogpu_next_record header;
-    ogpu_next_stages before, after;
-    ogpu_next_access global_before, global_after;
-    uint32_t memory_count, image_count, flags;
+    uint32_t global_count, memory_count, image_count, flags;
+    const ogpu_next_barrier_scope *global;
     const ogpu_next_memory_barrier *memory;
     const ogpu_next_image_barrier *images;
-    void *scratch;
-    uint64_t scratch_size;
 } ogpu_next_dependency;
-/* One native batched dependency: global scopes plus optional backing ranges.
+/* One native batched dependency with independent per-entry scopes. Empty is a
+ * no-op; execution-only ordering is an explicit global entry with zero accesses.
+ * All local validation precedes the native command. Scratch is aligned, writable
+ * and disjoint from every input; outputs/arrays are borrowed only during the call.
  * Source/destination both IGNORED => no ownership transfer. Otherwise explicit
  * exclusive-family release/acquire endpoints require matching ranges/domains and
  * a queue timeline edge. No implicit owner tracking. Empty memory ranges invalid.
@@ -2144,8 +2156,8 @@ typedef struct ogpu_next_dependency {
  * new_state cannot be UNDEFINED. Depth/stencil combined formats currently require
  * both aspects in transitions (separate-layout enabling follows). flags=0.
  */
-ogpu_next_status ogpu_next_barrier_scratch_requirements(uint32_t memory_count, uint32_t image_count, ogpu_next_host_requirements *);
-void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
+ogpu_next_status ogpu_next_barrier_scratch_requirements(const ogpu_next_device *, uint32_t global_count, uint32_t memory_count, uint32_t image_count, ogpu_next_host_requirements *);
+void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_next_host_span scratch);
 /* Independent device-only split dependency. Creation is cold and initially
  * unsignaled. The caller keeps split/device and referenced resources alive through
  * all recorded future/pending uses; destruction never waits or retains commands.
@@ -2167,16 +2179,18 @@ void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *);
 ogpu_next_status ogpu_next_split_create(ogpu_next_device *, ogpu_next_split **);
 void ogpu_next_split_destroy(ogpu_next_split *);
 void ogpu_next_split_reset(ogpu_next_encoder *, const ogpu_next_split *, ogpu_next_stages before);
-void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_split *, const ogpu_next_dependency *);
+void ogpu_next_split_release(ogpu_next_encoder *, const ogpu_next_split *, const ogpu_next_dependency *, ogpu_next_host_span scratch);
 typedef struct ogpu_next_split_dependency {
     const ogpu_next_split *split;
     const ogpu_next_dependency *dependency;
 } ogpu_next_split_dependency;
-ogpu_next_status ogpu_next_split_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
+/* Counts/flags only: reads dependency records, not events or nested arrays.
+ * Both scratch queries leave output unchanged on failure; zero storage aligns to 1. */
+ogpu_next_status ogpu_next_split_scratch_requirements(const ogpu_next_device *, uint32_t count, const ogpu_next_split_dependency *, ogpu_next_host_requirements *);
 /* Batch acquire uses one native wait. Every local record validates first; failure
  * records no wait and poisons end. count=0 is a no-op on a valid encoder/domain.
- * Header scratch AND each dependency's range scratch must be mutually disjoint,
- * aligned and disjoint from inputs. All description/scratch storage is borrowed
+ * One scratch span covers all native headers and nested arrays, aligned and
+ * disjoint from inputs. All description/scratch storage is borrowed
  * only during the call and can be overwritten immediately. Duplicate event use,
  * endpoint compatibility and asynchronous lifetime are trusted caller obligations.
  */

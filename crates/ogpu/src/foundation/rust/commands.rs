@@ -70,8 +70,8 @@ record!(#[allow(clippy::too_many_arguments)]
     fn queries_resolve(list, pool: QueryPoolHandle, first: u32, count: u32, dst: Span, stride: u64, flags: u32) |e| e.queries_resolve(pool.get(), first, count, dst, stride, flags));
 record!(fn split_reset(list, split: SplitHandle, before: u64) |e| e.split_reset(split.get(), before));
 record!(/// Caller guarantees matching acquire and correct event-cycle/queue ordering.
-    fn split_release(list, split: SplitHandle, dependency: &Dependency) |e| e.split_release(split.get(), dependency));
-record!(fn split_acquire(list, waits: &[SplitDependency], scratch: HostSpan) |e| e.split_acquire(count(waits.len())?, waits.as_ptr(), scratch));
+    fn split_release(list, split: SplitHandle, dependency: &Dependency, scratch: HostSpan) |e| e.split_release(split.get(), dependency, scratch));
+record!(fn split_acquire(list, waits: &[SplitDependency], scratch: HostSpan) |e| e.split_acquire(waits, scratch));
 
 macro_rules! scratch {
     ($name:ident, $native:ident) => {
@@ -80,7 +80,16 @@ macro_rules! scratch {
         }
     };
 }
-scratch!(split_scratch_requirements, split_scratch);
+/// # Safety
+/// Live device; readable dependency records. Nested barrier arrays and split
+/// handles are not read by this counts/flags-only query.
+pub unsafe fn split_scratch_requirements(
+    device: DeviceHandle,
+    waits: &[SplitDependency],
+) -> Result<HostRequirements> {
+    count(waits.len())?;
+    unsafe { native::split_scratch(device.get(), waits) }
+}
 scratch!(submit_batch_scratch_requirements, submit_batch_scratch);
 scratch!(execute_scratch_requirements, execute_scratch);
 scratch!(inheritance_scratch_requirements, inheritance_scratch);

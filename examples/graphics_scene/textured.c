@@ -3,6 +3,7 @@
 #define SCENE_GENERATED
 #define SCENE_TEXTURE_CONSUMER
 #include "foundation.c"
+
 /* The linker intentionally never repacks stage banks. Reject future changes
  * that would make these two generated views disagree about shared inline bytes. */
 #define SAME_FIELD(name) _Static_assert(offsetof(Textured_scene_vertexArguments,name)==offsetof(Textured_scene_fragmentArguments,name),"shared texture root " #name)
@@ -122,17 +123,18 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
 }
 static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *directory) {
     Scene *s=&t->scene; NEED(texture_update(t,mode,frame==1) && begin(s));
-    ogpu_next_image_barrier b={t->texture,{OGPU_NEXT_ASPECT_COLOR,0,4,0,1},OGPU_NEXT_ACCESS_SAMPLED_READ,OGPU_NEXT_ACCESS_COPY_WRITE,
-        OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1};
-    ogpu_next_dependency dep={HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_COPY,0,0,0,1,0,NULL,&b,s->bs,s->barrier_scratch.size};
-    ogpu_next_barrier(s->encoder,&dep); unsigned offset=64;
+    ogpu_next_image_barrier b={{0,0,OGPU_NEXT_ACCESS_SAMPLED_READ,OGPU_NEXT_ACCESS_COPY_WRITE},t->texture,{OGPU_NEXT_ASPECT_COLOR,0,4,0,1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_COPY,0,0};
+    ogpu_next_host_span dep_scratch = {s->bs,s->barrier_scratch.size};
+    ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&b};
+    common_barrier(s->encoder,&dep,&dep_scope,dep_scratch); unsigned offset=64;
     for(unsigned mip=0;mip<4;++mip) {
         unsigned width=8u>>mip,size=width*width*4;
         ogpu_next_image_copy copy={{OGPU_NEXT_ASPECT_COLOR,mip,0,1,{0,0,0},{width,width,1}},0,0,OGPU_NEXT_STATE_COPY_DST,0};
         ogpu_next_copy_to_image(s->encoder,t->texture,span(s,CONTROL,offset,size),&copy); offset+=size;
     }
-    b.before=OGPU_NEXT_ACCESS_COPY_WRITE; b.after=OGPU_NEXT_ACCESS_SAMPLED_READ; b.old_state=OGPU_NEXT_STATE_COPY_DST; b.new_state=OGPU_NEXT_STATE_SHADER_READ; b.discard=0;
-    dep.before=OGPU_NEXT_STAGE_COPY;dep.after=OGPU_NEXT_STAGE_FRAGMENT;ogpu_next_barrier(s->encoder,&dep);
+    b.scope.access_before=OGPU_NEXT_ACCESS_COPY_WRITE; b.scope.access_after=OGPU_NEXT_ACCESS_SAMPLED_READ; b.old_state=OGPU_NEXT_STATE_COPY_DST; b.new_state=OGPU_NEXT_STATE_SHADER_READ; b.discard=0;
+    dep_scope.stages_before=OGPU_NEXT_STAGE_COPY;dep_scope.stages_after=OGPU_NEXT_STAGE_FRAGMENT;common_barrier(s->encoder,&dep,&dep_scope,dep_scratch);
     dependency(s,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_READ|OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_SHADER_WRITE);
     ogpu_next_bind_executable(s->encoder,s->prepare);
     Scene_prepareArguments root={.arg_vertices=s->root.vertices,.arg_indices=s->root.indices,.arg_draws=s->root.draws,.arg_phase=frame==1,.arg_empty=0};

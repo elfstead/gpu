@@ -1,5 +1,5 @@
 //! Headless mixed timeline/binary handoffs; all storage and reuse are caller-owned.
-use super::{dependency, gpu};
+use super::{dependency, global_barrier, gpu};
 use ogpu::foundation::types::*;
 use std::ptr;
 
@@ -73,9 +73,9 @@ pub unsafe fn run(
             let consumer = gpu::commands_begin(arena, &recording)?;
             // Binary semaphore dependency supplies the inter-submit memory order.
             gpu::copy_memory(consumer, memory.span(256, 256), memory.span(0, 256));
-            gpu::barrier(
+            global_barrier(
                 consumer,
-                &dependency(
+                dependency(
                     STAGE_TRANSFER,
                     STAGE_HOST,
                     ACCESS_COPY_WRITE,

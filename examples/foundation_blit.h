@@ -48,7 +48,7 @@ static int blit_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &arena));
-    TRY(ogpu_next_barrier_scratch_requirements(0, 3, &br));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0, 3, &br));
     TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size);
@@ -58,19 +58,17 @@ static int blit_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_list *list = NULL;
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     ogpu_next_image_barrier barriers[3];
-    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){images[i],
-        {OGPU_NEXT_ASPECT_COLOR, 0, i == 0 ? 2u : 1u, 0, 2}, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
-        OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE,
-        OGPU_NEXT_STATE_UNDEFINED, OGPU_NEXT_STATE_GENERAL, OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 1};
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_ALL,
-        OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_BLIT, 0, 0, 0, 3, 0, NULL, barriers, barrier_scratch, br.size};
-    ogpu_next_barrier(encoder, &dep);
+    for (uint32_t i = 0; i < 3; ++i) barriers[i] = (ogpu_next_image_barrier){{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COPY_READ | OGPU_NEXT_ACCESS_COPY_WRITE},images[i],{OGPU_NEXT_ASPECT_COLOR, 0, i == 0 ? 2u : 1u, 0, 2},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COPY | OGPU_NEXT_STAGE_BLIT,0,0};
+    ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
+    ogpu_next_dependency dep = {1,0,3,0,&dep_scope,NULL,barriers};
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR, 0, 0, 2, {0,0,0}, {8,4,1}}, 0, 0, OGPU_NEXT_STATE_GENERAL, 0};
     ogpu_next_copy_to_image(encoder, images[0], (ogpu_next_span){host,0,256}, &copy);
     dep.image_count = 0; dep.images = NULL;
-    dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_BLIT;
-    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_COPY_READ;
-    ogpu_next_barrier(encoder, &dep);
+    dep_scope.stages_before = OGPU_NEXT_STAGE_COPY; dep_scope.stages_after = OGPU_NEXT_STAGE_BLIT;
+    dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_COPY_READ;
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     ogpu_next_image_blit blit = {
         {OGPU_NEXT_ASPECT_COLOR, 0, 0, 2, {{8,0,0},{0,4,1}}},
         {OGPU_NEXT_ASPECT_COLOR, 0, 0, 2, {{0,0,0},{16,8,1}}},
@@ -83,18 +81,18 @@ static int blit_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     blit.destination.offsets[1] = (ogpu_next_offset){4,2,1};
     blit.filter = OGPU_NEXT_FILTER_LINEAR;
     ogpu_next_blit_image(encoder, images[0], images[0], &blit); /* explicitly chosen next mip */
-    dep.before = OGPU_NEXT_STAGE_BLIT; dep.after = OGPU_NEXT_STAGE_COPY;
-    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_COPY_READ;
-    ogpu_next_barrier(encoder, &dep);
+    dep_scope.stages_before = OGPU_NEXT_STAGE_BLIT; dep_scope.stages_after = OGPU_NEXT_STAGE_COPY;
+    dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_COPY_READ;
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     copy.region.mip = 1; copy.region.extent = (ogpu_next_extent){4,2,1};
     ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,256,64}, images[0], &copy);
     copy.region.mip = 0; copy.region.extent = (ogpu_next_extent){16,8,1};
     ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,512,1024}, images[1], &copy);
     copy.region.extent = (ogpu_next_extent){8,4,1};
     ogpu_next_copy_from_image(encoder, (ogpu_next_span){host,2048,1024}, images[2], &copy);
-    dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_HOST;
-    dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ;
-    ogpu_next_barrier(encoder, &dep);
+    dep_scope.stages_before = OGPU_NEXT_STAGE_COPY; dep_scope.stages_after = OGPU_NEXT_STAGE_HOST;
+    dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ;
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder, &list));
     ogpu_next_sync_point signal = {{done,1}, OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),

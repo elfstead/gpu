@@ -23,27 +23,24 @@ static int split_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     TRY(ogpu_next_image_bind(image, (ogpu_next_span){backing,0,req.size}));
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0};
     TRY(ogpu_next_arena_create(device, &ad, &producer)); TRY(ogpu_next_arena_create(device, &ad, &consumer));
-    TRY(ogpu_next_barrier_scratch_requirements(1,0,&br[0]));
-    TRY(ogpu_next_barrier_scratch_requirements(0,1,&br[1]));
-    TRY(ogpu_next_split_scratch_requirements(2,&wr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,1,0,&br[0]));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br[1]));
     TRY(ogpu_next_submit_scratch_requirements(2,1,1,&sr));
     REQUIRE(br[0].alignment <= _Alignof(max_align_t) && br[1].alignment <= _Alignof(max_align_t));
-    REQUIRE(wr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     ranges[0] = malloc((size_t)br[0].size); ranges[1] = malloc((size_t)br[1].size);
-    wait_scratch = malloc((size_t)wr.size); submit_scratch = malloc((size_t)sr.size);
-    REQUIRE(ranges[0] && ranges[1] && wait_scratch && submit_scratch);
-    ogpu_next_memory_barrier memory_barrier = {{host,1024,128}, OGPU_NEXT_ACCESS_COPY_WRITE, OGPU_NEXT_ACCESS_COPY_READ,
-        OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED};
+    submit_scratch = malloc((size_t)sr.size);
+    REQUIRE(ranges[0] && ranges[1] && submit_scratch);
+    ogpu_next_memory_barrier memory_barrier = {{OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},
+        {host,1024,128},OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED};
     ogpu_next_subresources all_texels = {OGPU_NEXT_ASPECT_COLOR,0,1,0,1};
-    ogpu_next_image_barrier image_barrier = {image, all_texels, OGPU_NEXT_ACCESS_COPY_WRITE, OGPU_NEXT_ACCESS_COPY_READ,
-        OGPU_NEXT_STATE_COPY_DST, OGPU_NEXT_STATE_COPY_SRC, OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 0};
-    ogpu_next_dependency deps[2] = {
-        {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_COPY, OGPU_NEXT_STAGE_COPY,
-            0,0,1,0,0,&memory_barrier,NULL,ranges[0],br[0].size},
-        {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_CLEAR, OGPU_NEXT_STAGE_COPY,
-            OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ,0,1,0,NULL,&image_barrier,ranges[1],br[1].size}
-    };
+    ogpu_next_image_barrier image_barrier = {{OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ},
+        image,all_texels,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    ogpu_next_barrier_scope global_scope = {OGPU_NEXT_STAGE_CLEAR,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_READ};
+    ogpu_next_dependency deps[2] = {{0,1,0,0,NULL,&memory_barrier,NULL},{1,0,1,0,&global_scope,NULL,&image_barrier}};
     ogpu_next_split_dependency waits[2] = {{splits[0],&deps[0]},{splits[1],&deps[1]}};
+    TRY(ogpu_next_split_scratch_requirements(device,2,waits,&wr));
+    REQUIRE(wr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
+    wait_scratch = malloc((size_t)wr.size); REQUIRE(wait_scratch);
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC), replay_mode, OGPU_NEXT_PRIMARY, NULL};
     ogpu_next_encoder *encoder = NULL;
     ogpu_next_list *lists[2] = {NULL};
@@ -58,28 +55,27 @@ static int split_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     ogpu_next_copy_memory(encoder,(ogpu_next_span){host,768,128},(ogpu_next_span){host,2048,128});
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{4,4,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
     ogpu_next_copy_from_image(encoder,(ogpu_next_span){host,1536,64},image,&copy);
-    ogpu_next_dependency visibility = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY), OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,
-        OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(encoder,&visibility);
+    ogpu_next_barrier_scope host_scope = {OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+    ogpu_next_dependency visibility = {1,0,0,0,&host_scope,NULL,NULL};
+    ogpu_next_barrier(encoder,&visibility,(ogpu_next_host_span){ranges[0],br[0].size});
     TRY(ogpu_next_commands_end(encoder,&lists[1]));
     TRY(ogpu_next_commands_begin(producer,&rd,&encoder));
     for (uint32_t i = 0; i < 2; ++i) ogpu_next_split_reset(encoder,splits[i],OGPU_NEXT_STAGE_ALL);
-    ogpu_next_dependency reset_edge = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_ALL,
-        0,0,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(encoder,&reset_edge); /* Explicit reset -> future release ordering. */
+    ogpu_next_barrier_scope reset_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_ALL,0,0};
+    ogpu_next_dependency reset_edge = {1,0,0,0,&reset_scope,NULL,NULL};
+    ogpu_next_barrier(encoder,&reset_edge,(ogpu_next_host_span){ranges[0],br[0].size});
     ogpu_next_image_barrier initial = image_barrier;
-    initial.before = 0; initial.after = OGPU_NEXT_ACCESS_COPY_WRITE;
+    initial.scope = (ogpu_next_barrier_scope){0,OGPU_NEXT_STAGE_CLEAR,0,OGPU_NEXT_ACCESS_COPY_WRITE};
     initial.old_state = OGPU_NEXT_STATE_UNDEFINED; initial.new_state = OGPU_NEXT_STATE_COPY_DST; initial.discard = 1;
-    ogpu_next_dependency transition = deps[1]; transition.before = 0; transition.global_before = 0;
-    transition.after = OGPU_NEXT_STAGE_CLEAR; transition.global_after = 0; transition.images = &initial;
-    ogpu_next_barrier(encoder,&transition);
+    ogpu_next_dependency transition = {0,0,1,0,NULL,NULL,&initial};
+    ogpu_next_barrier(encoder,&transition,(ogpu_next_host_span){ranges[1],br[1].size});
     ogpu_next_copy_memory(encoder,(ogpu_next_span){host,1024,128},(ogpu_next_span){host,0,128});
-    ogpu_next_split_release(encoder,splits[0],&deps[0]);
+    ogpu_next_split_release(encoder,splits[0],&deps[0],(ogpu_next_host_span){ranges[0],br[0].size});
     /* Independent work between release A and the eventual acquire. */
     ogpu_next_fill_memory(encoder,(ogpu_next_span){host,2048,128},UINT32_C(0x10203040));
     ogpu_next_clear_value blue = {.f32 = {0,0,1,1}};
     ogpu_next_clear_image(encoder,image,OGPU_NEXT_STATE_COPY_DST,&all_texels,&blue);
-    ogpu_next_split_release(encoder,splits[1],&deps[1]);
+    ogpu_next_split_release(encoder,splits[1],&deps[1],(ogpu_next_host_span){ranges[1],br[1].size});
     for (uint32_t i = 0; i < 2; ++i) memset(ranges[i],0xdd,(size_t)br[i].size);
     TRY(ogpu_next_commands_end(encoder,&lists[0]));
     TRY(ogpu_next_timeline_create(device,0,&done)); TRY(ogpu_next_timeline_create(device,0,&gate));
@@ -110,9 +106,9 @@ static int split_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         TRY(ogpu_next_arena_reset(consumer)); TRY(ogpu_next_commands_begin(consumer,&rd,&encoder));
         if (bad == 0) ogpu_next_split_reset(encoder,splits[0],OGPU_NEXT_STAGE_HOST);
         if (bad == 1) ogpu_next_split_acquire(encoder,2,waits,(ogpu_next_host_span){wait_scratch,wr.size-1});
-        if (bad == 2) { deps[1].header.version++; ogpu_next_split_acquire(encoder,2,waits,(ogpu_next_host_span){wait_scratch,wr.size}); deps[1].header.version--; }
-        if (bad == 3) { deps[0].before |= OGPU_NEXT_STAGE_HOST; ogpu_next_split_release(encoder,splits[0],&deps[0]); deps[0].before &= ~OGPU_NEXT_STAGE_HOST; }
-        if (bad == 4) ogpu_next_split_release(encoder,NULL,&deps[0]);
+        if (bad == 2) { deps[1].flags++; ogpu_next_split_acquire(encoder,2,waits,(ogpu_next_host_span){wait_scratch,wr.size}); deps[1].flags--; }
+        if (bad == 3) { memory_barrier.scope.stages_before |= OGPU_NEXT_STAGE_HOST; ogpu_next_split_release(encoder,splits[0],&deps[0],(ogpu_next_host_span){ranges[0],br[0].size}); memory_barrier.scope.stages_before &= ~OGPU_NEXT_STAGE_HOST; }
+        if (bad == 4) ogpu_next_split_release(encoder,NULL,&deps[0],(ogpu_next_host_span){ranges[0],br[0].size});
         REQUIRE(ogpu_next_commands_end(encoder,&lists[1]) == (bad == 1 ? OGPU_NEXT_CAPACITY : bad == 2 ? OGPU_NEXT_UNSUPPORTED : OGPU_NEXT_INVALID) && lists[1] == NULL);
     }
     printf("Split dependencies pass: independent recording order, one batched acquire, range + image transition, explicit reset, replay mode %u, host-gated execution and guards.\n",replay_mode);

@@ -108,21 +108,22 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
             ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
             ogpu_next_bind_executable(encoder,pipelines[0]); ogpu_next_set_arguments(encoder, producer_arguments, 0, sizeof(control), &control);
             ogpu_next_launch launch = {{1,1,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
-            ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,
-                separate ? OGPU_NEXT_STAGE_PREPROCESS : OGPU_NEXT_STAGE_INDIRECT,OGPU_NEXT_ACCESS_STORAGE_WRITE,
-                separate ? OGPU_NEXT_ACCESS_PREPROCESS_READ : OGPU_NEXT_ACCESS_INDIRECT_READ,0,0,0,NULL,NULL,NULL,0};
-            ogpu_next_barrier(encoder,&dep); ogpu_next_bind_executable(encoder,pipelines[1]);
+            ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COMPUTE,separate ? OGPU_NEXT_STAGE_PREPROCESS : OGPU_NEXT_STAGE_INDIRECT,OGPU_NEXT_ACCESS_STORAGE_WRITE,separate ? OGPU_NEXT_ACCESS_PREPROCESS_READ : OGPU_NEXT_ACCESS_INDIRECT_READ};
+    max_align_t dep_bytes[16];
+    ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+    ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
+            common_barrier(encoder,&dep,&dep_scope,dep_scratch); ogpu_next_bind_executable(encoder,pipelines[1]);
             uint64_t zero[4] = {0}; ogpu_next_set_arguments(encoder, arguments, 0, sizeof(zero), zero);
             ogpu_next_generated_batch batch = {work,{memory,64,112},storage,seed == 3 ? (ogpu_next_span){NULL,0,0} : (ogpu_next_span){memory,512,4}};
             if (separate) {
                 ogpu_next_generated_preprocess(encoder,&batch,encoder);
-                dep.before = OGPU_NEXT_STAGE_PREPROCESS; dep.after = OGPU_NEXT_STAGE_INDIRECT;
-                dep.global_before = OGPU_NEXT_ACCESS_PREPROCESS_WRITE; dep.global_after = OGPU_NEXT_ACCESS_INDIRECT_READ;
-                ogpu_next_barrier(encoder,&dep);
+                dep_scope.stages_before = OGPU_NEXT_STAGE_PREPROCESS; dep_scope.stages_after = OGPU_NEXT_STAGE_INDIRECT;
+                dep_scope.access_before = OGPU_NEXT_ACCESS_PREPROCESS_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_INDIRECT_READ;
+                common_barrier(encoder,&dep,&dep_scope,dep_scratch);
             }
             ogpu_next_generated_execute(encoder,&batch,separate);
-            dep.before = OGPU_NEXT_STAGE_COMPUTE; dep.after = OGPU_NEXT_STAGE_HOST;
-            dep.global_before = OGPU_NEXT_ACCESS_STORAGE_WRITE; dep.global_after = OGPU_NEXT_ACCESS_HOST_READ; ogpu_next_barrier(encoder,&dep);
+            dep_scope.stages_before = OGPU_NEXT_STAGE_COMPUTE; dep_scope.stages_after = OGPU_NEXT_STAGE_HOST;
+            dep_scope.access_before = OGPU_NEXT_ACCESS_STORAGE_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
             TRY(ogpu_next_commands_end(encoder,&list));
             ogpu_next_sync_point signal = {{done,++value},OGPU_NEXT_STAGE_ALL};
             ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};

@@ -37,32 +37,34 @@ static int alias_execution(ogpu_next_device *device, ogpu_next_memory_desc host_
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_host_requirements br = {0}, sr = {0};
-    TRY(ogpu_next_barrier_scratch_requirements(0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size); REQUIRE(barrier_scratch && submit_scratch);
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     for (uint32_t step = 0; step < 3; ++step) {
         uint32_t which = step % 2;
-        ogpu_next_image_barrier image = {images[which],{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},0,OGPU_NEXT_ACCESS_COPY_WRITE,
-            OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1};
+        ogpu_next_image_barrier image = {{0,0,0,OGPU_NEXT_ACCESS_COPY_WRITE},images[which],{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COPY_DST,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
         /* Global availability covers writes through the OTHER image alias. An
          * image-only barrier on the new alias would not cover those accesses.
          * Execution ordering also waits for prior readback before overwriting. */
-        ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COPY,
-            OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_WRITE,0,1,0,NULL,&image,barrier_scratch,br.size};
-        ogpu_next_barrier(encoder,&dep);
+        ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_COPY,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_COPY_WRITE};
+    ogpu_next_host_span dep_scratch = {barrier_scratch,br.size};
+    ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&image};
+        common_barrier(encoder,&dep,&dep_scope,dep_scratch);
         ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},desc[which].extent},0,0,OGPU_NEXT_STATE_COPY_DST,0};
         ogpu_next_copy_to_image(encoder,images[which],(ogpu_next_span){host,128+step*512,256},&copy);
-        dep.global_before = dep.global_after = 0;
-        image.before = OGPU_NEXT_ACCESS_COPY_WRITE; image.after = OGPU_NEXT_ACCESS_COPY_READ;
+        dep_scope.access_before = dep_scope.access_after = 0;
+        image.scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; image.scope.access_after = OGPU_NEXT_ACCESS_COPY_READ;
         image.old_state = OGPU_NEXT_STATE_COPY_DST; image.new_state = OGPU_NEXT_STATE_COPY_SRC; image.discard = 0;
-        ogpu_next_barrier(encoder,&dep); copy.state = OGPU_NEXT_STATE_COPY_SRC;
+        common_barrier(encoder,&dep,&dep_scope,dep_scratch); copy.state = OGPU_NEXT_STATE_COPY_SRC;
         ogpu_next_copy_from_image(encoder,(ogpu_next_span){host,2048+step*512,256},images[which],&copy);
     }
-    ogpu_next_dependency host_dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,
-        OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(encoder,&host_dep); TRY(ogpu_next_commands_end(encoder,&list));
+    ogpu_next_barrier_scope host_dep_scope = {OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+    max_align_t host_dep_bytes[16];
+    ogpu_next_host_span host_dep_scratch = {host_dep_bytes,sizeof(host_dep_bytes)};
+    ogpu_next_dependency host_dep = {1,0,0,0,&host_dep_scope,NULL,NULL};
+    common_barrier(encoder,&host_dep,&host_dep_scope,host_dep_scratch); TRY(ogpu_next_commands_end(encoder,&list));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,submit_scratch,sr.size};
     for (uint32_t replay = 0; replay < 3; ++replay) {

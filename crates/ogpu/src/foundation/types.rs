@@ -22,7 +22,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 4;
+pub const VERSION: u32 = 5;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -414,7 +414,6 @@ pub const MEMORY_DESC: u32 = 101;
 pub const ARENA_DESC: u32 = 102;
 pub const RECORDING_DESC: u32 = 103;
 pub const SUBMIT_DESC: u32 = 104;
-pub const DEPENDENCY: u32 = 105;
 pub const IMAGE_DESC: u32 = 106;
 pub const VIEW_DESC: u32 = 107;
 pub const SAMPLER_DESC: u32 = 108;
@@ -596,11 +595,7 @@ pub struct ImageLimits {
     pub sample_counts: u32,
     pub max_resource_size: u64,
 }
-#[repr(C)]
-pub struct SplitDependency {
-    pub split: *const super::Split,
-    pub dependency: *const Dependency,
-}
+
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct SubgroupLimits {
@@ -1076,18 +1071,7 @@ pub union ClearValue {
     pub i32: [i32; 4],
     pub depth_stencil: DepthStencil,
 }
-#[repr(C)]
-pub struct ImageBarrier {
-    pub image: *mut super::Image,
-    pub range: Subresources,
-    pub before: u64,
-    pub after: u64,
-    pub old_state: u32,
-    pub new_state: u32,
-    pub source_domain: u32,
-    pub destination_domain: u32,
-    pub discard: u32,
-}
+
 pub const MEMORY_LIMITS: u32 = 6;
 pub const RASTER: u64 = 1;
 pub const FLOAT16: u64 = 2;
@@ -1270,29 +1254,6 @@ impl SubmitDesc {
         header.validate::<Self>(SUBMIT_DESC)
     }
 }
-#[repr(C)]
-pub struct MemoryBarrier {
-    pub range: Span,
-    pub before: u64,
-    pub after: u64,
-    pub source_domain: u32,
-    pub destination_domain: u32,
-}
-#[repr(C)]
-pub struct Dependency {
-    pub header: Record,
-    pub before: u64,
-    pub after: u64,
-    pub global_before: u64,
-    pub global_after: u64,
-    pub memory_count: u32,
-    pub image_count: u32,
-    pub flags: u32,
-    pub memory: *const MemoryBarrier,
-    pub images: *const ImageBarrier,
-    pub scratch: *mut c_void,
-    pub scratch_size: u64,
-}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -1434,4 +1395,71 @@ pub struct DescriptorCopy {
     pub source: HeapLocation,
     pub destination: HeapLocation,
     pub size: u64,
+}
+
+// Per-entry dependencies and immutable enabled-domain capabilities.
+pub const DEPENDENCY_LIMITS: u32 = 19;
+pub const MEMORY_SCOPE_NONE: u32 = 0;
+pub const MEMORY_SCOPE_OBJECT: u32 = 1;
+pub const DEPENDENCY_SPLIT: u32 = 1;
+pub const DEPENDENCY_OWNERSHIP: u32 = 2;
+pub const DEPENDENCY_BINARY: u32 = 4;
+pub const MEMORY_SCOPE_BYTES: u32 = 2;
+
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct DependencyLimits {
+    pub domain: u32,
+    pub flags: u32,
+    pub memory_scope: u32,
+    pub reserved: u32,
+    pub wait_stages: u64,
+    pub signal_stages: u64,
+    pub split_stages: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct BarrierScope {
+    pub stages_before: u64,
+    pub stages_after: u64,
+    pub access_before: u64,
+    pub access_after: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MemoryBarrier {
+    pub scope: BarrierScope,
+    pub range: Span,
+    pub source_domain: u32,
+    pub destination_domain: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ImageBarrier {
+    pub scope: BarrierScope,
+    pub image: *mut super::Image,
+    pub range: Subresources,
+    pub old_state: u32,
+    pub new_state: u32,
+    pub source_domain: u32,
+    pub destination_domain: u32,
+    pub discard: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct Dependency {
+    pub global_count: u32,
+    pub memory_count: u32,
+    pub image_count: u32,
+    pub flags: u32,
+    pub global: *const BarrierScope,
+    pub memory: *const MemoryBarrier,
+    pub images: *const ImageBarrier,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SplitDependency {
+    pub split: *const super::Split,
+    pub dependency: *const Dependency,
 }

@@ -55,12 +55,14 @@ pub unsafe extern "C" fn ogpu_next_split_release(
     encoder: *mut List,
     split: *const Split,
     dep: *const Dependency,
+    scratch: HostSpan,
 ) {
     unsafe {
         encode(encoder, |e| {
             e.split_release(
                 split.as_ref().ok_or(INVALID)?,
-                description(dep, DEPENDENCY)?,
+                dep.as_ref().ok_or(INVALID)?,
+                scratch,
             )
         });
     }
@@ -69,12 +71,19 @@ pub unsafe extern "C" fn ogpu_next_split_release(
 /// Disjoint writable requirements output.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_split_scratch_requirements(
+    device: *const Device,
     count: u32,
+    waits: *const SplitDependency,
     out: *mut HostRequirements,
 ) -> Status {
     boundary(|| {
         let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
-        *out = rust::split_scratch_requirements(count)?;
+        *out = unsafe {
+            rust::split_scratch_requirements(
+                rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+                native::command_slice(waits, count)?,
+            )?
+        };
         Ok(())
     })
 }
@@ -88,7 +97,9 @@ pub unsafe extern "C" fn ogpu_next_split_acquire(
     storage: HostSpan,
 ) {
     unsafe {
-        encode(encoder, |e| e.split_acquire(count, waits, storage));
+        encode(encoder, |e| {
+            e.split_acquire(native::command_slice(waits, count)?, storage)
+        });
     }
 }
 
@@ -273,6 +284,8 @@ pub unsafe extern "C" fn ogpu_next_submit_scratch_requirements(
 /// Writable requirements output.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_barrier_scratch_requirements(
+    device: *const Device,
+    global_count: u32,
     memory_count: u32,
     image_count: u32,
     out: *mut HostRequirements,
@@ -281,7 +294,14 @@ pub unsafe extern "C" fn ogpu_next_barrier_scratch_requirements(
         if out.is_null() {
             return Err(INVALID);
         }
-        let requirements = rust::barrier_scratch_requirements(memory_count, image_count)?;
+        let requirements = unsafe {
+            rust::barrier_scratch_requirements(
+                rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+                global_count,
+                memory_count,
+                image_count,
+            )?
+        };
         unsafe {
             out.write(requirements);
         }
@@ -723,10 +743,16 @@ pub unsafe extern "C" fn ogpu_next_fill_memory(encoder: *mut List, dst: Span, pa
 /// # Safety
 /// Exclusive pool access; live ranges and scratch disjoint from every input/object.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_next_barrier(encoder: *mut List, dep: *const Dependency) {
+pub unsafe extern "C" fn ogpu_next_barrier(
+    encoder: *mut List,
+    dep: *const Dependency,
+    scratch: HostSpan,
+) {
     unsafe {
         // Decode the C record inside shared recording error handling.
-        encode(encoder, |e| e.barrier(description(dep, DEPENDENCY)?));
+        encode(encoder, |e| {
+            e.barrier(dep.as_ref().ok_or(INVALID)?, scratch)
+        });
     }
 }
 /// # Safety

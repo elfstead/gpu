@@ -38,9 +38,11 @@ static int submission_batches(ogpu_next_device *device, ogpu_next_memory_desc me
     rd.replay_mode = OGPU_NEXT_SERIAL_REPLAY;
     TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_copy_memory(encoder,(ogpu_next_span){memory,512,256},(ogpu_next_span){memory,0,256});
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,
-        OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(encoder,&dep);
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+    max_align_t dep_bytes[16];
+    ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+    ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&lists[1]));
     ogpu_next_sync_point producer = {{edge,1},OGPU_NEXT_STAGE_CLEAR};
     ogpu_next_sync_point waits[2] = {{{edge,1},OGPU_NEXT_STAGE_COPY},{{gate,1},OGPU_NEXT_STAGE_ALL}};

@@ -2,6 +2,7 @@ use super::*;
 
 fn fixture() -> Snapshot {
     Snapshot {
+        dependency_limits: Vec::new(),
         cache_uuid: [0; 16],
         info: AdapterInfo {
             name: [0; 256],
@@ -74,6 +75,51 @@ fn query_capacity_is_atomic_and_reports_full_count() {
     assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
     assert_eq!(output.as_slice(), snapshot.queues);
 }
+#[test]
+fn dependency_limits_are_device_only_and_preserve_capacity_outputs() {
+    let mut snapshot = fixture();
+    let sentinel = DependencyLimits {
+        domain: 99,
+        flags: 0,
+        memory_scope: 0,
+        reserved: 0,
+        wait_stages: 0,
+        signal_stages: 0,
+        split_stages: 0,
+    };
+    let mut output = [sentinel; 2];
+    let mut q = query(DEPENDENCY_LIMITS, &mut output);
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(UNSUPPORTED));
+    assert_eq!(q.count, 91);
+    assert_eq!(output, [sentinel; 2]);
+    snapshot.features.device_scope = 1;
+    snapshot.dependency_limits = vec![
+        DependencyLimits {
+            domain: 3,
+            flags: 7,
+            memory_scope: MEMORY_SCOPE_BYTES,
+            ..sentinel
+        },
+        DependencyLimits {
+            domain: 8,
+            flags: DEPENDENCY_OWNERSHIP | DEPENDENCY_BINARY,
+            memory_scope: MEMORY_SCOPE_BYTES,
+            ..sentinel
+        },
+    ];
+    q.capacity = 1;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(CAPACITY));
+    assert_eq!(q.count, 2);
+    assert_eq!(output, [sentinel; 2]);
+    q.capacity = 2;
+    q.element_size -= 4;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Err(INVALID));
+    assert_eq!(output, [sentinel; 2]);
+    q.element_size = size_of::<DependencyLimits>() as u32;
+    assert_eq!(unsafe { snapshot.query(&mut q) }, Ok(()));
+    assert_eq!(output.as_slice(), snapshot.dependency_limits);
+}
+
 #[test]
 fn mesh_limits_are_an_exact_single_record_query() {
     let mut snapshot = fixture();
@@ -273,13 +319,13 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<HostRequirements>(), 16);
     assert_eq!(size_of::<SyncPoint>(), 24);
     assert_eq!(size_of::<SubmitDesc>(), 80);
-    assert_eq!(size_of::<MemoryBarrier>(), 48);
-    assert_eq!(size_of::<Dependency>(), 104);
+    assert_eq!(size_of::<MemoryBarrier>(), 64);
+    assert_eq!(size_of::<Dependency>(), 40);
     assert_eq!(std::mem::offset_of!(SubmitDesc, scratch), 64);
-    assert_eq!(std::mem::offset_of!(Dependency, scratch), 88);
+    assert_eq!(std::mem::offset_of!(Dependency, global), 16);
     assert_eq!(size_of::<ImageDesc>(), 96);
     assert_eq!(size_of::<ViewDesc>(), 72);
-    assert_eq!(size_of::<ImageBarrier>(), 72);
+    assert_eq!(size_of::<ImageBarrier>(), 88);
     assert_eq!(size_of::<ImageCopy>(), 64);
     assert_eq!(size_of::<ClearValue>(), 16);
     assert_eq!(size_of::<DescriptorLimits>(), 56);

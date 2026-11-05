@@ -185,22 +185,35 @@ impl Image {
         }
     }
 }
-pub fn dependency(before: u64, after: u64, src: u64, dst: u64) -> Dependency {
-    Dependency {
-        header: Record::new::<Dependency>(DEPENDENCY),
-        before,
-        after,
-        global_before: src,
-        global_after: dst,
-        memory_count: 0,
-        image_count: 0,
-        flags: 0,
-        memory: ptr::null(),
-        images: ptr::null(),
-        scratch: ptr::null_mut(),
-        scratch_size: 0,
+pub fn dependency(before: u64, after: u64, src: u64, dst: u64) -> BarrierScope {
+    BarrierScope {
+        stages_before: before,
+        stages_after: after,
+        access_before: src,
+        access_after: dst,
     }
 }
+/// Caller-owned bounded scratch for these single-global dependencies. A future
+/// backend needing more storage reports a recording failure; no native ABI assumed.
+pub unsafe fn global_barrier(list: gpu::ListHandle, scope: BarrierScope) {
+    let mut bytes = [0u64; 64];
+    let dep = Dependency {
+        global_count: 1,
+        global: &scope,
+        ..Default::default()
+    };
+    unsafe {
+        gpu::barrier(
+            list,
+            &dep,
+            HostSpan {
+                data: bytes.as_mut_ptr().cast(),
+                size: std::mem::size_of_val(&bytes) as u64,
+            },
+        );
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub unsafe fn transition(
     list: gpu::ListHandle,
@@ -215,10 +228,15 @@ pub unsafe fn transition(
     scratch: &mut Scratch,
 ) {
     let barrier = ImageBarrier {
+        scope: BarrierScope {
+            stages_before: before,
+            stages_after: after,
+            access_before: src,
+            access_after: dst,
+        },
+        reserved: 0,
         image: image.as_raw(),
         range,
-        before: src,
-        after: dst,
         old_state: old,
         new_state: new,
         source_domain: DOMAIN_IGNORED,
@@ -226,13 +244,13 @@ pub unsafe fn transition(
         discard: u32::from(old == STATE_UNDEFINED),
     };
     let storage = scratch.span();
-    let mut dep = dependency(before, after, 0, 0);
-    dep.image_count = 1;
-    dep.images = &barrier;
-    dep.scratch = storage.data;
-    dep.scratch_size = storage.size;
+    let dep = Dependency {
+        image_count: 1,
+        images: &barrier,
+        ..Default::default()
+    };
     unsafe {
-        gpu::barrier(list, &dep);
+        gpu::barrier(list, &dep, storage);
     }
 }
 pub unsafe fn raster(

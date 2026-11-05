@@ -4,6 +4,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Caller policy for these fixtures: resource entries share one stage pair.
+ * The API itself takes independent scopes; this helper edits caller-owned entries
+ * before recording. Arrays must be mutable; no resources or payloads are copied. */
+static inline void common_barrier_scopes(ogpu_next_dependency *d, ogpu_next_barrier_scope *s) {
+    d->global = s;
+    d->global_count = (s->access_before || s->access_after || (!d->memory_count && !d->image_count)) ? 1u : 0u;
+    for (uint32_t i=0;i<d->memory_count;++i) {
+        ogpu_next_memory_barrier *b=(ogpu_next_memory_barrier *)d->memory+i;
+        b->scope.stages_before=s->stages_before; b->scope.stages_after=s->stages_after;
+    }
+    for (uint32_t i=0;i<d->image_count;++i) {
+        ogpu_next_image_barrier *b=(ogpu_next_image_barrier *)d->images+i;
+        b->scope.stages_before=s->stages_before; b->scope.stages_after=s->stages_after;
+    }
+}
+static inline void common_barrier(ogpu_next_encoder *e, ogpu_next_dependency *d,
+    ogpu_next_barrier_scope *s, ogpu_next_host_span scratch) {
+    common_barrier_scopes(d,s); ogpu_next_barrier(e,d,scratch);
+}
+
+
 #define HEADER(type, kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
 #define REQUIRE(c) do { if (!(c)) { fprintf(stderr,"line %d: %s\n",__LINE__,#c); goto cleanup; } } while (0)
 #define TRY(call) do { ogpu_next_status s_ = (call); if (s_ != OGPU_NEXT_OK) { fprintf(stderr,"%s: %" PRId32 "\n",#call,s_); goto cleanup; } } while (0)
@@ -72,13 +94,15 @@ int main(void) {
     ogpu_next_set_arguments(encoder, arguments, 0, sizeof(args), &args);
     memset(&args,0xcc,sizeof(args)); /* Command owns immediate bytes, not this host struct. */
     ogpu_next_launch launch = {{groups,1,1},0,NULL};
-    ogpu_next_dependency edge = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,
-        OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE,0,0,0,NULL,NULL,NULL,0};
+    ogpu_next_barrier_scope edge_scope = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ | OGPU_NEXT_ACCESS_STORAGE_WRITE};
+    max_align_t edge_bytes[16];
+    ogpu_next_host_span edge_scratch = {edge_bytes,sizeof(edge_bytes)};
+    ogpu_next_dependency edge = {1,0,0,0,&edge_scope,NULL,NULL};
     for (uint32_t pass = 0; pass < 3; ++pass) {
-        if (pass) ogpu_next_barrier(encoder,&edge);
+        if (pass) common_barrier(encoder,&edge,&edge_scope,edge_scratch);
         ogpu_next_dispatch(encoder,&launch);
     }
-    edge.after = OGPU_NEXT_STAGE_HOST; edge.global_after = OGPU_NEXT_ACCESS_HOST_READ; ogpu_next_barrier(encoder,&edge);
+    edge_scope.stages_after = OGPU_NEXT_STAGE_HOST; edge_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&edge,&edge_scope,edge_scratch);
     TRY(ogpu_next_commands_end(encoder,&list));
     ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     REQUIRE(sr.alignment <= _Alignof(max_align_t)); scratch = malloc((size_t)sr.size); REQUIRE(scratch != NULL);

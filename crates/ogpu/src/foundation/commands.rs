@@ -4,16 +4,16 @@ use super::*;
 #[path = "generated_commands.rs"]
 mod generated_commands;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
-// C2 engine checkpoint; remove the allowance at public/consumer cutover.
 #[path = "dependencies.rs"]
-#[allow(dead_code)]
-mod dependencies;
+pub(super) mod dependencies;
 #[path = "secondary.rs"]
 mod secondary;
 #[path = "splits.rs"]
 mod splits;
+pub(in crate::foundation) use dependencies::{
+    barrier_requirements as barrier_scratch, split_requirements as split_scratch,
+};
 pub(in crate::foundation) use secondary::{execute_scratch, inheritance_scratch};
-pub(in crate::foundation) use splits::split_scratch;
 pub use splits::Split;
 
 pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
@@ -531,22 +531,6 @@ pub(in crate::foundation) fn submit_scratch(
         alignment: layout.align() as u64,
     })
 }
-fn barrier_layout(memory: u32, images: u32) -> Result<(Layout, usize), Status> {
-    let (layout, offset) = array_layout::<vk::VkBufferMemoryBarrier2>(memory)?
-        .extend(array_layout::<vk::VkImageMemoryBarrier2>(images)?)
-        .map_err(|_| INVALID)?;
-    Ok((layout.pad_to_align(), offset))
-}
-pub(in crate::foundation) fn barrier_scratch(
-    memory: u32,
-    images: u32,
-) -> Result<HostRequirements, Status> {
-    let (layout, _) = barrier_layout(memory, images)?;
-    Ok(HostRequirements {
-        size: layout.size() as u64,
-        alignment: layout.align() as u64,
-    })
-}
 pub(super) fn scratch(
     pointer: *mut c_void,
     size: u64,
@@ -562,7 +546,10 @@ pub(super) fn scratch(
     }
     Ok(pointer.cast())
 }
-pub(super) unsafe fn slice<'a, T>(pointer: *const T, count: u32) -> Result<&'a [T], Status> {
+pub(in crate::foundation) unsafe fn slice<'a, T>(
+    pointer: *const T,
+    count: u32,
+) -> Result<&'a [T], Status> {
     array_layout::<T>(count)?;
     if count == 0 {
         return Ok(&[]);
@@ -795,96 +782,6 @@ impl List {
             }
         }
         Ok(())
-    }
-    pub(in crate::foundation) unsafe fn barrier(&self, dep: &Dependency) -> Result<(), Status> {
-        let d = self.outside_render()?;
-        let mut global = vk::VkMemoryBarrier2::default();
-        let info = unsafe { self.translate_dependency(dep, &mut global)? };
-        unsafe {
-            (d.f.vkCmdPipelineBarrier2.unwrap())(self.command, &info);
-        }
-        Ok(())
-    }
-    // global and dep.scratch must stay at stable addresses through the native call.
-    unsafe fn translate_dependency(
-        &self,
-        dep: &Dependency,
-        global: &mut vk::VkMemoryBarrier2,
-    ) -> Result<vk::VkDependencyInfo, Status> {
-        let d = self.outside_render()?;
-        dep.header.validate::<Dependency>(DEPENDENCY)?;
-        if dep.flags != 0 {
-            return Err(UNSUPPORTED);
-        }
-        let before = stages(d, self.domain, dep.before, false)?;
-        let after = stages(d, self.domain, dep.after, false)?;
-        *global = vk::VkMemoryBarrier2 {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-            srcStageMask: before,
-            dstStageMask: after,
-            srcAccessMask: scoped_access(d, self.domain, dep.global_before, dep.before)?,
-            dstAccessMask: scoped_access(d, self.domain, dep.global_after, dep.after)?,
-            ..Default::default()
-        };
-        let ranges = unsafe { slice(dep.memory, dep.memory_count)? };
-        let storage = scratch(
-            dep.scratch,
-            dep.scratch_size,
-            barrier_scratch(dep.memory_count, dep.image_count)?,
-        )?
-        .cast::<vk::VkBufferMemoryBarrier2>();
-        for (i, range) in ranges.iter().enumerate() {
-            let mut native = unsafe {
-                dependencies::buffer_barrier(
-                    d,
-                    self.domain,
-                    range.range,
-                    range.source_domain,
-                    range.destination_domain,
-                )?
-            };
-            native.srcStageMask = before;
-            native.dstStageMask = after;
-            native.srcAccessMask = scoped_access(d, self.domain, range.before, dep.before)?;
-            native.dstAccessMask = scoped_access(d, self.domain, range.after, dep.after)?;
-            unsafe {
-                storage.add(i).write(native);
-            }
-        }
-        let (_, image_offset) = barrier_layout(dep.memory_count, dep.image_count)?;
-        let image_storage = storage
-            .cast::<u8>()
-            .wrapping_add(image_offset)
-            .cast::<vk::VkImageMemoryBarrier2>();
-        for (i, b) in unsafe { slice(dep.images, dep.image_count)? }
-            .iter()
-            .enumerate()
-        {
-            let image = unsafe { b.image.as_ref() }.ok_or(INVALID)?;
-            let mut native = image.barrier(self.device, self.domain, b)?;
-            native.srcStageMask = before;
-            native.dstStageMask = after;
-            native.srcAccessMask = scoped_access(d, self.domain, b.before, dep.before)?;
-            native.dstAccessMask = scoped_access(d, self.domain, b.after, dep.after)?;
-            unsafe {
-                image_storage.add(i).write(native);
-            }
-        }
-        let info = vk::VkDependencyInfo {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-            memoryBarrierCount: u32::from(
-                (dep.memory_count == 0 && dep.image_count == 0)
-                    || dep.global_before != 0
-                    || dep.global_after != 0,
-            ),
-            pMemoryBarriers: global,
-            bufferMemoryBarrierCount: dep.memory_count,
-            pBufferMemoryBarriers: storage,
-            imageMemoryBarrierCount: dep.image_count,
-            pImageMemoryBarriers: image_storage,
-            ..Default::default()
-        };
-        Ok(info)
     }
     pub(in crate::foundation) fn clear_image(
         &self,

@@ -1,77 +1,13 @@
 //! C2 dependency engine. Per-entry native scopes and one caller-owned scratch
 //! span; no stage union, endpoint registry, host allocation or state inference.
-//! Records remain private until the coordinated public/consumer cutover.
 //! Unsafe calls require readable arrays/live objects and suitably aligned,
 //! writable scratch disjoint from every input. No endpoint matching, pending-use
 //! tracking or asynchronous lifetime proof is inferred from the records.
 use super::*;
 
-pub(super) const DEPENDENCY_SPLIT: u32 = 1;
-pub(super) const DEPENDENCY_OWNERSHIP: u32 = 2;
-pub(super) const DEPENDENCY_BINARY: u32 = 4;
-pub(super) const MEMORY_SCOPE_BYTES: u32 = 2;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct DependencyLimits {
-    pub domain: u32,
-    pub flags: u32,
-    pub memory_scope: u32,
-    pub reserved: u32,
-    pub wait_stages: u64,
-    pub signal_stages: u64,
-    pub split_stages: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Default)]
-pub(super) struct BarrierScope {
-    pub stages_before: u64,
-    pub stages_after: u64,
-    pub access_before: u64,
-    pub access_after: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub(super) struct MemoryBarrier {
-    pub scope: BarrierScope,
-    pub range: Span,
-    pub source_domain: u32,
-    pub destination_domain: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub(super) struct ImageBarrier {
-    pub scope: BarrierScope,
-    pub image: *mut Image,
-    pub range: Subresources,
-    pub old_state: u32,
-    pub new_state: u32,
-    pub source_domain: u32,
-    pub destination_domain: u32,
-    pub discard: u32,
-    pub reserved: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Default)]
-pub(super) struct Dependency {
-    pub global_count: u32,
-    pub memory_count: u32,
-    pub image_count: u32,
-    pub flags: u32,
-    pub global: *const BarrierScope,
-    pub memory: *const MemoryBarrier,
-    pub images: *const ImageBarrier,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub(super) struct SplitDependency {
-    pub split: *const Split,
-    pub dependency: *const Dependency,
-}
-
 // Cold capability derivation uses exactly the validators used at recording and
 // submission. Scope bits describe representability, not measured concurrency.
-pub(super) fn limits(domain: u32, flags: u32, enabled: u64) -> DependencyLimits {
+pub(in crate::foundation) fn limits(domain: u32, flags: u32, enabled: u64) -> DependencyLimits {
     let mut supported = 0;
     for bit in 0..23 {
         let scope = 1 << bit;
@@ -112,7 +48,7 @@ fn requirements(layout: Layout) -> HostRequirements {
         alignment: layout.align() as u64,
     }
 }
-pub(super) fn barrier_requirements(
+pub(in crate::foundation) fn barrier_requirements(
     d: &Device,
     globals: u32,
     memory: u32,
@@ -141,7 +77,7 @@ unsafe fn split_layout(waits: &[SplitDependency]) -> Result<Layout, Status> {
     }
     Ok(result.pad_to_align())
 }
-pub(super) unsafe fn split_requirements(
+pub(in crate::foundation) unsafe fn split_requirements(
     d: &Device,
     waits: &[SplitDependency],
 ) -> Result<HostRequirements, Status> {
@@ -168,7 +104,6 @@ fn scope(
     })
 }
 
-// Shared with the currently installed translator until its public cutover.
 // Preserve native buffer identity/range and exclusive ownership endpoints.
 pub(super) unsafe fn buffer_barrier(
     d: &Device,
@@ -266,28 +201,9 @@ impl List {
             .iter()
             .enumerate()
         {
-            if entry.reserved != 0 {
-                return Err(INVALID);
-            }
             let s = scope(d, self.domain, entry.scope, split)?;
             let image = unsafe { entry.image.as_ref() }.ok_or(INVALID)?;
-            // Only image identity/state fields are consumed by the existing image
-            // validator. Remove this stack record when the public record migrates.
-            let mut native = image.barrier(
-                d,
-                self.domain,
-                &super::ImageBarrier {
-                    image: entry.image,
-                    range: entry.range,
-                    before: 0,
-                    after: 0,
-                    old_state: entry.old_state,
-                    new_state: entry.new_state,
-                    source_domain: entry.source_domain,
-                    destination_domain: entry.destination_domain,
-                    discard: entry.discard,
-                },
-            )?;
+            let mut native = image.barrier(d, self.domain, entry)?;
             native.srcStageMask = s.srcStageMask;
             native.dstStageMask = s.dstStageMask;
             native.srcAccessMask = s.srcAccessMask;
@@ -319,7 +235,7 @@ impl List {
             ..Default::default()
         })
     }
-    pub(super) unsafe fn barrier_entries(
+    pub(in crate::foundation) unsafe fn barrier(
         &self,
         dep: &Dependency,
         storage: HostSpan,
@@ -333,7 +249,7 @@ impl List {
         }
         Ok(())
     }
-    pub(super) unsafe fn split_release_entries(
+    pub(in crate::foundation) unsafe fn split_release(
         &self,
         split: &Split,
         dep: &Dependency,
@@ -347,7 +263,7 @@ impl List {
         }
         Ok(())
     }
-    pub(super) unsafe fn split_acquire_entries(
+    pub(in crate::foundation) unsafe fn split_acquire(
         &self,
         waits: &[SplitDependency],
         storage: HostSpan,

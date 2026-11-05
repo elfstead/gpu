@@ -28,6 +28,7 @@ mod memory;
 pub use memory::Memory;
 #[path = "commands.rs"]
 mod commands;
+pub(super) use commands::slice as command_slice;
 pub(super) use commands::{
     barrier_scratch, execute_scratch, inheritance_scratch, split_scratch, submit_batch_scratch,
     submit_scratch, vertex_scratch,
@@ -610,6 +611,7 @@ pub(super) fn snapshot(
         }
     }
     Ok(Snapshot {
+        dependency_limits: Vec::new(),
         cache_uuid,
         info: AdapterInfo {
             name: info.name,
@@ -736,6 +738,12 @@ impl Device {
                 .find(|r| r.domain == q.domain)
                 .map_or(0, |r| r.count);
         }
+        snapshot.dependency_limits = snapshot
+            .queues
+            .iter()
+            .filter(|q| q.count != 0)
+            .map(|q| commands::dependencies::limits(q.domain, q.flags, enabled))
+            .collect();
         let mut result = Box::new(Self {
             physical: adapter.physical,
             handle: ptr::null_mut(),

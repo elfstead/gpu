@@ -44,6 +44,7 @@ use types::*;
 
 #[derive(Clone)]
 struct Snapshot {
+    dependency_limits: Vec<DependencyLimits>,
     cache_uuid: [u8; 16],
     info: AdapterInfo,
     queues: Vec<QueueInfo>,
@@ -124,6 +125,9 @@ impl Snapshot {
                 MATRIX_TUPLES => copy_out(query, &self.matrix_tuples),
                 INTEGER_DOT_INFO => copy_out(query, std::slice::from_ref(&self.integer_dot)),
                 MESH_LIMITS => copy_out(query, std::slice::from_ref(&self.mesh_limits)),
+                DEPENDENCY_LIMITS if self.features.device_scope != 0 => {
+                    copy_out(query, &self.dependency_limits)
+                }
                 GENERATED_LIMITS => copy_out(query, std::slice::from_ref(&self.generated_limits)),
                 FORMATS => copy_out(query, &self.formats),
                 _ => Err(UNSUPPORTED),

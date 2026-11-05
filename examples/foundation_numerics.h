@@ -65,11 +65,14 @@ static int numeric_execution(ogpu_next_device *device, ogpu_next_memory_desc des
     ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     ogpu_next_launch launch = {{atomics ? 2u : 1u,1,1},0,NULL};
     ogpu_next_dispatch(encoder,&launch);
-    ogpu_next_dependency dependency = {0};
-    dependency.header = (ogpu_next_record)HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY);
-    dependency.before = OGPU_NEXT_STAGE_COMPUTE; dependency.after = OGPU_NEXT_STAGE_HOST;
-    dependency.global_before = OGPU_NEXT_ACCESS_SHADER_WRITE; dependency.global_after = OGPU_NEXT_ACCESS_HOST_READ;
-    ogpu_next_barrier(encoder,&dependency);
+    ogpu_next_barrier_scope dependency_scope = {0,0,0,0};
+    max_align_t dependency_bytes[16];
+    ogpu_next_host_span dependency_scratch = {dependency_bytes,sizeof(dependency_bytes)};
+    ogpu_next_dependency dependency = {1,0,0,0,&dependency_scope,NULL,NULL};
+
+    dependency_scope.stages_before = OGPU_NEXT_STAGE_COMPUTE; dependency_scope.stages_after = OGPU_NEXT_STAGE_HOST;
+    dependency_scope.access_before = OGPU_NEXT_ACCESS_SHADER_WRITE; dependency_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ;
+    common_barrier(encoder,&dependency,&dependency_scope,dependency_scratch);
     TRY(ogpu_next_commands_end(encoder,&list));
     TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_host_requirements sr = {0};

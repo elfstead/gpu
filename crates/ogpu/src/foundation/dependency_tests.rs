@@ -346,6 +346,7 @@ fn span(memory: &Memory, offset: u64, size: u64) -> Span {
 #[test]
 #[ignore = "requires modern Vulkan; C2 per-entry scope lowering, whole-call rejection, split matching and GPU replay"]
 fn gpu_dependency_entries() {
+    use crate::foundation as api;
     let instance = Arc::new(Instance::new().unwrap());
     let mut tested = 0;
     for physical in instance.physical_devices().unwrap() {
@@ -373,6 +374,47 @@ fn gpu_dependency_entries() {
         }];
         let mut d = Device::create(&adapter, &requests, RASTER).unwrap();
         intercept(&mut d);
+        let mut reported = limits(domain, GRAPHICS | COMPUTE | TRANSFER, RASTER);
+        let expected = reported;
+        reported.flags = 0;
+        let mut q = Query {
+            header: Record::new::<Query>(DEPENDENCY_LIMITS),
+            data: ptr::from_mut(&mut reported).cast(),
+            capacity: 1,
+            count: 99,
+            element_size: size_of::<DependencyLimits>() as u32,
+            reserved: 0,
+        };
+        assert_eq!(unsafe { api::ogpu_next_device_query(&*d, &mut q) }, OK);
+        assert_eq!(q.count, 1);
+        assert_eq!(reported, expected);
+        let sentinel = HostRequirements {
+            size: 991,
+            alignment: 32,
+        };
+        let mut req = sentinel;
+        assert_eq!(
+            unsafe { api::ogpu_next_barrier_scratch_requirements(ptr::null(), 1, 0, 0, &mut req) },
+            INVALID
+        );
+        assert_eq!(req, sentinel);
+        assert_eq!(
+            unsafe { api::ogpu_next_split_scratch_requirements(&*d, 1, ptr::null(), &mut req) },
+            INVALID
+        );
+        assert_eq!(req, sentinel);
+        assert_eq!(
+            unsafe { api::ogpu_next_split_scratch_requirements(&*d, 0, ptr::null(), &mut req) },
+            OK
+        );
+        assert_eq!(
+            req,
+            HostRequirements {
+                size: 0,
+                alignment: 1
+            }
+        );
+
         let m = memory(&d);
         let other = Device::create(&adapter, &requests, RASTER).unwrap();
         let foreign = memory(&other);
@@ -451,9 +493,12 @@ fn gpu_dependency_entries() {
         let mut a = arena(&d, domain, 1);
         let p = begin(&mut a);
         let list = unsafe { &*p };
-        unsafe { list.barrier_entries(&Dependency::default(), empty_storage()) }.unwrap();
+        unsafe { list.barrier(&Dependency::default(), empty_storage()) }.unwrap();
         assert!(BARRIERS.with_borrow(|v| v.is_empty()));
-        unsafe { list.barrier_entries(&dep, storage.span()) }.unwrap();
+        unsafe {
+            api::ogpu_next_barrier(p, &dep, storage.span());
+        }
+        assert_eq!(list.error.get(), OK);
         let seen = BARRIERS.with_borrow(|v| {
             assert_eq!(v.len(), 1);
             v[0].clone()
@@ -520,7 +565,7 @@ fn gpu_dependency_entries() {
         ] {
             assert_eq!(
                 unsafe {
-                    list.barrier_entries(
+                    list.barrier(
                         &Dependency {
                             images: &bad,
                             ..dep
@@ -547,7 +592,7 @@ fn gpu_dependency_entries() {
         ] {
             assert_eq!(
                 unsafe {
-                    list.barrier_entries(
+                    list.barrier(
                         &Dependency {
                             memory: &bad,
                             ..dep
@@ -560,7 +605,7 @@ fn gpu_dependency_entries() {
         }
         assert_eq!(
             unsafe {
-                list.barrier_entries(
+                list.barrier(
                     &dep,
                     HostSpan {
                         size: storage.size - 1,
@@ -572,7 +617,7 @@ fn gpu_dependency_entries() {
         );
         assert_eq!(
             unsafe {
-                list.barrier_entries(
+                list.barrier(
                     &dep,
                     HostSpan {
                         data: storage.span().data.cast::<u8>().wrapping_add(1).cast(),
@@ -583,7 +628,7 @@ fn gpu_dependency_entries() {
             Err(INVALID)
         );
         assert_eq!(
-            unsafe { list.barrier_entries(&Dependency { flags: 1, ..dep }, storage.span()) },
+            unsafe { list.barrier(&Dependency { flags: 1, ..dep }, storage.span()) },
             Err(UNSUPPORTED)
         );
         assert_eq!(BARRIERS.with_borrow(Vec::len), 1); // No valid prefix leaked.
@@ -592,7 +637,7 @@ fn gpu_dependency_entries() {
             stages_after: 4,
             ..Default::default()
         }];
-        unsafe { list.barrier_entries(&global(&execution), storage.span()) }.unwrap();
+        unsafe { list.barrier(&global(&execution), storage.span()) }.unwrap();
         assert_eq!(
             BARRIERS.with_borrow(|v| v.last().unwrap().globals.clone()),
             vec![[
@@ -603,6 +648,19 @@ fn gpu_dependency_entries() {
             ]]
         );
         list.end().unwrap();
+        a.reset(false).unwrap();
+        let rejected = begin(&mut a);
+        let mut out = ptr::dangling_mut();
+        let calls = BARRIERS.with_borrow(Vec::len);
+        unsafe {
+            api::ogpu_next_barrier(rejected, &Dependency { flags: 1, ..dep }, storage.span());
+        }
+        assert_eq!(
+            unsafe { api::ogpu_next_commands_end(rejected, &mut out) },
+            UNSUPPORTED
+        );
+        assert!(out.is_null());
+        assert_eq!(BARRIERS.with_borrow(Vec::len), calls);
         a.reset(false).unwrap();
 
         // Execute changed-host-data replay with explicit event reset, two split
@@ -633,7 +691,7 @@ fn gpu_dependency_entries() {
         p.split_reset(&split_a, 1).unwrap();
         p.split_reset(&split_b, 1).unwrap();
         unsafe {
-            p.barrier_entries(
+            p.barrier(
                 &global(&[BarrierScope {
                     stages_before: 1,
                     stages_after: 1,
@@ -644,12 +702,12 @@ fn gpu_dependency_entries() {
         }
         .unwrap();
         unsafe { p.fill(span(&m, 0, 64), 0x11223344) }.unwrap();
-        unsafe { p.split_release_entries(&split_a, &deps[0], storage.span()) }.unwrap();
+        unsafe { p.split_release(&split_a, &deps[0], storage.span()) }.unwrap();
         unsafe { p.fill(span(&m, 128, 64), 0x55667788) }.unwrap();
-        unsafe { p.split_release_entries(&split_b, &deps[1], storage.span()) }.unwrap();
+        unsafe { p.split_release(&split_b, &deps[1], storage.span()) }.unwrap();
         unsafe { p.fill(span(&m, 256, 64), 0xaabbccdd) }.unwrap();
         p.end().unwrap();
-        unsafe { c.split_acquire_entries(&[], empty_storage()) }.unwrap();
+        unsafe { c.split_acquire(&[], empty_storage()) }.unwrap();
         assert!(WAITS.with_borrow(|v| v.is_empty()));
         let invalid = [
             waits[0],
@@ -659,13 +717,13 @@ fn gpu_dependency_entries() {
             },
         ];
         assert_eq!(
-            unsafe { c.split_acquire_entries(&invalid, wait_storage.span()) },
+            unsafe { c.split_acquire(&invalid, wait_storage.span()) },
             Err(INVALID)
         );
         let host_fields = [host_edge()];
         let host = global(&host_fields);
         assert_eq!(
-            unsafe { c.split_release_entries(&split_a, &host, storage.span()) },
+            unsafe { c.split_release(&split_a, &host, storage.span()) },
             Err(INVALID)
         );
         let invalid = [
@@ -676,12 +734,12 @@ fn gpu_dependency_entries() {
             },
         ];
         assert_eq!(
-            unsafe { c.split_acquire_entries(&invalid, wait_storage.span()) },
+            unsafe { c.split_acquire(&invalid, wait_storage.span()) },
             Err(INVALID)
         );
         assert_eq!(
             unsafe {
-                c.split_acquire_entries(
+                c.split_acquire(
                     &waits,
                     HostSpan {
                         size: wait_storage.size - 1,
@@ -693,7 +751,7 @@ fn gpu_dependency_entries() {
         );
         assert!(WAITS.with_borrow(|v| v.is_empty()));
         assert_eq!(SETS.with_borrow(Vec::len), 2);
-        unsafe { c.split_acquire_entries(&waits, wait_storage.span()) }.unwrap();
+        unsafe { c.split_acquire(&waits, wait_storage.span()) }.unwrap();
         assert_eq!(
             WAITS.with_borrow(|v| {
                 assert_eq!(v.len(), 1);
@@ -704,7 +762,7 @@ fn gpu_dependency_entries() {
         unsafe { c.copy(span(&m, 512, 64), span(&m, 0, 64)) }.unwrap();
         unsafe { c.copy(span(&m, 640, 64), span(&m, 128, 64)) }.unwrap();
         unsafe { c.copy(span(&m, 768, 64), span(&m, 384, 64)) }.unwrap();
-        unsafe { c.barrier_entries(&host, storage.span()) }.unwrap();
+        unsafe { c.barrier(&host, storage.span()) }.unwrap();
         c.end().unwrap();
         let timeline = Timeline::create(&d, 0).unwrap();
         let mut submit_storage = Storage::new(submit_scratch(2, 0, 1).unwrap());

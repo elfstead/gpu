@@ -74,8 +74,10 @@ static int matrix_execution(ogpu_next_device *device, ogpu_next_memory_desc md, 
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
     ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     ogpu_next_launch launch = {{2,1,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_HOST,
-        OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0}; ogpu_next_barrier(encoder,&dep);
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+    max_align_t dep_bytes[16];
+    ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+    ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL}; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     REQUIRE(sr.alignment <= _Alignof(max_align_t)); scratch = malloc((size_t)sr.size); REQUIRE(scratch != NULL);

@@ -9,7 +9,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+/* Caller policy for these fixtures: resource entries share one stage pair.
+ * The API itself takes independent scopes; this helper edits caller-owned entries
+ * before recording. Arrays must be mutable; no resources or payloads are copied. */
+static inline void common_barrier_scopes(ogpu_next_dependency *d, ogpu_next_barrier_scope *s) {
+    d->global = s;
+    d->global_count = (s->access_before || s->access_after || (!d->memory_count && !d->image_count)) ? 1u : 0u;
+    for (uint32_t i=0;i<d->memory_count;++i) {
+        ogpu_next_memory_barrier *b=(ogpu_next_memory_barrier *)d->memory+i;
+        b->scope.stages_before=s->stages_before; b->scope.stages_after=s->stages_after;
+    }
+    for (uint32_t i=0;i<d->image_count;++i) {
+        ogpu_next_image_barrier *b=(ogpu_next_image_barrier *)d->images+i;
+        b->scope.stages_before=s->stages_before; b->scope.stages_after=s->stages_after;
+    }
+}
+static inline void common_barrier(ogpu_next_encoder *e, ogpu_next_dependency *d,
+    ogpu_next_barrier_scope *s, ogpu_next_host_span scratch) {
+    common_barrier_scopes(d,s); ogpu_next_barrier(e,d,scratch);
+}
+
 #include <time.h>
+
 #define HEADER(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
 #define REQUIRE(c) do { if (!(c)) { fprintf(stderr,"line %d: %s\n",__LINE__,#c); goto cleanup; } } while (0)
 #define TRY(call) do { ogpu_next_status s_ = (call); if (s_ != OGPU_NEXT_OK) { fprintf(stderr,"%s: %" PRId32 "\n",#call,s_); goto cleanup; } } while (0)
@@ -58,8 +80,11 @@ cleanup:
     return result;
 }
 static void dependency(ogpu_next_encoder *encoder, uint64_t before, uint64_t after, uint64_t before_access, uint64_t after_access) {
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),before,after,before_access,after_access,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(encoder,&dep);
+    ogpu_next_barrier_scope dep_scope = {before,after,before_access,after_access};
+    max_align_t dep_bytes[16];
+    ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+    ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
 }
 static void dispatch(ogpu_next_encoder *encoder, ogpu_next_executable *pipeline, ogpu_next_argument_layout *arguments, Launch grid, const void *args, uint32_t bytes) {
     ogpu_next_bind_executable(encoder,pipeline); ogpu_next_set_arguments(encoder, arguments, 0, bytes, args);
@@ -67,11 +92,11 @@ static void dispatch(ogpu_next_encoder *encoder, ogpu_next_executable *pipeline,
 }
 static void image_readback(ogpu_next_encoder *encoder, ogpu_next_image *target, ogpu_next_memory *readback,
     uint32_t width, uint32_t height, size_t bytes, void *scratch, uint64_t scratch_size) {
-    ogpu_next_image_barrier barrier = {target,{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ,
-        OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0};
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,
-        0,0,0,1,0,NULL,&barrier,scratch,scratch_size};
-    ogpu_next_barrier(encoder,&dep);
+    ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_COLOR_WRITE,OGPU_NEXT_ACCESS_COPY_READ},target,{OGPU_NEXT_ASPECT_COLOR,0,1,0,1},OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_STATE_COPY_SRC,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,0,0};
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_COLOR,OGPU_NEXT_STAGE_COPY,0,0};
+    ogpu_next_host_span dep_scratch = {scratch,scratch_size};
+    ogpu_next_dependency dep = {1,0,1,0,&dep_scope,NULL,&barrier};
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     ogpu_next_image_copy copy = {{OGPU_NEXT_ASPECT_COLOR,0,0,1,{0,0,0},{width,height,1}},0,0,OGPU_NEXT_STATE_COPY_SRC,0};
     ogpu_next_copy_from_image(encoder,(ogpu_next_span){readback,GUARD,bytes},target,&copy);
 }
@@ -184,7 +209,7 @@ int main(int argc, char **argv) {
     ogpu_next_view_desc vd = {HEADER(ogpu_next_view_desc,OGPU_NEXT_VIEW_DESC),OGPU_NEXT_RGBA8_UNORM,OGPU_NEXT_VIEW_2D,OGPU_NEXT_IMAGE_COLOR_ATTACHMENT,{0,0,0,0},range};
     TRY(ogpu_next_view_create(target,&vd,&view));
     ogpu_next_host_requirements br = {0}, rr = {0}, sr = {0};
-    TRY(ogpu_next_barrier_scratch_requirements(0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && rr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); rs = malloc((size_t)rr.size); ss = malloc((size_t)sr.size); REQUIRE(bs && rs && ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,resident ? 3u : 1u,OGPU_NEXT_PRIMARY,0};
@@ -252,10 +277,11 @@ int main(int argc, char **argv) {
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
         dispatch(encoder, kernels[2], arguments[2], process_grid, &process, sizeof(process));
         dependency(encoder,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_STORAGE_READ);
-        ogpu_next_image_barrier barrier = {target,range,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COLOR_WRITE,
-            OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1};
-        ogpu_next_dependency image_dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COLOR,0,0,0,1,0,NULL,&barrier,bs,br.size};
-        ogpu_next_barrier(encoder,&image_dep);
+        ogpu_next_image_barrier barrier = {{0,0,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_COLOR_WRITE},target,range,OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_COLOR_ATTACHMENT,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+        ogpu_next_barrier_scope image_dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_COLOR,0,0};
+    ogpu_next_host_span image_dep_scratch = {bs,br.size};
+    ogpu_next_dependency image_dep = {1,0,1,0,&image_dep_scope,NULL,&barrier};
+        common_barrier(encoder,&image_dep,&image_dep_scope,image_dep_scratch);
         ogpu_next_attachment attachment = {view,NULL,OGPU_NEXT_STATE_COLOR_ATTACHMENT,0,OGPU_NEXT_CLEAR,OGPU_NEXT_STORE,0,{.f32={0,0,0,1}}};
         ogpu_next_render_desc render = {HEADER(ogpu_next_render_desc,OGPU_NEXT_RENDER_DESC),0,0,ow,oh,1,0,1,0,1,&attachment,NULL,NULL,{rs,rr.size}};
         ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,(float)ow,(float)oh,0,1,0,0,ow,oh};

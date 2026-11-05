@@ -322,19 +322,18 @@ bool ogpu_pl_frame_collect(pl_gpu gpu, unsigned slot, bool wait)
 // Conservative single-queue consumer hazards, not runtime-inserted barriers.
 static void order(ogpu_next_encoder *batch)
 {
-    const ogpu_next_dependency dep = {RECORD(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY),
-        OGPU_NEXT_STAGE_ALL, OGPU_NEXT_STAGE_ALL, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
-        OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE, 0, 0, 0, NULL, NULL, NULL, 0};
-    ogpu_next_barrier(batch, &dep);
+    const ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE};
+        max_align_t dep_bytes[16];
+        const ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+        const ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
+    ogpu_next_barrier(batch,&dep,dep_scratch);
 }
 static void discard_image(struct backend *b, ogpu_next_encoder *batch, struct texture *t)
 {
-    const ogpu_next_image_barrier image = {t->image, {OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1},
-        OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE, OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,
-        OGPU_NEXT_STATE_UNDEFINED, OGPU_NEXT_STATE_GENERAL, OGPU_NEXT_DOMAIN_IGNORED, OGPU_NEXT_DOMAIN_IGNORED, 1};
-    const ogpu_next_dependency dep = {RECORD(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY),
-        OGPU_NEXT_STAGE_ALL, OGPU_NEXT_STAGE_ALL, 0, 0, 0, 1, 0, NULL, &image, b->scratch.data, b->scratch.size};
-    ogpu_next_barrier(batch, &dep);
+    const ogpu_next_image_barrier image = {{OGPU_NEXT_STAGE_ALL,OGPU_NEXT_STAGE_ALL,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE,OGPU_NEXT_ACCESS_READ | OGPU_NEXT_ACCESS_WRITE},t->image,{OGPU_NEXT_ASPECT_COLOR, 0, 1, 0, 1},OGPU_NEXT_STATE_UNDEFINED,OGPU_NEXT_STATE_GENERAL,OGPU_NEXT_DOMAIN_IGNORED,OGPU_NEXT_DOMAIN_IGNORED,1,0};
+    const ogpu_next_host_span dep_scratch = {b->scratch.data,b->scratch.size};
+        const ogpu_next_dependency dep = {0,0,1,0,NULL,NULL,&image};
+    ogpu_next_barrier(batch,&dep,dep_scratch);
 }
 
 static void mark_use(pl_gpu gpu, struct texture *t)
@@ -393,10 +392,11 @@ static bool transfer(pl_gpu gpu, pl_tex tex, void *ptr, bool upload,
     } else {
         REQUIRE(t->initialized, "readback of unwritten image");
         ogpu_next_copy_from_image(batch, span(staging), t->image, &copy);
-        const ogpu_next_dependency host = {RECORD(ogpu_next_dependency, OGPU_NEXT_DEPENDENCY),
-            OGPU_NEXT_STAGE_COPY, OGPU_NEXT_STAGE_HOST, OGPU_NEXT_ACCESS_COPY_WRITE, OGPU_NEXT_ACCESS_HOST_READ,
-            0, 0, 0, NULL, NULL, NULL, 0};
-        ogpu_next_barrier(batch, &host);
+        const ogpu_next_barrier_scope host_scope = {OGPU_NEXT_STAGE_COPY,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_COPY_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+        max_align_t host_bytes[16];
+        const ogpu_next_host_span host_scratch = {host_bytes,sizeof(host_bytes)};
+        const ogpu_next_dependency host = {1,0,0,0,&host_scope,NULL,NULL};
+        ogpu_next_barrier(batch,&host,host_scratch);
     }
     if (!finish(gpu, batch, NULL, NULL)) goto fail;
     t->initialized = true;
@@ -875,7 +875,7 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     ogpu_next_host_requirements scratch[5];
     TRY(ogpu_next_descriptor_scratch_requirements(b->device,OGPU_NEXT_DESCRIPTOR_WRITE_RESOURCE, 1, &scratch[0]));
     TRY(ogpu_next_descriptor_scratch_requirements(b->device,OGPU_NEXT_DESCRIPTOR_WRITE_SAMPLER, 1, &scratch[1]));
-    TRY(ogpu_next_barrier_scratch_requirements(0, 1, &scratch[2]));
+    TRY(ogpu_next_barrier_scratch_requirements(b->device,1,0,1, &scratch[2]));
     TRY(ogpu_next_render_scratch_requirements(1, &scratch[3]));
     TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &scratch[4]));
     for (unsigned i = 0; i < 5; ++i) {

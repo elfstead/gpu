@@ -29,7 +29,7 @@ class ReuseTests(unittest.TestCase):
                 def logs():
                     stdout='DEVICE '+json.dumps(device)+'\n'+''.join('REUSE_FRAME '+json.dumps(f)+'\n' for f in frames)
                     stdout+='REUSE_SUMMARY '+json.dumps(summary)+f'\n{backend.title()} scene reuse drained and checked\n'
-                    if foundation: stdout+='PUBLIC_SCENE '+json.dumps(dict(foundation=4,index_bytes=2,gpu_generated=True))+'\n'
+                    if foundation: stdout+='PUBLIC_SCENE '+json.dumps(dict(foundation=5,index_bytes=2,gpu_generated=True))+'\n'
                     stderr='MEMORY_SUMMARY '+json.dumps(memory)+'\n'+''.join('COMMAND_COUNTS '+json.dumps(c)+'\n' for c in (start,end,final))
                     stderr+=''.join('ALLOCATE '+json.dumps(dict(bytes=100,type=0))+'\n' for _ in range(18))
                     return stdout,stderr
@@ -44,7 +44,7 @@ class ReuseTests(unittest.TestCase):
                 stdout,stderr=logs()
                 with self.assertRaises(ValueError): reuse.check_run(stdout,stderr+'Validation Error:',config,device,foundation)
                 if foundation:
-                    with self.assertRaises(ValueError): reuse.check_run(stdout.replace('"foundation": 4','"abi": 20'),stderr,config,device,True)
+                    with self.assertRaises(ValueError): reuse.check_run(stdout.replace('"foundation": 5','"abi": 20'),stderr,config,device,True)
                     start['vkResetCommandPool']=0
                     with self.assertRaises(ValueError): reuse.check_run(*logs(),config,device,True)
                     start['vkResetCommandPool']=2

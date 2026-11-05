@@ -395,9 +395,9 @@ unsafe fn record_frame(
             );
             gpu::render_end(list);
             if overlay == 0 {
-                gpu::barrier(
+                global_barrier(
                     list,
-                    &dependency(
+                    dependency(
                         COLOR | DEPTH,
                         COLOR | DEPTH,
                         COLOR_WRITE | DEPTH_WRITE,
@@ -442,9 +442,9 @@ unsafe fn record_frame(
                     reserved: 0,
                 },
             );
-            gpu::barrier(
+            global_barrier(
                 list,
-                &dependency(
+                dependency(
                     STAGE_TRANSFER,
                     STAGE_HOST,
                     ACCESS_COPY_WRITE,
@@ -639,7 +639,7 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
             raster(d, generation.format, false, arguments)?,
             raster(d, generation.format, true, arguments)?,
         ];
-        let mut barriers = Scratch::new(gpu::barrier_scratch_requirements(0, 1)?);
+        let mut barriers = Scratch::new(gpu::barrier_scratch_requirements(d, 0, 0, 1)?);
         let mut rendering = Scratch::new(gpu::render_scratch_requirements(1)?);
         let mut submission = Scratch::new(gpu::submit_scratch_requirements(1, 1, 2)?);
         let mut presentation = Scratch::new(gpu::present_scratch_requirements(1, 1)?);

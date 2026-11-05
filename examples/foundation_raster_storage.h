@@ -65,10 +65,11 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
     ogpu_next_set_arguments(encoder, arguments, 0, 8, &(uint64_t){address});
     ogpu_next_draw_desc draw = {3,1,0,0,0}; ogpu_next_draw(encoder,&draw);
     ogpu_next_render_end(encoder);
-    ogpu_next_dependency dep = {HEADER(ogpu_next_dependency,OGPU_NEXT_DEPENDENCY),
-        OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_HOST,
-        OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_HOST_READ,0,0,0,NULL,NULL,NULL,0};
-    ogpu_next_barrier(encoder,&dep);
+    ogpu_next_barrier_scope dep_scope = {OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_STAGE_HOST,OGPU_NEXT_ACCESS_STORAGE_WRITE,OGPU_NEXT_ACCESS_HOST_READ};
+    max_align_t dep_bytes[16];
+    ogpu_next_host_span dep_scratch = {dep_bytes,sizeof(dep_bytes)};
+    ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
+    common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list));
     if (secondary) {
         ad.level = OGPU_NEXT_PRIMARY; rd.level = OGPU_NEXT_PRIMARY;

@@ -625,7 +625,7 @@ impl Image {
         b: &ImageBarrier,
     ) -> Result<vk::VkImageMemoryBarrier2, Status> {
         let handle = self.command_handle(device, domain, 0)?;
-        if b.discard > 1 || b.new_state == 0 {
+        if b.discard > 1 || b.new_state == 0 || b.reserved != 0 {
             return Err(INVALID);
         }
         let range = self.subresources(b.range)?;
