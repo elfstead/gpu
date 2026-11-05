@@ -2,7 +2,11 @@
 use super::*;
 use crate::foundation::Surface;
 use commands::{scratch, slice};
-use std::alloc::Layout;
+use std::{alloc::Layout, cell::Cell};
+// Temporary private engine checkpoint; remove allowance at the public cutover.
+#[allow(dead_code)]
+#[path = "presentation_lifecycle.rs"]
+mod lifecycle;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -36,6 +40,9 @@ pub struct Swapchain {
     // Frozen after construction, so borrowed Image addresses never move.
     images: Vec<Image>,
     present_domains: Vec<u32>,
+    #[allow(dead_code)] // Used by the private lifecycle engine until public cutover.
+    generation: u64,
+    state: Cell<u32>,
 }
 impl Drop for Swapchain {
     fn drop(&mut self) {
@@ -128,7 +135,9 @@ impl Swapchain {
         }
         let old = unsafe { desc.old_swapchain.as_ref() };
         if old.is_some_and(|old| {
-            old.device != ptr::from_ref(d) || old.surface != ptr::from_ref(surface)
+            old.device != ptr::from_ref(d)
+                || old.surface != ptr::from_ref(surface)
+                || old.state.get() != lifecycle::CHAIN_ACTIVE
         }) {
             return Err(INVALID);
         }
@@ -264,30 +273,47 @@ impl Swapchain {
             f: Functions::load(&d._instance)?,
             images: Vec::new(),
             present_domains,
+            generation: 1,
+            state: Cell::new(lifecycle::CHAIN_ACTIVE),
         });
+        unsafe {
+            chain.create_native(d, &info, old, |handle| {
+                Image::from_swapchain(d, handle, prepared.clone())
+            })?;
+        }
+        Ok(chain)
+    }
+    unsafe fn create_native(
+        &mut self,
+        d: &Device,
+        info: &vk::VkSwapchainCreateInfoKHR,
+        old: Option<&Swapchain>,
+        mut wrap: impl FnMut(vk::VkImage) -> Image,
+    ) -> Result<(), Status> {
         let mut handle = ptr::null_mut();
-        // After this native call, oldSwapchain is retired even on failure. No rollback.
+        // No fallible host work between retirement and the native create call.
+        // Vulkan retires oldSwapchain even when creation fails.
+        if let Some(old) = old {
+            old.state.set(lifecycle::CHAIN_RETIRED);
+        }
         d.result(unsafe {
-            (chain.f.vkCreateSwapchainKHR.unwrap())(d.handle, &info, ptr::null(), &mut handle)
+            (self.f.vkCreateSwapchainKHR.unwrap())(d.handle, info, ptr::null(), &mut handle)
         })?;
-        chain.handle = handle;
+        self.handle = handle;
         let handles =
             super::super::presentation::enumerate(ptr::null_mut(), |count, data| unsafe {
-                (chain.f.vkGetSwapchainImagesKHR.unwrap())(d.handle, handle, count, data)
+                (self.f.vkGetSwapchainImagesKHR.unwrap())(d.handle, handle, count, data)
             })?;
         if handles.is_empty() {
             return Err(BACKEND_ERROR);
         }
-        chain
-            .images
+        self.images
             .try_reserve_exact(handles.len())
             .map_err(|_| OUT_OF_MEMORY)?;
         for handle in handles {
-            chain
-                .images
-                .push(Image::from_swapchain(d, handle, prepared.clone()));
+            self.images.push(wrap(handle));
         }
-        Ok(chain)
+        Ok(())
     }
     pub(in crate::foundation) unsafe fn images(
         &self,
@@ -322,6 +348,9 @@ impl Swapchain {
     ) -> Result<(u32, bool), Status> {
         let d = unsafe { &*self.device };
         d.ready()?;
+        if self.state.get() != lifecycle::CHAIN_ACTIVE {
+            return Err(INVALID);
+        }
         if binary.is_null() && fence.is_null() {
             return Err(INVALID);
         }
@@ -344,8 +373,15 @@ impl Swapchain {
             )
         });
         match result {
-            Ok(()) => Ok((index, false)),
-            Err(SUBOPTIMAL) => Ok((index, true)),
+            Ok(()) | Err(SUBOPTIMAL) => {
+                if index as usize >= self.images.len() {
+                    // A successful native acquisition with an invalid index has
+                    // uncertain signals/ownership; never publish a bogus image.
+                    d.lost.store(true, Ordering::Relaxed);
+                    return Err(BACKEND_ERROR);
+                }
+                Ok((index, result == Err(SUBOPTIMAL)))
+            }
             Err(e) => Err(e),
         }
     }
@@ -358,6 +394,9 @@ impl Swapchain {
         {
             return Err(INVALID);
         }
+        d.result(unsafe { self.release_native(d, indices) })
+    }
+    unsafe fn release_native(&self, d: &Device, indices: &[u32]) -> vk::VkResult {
         let info = vk::VkReleaseSwapchainImagesInfoKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_KHR,
             swapchain: self.handle,
@@ -365,7 +404,7 @@ impl Swapchain {
             pImageIndices: indices.as_ptr(),
             ..Default::default()
         };
-        d.result(unsafe { (self.f.vkReleaseSwapchainImagesKHR.unwrap())(d.handle, &info) })
+        unsafe { (self.f.vkReleaseSwapchainImagesKHR.unwrap())(d.handle, &info) }
     }
 }
 
@@ -395,25 +434,66 @@ pub(in crate::foundation) fn present_scratch(
         alignment: layout.align() as u64,
     })
 }
+struct NativePresentEntry {
+    chain: vk::VkSwapchainKHR,
+    index: u32,
+    fence: vk::VkFence,
+    present: vk::PFN_vkQueuePresentKHR,
+}
+impl Swapchain {
+    unsafe fn present_entry(
+        &self,
+        d: &Device,
+        domain: u32,
+        index: u32,
+        fence: *mut Fence,
+    ) -> Result<NativePresentEntry, Status> {
+        if self.device != ptr::from_ref(d) || index as usize >= self.images.len() {
+            return Err(INVALID);
+        }
+        if !self.present_domains.contains(&domain) {
+            return Err(UNSUPPORTED);
+        }
+        self.images[index as usize].command_handle(ptr::from_ref(d), domain, 0)?;
+        let fence = unsafe { fence.as_ref() };
+        if fence.is_some_and(|f| f.device != ptr::from_ref(d)) {
+            return Err(INVALID);
+        }
+        Ok(NativePresentEntry {
+            chain: self.handle,
+            index,
+            fence: fence.map_or(ptr::null_mut(), |f| f.handle),
+            present: self.f.vkQueuePresentKHR,
+        })
+    }
+}
 impl Queue {
-    pub(in crate::foundation) unsafe fn present(&self, desc: &PresentDesc) -> Result<bool, Status> {
-        desc.header.validate::<PresentDesc>(PRESENT_DESC)?;
+    fn present_device(&self) -> Result<&Device, Status> {
         let d = unsafe { self.device.load(Ordering::Relaxed).as_ref() }.ok_or(INVALID)?;
         d.ready()?;
         if d.snapshot.features.enabled & PRESENTATION == 0 {
             return Err(UNSUPPORTED);
         }
-        if desc.image_count == 0 {
+        Ok(d)
+    }
+    unsafe fn present_native(
+        &self,
+        d: &Device,
+        waits: &[*mut Binary],
+        item_count: u32,
+        storage: HostSpan,
+        mut entry: impl FnMut(usize) -> Result<NativePresentEntry, Status>,
+    ) -> Result<(vk::VkResult, *const vk::VkResult), Status> {
+        if item_count == 0 {
             return Err(INVALID);
         }
-        let waits = unsafe { slice(desc.waits, desc.wait_count)? };
-        let entries = unsafe { slice(desc.images, desc.image_count)? };
+        let wait_count = u32::try_from(waits.len()).map_err(|_| INVALID)?;
         let storage = scratch(
-            desc.scratch.data,
-            desc.scratch.size,
-            present_scratch(desc.wait_count, desc.image_count)?,
+            storage.data,
+            storage.size,
+            present_scratch(wait_count, item_count)?,
         )?;
-        let (_, offsets) = present_layout(desc.wait_count, desc.image_count)?;
+        let (_, offsets) = present_layout(wait_count, item_count)?;
         let native_waits = storage.cast::<vk::VkSemaphore>();
         let chains = storage
             .wrapping_add(offsets[0])
@@ -430,49 +510,56 @@ impl Queue {
                 native_waits.add(i).write(b.handle);
             }
         }
-        for (i, entry) in entries.iter().enumerate() {
-            let s = unsafe { entry.swapchain.as_ref() }.ok_or(INVALID)?;
-            if s.device != ptr::from_ref(d)
-                || entry.index as usize >= s.images.len()
-                || entry.reserved != 0
-            {
-                return Err(INVALID);
-            }
-            if !s.present_domains.contains(&self.domain) {
-                return Err(UNSUPPORTED);
-            }
-            s.images[entry.index as usize].command_handle(ptr::from_ref(d), self.domain, 0)?;
-            let fence = unsafe { entry.fence.as_ref() };
-            if fence.is_some_and(|f| f.device != ptr::from_ref(d)) {
-                return Err(INVALID);
+        let mut present_fn = None;
+        for i in 0..item_count as usize {
+            let entry = entry(i)?;
+            if present_fn.is_none() {
+                present_fn = entry.present;
             }
             unsafe {
-                chains.add(i).write(s.handle);
+                chains.add(i).write(entry.chain);
                 indices.add(i).write(entry.index);
-                fences
-                    .add(i)
-                    .write(fence.map_or(ptr::null_mut(), |f| f.handle));
+                fences.add(i).write(entry.fence);
                 results.add(i).write(vk::VkResult_VK_ERROR_UNKNOWN);
             }
         }
         let fence_info = vk::VkSwapchainPresentFenceInfoKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
-            swapchainCount: desc.image_count,
+            swapchainCount: item_count,
             pFences: fences,
             ..Default::default()
         };
         let info = vk::VkPresentInfoKHR {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             pNext: ptr::from_ref(&fence_info).cast(),
-            waitSemaphoreCount: desc.wait_count,
+            waitSemaphoreCount: wait_count,
             pWaitSemaphores: native_waits,
-            swapchainCount: desc.image_count,
+            swapchainCount: item_count,
             pSwapchains: chains,
             pImageIndices: indices,
             pResults: results,
         };
-        let first = unsafe { &*entries[0].swapchain };
-        let result = d.result(unsafe { (first.f.vkQueuePresentKHR.unwrap())(self.handle, &info) });
+        let result = unsafe { present_fn.ok_or(UNSUPPORTED)?(self.handle, &info) };
+        if result == vk::VkResult_VK_ERROR_DEVICE_LOST {
+            d.lost.store(true, Ordering::Relaxed);
+        }
+        Ok((result, results))
+    }
+    pub(in crate::foundation) unsafe fn present(&self, desc: &PresentDesc) -> Result<bool, Status> {
+        desc.header.validate::<PresentDesc>(PRESENT_DESC)?;
+        let d = self.present_device()?;
+        let waits = unsafe { slice(desc.waits, desc.wait_count)? };
+        let entries = unsafe { slice(desc.images, desc.image_count)? };
+        let (result, results) = unsafe {
+            self.present_native(d, waits, desc.image_count, desc.scratch, |i| {
+                let entry = &entries[i];
+                if entry.reserved != 0 {
+                    return Err(INVALID);
+                }
+                let chain = entry.swapchain.as_ref().ok_or(INVALID)?;
+                chain.present_entry(d, self.domain, entry.index, entry.fence)
+            })?
+        };
         if !desc.results.is_null() {
             for i in 0..entries.len() {
                 unsafe {
@@ -482,7 +569,7 @@ impl Queue {
                 }
             }
         }
-        match result {
+        match d.result(result) {
             Ok(()) => Ok(false),
             Err(SUBOPTIMAL) => Ok(true),
             Err(e) => Err(e),
@@ -687,6 +774,8 @@ mod tests {
                 d.prepare_image(&image_desc).unwrap()
             })],
             present_domains: vec![domain],
+            generation: 1,
+            state: Cell::new(lifecycle::CHAIN_ACTIVE),
         };
         let mut a = chain();
         let mut b = chain();

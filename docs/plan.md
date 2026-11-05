@@ -27,8 +27,11 @@ limits. Old shared-stage/nested-scratch paths are removed and consumers migrated
 The [public submission cutover](minimal-core-migration.md#c2-submission-public-cutover)
 is complete: one counted C/direct Rust operation, explicit per-batch acceptance,
 direct binary arrays and one caller scratch span. Superseded submission paths are
-deleted and consumers migrated. Presentation is next, followed by the full C2
-audit/local C3.
+deleted and consumers migrated. The [presentation lifecycle engine](minimal-core-migration.md#c2-presentation-lifecycle-engine)
+now implements borrowed frames, effects and replacement retirement privately,
+sharing the existing Vulkan lowering. Headless injected WSI checks pass; the public
+C/Rust presentation and frame-loop cutover is next, followed by the full C2
+audit/local C3. Installed schema 6 is unchanged by this engine checkpoint.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch

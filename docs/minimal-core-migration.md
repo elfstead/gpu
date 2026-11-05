@@ -630,10 +630,77 @@ sources compile; interactive presentation was not rerun. The generated indexed
 scene also passes native-matched output/guard checks at 257×193 and 640×360 and
 its injected known-rejection cleanup/unknown-completion fail-stop checks.
 
-**Next:** migrate presentation to borrowed frames, native availability and explicit
+**Next at that checkpoint:** migrate presentation to borrowed frames, native availability and explicit
 outcome effects, then run the full C2 deletion audit and local C3. No interactive
 presentation run, Windows/Metal acceptance or new performance result is claimed
 for this cutover.
+
+## C2 presentation lifecycle engine
+
+Implemented 2026-11-05 on `minimal-core`. The selected P Vulkan lifecycle now has
+an internal engine in `foundation/presentation_lifecycle.rs`, sharing native
+swapchain creation, acquisition, release and the one-call present translator with
+the existing installed API. The installed C table, direct Rust signatures and
+foundation schema 6 are unchanged. This is step 4's implementation checkpoint,
+not its public cutover or C2 completion.
+
+Implemented behavior:
+
+- Frames borrow the chain/image, carry image-set generation and availability, and
+  record the supplied acquisition synchronization identities. Failure preserves
+  the output frame; OK/SUBOPTIMAL publishes it. Present/abandon never dereference
+  historical acquisition synchronization. There is no per-acquisition registry.
+- Complete present preflight precedes one native batched call. Caller scratch
+  holds translated waits, chains, indices, fences and native results. Local failure
+  writes NONE batch effects and preserves per-item results. After a native call,
+  every result is written; missing native data yields error/UNKNOWN.
+- Native presentation effects follow the selected contract: out-of-date and
+  surface-lost still enqueue queue work/waits; call-wide OOM retains frames and
+  leaves synchronization unchanged; unclassified failures remain UNKNOWN. An
+  aggregate failure survives individually successful results. With no waits or
+  no item fence, its corresponding effect is always NONE. Unspecified per-item
+  output cannot override the call-wide OOM guarantee or spuriously lose the device.
+- Abandon validates the entire same-chain frame array before one native release,
+  translates indices in caller scratch, reports ownership effects, and adds no
+  wait or acquisition-binary consumption.
+- Replacement retires the old chain immediately before native creation, including
+  native failure or later image-adoption failure. Local rejection preserves its
+  state. Retired chains reject acquisition while already acquired frames remain
+  presentable/releasable. Image wrappers and generation are stable until destruction;
+  Vulkan does not emulate in-place resize or pacing handles.
+- Chain-info returns a host snapshot. The Vulkan contract query advertises native
+  signals, replacement, retirement fences, binary waits and native batching.
+  Resize returns unchanged state/generation with UNSUPPORTED; pacing preserves its
+  output with UNSUPPORTED. Successful acquisition with an invalid native index
+  never publishes a bogus image and marks the device unusable.
+
+No hidden submission, host wait, per-frame allocation, duplicate scan, acquisition
+ledger or retirement queue was added. Trusted pointer/lifetime/nonoverlap and
+native pending-use obligations stay with the caller. The native effect and
+replacement rules follow [Vulkan presentation](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueuePresentKHR.html)
+and [swapchain replacement](https://docs.vulkan.org/refpages/latest/refpages/source/VkSwapchainCreateInfoKHR.html).
+
+Validation: 77 CPU tests and all 29 GPU-backed library tests pass on the local
+RX 5700 XT/RADV with Vulkan validation and synchronization validation enabled.
+The two new native lifecycle tests inject all WSI calls while retaining real device,
+queue, binary and fence identities. They cover acquisition output preservation,
+stale/foreign frames and synchronization, invalid scratch/options/domains, no native
+prefix on batch rejection, translated arrays, mixed/absent native item results,
+known/unknown effects, device loss, retired-frame use, batched abandonment,
+replacement failure/adoption cleanup and unsupported resize/pacing. Additional
+rejection/device-loss cases passed a focused rerun after the full suite.
+Strict Clippy, formatting, the 145-operation installed surface audit and 376-value
+C/Rust draft checks pass. The existing installed C presentation-table injected
+regression also passes through the shared translator.
+
+These checks do not exercise a real surface contract query or native window-system
+presentation. No interactive, Windows, Metal or performance acceptance is claimed.
+
+**Next:** move the selected records and operations into the installed C table and
+direct Rust API, add the unsupported Win32/DXGI namespace honestly on Linux, migrate
+the two-window probe/three-slot scene and SDK checks, and delete the old index-based
+wrappers and temporary private-engine dead-code allowances. Then run the C2 deletion
+and correspondence audit and local C3, including available windowed acceptance.
 
 ## Verification and open native questions
 
