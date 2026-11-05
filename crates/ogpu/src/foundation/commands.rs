@@ -4,6 +4,10 @@ use super::*;
 #[path = "generated_commands.rs"]
 mod generated_commands;
 use std::{alloc::Layout, cell::Cell, ffi::c_void};
+// C2 engine checkpoint; remove the allowance at public/consumer cutover.
+#[path = "dependencies.rs"]
+#[allow(dead_code)]
+mod dependencies;
 #[path = "secondary.rs"]
 mod secondary;
 #[path = "splits.rs"]
@@ -830,49 +834,19 @@ impl List {
         )?
         .cast::<vk::VkBufferMemoryBarrier2>();
         for (i, range) in ranges.iter().enumerate() {
-            let memory = unsafe { range.range.memory.as_ref() }.ok_or(INVALID)?;
-            if range.range.size == 0 {
-                return Err(INVALID);
-            }
-            let (buffer, offset, _) = memory.command_range(
-                self.device,
-                self.domain,
-                range.range.offset,
-                range.range.size,
-                0,
-            )?;
-            let (src, dst) = (range.source_domain, range.destination_domain);
-            if (src != u32::MAX || dst != u32::MAX)
-                && (src == u32::MAX
-                    || dst == u32::MAX
-                    || memory.concurrent()
-                    || !d
-                        .snapshot
-                        .queues
-                        .iter()
-                        .any(|q| q.domain == src && q.count != 0)
-                    || !d
-                        .snapshot
-                        .queues
-                        .iter()
-                        .any(|q| q.domain == dst && q.count != 0)
-                    || (self.domain != src && self.domain != dst))
-            {
-                return Err(INVALID);
-            }
-            let native = vk::VkBufferMemoryBarrier2 {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-                srcStageMask: before,
-                dstStageMask: after,
-                srcAccessMask: scoped_access(d, self.domain, range.before, dep.before)?,
-                dstAccessMask: scoped_access(d, self.domain, range.after, dep.after)?,
-                srcQueueFamilyIndex: src,
-                dstQueueFamilyIndex: dst,
-                buffer,
-                offset,
-                size: range.range.size,
-                ..Default::default()
+            let mut native = unsafe {
+                dependencies::buffer_barrier(
+                    d,
+                    self.domain,
+                    range.range,
+                    range.source_domain,
+                    range.destination_domain,
+                )?
             };
+            native.srcStageMask = before;
+            native.dstStageMask = after;
+            native.srcAccessMask = scoped_access(d, self.domain, range.before, dep.before)?;
+            native.dstAccessMask = scoped_access(d, self.domain, range.after, dep.after)?;
             unsafe {
                 storage.add(i).write(native);
             }

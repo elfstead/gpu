@@ -432,6 +432,52 @@ their schema checks are migrated with the installed SDK.
 full cutover audit and local C3. No new generated graphics execution, Windows/Metal
 acceptance or performance measurement is claimed. C2 as a whole remains incomplete.
 
+## C2 dependency engine
+
+Implemented 2026-11-05 on Vulkan/Linux as a buildable step-3 checkpoint.
+`dependencies.rs` implements the selected per-entry records privately; the
+installed C/direct Rust records remain schema **4** until coordinated consumer
+migration. Unified submission and acceptance outcomes are still pending.
+
+- Global, bounded-buffer and image entries each retain their own stage/access
+  pair in one native dependency call. Multiple globals are supported. An empty
+  barrier is a no-op; an explicit zero-access global preserves execution ordering.
+- The complete translation uses caller scratch. Every entry validates before the
+  one native command. An invalid later entry can change scratch but emits no
+  native prefix. No allocation, automatic dependency inference or stage-mask
+  union is introduced.
+- Split release uses the same entry translator. Batched acquire packs native
+  event handles, dependency headers and every nested barrier array into one
+  scratch span. Requirements inspect counts/flags only, not event/resource handles
+  or barrier-array contents. Host scopes reject for every split entry. Reset,
+  endpoint matching, queue ordering and pending lifetimes stay caller-owned.
+- Internal capability derivation reports exact enabled queue/feature stage masks,
+  byte-range buffer scopes and native split/ownership/binary support. The device
+  query is not installed yet. Scope availability does not claim measured overlap.
+- The installed translator now shares its buffer-range/ownership validation with
+  the engine. The new image path uses the existing state/subresource validator via
+  a temporary stack record; it does not duplicate image validation.
+
+**Evidence:** 75 CPU unit tests and all 25 native tests pass on RX 5700 XT
+(RADV/Mesa 26.2.5). Native interception verifies separate compute→indirect and
+color→fragment globals, a bounded copy→copy buffer edge and an image initialization
+in one barrier call, without a cross-product union. Invalid later entries,
+foreign resources/events, malformed ownership endpoints, bad subresources,
+unsupported flags, undersized/misaligned scratch and host split scopes reject
+before native effects. Release/acquire captures match exactly across one batched
+wait. Two recorded command lists execute two split events with intervening work,
+explicit resets, changed host-input replay and independent guard/readback checks.
+The full existing C foundation fixture also passes, including its transfer,
+ownership and split consumers. Synchronization validation emits no errors.
+Strict Clippy passes. No timing campaign or new platform acceptance is claimed.
+
+**Next:** expose the selected dependency records, device-domain limits and scratch
+signatures in C/direct Rust; migrate all barrier/split consumers. Delete the old
+shared-stage translator, old nested scratch paths, temporary image record and
+private-module dead-code allowance in that cutover. Then consolidate submission
+and classify its outcomes, followed by presentation and the full C2 audit/local C3.
+This checkpoint does not complete C2 step 3 or C2 as a whole.
+
 ## Verification and open native questions
 
 At this checkpoint, `tools/check-c1-drafts.py` passes C11/C++17 syntax and all

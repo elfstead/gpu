@@ -3,7 +3,7 @@ use super::*;
 
 pub struct Split {
     device: *const Device,
-    handle: vk::VkEvent,
+    pub(super) handle: vk::VkEvent,
 }
 impl Split {
     pub(in crate::foundation) fn create(d: &Device) -> Result<Box<Self>, Status> {
@@ -25,7 +25,7 @@ impl Split {
         // A failed native creation's output is unspecified; adopt only on success.
         Ok(Box::new(Self { device: d, handle }))
     }
-    fn check(&self, d: &Device) -> Result<(), Status> {
+    pub(super) fn check(&self, d: &Device) -> Result<(), Status> {
         if self.device != ptr::from_ref(d) {
             return Err(INVALID);
         }
@@ -64,7 +64,7 @@ fn scopes(dep: &Dependency) -> Result<(), Status> {
     Ok(())
 }
 impl List {
-    fn split_recording(&self) -> Result<&Device, Status> {
+    pub(super) fn split_recording(&self) -> Result<&Device, Status> {
         let d = self.outside_render()?;
         stages(d, self.domain, 32, false)?; // event commands need graphics/compute, not transfer-only
         Ok(d)

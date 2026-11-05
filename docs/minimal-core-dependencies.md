@@ -1,9 +1,13 @@
 # C1: dependency and submission decisions
 
-Selected 2026-11-03. **Design, not implemented revision.** The
+Selected 2026-11-03. **C2 private Vulkan dependency engine implemented 2026-11-05;
+public dependency/submission cutover pending.** The
 [C records](drafts/ogpu_dependencies.h) and [Rust mirror](drafts/dependencies.rs)
 replace the affected parts of the installed header during C2. They complete the
 dependency dispositions in the [minimal-core contract](minimal-core-contract.md).
+The [engine checkpoint](minimal-core-migration.md#c2-dependency-engine) preserves
+per-entry scopes and explicit split scratch. Installed schema 4 still uses the old
+records; this is not public acceptance of the revised signatures.
 
 ## Keep one dependency description, with independent scopes
 

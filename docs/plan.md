@@ -22,7 +22,10 @@ secondary inheritance use explicit heap objects. Raw-output/bind-record paths ar
 deleted. The [generated-layout cutover](minimal-core-migration.md#c2-generated-argument-layout-cutover)
 is complete: explicit borrowed argument layouts, native address tokens, cold
 mapping checks and equivalent-layout execution pass locally. Per-entry dependencies
-and unified submission are next, then presentation and the full C2 audit/local C3.
+and unified submission are active. The [private dependency engine](minimal-core-migration.md#c2-dependency-engine)
+now passes native per-entry lowering, split batching and replay checks. Next expose
+its records/query/scratch operations and migrate consumers, then implement unified
+submission outcomes. Presentation and the full C2 audit/local C3 follow.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
