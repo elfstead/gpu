@@ -348,23 +348,6 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
         let backing = gpu::memory_create_dedicated_image(image, types[0])?;
         gpu::image_bind(image, backing.span(0, req.size))?;
         let view = gpu::view_create(image, &view_desc)?;
-        let mut descriptor_limits = DescriptorLimits::default();
-        gpu::device_query(
-            c.device,
-            &mut Query {
-                header: Record::new::<Query>(DESCRIPTOR_LIMITS),
-                data: ptr::from_mut(&mut descriptor_limits).cast(),
-                capacity: 1,
-                count: 0,
-                element_size: size_of::<DescriptorLimits>() as u32,
-                reserved: 0,
-            },
-        )?;
-        let mut output = Storage::new(HostRequirements {
-            size: descriptor_limits.image_size,
-            alignment: descriptor_limits.image_alignment,
-        })?;
-        let mut ds = Storage::new(gpu::descriptor_scratch_requirements(1, 1)?)?;
         let input = ResourceDescriptor {
             kind: 1,
             image_state: STATE_GENERAL,
@@ -375,11 +358,45 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
                 size: 0,
             },
         };
+        let shape = gpu::resource_descriptor_shape(c.device, &input)?;
+        let mut output = Storage::new(HostRequirements {
+            size: shape.size,
+            alignment: shape.alignment,
+        })?;
+        let output_heap = gpu::heap_create(
+            c.device,
+            &HeapDesc {
+                request: HeapRequest {
+                    kind: 1,
+                    storage: HEAP_HOST,
+                    usage: HEAP_CPU_WRITE,
+                    flags: 0,
+                    capacity: shape.size,
+                },
+                memory: Span {
+                    memory: ptr::null_mut(),
+                    offset: 0,
+                    size: 0,
+                },
+                host: output.span(),
+                reserved_offset: 0,
+                reserved_size: 0,
+            },
+        )?;
+        let output_location = HeapLocation {
+            heap: output_heap.as_raw(),
+            offset: 0,
+        };
+        let mut ds = Storage::new(gpu::descriptor_scratch_requirements(
+            c.device,
+            DESCRIPTOR_WRITE_RESOURCE,
+            1,
+        )?)?;
         assert_eq!(
             gpu::write_resource_descriptors(c.device, std::slice::from_ref(&input), &[], ds.span()),
             Err(INVALID)
         );
-        gpu::write_resource_descriptors(c.device, &[input], &[output.span()], ds.span())?;
+        gpu::write_resource_descriptors(c.device, &[input], &[output_location], ds.span())?;
         let sampler = SamplerDesc {
             header: Record::new::<SamplerDesc>(SAMPLER_DESC),
             min_filter: 0,
@@ -395,12 +412,47 @@ unsafe fn images(c: &Context, storage: &mut Storage) -> gpu::Result<()> {
             lod_bias: 0.0,
             max_anisotropy: 1.0,
         };
+        let shape = gpu::sampler_descriptor_shape(c.device, &sampler)?;
         let mut sampler_output = Storage::new(HostRequirements {
-            size: descriptor_limits.sampler_size,
-            alignment: descriptor_limits.sampler_alignment,
+            size: shape.size,
+            alignment: shape.alignment,
         })?;
-        let mut ss = Storage::new(gpu::descriptor_scratch_requirements(2, 1)?)?;
-        gpu::write_sampler_descriptors(c.device, &[sampler], &[sampler_output.span()], ss.span())?;
+        let sampler_heap = gpu::heap_create(
+            c.device,
+            &HeapDesc {
+                request: HeapRequest {
+                    kind: 2,
+                    storage: HEAP_HOST,
+                    usage: HEAP_CPU_WRITE,
+                    flags: 0,
+                    capacity: shape.size,
+                },
+                memory: Span {
+                    memory: ptr::null_mut(),
+                    offset: 0,
+                    size: 0,
+                },
+                host: sampler_output.span(),
+                reserved_offset: 0,
+                reserved_size: 0,
+            },
+        )?;
+        let mut ss = Storage::new(gpu::descriptor_scratch_requirements(
+            c.device,
+            DESCRIPTOR_WRITE_SAMPLER,
+            1,
+        )?)?;
+        gpu::write_sampler_descriptors(
+            c.device,
+            &[sampler],
+            &[HeapLocation {
+                heap: sampler_heap.as_raw(),
+                offset: 0,
+            }],
+            ss.span(),
+        )?;
+        gpu::heap_destroy(sampler_heap);
+        gpu::heap_destroy(output_heap);
         let mut bs = Storage::new(gpu::barrier_scratch_requirements(0, 1)?)?;
         for (phase, green) in [false, true, false].into_iter().enumerate() {
             ptr::write_bytes(c.mapping.data, 0xa5, 4096);

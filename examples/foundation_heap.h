@@ -27,6 +27,7 @@ cleanup:
 static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
                           uint32_t domain, const char *shader_path, uint32_t secondary) {
     ogpu_next_argument_layout *arguments = NULL;
+    ogpu_next_descriptor_heap *bindings[2]={NULL,NULL}, *host_heap=NULL;
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL;
     void *code = NULL, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL, *execute_scratch = NULL;
@@ -37,10 +38,8 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     ogpu_next_executable *executable = NULL;
     ogpu_next_arena *arena = NULL, *child_arena = NULL;
     ogpu_next_timeline *done = NULL, *gate = NULL;
-    ogpu_next_descriptor_limits limits = {0};
-    ogpu_next_memory_limits memory_limits = {0};
-    ogpu_next_query q = query(OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS, &limits, 1, sizeof(limits));
-    TRY(ogpu_next_device_query(device, &q));
+    ogpu_next_memory_limits memory_limits={0};
+    ogpu_next_query q;
     q = query(OGPU_NEXT_QUERY_MEMORY_LIMITS, &memory_limits, 1, sizeof(memory_limits));
     TRY(ogpu_next_device_query(device, &q));
     const uint32_t width = 8, height = 4;
@@ -68,52 +67,6 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     TRY(ogpu_next_memory_create(device, &host_desc, &data));
     ogpu_next_mapping data_map = {0}, stage_map = {0}, sampler_map = {0};
     TRY(ogpu_next_memory_map((ogpu_next_span){data, 0, host_desc.size}, &data_map));
-    /* Mixed descriptor layout chosen by the caller. The compiled shader indexes
-     * each typed heap array in units of that descriptor's native size. */
-    uint64_t image_stride = aligned(limits.image_size, limits.image_alignment);
-    uint64_t buffer_stride = aligned(limits.buffer_size, limits.buffer_alignment);
-    uint64_t resource_stride = image_stride > buffer_stride ? image_stride : buffer_stride;
-    uint64_t payload = resource_stride * 3;
-    REQUIRE(resource_stride % image_stride == 0 && resource_stride % buffer_stride == 0);
-    REQUIRE(resource_stride / image_stride <= UINT32_MAX && 2 * resource_stride / buffer_stride <= UINT32_MAX);
-    uint64_t resource_reserved = aligned(payload, limits.resource_reserved_alignment);
-    uint64_t resource_size = resource_reserved + limits.resource_reserved_size;
-    REQUIRE(heap_memory(device, resource_size, limits.resource_heap_alignment,
-        OGPU_NEXT_USAGE_DESCRIPTOR_HEAP | OGPU_NEXT_USAGE_COPY_DST, OGPU_NEXT_MEMORY_LOCAL, &resource_heap) == EXIT_SUCCESS);
-    REQUIRE(heap_memory(device, payload, 1, OGPU_NEXT_USAGE_COPY_SRC,
-        OGPU_NEXT_MEMORY_HOST_VISIBLE, &staging) == EXIT_SUCCESS);
-    TRY(ogpu_next_memory_map((ogpu_next_span){staging, 0, payload}, &stage_map));
-    uint64_t sampler_stride = limits.sampler_size;
-    if (sampler_stride < memory_limits.cache_atom_size) sampler_stride = memory_limits.cache_atom_size;
-    sampler_stride = aligned(sampler_stride, limits.sampler_alignment);
-    uint64_t sampler_reserved_alignment = limits.sampler_reserved_alignment;
-    if (sampler_reserved_alignment < memory_limits.cache_atom_size) sampler_reserved_alignment = memory_limits.cache_atom_size;
-    uint64_t sampler_reserved = aligned(sampler_stride * 2, sampler_reserved_alignment);
-    uint64_t sampler_size = sampler_reserved + limits.sampler_reserved_size;
-    uint64_t sampler_alignment = limits.sampler_heap_alignment;
-    if (sampler_alignment < memory_limits.cache_atom_size) sampler_alignment = memory_limits.cache_atom_size;
-    REQUIRE(heap_memory(device, sampler_size, sampler_alignment, OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,
-        OGPU_NEXT_MEMORY_HOST_VISIBLE, &sampler_heap) == EXIT_SUCCESS);
-    TRY(ogpu_next_memory_map((ogpu_next_span){sampler_heap, 0, sampler_size}, &sampler_map));
-    REQUIRE(sampler_map.cache_offset == 0); /* Fixture isolates pending slot/cache atoms. */
-    ogpu_next_heap_binding bindings[2] = {
-        {HEADER(ogpu_next_heap_binding, OGPU_NEXT_HEAP_BINDING), OGPU_NEXT_HEAP_RESOURCE, 0,
-            {resource_heap, 0, resource_size}, resource_reserved, limits.resource_reserved_size},
-        {HEADER(ogpu_next_heap_binding, OGPU_NEXT_HEAP_BINDING), OGPU_NEXT_HEAP_SAMPLER, 0,
-            {sampler_heap, 0, sampler_size}, sampler_reserved, limits.sampler_reserved_size}
-    };
-    ogpu_next_host_requirements wr = {0}, ws = {0}, br = {0}, sr = {0}, er = {0};
-    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_RESOURCE, 3, &wr));
-    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_SAMPLER, 1, &ws));
-    uint64_t scratch_size = wr.size > ws.size ? wr.size : ws.size;
-    REQUIRE(wr.alignment <= _Alignof(max_align_t) && ws.alignment <= _Alignof(max_align_t));
-    scratch = malloc((size_t)scratch_size); REQUIRE(scratch != NULL);
-    ogpu_next_host_span temporary = {scratch, scratch_size};
-    ogpu_next_host_span destinations[3] = {
-        {stage_map.data, limits.image_size},
-        {(unsigned char *)stage_map.data + resource_stride, limits.image_size},
-        {(unsigned char *)stage_map.data + resource_stride * 2, limits.buffer_size}
-    };
     ogpu_next_resource_descriptor resources[3] = {
         {OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE, OGPU_NEXT_STATE_GENERAL, views[0], {NULL, 0, 0}},
         {OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE, OGPU_NEXT_STATE_GENERAL, views[1], {NULL, 0, 0}},
@@ -121,9 +74,62 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     };
     ogpu_next_sampler_desc sampler = {HEADER(ogpu_next_sampler_desc, OGPU_NEXT_SAMPLER_DESC),
         0, 0, 0, {2, 2, 2}, 0, 0, 0, 0, 0, 0, 0, 1};
-    ogpu_next_host_span sampler_output = {sampler_map.data, limits.sampler_size};
+    ogpu_next_descriptor_shape image_shape={0}, sampler_shape={0}, buffer_shape={0};
+    ogpu_next_heap_requirements resource_req={0}, sampler_req={0};
+    TRY(ogpu_next_resource_descriptor_shape(device,&resources[0],&image_shape));
+    TRY(ogpu_next_resource_descriptor_shape(device,&resources[2],&buffer_shape));
+    TRY(ogpu_next_sampler_descriptor_shape(device,&sampler,&sampler_shape));
+    TRY(heap_requirements_for(device,1,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&resource_req));
+    TRY(heap_requirements_for(device,2,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&sampler_req));
+    /* Mixed descriptor layout chosen by the caller. The compiled shader indexes
+     * each typed heap array in units of that descriptor's native size. */
+    uint64_t image_stride = image_shape.array_stride;
+    uint64_t buffer_stride = buffer_shape.array_stride;
+    uint64_t buffer_offset = aligned(image_stride*2,buffer_stride);
+    uint64_t payload = buffer_offset+buffer_shape.size;
+    REQUIRE(buffer_offset % buffer_stride == 0 && buffer_offset / buffer_stride <= UINT32_MAX);
+    uint64_t resource_reserved = aligned(payload, resource_req.reserved_alignment);
+    uint64_t resource_size = resource_reserved + resource_req.reserved_size;
+    REQUIRE(heap_memory(device, resource_size, resource_req.backing_alignment,
+        OGPU_NEXT_USAGE_DESCRIPTOR_HEAP | OGPU_NEXT_USAGE_COPY_DST, OGPU_NEXT_MEMORY_LOCAL, &resource_heap) == EXIT_SUCCESS);
+    REQUIRE(heap_memory(device, payload, 1, OGPU_NEXT_USAGE_COPY_SRC,
+        OGPU_NEXT_MEMORY_HOST_VISIBLE, &staging) == EXIT_SUCCESS);
+    TRY(ogpu_next_memory_map((ogpu_next_span){staging, 0, payload}, &stage_map));
+    uint64_t sampler_stride = sampler_shape.size;
+    if (sampler_stride < memory_limits.cache_atom_size) sampler_stride = memory_limits.cache_atom_size;
+    sampler_stride = aligned(sampler_stride, sampler_shape.alignment);
+    uint64_t sampler_reserved_alignment = sampler_req.reserved_alignment;
+    if (sampler_reserved_alignment < memory_limits.cache_atom_size) sampler_reserved_alignment = memory_limits.cache_atom_size;
+    uint64_t sampler_reserved = aligned(sampler_stride * 2, sampler_reserved_alignment);
+    uint64_t sampler_size = sampler_reserved + sampler_req.reserved_size;
+    uint64_t sampler_alignment = sampler_req.backing_alignment;
+    if (sampler_alignment < memory_limits.cache_atom_size) sampler_alignment = memory_limits.cache_atom_size;
+    REQUIRE(heap_memory(device, sampler_size, sampler_alignment, OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,
+        OGPU_NEXT_MEMORY_HOST_VISIBLE, &sampler_heap) == EXIT_SUCCESS);
+    TRY(ogpu_next_memory_map((ogpu_next_span){sampler_heap, 0, sampler_size}, &sampler_map));
+    REQUIRE(sampler_map.cache_offset == 0); /* Fixture isolates pending slot/cache atoms. */
+    ogpu_next_heap_desc hd={ {1,OGPU_NEXT_HEAP_MEMORY,OGPU_NEXT_HEAP_SHADER_VISIBLE,0,resource_size},
+        {resource_heap,0,resource_size},{NULL,0},resource_reserved,resource_req.reserved_size};
+    TRY(ogpu_next_heap_create(device,&hd,&bindings[0]));
+    hd=(ogpu_next_heap_desc){ {2,OGPU_NEXT_HEAP_MEMORY,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,0,sampler_size},
+        {sampler_heap,0,sampler_size},{sampler_map.data,sampler_map.size},sampler_reserved,sampler_req.reserved_size};
+    TRY(ogpu_next_heap_create(device,&hd,&bindings[1]));
+    hd=(ogpu_next_heap_desc){ {1,OGPU_NEXT_HEAP_HOST,OGPU_NEXT_HEAP_CPU_WRITE,0,payload},
+        {NULL,0,0},{stage_map.data,stage_map.size},0,0};
+    TRY(ogpu_next_heap_create(device,&hd,&host_heap));
+    ogpu_next_host_requirements wr = {0}, ws = {0}, br = {0}, sr = {0}, er = {0};
+    TRY(ogpu_next_descriptor_scratch_requirements(device,OGPU_NEXT_DESCRIPTOR_WRITE_RESOURCE, 3, &wr));
+    TRY(ogpu_next_descriptor_scratch_requirements(device,OGPU_NEXT_DESCRIPTOR_WRITE_SAMPLER, 1, &ws));
+    uint64_t scratch_size = wr.size > ws.size ? wr.size : ws.size;
+    REQUIRE(wr.alignment <= _Alignof(max_align_t) && ws.alignment <= _Alignof(max_align_t));
+    scratch = malloc((size_t)scratch_size); REQUIRE(scratch != NULL);
+    ogpu_next_host_span temporary = {scratch, scratch_size};
+    ogpu_next_heap_location destinations[3] = {{host_heap,0},{host_heap,image_stride},{host_heap,buffer_offset}};
+
+
+    ogpu_next_heap_location sampler_output = {bindings[1],0};
     TRY(ogpu_next_write_sampler_descriptors(device, 1, &sampler, &sampler_output, temporary));
-    TRY(ogpu_next_memory_flush((ogpu_next_span){sampler_heap, 0, limits.sampler_size}));
+    TRY(ogpu_next_memory_flush((ogpu_next_span){sampler_heap, 0, sampler_shape.size}));
     file = fopen(shader_path, "rb"); REQUIRE(file != NULL);
     REQUIRE(fseek(file, 0, SEEK_END) == 0);
     long code_size = ftell(file); REQUIRE(code_size >= 20 && code_size % 4 == 0);
@@ -178,35 +184,35 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     dep.global_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep.global_after = OGPU_NEXT_ACCESS_RESOURCE_HEAP_READ;
     dep.image_count = 1;
     ogpu_next_barrier(encoder, &dep);
-    ogpu_next_bind_heap(encoder, &bindings[0]); ogpu_next_bind_heap(encoder, &bindings[1]);
+    ogpu_next_bind_heap(encoder,bindings[0]); ogpu_next_bind_heap(encoder,bindings[1]);
     ogpu_next_encoder *dispatch_encoder = encoder;
     ogpu_next_list *child = NULL;
     if (secondary) {
         ogpu_next_inheritance inherit = {HEADER(ogpu_next_inheritance, OGPU_NEXT_INHERITANCE),
-            0, 0, 0, NULL, secondary & 1 ? &bindings[0].header : NULL, secondary & 2 ? &bindings[1].header : NULL};
+            0, 0, 0, NULL, secondary & 1 ? bindings[0] : NULL, secondary & 2 ? bindings[1] : NULL};
         ogpu_next_recording_desc cr = {HEADER(ogpu_next_recording_desc, OGPU_NEXT_RECORDING_DESC),
             OGPU_NEXT_SERIAL_REPLAY, OGPU_NEXT_SECONDARY, &inherit.header};
         /* Reject wrong typed records/kinds before consuming the reserved slot. */
-        const ogpu_next_record *saved = inherit.resource_heap;
-        inherit.resource_heap = &bindings[1].header;
+        ogpu_next_descriptor_heap *saved = inherit.resource_heap;
+        inherit.resource_heap = bindings[1];
         REQUIRE(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder) == OGPU_NEXT_INVALID && dispatch_encoder == NULL);
-        inherit.resource_heap = &cr.header;
-        REQUIRE(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder) == OGPU_NEXT_UNSUPPORTED && dispatch_encoder == NULL);
+        inherit.resource_heap = host_heap;
+        REQUIRE(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder) == OGPU_NEXT_INVALID && dispatch_encoder == NULL);
         inherit.resource_heap = saved;
         for (uint32_t i = 0; i < 2; ++i) if (secondary & (1u << i)) {
             TRY(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder));
-            ogpu_next_bind_heap(dispatch_encoder, &bindings[i]);
+            ogpu_next_bind_heap(dispatch_encoder,bindings[i]);
             REQUIRE(ogpu_next_commands_end(dispatch_encoder, &child) == OGPU_NEXT_INVALID && child == NULL);
             TRY(ogpu_next_arena_reset(child_arena));
         }
         TRY(ogpu_next_commands_begin(child_arena, &cr, &dispatch_encoder));
         memset(&inherit, 0xcc, sizeof(inherit)); /* begin retains no host descriptions */
         for (uint32_t i = 0; i < 2; ++i)
-            if (!(secondary & (1u << i))) ogpu_next_bind_heap(dispatch_encoder, &bindings[i]);
+            if (!(secondary & (1u << i))) ogpu_next_bind_heap(dispatch_encoder,bindings[i]);
     }
     ogpu_next_bind_executable(dispatch_encoder, executable);
-    uint32_t control[6] = {0, (uint32_t)(resource_stride / image_stride), 0,
-        (uint32_t)(resource_stride * 2 / buffer_stride), width, height};
+    uint32_t control[6] = {0, 1, 0,
+        (uint32_t)(buffer_offset / buffer_stride), width, height};
     ogpu_next_set_arguments(dispatch_encoder, arguments, 0, sizeof(control), control);
     ogpu_next_launch launch = {{1, 1, 1}, 0, NULL};
     ogpu_next_dispatch(dispatch_encoder, &launch);
@@ -222,7 +228,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
             OGPU_NEXT_ACCESS_STORAGE_WRITE, OGPU_NEXT_ACCESS_STORAGE_WRITE, 0, 0, 0, NULL, NULL, NULL, 0};
         ogpu_next_barrier(encoder, &writes);
         for (uint32_t i = 0; i < 2; ++i)
-            if (!(secondary & (1u << i))) ogpu_next_bind_heap(encoder, &bindings[i]);
+            if (!(secondary & (1u << i))) ogpu_next_bind_heap(encoder,bindings[i]);
         ogpu_next_bind_executable(encoder, executable);
         control[5] = height / 2;
         ogpu_next_set_arguments(encoder, arguments, 0, sizeof(control), control);
@@ -256,10 +262,10 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         REQUIRE(ogpu_next_timeline_wait(signal.point, 0) == OGPU_NEXT_TIMEOUT);
         /* An unused sampler slot in a separate cache atom stays mutable while a
          * list that WILL consume slot zero is pending. This is not GPU-overlap timing. */
-        ogpu_next_host_span unused = {(unsigned char *)sampler_map.data + sampler_stride, limits.sampler_size};
+        ogpu_next_heap_location unused = {bindings[1],sampler_stride};
         sampler.min_filter = replay; sampler.mag_filter = replay;
         TRY(ogpu_next_write_sampler_descriptors(device, 1, &sampler, &unused, temporary));
-        TRY(ogpu_next_memory_flush((ogpu_next_span){sampler_heap, sampler_stride, limits.sampler_size}));
+        TRY(ogpu_next_memory_flush((ogpu_next_span){sampler_heap, sampler_stride, sampler_shape.size}));
         TRY(ogpu_next_timeline_signal_host(wait.point));
         TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate((ogpu_next_span){data, 0, host_desc.size}));
@@ -284,6 +290,7 @@ cleanup:
     ogpu_next_arena_destroy(arena); ogpu_next_arena_destroy(child_arena); ogpu_next_executable_destroy(executable);
     ogpu_next_timeline_destroy(done); ogpu_next_timeline_destroy(gate);
     for (uint32_t i = 0; i < 2; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
+    ogpu_next_heap_destroy(host_heap); ogpu_next_heap_destroy(bindings[0]); ogpu_next_heap_destroy(bindings[1]);
     ogpu_next_memory_destroy(resource_heap); ogpu_next_memory_destroy(sampler_heap);
     ogpu_next_memory_destroy(staging); ogpu_next_memory_destroy(data);
     if (file) fclose(file);

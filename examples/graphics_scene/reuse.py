@@ -27,7 +27,7 @@ def check_run(stdout,stderr,config,device,foundation=False):
     require(f'{backend.title()} scene reuse drained and checked' in stdout,'missing drain marker')
     require(rows(stdout,'DEVICE ')==[device],'device mismatch')
     if foundation:
-        require(backend=='public' and rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=2,index_bytes=bits//8,gpu_generated=True)],'wrong foundation profile')
+        require(backend=='public' and rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=3,index_bytes=bits//8,gpu_generated=True)],'wrong foundation profile')
     expected=[]
     for f in range(frames):
         generation=f//slots;variant=generation%4

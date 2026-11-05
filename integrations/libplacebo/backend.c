@@ -13,7 +13,7 @@
 #define PARAMETERS 240u
 #define RECORD(type, kind) {kind, OGPU_NEXT_VERSION, sizeof(type), 0, NULL}
 struct memory { ogpu_next_memory *handle; ogpu_next_mapping map; uint64_t size; };
-struct heap { struct memory *storage; ogpu_next_heap_binding binding; uint64_t stride, payload; };
+struct heap { struct memory *storage; ogpu_next_descriptor_heap *binding; uint64_t stride, payload; };
 struct variant { ogpu_next_executable *executable; ogpu_next_argument_layout *arguments; unsigned references; };
 struct bank {
     bool reusable;
@@ -133,25 +133,37 @@ static ogpu_next_status memory_read(struct memory *m, void *data, size_t size)
     if (r == OGPU_NEXT_OK) memcpy(data, m->map.data, size);
     return r;
 }
-static bool heap_create(pl_gpu gpu, uint32_t kind, struct heap *h)
+/* Consumer preparation: query a supported maximum to learn reservation geometry,
+ * then choose the actual capacity and backing explicitly. No allocation here. */
+static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t kind,
+    uint32_t usage, ogpu_next_heap_requirements *out) {
+    ogpu_next_descriptor_limits caps;
+    ogpu_next_query q={{OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS,OGPU_NEXT_VERSION,sizeof(q),0,NULL},&caps,1,0,sizeof(caps),0};
+    ogpu_next_status status=ogpu_next_device_query(device,&q);
+    if(status!=OGPU_NEXT_OK)return status;
+    ogpu_next_heap_request request={kind,OGPU_NEXT_HEAP_MEMORY,usage,0,
+        kind==OGPU_NEXT_HEAP_RESOURCE ? caps.max_resource_capacity : caps.max_sampler_capacity};
+    if(request.capacity>PTRDIFF_MAX)request.capacity=PTRDIFF_MAX;
+    return ogpu_next_heap_requirements_query(device,&request,out);
+}
+
+static bool heap_create(pl_gpu gpu, uint32_t kind, const ogpu_next_descriptor_shape *shape, struct heap *h)
 {
     struct backend *b = PL_PRIV(gpu);
-    const ogpu_next_descriptor_limits *d = &b->descriptors;
-    bool sampler = kind == OGPU_NEXT_HEAP_SAMPLER;
-    h->stride = aligned(sampler ? d->sampler_size : d->image_size,
-                        sampler ? d->sampler_alignment : d->image_alignment);
+    ogpu_next_heap_requirements req;
+    TRY(heap_requirements_for(b->device,kind,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&req));
+    h->stride = shape->array_stride;
+    REQUIRE(h->stride >= shape->size && h->stride % shape->alignment == 0,"incompatible typed descriptor stride");
     h->payload = h->stride * SLOTS;
-    uint64_t reserved = aligned(h->payload, PL_MAX(b->memory_limits.cache_atom_size,
-        sampler ? d->sampler_reserved_alignment : d->resource_reserved_alignment));
-    uint64_t reserved_size = sampler ? d->sampler_reserved_size : d->resource_reserved_size;
-    uint64_t size = reserved + reserved_size;
-    uint64_t alignment = PL_MAX(b->memory_limits.cache_atom_size,
-        sampler ? d->sampler_heap_alignment : d->resource_heap_alignment);
+    uint64_t reserved = aligned(h->payload, PL_MAX(b->memory_limits.cache_atom_size,req.reserved_alignment));
+    uint64_t reserved_size = req.reserved_size, size = reserved + reserved_size;
+    uint64_t alignment = PL_MAX(b->memory_limits.cache_atom_size,req.backing_alignment);
     if (!memory_create(gpu, size, alignment, OGPU_NEXT_USAGE_DESCRIPTOR_HEAP, &h->storage)) return false;
     // Whole allocations isolate banks. Cache atoms never overlap reserved bytes.
     REQUIRE(h->storage->map.cache_offset == 0, "heap mapping cache offset");
-    h->binding = (ogpu_next_heap_binding){RECORD(ogpu_next_heap_binding, OGPU_NEXT_HEAP_BINDING),
-        kind, 0, span(h->storage), reserved, reserved_size};
+    ogpu_next_heap_desc desc={{kind,OGPU_NEXT_HEAP_MEMORY,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,0,size},
+        span(h->storage),{h->storage->map.data,h->storage->map.size},reserved,reserved_size};
+    TRY(ogpu_next_heap_create(b->device,&desc,&h->binding));
     return true;
 fail:
     return false;
@@ -485,6 +497,7 @@ static void pass_destroy(pl_gpu gpu, pl_pass pass)
     for (unsigned i = 0; i < FRAMES; ++i) {
         struct bank *bank = &p->banks[i];
         variant_release(bank->variant);
+        ogpu_next_heap_destroy(bank->images.binding); ogpu_next_heap_destroy(bank->samplers.binding);
         memory_destroy(bank->images.storage);
         memory_destroy(bank->samplers.storage);
         memory_destroy(bank->vertices);
@@ -644,8 +657,7 @@ static pl_pass pass_create(pl_gpu gpu, const struct pl_pass_params *in)
         bank->allocated = true;
         ++b->stats.banks;
         b->stats.peak_banks = PL_MAX(b->stats.peak_banks, b->stats.banks);
-        if (!heap_create(gpu, OGPU_NEXT_HEAP_RESOURCE, &bank->images) ||
-            !heap_create(gpu, OGPU_NEXT_HEAP_SAMPLER, &bank->samplers)) goto fail;
+        // Heap geometry is prepared on first use, when actual image views exist.
         if (!compute) {
             if (!memory_create(gpu, 64, 16, OGPU_NEXT_USAGE_STORAGE, &bank->vertices)) goto fail;
             TRY(ogpu_next_memory_address(span(bank->vertices), &bank->vertex_address));
@@ -676,6 +688,22 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
     REQUIRE(!params->push_constants_size || in->push_constants, "missing pass parameters");
     REQUIRE(!bank->busy && (b->active < 0 || b->frames[b->active].count < OPERATIONS),
             "pass bank already in use or frame capacity exceeded");
+    /* Consumer-owned preparation before recording. The shader uses typed native
+     * indices, so every view in this bank must agree on its array stride. */
+    for(int i=0;i<params->num_descriptors;++i) {
+        const struct pl_desc *d=&params->descriptors[i];
+        struct texture *t=PL_PRIV((pl_tex)in->desc_bindings[i].object);
+        ogpu_next_resource_descriptor entry={d->type==PL_DESC_SAMPLED_TEX ? OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE : OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE,
+            OGPU_NEXT_STATE_GENERAL,t->view,{NULL,0,0}};
+        ogpu_next_descriptor_shape shape; TRY(ogpu_next_resource_descriptor_shape(b->device,&entry,&shape));
+        if(!bank->images.binding && !heap_create(gpu,OGPU_NEXT_HEAP_RESOURCE,&shape,&bank->images))goto fail;
+        REQUIRE(shape.array_stride==bank->images.stride && shape.size<=bank->images.stride,"image descriptor layout changed");
+    }
+    if(!bank->samplers.binding) {
+        ogpu_next_sampler_desc sampler={RECORD(ogpu_next_sampler_desc,OGPU_NEXT_SAMPLER_DESC),0,0,0,{2,2,2},0,0,0,0,0,0,0,1};
+        ogpu_next_descriptor_shape shape; TRY(ogpu_next_sampler_descriptor_shape(b->device,&sampler,&shape));
+        if(!heap_create(gpu,OGPU_NEXT_HEAP_SAMPLER,&shape,&bank->samplers))goto fail;
+    }
     if (!specialize(gpu, in->pass, in->constant_data)) goto fail;
     if (!compute) {
         REQUIRE(in->vertex_data && !in->vertex_buf && !in->index_data && !in->index_buf &&
@@ -698,8 +726,7 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
         const ogpu_next_resource_descriptor entry = {
             sampled ? OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE : OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE,
             OGPU_NEXT_STATE_GENERAL, t->view, {NULL, 0, 0}};
-        const ogpu_next_host_span output = {(char *)bank->images.storage->map.data + d->binding * bank->images.stride,
-            b->descriptors.image_size};
+        const ogpu_next_heap_location output = {bank->images.binding,d->binding * bank->images.stride};
         TRY(ogpu_next_write_resource_descriptors(b->device, 1, &entry, &output, b->scratch));
         if (sampled) {
             REQUIRE(binding->sample_mode == PL_TEX_SAMPLE_NEAREST || binding->sample_mode == PL_TEX_SAMPLE_LINEAR,
@@ -710,15 +737,14 @@ static void pass_run(pl_gpu gpu, const struct pl_pass_run_params *in)
             const uint32_t address = binding->address_mode == PL_TEX_ADDRESS_REPEAT ? OGPU_NEXT_ADDRESS_REPEAT : OGPU_NEXT_ADDRESS_CLAMP_EDGE;
             const ogpu_next_sampler_desc sampler = {RECORD(ogpu_next_sampler_desc, OGPU_NEXT_SAMPLER_DESC),
                 filter, filter, 0, {address, address, address}, 0, 0, 0, 0, 0, 0, 0, 1};
-            const ogpu_next_host_span sampler_out = {(char *)bank->samplers.storage->map.data + d->binding * bank->samplers.stride,
-                b->descriptors.sampler_size};
+            const ogpu_next_heap_location sampler_out = {bank->samplers.binding,d->binding * bank->samplers.stride};
             TRY(ogpu_next_write_sampler_descriptors(b->device, 1, &sampler, &sampler_out, b->scratch));
         }
     }
     TRY(ogpu_next_memory_flush((ogpu_next_span){bank->images.storage->handle, 0, bank->images.payload}));
     TRY(ogpu_next_memory_flush((ogpu_next_span){bank->samplers.storage->handle, 0, bank->samplers.payload}));
-    ogpu_next_bind_heap(batch, &bank->images.binding);
-    ogpu_next_bind_heap(batch, &bank->samplers.binding);
+    ogpu_next_bind_heap(batch, bank->images.binding);
+    ogpu_next_bind_heap(batch, bank->samplers.binding);
     ogpu_next_bind_executable(batch, p->current->executable);
     if (compute) {
         ogpu_next_set_arguments(batch, p->current->arguments, 0, params->push_constants_size, in->push_constants);
@@ -847,8 +873,8 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     q = query(OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS, &b->descriptors, 1, sizeof(b->descriptors));
     TRY(ogpu_next_device_query(b->device, &q));
     ogpu_next_host_requirements scratch[5];
-    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_RESOURCE, 1, &scratch[0]));
-    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_SAMPLER, 1, &scratch[1]));
+    TRY(ogpu_next_descriptor_scratch_requirements(b->device,OGPU_NEXT_DESCRIPTOR_WRITE_RESOURCE, 1, &scratch[0]));
+    TRY(ogpu_next_descriptor_scratch_requirements(b->device,OGPU_NEXT_DESCRIPTOR_WRITE_SAMPLER, 1, &scratch[1]));
     TRY(ogpu_next_barrier_scratch_requirements(0, 1, &scratch[2]));
     TRY(ogpu_next_render_scratch_requirements(1, &scratch[3]));
     TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &scratch[4]));

@@ -1,8 +1,9 @@
 # C1 consolidation and C2 cutover
 
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
-The Vulkan argument family is now installed as foundation schema 2; the remaining
-families are still being migrated. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
+The Vulkan argument and descriptor families are installed as foundation schema 3,
+including borrowed heap inheritance. Generated layouts and the remaining families
+are still being migrated. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
 
@@ -31,7 +32,7 @@ old embedded record that this document replaces. Discovery, allocation/placement
 mapping/cache control, image/view creation, command arenas/replay, work commands,
 render state, copies, queries and timeline operations remain. The installed header
 baseline is pinned at `40bde34` and its content hash is in the inventory. The audit
-reads that baseline from Git and separately checks the current 140-operation surface. No unlisted entry
+reads that baseline from Git and separately checks the current 147-operation surface. No unlisted entry
 point is silently deleted or added to the selected core.
 
 ## Signature and record migration
@@ -288,6 +289,7 @@ the full C2 audit and local C3. C2 as a whole is not complete.
 
 ## C2 descriptor storage engine
 
+Historical internal checkpoint (`cb6e942`), superseded by the public cutover below.
 Implemented 2026-11-04 on Vulkan/Linux, below the installed descriptor API:
 
 - Explicit HOST and MEMORY heaps borrow one backing and expose immutable creation
@@ -335,6 +337,53 @@ Remove the raw-output/bind-record paths and validate the new public contract thr
 those consumers. Device-local GPU upload and pending disjoint mutation still need
 coverage through the new storage interface; the legacy consumer receipts alone do
 not close those checks. Dependencies/submission, presentation and full C3 follow.
+
+## C2 descriptor public cutover
+
+Implemented 2026-11-05 on Vulkan/Linux. Foundation schema 3 exposes D's selected
+heap requirements, per-description shapes, explicit creation/destruction, immutable
+info, locations, writes and CPU copies through C and direct Rust. Secondary
+inheritance borrows the same resource/sampler heap objects; primary/secondary
+binding uses prepared native information. Shader indices continue to use the actual
+queried native stride, without a conversion table or forced common slot.
+
+Deleted the raw-host-output writer entry paths, heap-binding records and translation,
+and temporary dead-code allowances. The former descriptor byte-limit record is now
+private native geometry; public limits expose native capacities and address/sampler
+constraints. Old schemas are rejected; consumers must rebuild. No compatibility
+implementation or second supported descriptor representation remains.
+
+All affected C and Rust consumers now own heap wrappers explicitly and destroy them
+before backing. Compressed sampling prepares storage when the actual view exists.
+Libplacebo prepares each consumer-owned bank on first use, before command recording,
+then checks later resource shapes against that bank's typed native stride. The runtime
+performs no lazy materialization. Future formats with different geometry can require
+that consumer to prepare a different bank; they are not padded or converted by core.
+
+For initial reservation geometry, consumers query a supported capacity from public
+limits, bounded by host addressability for CPU-accessible storage, then choose their
+actual capacity. This query allocates nothing. A native maximum may exceed the host's
+addressable range; treating it as an allocatable CPU heap is deliberately rejected.
+
+Local checks: 71 CPU tests, all 24 native tests, 1,452 installed C/Rust ABI values,
+376 draft values, the 147-operation audit and strict Clippy pass. The public C
+foundation consumer passes device-local descriptor upload, mixed image/buffer
+consumption, changed-descriptor replay, pending disjoint sampler mutation and all
+secondary heap inheritance masks. Its mixed resource layout now packs buffers at
+their own extent/alignment, without padding them to an image-sized slot. Storage-image
+compiler checks build 16 variants. The changed-entry replay fixture passes through
+public C/Rust heap, info, shape, write and copy operations with synchronization
+validation enabled and no validation messages.
+All six relocated C consumers pass, including 36 independently checked textured
+frames. The isolated native Rust, independent libplacebo rendering/lifecycle and
+GGML transformer/quantized/matrix/lifetime handoffs pass. Scene-runner host tests
+pass all 47 cases. No Windows/Metal acceptance or new
+performance measurement is claimed.
+
+**Next:** finish step 2 by giving generated command layouts their explicit borrowed
+argument layout, including token bounds and mapping compatibility. Then migrate
+per-entry dependencies and unified submission, followed by presentation and the
+full C2 audit/local C3. The descriptor/secondary cutover is complete; C2 is not.
 
 ## Verification and open native questions
 

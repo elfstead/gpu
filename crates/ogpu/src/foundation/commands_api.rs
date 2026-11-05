@@ -732,11 +732,9 @@ pub unsafe extern "C" fn ogpu_next_barrier(encoder: *mut List, dep: *const Depen
 /// # Safety
 /// Exclusive encoder/pool; descriptor storage and reserved bytes obey header lifetimes.
 #[no_mangle]
-pub unsafe extern "C" fn ogpu_next_bind_heap(encoder: *mut List, binding: *const HeapBinding) {
+pub unsafe extern "C" fn ogpu_next_bind_heap(encoder: *mut List, heap: *mut DescriptorHeap) {
     unsafe {
-        encode(encoder, |e| {
-            e.bind_heap(description(binding, HEAP_BINDING)?)
-        });
+        encode(encoder, |e| e.bind_heap(heap.as_ref().ok_or(INVALID)?));
     }
 }
 /// # Safety

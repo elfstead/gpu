@@ -22,7 +22,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 2;
+pub const VERSION: u32 = 3;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -417,7 +417,6 @@ pub const DEPENDENCY: u32 = 105;
 pub const IMAGE_DESC: u32 = 106;
 pub const VIEW_DESC: u32 = 107;
 pub const SAMPLER_DESC: u32 = 108;
-pub const HEAP_BINDING: u32 = 109;
 pub const DESCRIPTOR_LIMITS: u32 = 7;
 pub const SAMPLER_ANISOTROPY: u64 = 8;
 pub const EXECUTION_LIMITS: u32 = 8;
@@ -930,20 +929,8 @@ pub struct Launch {
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub struct DescriptorLimits {
-    pub buffer_size: u64,
-    pub buffer_alignment: u64,
-    pub image_size: u64,
-    pub image_alignment: u64,
-    pub sampler_size: u64,
-    pub sampler_alignment: u64,
-    pub resource_heap_alignment: u64,
-    pub resource_heap_max_size: u64,
-    pub resource_reserved_size: u64,
-    pub resource_reserved_alignment: u64,
-    pub sampler_heap_alignment: u64,
-    pub sampler_heap_max_size: u64,
-    pub sampler_reserved_size: u64,
-    pub sampler_reserved_alignment: u64,
+    pub max_resource_capacity: u64,
+    pub max_sampler_capacity: u64,
     pub uniform_address_alignment: u64,
     pub storage_address_alignment: u64,
     pub max_uniform_range: u64,
@@ -981,16 +968,6 @@ pub struct SamplerDesc {
     pub lod_bias: f32,
     pub max_anisotropy: f32,
 }
-#[repr(C)]
-pub struct HeapBinding {
-    pub header: Record,
-    pub kind: u32,
-    pub flags: u32,
-    pub storage: Span,
-    pub reserved_offset: u64,
-    pub reserved_size: u64,
-}
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Extent {
@@ -1237,8 +1214,8 @@ pub struct Inheritance {
     pub query_flags: u32,
     pub statistics: u64,
     pub rendering: *const Record,
-    pub resource_heap: *const Record,
-    pub sampler_heap: *const Record,
+    pub resource_heap: *mut super::DescriptorHeap,
+    pub sampler_heap: *mut super::DescriptorHeap,
 }
 #[repr(C)]
 pub struct RenderInheritance {
@@ -1396,4 +1373,64 @@ pub(super) fn validate_requests(
         }
     }
     Ok(())
+}
+
+pub const HEAP_HOST: u32 = 0;
+pub const HEAP_MEMORY: u32 = 1;
+pub const HEAP_NATIVE: u32 = 2;
+pub const HEAP_SHADER_VISIBLE: u32 = 1;
+pub const HEAP_CPU_WRITE: u32 = 2;
+pub const HEAP_CPU_COPY_SOURCE: u32 = 4;
+pub const HEAP_CPU_COPY_DESTINATION: u32 = 8;
+pub const DESCRIPTOR_WRITE_RESOURCE: u32 = 0;
+pub const DESCRIPTOR_WRITE_SAMPLER: u32 = 1;
+pub const DESCRIPTOR_COPY: u32 = 2;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HeapRequest {
+    pub kind: u32,
+    pub storage: u32,
+    pub usage: u32,
+    pub flags: u32,
+    pub capacity: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct HeapRequirements {
+    pub unit_bytes: u64,
+    pub backing_size: u64,
+    pub backing_alignment: u64,
+    pub reserved_size: u64,
+    pub reserved_alignment: u64,
+    pub memory_usage: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HeapDesc {
+    pub request: HeapRequest,
+    pub memory: Span,
+    pub host: HostSpan,
+    pub reserved_offset: u64,
+    pub reserved_size: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DescriptorShape {
+    pub size: u64,
+    pub alignment: u64,
+    pub array_stride: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HeapLocation {
+    pub heap: *mut super::DescriptorHeap,
+    pub offset: u64,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DescriptorCopy {
+    pub source: HeapLocation,
+    pub destination: HeapLocation,
+    pub size: u64,
 }

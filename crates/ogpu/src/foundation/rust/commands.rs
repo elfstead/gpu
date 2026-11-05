@@ -24,7 +24,7 @@ record!(fn dispatch(list, launch: &Launch) |e| e.dispatch(launch));
 record!(/// GPU dimensions must satisfy enabled limits when the command executes.
     fn dispatch_indirect(list, args: Span, dynamic_shared_bytes: u32) |e| e.dispatch_indirect(args, dynamic_shared_bytes));
 record!(/// Reserved descriptor bytes obey heap lifetime/mutation rules; no retention walk.
-    fn bind_heap(list, binding: &HeapBinding) |e| e.bind_heap(binding));
+    fn bind_heap(list, heap: DescriptorHeapHandle) |e| e.bind_heap(heap.get()));
 record!(fn render_begin(list, desc: &RenderDesc) |e| e.render_begin(desc));
 record!(/// End an active rendering scope.
     fn render_end(list) |e| e.render_end());

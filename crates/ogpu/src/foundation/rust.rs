@@ -52,6 +52,7 @@ handle!(ImageHandle, Image);
 handle!(ViewHandle, View);
 handle!(ExecutableHandle, Executable);
 handle!(ArgumentLayoutHandle, ArgumentLayout);
+handle!(DescriptorHeapHandle, DescriptorHeap);
 handle!(GeneratedLayoutHandle, GeneratedLayout);
 handle!(GeneratedSetHandle, GeneratedSet);
 handle!(ExecutableCacheHandle, ExecutableCache);

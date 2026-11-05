@@ -2,9 +2,7 @@
 //! retained resources, implicit allocation/flush/copy or heap-wide mutation lock.
 use super::*;
 use std::alloc::Layout;
-// C2 storage engine; public locations/composition migrate in the next checkpoint.
 #[path = "descriptor_storage.rs"]
-#[allow(dead_code)]
 pub(super) mod storage;
 
 #[derive(Default)]
@@ -75,7 +73,7 @@ fn destination(span: HostSpan, size: u64) -> Result<vk::VkHostAddressRangeEXT, S
 }
 fn sampler(
     desc: &SamplerDesc,
-    limits: &DescriptorLimits,
+    limits: &NativeDescriptorProperties,
     enabled: u64,
 ) -> Result<vk::VkSamplerCreateInfo, Status> {
     desc.header.validate::<SamplerDesc>(SAMPLER_DESC)?;
@@ -148,7 +146,7 @@ impl Device {
         input: &ResourceDescriptor,
         storage: *mut ResourceData,
     ) -> Result<(ResourceData, vk::VkResourceDescriptorInfoEXT, u64), Status> {
-        let limits = &self.snapshot.descriptor_limits;
+        let limits = &self.snapshot.descriptor_properties;
         let mut info = vk::VkResourceDescriptorInfoEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT,
             ..Default::default()
@@ -223,23 +221,6 @@ impl Device {
         };
         Ok((entry, info, size))
     }
-    pub(in crate::foundation) unsafe fn write_resources(
-        &self,
-        count: u32,
-        inputs: *const ResourceDescriptor,
-        outputs: *const HostSpan,
-        temporary: HostSpan,
-    ) -> Result<(), Status> {
-        array::<HostSpan>(count)?;
-        if count != 0 && outputs.is_null() {
-            return Err(INVALID);
-        }
-        unsafe {
-            self.write_resources_to(count, inputs, temporary, |i, size| {
-                destination(outputs.add(i).read(), size)
-            })
-        }
-    }
     unsafe fn write_resources_to(
         &self,
         count: u32,
@@ -285,23 +266,6 @@ impl Device {
             ))
         }
     }
-    pub(in crate::foundation) unsafe fn write_samplers(
-        &self,
-        count: u32,
-        inputs: *const SamplerDesc,
-        outputs: *const HostSpan,
-        temporary: HostSpan,
-    ) -> Result<(), Status> {
-        array::<HostSpan>(count)?;
-        if count != 0 && outputs.is_null() {
-            return Err(INVALID);
-        }
-        unsafe {
-            self.write_samplers_to(count, inputs, temporary, |i, size| {
-                destination(outputs.add(i).read(), size)
-            })
-        }
-    }
     unsafe fn write_samplers_to(
         &self,
         count: u32,
@@ -322,7 +286,7 @@ impl Device {
         let destinations = bytes
             .wrapping_add(output_offset)
             .cast::<vk::VkHostAddressRangeEXT>();
-        let limits = &self.snapshot.descriptor_limits;
+        let limits = &self.snapshot.descriptor_properties;
         for i in 0..count as usize {
             let pointer = unsafe { inputs.add(i) };
             unsafe { pointer.cast::<Record>().read() }.validate::<SamplerDesc>(SAMPLER_DESC)?;
@@ -341,83 +305,6 @@ impl Device {
                 destinations,
             ))
         }
-    }
-    pub(super) unsafe fn bind_heap(
-        &self,
-        command: vk::VkCommandBuffer,
-        domain: u32,
-        binding: &HeapBinding,
-    ) -> Result<(), Status> {
-        let info = unsafe { self.heap_binding(domain, binding)? };
-        let f = match binding.kind {
-            1 => self.f.vkCmdBindResourceHeapEXT,
-            2 => self.f.vkCmdBindSamplerHeapEXT,
-            _ => unreachable!(), // validated by heap_binding
-        };
-        unsafe { f.unwrap()(command, &info) };
-        Ok(())
-    }
-    pub(super) unsafe fn heap_binding(
-        &self,
-        domain: u32,
-        binding: &HeapBinding,
-    ) -> Result<vk::VkBindHeapInfoEXT, Status> {
-        binding.header.validate::<HeapBinding>(HEAP_BINDING)?;
-        if binding.flags != 0 {
-            return Err(UNSUPPORTED);
-        }
-        let queue = self
-            .snapshot
-            .queues
-            .iter()
-            .find(|q| q.domain == domain)
-            .ok_or(INVALID)?;
-        if queue.flags & (GRAPHICS | COMPUTE) == 0 {
-            return Err(UNSUPPORTED);
-        }
-        let p = &self.snapshot.descriptor_limits;
-        let (alignment, maximum, reserved, offset_alignment) = match binding.kind {
-            1 => (
-                p.resource_heap_alignment,
-                p.resource_heap_max_size,
-                p.resource_reserved_size,
-                p.resource_reserved_alignment,
-            ),
-            2 => (
-                p.sampler_heap_alignment,
-                p.sampler_heap_max_size,
-                p.sampler_reserved_size,
-                p.sampler_reserved_alignment,
-            ),
-            _ => return Err(UNSUPPORTED),
-        };
-        let span = binding.storage;
-        let memory = unsafe { span.memory.as_ref() }.ok_or(INVALID)?;
-        let (_, _, address) = memory.command_range(self, domain, span.offset, span.size, 128)?;
-        if alignment == 0 || offset_alignment == 0 {
-            return Err(UNSUPPORTED);
-        }
-        if span.size == 0
-            || address % alignment != 0
-            || binding.reserved_offset % offset_alignment != 0
-            || binding.reserved_offset > span.size
-            || binding.reserved_size > span.size - binding.reserved_offset
-        {
-            return Err(INVALID);
-        }
-        if span.size > maximum || binding.reserved_size < reserved {
-            return Err(UNSUPPORTED);
-        }
-        Ok(vk::VkBindHeapInfoEXT {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
-            heapRange: vk::VkDeviceAddressRangeKHR {
-                address,
-                size: span.size,
-            },
-            reservedRangeOffset: binding.reserved_offset,
-            reservedRangeSize: binding.reserved_size,
-            ..Default::default()
-        })
     }
 }
 
@@ -444,6 +331,48 @@ mod tests {
             (*outputs).address.cast::<u8>().write(0x42);
         }
         FAILURE.get()
+    }
+    unsafe fn write_test_samplers(
+        device: &Device,
+        count: u32,
+        inputs: *const SamplerDesc,
+        outputs: *const HostSpan,
+        scratch: HostSpan,
+    ) -> Result<(), Status> {
+        let mut heaps = Vec::new();
+        for i in 0..count as usize {
+            let host = unsafe { outputs.add(i).read() };
+            heaps.push(unsafe {
+                storage::DescriptorHeap::create(
+                    device,
+                    &HeapDesc {
+                        request: HeapRequest {
+                            kind: 2,
+                            storage: HEAP_HOST,
+                            usage: HEAP_CPU_WRITE,
+                            flags: 0,
+                            capacity: host.size,
+                        },
+                        memory: Span {
+                            memory: ptr::null_mut(),
+                            offset: 0,
+                            size: 0,
+                        },
+                        host,
+                        reserved_offset: 0,
+                        reserved_size: 0,
+                    },
+                )?
+            });
+        }
+        let locations: Vec<_> = heaps
+            .iter_mut()
+            .map(|h| HeapLocation {
+                heap: &mut **h,
+                offset: 0,
+            })
+            .collect();
+        unsafe { device.write_sampler_locations(count, inputs, locations.as_ptr(), scratch) }
     }
     fn basic_sampler() -> SamplerDesc {
         SamplerDesc {
@@ -498,14 +427,15 @@ mod tests {
                         let mut scratch = vec![0u64; req.size.div_ceil(8) as usize];
                         assert!(req.alignment <= align_of::<u64>() as u64);
                         let mut output =
-                            vec![0u8; device.snapshot.descriptor_limits.sampler_size as usize];
+                            vec![0u8; device.snapshot.descriptor_properties.sampler_size as usize];
                         let dest = HostSpan {
                             data: output.as_mut_ptr().cast(),
                             size: output.len() as u64,
                         };
                         assert_eq!(
                             unsafe {
-                                device.write_samplers(
+                                write_test_samplers(
+                                    device,
                                     1,
                                     &basic_sampler(),
                                     &dest,
@@ -529,7 +459,7 @@ mod tests {
                 data: scratch.as_mut_ptr().cast(),
                 size: req.size,
             };
-            let size = device.snapshot.descriptor_limits.sampler_size as usize;
+            let size = device.snapshot.descriptor_properties.sampler_size as usize;
             let mut output = vec![0xa5u8; size * 2];
             let outputs = [
                 HostSpan {
@@ -544,7 +474,9 @@ mod tests {
             let mut inputs = [basic_sampler(), basic_sampler()];
             inputs[1].max_anisotropy = f32::NAN;
             assert_eq!(
-                unsafe { device.write_samplers(2, inputs.as_ptr(), outputs.as_ptr(), temporary) },
+                unsafe {
+                    write_test_samplers(&device, 2, inputs.as_ptr(), outputs.as_ptr(), temporary)
+                },
                 Err(INVALID)
             );
             assert_eq!(CALLS.get(), 0);
@@ -552,7 +484,9 @@ mod tests {
             inputs[1] = basic_sampler();
             FAILURE.set(vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY);
             assert_eq!(
-                unsafe { device.write_samplers(2, inputs.as_ptr(), outputs.as_ptr(), temporary) },
+                unsafe {
+                    write_test_samplers(&device, 2, inputs.as_ptr(), outputs.as_ptr(), temporary)
+                },
                 Err(OUT_OF_MEMORY)
             );
             assert_eq!(CALLS.get(), 1);
@@ -561,12 +495,16 @@ mod tests {
             assert_eq!(device.ready(), Ok(()));
             FAILURE.set(vk::VkResult_VK_ERROR_DEVICE_LOST);
             assert_eq!(
-                unsafe { device.write_samplers(2, inputs.as_ptr(), outputs.as_ptr(), temporary) },
+                unsafe {
+                    write_test_samplers(&device, 2, inputs.as_ptr(), outputs.as_ptr(), temporary)
+                },
                 Err(DEVICE_LOST)
             );
             assert_eq!(CALLS.get(), 2);
             assert_eq!(
-                unsafe { device.write_samplers(2, inputs.as_ptr(), outputs.as_ptr(), temporary) },
+                unsafe {
+                    write_test_samplers(&device, 2, inputs.as_ptr(), outputs.as_ptr(), temporary)
+                },
                 Err(DEVICE_LOST)
             );
             assert_eq!(CALLS.get(), 2);
@@ -576,7 +514,7 @@ mod tests {
     }
     #[test]
     fn sampler_constraints_and_scratch_layout() {
-        let limits = DescriptorLimits {
+        let limits = NativeDescriptorProperties {
             max_sampler_anisotropy: 16.0,
             max_sampler_lod_bias: 2.0,
             ..Default::default()

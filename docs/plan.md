@@ -1,6 +1,6 @@
 # Working status and next milestone
 
-Updated 2026-11-04. **C1 is complete: the minimal composable foundation contract
+Updated 2026-11-05. **C1 is complete: the minimal composable foundation contract
 is selected. C2 implementation is active, then C3 accepts available
 native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
@@ -14,12 +14,13 @@ frames, native availability, explicit outcome effects and replacement/resize lif
 scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
 covers every installed operation, cross-family records and the ordered C2 cutover.
 The [C2 argument cutover](minimal-core-migration.md#c2-argument-public-cutover) is complete
-on Vulkan: foundation schema 2 exposes prepared layouts and one argument updater
+on Vulkan: foundation schema 3 exposes prepared layouts and one argument updater
 through C and direct Rust, with migrated compiler artifacts and consumers. The old
-argument adapters are deleted. The [descriptor storage engine](minimal-core-migration.md#c2-descriptor-storage-engine)
-now passes native writes/copies and changed-entry replay. Its public C/Rust limits,
-heap consumers and secondary inheritance are next, followed by explicit generated
-argument layouts. The rest of the coordinated cutover and C3 remain incomplete.
+argument adapters are deleted. The [public descriptor cutover](minimal-core-migration.md#c2-descriptor-public-cutover)
+is also complete: C/Rust heap locations, native shape/requirements queries and
+secondary inheritance use explicit heap objects. Raw-output/bind-record paths are
+deleted. Explicit generated argument layouts are next; the rest of C2 and C3 remain
+incomplete.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -133,10 +134,9 @@ layouts, the updater, compiler metadata and consumers are implemented and locall
 A pinned mixed-mapping shader now passes real uniform/storage/inline access,
 shared-layout pipeline binding, partial updates and changed-pointee replay with
 guards and synchronization validation on RADV.
-The temporary argument adapters are deleted. The internal descriptor storage engine
-is implemented with native replay evidence. Next cut the public descriptor family
-and heap consumers over, then finish command composition, dependencies/submission
-and presentation before local C3.
+Argument and descriptor public cutovers are complete, including heap consumers and
+secondary inheritance. Next finish explicit generated argument layouts, then
+dependencies/submission and presentation before local C3.
 No final profile count is assumed.
 
 ## P1: implemented, partial human acceptance

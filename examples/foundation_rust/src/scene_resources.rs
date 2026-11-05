@@ -313,7 +313,7 @@ pub unsafe fn raster(
 pub struct Texture {
     pub image: Image,
     pub heaps: [Buffer; 2],
-    pub bindings: [HeapBinding; 2],
+    pub bindings: [gpu::DescriptorHeapHandle; 2],
 }
 impl Texture {
     pub unsafe fn new(
@@ -412,78 +412,91 @@ impl Texture {
                     reserved: 0,
                 },
             )?;
+            let resource = ResourceDescriptor {
+                kind: 1,
+                image_state: SHADER_READ,
+                view: image.view.as_raw(),
+                buffer: Span {
+                    memory: ptr::null_mut(),
+                    offset: 0,
+                    size: 0,
+                },
+            };
+            let sampler = SamplerDesc {
+                header: Record::new::<SamplerDesc>(SAMPLER_DESC),
+                min_filter: 0,
+                mag_filter: 0,
+                mip_filter: 0,
+                address_mode: [2; 3],
+                compare_enable: 0,
+                compare_op: 0,
+                border_color: 0,
+                unnormalized_coordinates: 0,
+                min_lod: 0.,
+                max_lod: 3.,
+                lod_bias: 0.,
+                max_anisotropy: 1.,
+            };
+            let shapes = [
+                gpu::resource_descriptor_shape(d, &resource)?,
+                gpu::sampler_descriptor_shape(d, &sampler)?,
+            ];
             let mut heaps = Vec::new();
             let mut bindings = Vec::new();
             for i in 0..2 {
-                let (payload, reserved_align, tail, align) = if i == 0 {
-                    (
-                        limits.image_size,
-                        limits.resource_reserved_alignment,
-                        limits.resource_reserved_size,
-                        limits.resource_heap_alignment,
-                    )
-                } else {
-                    (
-                        limits.sampler_size,
-                        limits.sampler_reserved_alignment,
-                        limits.sampler_reserved_size,
-                        limits.sampler_heap_alignment,
-                    )
+                let mut request = HeapRequest {
+                    kind: i as u32 + 1,
+                    storage: HEAP_MEMORY,
+                    usage: HEAP_SHADER_VISIBLE | HEAP_CPU_WRITE,
+                    flags: 0,
+                    capacity: if i == 0 {
+                        limits.max_resource_capacity
+                    } else {
+                        limits.max_sampler_capacity
+                    },
                 };
-                let offset = payload.div_ceil(reserved_align) * reserved_align;
-                let heap = Buffer::new(d, adapter, offset + tail, 128, align)?;
-                let mut temp = Scratch::new(gpu::descriptor_scratch_requirements(i + 1, 1)?);
-                let out = HostSpan {
-                    data: heap.mapping.data,
-                    size: payload,
+                request.capacity = request.capacity.min(isize::MAX as u64);
+                let req = gpu::heap_requirements_query(d, &request)?;
+                let payload = shapes[i].size;
+                let offset = payload.div_ceil(req.reserved_alignment) * req.reserved_alignment;
+                request.capacity = offset + req.reserved_size;
+                let heap = Buffer::new(
+                    d,
+                    adapter,
+                    request.capacity,
+                    req.memory_usage,
+                    req.backing_alignment,
+                )?;
+                let binding = gpu::heap_create(
+                    d,
+                    &HeapDesc {
+                        request,
+                        memory: heap.span(),
+                        host: HostSpan {
+                            data: heap.mapping.data,
+                            size: heap.mapping.size,
+                        },
+                        reserved_offset: offset,
+                        reserved_size: req.reserved_size,
+                    },
+                )?;
+                let output = HeapLocation {
+                    heap: binding.as_raw(),
+                    offset: 0,
                 };
+                let mut temp = Scratch::new(gpu::descriptor_scratch_requirements(d, i as u32, 1)?);
                 if i == 0 {
                     gpu::write_resource_descriptors(
                         d,
-                        &[ResourceDescriptor {
-                            kind: 1,
-                            image_state: SHADER_READ,
-                            view: image.view.as_raw(),
-                            buffer: Span {
-                                memory: ptr::null_mut(),
-                                offset: 0,
-                                size: 0,
-                            },
-                        }],
-                        &[out],
+                        std::slice::from_ref(&resource),
+                        &[output],
                         temp.span(),
                     )?;
                 } else {
-                    gpu::write_sampler_descriptors(
-                        d,
-                        &[SamplerDesc {
-                            header: Record::new::<SamplerDesc>(SAMPLER_DESC),
-                            min_filter: 0,
-                            mag_filter: 0,
-                            mip_filter: 0,
-                            address_mode: [2; 3],
-                            compare_enable: 0,
-                            compare_op: 0,
-                            border_color: 0,
-                            unnormalized_coordinates: 0,
-                            min_lod: 0.,
-                            max_lod: 3.,
-                            lod_bias: 0.,
-                            max_anisotropy: 1.,
-                        }],
-                        &[out],
-                        temp.span(),
-                    )?;
+                    gpu::write_sampler_descriptors(d, &[sampler], &[output], temp.span())?;
                 }
                 gpu::memory_flush(heap.memory.span(0, payload))?;
-                bindings.push(HeapBinding {
-                    header: Record::new::<HeapBinding>(HEAP_BINDING),
-                    kind: i + 1,
-                    flags: 0,
-                    storage: heap.span(),
-                    reserved_offset: offset,
-                    reserved_size: tail,
-                });
+                bindings.push(binding);
                 heaps.push(heap);
             }
             Ok((
@@ -498,6 +511,9 @@ impl Texture {
     }
     pub unsafe fn destroy(self) {
         unsafe {
+            for binding in self.bindings {
+                gpu::heap_destroy(binding);
+            }
             self.image.destroy();
             for heap in self.heaps {
                 heap.destroy();

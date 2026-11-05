@@ -5,6 +5,7 @@ static uint32_t cube_pixel(uint32_t layer, uint32_t mip, uint32_t replay) {
 }
 static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_desc, uint32_t domain, const char *path) {
     ogpu_next_argument_layout *arguments = NULL;
+    ogpu_next_descriptor_heap *bindings[2]={NULL,NULL};
     int result = EXIT_FAILURE, pending = 0;
     FILE *file = NULL; void *code = NULL, *scratch = NULL, *barrier_scratch = NULL, *submit_scratch = NULL;
     ogpu_next_memory *backing = NULL, *data = NULL, *heaps[2] = {NULL};
@@ -40,28 +41,35 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     TRY(ogpu_next_memory_create(device,&host_desc,&data)); ogpu_next_span all = {data,0,host_desc.size}; ogpu_next_mapping map = {0};
     TRY(ogpu_next_memory_map(all,&map)); uint64_t output_address = 0;
     TRY(ogpu_next_memory_address((ogpu_next_span){data,3072,96},&output_address));
-    ogpu_next_descriptor_limits limits = {0}; q = query(OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS,&limits,1,sizeof(limits));
-    TRY(ogpu_next_device_query(device,&q));
-    uint64_t payloads[] = {limits.image_size,limits.sampler_size};
-    uint64_t reserved[] = {aligned(payloads[0],limits.resource_reserved_alignment),aligned(payloads[1],limits.sampler_reserved_alignment)};
-    uint64_t reserved_sizes[] = {limits.resource_reserved_size,limits.sampler_reserved_size};
-    uint64_t alignments[] = {limits.resource_heap_alignment,limits.sampler_heap_alignment};
-    ogpu_next_mapping maps[2] = {{0}}; ogpu_next_heap_binding bindings[2];
+    ogpu_next_sampler_desc sampler = {HEADER(ogpu_next_sampler_desc,OGPU_NEXT_SAMPLER_DESC),0,0,0,{2,2,2},0,0,0,0,0,1,0,1};
+    ogpu_next_resource_descriptor shape_resource={OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE,OGPU_NEXT_STATE_SHADER_READ,views[0],{0}};
+    ogpu_next_descriptor_shape image_shape={0}, sampler_shape={0};
+    ogpu_next_heap_requirements resource_req={0}, sampler_req={0};
+    TRY(ogpu_next_resource_descriptor_shape(device,&shape_resource,&image_shape));
+    TRY(ogpu_next_sampler_descriptor_shape(device,&sampler,&sampler_shape));
+    TRY(heap_requirements_for(device,1,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&resource_req));
+    TRY(heap_requirements_for(device,2,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&sampler_req));
+    uint64_t payloads[] = {image_shape.size,sampler_shape.size};
+    uint64_t reserved[] = {aligned(payloads[0],resource_req.reserved_alignment),aligned(payloads[1],sampler_req.reserved_alignment)};
+    uint64_t reserved_sizes[] = {resource_req.reserved_size,sampler_req.reserved_size};
+    uint64_t alignments[] = {resource_req.backing_alignment,sampler_req.backing_alignment};
+    ogpu_next_mapping maps[2] = {{0}};
     ogpu_next_host_requirements wr[2] = {{0}}, br = {0}, sr = {0};
     for (uint32_t i = 0; i < 2; ++i) {
         uint64_t size = reserved[i]+reserved_sizes[i];
         REQUIRE(heap_memory(device,size,alignments[i],OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,OGPU_NEXT_MEMORY_HOST_VISIBLE,&heaps[i]) == EXIT_SUCCESS);
         TRY(ogpu_next_memory_map((ogpu_next_span){heaps[i],0,size},&maps[i]));
-        bindings[i] = (ogpu_next_heap_binding){HEADER(ogpu_next_heap_binding,OGPU_NEXT_HEAP_BINDING),i ? OGPU_NEXT_HEAP_SAMPLER : OGPU_NEXT_HEAP_RESOURCE,
-            0,{heaps[i],0,size},reserved[i],reserved_sizes[i]};
-        TRY(ogpu_next_descriptor_scratch_requirements(bindings[i].kind,1,&wr[i]));
+        ogpu_next_heap_desc hd={{i+1,OGPU_NEXT_HEAP_MEMORY,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,0,size},
+            {heaps[i],0,size},{maps[i].data,maps[i].size},reserved[i],reserved_sizes[i]};
+        TRY(ogpu_next_heap_create(device,&hd,&bindings[i]));
+        TRY(ogpu_next_descriptor_scratch_requirements(device,i,1,&wr[i]));
         REQUIRE(wr[i].alignment <= _Alignof(max_align_t));
     }
     uint64_t scratch_size = wr[0].size > wr[1].size ? wr[0].size : wr[1].size;
     scratch = malloc((size_t)scratch_size); REQUIRE(scratch != NULL);
     ogpu_next_host_span temporary = {scratch,scratch_size};
-    ogpu_next_sampler_desc sampler = {HEADER(ogpu_next_sampler_desc,OGPU_NEXT_SAMPLER_DESC),0,0,0,{2,2,2},0,0,0,0,0,1,0,1};
-    ogpu_next_host_span sampler_bytes = {maps[1].data,limits.sampler_size};
+
+    ogpu_next_heap_location sampler_bytes = {bindings[1],0};
     TRY(ogpu_next_write_sampler_descriptors(device,1,&sampler,&sampler_bytes,temporary));
     TRY(ogpu_next_memory_flush((ogpu_next_span){heaps[1],0,payloads[1]}));
     file = fopen(path,"rb"); REQUIRE(file != NULL); REQUIRE(fseek(file,0,SEEK_END) == 0);
@@ -95,7 +103,7 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     barrier.before = OGPU_NEXT_ACCESS_COPY_WRITE; barrier.after = OGPU_NEXT_ACCESS_SAMPLED_READ;
     barrier.old_state = OGPU_NEXT_STATE_COPY_DST; barrier.new_state = OGPU_NEXT_STATE_SHADER_READ; barrier.discard = 0;
     ogpu_next_barrier(encoder,&dep);
-    for (uint32_t i = 0; i < 2; ++i) ogpu_next_bind_heap(encoder,&bindings[i]);
+    for (uint32_t i = 0; i < 2; ++i) ogpu_next_bind_heap(encoder,bindings[i]);
     ogpu_next_bind_executable(encoder,pipeline); uint32_t indices[] = {0,0};
     ogpu_next_set_arguments(encoder, arguments, 0, sizeof(indices), indices);
     ogpu_next_set_arguments(encoder, arguments, 8, 8, &(uint64_t){output_address});
@@ -111,7 +119,7 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
             for (uint32_t p = 0; p < (16u >> (2*mip)); ++p)
                 ((uint32_t *)((char *)map.data+offsets[mip]))[layer*(16u >> (2*mip))+p] = cube_pixel(layer,mip,replay);
         ogpu_next_resource_descriptor resource = {OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE,OGPU_NEXT_STATE_SHADER_READ,views[replay],{NULL,0,0}};
-        ogpu_next_host_span destination = {maps[0].data,limits.image_size};
+        ogpu_next_heap_location destination = {bindings[0],0};
         TRY(ogpu_next_write_resource_descriptors(device,1,&resource,&destination,temporary));
         TRY(ogpu_next_memory_flush((ogpu_next_span){heaps[0],0,payloads[0]})); TRY(ogpu_next_memory_flush(all));
         signal.point.value = replay+1; pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
@@ -129,7 +137,7 @@ static int cube_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
 cleanup:
     if (pending) { fprintf(stderr,"Pending cube-array work after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_executable_destroy(pipeline);
-    for (uint32_t i = 0; i < 2; ++i) ogpu_next_memory_destroy(heaps[i]);
+    for (uint32_t i = 0; i < 2; ++i) { ogpu_next_heap_destroy(bindings[i]); ogpu_next_memory_destroy(heaps[i]); }
     for (uint32_t i = 0; i < 3; ++i) ogpu_next_view_destroy(views[i]);
     ogpu_next_image_destroy(image); ogpu_next_memory_destroy(backing); ogpu_next_memory_destroy(data);
     if (file) fclose(file);

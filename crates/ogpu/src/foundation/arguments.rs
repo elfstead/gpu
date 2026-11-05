@@ -51,7 +51,10 @@ impl ArgumentLayout {
             fields,
             device.snapshot.execution_limits.max_inline_bytes,
             device.snapshot.features.enabled,
-            device.snapshot.descriptor_limits.uniform_address_alignment,
+            device
+                .snapshot
+                .descriptor_properties
+                .uniform_address_alignment,
         )?))
     }
 

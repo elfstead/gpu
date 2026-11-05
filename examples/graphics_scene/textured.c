@@ -9,14 +9,28 @@
 SAME_FIELD(arg_vertices);SAME_FIELD(arg_image);SAME_FIELD(arg_samplerIndex);SAME_FIELD(arg_lod);SAME_FIELD(arg_overlay);
 _Static_assert(sizeof(Textured_scene_vertexArguments)==sizeof(Textured_scene_fragmentArguments),"shared texture root extent");
 #undef SAME_FIELD
+/* Consumer preparation: query a supported maximum to learn reservation geometry,
+ * then choose the actual capacity and backing explicitly. No allocation here. */
+static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t kind,
+    uint32_t usage, ogpu_next_heap_requirements *out) {
+    ogpu_next_descriptor_limits caps;
+    ogpu_next_query q={{OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS,OGPU_NEXT_VERSION,sizeof(q),0,NULL},&caps,1,0,sizeof(caps),0};
+    ogpu_next_status status=ogpu_next_device_query(device,&q);
+    if(status!=OGPU_NEXT_OK)return status;
+    ogpu_next_heap_request request={kind,OGPU_NEXT_HEAP_MEMORY,usage,0,
+        kind==OGPU_NEXT_HEAP_RESOURCE ? caps.max_resource_capacity : caps.max_sampler_capacity};
+    if(request.capacity>PTRDIFF_MAX)request.capacity=PTRDIFF_MAX;
+    return ogpu_next_heap_requirements_query(device,&request,out);
+}
+
 typedef struct {
     Scene scene;
     ogpu_next_image *texture;
     ogpu_next_memory *backing,*heaps[2];
     ogpu_next_view *views[2];
     ogpu_next_mapping maps[2];
-    ogpu_next_heap_binding bindings[2];
-    ogpu_next_descriptor_limits limits;
+    ogpu_next_descriptor_heap *bindings[2];
+    ogpu_next_descriptor_shape shapes[2];
     ogpu_next_host_span scratch;
 } Textured;
 static uint64_t align_up(uint64_t n,uint64_t a) { return (n+a-1)/a*a; }
@@ -45,20 +59,23 @@ static int texture_resources(Textured *t) {
         GPU(ogpu_next_view_create(t->texture,&vd,&t->views[i]));
     }
     NEED(buffer_create(s,CONTROL,512,OGPU_NEXT_USAGE_COPY_SRC,OGPU_NEXT_MEMORY_HOST_VISIBLE));
-    q=query(OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS,&t->limits,1,sizeof(t->limits)); GPU(ogpu_next_device_query(s->device,&q));
+    ogpu_next_resource_descriptor image={OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE,OGPU_NEXT_STATE_SHADER_READ,t->views[0],{0}};
+    ogpu_next_sampler_desc sampler={HEADER(ogpu_next_sampler_desc,OGPU_NEXT_SAMPLER_DESC),0,0,0,{2,2,2},0,0,0,0,0,3,0,1};
+    GPU(ogpu_next_resource_descriptor_shape(s->device,&image,&t->shapes[0]));
+    GPU(ogpu_next_sampler_descriptor_shape(s->device,&sampler,&t->shapes[1]));
     for(unsigned i=0;i<2;++i) {
-        uint64_t payload=i ? t->limits.sampler_size : t->limits.image_size;
-        uint64_t reserved=align_up(payload,i ? t->limits.sampler_reserved_alignment : t->limits.resource_reserved_alignment);
-        uint64_t tail=i ? t->limits.sampler_reserved_size : t->limits.resource_reserved_size;
+        ogpu_next_heap_requirements hr; GPU(heap_requirements_for(s->device,i+1,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&hr));
+        uint64_t payload=t->shapes[i].size, reserved=align_up(payload,hr.reserved_alignment), tail=hr.reserved_size;
         ogpu_next_memory_desc md={HEADER(ogpu_next_memory_desc,OGPU_NEXT_MEMORY_DESC),reserved+tail,
-            i ? t->limits.sampler_heap_alignment : t->limits.resource_heap_alignment,
+            hr.backing_alignment,
             OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,UINT32_MAX,OGPU_NEXT_MEMORY_LINEAR,NULL,0,0};
         GPU(ogpu_next_memory_requirements(s->device,&md,&req)); NEED(memory_type(s,&req,OGPU_NEXT_MEMORY_HOST_VISIBLE,&md.memory_type));
         GPU(ogpu_next_memory_create(s->device,&md,&t->heaps[i]));
         GPU(ogpu_next_memory_map((ogpu_next_span){t->heaps[i],0,md.size},&t->maps[i]));
-        t->bindings[i]=(ogpu_next_heap_binding){HEADER(ogpu_next_heap_binding,OGPU_NEXT_HEAP_BINDING),
-            i ? OGPU_NEXT_HEAP_SAMPLER : OGPU_NEXT_HEAP_RESOURCE,0,{t->heaps[i],0,md.size},reserved,tail};
-        ogpu_next_host_requirements scratch; GPU(ogpu_next_descriptor_scratch_requirements(t->bindings[i].kind,1,&scratch));
+        ogpu_next_heap_desc hd={{i+1,OGPU_NEXT_HEAP_MEMORY,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,0,md.size},
+            {t->heaps[i],0,md.size},{t->maps[i].data,t->maps[i].size},reserved,tail};
+        GPU(ogpu_next_heap_create(s->device,&hd,&t->bindings[i]));
+        ogpu_next_host_requirements scratch; GPU(ogpu_next_descriptor_scratch_requirements(s->device,i,1,&scratch));
         NEED(scratch.alignment<=_Alignof(max_align_t)); if(scratch.size>t->scratch.size)t->scratch.size=scratch.size;
     }
     t->scratch.data=malloc(t->scratch.size); NEED(t->scratch.data); return 1;
@@ -67,13 +84,13 @@ static int texture_update(Textured *t,unsigned mode,unsigned phase) {
     Scene *s=&t->scene; NEED(!s->pending);
     unsigned first=mode==2 || mode==5,linear=mode==3 || mode==5;
     ogpu_next_resource_descriptor image={OGPU_NEXT_DESCRIPTOR_SAMPLED_IMAGE,OGPU_NEXT_STATE_SHADER_READ,t->views[first],{0}};
-    ogpu_next_host_span output={t->maps[0].data,t->limits.image_size};
+    ogpu_next_heap_location output={t->bindings[0],0};
     GPU(ogpu_next_write_resource_descriptors(s->device,1,&image,&output,t->scratch));
     ogpu_next_sampler_desc sampler={HEADER(ogpu_next_sampler_desc,OGPU_NEXT_SAMPLER_DESC),linear,linear,linear,{2,2,2},0,0,0,0,0,3,0,1};
-    output=(ogpu_next_host_span){t->maps[1].data,t->limits.sampler_size};
+    output=(ogpu_next_heap_location){t->bindings[1],0};
     GPU(ogpu_next_write_sampler_descriptors(s->device,1,&sampler,&output,t->scratch));
-    GPU(ogpu_next_memory_flush((ogpu_next_span){t->heaps[0],0,t->limits.image_size}));
-    GPU(ogpu_next_memory_flush((ogpu_next_span){t->heaps[1],0,t->limits.sampler_size}));
+    GPU(ogpu_next_memory_flush((ogpu_next_span){t->heaps[0],0,t->shapes[0].size}));
+    GPU(ogpu_next_memory_flush((ogpu_next_span){t->heaps[1],0,t->shapes[1].size}));
     unsigned char *bytes=s->maps[CONTROL].data; memset(bytes,0xa5,512); unsigned offset=64;
     for(unsigned mip=0;mip<4;++mip) for(unsigned y=0;y<(8u>>mip);++y) for(unsigned x=0;x<(8u>>mip);++x) {
         bytes[offset++]=(32+13*x+7*y+23*mip+17*phase)%192;
@@ -124,7 +141,7 @@ static int textured_frame(Textured *t,unsigned mode,unsigned frame,const char *d
     dependency(s,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_STAGE_INDEX_INPUT|OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_INDIRECT,
         OGPU_NEXT_ACCESS_SHADER_WRITE,OGPU_NEXT_ACCESS_INDEX_READ|OGPU_NEXT_ACCESS_SHADER_READ|OGPU_NEXT_ACCESS_INDIRECT_READ);
     transition(s,0,1);transition(s,1,1);
-    for(unsigned i=0;i<2;++i)ogpu_next_bind_heap(s->encoder,&t->bindings[i]);
+    for(unsigned i=0;i<2;++i)ogpu_next_bind_heap(s->encoder,t->bindings[i]);
     textured_pass(t,mode,0);
     dependency(s,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,OGPU_NEXT_STAGE_COLOR|OGPU_NEXT_STAGE_DEPTH,
         OGPU_NEXT_ACCESS_COLOR_WRITE|OGPU_NEXT_ACCESS_DEPTH_WRITE,
@@ -157,7 +174,7 @@ int main(int argc,char **argv) {
     okay=1;
 done:
     destroy_resources(s); /* Retire recordings before descriptor/image backing. */
-    for(unsigned i=0;i<2;++i){ogpu_next_view_destroy(t.views[i]);ogpu_next_memory_destroy(t.heaps[i]);}
+    for(unsigned i=0;i<2;++i){ogpu_next_view_destroy(t.views[i]);ogpu_next_heap_destroy(t.bindings[i]);ogpu_next_memory_destroy(t.heaps[i]);}
     ogpu_next_image_destroy(t.texture);ogpu_next_memory_destroy(t.backing);free(t.scratch.data);destroy_context(s);
     if(okay)puts("Foundation textured frames drained; independent oracle required");
     return !okay;

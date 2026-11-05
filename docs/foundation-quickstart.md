@@ -17,7 +17,7 @@ export PKG_CONFIG_PATH=/absolute/path/to/new-preview/lib/pkgconfig
 ```
 
 The manifest records both the source commit and foundation revision. Match the
-header, library and generated artifacts from that **exact commit**: revision 2
+header, library and generated artifacts from that **exact commit**: revision 3
 alone does not promise compatibility across commits. New prefixes are mandatory;
 the installer never overwrites or merges an existing installation. ABI-20 headers,
 examples and `ogpu.pc` require explicit `--legacy` installation. Foundation consumers use
@@ -252,3 +252,13 @@ missing-loader failure receipts. Radeon additionally passes GGML's full MNIST
 dataset with FP32 and FP16 weights; llvmpipe covers matrix/lifetime cases, not that
 full dataset. These are dependency-isolation/correctness checks, not new timing,
 broader graph support or Metal evidence.
+
+Descriptor storage in schema 3 uses explicitly created heaps and native-unit
+locations. Query a shape from each actual resource/sampler description, choose
+capacity/backing with `heap_requirements_query`, create the heap and write/copy to
+its locations. `heap_info` exposes the same borrowed backing; binding and secondary
+inheritance borrow the heap object. The old host-output writers, heap-binding
+records and fixed descriptor-byte limits are removed. Rebuild schema-2 consumers.
+For reservation geometry before choosing capacity, the examples query a supported
+maximum capacity (bounded by host addressability for CPU-accessible storage), then
+choose the smaller actual capacity. That query allocates no backing.

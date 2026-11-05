@@ -136,6 +136,13 @@ fn native_surface_covers_current_c_operations() {
         view_destroy,
         write_resource_descriptors,
         write_sampler_descriptors,
+        heap_requirements_query,
+        resource_descriptor_shape,
+        sampler_descriptor_shape,
+        heap_create,
+        heap_destroy,
+        heap_info,
+        copy_descriptors,
     );
     // Rust owns discovery with Box; adapters() provides len/get/iteration without
     // a second count/index API, and drop releases discovery without a GPU wait.

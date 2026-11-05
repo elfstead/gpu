@@ -17,10 +17,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 2u
+#define OGPU_NEXT_VERSION 3u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
+typedef struct ogpu_next_descriptor_heap ogpu_next_descriptor_heap;
 typedef struct ogpu_next_queue ogpu_next_queue;
 typedef struct ogpu_next_timeline ogpu_next_timeline;
 typedef struct ogpu_next_memory ogpu_next_memory;
@@ -73,7 +74,7 @@ enum {
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
     OGPU_NEXT_SUBMIT_DESC = 104, OGPU_NEXT_DEPENDENCY = 105,
     OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
-    OGPU_NEXT_SAMPLER_DESC = 108, OGPU_NEXT_HEAP_BINDING = 109,
+    OGPU_NEXT_SAMPLER_DESC = 108,
     OGPU_NEXT_EXECUTABLE_DESC = 110,
     OGPU_NEXT_SHADER_REQUIREMENTS = 112, OGPU_NEXT_SPECIALIZATION = 113,
     OGPU_NEXT_GRAPHICS_STATE = 114, OGPU_NEXT_RENDER_DESC = 115,
@@ -767,7 +768,7 @@ typedef struct ogpu_next_inheritance {
     uint32_t occlusion, query_flags;
     uint64_t statistics;
     const ogpu_next_record *rendering;
-    const ogpu_next_record *resource_heap, *sampler_heap;
+    ogpu_next_descriptor_heap *resource_heap, *sampler_heap;
 } ogpu_next_inheritance;
 /* Arena level is fixed at creation/reserve; recording level must match. reserved=0.
  * Primary inheritance=NULL. Secondary inheritance=NULL means standalone, no query
@@ -862,12 +863,7 @@ typedef struct ogpu_next_host_requirements { uint64_t size, alignment; } ogpu_ne
  * necessarily the raw encoding size or an application's mixed-slot stride.
  * Limits describe this device, not portable constants. */
 typedef struct ogpu_next_descriptor_limits {
-    uint64_t buffer_size, buffer_alignment, image_size, image_alignment;
-    uint64_t sampler_size, sampler_alignment;
-    uint64_t resource_heap_alignment, resource_heap_max_size;
-    uint64_t resource_reserved_size, resource_reserved_alignment;
-    uint64_t sampler_heap_alignment, sampler_heap_max_size;
-    uint64_t sampler_reserved_size, sampler_reserved_alignment;
+    uint64_t max_resource_capacity, max_sampler_capacity;
     uint64_t uniform_address_alignment, storage_address_alignment;
     uint64_t max_uniform_range, max_storage_range;
     float max_sampler_lod_bias, max_sampler_anisotropy;
@@ -889,8 +885,8 @@ typedef struct ogpu_next_render_inheritance {
  * Standalone secondaries may record complete inline rendering scopes themselves.
  * Neither flavor inherits pipeline, arguments, vertex/index or viewport state:
  * initialize everything used. Nested-secondary execution is not enabled.
- * Optional resource_heap/sampler_heap inheritance pointers name HEAP_BINDING
- * records of the corresponding kind. At EVERY execute, caller proves the parent
+ * Optional resource_heap/sampler_heap inheritance pointers borrow heap objects
+ * of the corresponding kind. At EVERY execute, caller proves the parent
  * has identical address/size/reservation bindings. No parent-state scan or implicit
  * bind is added. An inherited heap cannot be rebound in that child; the other heap
  * remains independently bindable. NULL means not inherited, not an inferred heap.
@@ -964,26 +960,132 @@ typedef struct ogpu_next_sampler_desc {
  * Ordinary host/GPU copies may relocate bytes within the same live device;
  * referenced resources must remain valid through all descriptor consumption.
  */
-ogpu_next_status ogpu_next_descriptor_scratch_requirements(uint32_t kind, uint32_t count, ogpu_next_host_requirements *);
-ogpu_next_status ogpu_next_write_resource_descriptors(const ogpu_next_device *, uint32_t count, const ogpu_next_resource_descriptor *, const ogpu_next_host_span *outputs, ogpu_next_host_span scratch);
-ogpu_next_status ogpu_next_write_sampler_descriptors(const ogpu_next_device *, uint32_t count, const ogpu_next_sampler_desc *, const ogpu_next_host_span *outputs, ogpu_next_host_span scratch);
-typedef struct ogpu_next_heap_binding {
-    ogpu_next_record header;
-    uint32_t kind, flags;
-    ogpu_next_span storage;
-    uint64_t reserved_offset, reserved_size;
-} ogpu_next_heap_binding;
-/* Bind a GPU range without allocating, copying or retaining anything. flags=0.
- * Reservation is relative to storage, inside it, and at least the queried size.
- * Do not access reserved bytes from recording until ALL referencing command
- * buffers are reset/destroyed, even after GPU completion. Reservations must not
- * overlap unless exactly identical and of the same heap kind. Caller proves
- * these rules; no global registry or heap-wide lock. Nonreserved descriptors
- * can be updated range-locally, with correct host/GPU hazards and cache-atom
- * isolation from reserved/in-use bytes. Explicit flush and COPY->heap-read
- * dependencies remain the caller's job. Shader access must remain in bounds and
- * avoid reservations. Bind requires a graphics/compute queue domain. */
-void ogpu_next_bind_heap(ogpu_next_encoder *, const ogpu_next_heap_binding *);
+enum {
+    OGPU_NEXT_HEAP_HOST = 0,   /* borrow ordinary host bytes; never shader visible */
+    OGPU_NEXT_HEAP_MEMORY = 1, /* borrow explicit GPU backing and optional mapping */
+    OGPU_NEXT_HEAP_NATIVE = 2  /* allocate an opaque native heap at creation */
+};
+enum {
+    OGPU_NEXT_HEAP_SHADER_VISIBLE = 1,
+    OGPU_NEXT_HEAP_CPU_WRITE = 2,
+    OGPU_NEXT_HEAP_CPU_COPY_SOURCE = 4,
+    OGPU_NEXT_HEAP_CPU_COPY_DESTINATION = 8
+};
+
+typedef struct ogpu_next_heap_request {
+    uint32_t kind; /* existing RESOURCE or SAMPLER heap kind */
+    uint32_t storage;
+    uint32_t usage;
+    uint32_t flags; /* zero */
+    uint64_t capacity; /* native location units, includes any reserved interval */
+} ogpu_next_heap_request;
+
+typedef struct ogpu_next_heap_requirements {
+    uint64_t unit_bytes; /* 0: opaque units, never a native handle increment */
+    uint64_t backing_size;
+    uint64_t backing_alignment;
+    uint64_t reserved_size;
+    uint64_t reserved_alignment; /* reservation values are in location units */
+    uint64_t memory_usage; /* minimum backing usage; zero for HOST/NATIVE */
+} ogpu_next_heap_requirements;
+
+/* Creation is explicit and cold. capacity includes the reserved interval, whose
+ * offset/size use native location units. HOST borrows host bytes and cannot be
+ * shader visible. MEMORY borrows a GPU span and, for CPU operations, its actual
+ * live mapping at the same origin. No implicit map, allocation, flush or fallback.
+ * Vulkan supports HOST/MEMORY; NATIVE is unsupported. Unused spans must be empty.
+ * flags=0; unknown kinds/storage/usage reject. All required extents, alignment,
+ * usage and reservation bounds are checked. The bound range is exactly capacity
+ * times unit_bytes, even with larger supplied backing. Queries leave outputs
+ * unchanged on error; creation clears the output before validation.
+ *
+ * Device/backing/mapping outlive the heap and all recorded/future/pending uses.
+ * Destruction never waits or destroys referenced resources. Reserved storage is
+ * inaccessible until all referencing recordings are reset/destroyed, including
+ * after completion. Reservations may overlap only when exactly identical and of
+ * the same kind. Callers prove alias, lifetime, cache-atom and hazard obligations.
+ */
+typedef struct ogpu_next_heap_desc {
+    ogpu_next_heap_request request;
+    ogpu_next_span memory;      /* MEMORY only; borrowed */
+    ogpu_next_host_span host;   /* HOST, or the actual mapped MEMORY interval */
+    uint64_t reserved_offset;
+    uint64_t reserved_size;     /* units, not bytes */
+} ogpu_next_heap_desc;
+
+typedef struct ogpu_next_descriptor_shape {
+    uint64_t size;
+    uint64_t alignment;
+    uint64_t array_stride; /* units per descriptor in the native typed-index ABI */
+} ogpu_next_descriptor_shape;
+
+typedef struct ogpu_next_heap_location {
+    ogpu_next_descriptor_heap *heap;
+    uint64_t offset; /* units relative to this heap, never a host/GPU pointer */
+} ogpu_next_heap_location;
+
+typedef struct ogpu_next_descriptor_copy {
+    ogpu_next_heap_location source;
+    ogpu_next_heap_location destination;
+    uint64_t size; /* units; source/destination device and heap kind must match */
+} ogpu_next_descriptor_copy;
+
+ogpu_next_status ogpu_next_heap_requirements_query(
+    const ogpu_next_device *, const ogpu_next_heap_request *,
+    ogpu_next_heap_requirements *);
+ogpu_next_status ogpu_next_resource_descriptor_shape(
+    const ogpu_next_device *, const ogpu_next_resource_descriptor *,
+    ogpu_next_descriptor_shape *);
+ogpu_next_status ogpu_next_sampler_descriptor_shape(
+    const ogpu_next_device *, const ogpu_next_sampler_desc *,
+    ogpu_next_descriptor_shape *);
+ogpu_next_status ogpu_next_heap_create(
+    ogpu_next_device *, const ogpu_next_heap_desc *, ogpu_next_descriptor_heap **);
+void ogpu_next_heap_destroy(ogpu_next_descriptor_heap *);
+/* Shape queries validate the actual description without encoding or creating
+ * resources. Locations are aligned native units; size is descriptor extent and
+ * array_stride is the typed native shader-index step. Writers check CPU_WRITE,
+ * device/kind, extent, alignment and reservation exclusion. Heap contents are the
+ * sole native representation; no recipes, ownership table or shadow mirror.
+ *
+ * Returns immutable creation/storage facts. Spans remain borrowed; no mapping,
+ * allocation or recipe storage is created by this query. NATIVE has empty spans.
+ */
+void ogpu_next_heap_info(const ogpu_next_descriptor_heap *,
+    ogpu_next_heap_desc *, ogpu_next_heap_requirements *);
+
+enum {
+    OGPU_NEXT_DESCRIPTOR_WRITE_RESOURCE = 0,
+    OGPU_NEXT_DESCRIPTOR_WRITE_SAMPLER = 1,
+    OGPU_NEXT_DESCRIPTOR_COPY = 2
+};
+ogpu_next_status ogpu_next_descriptor_scratch_requirements(
+    const ogpu_next_device *, uint32_t operation, uint32_t count,
+    ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_write_resource_descriptors(
+    const ogpu_next_device *, uint32_t count, const ogpu_next_resource_descriptor *,
+    const ogpu_next_heap_location *, ogpu_next_host_span scratch);
+ogpu_next_status ogpu_next_write_sampler_descriptors(
+    const ogpu_next_device *, uint32_t count, const ogpu_next_sampler_desc *,
+    const ogpu_next_heap_location *, ogpu_next_host_span scratch);
+/* CPU-timeline copy. Source/destination require CPU_COPY_SOURCE/DESTINATION,
+ * belong to this device and have matching kind. All ranges must fit capacity,
+ * avoid reservations and be mutually nonoverlapping, including wrapper aliases.
+ * Known host-range aliases are checked; the caller proves other aliases. Whole
+ * batch preflight precedes any copy. No memmove ordering, hidden staging, mapping,
+ * cache maintenance or GPU work. Scratch/inputs are disjoint from each other and
+ * copied contents; scratch is aligned per query. count=0 permits NULL inputs and
+ * empty scratch. Zero-sized copies validate objects/rights/ranges without touching
+ * memory. Concurrent disjoint updates retain cache and execution obligations. */
+ogpu_next_status ogpu_next_copy_descriptors(
+    const ogpu_next_device *, uint32_t count, const ogpu_next_descriptor_copy *,
+    ogpu_next_host_span scratch);
+/* Binds this heap's kind, preserving the other kind. O(1) in heap capacity.
+ * Retaining current native heap handles in the encoder is allowed; retaining
+ * or reconstructing descriptor contents/resource ownership is not.
+ */
+void ogpu_next_bind_heap(ogpu_next_encoder *, ogpu_next_descriptor_heap *);
+
 
 /* Prepared executable state. This implementation supports compute, vertex or mesh with
  * optional fragment SPIR-V with native heap/pointer access. Native artifacts, descriptor

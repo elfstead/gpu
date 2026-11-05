@@ -44,7 +44,46 @@ pub(super) fn image_format_id(format: vk::VkFormat) -> u32 {
 pub use images::{Image, View};
 #[path = "descriptors.rs"]
 mod descriptors;
-pub(super) use descriptors::descriptor_scratch;
+pub use descriptors::storage::DescriptorHeap;
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct NativeDescriptorProperties {
+    pub buffer_size: u64,
+    pub buffer_alignment: u64,
+    pub image_size: u64,
+    pub image_alignment: u64,
+    pub sampler_size: u64,
+    pub sampler_alignment: u64,
+    pub resource_heap_alignment: u64,
+    pub resource_heap_max_size: u64,
+    pub resource_reserved_size: u64,
+    pub resource_reserved_alignment: u64,
+    pub sampler_heap_alignment: u64,
+    pub sampler_heap_max_size: u64,
+    pub sampler_reserved_size: u64,
+    pub sampler_reserved_alignment: u64,
+    pub uniform_address_alignment: u64,
+    pub storage_address_alignment: u64,
+    pub max_uniform_range: u64,
+    pub max_storage_range: u64,
+    pub max_sampler_lod_bias: f32,
+    pub max_sampler_anisotropy: f32,
+}
+impl NativeDescriptorProperties {
+    pub(super) fn limits(&self) -> DescriptorLimits {
+        DescriptorLimits {
+            max_resource_capacity: self.resource_heap_max_size,
+            max_sampler_capacity: self.sampler_heap_max_size,
+            uniform_address_alignment: self.uniform_address_alignment,
+            storage_address_alignment: self.storage_address_alignment,
+            max_uniform_range: self.max_uniform_range,
+            max_storage_range: self.max_storage_range,
+            max_sampler_lod_bias: self.max_sampler_lod_bias,
+            max_sampler_anisotropy: self.max_sampler_anisotropy,
+        }
+    }
+}
+
 #[path = "arguments.rs"]
 mod arguments;
 #[path = "executables.rs"]
@@ -249,7 +288,7 @@ pub(super) fn snapshot(
     }
     let mut features = FeatureInfo::default();
     let mut memory_limits = MemoryLimits::default();
-    let mut descriptor_limits = DescriptorLimits::default();
+    let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -427,7 +466,7 @@ pub(super) fn snapshot(
             cache_atom_size: properties.properties.limits.nonCoherentAtomSize,
             map_alignment: properties.properties.limits.minMemoryMapAlignment as u64,
         };
-        descriptor_limits = DescriptorLimits {
+        descriptor_properties = NativeDescriptorProperties {
             buffer_size: heaps.bufferDescriptorSize,
             buffer_alignment: heaps.bufferDescriptorAlignment,
             image_size: heaps.imageDescriptorSize,
@@ -626,7 +665,7 @@ pub(super) fn snapshot(
             .collect(),
         features,
         memory_limits,
-        descriptor_limits,
+        descriptor_properties,
         execution_limits,
         graphics_limits,
         query_limits,

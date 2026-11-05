@@ -305,7 +305,7 @@ unsafe fn record_frame(
             barriers,
         );
         for binding in &texture.bindings {
-            gpu::bind_heap(list, binding);
+            gpu::bind_heap(list, *binding);
         }
         gpu::bind_indices(list, frame.geometry.memory.span(256, 48), 32);
         for (overlay, &pipeline) in pipelines.iter().enumerate() {

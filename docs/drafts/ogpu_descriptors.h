@@ -1,4 +1,5 @@
 /* C1 descriptor contract, 2026-11-03. DESIGN ONLY: not installed/linkable.
+ * Draft names remain uninstalled; foundation schema 3 implements this contract.
  * See ../minimal-core-descriptors.md. Existing descriptions/scalars imported.
  */
 #ifndef OGPU_DRAFT_DESCRIPTORS_H

@@ -46,8 +46,13 @@ fn gpu_mapped_argument_execution() {
             0,
         )
         .unwrap();
-        let uniform_alignment =
-            u32::try_from(device.snapshot.descriptor_limits.uniform_address_alignment).unwrap();
+        let uniform_alignment = u32::try_from(
+            device
+                .snapshot
+                .descriptor_properties
+                .uniform_address_alignment,
+        )
+        .unwrap();
         let fields = [
             ArgumentField {
                 offset: 0,

@@ -1,4 +1,8 @@
 use super::*;
+use crate::foundation::{
+    ogpu_next_bind_heap, ogpu_next_copy_descriptors, ogpu_next_heap_create, ogpu_next_heap_info,
+    ogpu_next_resource_descriptor_shape, rust as api,
+};
 use std::cell::Cell;
 
 fn host(data: &mut [u8]) -> HostSpan {
@@ -78,7 +82,7 @@ fn sampler_desc() -> SamplerDesc {
 
 #[test]
 fn storage_requirements_locations_and_native_geometry() {
-    let p = DescriptorLimits {
+    let p = NativeDescriptorProperties {
         buffer_size: 16,
         buffer_alignment: 16,
         image_size: 32,
@@ -235,7 +239,7 @@ fn gpu_descriptor_storage_and_replay() {
         BIND.set(device.f.vkCmdBindResourceHeapEXT);
         BINDS.set(0);
         device.f.vkCmdBindResourceHeapEXT = Some(bind_trace);
-        let p = &device.snapshot.descriptor_limits;
+        let p = &device.snapshot.descriptor_properties;
         let stride = p.storage_address_alignment.max(256);
         let data = memory(&device, stride * 3, stride, 64);
         let map = data.map(0, stride * 3).unwrap();
@@ -250,7 +254,30 @@ fn gpu_descriptor_storage_and_replay() {
             view: ptr::null_mut(),
             buffer: span(&data, 0, 4),
         };
-        let shape = unsafe { device.resource_descriptor_shape(&resource) }.unwrap();
+        let device_pointer = ptr::from_ref(&*device).cast_mut();
+        let device_handle = unsafe { api::DeviceHandle::from_raw(device_pointer) }.unwrap();
+        let mut shape = DescriptorShape {
+            size: 0,
+            alignment: 0,
+            array_stride: 0,
+        };
+        assert_eq!(
+            unsafe { ogpu_next_resource_descriptor_shape(device_pointer, &resource, &mut shape) },
+            OK
+        );
+        assert_eq!(
+            unsafe { api::resource_descriptor_shape(device_handle, &resource) }.unwrap(),
+            shape
+        );
+        let saved_kind = resource.kind;
+        resource.kind = u32::MAX;
+        let saved_shape = shape;
+        assert_eq!(
+            unsafe { ogpu_next_resource_descriptor_shape(device_pointer, &resource, &mut shape) },
+            UNSUPPORTED
+        );
+        assert_eq!(shape, saved_shape);
+        resource.kind = saved_kind;
         assert_eq!(shape.array_stride, p.buffer_size);
         let reserved_offset = (shape.size * 4).div_ceil(p.resource_reserved_alignment)
             * p.resource_reserved_alignment;
@@ -293,8 +320,21 @@ fn gpu_descriptor_storage_and_replay() {
         invalid = desc;
         invalid.host = empty();
         assert!(unsafe { DescriptorHeap::create(&device, &invalid) }.is_err());
-        let heap = unsafe { DescriptorHeap::create(&device, &desc) }.unwrap();
-        assert_eq!(heap.info().1, req);
+        let mut heap_pointer = ptr::null_mut();
+        assert_eq!(
+            unsafe { ogpu_next_heap_create(device_pointer, &desc, &mut heap_pointer) },
+            OK
+        );
+        let heap = unsafe { Box::from_raw(heap_pointer) };
+        let handle = unsafe { api::DescriptorHeapHandle::from_raw(heap_pointer) }.unwrap();
+        let mut info = std::mem::MaybeUninit::uninit();
+        let mut requirements = std::mem::MaybeUninit::uninit();
+        unsafe {
+            ogpu_next_heap_info(heap_pointer, info.as_mut_ptr(), requirements.as_mut_ptr());
+        }
+        assert_eq!(unsafe { requirements.assume_init() }, req);
+        assert_eq!(unsafe { info.assume_init() }.request.capacity, capacity);
+        assert_eq!(unsafe { api::heap_info(handle) }.1, req);
         assert_eq!(
             unsafe { heap.bind_info(&device, domain) }
                 .unwrap()
@@ -502,7 +542,9 @@ fn gpu_descriptor_storage_and_replay() {
             })
             .unwrap();
         let encoder = unsafe { &*list };
-        unsafe { encoder.bind_descriptor_heap(&heap) }.unwrap();
+        unsafe {
+            ogpu_next_bind_heap(list, heap_pointer);
+        }
         encoder.bind_executable(&executable).unwrap();
         let values = [1u32, 0x12345678];
         unsafe { encoder.set_arguments(&arguments, 0, 8, values.as_ptr().cast()) }.unwrap();
@@ -539,15 +581,32 @@ fn gpu_descriptor_storage_and_replay() {
             // Encode and copy after recording; replay observes changed contents.
             resource.buffer.offset = stride * replay;
             unsafe {
-                device.write_resource_locations(
-                    1,
-                    &resource,
-                    &location(&source, 0),
+                api::write_resource_descriptors(
+                    device_handle,
+                    std::slice::from_ref(&resource),
+                    &[location(&source, 0)],
                     scratch_span(&mut temporary),
                 )
             }
             .unwrap();
-            unsafe { device.copy_descriptors(1, &copy, scratch_span(&mut copy_scratch)) }.unwrap();
+            if replay == 1 {
+                assert_eq!(
+                    unsafe {
+                        ogpu_next_copy_descriptors(
+                            device_pointer,
+                            1,
+                            &copy,
+                            scratch_span(&mut copy_scratch),
+                        )
+                    },
+                    OK
+                );
+            } else {
+                unsafe {
+                    api::copy_descriptors(device_handle, &[copy], scratch_span(&mut copy_scratch))
+                }
+                .unwrap();
+            }
             let copied = unsafe {
                 std::slice::from_raw_parts(
                     mapping.data.cast::<u8>().add(shape.array_stride as usize),

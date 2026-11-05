@@ -220,17 +220,23 @@ destroy!(
     "Retire every recorded release/acquire/reset referencing the split."
 );
 
-pub fn descriptor_scratch_requirements(kind: u32, count: u32) -> Result<HostRequirements> {
-    native::descriptor_scratch(kind, count)
+/// # Safety
+/// Live device.
+pub unsafe fn descriptor_scratch_requirements(
+    device: DeviceHandle,
+    operation: u32,
+    count: u32,
+) -> Result<HostRequirements> {
+    unsafe { device.get().heap_descriptor_scratch(operation, count) }
 }
 /// # Safety
-/// Live device/resources; output byte spans and scratch are writable, properly
+/// Live device/resources/heaps; destination locations and scratch are writable,
 /// aligned and disjoint from inputs/each other. Descriptor contents own nothing;
 /// caller obeys descriptor mutation and resource-lifetime contracts.
 pub unsafe fn write_resource_descriptors(
     device: DeviceHandle,
     inputs: &[ResourceDescriptor],
-    outputs: &[HostSpan],
+    outputs: &[HeapLocation],
     scratch: HostSpan,
 ) -> Result<()> {
     if inputs.len() != outputs.len() {
@@ -247,12 +253,12 @@ pub unsafe fn write_resource_descriptors(
     }
 }
 /// # Safety
-/// Live device; sampler descriptions/extension storage valid; output byte spans
+/// Live device/heaps; sampler descriptions/extension storage valid; locations
 /// and scratch writable, aligned and disjoint, with caller-ordered heap mutation.
 pub unsafe fn write_sampler_descriptors(
     device: DeviceHandle,
     inputs: &[SamplerDesc],
-    outputs: &[HostSpan],
+    outputs: &[HeapLocation],
     scratch: HostSpan,
 ) -> Result<()> {
     if inputs.len() != outputs.len() {
@@ -272,21 +278,80 @@ pub(in crate::foundation) unsafe fn write_resource_descriptors_raw(
     device: DeviceHandle,
     count: u32,
     inputs: *const ResourceDescriptor,
-    outputs: *const HostSpan,
+    outputs: *const HeapLocation,
     scratch: HostSpan,
 ) -> Result<()> {
     unsafe {
         device
             .get()
-            .write_resources(count, inputs, outputs, scratch)
+            .write_resource_locations(count, inputs, outputs, scratch)
     }
 }
 pub(in crate::foundation) unsafe fn write_sampler_descriptors_raw(
     device: DeviceHandle,
     count: u32,
     inputs: *const SamplerDesc,
-    outputs: *const HostSpan,
+    outputs: *const HeapLocation,
     scratch: HostSpan,
 ) -> Result<()> {
-    unsafe { device.get().write_samplers(count, inputs, outputs, scratch) }
+    unsafe {
+        device
+            .get()
+            .write_sampler_locations(count, inputs, outputs, scratch)
+    }
+}
+
+/// # Safety
+/// Live device; no backing is allocated or mapped by this query.
+pub unsafe fn heap_requirements_query(
+    device: DeviceHandle,
+    request: &HeapRequest,
+) -> Result<HeapRequirements> {
+    unsafe { device.get().heap_requirements(request) }
+}
+/// # Safety
+/// Live device and referenced resources; descriptions are readable.
+pub unsafe fn resource_descriptor_shape(
+    device: DeviceHandle,
+    desc: &ResourceDescriptor,
+) -> Result<DescriptorShape> {
+    unsafe { device.get().resource_descriptor_shape(desc) }
+}
+/// # Safety
+/// Live device; readable description and extensions.
+pub unsafe fn sampler_descriptor_shape(
+    device: DeviceHandle,
+    desc: &SamplerDesc,
+) -> Result<DescriptorShape> {
+    unsafe { device.get().sampler_descriptor_shape(desc) }
+}
+/// # Safety
+/// Live device and backing/mapping, borrowed through all heap/recording uses.
+pub unsafe fn heap_create(device: DeviceHandle, desc: &HeapDesc) -> Result<DescriptorHeapHandle> {
+    Ok(DescriptorHeapHandle(NonNull::from(Box::leak(unsafe {
+        native::DescriptorHeap::create(device.get(), desc)?
+    }))))
+}
+/// # Safety
+/// Live heap and its device/backing.
+pub unsafe fn heap_info(heap: DescriptorHeapHandle) -> (HeapDesc, HeapRequirements) {
+    unsafe { heap.get().info() }
+}
+destroy!(
+    heap_destroy,
+    DescriptorHeapHandle,
+    "Destroy after all referencing recordings and pending uses end; never waits."
+);
+/// # Safety
+/// Live heaps/resources; disjoint caller scratch and arrays; correctly ordered mutation.
+pub unsafe fn copy_descriptors(
+    device: DeviceHandle,
+    copies: &[DescriptorCopy],
+    scratch: HostSpan,
+) -> Result<()> {
+    unsafe {
+        device
+            .get()
+            .copy_descriptors(count(copies.len())?, copies.as_ptr(), scratch)
+    }
 }

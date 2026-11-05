@@ -1,67 +1,8 @@
 //! C2 explicit descriptor storage. One backing, no descriptor recipes or mirror.
-//! These records stay internal until the coordinated SDK/composition cutover.
+//! Public locations and C/Rust operations share this native implementation.
 use super::*;
 
-pub const HEAP_HOST: u32 = 0;
-pub const HEAP_MEMORY: u32 = 1;
-pub const HEAP_NATIVE: u32 = 2;
-pub const HEAP_SHADER_VISIBLE: u32 = 1;
-pub const HEAP_CPU_WRITE: u32 = 2;
-pub const HEAP_CPU_COPY_SOURCE: u32 = 4;
-pub const HEAP_CPU_COPY_DESTINATION: u32 = 8;
 const CPU_ACCESS: u32 = HEAP_CPU_WRITE | HEAP_CPU_COPY_SOURCE | HEAP_CPU_COPY_DESTINATION;
-pub const DESCRIPTOR_WRITE_RESOURCE: u32 = 0;
-pub const DESCRIPTOR_WRITE_SAMPLER: u32 = 1;
-pub const DESCRIPTOR_COPY: u32 = 2;
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct HeapRequest {
-    pub kind: u32,
-    pub storage: u32,
-    pub usage: u32,
-    pub flags: u32,
-    pub capacity: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct HeapRequirements {
-    pub unit_bytes: u64,
-    pub backing_size: u64,
-    pub backing_alignment: u64,
-    pub reserved_size: u64,
-    pub reserved_alignment: u64,
-    pub memory_usage: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct HeapDesc {
-    pub request: HeapRequest,
-    pub memory: Span,
-    pub host: HostSpan,
-    pub reserved_offset: u64,
-    pub reserved_size: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct DescriptorShape {
-    pub size: u64,
-    pub alignment: u64,
-    pub array_stride: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct HeapLocation {
-    pub heap: *mut DescriptorHeap,
-    pub offset: u64,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct DescriptorCopy {
-    pub source: HeapLocation,
-    pub destination: HeapLocation,
-    pub size: u64,
-}
 
 pub struct DescriptorHeap {
     device: *const Device,
@@ -70,7 +11,10 @@ pub struct DescriptorHeap {
     binding: vk::VkBindHeapInfoEXT,
 }
 
-fn requirements(p: &DescriptorLimits, request: &HeapRequest) -> Result<HeapRequirements, Status> {
+fn requirements(
+    p: &NativeDescriptorProperties,
+    request: &HeapRequest,
+) -> Result<HeapRequirements, Status> {
     if request.flags != 0 || request.usage & !15 != 0 {
         return Err(UNSUPPORTED);
     }
@@ -137,7 +81,7 @@ fn shape(size: u64, alignment: u64) -> Result<DescriptorShape, Status> {
         array_stride: size,
     })
 }
-fn resource_shape(p: &DescriptorLimits, kind: u32) -> Result<DescriptorShape, Status> {
+fn resource_shape(p: &NativeDescriptorProperties, kind: u32) -> Result<DescriptorShape, Status> {
     match kind {
         1 | 2 | 5 => shape(p.image_size, p.image_alignment),
         3 | 4 => shape(p.buffer_size, p.buffer_alignment),
@@ -178,9 +122,12 @@ fn range(desc: &HeapDesc, offset: u64, size: u64) -> Result<(), Status> {
 }
 impl DescriptorHeap {
     /// All backing is borrowed through destruction and recorded/future/pending uses.
-    pub(super) unsafe fn create(device: &Device, desc: &HeapDesc) -> Result<Box<Self>, Status> {
+    pub(in crate::foundation) unsafe fn create(
+        device: &Device,
+        desc: &HeapDesc,
+    ) -> Result<Box<Self>, Status> {
         device.ready()?;
-        let req = requirements(&device.snapshot.descriptor_limits, &desc.request)?;
+        let req = requirements(&device.snapshot.descriptor_properties, &desc.request)?;
         if desc.reserved_size < req.reserved_size
             || desc.reserved_offset % req.reserved_alignment != 0
             || desc.reserved_offset > desc.request.capacity
@@ -234,10 +181,10 @@ impl DescriptorHeap {
             binding,
         }))
     }
-    pub(in crate::foundation::native) fn kind(&self) -> u32 {
+    pub(in crate::foundation) fn kind(&self) -> u32 {
         self.desc.request.kind
     }
-    pub(super) fn info(&self) -> (HeapDesc, HeapRequirements) {
+    pub(in crate::foundation) fn info(&self) -> (HeapDesc, HeapRequirements) {
         (self.desc, self.requirements)
     }
     fn host_range(
@@ -289,7 +236,7 @@ impl DescriptorHeap {
             shape.size,
         )
     }
-    pub(super) unsafe fn bind_info(
+    pub(in crate::foundation) unsafe fn bind_info(
         &self,
         device: &Device,
         domain: u32,
@@ -352,32 +299,32 @@ fn copy_layout(count: u32) -> Result<(Layout, usize), Status> {
     Ok((layout.pad_to_align(), offset))
 }
 impl Device {
-    pub(super) fn heap_requirements(
+    pub(in crate::foundation) fn heap_requirements(
         &self,
         request: &HeapRequest,
     ) -> Result<HeapRequirements, Status> {
         self.ready()?;
-        requirements(&self.snapshot.descriptor_limits, request)
+        requirements(&self.snapshot.descriptor_properties, request)
     }
-    pub(super) unsafe fn resource_descriptor_shape(
+    pub(in crate::foundation) unsafe fn resource_descriptor_shape(
         &self,
         input: &ResourceDescriptor,
     ) -> Result<DescriptorShape, Status> {
         self.ready()?;
         let mut data = ResourceData::default();
         unsafe { self.resource_data(input, &mut data)? };
-        resource_shape(&self.snapshot.descriptor_limits, input.kind)
+        resource_shape(&self.snapshot.descriptor_properties, input.kind)
     }
-    pub(super) fn sampler_descriptor_shape(
+    pub(in crate::foundation) fn sampler_descriptor_shape(
         &self,
         input: &SamplerDesc,
     ) -> Result<DescriptorShape, Status> {
         self.ready()?;
-        let p = &self.snapshot.descriptor_limits;
+        let p = &self.snapshot.descriptor_properties;
         sampler(input, p, self.snapshot.features.enabled)?;
         shape(p.sampler_size, p.sampler_alignment)
     }
-    pub(super) fn heap_descriptor_scratch(
+    pub(in crate::foundation) fn heap_descriptor_scratch(
         &self,
         operation: u32,
         count: u32,
@@ -396,7 +343,7 @@ impl Device {
             _ => Err(UNSUPPORTED),
         }
     }
-    pub(super) unsafe fn write_resource_locations(
+    pub(in crate::foundation) unsafe fn write_resource_locations(
         &self,
         count: u32,
         inputs: *const ResourceDescriptor,
@@ -413,12 +360,12 @@ impl Device {
                     self,
                     1,
                     locations.add(i).read(),
-                    resource_shape(&self.snapshot.descriptor_limits, (*inputs.add(i)).kind)?,
+                    resource_shape(&self.snapshot.descriptor_properties, (*inputs.add(i)).kind)?,
                 )
             })
         }
     }
-    pub(super) unsafe fn write_sampler_locations(
+    pub(in crate::foundation) unsafe fn write_sampler_locations(
         &self,
         count: u32,
         inputs: *const SamplerDesc,
@@ -431,7 +378,7 @@ impl Device {
         }
         unsafe {
             self.write_samplers_to(count, inputs, scratch, |i, _| {
-                let p = &self.snapshot.descriptor_limits;
+                let p = &self.snapshot.descriptor_properties;
                 DescriptorHeap::destination(
                     self,
                     2,
@@ -441,7 +388,7 @@ impl Device {
             })
         }
     }
-    pub(super) unsafe fn copy_descriptors(
+    pub(in crate::foundation) unsafe fn copy_descriptors(
         &self,
         count: u32,
         copies: *const DescriptorCopy,

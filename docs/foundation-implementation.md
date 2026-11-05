@@ -299,7 +299,7 @@ it before one native call. It neither retains a child graph nor allocates OGPU m
 Ordinary pipeline, arguments, viewport and vertex/index bindings become
 undefined after execution; callers re-establish them. Render/query scopes survive.
 Children do not inherit those bindings either. Resource and sampler heaps can be
-inherited independently by naming exact heap-binding records at begin. A child
+inherited independently by borrowing prepared heap objects at begin. A child
 cannot rebind an inherited heap, but can bind the other heap normally. Callers prove
 each inherited range/reservation matches the primary at every execution; no state
 scan, retained binding description or inserted bind is added. A primary heap binding
@@ -501,10 +501,13 @@ reuse and native Metal alias behavior are not established by this fixture.
 
 ## Implemented descriptor encoding and binding
 
-The earlier owned `heap_create(capacity)` draft is replaced with host-byte encoding
-and borrowed GPU-range binding. Capacity, placement, mixed descriptor layout,
+Foundation schema 3 exposes explicit descriptor heaps backed by borrowed HOST or
+MEMORY storage, native-unit locations, description-specific shape queries, CPU
+writes/copies and immutable heap info. Capacity, placement, mixed descriptor layout,
 slot allocation, upload strategy and resource lifetimes belong to the caller.
-The device exposes descriptor sizes/alignments, heap limits and reserved ranges.
+Public descriptor limits report native capacities and address/sampler constraints;
+shape and heap-requirement queries provide geometry and reservations. Vulkan's
+byte properties remain backend-private; there is no second public geometry model.
 Resource writers encode sampled/storage images, storage/uniform buffer spans and
 input attachments; sampler writers encode ordinary filtering/address/compare/LOD
 state with explicitly enabled optional anisotropy. Input-attachment execution is
@@ -521,8 +524,10 @@ poisoning. Independent host ranges can be encoded concurrently. See native
 and [sampler encoding](https://docs.vulkan.org/refpages/latest/refpages/source/vkWriteSamplerDescriptorsEXT.html).
 
 Opaque device-specific bytes can be written directly into mapped heap storage or
-copied there explicitly. Binding names a linear-memory span with DESCRIPTOR_HEAP
-usage and an implementation-reserved subrange. Reserved bytes remain inaccessible
+copied there explicitly. Binding borrows a prepared heap whose MEMORY backing has
+DESCRIPTOR_HEAP usage and an implementation-reserved subrange. CPU copies require
+explicit source/destination rights and preflight all ranges before copying; caller
+scratch holds range/alias validation data, never a mirror of descriptor contents. Reserved bytes remain inaccessible
 from recording until **all referencing command buffers are reset or destroyed**,
 not just GPU completion. Partially overlapping reservations are forbidden; exact
 same-kind reservations may be shared. The caller owns that proof and cache-atom
@@ -542,7 +547,7 @@ touched. LOCAL can be unified/host-visible memory: this does not assume discrete
 VRAM on every driver.
 
 An important artifact contract is explicit: this Slang lowering uses typed heap
-arrays with `OpConstantSizeOfEXT`. The shader's stride is each descriptor size
+arrays with `OpConstantSizeOfEXT`. The shader's stride is each descriptor's queried array stride
 **rounded up to its alignment**, not its raw encoded size and not an application
 slot size. The fixture converts selected byte offsets into those typed indices;
 no runtime slot registry/translation or one fixed mixed-slot layout is required.

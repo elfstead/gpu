@@ -22,8 +22,10 @@ pub use presentation_api::*;
 pub mod rust;
 pub mod types;
 use crate::vulkan::Instance;
+pub use native::DescriptorHeap;
 pub use native::ExecutableCache;
 pub use native::Memory;
+use native::NativeDescriptorProperties;
 pub use native::QueryPool;
 pub use native::Swapchain;
 pub use native::{Arena, List, Split};
@@ -49,7 +51,7 @@ struct Snapshot {
     memory_heaps: Vec<MemoryHeapInfo>,
     memory_budget_supported: bool,
     memory_limits: MemoryLimits,
-    descriptor_limits: DescriptorLimits,
+    descriptor_properties: NativeDescriptorProperties,
     execution_limits: ExecutionLimits,
     graphics_limits: GraphicsLimits,
     query_limits: QueryLimits,
@@ -110,7 +112,10 @@ impl Snapshot {
                 MEMORY_HEAPS => copy_out(query, &self.memory_heaps),
                 FEATURES => copy_out(query, std::slice::from_ref(&self.features)),
                 MEMORY_LIMITS => copy_out(query, std::slice::from_ref(&self.memory_limits)),
-                DESCRIPTOR_LIMITS => copy_out(query, std::slice::from_ref(&self.descriptor_limits)),
+                DESCRIPTOR_LIMITS => copy_out(
+                    query,
+                    std::slice::from_ref(&self.descriptor_properties.limits()),
+                ),
                 EXECUTION_LIMITS => copy_out(query, std::slice::from_ref(&self.execution_limits)),
                 GRAPHICS_LIMITS => copy_out(query, std::slice::from_ref(&self.graphics_limits)),
                 QUERY_LIMITS => copy_out(query, std::slice::from_ref(&self.query_limits)),

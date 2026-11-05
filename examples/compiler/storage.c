@@ -55,8 +55,23 @@ static void pixel(unsigned char *dst, uint32_t i, uint32_t replay, int output) {
     }
 #endif
 }
+/* Consumer preparation: query a supported maximum to learn reservation geometry,
+ * then choose the actual capacity and backing explicitly. No allocation here. */
+static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t kind,
+    uint32_t usage, ogpu_next_heap_requirements *out) {
+    ogpu_next_descriptor_limits caps;
+    ogpu_next_query q={{OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS,OGPU_NEXT_VERSION,sizeof(q),0,NULL},&caps,1,0,sizeof(caps),0};
+    ogpu_next_status status=ogpu_next_device_query(device,&q);
+    if(status!=OGPU_NEXT_OK)return status;
+    ogpu_next_heap_request request={kind,OGPU_NEXT_HEAP_MEMORY,usage,0,
+        kind==OGPU_NEXT_HEAP_RESOURCE ? caps.max_resource_capacity : caps.max_sampler_capacity};
+    if(request.capacity>PTRDIFF_MAX)request.capacity=PTRDIFF_MAX;
+    return ogpu_next_heap_requirements_query(device,&request,out);
+}
+
 int main(void) {
     int result = EXIT_FAILURE, pending = 0;
+    ogpu_next_descriptor_heap *binding=NULL;
     ogpu_next_discovery *discovery = NULL; ogpu_next_device *device = NULL;
     ogpu_next_format_info *formats = NULL;
     ogpu_next_memory *host = NULL, *heap = NULL, *backing[2] = {NULL,NULL};
@@ -122,27 +137,32 @@ int main(void) {
     REQUIRE(memory(device,host_size,64,OGPU_NEXT_USAGE_COPY_SRC | OGPU_NEXT_USAGE_COPY_DST,&host) == EXIT_SUCCESS);
     ogpu_next_mapping host_map = {0}, heap_map = {0};
     TRY(ogpu_next_memory_map((ogpu_next_span){host,0,host_size},&host_map));
-    ogpu_next_descriptor_limits limits = {0}; q = query(OGPU_NEXT_QUERY_DESCRIPTOR_LIMITS,&limits,1,sizeof(limits));
-    TRY(ogpu_next_device_query(device,&q));
-    uint64_t stride = aligned(limits.image_size,limits.image_alignment);
-    REQUIRE(stride % limits.image_size == 0 && stride / limits.image_size <= UINT32_MAX);
-    uint64_t reserved = aligned(stride*2,limits.resource_reserved_alignment), heap_size = reserved+limits.resource_reserved_size;
-    REQUIRE(memory(device,heap_size,limits.resource_heap_alignment,OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,&heap) == EXIT_SUCCESS);
+    ogpu_next_resource_descriptor descriptors[2] = {
+        {OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE,OGPU_NEXT_STATE_GENERAL,views[0],{NULL,0,0}},
+        {OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE,OGPU_NEXT_STATE_GENERAL,views[1],{NULL,0,0}}};
+    ogpu_next_descriptor_shape image_shape;
+    TRY(ogpu_next_resource_descriptor_shape(device,&descriptors[0],&image_shape));
+    ogpu_next_heap_requirements resource_req;
+    TRY(heap_requirements_for(device,1,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,&resource_req));
+    uint64_t stride = image_shape.array_stride;
+    REQUIRE(stride >= image_shape.size && stride % image_shape.alignment == 0);
+    uint64_t reserved = aligned(stride*2,resource_req.reserved_alignment), heap_size = reserved+resource_req.reserved_size;
+    REQUIRE(memory(device,heap_size,resource_req.backing_alignment,OGPU_NEXT_USAGE_DESCRIPTOR_HEAP,&heap) == EXIT_SUCCESS);
     TRY(ogpu_next_memory_map((ogpu_next_span){heap,0,heap_size},&heap_map));
     ogpu_next_host_requirements ds = {0}, bs = {0}, ss = {0};
-    TRY(ogpu_next_descriptor_scratch_requirements(OGPU_NEXT_HEAP_RESOURCE,2,&ds));
+    TRY(ogpu_next_descriptor_scratch_requirements(device,OGPU_NEXT_DESCRIPTOR_WRITE_RESOURCE,2,&ds));
     TRY(ogpu_next_barrier_scratch_requirements(0,2,&bs)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&ss));
     REQUIRE(ds.alignment <= _Alignof(max_align_t) && bs.alignment <= _Alignof(max_align_t) && ss.alignment <= _Alignof(max_align_t));
     descriptor_scratch = malloc((size_t)ds.size); barrier_scratch = malloc((size_t)bs.size); submit_scratch = malloc((size_t)ss.size);
     REQUIRE(descriptor_scratch && barrier_scratch && submit_scratch);
-    ogpu_next_resource_descriptor descriptors[2] = {
-        {OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE,OGPU_NEXT_STATE_GENERAL,views[0],{NULL,0,0}},
-        {OGPU_NEXT_DESCRIPTOR_STORAGE_IMAGE,OGPU_NEXT_STATE_GENERAL,views[1],{NULL,0,0}}};
-    ogpu_next_host_span destinations[2] = {{heap_map.data,limits.image_size},{(char *)heap_map.data+stride,limits.image_size}};
+
+    ogpu_next_heap_desc hd={{1,OGPU_NEXT_HEAP_MEMORY,OGPU_NEXT_HEAP_SHADER_VISIBLE|OGPU_NEXT_HEAP_CPU_WRITE,0,heap_size},
+        {heap,0,heap_size},{heap_map.data,heap_map.size},reserved,resource_req.reserved_size};
+    TRY(ogpu_next_heap_create(device,&hd,&binding));
+    ogpu_next_heap_location destinations[2]={{binding,0},{binding,stride}};
     TRY(ogpu_next_write_resource_descriptors(device,2,descriptors,destinations,(ogpu_next_host_span){descriptor_scratch,ds.size}));
     TRY(ogpu_next_memory_flush((ogpu_next_span){heap,0,stride*2}));
-    ogpu_next_heap_binding binding = {HEADER(ogpu_next_heap_binding,OGPU_NEXT_HEAP_BINDING),OGPU_NEXT_HEAP_RESOURCE,0,
-        {heap,0,heap_size},reserved,limits.resource_reserved_size};
+
     ogpu_next_shader shader = storage_shader();
     ogpu_next_executable_desc ed = {HEADER(ogpu_next_executable_desc,OGPU_NEXT_EXECUTABLE_DESC),OGPU_NEXT_EXECUTABLE_COMPUTE,
         1,&shader,NULL,0,&storage_requirements.header,NULL,0,0};
@@ -165,8 +185,8 @@ int main(void) {
     barriers[0].old_state = OGPU_NEXT_STATE_GENERAL; barriers[0].discard = 0;
     dep.before = OGPU_NEXT_STAGE_COPY; dep.after = OGPU_NEXT_STAGE_COMPUTE; dep.image_count = 1;
     ogpu_next_barrier(encoder,&dep);
-    ogpu_next_bind_heap(encoder,&binding); ogpu_next_bind_executable(encoder,pipeline);
-    StorageArguments args = {0}; args.arg_source = 0; args.arg_destination = (uint32_t)(stride/limits.image_size);
+    ogpu_next_bind_heap(encoder,binding); ogpu_next_bind_executable(encoder,pipeline);
+    StorageArguments args = {0}; args.arg_source = 0; args.arg_destination = (uint32_t)(stride/image_shape.array_stride);
     args.arg_width = width; args.arg_height = height;
     ogpu_next_set_arguments(encoder, arguments, 0, sizeof(args), &args);
     ogpu_next_launch launch = {{width/storage_local[0],height,1},0,NULL}; ogpu_next_dispatch(encoder,&launch);
@@ -203,6 +223,6 @@ cleanup:
     if (pending) { fprintf(stderr,"Pending storage-image work after failure\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_timeline_destroy(done); ogpu_next_executable_destroy(pipeline); ogpu_next_argument_layout_destroy(arguments);
     for (uint32_t i = 0; i < 2; ++i) { ogpu_next_view_destroy(views[i]); ogpu_next_image_destroy(images[i]); ogpu_next_memory_destroy(backing[i]); }
-    ogpu_next_memory_destroy(heap); ogpu_next_memory_destroy(host); ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery);
+    ogpu_next_heap_destroy(binding); ogpu_next_memory_destroy(heap); ogpu_next_memory_destroy(host); ogpu_next_device_destroy(device); ogpu_next_discovery_destroy(discovery);
     free(formats); free(descriptor_scratch); free(barrier_scratch); free(submit_scratch); return result;
 }

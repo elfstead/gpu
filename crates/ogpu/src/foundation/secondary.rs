@@ -74,17 +74,17 @@ impl PreparedInheritance {
 unsafe fn heap(
     d: &Device,
     domain: u32,
-    record: *const Record,
+    pointer: *mut DescriptorHeap,
     kind: u32,
 ) -> Result<Option<vk::VkBindHeapInfoEXT>, Status> {
-    if record.is_null() {
+    if pointer.is_null() {
         return Ok(None);
     }
-    let binding = unsafe { executable_record::<HeapBinding>(record, HEAP_BINDING)? };
-    if binding.kind != kind {
+    let heap = unsafe { &*pointer };
+    if heap.kind() != kind {
         return Err(INVALID);
     }
-    Ok(Some(unsafe { d.heap_binding(domain, binding)? }))
+    Ok(Some(unsafe { heap.bind_info(d, domain)? }))
 }
 pub(super) unsafe fn inheritance(
     d: &Device,
@@ -364,8 +364,8 @@ mod tests {
                     0
                 },
                 rendering: ptr::null(),
-                resource_heap: ptr::null(),
-                sampler_heap: ptr::null(),
+                resource_heap: ptr::null_mut(),
+                sampler_heap: ptr::null_mut(),
             };
             rd.inheritance = &inh.header;
             let b = children.begin(&rd).unwrap();
