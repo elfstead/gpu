@@ -1,10 +1,11 @@
 # C1 consolidation and C2 cutover
 
-Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
+Selected 2026-11-03. **C1 and C2 Vulkan/Linux implementation are complete,
+2026-11-06. Local C3 acceptance follows.**
 The Vulkan argument, descriptor and generated-layout families are installed as
 foundation schema 7, including borrowed heap inheritance, per-entry dependencies,
 unified submission and borrowed-frame presentation with explicit outcomes. The full
-C2 deletion/correspondence audit and local C3 remain. This document does not declare
+C2 deletion/correspondence audit is complete; local C3 remains. This document does not declare
 Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
@@ -33,8 +34,9 @@ Retained operations retain their signatures and unaffected obligations, not an
 old embedded record that this document replaces. Discovery, allocation/placement,
 mapping/cache control, image/view creation, command arenas/replay, work commands,
 render state, copies, queries and timeline operations remain. The installed header
-baseline is pinned at `40bde34` and its content hash is in the inventory. The audit
-reads that baseline from Git and separately checks the current 147-operation surface. No unlisted entry
+baseline is pinned at `40bde34` and its content hash is in the inventory. The historical selection used that Git baseline. The current
+[installed-surface audit](../tools/check-foundation-surface.py) uses a reviewed
+151-operation inventory and the actual C/Rust implementation, without an old checkout. No unlisted entry
 point is silently deleted or added to the selected core.
 
 ## Signature and record migration
@@ -760,16 +762,28 @@ Validation on RX 5700 XT/RADV, with Vulkan validation and synchronization valida
   missing-loader/GLFW handling, headless execution and surface/present/scene runs.
   No external GGML/libplacebo rerun or new performance comparison is claimed here.
 
-**Next:** C2 step 5: audit the whole installed contract and deletion map, replace the
+**Next at that checkpoint (completed below):** C2 step 5: audit the whole installed contract and deletion map, replace the
 historical partial-cutover checks with an implemented-surface audit, review current
 documentation and packaging, then run/record local C3 against this coordinated
 revision. Windows/Metal validation remains separate and does not block local work.
 
+## C2 complete: installed contract audit
+
+The [2026-11-06 receipt](results/c2-contract-audit-2026-11-06.md) closes step 5 and C2
+for Vulkan/Linux. All 151 installed C signatures compile against their actual Rust
+exports/table, all 123 public records and 76 selected constants agree, and the built
+foundation export set matches. Superseded production representations and temporary
+allowances are removed. The fuller audit added two missing Rust indirect-draw wire
+records, expanded the combined ABI fixture to 2,029 values, corrected stale support
+wording and packaged the four selected long-form contracts. Shader reproduction,
+host/correspondence/installer checks and strict Clippy pass. Local C3 now refreshes
+the committed revision's native/consumer handoff; external backend acceptance stays open.
+
 ## Verification and open native questions
 
-At this checkpoint, `tools/check-c1-drafts.py` passes C11/C++17 syntax and all
+At the historical C1 checkpoint, `tools/check-c1-drafts.py` passed C11/C++17 syntax and all
 376 C/Rust size/alignment/offset/constant comparisons on Linux x86-64 with GCC
-16.2.0 and Rust 1.98.1. `tools/check-c1-surface.py` checks the baseline hash, complete
+16.2.0 and Rust 1.98.1. The retired `tools/check-c1-surface.py` checked the baseline hash, complete
 138-operation disposition, all 37 draft destinations and C/Rust name correspondence.
 These are design consistency checks, not runtime or shader execution evidence.
 

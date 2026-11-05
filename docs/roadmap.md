@@ -2,8 +2,8 @@
 
 Proposed 2026-09-18; sequence revised 2026-10-30. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
-**C1 contract selected/consolidated. Active: C2 coordinated implementation → C3
-available-backend acceptance, then remaining M8 → M9 → M10 → M11.** C1–C3
+**C1 and C2 Vulkan/Linux implementation complete. Active: C3 local acceptance,
+then remaining M8 → M9 → M10 → M11. External backend acceptance remains open.** C1–C3
 are defined [below](#minimal-core-revision). Windows correctness fixes can proceed
 independently; unavailable Windows/Mac acceptance does not block later local
 coverage. M6 stays deferred until a Mac is available; M7 remains ongoing.
@@ -71,7 +71,7 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
-| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; public unified submission/outcomes complete; public presentation/frame-loop cutover complete with bounded Wayland checks; full C2 audit/local C3 next |
+| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; public unified submission/outcomes complete; public presentation/frame-loop cutover complete with bounded Wayland checks; C2 audit complete; local C3 active |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
@@ -160,7 +160,7 @@ than restarting an experiment-per-feature design process.
 
 ### C2 — Implement one coordinated foundation revision
 
-Implementation active. Follow the [concrete cutover sequence](minimal-core-migration.md#c2-implementation-sequence).
+Completed for Vulkan/Linux, 2026-11-06; see the [installed contract/deletion audit](results/c2-contract-audit-2026-11-06.md). Historical [cutover sequence](minimal-core-migration.md#c2-implementation-sequence).
 The argument and descriptor families are implemented through public C/direct Rust,
 compiler metadata and consumers under foundation schema 7. Old argument and
 descriptor adapters are deleted. The [descriptor cutover](minimal-core-migration.md#c2-descriptor-public-cutover)
@@ -176,8 +176,9 @@ arrays and one scratch span. Old single/batch/binary adapters are deleted and
 consumers migrated. C2 step 4's [public presentation cutover](minimal-core-migration.md#c2-presentation-public-cutover)
 now exposes borrowed frames and explicit lifecycle effects in C/direct Rust. The
 old index-based wrappers are removed; two-window and three-slot consumers pass
-bounded Wayland checks. Next: the full C2 deletion/correspondence audit and local C3.
-C1's checked drafts remain the selected target; C2 completion is not claimed.
+bounded Wayland checks. The installed-surface and deletion audit completes C2
+locally; C3 now refreshes available-backend acceptance. C1 drafts remain historical
+design evidence; the installed header/core are the implemented contract.
 
 Update the shared Rust operations, thin C adapters, Vulkan mapping,
 generated Slang interfaces, installed headers and consumers as one coherent batch.

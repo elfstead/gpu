@@ -14,8 +14,7 @@ Current minimal-core revision, 2026-11-05: foundation schema 7 installs the
 [presentation lifecycle](minimal-core-presentation.md) through C and native Rust,
 following the argument, descriptor, generated-layout, dependency and submission
 cutovers. Borrowed frames and explicit effects replace index-only acquisition and
-status-only presentation. Bounded Wayland consumers pass; the full C2 audit/local C3
-remain, as recorded in the [working plan](plan.md).
+status-only presentation. Bounded Wayland consumers pass; the C2 audit is complete and local C3 is active, as recorded in the [working plan](plan.md).
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

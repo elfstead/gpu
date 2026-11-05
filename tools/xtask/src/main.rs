@@ -163,10 +163,17 @@ fn abi(root: &Path) -> Result {
         ));
         rust.push_str(&format!("println!(\"{name} {{}} {{}}\", std::mem::size_of::<{ty}>(), std::mem::align_of::<{ty}>());\n"));
         for field in words {
+            let (field, explicit_rust_field) = field.split_once('=').unwrap_or((field, ""));
             c.push_str(&format!(
                 "printf(\"{name}.{field} %zu\\n\", offsetof({c_name}, {field}));\n"
             ));
-            let rust_field = if field == "type" { "type_" } else { field };
+            let rust_field = if !explicit_rust_field.is_empty() {
+                explicit_rust_field
+            } else if field == "type" {
+                "type_"
+            } else {
+                field
+            };
             rust.push_str(&format!(
                 "println!(\"{name}.{field} {{}}\", std::mem::offset_of!({ty}, {rust_field}));\n"
             ));

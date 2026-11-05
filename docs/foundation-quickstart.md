@@ -52,7 +52,9 @@ REJECTED has no effects from that batch, ACCEPTED is not completion, and UNKNOWN
 forbids retry and requires conservative recovery. Earlier pending uses still need
 retirement even when a later call rejects. Old batch/binary entry points are removed.
 Rebuild generated headers and consumers together; older schema callers are rejected.
-The presentation C2 cutover is next; this is not a stable ABI release.
+Revision 7 includes the presentation cutover above; this is not a stable ABI release.
+The SDK includes the argument, descriptor, dependency and presentation contracts
+as `share/ogpu/minimal-core-*.md`.
 
 Copy any of these entire directories to an application directory outside the repo:
 

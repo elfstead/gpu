@@ -1,6 +1,6 @@
 # Current support boundary
 
-Updated 2026-10-17. The default SDK is foundation revision 1; ABI20 packaging is
+Updated 2026-11-06. The default SDK is foundation revision 7; ABI20 packaging is
 explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
@@ -10,9 +10,9 @@ all hardware that might work.
 | Area | Implemented / verified boundary | Not implied |
 |---|---|---|
 | Ownership and concurrency | Explicit memory types/backing/spans, image placement, independent queues/timelines and object-local host concurrency | Mixed buffer/image backing, imported resources, measured GPU overlap or real noncoherent hardware |
-| Commands and arguments | Caller-owned arenas, primary/secondary lists, explicit replay, inline updates and address roots, ranged/split/ownership dependencies | Device-generated topology, arbitrary replay emulation on other backends, automatic retention or hidden waits |
-| Graphics/images | Offscreen indexed/depth/stencil, mips/views/filtering/blending, broader static/dynamic state, multisample/resolve and query profiles | Complete Vulkan graphics coverage, ray/mesh/video or universal format support |
-| Presentation | Optional Wayland surfaces, explicit acquire/present/retirement and bounded three-slot textured scene checks | Human interaction/minimize acceptance, every window system/mode, scanout proof or real-loss recovery |
+| Commands and arguments | Caller-owned arenas, primary/secondary lists, explicit replay, prepared layouts and one range updater, explicit descriptor storage, per-entry dependency scopes and counted submission outcomes | Device-generated topology, arbitrary replay emulation on other backends, automatic retention or hidden waits |
+| Graphics/images | Offscreen indexed/depth/stencil, mips/views/filtering/blending, compressed formats, task/mesh and initial generated commands, multisample/resolve and query profiles | Complete Vulkan graphics coverage, ray/video or universal format support |
+| Presentation | Optional Wayland surfaces, borrowed frames, explicit batch/item effects, replacement state and bounded two-window/three-slot scene checks | Human interaction/minimize acceptance, Win32/DXGI execution, every mode, scanout proof or real-loss recovery |
 | Executables/numerics | SPIR-V preparation/caches, explicit feature/local/shared/subgroup requirements, scalar/atomic/dot and queried matrix profiles | All optional hardware execution, dynamic shared launch, portable pipeline binaries or runtime reflection |
 | Compiler and consumers | Pinned generated Slang interfaces; M4 native-matched scene; M5 transformer/Q8_0; bounded GGML/libplacebo and learned-image | General LLM/training, arbitrary Slang, general safe Rust wrapper, tuned GEMM or universal native-performance parity |
 | Distribution | Revision-pinned local-build SDK; six small C examples, native Rust source/consumer/shader bundle and separately pinned upstream adapters | Stable ABI, portable binary bundle, clean-machine coverage or actual third-party adoption |
@@ -26,8 +26,8 @@ not imply FP16 arithmetic, subgroup or matrix support. See the
 [SDK guide](foundation-quickstart.md), [implemented surface](foundation-implementation.md)
 and [contract dispositions](core-contract-review.md) for exact contracts and gaps.
 
-Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.4 and llvmpipe
-26.2.1. M4 and M5 pass their declared scope. The full C fixture passes on Radeon;
+Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5 for revision 7. Earlier receipts also used llvmpipe
+26.2.1; those are historical software evidence, not a fresh revision-7 run. M4 and M5 pass their declared scope. The full C fixture passes on Radeon;
 llvmpipe retains the explicit combined-depth/stencil-copy exclusion and the
 historical native-reproduced counted-to-fixed failure. Software is not another
 physical vendor. No real device loss, noncoherent physical GPU, broader vendor or

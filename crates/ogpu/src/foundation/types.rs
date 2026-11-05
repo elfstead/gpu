@@ -940,6 +940,25 @@ pub struct DrawDesc {
     pub first_instance: u32,
     pub vertex_offset: i32,
 }
+/// GPU-readable indirect draw wire record; no encoding or ownership wrapper.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DrawArguments {
+    pub count: u32,
+    pub instances: u32,
+    pub first: u32,
+    pub first_instance: u32,
+}
+/// Indexed indirect wire order differs from the direct DrawDesc record.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct DrawIndexedArguments {
+    pub count: u32,
+    pub instances: u32,
+    pub first: u32,
+    pub vertex_offset: i32,
+    pub first_instance: u32,
+}
 #[repr(C)]
 pub struct Indirect {
     pub arguments: Span,

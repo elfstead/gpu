@@ -155,7 +155,9 @@ def install(prefix, *, legacy=False):
         copy(ROOT / "examples/compiler/affine.c", "share/ogpu/examples/dependencies/main.c")
         copy(ROOT / "tools/sdk/build-example.py", "share/ogpu/examples/dependencies/build.py")
     copy(ROOT / "docs/quickstart.md", "share/ogpu/QUICKSTART.md")
-    for name in ("release-policy.md", "support.md", "foundation-quickstart.md", "legacy-sdk.md"):
+    for name in ("release-policy.md", "support.md", "foundation-quickstart.md", "legacy-sdk.md",
+                 "minimal-core-arguments.md", "minimal-core-descriptors.md",
+                 "minimal-core-dependencies.md", "minimal-core-presentation.md"):
         copy(ROOT / "docs" / name, f"share/ogpu/{name}")
     if legacy:
         # Keep the measured consumer's relative source graph intact. Only the public

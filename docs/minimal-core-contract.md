@@ -1,10 +1,10 @@
 # C1: minimal composable foundation draft
 
 Started 2026-10-31 on `minimal-core`, based on Vulkan `master` at `2374635`.
-**C1 contract selected and consolidated, 2026-11-03; C2 implementation active.**
+**C1 selected 2026-11-03; C2 Vulkan/Linux implementation and audit complete 2026-11-06.**
 The [complete disposition and C2 cutover](minimal-core-migration.md) close the
 foundation design checkpoint. The public Vulkan argument/descriptor cutovers, heap inheritance, generated argument layouts, per-entry dependencies and unified submission are implemented
-in foundation schema 7, including the public borrowed-frame presentation cutover. The full C2 audit/local C3 remain. This is the next revision of the [whole-API target](whole-api-design.md), governed by the
+in foundation schema 7, including the public borrowed-frame presentation cutover. Local C3 acceptance follows the completed [C2 audit](results/c2-contract-audit-2026-11-06.md). This is the next revision of the [whole-API target](whole-api-design.md), governed by the
 [composition rule](design.md#minimal-composable-core) and [C1–C3 sequence](roadmap.md#minimal-core-revision).
 
 ## Decisions made in this draft

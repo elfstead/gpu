@@ -1,4 +1,4 @@
-//! Native execution acceptance for the C2 argument mapping, before SDK cutover.
+//! Native execution acceptance for the installed argument mapping.
 use super::*;
 use crate::foundation::{
     ogpu_next_argument_layout_create, ogpu_next_argument_layout_info, ogpu_next_executable_create,

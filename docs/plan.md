@@ -1,8 +1,7 @@
 # Working status and next milestone
 
-Updated 2026-11-05. **C1 is complete: the minimal composable foundation contract
-is selected. C2 implementation is active, then C3 accepts available
-native mappings.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
+Updated 2026-11-06. **C1 selection and C2 Vulkan/Linux implementation are complete.
+C3 local acceptance is active; external native mappings remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
 constraints. [Argument update/reuse A/B](minimal-core-arguments.md) now has selected
@@ -31,8 +30,9 @@ deleted and consumers migrated. The [public presentation cutover](minimal-core-m
 is complete locally: borrowed frames, native availability, creation/resize state and
 batch/per-item effects are shared by C and direct Rust. Old index-based wrappers are
 removed; the two-window probe and three-slot scene use the selected contract and
-pass bounded Wayland checks. Next is the full C2 deletion/correspondence audit and
-local C3. C2/C3 as a whole are not yet marked complete.
+pass bounded Wayland checks. The [complete C2 audit](results/c2-contract-audit-2026-11-06.md)
+checks the installed signatures, all public records, selected constants, exports
+and deletion map. C2 is complete for Vulkan/Linux; local C3 is next.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -110,7 +110,7 @@ Proceed with [C1–C3](roadmap.md#minimal-core-revision):
    synchronization composition before selecting additional profiles. Record actual
    counterexamples and unknowns, rather than assuming all previous alternatives
    must survive.
-2. **C2:** implement the selected contract across Rust/C, compiler artifacts,
+2. **C2, completed on Vulkan/Linux:** implement the selected contract across Rust/C, compiler artifacts,
    Vulkan/Linux and affected consumers as a coordinated batch; remove redundant
    paths and move policy outside core. Keep a DX12 mapping/migration table and
    defer backend updates to the native Windows handoff.

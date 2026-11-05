@@ -13,7 +13,7 @@ metallib, with optional in-process SPIR-V translation (disable with
 The Vulkan runtime does not use ash or Vulkanalia. The optional
 [GGML consumer](../integrations/ggml/README.md) has a C++ adapter/application build;
 it uses the public C ABI and does not change the Rust runtime. The ABI is experimental, not a specification of the eventual
-execution interface. The legacy ABI is 20; foundation revision 1 is mutable and
+execution interface. The legacy ABI is 20; foundation revision 7 is mutable and
 requires exact source/header/library/artifact matching. Default SDK builds exclude
 legacy, while plain Cargo defaults retain it. Rebuild callers after updating.
 The older commands below name their historical consumer/runtime workflows; they
@@ -295,6 +295,7 @@ git submodule update --init vendor/Vulkan-Headers
 cargo xtask bindings --check
 cargo test --locked
 cargo xtask abi
+python3 tools/check-foundation-surface.py --library target/debug/libogpu.so
 cargo xtask mock
 cargo xtask smoke
 cargo xtask compute
@@ -363,3 +364,11 @@ not settle a complete graphics profile, shader language, executable format, or M
 
 The project code is MIT licensed. Khronos headers retain their upstream licenses in
 the submodule; third-party Rust dependencies retain their own licenses.
+
+The installed-surface audit compiles all 151 C signatures against the actual Rust
+exports/table, compares all 123 installed record layouts and the selected constants,
+and rejects retired foundation identifiers. It needs no historical Git commit or
+draft mirror. `tests/foundation-surface.json` owns the reviewed operation inventory;
+`tests/abi.txt` owns record/field correspondence, including explicit C=Rust field
+names where needed. Update these deliberately when the experimental contract changes.
+Historical C1 draft checks are not the runtime acceptance gate.
