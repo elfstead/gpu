@@ -1,11 +1,11 @@
 # C1 consolidation and C2 cutover
 
 Selected 2026-11-03. **C1 and C2 Vulkan/Linux implementation are complete,
-2026-11-06. Local C3 acceptance follows.**
+2026-11-06. Local C3 acceptance is also complete.**
 The Vulkan argument, descriptor and generated-layout families are installed as
 foundation schema 7, including borrowed heap inheritance, per-entry dependencies,
 unified submission and borrowed-frame presentation with explicit outcomes. The full
-C2 deletion/correspondence audit is complete; local C3 remains. This document does not declare
+C2 deletion/correspondence audit and [local C3](results/c3-linux-acceptance-2026-11-06.md) are complete. This document does not declare
 Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
@@ -776,8 +776,7 @@ foundation export set matches. Superseded production representations and tempora
 allowances are removed. The fuller audit added two missing Rust indirect-draw wire
 records, expanded the combined ABI fixture to 2,029 values, corrected stale support
 wording and packaged the four selected long-form contracts. Shader reproduction,
-host/correspondence/installer checks and strict Clippy pass. Local C3 now refreshes
-the committed revision's native/consumer handoff; external backend acceptance stays open.
+host/correspondence/installer checks and strict Clippy pass. The [clean C3 receipt](results/c3-linux-acceptance-2026-11-06.md) accepts Vulkan/Linux at `fc11fda`, including the C output-initialization correction, installed consumers and bounded Wayland execution. External backend acceptance stays open.
 
 ## Verification and open native questions
 

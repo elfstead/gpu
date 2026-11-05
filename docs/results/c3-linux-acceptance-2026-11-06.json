@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "source_revision": "fc11fdaa467bcbeecadf77ceed91cab420ff026f",
+  "source_dirty": false,
+  "foundation_revision": 7,
+  "runtime_sha256": "5d668ce51c535073615823d2a34b63d9ee3d5f817788c60415ce5f9a1290132b",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation": true,
+  "synchronization_validation": true,
+  "local_acceptance": "complete",
+  "windows_acceptance": "open",
+  "metal_acceptance": "deferred",
+  "logs": {
+    "host": {
+      "path": "/tmp/c3-final-host.log",
+      "sha256": "4d8c5bd986e2dc6fc4afda08f5def9cf5ef07757effa2e87094aa2f71c94e106",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/c3-final-abi.log",
+      "sha256": "f95438396f68b059f922c1dfa379f68a3ffcf49e244729158ddd78ebd1798309",
+      "result": "pass"
+    },
+    "native": {
+      "path": "/tmp/c3-final-native.log",
+      "sha256": "4b28d48eeddf1fcf935b83f750bee768fda136ab4050b22ca12496bc5562c479",
+      "result": "pass"
+    },
+    "fixture": {
+      "path": "/tmp/c3-final-fixture.log",
+      "sha256": "59cb247e17ba5c59e00662d1259f143bba8f2f84575c40159b73f8a54ce9b0e1",
+      "result": "pass"
+    },
+    "surface": {
+      "path": "/tmp/c3-final-surface.log",
+      "sha256": "d864668b93119bb559b4c37e3b32fe9a5fb9ee013ad20cd17043d65430f21970",
+      "result": "pass"
+    },
+    "installed-c": {
+      "path": "/tmp/c3-final-installed-c.log",
+      "sha256": "8bc968d23610d832f79699b39cc312229cab87465b9624ad3f603a8dcbf97142",
+      "result": "pass"
+    },
+    "installed-rust": {
+      "path": "/tmp/c3-final-installed-rust.log",
+      "sha256": "f456e13083c978dcbf08fabfce25e8921a7349172e48fc6905563440cdbd064d",
+      "result": "pass"
+    },
+    "install": {
+      "path": "/tmp/c3-final-install.log",
+      "sha256": "edf626c2d34fc0c6f8bcdc612d9b03bc2906af879506cf9c4706adf5528e7874",
+      "result": "pass"
+    }
+  }
+}

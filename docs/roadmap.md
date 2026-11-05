@@ -2,8 +2,8 @@
 
 Proposed 2026-09-18; sequence revised 2026-10-30. The [working plan](plan.md) owns completed/active status;
 this document owns the sequence and coverage of the remaining project work.
-**C1 and C2 Vulkan/Linux implementation complete. Active: C3 local acceptance,
-then remaining M8 → M9 → M10 → M11. External backend acceptance remains open.** C1–C3
+**C1, C2 and C3 Vulkan/Linux acceptance complete. Active: remaining M8,
+then M9 → M10 → M11. External backend acceptance remains open.** C1–C3
 are defined [below](#minimal-core-revision). Windows correctness fixes can proceed
 independently; unavailable Windows/Mac acceptance does not block later local
 coverage. M6 stays deferred until a Mac is available; M7 remains ongoing.
@@ -71,11 +71,11 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
-| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; public unified submission/outcomes complete; public presentation/frame-loop cutover complete with bounded Wayland checks; C2 audit complete; local C3 active |
+| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; public unified submission/outcomes complete; public presentation/frame-loop cutover complete with bounded Wayland checks; C2 audit and [local C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) complete |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
-| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and justified advanced raster primitives | Resume after C2/local C3; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
+| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and justified advanced raster primitives | Active after local C3; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
 | M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
 | M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |
@@ -177,7 +177,7 @@ consumers migrated. C2 step 4's [public presentation cutover](minimal-core-migra
 now exposes borrowed frames and explicit lifecycle effects in C/direct Rust. The
 old index-based wrappers are removed; two-window and three-slot consumers pass
 bounded Wayland checks. The installed-surface and deletion audit completes C2
-locally; C3 now refreshes available-backend acceptance. C1 drafts remain historical
+locally; [C3 Linux acceptance](results/c3-linux-acceptance-2026-11-06.md) is complete. C1 drafts remain historical
 design evidence; the installed header/core are the implemented contract.
 
 Update the shared Rust operations, thin C adapters, Vulkan mapping,
@@ -200,6 +200,8 @@ the mapping/migration table identifies deferred Windows work. This is an impleme
 checkpoint, not an assertion of Windows or Metal acceptance.
 
 ### C3 — Accept mappings and refresh the consumer handoff
+
+**Vulkan/Linux complete 2026-11-06:** [clean revision-7 receipt](results/c3-linux-acceptance-2026-11-06.md), including isolated C/native Rust SDKs, GGML/libplacebo and bounded Wayland checks. Windows/Metal remain unaccepted; remaining M8 resumes.
 
 Run the changed-contract tests and the relevant offscreen, ML, replay, GPU-driven
 and presentation regressions on available hardware. Inspect mandatory work first;

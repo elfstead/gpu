@@ -1,7 +1,7 @@
 # Working status and next milestone
 
 Updated 2026-11-06. **C1 selection and C2 Vulkan/Linux implementation are complete.
-C3 local acceptance is active; external native mappings remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
+C3 Vulkan/Linux acceptance is complete; remaining M8 is active. External native mappings remain unaccepted.** See the [revised sequence and exit criteria](roadmap.md#minimal-core-revision).
 The [first contract draft](minimal-core-contract.md) now records conceptual
 decisions, a whole-surface disposition table, user compositions and DX12 mapping
 constraints. [Argument update/reuse A/B](minimal-core-arguments.md) now has selected
@@ -32,7 +32,7 @@ batch/per-item effects are shared by C and direct Rust. Old index-based wrappers
 removed; the two-window probe and three-slot scene use the selected contract and
 pass bounded Wayland checks. The [complete C2 audit](results/c2-contract-audit-2026-11-06.md)
 checks the installed signatures, all public records, selected constants, exports
-and deletion map. C2 is complete for Vulkan/Linux; local C3 is next.
+and deletion map. [Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) now passes on Vulkan/Linux, including isolated C/native Rust SDKs and pinned GGML/libplacebo consumers. Remaining M8 resumes.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
@@ -114,10 +114,10 @@ Proceed with [C1–C3](roadmap.md#minimal-core-revision):
    Vulkan/Linux and affected consumers as a coordinated batch; remove redundant
    paths and move policy outside core. Keep a DX12 mapping/migration table and
    defer backend updates to the native Windows handoff.
-3. **C3:** run focused contract/native/consumer checks, update the install/support
-   handoff and record per-backend acceptance. Windows validation remains with the
-   native lane; unavailable Mac work remains deferred. Resume remaining M8 after
-   local acceptance, without treating external validation as passed.
+3. **C3, completed on Vulkan/Linux:** clean revision-7 native, public C and isolated
+   SDK checks pass, including GGML/libplacebo and bounded Wayland consumers.
+   Windows validation remains with its native lane; Mac work remains deferred.
+   Remaining M8 resumes without treating external validation as passed.
 
 M8 → M9 → M10 → M11 remains the hardware-coverage order after this revision, with
 prerequisites pulled forward as needed. Each batch applies the composition rule
@@ -299,7 +299,7 @@ sequence identity, set updates, whole-buffer guards and 20 rejected recordings.
 Graphics/mesh and nested-count actions have lowering and layout coverage, but
 their execution remains unverified. No host readback or command-time allocation
 is introduced; this is not a timing or full-M8 acceptance claim.
-After C2/local C3: generated graphics execution and the GPU-culled scene, followed by the
+Active after local C3: generated graphics execution and the GPU-culled scene, followed by the
 remaining advanced raster profiles and vertex/index-state token gaps. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 
