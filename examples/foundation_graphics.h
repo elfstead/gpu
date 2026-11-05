@@ -204,7 +204,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     REQUIRE(vr.alignment <= _Alignof(max_align_t));
     vertex_scratch = malloc((size_t)vr.size); REQUIRE(vertex_scratch != NULL);
     TRY(ogpu_next_render_scratch_requirements(1, &rr)); TRY(ogpu_next_barrier_scratch_requirements(device,1,0, image_count, &br));
-    TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &sr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(rr.alignment <= _Alignof(max_align_t) && br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)rr.size); barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size);
     REQUIRE(scratch && barrier_scratch && submit_scratch);
@@ -388,7 +388,9 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     }
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_sync_point signal = {{done,1}, OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC), 1,0,1,&list,NULL,&signal,submit_scratch,sr.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     struct Root { float color[4], depth, right_edge; uint32_t height,pad; };
     _Static_assert(sizeof(struct Root) == 32, "graphics root ABI");
     for (uint32_t replay = 0; replay < 2; ++replay) {
@@ -417,7 +419,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
         ((uint32_t *)map.data)[96] = replay; /* Zero then one: visible count change on replay. */
         TRY(ogpu_next_memory_flush((ogpu_next_span){host,0,host_desc.size}));
         signal.point.value = replay + 1;
-        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0), &submit));
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate((ogpu_next_span){host,0,host_desc.size}));
         if (indirect_first) REQUIRE(((uint32_t *)map.data)[71] == 1 && ((uint32_t *)map.data)[84] == 1);
@@ -486,7 +488,7 @@ static int graphics_execution_profile(ogpu_next_device *device, ogpu_next_memory
     common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list));
     signal.point.value = 3;
-    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
     TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
     TRY(ogpu_next_memory_invalidate((ogpu_next_span){host,0,host_desc.size}));
     REQUIRE(((uint32_t *)map.data)[120] == 0 && ((uint32_t *)map.data)[121] != 0);

@@ -58,7 +58,7 @@ class RangeReuseTests(unittest.TestCase):
                         def logs():
                             stdout='DEVICE '+json.dumps(device)+'\n'+''.join('RANGE_FRAME '+json.dumps(row)+'\n' for row in rows)
                             stdout+='RANGE_SCOPE_POLICY '+json.dumps(dict(per_draw=scopes))+'\n'
-                            profile={'foundation':5} if foundation else {'abi':20}
+                            profile={'foundation':6} if foundation else {'abi':20}
                             stdout+=('PUBLIC_SCENE '+json.dumps(dict(**profile,index_bytes=4,gpu_generated=True)) if backend=='public'
                                      else 'DRAW_IDENTITY_FEATURES '+json.dumps(dict(shaderDrawParameters=True)))+'\n'
                             stdout+='RANGE_SUMMARY '+json.dumps(summary)+f'\n{backend.title()} scene reuse drained and checked\n'

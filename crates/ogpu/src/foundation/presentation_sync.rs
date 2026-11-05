@@ -101,9 +101,7 @@ impl Drop for Fence {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::foundation::{
-        ogpu_next_presentation_api, ogpu_next_queue_submit, ogpu_next_queue_submit_batch, rust,
-    };
+    use crate::foundation::{ogpu_next_presentation_api, ogpu_next_queue_submit, rust};
     use std::cell::Cell;
 
     thread_local! {
@@ -183,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires modern Vulkan; headless binary lowering, C extension paths, retry and fence lifecycle"]
+    #[ignore = "requires modern Vulkan; headless binary lowering, C counted paths, retry and fence lifecycle"]
     fn gpu_native_binary_and_fences() {
         let discovery = rust::discover().unwrap();
         let adapter = rust::adapters(&discovery)
@@ -256,16 +254,6 @@ mod tests {
                 binary: ptr::from_ref(&*foreign).cast_mut(),
                 stages: STAGE_TRANSFER,
             };
-            let extension = |waits, signals, wc, sc| BinarySubmitDesc {
-                header: Record::new::<BinarySubmitDesc>(BINARY_SUBMIT_DESC),
-                wait_count: wc,
-                signal_count: sc,
-                waits,
-                signals,
-            };
-            let produce = extension(ptr::null(), &binary_point, 0, 1);
-            let consume = extension(&binary_point, ptr::null(), 1, 0);
-            let bad_consume = extension(&foreign_point, ptr::null(), 1, 0);
             let point = |value, stages| SyncPoint {
                 point: Point {
                     timeline: ptr::from_ref(&*timeline).cast_mut(),
@@ -275,69 +263,62 @@ mod tests {
             };
             let wait = point(0, STAGE_COMPUTE);
             let signal = point(1, STAGE_ALL);
-            let mut first =
-                vec![0u64; commands::submit_scratch(0, 0, 1).unwrap().size.div_ceil(8) as usize];
-            let mut second =
-                vec![0u64; commands::submit_scratch(0, 2, 1).unwrap().size.div_ceil(8) as usize];
-            let mut batch =
-                vec![0u64; commands::submit_batch_scratch(2).unwrap().size.div_ceil(8) as usize];
-            let storage = HostSpan {
-                data: batch.as_mut_ptr().cast(),
-                size: (batch.len() * 8) as u64,
-            };
-            let mut a = Record::new::<SubmitDesc>(SUBMIT_DESC);
-            a.next = &produce.header;
-            let mut b = Record::new::<SubmitDesc>(SUBMIT_DESC);
-            b.next = &bad_consume.header;
             let mut descs = [
                 SubmitDesc {
-                    header: a,
-                    list_count: 0,
-                    wait_count: 0,
-                    signal_count: 0,
-                    lists: ptr::null(),
-                    waits: ptr::null(),
-                    signals: ptr::null(),
-                    scratch: first.as_mut_ptr().cast(),
-                    scratch_size: (first.len() * 8) as u64,
+                    binary_signal_count: 1,
+                    binary_signals: &binary_point,
+                    ..Default::default()
                 },
                 SubmitDesc {
-                    header: b,
-                    list_count: 0,
                     wait_count: 1,
-                    signal_count: 1,
-                    lists: ptr::null(),
                     waits: &wait,
+                    signal_count: 1,
                     signals: &signal,
-                    scratch: second.as_mut_ptr().cast(),
-                    scratch_size: (second.len() * 8) as u64,
+                    binary_wait_count: 1,
+                    binary_waits: &foreign_point,
+                    ..Default::default()
                 },
             ];
+            let req = commands::submit_scratch(&d, &descs).unwrap();
+            let mut batch = vec![0u64; req.size.div_ceil(8) as usize];
+            let storage = HostSpan {
+                data: batch.as_mut_ptr().cast(),
+                size: req.size,
+            };
+            let mut outcomes = [SubmitOutcome::rejected(INVALID); 2];
             let queue = ptr::from_ref(d.queue(domain, 0).unwrap()).cast_mut();
             CALLS.set(0);
             FAIL.set(false);
             assert_eq!(
-                ogpu_next_queue_submit_batch(queue, 2, descs.as_ptr(), storage),
+                ogpu_next_queue_submit(queue, 2, descs.as_ptr(), outcomes.as_mut_ptr(), storage),
                 INVALID
             );
             assert_eq!(CALLS.get(), 0);
-            descs[1].header.next = &consume.header;
-            let short = Record::new::<Record>(BINARY_SUBMIT_DESC);
-            descs[0].header.next = &short;
-            assert_eq!(ogpu_next_queue_submit(queue, &descs[0]), INVALID);
-            assert_eq!(CALLS.get(), 0);
-            descs[0].header.next = &produce.header;
-            let size = descs[1].scratch_size;
-            descs[1].scratch_size = 0;
+            assert!(outcomes
+                .iter()
+                .all(|o| o.status == INVALID && o.acceptance == SUBMIT_REJECTED));
+            descs[1].binary_waits = &binary_point;
+            descs[0].flags = 1;
             assert_eq!(
-                ogpu_next_queue_submit_batch(queue, 2, descs.as_ptr(), storage),
+                ogpu_next_queue_submit(queue, 1, descs.as_ptr(), outcomes.as_mut_ptr(), storage),
+                UNSUPPORTED
+            );
+            assert_eq!(CALLS.get(), 0);
+            descs[0].flags = 0;
+            assert_eq!(
+                ogpu_next_queue_submit(
+                    queue,
+                    2,
+                    descs.as_ptr(),
+                    outcomes.as_mut_ptr(),
+                    HostSpan { size: 0, ..storage }
+                ),
                 CAPACITY
             );
             assert_eq!(CALLS.get(), 0);
-            descs[1].scratch_size = size;
             FAIL.set(true);
             assert_eq!(
-                ogpu_next_queue_submit_batch(queue, 2, descs.as_ptr(), storage),
+                ogpu_next_queue_submit(queue, 2, descs.as_ptr(), outcomes.as_mut_ptr(), storage),
                 OUT_OF_MEMORY
             );
             assert_eq!(CALLS.get(), 1);
@@ -345,7 +326,7 @@ mod tests {
             FAIL.set(false);
             CALLS.set(0);
             assert_eq!(
-                ogpu_next_queue_submit_batch(queue, 2, descs.as_ptr(), storage),
+                ogpu_next_queue_submit(queue, 2, descs.as_ptr(), outcomes.as_mut_ptr(), storage),
                 OK
             );
             assert_eq!(CALLS.get(), 1);

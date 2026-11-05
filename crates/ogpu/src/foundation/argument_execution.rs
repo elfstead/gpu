@@ -306,7 +306,16 @@ fn gpu_mapped_argument_execution() {
         .unwrap();
         encoder.end().unwrap();
         let timeline = Timeline::create(&device, 0).unwrap();
-        let scratch_req = submit_scratch(1, 0, 1).unwrap();
+        let scratch_req = submit_scratch(
+            &device,
+            &[SubmitDesc {
+                list_count: 1,
+                wait_count: 0,
+                signal_count: 1,
+                ..Default::default()
+            }],
+        )
+        .unwrap();
         let mut scratch = vec![0u64; scratch_req.size.div_ceil(8) as usize];
         assert!(scratch_req.alignment <= align_of::<u64>() as u64);
         // Poison the former host input after recording: commands capture values,
@@ -344,17 +353,25 @@ fn gpu_mapped_argument_execution() {
                 stages: 1,
             };
             let submit = SubmitDesc {
-                header: Record::new::<SubmitDesc>(SUBMIT_DESC),
                 list_count: 1,
                 wait_count: 0,
                 signal_count: 1,
                 lists: &list,
                 waits: ptr::null(),
                 signals: &point,
-                scratch: scratch.as_mut_ptr().cast(),
-                scratch_size: scratch_req.size,
+                ..Default::default()
             };
-            unsafe { device.queue(domain, 0).unwrap().submit(&submit) }.unwrap();
+            unsafe {
+                device.queue(domain, 0).unwrap().submit_descriptions(
+                    &[submit],
+                    &mut [SubmitOutcome::rejected(INVALID)],
+                    HostSpan {
+                        data: scratch.as_mut_ptr().cast(),
+                        size: scratch_req.size,
+                    },
+                )
+            }
+            .unwrap();
             timeline.wait(u64::from(replay), u64::MAX).unwrap();
             memory.cache(0, memory_desc.size, false).unwrap();
             for (region_index, multiplier, bias) in [(3, 3, 1), (4, 5, 11)] {

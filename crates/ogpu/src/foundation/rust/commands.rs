@@ -90,37 +90,7 @@ pub unsafe fn split_scratch_requirements(
     count(waits.len())?;
     unsafe { native::split_scratch(device.get(), waits) }
 }
-scratch!(submit_batch_scratch_requirements, submit_batch_scratch);
 scratch!(execute_scratch_requirements, execute_scratch);
 scratch!(inheritance_scratch_requirements, inheritance_scratch);
 scratch!(render_scratch_requirements, render_scratch);
 scratch!(vertex_scratch_requirements, vertex_scratch);
-
-/// Atomic preflight then one native submission call; each record retains its own
-/// lists, dependencies and translation scratch, without allocating a flattening list.
-/// # Safety
-/// Live exclusively accessed queue; descriptors/nested arrays and disjoint scratch
-/// valid. Caller retains all resources until proven completion and obeys replay,
-/// synchronization and uncertain-submission rules, exactly as for queue_submit.
-pub unsafe fn queue_submit_batch(
-    queue: QueueHandle,
-    descriptions: &[SubmitDesc],
-    scratch: HostSpan,
-) -> Result<()> {
-    unsafe {
-        queue_submit_batch_raw(
-            queue,
-            count(descriptions.len())?,
-            descriptions.as_ptr(),
-            scratch,
-        )
-    }
-}
-pub(in crate::foundation) unsafe fn queue_submit_batch_raw(
-    queue: QueueHandle,
-    count: u32,
-    descriptions: *const SubmitDesc,
-    scratch: HostSpan,
-) -> Result<()> {
-    unsafe { queue.get().submit_batch(count, descriptions, scratch) }
-}

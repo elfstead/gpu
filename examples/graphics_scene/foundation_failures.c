@@ -19,13 +19,15 @@ ogpu_next_status __wrap_ogpu_next_commands_end(ogpu_next_encoder *e,ogpu_next_li
     }
     return __real_ogpu_next_commands_end(e,out);
 }
-ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *,const ogpu_next_submit_desc *);
-ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q,const ogpu_next_submit_desc *d) {
+ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *,uint32_t,const ogpu_next_submit_desc *,ogpu_next_submit_outcome *,ogpu_next_host_span);
+ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q,uint32_t count,const ogpu_next_submit_desc *d,ogpu_next_submit_outcome *out,ogpu_next_host_span scratch) {
     if(++submits==2 && (!strcmp(failure,"submit") || !strcmp(failure,"unknown"))) {
         fprintf(stderr,"INJECT %s\n",failure);
-        return !strcmp(failure,"submit") ? OGPU_NEXT_INVALID : OGPU_NEXT_BACKEND_ERROR;
+        ogpu_next_status status = !strcmp(failure,"submit") ? OGPU_NEXT_INVALID : OGPU_NEXT_BACKEND_ERROR;
+        for (uint32_t i=0;i<count;++i) out[i]=(ogpu_next_submit_outcome){status,status==OGPU_NEXT_INVALID ? OGPU_NEXT_SUBMIT_REJECTED : OGPU_NEXT_SUBMIT_UNKNOWN};
+        return status;
     }
-    return __real_ogpu_next_queue_submit(q,d);
+    return __real_ogpu_next_queue_submit(q,count,d,out,scratch);
 }
 ogpu_next_status __real_ogpu_next_timeline_wait(ogpu_next_point,uint64_t);
 ogpu_next_status __wrap_ogpu_next_timeline_wait(ogpu_next_point p,uint64_t timeout) {

@@ -21,11 +21,15 @@ ogpu_next_status __wrap_ogpu_next_timeline_poll(const ogpu_next_timeline *t, uin
     if (poll_errors) { --poll_errors; return OGPU_NEXT_BACKEND_ERROR; }
     return __real_ogpu_next_timeline_poll(t, completed);
 }
-ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
-ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q, const ogpu_next_submit_desc *d)
+ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *, uint32_t, const ogpu_next_submit_desc *, ogpu_next_submit_outcome *, ogpu_next_host_span);
+ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q, uint32_t count, const ogpu_next_submit_desc *d, ogpu_next_submit_outcome *out, ogpu_next_host_span scratch)
 {
-    if (reject_submit) { --reject_submit; return OGPU_NEXT_INVALID; }
-    return __real_ogpu_next_queue_submit(q, d);
+    if (reject_submit) {
+        --reject_submit;
+        for (uint32_t i=0;i<count;++i) out[i]=(ogpu_next_submit_outcome){OGPU_NEXT_INVALID,OGPU_NEXT_SUBMIT_REJECTED};
+        return OGPU_NEXT_INVALID;
+    }
+    return __real_ogpu_next_queue_submit(q,count,d,out,scratch);
 }
 ogpu_next_status __real_ogpu_next_commands_end(ogpu_next_encoder *, ogpu_next_list **);
 ogpu_next_status __wrap_ogpu_next_commands_end(ogpu_next_encoder *e, ogpu_next_list **out)

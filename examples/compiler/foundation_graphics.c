@@ -63,7 +63,7 @@ static int run_case(ogpu_next_device *device, ogpu_next_executable *pipeline, og
     ogpu_next_span all = {host,0,md.size}; ogpu_next_mapping map = {0}; TRY(ogpu_next_memory_map(all,&map));
     ogpu_next_host_requirements br = {0}, rr = {0}, sr = {0};
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr));
-    TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && rr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); rs = malloc((size_t)rr.size); ss = malloc((size_t)sr.size); REQUIRE(bs && rs && ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
@@ -92,12 +92,14 @@ static int run_case(ogpu_next_device *device, ogpu_next_executable *pipeline, og
     dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; dep.image_count = 0; dep.images = NULL;
     common_barrier(encoder,&dep,&dep_scope,dep_scratch); TRY(ogpu_next_commands_end(encoder,&list));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {ss,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 3; ++replay) {
         unsigned char *pixels = map.data; memset(pixels,0xa5,(size_t)md.size);
         const uint32_t arguments[4] = {replay == 1 ? 0 : 3,1,0,0}; memcpy(pixels,arguments,sizeof(arguments));
         TRY(ogpu_next_memory_flush(all)); signal.point.value = replay+1; pending = 1;
-        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0; TRY(ogpu_next_memory_invalidate(all));
         REQUIRE(memcmp(pixels,arguments,sizeof(arguments)) == 0);
         for (uint64_t i = 16; i < md.size; ++i) if (i < 64 || i >= 64+bytes) REQUIRE(pixels[i] == 0xa5);

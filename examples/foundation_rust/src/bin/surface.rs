@@ -10,6 +10,8 @@ use std::{
 mod presentation;
 #[path = "../scene.rs"]
 mod scene;
+#[path = "../submission.rs"]
+mod submission;
 
 struct Window {
     handle: *mut c_void,

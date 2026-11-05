@@ -1,4 +1,5 @@
 //! Bounded real Wayland presentation, using only the public native Rust interface.
+use super::submission;
 use super::{query, query_mode, Window};
 use ogpu::foundation::{rust as gpu, types::*};
 use std::{mem::ManuallyDrop, ptr};
@@ -150,7 +151,17 @@ pub unsafe fn run() -> gpu::Result<()> {
         descs.push(desc);
     }
     let mut borrowed = [unsafe { images(chains[0])? }, unsafe { images(chains[1])? }];
-    let mut submit_storage = storage(gpu::submit_scratch_requirements(1, 2, 2)?);
+    let mut submit_storage = storage(gpu::submit_scratch_requirements(
+        device,
+        &[SubmitDesc {
+            list_count: 1,
+            wait_count: 0,
+            signal_count: 1,
+            binary_wait_count: 2,
+            binary_signal_count: 1,
+            ..Default::default()
+        }],
+    )?);
     let mut present_storage = storage(gpu::present_scratch_requirements(1, 2)?);
     let mut barrier_storage = storage(gpu::barrier_scratch_requirements(device, 0, 0, 1)?);
     let mut value = 0;
@@ -283,7 +294,7 @@ pub unsafe fn run() -> gpu::Result<()> {
                 }
                 gpu::commands_end(list)?;
                 value += 1;
-                gpu::queue_submit_with_binary(
+                submission::one(
                     queue,
                     &[list],
                     &[],
@@ -338,7 +349,7 @@ pub unsafe fn run() -> gpu::Result<()> {
             gpu::fence_wait(acquisition_fence, 10_000_000_000)?;
             gpu::fence_reset(acquisition_fence)?;
             value += 1;
-            gpu::queue_submit_with_binary(
+            submission::one(
                 queue,
                 &[],
                 &[],

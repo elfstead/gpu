@@ -2,9 +2,9 @@
 
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
 The Vulkan argument, descriptor and generated-layout families are installed as
-foundation schema 5, including borrowed heap inheritance and per-entry dependencies.
-The unified submission engine is implemented and tested privately; its public
-cutover and presentation remain to migrate. This document does not declare
+foundation schema 6, including borrowed heap inheritance, per-entry dependencies
+and unified submission with explicit acceptance outcomes. Presentation remains
+to migrate. This document does not declare
 Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
@@ -577,13 +577,63 @@ without another native call. The complete existing C foundation fixture and
 strict Clippy pass. The 147-operation surface inventory and all 376 draft
 C/Rust layout/constant comparisons pass; the installed ABI is unchanged.
 
-**Next:** move these selected records into the installed header/Rust types, expose
+**Next at that checkpoint (completed below):** move these selected records into the installed header/Rust types, expose
 the single counted submit/requirements operations and migrate all consumers to
 one scratch span and explicit outcomes. Delete the old single/batch/binary
 wrappers, binary extension parser/record, nested scratch planners, temporary
 record adapter and dead-code allowances together. Test C-boundary output handling
 and installed consumers during that cutover. Presentation and the full C2
 audit/local C3 follow. No Windows/Metal acceptance or new timing result is claimed.
+
+## C2 submission public cutover
+
+Implemented 2026-11-05 on Vulkan/Linux. Foundation schema **6** exposes one counted
+submission call through C and direct Rust. This completes C2 step 3 (dependencies
+and submission) locally; presentation and the full C2 audit/local C3 remain.
+
+- `SubmitDesc` has counted list, timeline and binary arrays plus flags. There is
+  no record header, extension chain or embedded scratch. `SubmitOutcome` reports
+  status and REJECTED/ACCEPTED/UNKNOWN acceptance for each batch. Count one uses
+  the same operation; count zero checks the device and performs no native submit.
+- One device-specific requirements query reads counts/flags only, checks sums and
+  layout arithmetic, and preserves output on failure. One caller span covers all
+  headers/nested arrays, retaining independent native batch boundaries and scopes.
+- C and Rust share the engine and its exact acceptance rules. C decode failures
+  populate every valid output entry with REJECTED and the error; native uncertain
+  outcomes survive the adapter. All local validation precedes native effects.
+- Deleted the old single/batch/binary wrappers, linked extension records/parser,
+  obsolete record-kind constants, separate batch/nested scratch queries, temporary
+  stack adapter and private engine allowances. The installed surface now has 145
+  operations. No hot allocation, retained receipt, state registry or implicit wait
+  was introduced.
+- C fixtures, installed applications and native Rust headless/presentation sources
+  use the new records and explicit storage. The Rust consumer's one-batch helper
+  is application code and propagates errors into its existing resource-retention
+  policy. Scene reuse and libplacebo inspect acceptance rather than infer it from
+  an error code; injected-failure wrappers supply the corresponding outcomes.
+  GGML retains its conservative fail-stop policy for submission/completion failure.
+
+Public C checks cover invalid queue/descriptions/outcomes, whole-call late failure,
+unchanged requirements outputs, empty calls, exact shared scratch, host-gated work,
+immediate scratch overwrite and mixed one-shot/reusable lists. Native error
+injection now verifies UNKNOWN through the public C boundary. Direct Rust consumers
+check rejected retries and accepted single/batched timeline/binary handoffs.
+
+**Verification:** 76 CPU unit tests, two native-Rust host tests, all 27 native GPU
+tests and the full public C foundation fixture pass on RX 5700 XT
+(RADV/Mesa 26.2.5), without synchronization-validation errors. Strict Clippy,
+1,501 installed C/Rust ABI values, 376 draft layout/constant values, the 145-operation
+surface audit and 47 scene host tests pass. All six relocated C consumers, the
+isolated native Rust bundle, and independently built GGML/libplacebo GPU handoffs
+pass, including their source-graph and failure checks. Native Rust presentation
+sources compile; interactive presentation was not rerun. The generated indexed
+scene also passes native-matched output/guard checks at 257×193 and 640×360 and
+its injected known-rejection cleanup/unknown-completion fail-stop checks.
+
+**Next:** migrate presentation to borrowed frames, native availability and explicit
+outcome effects, then run the full C2 deletion audit and local C3. No interactive
+presentation run, Windows/Metal acceptance or new performance result is claimed
+for this cutover.
 
 ## Verification and open native questions
 

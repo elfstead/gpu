@@ -11,12 +11,13 @@ mod secondary;
 #[path = "splits.rs"]
 mod splits;
 #[path = "submissions.rs"]
-mod submissions;
+pub(super) mod submissions;
 pub(in crate::foundation) use dependencies::{
     barrier_requirements as barrier_scratch, split_requirements as split_scratch,
 };
 pub(in crate::foundation) use secondary::{execute_scratch, inheritance_scratch};
 pub use splits::Split;
+pub(in crate::foundation) use submissions::requirements as submit_scratch;
 
 pub(in crate::foundation) fn vertex_scratch(count: u32) -> Result<HostRequirements, Status> {
     if count == 0 {
@@ -505,33 +506,6 @@ fn submit_layout(lists: u32, waits: u32, signals: u32) -> Result<(Layout, usize,
         .extend(array_layout::<vk::VkSemaphoreSubmitInfo>(signals)?)
         .map_err(|_| INVALID)?;
     Ok((layout.pad_to_align(), wait_offset, signal_offset))
-}
-unsafe fn binary_submission<'a>(header: &Record) -> Result<Option<&'a BinarySubmitDesc>, Status> {
-    if header.next.is_null() {
-        return Ok(None);
-    }
-    // Read and validate only the header first: short/unknown extensions must not
-    // be dereferenced as a full description. No chains or repeated records yet.
-    unsafe { header.next.read() }.validate::<BinarySubmitDesc>(BINARY_SUBMIT_DESC)?;
-    Ok(Some(unsafe { &*header.next.cast::<BinarySubmitDesc>() }))
-}
-pub(in crate::foundation) fn submit_batch_scratch(count: u32) -> Result<HostRequirements, Status> {
-    let layout = array_layout::<vk::VkSubmitInfo2>(count)?;
-    Ok(HostRequirements {
-        size: layout.size() as u64,
-        alignment: layout.align() as u64,
-    })
-}
-pub(in crate::foundation) fn submit_scratch(
-    lists: u32,
-    waits: u32,
-    signals: u32,
-) -> Result<HostRequirements, Status> {
-    let (layout, _, _) = submit_layout(lists, waits, signals)?;
-    Ok(HostRequirements {
-        size: layout.size() as u64,
-        alignment: layout.align() as u64,
-    })
 }
 pub(super) fn scratch(
     pointer: *mut c_void,
@@ -1382,129 +1356,8 @@ fn indirect_record_size(stride: u32, count: u32, record: u32) -> Result<u64, Sta
     })
 }
 
-impl Queue {
-    pub(in crate::foundation) unsafe fn submit(&self, desc: &SubmitDesc) -> Result<(), Status> {
-        let device = self.device.load(Ordering::Relaxed).cast_const();
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        d.ready()?;
-        let info = unsafe { self.translate_submit(d, desc)? };
-        unsafe {
-            self.submit_native(d, 1, &info)?;
-            consume_submit(desc);
-        }
-        Ok(())
-    }
-    pub(in crate::foundation) unsafe fn submit_batch(
-        &self,
-        count: u32,
-        descs: *const SubmitDesc,
-        storage: HostSpan,
-    ) -> Result<(), Status> {
-        let device = self.device.load(Ordering::Relaxed).cast_const();
-        let d = unsafe { device.as_ref() }.ok_or(INVALID)?;
-        d.ready()?;
-        if count == 0 {
-            return Ok(());
-        }
-        let descs = unsafe { slice(descs, count)? };
-        let native = scratch(storage.data, storage.size, submit_batch_scratch(count)?)?
-            .cast::<vk::VkSubmitInfo2>();
-        for (i, desc) in descs.iter().enumerate() {
-            // All native pointees live in distinct caller-owned scratch regions.
-            unsafe {
-                native.add(i).write(self.translate_submit(d, desc)?);
-            }
-        }
-        unsafe {
-            self.submit_native(d, count, native)?;
-        }
-        for desc in descs {
-            unsafe {
-                consume_submit(desc);
-            }
-        }
-        Ok(())
-    }
-    unsafe fn translate_submit(
-        &self,
-        d: &Device,
-        desc: &SubmitDesc,
-    ) -> Result<vk::VkSubmitInfo2, Status> {
-        SubmitDesc::validate_header(desc.header)?;
-        let binary = unsafe { binary_submission(&desc.header)? };
-        let selected = submissions::SubmitDesc {
-            list_count: desc.list_count,
-            wait_count: desc.wait_count,
-            signal_count: desc.signal_count,
-            binary_wait_count: binary.map_or(0, |b| b.wait_count),
-            binary_signal_count: binary.map_or(0, |b| b.signal_count),
-            flags: 0,
-            lists: desc.lists,
-            waits: desc.waits,
-            signals: desc.signals,
-            binary_waits: binary.map_or(ptr::null(), |b| b.waits),
-            binary_signals: binary.map_or(ptr::null(), |b| b.signals),
-        };
-        unsafe {
-            submissions::translate(
-                self,
-                d,
-                &selected,
-                HostSpan {
-                    data: desc.scratch,
-                    size: desc.scratch_size,
-                },
-            )
-        }
-    }
-    unsafe fn submit_native(
-        &self,
-        d: &Device,
-        count: u32,
-        infos: *const vk::VkSubmitInfo2,
-    ) -> Result<(), Status> {
-        unsafe { submissions::submit_native(self, d, count, infos) }.result()
-    }
-}
-unsafe fn consume_submit(desc: &SubmitDesc) {
-    unsafe { submissions::consume(desc.lists, desc.list_count) };
-}
-
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn binary_extensions_validate_before_full_record_access() {
-        use super::*;
-        let mut root = Record::new::<SubmitDesc>(SUBMIT_DESC);
-        assert!(unsafe { binary_submission(&root) }.unwrap().is_none());
-        let short = Record::new::<Record>(BINARY_SUBMIT_DESC);
-        root.next = &short;
-        assert!(matches!(unsafe { binary_submission(&root) }, Err(INVALID)));
-        let unknown = Record::new::<Record>(u32::MAX);
-        root.next = &unknown;
-        assert!(matches!(
-            unsafe { binary_submission(&root) },
-            Err(UNSUPPORTED)
-        ));
-        let mut extra = BinarySubmitDesc {
-            header: Record::new::<BinarySubmitDesc>(BINARY_SUBMIT_DESC),
-            wait_count: 0,
-            signal_count: 0,
-            waits: ptr::null(),
-            signals: ptr::null(),
-        };
-        root.next = &extra.header;
-        assert!(unsafe { binary_submission(&root) }.unwrap().is_some());
-        assert_eq!(SubmitDesc::validate_header(root), Ok(()));
-        assert_eq!(root.validate::<SubmitDesc>(SUBMIT_DESC), Err(INVALID));
-        extra.header.next = &short;
-        root.next = &extra.header;
-        assert!(matches!(unsafe { binary_submission(&root) }, Err(INVALID)));
-        extra.header.next = ptr::null();
-        extra.header.flags = 1;
-        root.next = &extra.header;
-        assert!(matches!(unsafe { binary_submission(&root) }, Err(INVALID)));
-    }
     #[test]
     fn indirect_ranges_preserve_native_stride_rules() {
         use super::*;
@@ -1671,47 +1524,27 @@ mod tests {
                     },
                     stages: 1,
                 };
-                let requirements = submit_scratch(1, 0, 1).unwrap();
-                let mut scratch = vec![0u64; requirements.size.div_ceil(8) as usize];
-                assert!(requirements.alignment <= align_of::<u64>() as u64);
                 let mut desc = SubmitDesc {
-                    header: Record::new::<SubmitDesc>(SUBMIT_DESC),
                     list_count: 1,
-                    wait_count: 0,
                     signal_count: 1,
                     lists: &list,
-                    waits: ptr::null(),
                     signals: &point,
-                    scratch: scratch.as_mut_ptr().cast(),
-                    scratch_size: requirements.size,
+                    ..Default::default()
                 };
-                let queue = d.queue(domain, 0).unwrap();
-                let batch_requirements = submit_batch_scratch(2).unwrap();
-                assert!(batch_requirements.alignment <= align_of::<u64>() as u64);
-                let mut batch_storage = vec![0u64; batch_requirements.size.div_ceil(8) as usize];
+                let mut batches = [desc, SubmitDesc::default()];
+                let req = submit_scratch(&d, &batches).unwrap();
+                let mut data = vec![0u64; req.size.div_ceil(8) as usize];
                 let storage = HostSpan {
-                    data: batch_storage.as_mut_ptr().cast(),
-                    size: batch_requirements.size,
+                    data: data.as_mut_ptr().cast(),
+                    size: req.size,
                 };
-                let mut batches = [
-                    SubmitDesc { ..desc },
-                    SubmitDesc {
-                        header: Record::new::<SubmitDesc>(SUBMIT_DESC),
-                        list_count: 0,
-                        wait_count: 0,
-                        signal_count: 0,
-                        lists: ptr::null(),
-                        waits: ptr::null(),
-                        signals: ptr::null(),
-                        scratch: ptr::null_mut(),
-                        scratch_size: 0,
-                    },
-                ];
+                let mut outcomes = [SubmitOutcome::rejected(INVALID); 2];
+                let queue = d.queue(domain, 0).unwrap();
                 SUBMITS.set(0);
                 unsafe {
-                    queue.submit_batch(
-                        0,
-                        ptr::null(),
+                    queue.submit_descriptions(
+                        &[],
+                        &mut [],
                         HostSpan {
                             data: ptr::null_mut(),
                             size: 0,
@@ -1719,17 +1552,17 @@ mod tests {
                     )
                 }
                 .unwrap();
-                batches[1].header.version = 0;
+                batches[1].flags = 1;
                 assert_eq!(
-                    unsafe { queue.submit_batch(2, batches.as_ptr(), storage) },
+                    unsafe { queue.submit_descriptions(&batches, &mut outcomes, storage) },
                     Err(UNSUPPORTED)
                 );
                 assert_eq!(SUBMITS.get(), 0);
                 assert_eq!(unsafe { &*list }.state.get(), 2);
-                batches[1].header.version = VERSION;
+                batches[1].flags = 0;
                 FAILURE.set(3);
                 assert_eq!(
-                    unsafe { queue.submit_batch(2, batches.as_ptr(), storage) },
+                    unsafe { queue.submit_descriptions(&batches, &mut outcomes, storage) },
                     Err(OUT_OF_MEMORY)
                 );
                 assert_eq!(SUBMITS.get(), 1);
@@ -1738,18 +1571,31 @@ mod tests {
                 assert_eq!(d.ready(), Ok(()));
                 SUBMITS.set(0);
                 FAILURE.set(3);
-                assert_eq!(unsafe { queue.submit(&desc) }, Err(OUT_OF_MEMORY));
+                assert_eq!(
+                    unsafe { queue.submit_descriptions(&[desc], &mut outcomes[..1], storage) },
+                    Err(OUT_OF_MEMORY)
+                );
                 assert_eq!(unsafe { &*list }.state.get(), 2);
                 assert_eq!(d.ready(), Ok(()));
-                desc.scratch_size = 0;
-                assert_eq!(unsafe { queue.submit(&desc) }, Err(CAPACITY));
+                assert_eq!(
+                    unsafe {
+                        queue.submit_descriptions(
+                            &[desc],
+                            &mut outcomes[..1],
+                            HostSpan { size: 0, ..storage },
+                        )
+                    },
+                    Err(CAPACITY)
+                );
                 assert_eq!(SUBMITS.get(), 1);
-                desc.scratch_size = requirements.size;
                 FAILURE.set(0);
-                unsafe { queue.submit_batch(2, batches.as_ptr(), storage) }.unwrap();
+                unsafe { queue.submit_descriptions(&batches, &mut outcomes, storage) }.unwrap();
                 assert_eq!(BATCH_COUNT.get(), 2);
                 timeline.wait(1, 10_000_000_000).unwrap();
-                assert_eq!(unsafe { queue.submit(&desc) }, Err(INVALID));
+                assert_eq!(
+                    unsafe { queue.submit_descriptions(&[desc], &mut outcomes[..1], storage) },
+                    Err(INVALID)
+                );
                 assert_eq!(SUBMITS.get(), 2);
                 FAILURE.set(6);
                 assert_eq!(arena.reset(false), Err(OUT_OF_MEMORY));
@@ -1764,16 +1610,19 @@ mod tests {
                 desc.signal_count = 0;
                 FAILURE.set(terminal);
                 assert_eq!(
-                    unsafe { queue.submit_batch(1, &desc, storage) },
+                    unsafe { queue.submit_descriptions(&[desc], &mut outcomes[..1], storage) },
                     Err(if terminal == 4 {
                         DEVICE_LOST
                     } else {
                         BACKEND_ERROR
                     })
                 );
-                assert_eq!(unsafe { queue.submit(&desc) }, Err(DEVICE_LOST));
                 assert_eq!(
-                    unsafe { queue.submit_batch(0, ptr::null(), storage) },
+                    unsafe { queue.submit_descriptions(&[desc], &mut outcomes[..1], storage) },
+                    Err(DEVICE_LOST)
+                );
+                assert_eq!(
+                    unsafe { queue.submit_descriptions(&[], &mut [], storage) },
                     Err(DEVICE_LOST)
                 );
                 assert_eq!(SUBMITS.get(), 3);
@@ -1917,13 +1766,6 @@ mod tests {
     }
     #[test]
     fn scratch_layout_and_scope_contracts() {
-        assert_eq!(
-            submit_scratch(0, 0, 0),
-            Ok(HostRequirements {
-                size: 0,
-                alignment: 1
-            })
-        );
         for (l, w, s) in [(1, 0, 0), (0, 1, 1), (3, 5, 7)] {
             let (layout, wo, so) = submit_layout(l, w, s).unwrap();
             assert!(wo >= l as usize * size_of::<vk::VkCommandBufferSubmitInfo>());
@@ -1947,7 +1789,11 @@ mod tests {
         );
         assert_eq!(access(1 << 16, 2), Err(INVALID));
         assert_eq!(access(1 << 17, 256), Err(INVALID));
-        let req = submit_scratch(1, 0, 0).unwrap();
+        let layout = submit_layout(1, 0, 0).unwrap().0;
+        let req = HostRequirements {
+            size: layout.size() as u64,
+            alignment: layout.align() as u64,
+        };
         assert_eq!(scratch(ptr::null_mut(), 0, req), Err(CAPACITY));
         assert_eq!(scratch(ptr::null_mut(), req.size, req), Err(INVALID));
     }

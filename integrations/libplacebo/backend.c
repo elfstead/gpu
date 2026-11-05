@@ -216,10 +216,11 @@ static bool submit(pl_gpu gpu, ogpu_next_encoder *batch, uint64_t *done)
     TRY(ogpu_next_commands_end(batch, &list));
     REQUIRE(b->submitted < UINT64_MAX, "timeline exhausted");
     const ogpu_next_sync_point signal = {{b->timeline, b->submitted + 1}, OGPU_NEXT_STAGE_ALL};
-    const ogpu_next_submit_desc desc = {RECORD(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
-        1, 0, 1, &list, NULL, &signal, b->scratch.data, b->scratch.size};
-    ogpu_next_status r = ogpu_next_queue_submit(b->queue, &desc);
-    if (r == OGPU_NEXT_DEVICE_LOST || r == OGPU_NEXT_BACKEND_ERROR) {
+    const ogpu_next_submit_desc desc = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span desc_host = {b->scratch.data,b->scratch.size};
+    ogpu_next_submit_outcome desc_outcome = {0};
+    ogpu_next_status r = ogpu_next_queue_submit(b->queue,1,&desc,&desc_outcome,desc_host);
+    if (desc_outcome.acceptance == OGPU_NEXT_SUBMIT_UNKNOWN) {
         fprintf(stderr, "OGPU libplacebo: terminal submission failure; refusing unsafe teardown\n");
         abort();
     }
@@ -877,7 +878,7 @@ pl_gpu ogpu_pl_create(pl_log log, unsigned index)
     TRY(ogpu_next_descriptor_scratch_requirements(b->device,OGPU_NEXT_DESCRIPTOR_WRITE_SAMPLER, 1, &scratch[1]));
     TRY(ogpu_next_barrier_scratch_requirements(b->device,1,0,1, &scratch[2]));
     TRY(ogpu_next_render_scratch_requirements(1, &scratch[3]));
-    TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &scratch[4]));
+    TRY(ogpu_next_submit_scratch_requirements(b->device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&scratch[4]));
     for (unsigned i = 0; i < 5; ++i) {
         REQUIRE(scratch[i].alignment <= _Alignof(max_align_t), "unsupported scratch alignment");
         b->scratch.size = PL_MAX(b->scratch.size, scratch[i].size);

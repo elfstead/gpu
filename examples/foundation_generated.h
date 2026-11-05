@@ -53,7 +53,7 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
     md.size = 4096; TRY(ogpu_next_memory_create(device,&md,&memory));
     ogpu_next_span all = {memory,0,md.size}; ogpu_next_mapping map = {0}; TRY(ogpu_next_memory_map(all,&map));
     uint64_t base = 0; TRY(ogpu_next_memory_address(all,&base));
-    ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(sr.alignment <= _Alignof(max_align_t)); ss = malloc((size_t)sr.size); REQUIRE(ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
@@ -126,8 +126,10 @@ static int generated_execution(ogpu_next_device *device, ogpu_next_memory_desc m
             dep_scope.access_before = OGPU_NEXT_ACCESS_STORAGE_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
             TRY(ogpu_next_commands_end(encoder,&list));
             ogpu_next_sync_point signal = {{done,++value},OGPU_NEXT_STAGE_ALL};
-            ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
-            pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+            ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {ss,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+            pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
             TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0; TRY(ogpu_next_memory_invalidate(all));
             uint32_t expected[1024]; for (uint32_t i = 0; i < 1024; ++i) expected[i] = UINT32_C(0xa5a5a5a5);
             for (uint32_t i = 0; i < 2; ++i) {

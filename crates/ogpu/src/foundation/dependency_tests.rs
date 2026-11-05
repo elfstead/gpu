@@ -765,7 +765,18 @@ fn gpu_dependency_entries() {
         unsafe { c.barrier(&host, storage.span()) }.unwrap();
         c.end().unwrap();
         let timeline = Timeline::create(&d, 0).unwrap();
-        let mut submit_storage = Storage::new(submit_scratch(2, 0, 1).unwrap());
+        let mut submit_storage = Storage::new(
+            submit_scratch(
+                &d,
+                &[SubmitDesc {
+                    list_count: 2,
+                    wait_count: 0,
+                    signal_count: 1,
+                    ..Default::default()
+                }],
+            )
+            .unwrap(),
+        );
         let mapping = m.map(0, 1024).unwrap();
         for replay in 1..=2u32 {
             let words = unsafe { std::slice::from_raw_parts_mut(mapping.data.cast::<u32>(), 256) };
@@ -784,17 +795,25 @@ fn gpu_dependency_entries() {
             };
             let scratch = submit_storage.span();
             let submit = SubmitDesc {
-                header: Record::new::<SubmitDesc>(SUBMIT_DESC),
                 list_count: 2,
                 wait_count: 0,
                 signal_count: 1,
                 lists: lists.as_ptr(),
                 waits: ptr::null(),
                 signals: &signal,
-                scratch: scratch.data,
-                scratch_size: scratch.size,
+                ..Default::default()
             };
-            unsafe { d.queue(domain, 0).unwrap().submit(&submit) }.unwrap();
+            unsafe {
+                d.queue(domain, 0).unwrap().submit_descriptions(
+                    &[submit],
+                    &mut [SubmitOutcome::rejected(INVALID)],
+                    HostSpan {
+                        data: scratch.data,
+                        size: scratch.size,
+                    },
+                )
+            }
+            .unwrap();
             timeline.wait(u64::from(replay), 10_000_000_000).unwrap();
             m.cache(0, 1024, false).unwrap();
             for (i, &word) in words.iter().enumerate() {

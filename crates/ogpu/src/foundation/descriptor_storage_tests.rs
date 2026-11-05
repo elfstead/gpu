@@ -578,7 +578,17 @@ fn gpu_descriptor_storage_and_replay() {
         assert_eq!(BINDS.get(), 1);
         assert_eq!(WRITES.get(), 0);
         let timeline = Timeline::create(&device, 0).unwrap();
-        let mut submission = scratch_vec(submit_scratch(1, 0, 1).unwrap());
+        let mut submission = scratch_vec(
+            submit_scratch(
+                &device,
+                &[SubmitDesc {
+                    list_count: 1,
+                    signal_count: 1,
+                    ..Default::default()
+                }],
+            )
+            .unwrap(),
+        );
         for replay in 1..=2 {
             // Encode and copy after recording; replay observes changed contents.
             resource.buffer.offset = stride * replay;
@@ -626,17 +636,19 @@ fn gpu_descriptor_storage_and_replay() {
             };
             let scratch = scratch_span(&mut submission);
             unsafe {
-                device.queue(domain, 0).unwrap().submit(&SubmitDesc {
-                    header: Record::new::<SubmitDesc>(SUBMIT_DESC),
-                    list_count: 1,
-                    wait_count: 0,
-                    signal_count: 1,
-                    lists: &list,
-                    waits: ptr::null(),
-                    signals: &point,
-                    scratch: scratch.data,
-                    scratch_size: scratch.size,
-                })
+                device.queue(domain, 0).unwrap().submit_descriptions(
+                    &[SubmitDesc {
+                        list_count: 1,
+                        wait_count: 0,
+                        signal_count: 1,
+                        lists: &list,
+                        waits: ptr::null(),
+                        signals: &point,
+                        ..Default::default()
+                    }],
+                    &mut [SubmitOutcome::rejected(INVALID)],
+                    scratch,
+                )
             }
             .unwrap();
             timeline.wait(replay, u64::MAX).unwrap();

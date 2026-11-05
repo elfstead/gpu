@@ -39,7 +39,7 @@ def main():
     require(bool(args.libplacebo_source) == bool(args.vulkan_registry),"--libplacebo-source and --vulkan-registry belong together")
     installed = args.prefix.resolve()
     manifest = json.loads((installed / "share/ogpu/manifest.json").read_text())
-    require(manifest["foundation"]["revision"] == 5,"not a foundation revision-5 preview")
+    require(manifest["foundation"]["revision"] == 6,"not a foundation revision-6 preview")
     if manifest.get('default_api')=='foundation':
         legacy=manifest['legacy_sdk']
         require(('abi' in manifest)==legacy,'incorrect manifest profile')
@@ -58,7 +58,7 @@ def main():
                  'ogpu_next_argument_layout_info','ogpu_next_set_arguments',
                  'ogpu_next_heap_requirements_query','ogpu_next_resource_descriptor_shape','ogpu_next_sampler_descriptor_shape',
                  'ogpu_next_heap_create','ogpu_next_heap_destroy','ogpu_next_heap_info','ogpu_next_copy_descriptors'} <= exports,'argument cutover exports missing')
-        require(not {'ogpu_next_set_inline','ogpu_next_set_root'} & exports,'old argument setters still exported')
+        require(not {'ogpu_next_set_inline','ogpu_next_set_root','ogpu_next_queue_submit_batch','ogpu_next_submit_batch_scratch_requirements'} & exports,'superseded entry points still exported')
         old={name for name in exports if name.startswith('ogpu_') and not name.startswith('ogpu_next_')}
         require(('ogpu_probe_create' in old) if legacy else not old,'legacy runtime export mismatch')
     temporary = Path(tempfile.mkdtemp(prefix="ogpu-foundation-external-"))
@@ -71,7 +71,7 @@ def main():
     env["CARGO"] = "/no-consumer-cargo-required"; env["SLANGC"] = "/no-consumer-slang-required"
     pkg = os.getenv("PKG_CONFIG","pkg-config")
     require(run([pkg,"--variable=ogpu_revision","ogpu-foundation"],env=env).strip() == manifest["revision"],"wrong revision")
-    require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "5","wrong foundation version")
+    require(run([pkg,"--variable=ogpu_foundation","ogpu-foundation"],env=env).strip() == "6","wrong foundation version")
     if manifest.get('default_api')=='foundation' and not manifest['legacy_sdk']:
         absent=subprocess.run([pkg,'--exists','ogpu'],env=env,capture_output=True,text=True,timeout=30)
         require(absent.returncode!=0,'foundation-only package exposed legacy pkg-config name')

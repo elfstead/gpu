@@ -81,10 +81,12 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
         TRY(ogpu_next_commands_end(encoder,&list));
     }
     TRY(ogpu_next_timeline_create(device,0,&done));
-    ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(sr.alignment <= _Alignof(max_align_t)); scratch = malloc((size_t)sr.size); REQUIRE(scratch != NULL);
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,scratch,sr.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 3; ++replay) {
         memset(map.data,0xa5,(size_t)md.size);
         uint64_t output_address = address+512; uint32_t seed = replay+1;
@@ -92,7 +94,7 @@ static int raster_storage_execution(ogpu_next_device *device, ogpu_next_memory_d
         uint32_t *output = (uint32_t *)((char *)map.data+512);
         output[0] = output[1] = output[4] = output[5] = output[6] = 0;
         TRY(ogpu_next_memory_flush(all)); signal.point.value = replay+1;
-        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(all));
         REQUIRE(output[0] == (writers & 1 ? 7u : 0u));

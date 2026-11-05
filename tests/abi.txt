@@ -198,7 +198,6 @@ next SwapchainDesc ogpu_next_swapchain_desc header surface old_swapchain format 
 next PresentImage ogpu_next_present_image swapchain index reserved fence
 next PresentDesc ogpu_next_present_desc header wait_count image_count waits images results scratch
 next BinaryPoint ogpu_next_binary_point binary stages
-next BinarySubmitDesc ogpu_next_binary_submit_desc header wait_count signal_count waits signals
 next SurfaceScaling ogpu_next_surface_scaling scaling gravity_x gravity_y reserved min_extent max_extent
 vk VkWaylandSurfaceCreateInfoKHR sType pNext flags display surface
 vk VkPhysicalDeviceSurfaceInfo2KHR sType pNext surface
@@ -243,3 +242,6 @@ next MemoryBarrier ogpu_next_memory_barrier scope range source_domain destinatio
 next ImageBarrier ogpu_next_image_barrier scope image range old_state new_state source_domain destination_domain discard reserved
 next Dependency ogpu_next_dependency global_count memory_count image_count flags global memory images
 next SplitDependency ogpu_next_split_dependency split dependency
+
+next SubmitDesc ogpu_next_submit_desc list_count wait_count signal_count binary_wait_count binary_signal_count flags lists waits signals binary_waits binary_signals
+next SubmitOutcome ogpu_next_submit_outcome status acceptance

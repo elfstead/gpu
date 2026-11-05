@@ -1,4 +1,5 @@
 //! Application policy: three explicit frame slots, replacement and bounded oracle.
+use super::submission;
 use super::{query, query_mode, Window};
 use ogpu::foundation::{rust as gpu, types::*};
 use std::{
@@ -641,7 +642,17 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
         ];
         let mut barriers = Scratch::new(gpu::barrier_scratch_requirements(d, 0, 0, 1)?);
         let mut rendering = Scratch::new(gpu::render_scratch_requirements(1)?);
-        let mut submission = Scratch::new(gpu::submit_scratch_requirements(1, 1, 2)?);
+        let mut submission = Scratch::new(gpu::submit_scratch_requirements(
+            d,
+            &[SubmitDesc {
+                list_count: 1,
+                wait_count: 0,
+                signal_count: 1,
+                binary_wait_count: 1,
+                binary_signal_count: 1,
+                ..Default::default()
+            }],
+        )?);
         let mut presentation = Scratch::new(gpu::present_scratch_requirements(1, 1)?);
         let mut frames = Vec::new();
         for _ in 0..3 {
@@ -657,7 +668,15 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
             },
             stages: STAGE_ALL,
         };
-        gpu::queue_submit(queue, &[list], &[], &[signal(1)], submission.span())?;
+        submission::one(
+            queue,
+            &[list],
+            &[],
+            &[signal(1)],
+            &[],
+            &[],
+            submission.span(),
+        )?;
         gpu::timeline_wait(done, 1, 10_000_000_000)?;
         gpu::arena_reset(frames[0].arena)?;
         upload.destroy();
@@ -803,7 +822,7 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
                 &mut rendering,
             )?;
             value += 1;
-            gpu::queue_submit_with_binary(
+            submission::one(
                 queue,
                 &[list],
                 &[],

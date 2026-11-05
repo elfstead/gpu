@@ -17,7 +17,7 @@ export PKG_CONFIG_PATH=/absolute/path/to/new-preview/lib/pkgconfig
 ```
 
 The manifest records both the source commit and foundation revision. Match the
-header, library and generated artifacts from that **exact commit**: revision 5
+header, library and generated artifacts from that **exact commit**: revision 6
 alone does not promise compatibility across commits. New prefixes are mandatory;
 the installer never overwrites or merges an existing installation. ABI-20 headers,
 examples and `ogpu.pc` require explicit `--legacy` installation. Foundation consumers use
@@ -35,9 +35,16 @@ records and adds the device-only `QUERY_DEPENDENCY_LIMITS` query. Empty dependen
 are no-ops; execution-only edges need an explicit global entry with zero accesses.
 Query barrier scratch with the device and three entry counts; query split scratch
 with the device and complete wait descriptions (only counts/flags are inspected).
+Revision 6 consolidates submission into `ogpu_next_queue_submit(queue, count,
+descriptions, outcomes, scratch)`. Count one is an ordinary submission. Descriptions
+carry timeline and binary arrays directly, with flags zero and no record header or
+embedded scratch. Query one span with the device and complete description array;
+only counts/flags are read. Supply one outcome per batch and inspect acceptance:
+REJECTED has no effects from that batch, ACCEPTED is not completion, and UNKNOWN
+forbids retry and requires conservative recovery. Earlier pending uses still need
+retirement even when a later call rejects. Old batch/binary entry points are removed.
 Rebuild generated headers and consumers together; older schema callers are rejected.
-Submission/presentation C2 changes are still scheduled; this is not a
-stable ABI release.
+The presentation C2 cutover is next; this is not a stable ABI release.
 
 Copy any of these entire directories to an application directory outside the repo:
 

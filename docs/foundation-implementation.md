@@ -173,7 +173,7 @@ reset. Independent arenas can record on different host threads.
 One-shot, serial replay and simultaneous replay map to native command-buffer modes.
 The caller owns pending-use tracking, synchronization and resource lifetimes; an
 arena retains no memory, timeline or resource list. One-shot work becomes consumed
-only on successful submission. Serial completion and simultaneous-use hazards are
+on accepted or uncertain submission. Serial completion and simultaneous-use hazards are
 caller preconditions, not an internal completion registry. See the native
 [submission](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html)
 and [pool reset](https://docs.vulkan.org/refpages/latest/refpages/source/vkResetCommandPool.html)
@@ -219,14 +219,22 @@ their separate scope; no performance equivalence claim follows from these checks
 Multiple lists and timeline edges are
 batched in one native submit record, or an ordered array of distinct wait/work/signal
 records can be submitted in one native call. None is flattened or silently split.
-The batch API adds caller scratch for native headers, in addition to each record's
-existing list/semaphore scratch; all regions must be mutually disjoint. Scratch
-can be reused immediately after the call. A zero-count batch call is a no-op on a
-live device. All records are translated/validated before touching the queue;
-local failure submits nothing and consumes no one-shots. Native OOM also leaves
-the entire call retryable, following [Vulkan submission failure rules](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html).
-Only successful native submission consumes one-shot lists. Caller-owned timeline
-ordering and simultaneous-list requirements apply across the whole batch array.
+Foundation schema 6 exposes one counted submission operation in C and direct Rust.
+Each description contains timeline and binary arrays directly; one caller scratch
+span covers all native headers and nested arrays. Its device-specific requirements
+query reads counts/flags only. No linked binary extension, per-description scratch,
+single/batch wrappers or separate binary submission path remain. Scratch can be
+reused immediately after the call. A zero-count call is a no-op on a live device.
+All records are translated/validated before touching the queue; local failure
+submits nothing and writes REJECTED with the error to every outcome. Native Vulkan
+OOM also leaves the entire call retryable, following
+[Vulkan submission failure rules](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html).
+Native success writes ACCEPTED; loss/unclassified native failure writes UNKNOWN
+for every batch and poisons the device. Accepted and uncertain one-shots are
+consumed; UNKNOWN protects all potentially used objects from retry/early teardown.
+Outcomes report acceptance, not completion. Caller-owned timeline ordering and
+simultaneous-list requirements apply across the entire array. Caller storage holds
+the outcomes only during the call; no allocated submission receipt is retained.
 
 The C fixture checks producer/empty/consumer records, an inter-record timeline
 edge and a host gate, GPU copy/readback, immediate scratch overwrite while pending,
@@ -253,8 +261,9 @@ that policy is not present in the runtime. Bounded caller stack scratch is used
 for small fixed global-only batches; runtime capacity/alignment validation still
 applies. General consumers can query and allocate the exact native requirement.
 See the [cutover receipt](minimal-core-migration.md#c2-dependency-public-cutover)
-for public boundary, native lowering, consumer and scratch checks. Submission
-still uses its existing forms pending the next C2 cutover.
+for public boundary, native lowering, consumer and scratch checks. The
+[submission cutover](minimal-core-migration.md#c2-submission-public-cutover) records
+explicit outcomes and the removal of the former submission paths.
 
 ### Caller-owned split dependencies
 

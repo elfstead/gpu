@@ -22,7 +22,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 5;
+pub const VERSION: u32 = 6;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -193,7 +193,6 @@ pub struct MeshRequirements {
     pub output_layers: u32,
 }
 pub const WAYLAND_SURFACE_DESC: u32 = 125;
-pub const BINARY_SUBMIT_DESC: u32 = 126;
 pub const SWAPCHAIN_DESC: u32 = 127;
 pub const PRESENT_DESC: u32 = 128;
 pub const STATE_PRESENT: u32 = 8;
@@ -360,14 +359,6 @@ pub struct BinaryPoint {
     pub binary: *mut super::Binary,
     pub stages: u64,
 }
-#[repr(C)]
-pub struct BinarySubmitDesc {
-    pub header: Record,
-    pub wait_count: u32,
-    pub signal_count: u32,
-    pub waits: *const BinaryPoint,
-    pub signals: *const BinaryPoint,
-}
 // Names shared with ogpu_next.h for native Rust resource/transfer callers.
 pub const MEMORY_HOST_VISIBLE: u32 = 2;
 pub const MEMORY_COHERENT: u32 = 4;
@@ -413,7 +404,6 @@ pub const DEVICE_DESC: u32 = 100;
 pub const MEMORY_DESC: u32 = 101;
 pub const ARENA_DESC: u32 = 102;
 pub const RECORDING_DESC: u32 = 103;
-pub const SUBMIT_DESC: u32 = 104;
 pub const IMAGE_DESC: u32 = 106;
 pub const VIEW_DESC: u32 = 107;
 pub const SAMPLER_DESC: u32 = 108;
@@ -1233,26 +1223,30 @@ pub struct SyncPoint {
     pub point: Point,
     pub stages: u64,
 }
+pub const SUBMIT_REJECTED: u32 = 0;
+pub const SUBMIT_ACCEPTED: u32 = 1;
+pub const SUBMIT_UNKNOWN: u32 = 2;
+
 #[repr(C)]
+#[derive(Clone, Copy, Default)]
 pub struct SubmitDesc {
-    pub header: Record,
     pub list_count: u32,
     pub wait_count: u32,
     pub signal_count: u32,
+    pub binary_wait_count: u32,
+    pub binary_signal_count: u32,
+    pub flags: u32,
     pub lists: *const *mut super::List,
     pub waits: *const SyncPoint,
     pub signals: *const SyncPoint,
-    pub scratch: *mut c_void,
-    pub scratch_size: u64,
+    pub binary_waits: *const BinaryPoint,
+    pub binary_signals: *const BinaryPoint,
 }
-impl SubmitDesc {
-    pub(super) fn validate_header(mut header: Record) -> Result<(), Status> {
-        // Only this root permits a chain; the backend validates the complete
-        // supported extension before any native submission. All other records
-        // retain their strict next=NULL contract.
-        header.next = std::ptr::null();
-        header.validate::<Self>(SUBMIT_DESC)
-    }
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SubmitOutcome {
+    pub status: Status,
+    pub acceptance: u32,
 }
 
 #[repr(C)]

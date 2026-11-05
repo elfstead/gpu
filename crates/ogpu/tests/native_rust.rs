@@ -97,7 +97,6 @@ fn native_surface_covers_current_c_operations() {
         query_pool_create,
         query_pool_destroy,
         queue_submit,
-        queue_submit_batch,
         render_begin,
         render_end,
         render_scratch_requirements,
@@ -124,7 +123,6 @@ fn native_surface_covers_current_c_operations() {
         split_release,
         split_reset,
         split_scratch_requirements,
-        submit_batch_scratch_requirements,
         submit_scratch_requirements,
         timeline_create,
         timeline_destroy,
@@ -172,7 +170,6 @@ fn native_surface_covers_current_c_operations() {
     let _ = gpu::fence_poll;
     let _ = gpu::fence_wait;
     let _ = gpu::fence_reset;
-    let _ = gpu::queue_submit_with_binary;
     let _ = gpu::swapchain_create;
     let _ = gpu::swapchain_destroy;
     let _ = gpu::swapchain_images;

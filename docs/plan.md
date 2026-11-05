@@ -14,7 +14,7 @@ frames, native availability, explicit outcome effects and replacement/resize lif
 scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
 covers every installed operation, cross-family records and the ordered C2 cutover.
 The [C2 argument cutover](minimal-core-migration.md#c2-argument-public-cutover) is complete
-on Vulkan: foundation schema 5 exposes prepared layouts and one argument updater
+on Vulkan: foundation schema 6 exposes prepared layouts and one argument updater
 through C and direct Rust, with migrated compiler artifacts and consumers. The old
 argument adapters are deleted. The [public descriptor cutover](minimal-core-migration.md#c2-descriptor-public-cutover)
 is also complete: C/Rust heap locations, native shape/requirements queries and
@@ -24,10 +24,11 @@ is complete: explicit borrowed argument layouts, native address tokens, cold
 mapping checks and equivalent-layout execution pass locally. The [public dependency cutover](minimal-core-migration.md#c2-dependency-public-cutover)
 is complete: C/direct Rust use per-entry scopes, explicit shared scratch and enabled-domain
 limits. Old shared-stage/nested-scratch paths are removed and consumers migrated.
-The [unified submission engine](minimal-core-migration.md#c2-unified-submission-engine)
-now passes native mixed-batch execution and acceptance/failure checks; existing
-submission adapters share its translator. Its public C/Rust/consumer cutover is
-next, followed by presentation and the full C2 audit/local C3.
+The [public submission cutover](minimal-core-migration.md#c2-submission-public-cutover)
+is complete: one counted C/direct Rust operation, explicit per-batch acceptance,
+direct binary arrays and one caller scratch span. Superseded submission paths are
+deleted and consumers migrated. Presentation is next, followed by the full C2
+audit/local C3.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch

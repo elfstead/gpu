@@ -18,7 +18,7 @@ require,digest,rows=scene.require,scene.digest,scene.rows
 def profile(stdout,stderr,device,capacity):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require(rows(stdout,'DEVICE ')==[device],'range device mismatch')
-    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=5,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=6,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
     require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
     require(rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'missing draw identity')
     features=rows(stdout,'FRONTIER_FEATURES ')
@@ -87,7 +87,7 @@ def main():
     try:
         pkg=os.getenv('PKG_CONFIG','pkg-config')
         def variable(name):return subprocess.check_output([pkg,'--variable='+name,'ogpu-foundation'],text=True).strip()
-        report['foundation']=int(variable('ogpu_foundation'));require(report['foundation']==5,'unsupported foundation revision')
+        report['foundation']=int(variable('ogpu_foundation'));require(report['foundation']==6,'unsupported foundation revision')
         report['sdk']=dict(revision=variable('ogpu_revision'),runtime_sha256=digest(Path(variable('libdir'))/'libogpu.so'))
         report['sources']={p.name:digest(p) for p in sorted(HERE.iterdir()) if p.is_file() and p.suffix in ('.c','.h','.py','.slang')}
         report['executables']={name:digest(HERE/name) for name in ('baseline','consumer','reuse','scopes')}
@@ -96,7 +96,7 @@ def main():
             baseline=out/f'baseline-{width}x{height}'
             command=[str(HERE/'baseline'),str(width),str(height),'-',str(baseline),'32']
             stdout,stderr=execute(command,baseline)
-            device,frames=scene.check_logs(stdout,stderr,32,5,foundation=True)
+            device,frames=scene.check_logs(stdout,stderr,32,6,foundation=True)
             if report['baseline']:require(device==report['baseline'][0]['device'],'device changed')
             checks=scene.check_files(baseline,width,height,32,frames)
             report['baseline'].append(dict(directory=baseline.name,extent=[width,height],device=device,command=command,checks=checks,files=files(baseline)))

@@ -23,7 +23,7 @@ static int compressed_formats(ogpu_next_device *device, uint32_t domain, const c
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,0,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_host_requirements br = {0}, sr = {0}, wr[2] = {{0}};
-    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,2,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,2,&br)); TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     barrier_scratch = malloc(br.size); submit_scratch = malloc(sr.size); REQUIRE(barrier_scratch && submit_scratch);
     ogpu_next_sampler_desc sampler = {HEADER(ogpu_next_sampler_desc,OGPU_NEXT_SAMPLER_DESC),0,0,0,{2,2,2},0,0,0,0,0,2,0,1};
     ogpu_next_descriptor_shape sampler_shape; TRY(ogpu_next_sampler_descriptor_shape(device,&sampler,&sampler_shape));
@@ -177,8 +177,10 @@ static int compressed_formats(ogpu_next_device *device, uint32_t domain, const c
             dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; dep.image_count = 0; dep.images = NULL; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
             TRY(ogpu_next_commands_end(encoder,&list));
             ogpu_next_sync_point signal = {{done,++value},OGPU_NEXT_STAGE_ALL};
-            ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,submit_scratch,sr.size};
-            pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+            ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+            pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
             TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0; TRY(ogpu_next_memory_invalidate(all));
             for (uint32_t layer = 0; layer < 2; ++layer) for (uint32_t y = 0; y < ny; ++y)
                 memcpy(expected+dst+layer*slice+y*row,expected+src+layer*slice+y*row,nx*bytes);

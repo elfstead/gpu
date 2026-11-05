@@ -25,7 +25,7 @@ static int split_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     TRY(ogpu_next_arena_create(device, &ad, &producer)); TRY(ogpu_next_arena_create(device, &ad, &consumer));
     TRY(ogpu_next_barrier_scratch_requirements(device,1,1,0,&br[0]));
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br[1]));
-    TRY(ogpu_next_submit_scratch_requirements(2,1,1,&sr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=2,.wait_count=1,.signal_count=1},&sr));
     REQUIRE(br[0].alignment <= _Alignof(max_align_t) && br[1].alignment <= _Alignof(max_align_t));
     ranges[0] = malloc((size_t)br[0].size); ranges[1] = malloc((size_t)br[1].size);
     submit_scratch = malloc((size_t)sr.size);
@@ -80,15 +80,16 @@ static int split_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     TRY(ogpu_next_commands_end(encoder,&lists[0]));
     TRY(ogpu_next_timeline_create(device,0,&done)); TRY(ogpu_next_timeline_create(device,0,&gate));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL}, gate_wait = {{gate,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),
-        2,1,1,lists,&gate_wait,&signal,submit_scratch,sr.size};
+    ogpu_next_submit_desc submit = {2,1,1,0,0,0,lists,&gate_wait,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     uint32_t repetitions = replay_mode == OGPU_NEXT_ONE_SHOT ? 1 : 3;
     for (uint32_t replay = 0; replay < repetitions; ++replay) {
         memset(map.data,0xa5,(size_t)md.size);
         for (uint32_t i = 0; i < 32; ++i) ((uint32_t *)map.data)[i] = i*17+replay*79;
         TRY(ogpu_next_memory_flush((ogpu_next_span){host,0,md.size}));
         gate_wait.point.value = signal.point.value = replay+1;
-        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         REQUIRE(ogpu_next_timeline_wait(signal.point,0) == OGPU_NEXT_TIMEOUT);
         TRY(ogpu_next_timeline_signal_host(gate_wait.point));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;

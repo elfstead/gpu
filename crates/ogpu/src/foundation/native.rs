@@ -30,8 +30,8 @@ pub use memory::Memory;
 mod commands;
 pub(super) use commands::slice as command_slice;
 pub(super) use commands::{
-    barrier_scratch, execute_scratch, inheritance_scratch, split_scratch, submit_batch_scratch,
-    submit_scratch, vertex_scratch,
+    barrier_scratch, execute_scratch, inheritance_scratch, split_scratch, submit_scratch,
+    vertex_scratch,
 };
 pub use commands::{Arena, List, Split};
 #[path = "images.rs"]

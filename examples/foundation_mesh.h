@@ -65,7 +65,7 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
         OGPU_NEXT_VIEW_2D,OGPU_NEXT_IMAGE_COLOR_ATTACHMENT,{0},range}; TRY(ogpu_next_view_create(image,&vd,&view));
     ogpu_next_host_requirements br = {0}, rr = {0}, sr = {0};
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr));
-    TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && rr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); rs = malloc((size_t)rr.size); ss = malloc((size_t)sr.size); REQUIRE(bs && rs && ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
@@ -107,8 +107,10 @@ static int mesh_execution(ogpu_next_device *device, ogpu_next_memory_desc md, ui
     dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
-    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {ss,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
     TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0; TRY(ogpu_next_memory_invalidate(all));
     for (uint32_t i = 0; i < variants*7; ++i) {
         uint32_t mode = i%7;

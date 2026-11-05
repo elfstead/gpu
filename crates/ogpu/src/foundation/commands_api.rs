@@ -261,22 +261,23 @@ pub unsafe extern "C" fn ogpu_next_commands_cancel(encoder: *mut List) {
     }
 }
 /// # Safety
-/// Writable requirements output.
+/// Live device, readable description array and disjoint writable requirements
+/// output. Nested arrays and handles are not read by the counts/flags-only query.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_submit_scratch_requirements(
-    lists: u32,
-    waits: u32,
-    signals: u32,
+    device: *const Device,
+    count: u32,
+    descriptions: *const SubmitDesc,
     out: *mut HostRequirements,
 ) -> Status {
     boundary(|| {
-        if out.is_null() {
-            return Err(INVALID);
-        }
-        let requirements = rust::submit_scratch_requirements(lists, waits, signals)?;
-        unsafe {
-            out.write(requirements);
-        }
+        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
+        *out = unsafe {
+            rust::submit_scratch_requirements(
+                rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
+                native::command_slice(descriptions, count)?,
+            )?
+        };
         Ok(())
     })
 }
@@ -309,52 +310,43 @@ pub unsafe extern "C" fn ogpu_next_barrier_scratch_requirements(
     })
 }
 /// # Safety
-/// See include/ogpu_next.h: queue exclusion, scratch, resource and pending lifetimes.
+/// Live exclusively accessed queue; readable descriptions/nested arrays and
+/// count writable outcomes, mutually disjoint from scratch and objects. See
+/// include/ogpu_next.h for resource, synchronization and pending lifetimes.
 #[no_mangle]
 pub unsafe extern "C" fn ogpu_next_queue_submit(
     queue: *mut Queue,
-    desc: *const SubmitDesc,
-) -> Status {
-    boundary(|| {
-        let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
-        if desc.is_null() {
-            return Err(INVALID);
-        }
-        SubmitDesc::validate_header(unsafe { desc.cast::<Record>().read() })?;
-        unsafe { rust::queue_submit_record(queue, &*desc) }
-    })
-}
-/// # Safety
-/// Writable requirements output.
-#[no_mangle]
-pub unsafe extern "C" fn ogpu_next_submit_batch_scratch_requirements(
     count: u32,
-    out: *mut HostRequirements,
-) -> Status {
-    boundary(|| {
-        if out.is_null() {
-            return Err(INVALID);
-        }
-        let requirements = rust::submit_batch_scratch_requirements(count)?;
-        unsafe {
-            out.write(requirements);
-        }
-        Ok(())
-    })
-}
-/// # Safety
-/// Live queue, readable descriptor array and mutually disjoint scratch. Caller
-/// excludes queue access and satisfies all pending/list/timeline lifetime rules.
-#[no_mangle]
-pub unsafe extern "C" fn ogpu_next_queue_submit_batch(
-    queue: *mut Queue,
-    count: u32,
-    descs: *const SubmitDesc,
+    descriptions: *const SubmitDesc,
+    outcomes: *mut SubmitOutcome,
     scratch: HostSpan,
 ) -> Status {
     boundary(|| {
-        let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
-        unsafe { rust::queue_submit_batch_raw(queue, count, descs, scratch) }
+        std::alloc::Layout::array::<SubmitOutcome>(count as usize).map_err(|_| INVALID)?;
+        let outcomes = if count == 0 {
+            &mut []
+        } else {
+            if outcomes.is_null() {
+                return Err(INVALID);
+            }
+            // Trusted aligned, writable output array, disjoint from all inputs.
+            unsafe { std::slice::from_raw_parts_mut(outcomes, count as usize) }
+        };
+        let decoded = (|| unsafe {
+            Ok((
+                rust::QueueHandle::from_raw(queue).ok_or(INVALID)?,
+                native::command_slice(descriptions, count)?,
+            ))
+        })();
+        match decoded {
+            Ok((queue, descriptions)) => unsafe {
+                rust::queue_submit(queue, descriptions, outcomes, scratch)
+            },
+            Err(error) => {
+                outcomes.fill(SubmitOutcome::rejected(error));
+                Err(error)
+            }
+        }
     })
 }
 /// # Safety

@@ -114,7 +114,7 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     }
     ogpu_next_host_requirements br = {0}, rr = {0}, sr = {0};
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0,image_count,&br)); TRY(ogpu_next_render_scratch_requirements(2,&rr));
-    TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && rr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); rs = malloc((size_t)rr.size); ss = malloc((size_t)sr.size); REQUIRE(bs && rs && ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
@@ -164,14 +164,16 @@ static int mrt_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uin
     dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {ss,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(map.data,0xa5,(size_t)md.size); uint32_t r = 32+replay*16, g = 64+replay*16, b = 96+replay*16;
         float root_data[16] = {r/255.f,g/255.f,b/255.f,(128+replay*16)/255.f,0.5f,1,0,0,
             (160-r)/255.f,32/255.f,(176+replay*16)/255.f,64/255.f,0.5f,1,0,0}; memcpy(map.data,root_data,sizeof(root_data));
         if (mode == 5 || mode == 6) { root_data[3] = 0; memcpy(map.data,root_data,sizeof(root_data)); }
         TRY(ogpu_next_memory_flush(all)); signal.point.value = replay+1; pending = 1;
-        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0; TRY(ogpu_next_memory_invalidate(all));
         uint32_t expected[2] = {(r*2) | ((g*2)<<8) | ((b*2)<<16) | UINT32_C(0xff000000),b | (34u<<8) | (r<<16) | (68u<<24)};
         if (mode == 2 || mode == 3 || mode == 5) { expected[0] = 0; expected[1] = 16 | (34u<<8) | (48u<<16) | (68u<<24); }

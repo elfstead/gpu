@@ -349,12 +349,13 @@ pub unsafe fn barrier(list: ListHandle, dependency: &Dependency, scratch: HostSp
         encode(list, |e| e.barrier(dependency, scratch));
     }
 }
-pub fn submit_scratch_requirements(
-    lists: u32,
-    waits: u32,
-    signals: u32,
+/// # Safety
+/// Live device. Only description counts/flags are read, not nested arrays/handles.
+pub unsafe fn submit_scratch_requirements(
+    device: DeviceHandle,
+    descriptions: &[SubmitDesc],
 ) -> Result<HostRequirements> {
-    native::submit_scratch(lists, waits, signals)
+    native::submit_scratch(unsafe { device.get() }, descriptions)
 }
 /// # Safety
 /// Live device.
@@ -368,31 +369,21 @@ pub unsafe fn barrier_scratch_requirements(
 }
 /// # Safety
 /// Live queue with exclusive host access; valid disjoint descriptor arrays/scratch.
+/// Outcomes has one entry per description, disjoint from all raw input arrays and
+/// objects. All description, outcome and scratch storage is borrowed for the call.
 /// Caller retains resources/lists/timelines until completion and obeys replay,
 /// semaphore, dependency and uncertain-submission lifetime rules from ogpu_next.h.
 pub unsafe fn queue_submit(
     queue: QueueHandle,
-    lists: &[ListHandle],
-    waits: &[SyncPoint],
-    signals: &[SyncPoint],
+    descriptions: &[SubmitDesc],
+    outcomes: &mut [SubmitOutcome],
     scratch: HostSpan,
 ) -> Result<()> {
-    let desc = SubmitDesc {
-        header: Record::new::<SubmitDesc>(SUBMIT_DESC),
-        list_count: u32::try_from(lists.len()).map_err(|_| CAPACITY)?,
-        wait_count: u32::try_from(waits.len()).map_err(|_| CAPACITY)?,
-        signal_count: u32::try_from(signals.len()).map_err(|_| CAPACITY)?,
-        // ListHandle is transparent over NonNull<List>, with pointer layout.
-        lists: lists.as_ptr().cast(),
-        waits: waits.as_ptr(),
-        signals: signals.as_ptr(),
-        scratch: scratch.data,
-        scratch_size: scratch.size,
-    };
-    unsafe { queue_submit_record(queue, &desc) }
-}
-pub(super) unsafe fn queue_submit_record(queue: QueueHandle, desc: &SubmitDesc) -> Result<()> {
-    unsafe { queue.get().submit(desc) }
+    unsafe {
+        queue
+            .get()
+            .submit_descriptions(descriptions, outcomes, scratch)
+    }
 }
 
 #[cfg(test)]
@@ -412,21 +403,6 @@ mod tests {
         transferable::<DeviceHandle>();
         transferable::<ListHandle>();
     }
-    #[test]
-    fn scratch_queries_match_c_boundary() {
-        let expected = submit_scratch_requirements(1, 0, 1).unwrap();
-        let mut actual = HostRequirements {
-            size: 0,
-            alignment: 0,
-        };
-        assert_eq!(
-            unsafe { super::super::ogpu_next_submit_scratch_requirements(1, 0, 1, &mut actual) },
-            OK
-        );
-        assert_eq!(actual.size, expected.size);
-        assert_eq!(actual.alignment, expected.alignment);
-    }
-
     #[test]
     #[ignore = "requires modern Vulkan; Rust unwind and C containment poison recordings"]
     fn gpu_native_recording_unwind() {

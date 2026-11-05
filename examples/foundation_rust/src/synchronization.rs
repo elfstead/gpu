@@ -1,4 +1,5 @@
 //! Headless mixed timeline/binary handoffs; all storage and reuse are caller-owned.
+use super::submission;
 use super::{dependency, global_barrier, gpu};
 use ogpu::foundation::types::*;
 use std::ptr;
@@ -44,8 +45,33 @@ pub unsafe fn run(
             level: 0,
             inheritance: ptr::null(),
         };
-        let req = gpu::submit_scratch_requirements(1, 2, 2)?;
-        let batch_req = gpu::submit_batch_scratch_requirements(2)?;
+        let req = gpu::submit_scratch_requirements(
+            device,
+            &[SubmitDesc {
+                list_count: 1,
+                wait_count: 1,
+                signal_count: 1,
+                binary_wait_count: 1,
+                binary_signal_count: 1,
+                ..Default::default()
+            }],
+        )?;
+        let batch_req = gpu::submit_scratch_requirements(
+            device,
+            &[
+                SubmitDesc {
+                    list_count: 1,
+                    binary_signal_count: 1,
+                    ..Default::default()
+                },
+                SubmitDesc {
+                    list_count: 1,
+                    signal_count: 1,
+                    binary_wait_count: 1,
+                    ..Default::default()
+                },
+            ],
+        )?;
         assert!(req.alignment <= 8 && batch_req.alignment <= 8);
         let mut first_storage = vec![0u64; req.size.div_ceil(8) as usize];
         let mut second_storage = first_storage.clone();
@@ -96,7 +122,7 @@ pub unsafe fn run(
             let finished = [point(phase as u64 * 2 + 2, STAGE_ALL)];
             if phase != 1 {
                 assert_eq!(
-                    gpu::queue_submit_with_binary(
+                    submission::one(
                         queue,
                         &[producer],
                         &before,
@@ -111,7 +137,7 @@ pub unsafe fn run(
                     Err(CAPACITY)
                 );
                 assert_eq!(
-                    gpu::queue_submit_with_binary(
+                    submission::one(
                         queue,
                         &[producer],
                         &before,
@@ -122,7 +148,7 @@ pub unsafe fn run(
                     ),
                     Err(INVALID)
                 );
-                gpu::queue_submit_with_binary(
+                submission::one(
                     queue,
                     &[producer],
                     &before,
@@ -131,7 +157,7 @@ pub unsafe fn run(
                     &binary_points,
                     first,
                 )?;
-                gpu::queue_submit_with_binary(
+                submission::one(
                     queue,
                     &[consumer],
                     &wait_produced,
@@ -143,64 +169,47 @@ pub unsafe fn run(
             } else {
                 // One native call, two preserved batches. No timeline producer
                 // signal/wait in this case: the binary carries the handoff.
-                let signal_binary = BinarySubmitDesc {
-                    header: Record::new::<BinarySubmitDesc>(BINARY_SUBMIT_DESC),
-                    wait_count: 0,
-                    signal_count: 1,
-                    waits: ptr::null(),
-                    signals: binary_points.as_ptr(),
-                };
-                let wait_binary = BinarySubmitDesc {
-                    header: Record::new::<BinarySubmitDesc>(BINARY_SUBMIT_DESC),
-                    wait_count: 1,
-                    signal_count: 0,
-                    waits: binary_points.as_ptr(),
-                    signals: ptr::null(),
-                };
                 let bad_point = BinaryPoint {
                     binary: ptr::null_mut(),
                     stages: STAGE_TRANSFER,
                 };
-                let bad_binary = BinarySubmitDesc {
-                    waits: &bad_point,
-                    ..wait_binary
-                };
                 let producer = producer.as_raw();
                 let consumer = consumer.as_raw();
-                let mut header1 = Record::new::<SubmitDesc>(SUBMIT_DESC);
-                header1.next = &signal_binary.header;
-                let mut header2 = Record::new::<SubmitDesc>(SUBMIT_DESC);
-                header2.next = &bad_binary.header;
                 let mut descriptions = [
                     SubmitDesc {
-                        header: header1,
                         list_count: 1,
-                        wait_count: 0,
-                        signal_count: 0,
                         lists: &producer,
-                        waits: ptr::null(),
-                        signals: ptr::null(),
-                        scratch: first.data,
-                        scratch_size: first.size,
+                        binary_signal_count: 1,
+                        binary_signals: binary_points.as_ptr(),
+                        ..Default::default()
                     },
                     SubmitDesc {
-                        header: header2,
                         list_count: 1,
-                        wait_count: 0,
-                        signal_count: 1,
                         lists: &consumer,
-                        waits: ptr::null(),
+                        signal_count: 1,
                         signals: finished.as_ptr(),
-                        scratch: second.data,
-                        scratch_size: second.size,
+                        binary_wait_count: 1,
+                        binary_waits: &bad_point,
+                        ..Default::default()
                     },
                 ];
+                let mut outcomes = [SubmitOutcome {
+                    status: INVALID,
+                    acceptance: SUBMIT_REJECTED,
+                }; 2];
                 assert_eq!(
-                    gpu::queue_submit_batch(queue, &descriptions, batch),
+                    gpu::queue_submit(queue, &descriptions, &mut outcomes, batch),
                     Err(INVALID)
                 );
-                descriptions[1].header.next = &wait_binary.header;
-                gpu::queue_submit_batch(queue, &descriptions, batch)?;
+                assert!(outcomes
+                    .iter()
+                    .all(|o| o.status == INVALID && o.acceptance == SUBMIT_REJECTED));
+                descriptions[1].binary_waits = binary_points.as_ptr();
+                gpu::queue_submit(queue, &descriptions, &mut outcomes, batch)?;
+                assert!(outcomes
+                    .iter()
+                    .all(|o| o.status == OK && o.acceptance == SUBMIT_ACCEPTED));
+                batch_storage.fill(0xdeadbeef); // Borrow ends at the host call.
             }
             gpu::timeline_wait(timeline, phase as u64 * 2 + 2, 10_000_000_000)?;
             gpu::memory_invalidate(memory.span(0, 512))?;

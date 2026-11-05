@@ -46,12 +46,14 @@ static int slot_submit(Slot *slot,Reuse *r,unsigned frame) {
 #endif
     if(!r->replay) NEED(slot_record(slot,r));
     ogpu_next_sync_point signal={{s->done,++s->serial},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit={HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&slot->list,NULL,&signal,s->ss,s->submit_scratch.size};
-    ogpu_next_status status=ogpu_next_queue_submit(s->queue,&submit);
-    s->pending=status==OGPU_NEXT_OK || status==OGPU_NEXT_BACKEND_ERROR || status==OGPU_NEXT_DEVICE_LOST;
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&slot->list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {s->ss,s->submit_scratch.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+    ogpu_next_status status=ogpu_next_queue_submit(s->queue,1,&submit,&submit_outcome,submit_host);
+    s->pending=submit_outcome.acceptance!=OGPU_NEXT_SUBMIT_REJECTED;
     /* Unknown submission acceptance cannot be drained by waiting an unproven
      * signal. Fail-stop without releasing ANY slot or shared executable. */
-    if(status==OGPU_NEXT_BACKEND_ERROR || status==OGPU_NEXT_DEVICE_LOST) {
+    if(submit_outcome.acceptance==OGPU_NEXT_SUBMIT_UNKNOWN) {
         fputs("Unknown foundation scene submission; refusing unsafe teardown\n",stderr); _Exit(EXIT_FAILURE);
     }
     GPU(status); slot->frame=frame; reuse_submitted(r); return 1;

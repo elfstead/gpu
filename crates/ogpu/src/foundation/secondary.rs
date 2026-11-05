@@ -419,23 +419,52 @@ mod tests {
                 },
                 stages: 1,
             };
-            let sr = submit_scratch(1, 0, 1).unwrap();
+            let sr = submit_scratch(
+                &device,
+                &[SubmitDesc {
+                    list_count: 1,
+                    wait_count: 0,
+                    signal_count: 1,
+                    ..Default::default()
+                }],
+            )
+            .unwrap();
             let mut submit_data = vec![0u64; sr.size.div_ceil(8) as usize];
             let mut submit = SubmitDesc {
-                header: Record::new::<SubmitDesc>(SUBMIT_DESC),
                 list_count: 1,
                 wait_count: 0,
                 signal_count: 1,
                 lists: &a,
                 waits: ptr::null(),
                 signals: &point,
-                scratch: submit_data.as_mut_ptr().cast(),
-                scratch_size: sr.size,
+                ..Default::default()
             };
             let queue = device.queue(domain, 0).unwrap();
-            assert_eq!(unsafe { queue.submit(&submit) }, Err(INVALID)); // No direct secondary submission.
+            assert_eq!(
+                unsafe {
+                    queue.submit_descriptions(
+                        &[submit],
+                        &mut [SubmitOutcome::rejected(INVALID)],
+                        HostSpan {
+                            data: submit_data.as_mut_ptr().cast(),
+                            size: sr.size,
+                        },
+                    )
+                },
+                Err(INVALID)
+            ); // No direct secondary submission.
             submit.lists = &p;
-            unsafe { queue.submit(&submit) }.unwrap();
+            unsafe {
+                queue.submit_descriptions(
+                    &[submit],
+                    &mut [SubmitOutcome::rejected(INVALID)],
+                    HostSpan {
+                        data: submit_data.as_mut_ptr().cast(),
+                        size: sr.size,
+                    },
+                )
+            }
+            .unwrap();
             timeline.wait(1, 10_000_000_000).unwrap();
             parent.reset(false).unwrap(); // Discard all parents before mutating children.
             let query_pool = if features & PIPELINE_STATISTICS != 0 {

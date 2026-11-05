@@ -318,10 +318,10 @@ fn c_layouts_and_boundary_rules() {
     assert_eq!(size_of::<RecordingDesc>(), 40);
     assert_eq!(size_of::<HostRequirements>(), 16);
     assert_eq!(size_of::<SyncPoint>(), 24);
-    assert_eq!(size_of::<SubmitDesc>(), 80);
+    assert_eq!(size_of::<SubmitDesc>(), 64);
     assert_eq!(size_of::<MemoryBarrier>(), 64);
     assert_eq!(size_of::<Dependency>(), 40);
-    assert_eq!(std::mem::offset_of!(SubmitDesc, scratch), 64);
+    assert_eq!(std::mem::offset_of!(SubmitDesc, binary_waits), 48);
     assert_eq!(std::mem::offset_of!(Dependency, global), 16);
     assert_eq!(size_of::<ImageDesc>(), 96);
     assert_eq!(size_of::<ViewDesc>(), 72);

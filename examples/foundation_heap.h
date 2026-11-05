@@ -157,7 +157,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         execute_scratch = malloc((size_t)er.size); REQUIRE(execute_scratch != NULL);
     }
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0, 2, &br));
-    TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &sr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=1,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size);
     REQUIRE(barrier_scratch && submit_scratch);
@@ -244,8 +244,9 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
     TRY(ogpu_next_commands_end(encoder, &list));
     TRY(ogpu_next_timeline_create(device, 0, &done)); TRY(ogpu_next_timeline_create(device, 0, &gate));
     ogpu_next_sync_point wait = {{gate, 1}, OGPU_NEXT_STAGE_ALL}, signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
-        1, 1, 1, &list, &wait, &signal, submit_scratch, sr.size};
+    ogpu_next_submit_desc submit = {1,1,1,0,0,0,&list,&wait,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(data_map.data, 0xa5, (size_t)host_desc.size);
         for (uint32_t i = 0; i < width * height; ++i)
@@ -256,7 +257,7 @@ static int heap_execution(ogpu_next_device *device, ogpu_next_memory_desc host_d
         TRY(ogpu_next_write_resource_descriptors(device, 3, resources, destinations, temporary));
         TRY(ogpu_next_memory_flush((ogpu_next_span){staging, 0, payload}));
         wait.point.value = replay + 1; signal.point.value = replay + 1;
-        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0),1,&submit,&submit_outcome,submit_host));
         REQUIRE(ogpu_next_timeline_wait(signal.point, 0) == OGPU_NEXT_TIMEOUT);
         /* An unused sampler slot in a separate cache atom stays mutable while a
          * list that WILL consume slot zero is pending. This is not GPU-overlap timing. */

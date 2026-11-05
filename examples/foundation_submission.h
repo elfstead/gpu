@@ -4,21 +4,26 @@ static int submission_batches(ogpu_next_device *device, ogpu_next_memory_desc me
     ogpu_next_memory *memory = NULL;
     ogpu_next_arena *arena = NULL;
     ogpu_next_timeline *edge = NULL, *gate = NULL, *done = NULL;
-    void *scratch[3] = {NULL};
+    void *scratch = NULL;
     ogpu_next_queue *queue = ogpu_next_device_queue(device,domain,0);
-    ogpu_next_host_requirements req[3] = {{0}};
-    TRY(ogpu_next_submit_scratch_requirements(1,0,1,&req[0]));
-    TRY(ogpu_next_submit_scratch_requirements(1,2,1,&req[1]));
-    TRY(ogpu_next_submit_batch_scratch_requirements(3,&req[2]));
-    for (uint32_t i = 0; i < 3; ++i) {
-        REQUIRE(req[i].alignment <= _Alignof(max_align_t) && req[i].size <= SIZE_MAX-16);
-        scratch[i] = malloc((size_t)req[i].size+16); REQUIRE(scratch[i] != NULL);
-        memset(scratch[i],0xa5,(size_t)req[i].size+16);
-    }
-    ogpu_next_host_span batch_scratch = {scratch[2],req[2].size};
+    ogpu_next_submit_desc counts[3] = {{.list_count=1,.signal_count=1},{0},{.list_count=1,.wait_count=2,.signal_count=1}};
+    ogpu_next_host_requirements req = {0};
+    TRY(ogpu_next_submit_scratch_requirements(device,3,counts,&req));
+    REQUIRE(req.alignment <= _Alignof(max_align_t) && req.size <= SIZE_MAX-16);
+    scratch = malloc((size_t)req.size+16); REQUIRE(scratch != NULL);
+    memset(scratch,0xa5,(size_t)req.size+16);
+    ogpu_next_host_span batch_scratch = {scratch,req.size};
+    ogpu_next_submit_outcome outcomes[3] = {{0}};
     ogpu_next_host_requirements zero = {1,1};
-    TRY(ogpu_next_submit_batch_scratch_requirements(0,&zero)); REQUIRE(zero.size == 0 && zero.alignment == 1);
-    TRY(ogpu_next_queue_submit_batch(queue,0,NULL,(ogpu_next_host_span){NULL,0}));
+    TRY(ogpu_next_submit_scratch_requirements(device,0,NULL,&zero)); REQUIRE(zero.size == 0 && zero.alignment == 1);
+    TRY(ogpu_next_queue_submit(queue,0,NULL,NULL,(ogpu_next_host_span){NULL,0}));
+    zero.size = 777; zero.alignment = 32;
+    REQUIRE(ogpu_next_submit_scratch_requirements(device,1,NULL,&zero) == OGPU_NEXT_INVALID);
+    REQUIRE(zero.size == 777 && zero.alignment == 32);
+    REQUIRE(ogpu_next_queue_submit(NULL,3,counts,outcomes,batch_scratch) == OGPU_NEXT_INVALID);
+    for (unsigned i=0;i<3;++i) REQUIRE(outcomes[i].status==OGPU_NEXT_INVALID && outcomes[i].acceptance==OGPU_NEXT_SUBMIT_REJECTED);
+    REQUIRE(ogpu_next_queue_submit(queue,3,NULL,outcomes,batch_scratch) == OGPU_NEXT_INVALID);
+    for (unsigned i=0;i<3;++i) REQUIRE(outcomes[i].status==OGPU_NEXT_INVALID && outcomes[i].acceptance==OGPU_NEXT_SUBMIT_REJECTED);
     TRY(ogpu_next_memory_create(device,&memory_desc,&memory));
     ogpu_next_span all = {memory,0,memory_desc.size};
     ogpu_next_mapping map = {0}; TRY(ogpu_next_memory_map(all,&map));
@@ -48,26 +53,25 @@ static int submission_batches(ogpu_next_device *device, ogpu_next_memory_desc me
     ogpu_next_sync_point waits[2] = {{{edge,1},OGPU_NEXT_STAGE_COPY},{{gate,1},OGPU_NEXT_STAGE_ALL}};
     ogpu_next_sync_point consumer = {{done,1},OGPU_NEXT_STAGE_ALL};
     ogpu_next_submit_desc batches[3] = {
-        {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&lists[0],NULL,&producer,scratch[0],req[0].size},
-        {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),0,0,0,NULL,NULL,NULL,NULL,0},
-        {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,2,1,&lists[1],waits,&consumer,scratch[1],req[1].size}
+        {1,0,1,0,0,0,&lists[0],NULL,&producer,NULL,NULL},
+        {0},
+        {1,2,1,0,0,0,&lists[1],waits,&consumer,NULL,NULL}
     };
-    REQUIRE(ogpu_next_queue_submit_batch(queue,3,batches,(ogpu_next_host_span){scratch[2],req[2].size-1}) == OGPU_NEXT_CAPACITY);
-    REQUIRE(ogpu_next_queue_submit_batch(queue,3,batches,(ogpu_next_host_span){NULL,req[2].size}) == OGPU_NEXT_INVALID);
-    batches[2].scratch_size = 0;
-    REQUIRE(ogpu_next_queue_submit_batch(queue,3,batches,batch_scratch) == OGPU_NEXT_CAPACITY);
-    batches[2].scratch_size = req[1].size;
-    batches[2].header.version = OGPU_NEXT_VERSION+1;
-    REQUIRE(ogpu_next_queue_submit_batch(queue,3,batches,batch_scratch) == OGPU_NEXT_UNSUPPORTED);
-    batches[2].header.version = OGPU_NEXT_VERSION;
+    REQUIRE(ogpu_next_queue_submit(queue,3,batches,outcomes,(ogpu_next_host_span){scratch,req.size-1}) == OGPU_NEXT_CAPACITY);
+    for (unsigned i=0;i<3;++i) REQUIRE(outcomes[i].status==OGPU_NEXT_CAPACITY && outcomes[i].acceptance==OGPU_NEXT_SUBMIT_REJECTED);
+    REQUIRE(ogpu_next_queue_submit(queue,3,batches,outcomes,(ogpu_next_host_span){NULL,req.size}) == OGPU_NEXT_INVALID);
+    REQUIRE(ogpu_next_queue_submit(queue,3,batches,NULL,batch_scratch) == OGPU_NEXT_INVALID);
+    batches[2].flags = 1;
+    REQUIRE(ogpu_next_queue_submit(queue,3,batches,outcomes,batch_scratch) == OGPU_NEXT_UNSUPPORTED);
+    for (unsigned i=0;i<3;++i) REQUIRE(outcomes[i].status==OGPU_NEXT_UNSUPPORTED && outcomes[i].acceptance==OGPU_NEXT_SUBMIT_REJECTED);
+    batches[2].flags = 0;
     uint64_t value = UINT64_MAX;
     TRY(ogpu_next_timeline_poll(edge,&value)); REQUIRE(value == 0);
-    pending = 1; TRY(ogpu_next_queue_submit_batch(queue,3,batches,batch_scratch));
+    pending = 1; TRY(ogpu_next_queue_submit(queue,3,batches,outcomes,batch_scratch));
+    for (unsigned i=0;i<3;++i) REQUIRE(outcomes[i].status==OGPU_NEXT_OK && outcomes[i].acceptance==OGPU_NEXT_SUBMIT_ACCEPTED);
     /* All translation scratch can be overwritten immediately while work is pending. */
-    for (uint32_t i = 0; i < 3; ++i) {
-        for (uint64_t j = req[i].size; j < req[i].size+16; ++j) REQUIRE(((unsigned char *)scratch[i])[j] == 0xa5);
-        memset(scratch[i],0xcc,(size_t)req[i].size);
-    }
+    for (uint64_t j=req.size;j<req.size+16;++j) REQUIRE(((unsigned char *)scratch)[j] == 0xa5);
+    memset(scratch,0xcc,(size_t)req.size);
     TRY(ogpu_next_timeline_poll(done,&value)); REQUIRE(value == 0);
     TRY(ogpu_next_timeline_signal_host((ogpu_next_point){gate,1}));
     TRY(ogpu_next_timeline_wait(consumer.point,UINT64_C(10000000000))); pending = 0;
@@ -76,10 +80,10 @@ static int submission_batches(ogpu_next_device *device, ogpu_next_memory_desc me
         if (i < 256 || (i >= 512 && i < 768)) REQUIRE(((uint32_t *)map.data)[i/4] == UINT32_C(0x12345678));
         else REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
     }
-    REQUIRE(ogpu_next_queue_submit_batch(queue,3,batches,batch_scratch) == OGPU_NEXT_INVALID); /* One-shot consumed. */
+    REQUIRE(ogpu_next_queue_submit(queue,3,batches,outcomes,batch_scratch) == OGPU_NEXT_INVALID); /* One-shot consumed. */
     /* The independent serial list remains replayable; keep its explicit waits. */
     consumer.point.value = 2;
-    pending = 1; TRY(ogpu_next_queue_submit_batch(queue,1,&batches[2],batch_scratch));
+    pending = 1; TRY(ogpu_next_queue_submit(queue,1,&batches[2],outcomes,batch_scratch));
     TRY(ogpu_next_timeline_wait(consumer.point,UINT64_C(10000000000))); pending = 0;
     TRY(ogpu_next_memory_invalidate(all));
     for (uint32_t i = 128; i < 192; ++i) REQUIRE(((uint32_t *)map.data)[i] == UINT32_C(0x12345678));
@@ -89,6 +93,6 @@ cleanup:
     if (pending) { fprintf(stderr,"Pending batch submission after failure.\n"); _Exit(EXIT_FAILURE); }
     ogpu_next_arena_destroy(arena); ogpu_next_memory_destroy(memory);
     ogpu_next_timeline_destroy(edge); ogpu_next_timeline_destroy(gate); ogpu_next_timeline_destroy(done);
-    for (uint32_t i = 0; i < 3; ++i) free(scratch[i]);
+    free(scratch);
     return result;
 }

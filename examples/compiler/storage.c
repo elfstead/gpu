@@ -173,7 +173,7 @@ int main(void) {
     TRY(ogpu_next_memory_map((ogpu_next_span){heap,0,heap_size},&heap_map));
     ogpu_next_host_requirements ds = {0}, bs = {0}, ss = {0};
     TRY(ogpu_next_descriptor_scratch_requirements(device,OGPU_NEXT_DESCRIPTOR_WRITE_RESOURCE,2,&ds));
-    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,2,&bs)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&ss));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,2,&bs)); TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&ss));
     REQUIRE(ds.alignment <= _Alignof(max_align_t) && bs.alignment <= _Alignof(max_align_t) && ss.alignment <= _Alignof(max_align_t));
     descriptor_scratch = malloc((size_t)ds.size); barrier_scratch = malloc((size_t)bs.size); submit_scratch = malloc((size_t)ss.size);
     REQUIRE(descriptor_scratch && barrier_scratch && submit_scratch);
@@ -220,12 +220,14 @@ int main(void) {
     dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ;
     common_barrier(encoder,&dep,&dep_scope,dep_scratch); TRY(ogpu_next_commands_end(encoder,&list));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,submit_scratch,ss.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,ss.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(host_map.data,0xa5,(size_t)host_size);
         for (uint32_t i = 0; i < width*height; ++i) pixel((unsigned char *)host_map.data+64+i*TEXEL_BYTES,i,replay,0);
         TRY(ogpu_next_memory_flush((ogpu_next_span){host,0,host_size})); signal.point.value = replay+1;
-        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate((ogpu_next_span){host,0,host_size}));
         for (uint32_t i = 0; i < width*height; ++i) {

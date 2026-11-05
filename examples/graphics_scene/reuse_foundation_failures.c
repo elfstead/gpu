@@ -20,12 +20,18 @@ ogpu_next_status __wrap_ogpu_next_commands_end(ogpu_next_encoder *e,ogpu_next_li
     if(inject("end",++ends,4)) { ogpu_next_commands_cancel(e); *out=NULL; return OGPU_NEXT_INVALID; }
     return __real_ogpu_next_commands_end(e,out);
 }
-ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *,const ogpu_next_submit_desc *);
-ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q,const ogpu_next_submit_desc *d) {
+ogpu_next_status __real_ogpu_next_queue_submit(ogpu_next_queue *,uint32_t,const ogpu_next_submit_desc *,ogpu_next_submit_outcome *,ogpu_next_host_span);
+ogpu_next_status __wrap_ogpu_next_queue_submit(ogpu_next_queue *q,uint32_t count,const ogpu_next_submit_desc *d,ogpu_next_submit_outcome *out,ogpu_next_host_span scratch) {
     ++submits;
-    if(inject("submit",submits,4)) return OGPU_NEXT_INVALID;
-    if(inject("unknown",submits,4)) return OGPU_NEXT_BACKEND_ERROR;
-    return __real_ogpu_next_queue_submit(q,d);
+    if(inject("submit",submits,4)) {
+        for (uint32_t i=0;i<count;++i) out[i]=(ogpu_next_submit_outcome){OGPU_NEXT_INVALID,OGPU_NEXT_SUBMIT_REJECTED};
+        return OGPU_NEXT_INVALID;
+    }
+    if(inject("unknown",submits,4)) {
+        for (uint32_t i=0;i<count;++i) out[i]=(ogpu_next_submit_outcome){OGPU_NEXT_BACKEND_ERROR,OGPU_NEXT_SUBMIT_UNKNOWN};
+        return OGPU_NEXT_BACKEND_ERROR;
+    }
+    return __real_ogpu_next_queue_submit(q,count,d,out,scratch);
 }
 ogpu_next_status __real_ogpu_next_timeline_wait(ogpu_next_point,uint64_t);
 ogpu_next_status __wrap_ogpu_next_timeline_wait(ogpu_next_point p,uint64_t timeout) {

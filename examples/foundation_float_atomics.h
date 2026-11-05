@@ -95,10 +95,12 @@ static int float_atomic_execution(ogpu_next_device *device, ogpu_next_memory_des
     ogpu_next_dependency dep = {1,0,0,0,&dep_scope,NULL,NULL};
     common_barrier(encoder,&dep,&dep_scope,dep_scratch); TRY(ogpu_next_commands_end(encoder,&list));
     TRY(ogpu_next_timeline_create(device,0,&done));
-    ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    ogpu_next_host_requirements sr = {0}; TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(sr.alignment <= _Alignof(max_align_t)); scratch = malloc((size_t)sr.size); REQUIRE(scratch != NULL);
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,scratch,sr.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 2; ++replay) {
         memset(map.data,0xa5,(size_t)md.size);
         double bias = (replay ? -0.25 : 0.5) + (bits == 64 ? 0x1p-30 : 0);
@@ -112,7 +114,7 @@ static int float_atomic_execution(ogpu_next_device *device, ogpu_next_memory_des
         if (mode == 2) { float_atomic_write(values,0,bits,1024); float_atomic_write(values,1,bits,-1024); }
         if (mode == 4) for (uint32_t i = 0; i < 128; ++i) float_atomic_write(values,i,bits,-128+i*0.5);
         TRY(ogpu_next_memory_flush(all)); signal.point.value = replay+1; pending = 1;
-        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0; TRY(ogpu_next_memory_invalidate(all));
         if (mode == 0) REQUIRE(float_atomic_read(values,0,bits) == 1.5+(bits == 16 ? 80 : 2064)+128*bias);
         if (mode == 1) { REQUIRE(float_atomic_read(values,0,bits) == (bits == 16 ? 40 : 520)+64*bias); REQUIRE(float_atomic_read(values,1,bits) == (bits == 16 ? 40 : 1544)+64*bias); }

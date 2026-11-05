@@ -1,37 +1,11 @@
 //! Selected C2 submission engine. One scratch span, original batch boundaries,
-//! direct binary arrays and explicit acceptance. Records stay private until the
-//! coordinated C/direct Rust/consumer cutover; legacy adapters use this translator.
+//! direct binary arrays and explicit acceptance through C and direct Rust.
 //! Callers own live arrays/objects, queue exclusion, duplicate/pending legality,
 //! and disjoint scratch/outcomes. No allocation, retained receipt or implicit wait.
 use super::*;
 
-pub(super) const SUBMIT_REJECTED: u32 = 0;
-pub(super) const SUBMIT_ACCEPTED: u32 = 1;
-pub(super) const SUBMIT_UNKNOWN: u32 = 2;
-
-#[repr(C)]
-#[derive(Clone, Copy, Default)]
-pub(super) struct SubmitDesc {
-    pub list_count: u32,
-    pub wait_count: u32,
-    pub signal_count: u32,
-    pub binary_wait_count: u32,
-    pub binary_signal_count: u32,
-    pub flags: u32,
-    pub lists: *const *mut List,
-    pub waits: *const SyncPoint,
-    pub signals: *const SyncPoint,
-    pub binary_waits: *const BinaryPoint,
-    pub binary_signals: *const BinaryPoint,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct SubmitOutcome {
-    pub status: Status,
-    pub acceptance: u32,
-}
 impl SubmitOutcome {
-    fn rejected(status: Status) -> Self {
+    pub(in crate::foundation) fn rejected(status: Status) -> Self {
         Self {
             status,
             acceptance: SUBMIT_REJECTED,
@@ -68,10 +42,10 @@ fn layout(descs: &[SubmitDesc]) -> Result<Layout, Status> {
     }
     Ok(all.pad_to_align())
 }
-// The dead-code allowances go away at public cutover. Native tests exercise the
-// new entry points; the installed API still has its old scratch/outcome contract.
-#[allow(dead_code)]
-pub(super) fn requirements(d: &Device, descs: &[SubmitDesc]) -> Result<HostRequirements, Status> {
+pub(in crate::foundation) fn requirements(
+    d: &Device,
+    descs: &[SubmitDesc],
+) -> Result<HostRequirements, Status> {
     d.ready()?;
     let layout = layout(descs)?;
     Ok(HostRequirements {
@@ -221,8 +195,7 @@ pub(super) unsafe fn consume(lists: *const *mut List, count: u32) {
     }
 }
 impl Queue {
-    #[allow(dead_code)] // Becomes the sole installed path at public cutover.
-    pub(super) unsafe fn submit_descriptions(
+    pub(in crate::foundation) unsafe fn submit_descriptions(
         &self,
         descs: &[SubmitDesc],
         outcomes: &mut [SubmitOutcome],

@@ -95,17 +95,18 @@ additional frame scheduling. See
 | Capabilities | Query exact formats/color spaces, extent bounds, usage, image count, transform/alpha and supported present modes. Caller selects; no silent format/mode substitution. Start with SDR consumer output, not an HDR claim. |
 | Swapchain | Caller supplies configuration, sharing/queue policy and any old-chain replacement reference. Expose swapchain images as borrowed ordinary OGPU images; image destruction is a no-op and memory rebinding/dedicated allocation reject the borrow. Explicit swapchain destruction does not wait. |
 | Acquisition | Caller chooses a reusable acquisition synchronization object and timeout. Return image identity plus success/suboptimal/timeout/not-ready/out-of-date/surface-lost outcomes without fabricating a usable image on failure. Do not promise an unlimited wait when the native surface cannot guarantee forward progress. |
-| Render submission | Expose native acquire waits and render-finished signals through an explicit submission extension, alongside existing timeline waits/signals. Preserve stage scopes and multiple submissions/queues; do not hide an extra submission converting binary semaphores into timelines. |
+| Render submission | Expose native acquire waits and render-finished signals through direct binary arrays in each submission description, alongside timeline waits/signals. Preserve stage scopes and multiple submissions/queues; do not hide an extra submission converting binary semaphores into timelines. |
 | Presentation | Explicit queue + acquired image + ready dependency; independent present-retirement token. Present success means queued, not visibly displayed. A present-retirement fence permits defined resource reuse/destruction, not a scanout-complete or image-reacquisition guarantee. |
 | Retirement/reuse | Caller polls/waits retirement and decides slot reuse. Render completion, acquire synchronization reuse, present semaphore retirement and image reacquisition remain distinct. No mandatory N-frames scheduler, resource retention walk or per-frame allocation. |
 | Unused acquisition | Explicit release after all image use is retired. Releasing the image does not by itself consume/reset a signaled acquisition semaphore; define separate synchronization retirement/reset/replacement rules. |
 | Replacement/teardown | Explicit out-of-date, minimized/zero-extent and surface-loss handling. Retain old-chain resources until their own work/presentation obligations are retired. Native failure after naming an old swapchain can retire it even without a replacement; do not promise unconditional rollback. |
 
 The setup, binary-submission and swapchain records exist in the public header,
-with borrowing checks, not a frozen ABI. `BinarySubmitDesc`
-chains once to a `SubmitDesc`, adding binary waits/signals to its timelines.
-Scratch sizing uses combined counts, preserves individual stage masks and lowers
-one single/batched call to one native call with the original batch boundaries.
+with borrowing checks, not a frozen ABI. Schema 6's `SubmitDesc` carries binary
+waits/signals directly alongside its timelines. Scratch sizing reads each
+description's counts and covers the complete call in one span. One counted
+submission preserves individual stage masks and native batch boundaries,
+with explicit per-batch acceptance outcomes.
 There is no extra allocation, state mirror, retention or timeline bridge on this
 submission path. Binary creation and fence lifecycle also work on headless devices;
 putting these operations in the presentation table does not require WSI enabling.

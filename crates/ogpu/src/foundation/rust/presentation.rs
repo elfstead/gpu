@@ -143,46 +143,6 @@ pub unsafe fn fence_destroy(fence: FenceHandle) {
     }
 }
 
-/// Submit explicit binary and timeline dependencies together, in one native submit.
-/// Scratch counts are the SUM of timeline and binary waits/signals, respectively.
-/// Batch callers chain BinarySubmitDesc to each SubmitDesc in queue_submit_batch.
-/// # Safety
-/// Same queue/list/resource/scratch obligations as queue_submit. Binary signals
-/// must target an unsignaled semaphore; each signal is consumed by one ordered
-/// wait. Caller proves pending signal/wait validity and retirement before reuse or
-/// destruction. OGPU does not track binary state, insert bridges or wait on the host.
-pub unsafe fn queue_submit_with_binary(
-    queue: QueueHandle,
-    lists: &[ListHandle],
-    waits: &[SyncPoint],
-    signals: &[SyncPoint],
-    binary_waits: &[BinaryPoint],
-    binary_signals: &[BinaryPoint],
-    scratch: HostSpan,
-) -> Result<()> {
-    let binary = BinarySubmitDesc {
-        header: Record::new::<BinarySubmitDesc>(BINARY_SUBMIT_DESC),
-        wait_count: count(binary_waits.len())?,
-        signal_count: count(binary_signals.len())?,
-        waits: binary_waits.as_ptr(),
-        signals: binary_signals.as_ptr(),
-    };
-    let mut header = Record::new::<SubmitDesc>(SUBMIT_DESC);
-    header.next = &binary.header;
-    let desc = SubmitDesc {
-        header,
-        list_count: count(lists.len())?,
-        wait_count: count(waits.len())?,
-        signal_count: count(signals.len())?,
-        lists: lists.as_ptr().cast(),
-        waits: waits.as_ptr(),
-        signals: signals.as_ptr(),
-        scratch: scratch.data,
-        scratch_size: scratch.size,
-    };
-    unsafe { queue_submit_record(queue, &desc) }
-}
-
 /// Enable exactly the selected window-system instance profile. This does not
 /// enable swapchains on a device or choose a surface/queue. Plain discover stays
 /// headless. Currently only PRESENTATION_WAYLAND is implemented.

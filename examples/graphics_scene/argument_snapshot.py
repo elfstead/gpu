@@ -65,7 +65,7 @@ def check_log(stdout,stderr,backend,size):
     limits=f.rows(stdout,'ARGUMENT_LIMIT ');device=f.rows(stdout,'DEVICE ')
     require(len(limits)==len(device)==1 and limits[0]['max_push_data_bytes']>=size,'missing device/limit')
     if backend in ('public','foundation'):
-        api={'foundation':5} if backend=='foundation' else {'abi':20}
+        api={'foundation':6} if backend=='foundation' else {'abi':20}
         require(f.rows(stdout,'PUBLIC_SCENE ')==[dict(**api,index_bytes=4,gpu_generated=True)],'wrong public profile')
     else:require(f.rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'missing native draw identity')
     return limits[0],device[0]

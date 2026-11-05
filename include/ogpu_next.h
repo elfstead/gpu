@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 5u
+#define OGPU_NEXT_VERSION 6u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -72,7 +72,6 @@ enum {
     OGPU_NEXT_QUERY_MEMORY_BUDGETS = 16, /* Only memory_budget_query, not immutable queries. */
     OGPU_NEXT_DEVICE_DESC = 100, OGPU_NEXT_MEMORY_DESC = 101,
     OGPU_NEXT_ARENA_DESC = 102, OGPU_NEXT_RECORDING_DESC = 103,
-    OGPU_NEXT_SUBMIT_DESC = 104,
     OGPU_NEXT_IMAGE_DESC = 106, OGPU_NEXT_VIEW_DESC = 107,
     OGPU_NEXT_SAMPLER_DESC = 108,
     OGPU_NEXT_EXECUTABLE_DESC = 110,
@@ -85,8 +84,7 @@ enum {
     OGPU_NEXT_RASTER_OPTIONS = 124
 };
 /* Version 1 records require exact byte_size, flags=0 and next=NULL unless an
- * operation explicitly permits an extension (currently SUBMIT_DESC permits one
- * BINARY_SUBMIT_DESC). Unknown kinds/versions are UNSUPPORTED, not ignored.
+ * operation explicitly permits an extension. Unknown kinds/versions are UNSUPPORTED, not ignored.
  * Query capacity=0 obtains count with OK and no data access. Otherwise capacity
  * must fit the entire result: CAPACITY writes count but no array elements.
  * element_size must exactly match the record type, even for count-only queries.
@@ -2059,48 +2057,51 @@ void ogpu_next_query_end(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t i
 void ogpu_next_timestamp(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t index, ogpu_next_stages);
 void ogpu_next_queries_resolve(ogpu_next_encoder *, ogpu_next_query_pool *, uint32_t first, uint32_t count, ogpu_next_span dst, uint64_t stride, uint32_t flags);
 typedef struct ogpu_next_sync_point { ogpu_next_point point; ogpu_next_stages stages; } ogpu_next_sync_point;
+typedef struct ogpu_next_binary_point ogpu_next_binary_point;
 typedef struct ogpu_next_submit_desc {
-    ogpu_next_record header;
     uint32_t list_count, wait_count, signal_count;
+    uint32_t binary_wait_count, binary_signal_count, flags;
     ogpu_next_list *const *lists;
     const ogpu_next_sync_point *waits, *signals;
-    void *scratch;
-    uint64_t scratch_size;
+    const ogpu_next_binary_point *binary_waits, *binary_signals;
 } ogpu_next_submit_desc;
-/* Scratch is writable aligned host storage, borrowed only during the call and
- * disjoint from all inputs/objects. Query size/alignment once and reuse it; no
- * OGPU hot-path heap allocation. Zero-size queries return alignment=1. Too-small
- * scratch => CAPACITY; null/misaligned nonempty storage => INVALID. Queries leave
- * output unchanged on error. Lists/timelines must belong to the queue's device;
- * lists must match its domain. Each queue is externally serialized. The caller
- * guarantees duplicate lists use simultaneous mode, no duplicate wait or signal
- * timelines, and signals exceed same-timeline waits. No quadratic duplicate scan.
- * One-shot submission excludes every other host access to that list.
- * Wait/signal stage masks are preserved, HOST is invalid here. Only an ALL signal
- * after the relevant work proves whole-list completion for reuse/destruction.
- * No automatic signal, wait or submission receipt. OOM is retryable without
- * consuming one-shot lists; loss is terminal. Other native submission errors
- * conservatively poison the device (return BACKEND_ERROR, then DEVICE_LOST).
+enum { OGPU_NEXT_SUBMIT_REJECTED = 0, OGPU_NEXT_SUBMIT_ACCEPTED = 1, OGPU_NEXT_SUBMIT_UNKNOWN = 2 };
+typedef struct ogpu_next_submit_outcome {
+    ogpu_next_status status;
+    uint32_t acceptance;
+} ogpu_next_submit_outcome;
+/* One submission operation: count=1 is ordinary submit. Preserve each ordered
+ * list/wait/signal boundary; no flattening, automatic signals, waits or receipts.
+ * One caller scratch span covers ALL native headers and nested arrays. Scratch
+ * and mandatory count-entry outcomes are aligned, writable and mutually disjoint
+ * from every input/object. Arrays/scratch/outcomes are borrowed only for the call.
+ * Query reads only counts/flags; nested pointers may be unpopulated. Checked size
+ * arithmetic; flags=0. Failed queries preserve output. count=0 requires no storage
+ * (alignment=1), permits NULL arrays, and is a no-op on a live non-lost device.
+ * Too-small scratch => CAPACITY; null/misaligned nonempty scratch => INVALID.
+ * Every local check precedes native effects: all outcomes are REJECTED on local
+ * failure, with the rejection status. Success is ACCEPTED, not completion.
+ * Proven native rejection is REJECTED; Vulkan OOM leaves all batches retryable.
+ * Unclassified/partial native failure is UNKNOWN for affected batches. Preserve
+ * any proven earlier acceptance/later non-attempted rejection; not-attempted
+ * outcomes carry the stopping error. Vulkan uses one vkQueueSubmit2 and gives
+ * all batches the same acceptance. UNKNOWN is not retryable, poisons the device
+ * and protects all potentially referenced objects until conservative recovery.
+ * Accepted/UNKNOWN one-shots are consumed. REJECTED does not retire earlier uses.
+ * Aggregate status preserves failure; every valid outcome entry is written.
+ *
+ * Queue access is externally serialized. Lists/timelines/binaries belong to its
+ * device; lists match its domain. Caller guarantees duplicate-list legality and
+ * replay/pending lifetimes, unique wait/signal semaphores within each batch and
+ * native value ordering. No quadratic scan or resource walk. Binary signals target
+ * unsignaled semaphores; each is consumed by one ordered wait. No state registry.
+ * Wait/signal stages are preserved; HOST is invalid. Only an appropriate completed
+ * signal scope proves retirement; an ALL signal after work proves whole-list
+ * completion. Timeout/loss never prove completion. A later REJECTED call does not
+ * retire resources used by an earlier ACCEPTED/UNKNOWN call.
  */
-ogpu_next_status ogpu_next_submit_scratch_requirements(uint32_t lists, uint32_t waits, uint32_t signals, ogpu_next_host_requirements *);
-ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, const ogpu_next_submit_desc *);
-/* One native submission call for count ordered batches. Each retains its own
- * list/wait/signal boundary; batches are not flattened or submitted separately.
- * Each descriptor supplies its usual submit scratch. Additional batch scratch
- * stores only translated native batch headers. ALL scratch regions must be
- * mutually disjoint and disjoint from input records, borrowed for this call only.
- * Every batch is validated before native submission; on local failure no batch
- * is submitted and no one-shot is consumed (scratch may have been written).
- * Native OOM leaves ALL batches retryable. Other native failures follow submit's
- * terminal policy. On success all one-shot lists are consumed. Caller guarantees
- * duplicate-list legality across the entire call, and all native timeline ordering
- * and pending rules. Duplicate wait/signal restrictions apply within each batch;
- * a later batch may wait for an earlier batch's signal. count=0 is a no-op on a
- * live, non-lost device, accepts descs=NULL and requires no scratch. No allocation,
- * retained submission object, automatic timeline or host wait is added.
- */
-ogpu_next_status ogpu_next_submit_batch_scratch_requirements(uint32_t count, ogpu_next_host_requirements *);
-ogpu_next_status ogpu_next_queue_submit_batch(ogpu_next_queue *, uint32_t count, const ogpu_next_submit_desc *descs, ogpu_next_host_span scratch);
+ogpu_next_status ogpu_next_submit_scratch_requirements(const ogpu_next_device *, uint32_t count, const ogpu_next_submit_desc *, ogpu_next_host_requirements *);
+ogpu_next_status ogpu_next_queue_submit(ogpu_next_queue *, uint32_t count, const ogpu_next_submit_desc *, ogpu_next_submit_outcome *, ogpu_next_host_span scratch);
 
 #define OGPU_NEXT_DOMAIN_IGNORED UINT32_MAX
 enum { OGPU_NEXT_QUERY_DEPENDENCY_LIMITS = 19,
@@ -2357,7 +2358,6 @@ typedef struct ogpu_next_swapchain ogpu_next_swapchain;
 enum {
     OGPU_NEXT_PRESENTATION_WAYLAND = 1u,
     OGPU_NEXT_WAYLAND_SURFACE_DESC = 125,
-    OGPU_NEXT_BINARY_SUBMIT_DESC = 126,
     OGPU_NEXT_SWAPCHAIN_DESC = 127, OGPU_NEXT_PRESENT_DESC = 128,
     OGPU_NEXT_QUERY_SURFACE_CAPABILITIES = 1000,
     OGPU_NEXT_QUERY_SURFACE_FORMATS = 1001,
@@ -2400,31 +2400,16 @@ typedef struct ogpu_next_presentation_support {
  * timeline signal does not by itself retire a presentation wait on a binary.
  * There is no binary host signal/reset/poll/wait operation.
  *
- * Chain ONE binary_submit_desc through submit_desc.header.next. Its own next=NULL,
- * flags=0. Counts/arrays below ADD to the root's timeline waits/signals, preserving
- * individual stage masks. submit_scratch_requirements receives COMBINED counts
- * (timeline+binary), not merely the root's counts. Batch submission allows this
- * extension independently on every description, with distinct caller scratch.
- * Zero counts allow NULL arrays; nonzero counts require readable arrays. Scratch
- * must remain disjoint from descriptions, inputs and other active scratch spans.
- * Invalid descriptions/capacity fail before a native submission and do not
- * consume any synchronization or one-shot lists. Native failures retain the
- * existing queue-submit uncertainty rules; failure is not proof of retirement.
- * Every referenced object belongs to the queue's device. Semaphore stage masks
- * obey the existing submit rules; native binary semaphore values are zero.
- * No duplicate binary appears within one wait array or within one signal array;
- * native pending/order rules apply across batches. No quadratic duplicate scan.
- * Single submit lowers once; a batch lowers once with the original submit count.
+ * Each submit_desc carries binary arrays alongside its timeline arrays. Query
+ * scratch with the complete descriptions and submit with one shared span and
+ * explicit outcomes. Zero counts allow NULL arrays. No binary bridge submission,
+ * extension chain or per-description scratch is needed. Native binary values
+ * are zero; pending/order and duplicate-use validity remain caller obligations.
  */
 typedef struct ogpu_next_binary_point {
     ogpu_next_binary *binary;
     ogpu_next_stages stages;
 } ogpu_next_binary_point;
-typedef struct ogpu_next_binary_submit_desc {
-    ogpu_next_record header;
-    uint32_t wait_count, signal_count;
-    const ogpu_next_binary_point *waits, *signals;
-} ogpu_next_binary_submit_desc;
 /* fence_create accepts signaled=0 or 1. poll returns OK or NOT_READY; wait returns
  * OK or TIMEOUT (or errors). reset is explicit and never waits; it requires no
  * pending signal or other host access and may reset an idle unsignaled fence.

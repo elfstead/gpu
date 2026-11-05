@@ -277,7 +277,7 @@ static int context(Scene *s,const char *directory) {
 }
 static int storage(Scene *s) {
     GPU(ogpu_next_barrier_scratch_requirements(s->device,1,0,1,&s->barrier_scratch)); GPU(ogpu_next_render_scratch_requirements(1,&s->render_scratch));
-    GPU(ogpu_next_submit_scratch_requirements(1,0,1,&s->submit_scratch));
+    GPU(ogpu_next_submit_scratch_requirements(s->device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&s->submit_scratch));
     NEED(s->barrier_scratch.alignment<=_Alignof(max_align_t) && s->render_scratch.alignment<=_Alignof(max_align_t) && s->submit_scratch.alignment<=_Alignof(max_align_t));
     s->bs=malloc(s->barrier_scratch.size); s->rs=malloc(s->render_scratch.size); s->ss=malloc(s->submit_scratch.size); NEED(s->bs && s->rs && s->ss);
     ogpu_next_arena_desc ad={HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),s->domain,1,OGPU_NEXT_PRIMARY,0};
@@ -290,11 +290,13 @@ static int begin(Scene *s) {
 static int submit_wait(Scene *s) {
     ogpu_next_list *list=NULL; ogpu_next_status status=ogpu_next_commands_end(s->encoder,&list); s->encoder=NULL; GPU(status);
     ogpu_next_sync_point signal={{s->done,++s->serial},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit={HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,s->ss,s->submit_scratch.size};
-    status=ogpu_next_queue_submit(s->queue,&submit);
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {s->ss,s->submit_scratch.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+    status=ogpu_next_queue_submit(s->queue,1,&submit,&submit_outcome,submit_host);
     /* A backend failure can leave acceptance unknown. Fail-stop; never release
      * GPU operands or pretend that a failed wait establishes completion. */
-    s->pending=status==OGPU_NEXT_OK || status==OGPU_NEXT_BACKEND_ERROR || status==OGPU_NEXT_DEVICE_LOST;
+    s->pending=submit_outcome.acceptance!=OGPU_NEXT_SUBMIT_REJECTED;
     GPU(status); GPU(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); s->pending=0;
     GPU(ogpu_next_arena_reset(s->arena)); return 1;
 }

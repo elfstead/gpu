@@ -37,7 +37,7 @@ static int alias_execution(ogpu_next_device *device, ogpu_next_memory_desc host_
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_host_requirements br = {0}, sr = {0};
-    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     barrier_scratch = malloc((size_t)br.size); submit_scratch = malloc((size_t)sr.size); REQUIRE(barrier_scratch && submit_scratch);
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
@@ -66,13 +66,15 @@ static int alias_execution(ogpu_next_device *device, ogpu_next_memory_desc host_
     ogpu_next_dependency host_dep = {1,0,0,0,&host_dep_scope,NULL,NULL};
     common_barrier(encoder,&host_dep,&host_dep_scope,host_dep_scratch); TRY(ogpu_next_commands_end(encoder,&list));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,submit_scratch,sr.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 3; ++replay) {
         unsigned char *bytes = mapping.data; memset(bytes,0xa5,(size_t)host_desc.size);
         for (uint32_t step = 0; step < 3; ++step) for (uint32_t i = 0; i < 256; ++i)
             bytes[128+step*512+i] = (unsigned char)(i*13+step*47+replay*29);
         TRY(ogpu_next_memory_flush(all)); signal.point.value = replay+1; pending = 1;
-        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(all));
         for (uint32_t step = 0; step < 3; ++step) for (uint32_t i = 0; i < 256; ++i) {

@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
     ogpu_next_view_desc vd = {HEADER(ogpu_next_view_desc,OGPU_NEXT_VIEW_DESC),OGPU_NEXT_RGBA8_UNORM,OGPU_NEXT_VIEW_2D,OGPU_NEXT_IMAGE_COLOR_ATTACHMENT,{0,0,0,0},range};
     TRY(ogpu_next_view_create(target,&vd,&view));
     ogpu_next_host_requirements br = {0}, rr = {0}, sr = {0};
-    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr)); TRY(ogpu_next_submit_scratch_requirements(1,0,1,&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_render_scratch_requirements(1,&rr)); TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && rr.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); rs = malloc((size_t)rr.size); ss = malloc((size_t)sr.size); REQUIRE(bs && rs && ss);
     ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,resident ? 3u : 1u,OGPU_NEXT_PRIMARY,0};
@@ -225,8 +225,10 @@ int main(int argc, char **argv) {
         dispatch(encoder, kernels[3], arguments[3], poison_grid[i], &args, sizeof(args));
     }
     TRY(ogpu_next_commands_end(encoder,&list)); ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,NULL,&signal,ss,sr.size};
-    ogpu_next_queue *queue = ogpu_next_device_queue(device,domain,0); pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {ss,sr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+    ogpu_next_queue *queue = ogpu_next_device_queue(device,domain,0); pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
     TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
     if (validation || measuring) for (uint32_t i = 0; i < 2; ++i) {
         inputs[i] = malloc(sizes[INPUT]); REQUIRE(inputs[i] != NULL); poison_host(inputs[i],sizes[INPUT]);
@@ -236,7 +238,7 @@ int main(int argc, char **argv) {
             TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
             ogpu_next_copy_memory(encoder,(ogpu_next_span){i ? input_b : buffers[INPUT],0,sizes[INPUT]},(ogpu_next_span){upload,0,sizes[INPUT]});
             TRY(ogpu_next_commands_end(encoder,&list)); ++signal.point.value;
-            pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+            pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
             TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
         }
     }
@@ -340,7 +342,7 @@ int main(int argc, char **argv) {
             }
             double uploaded = now_ms();
             list = work[resident ? frame%2 : 0];
-            ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+            ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
             double submitted = now_ms();
             TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
             double waited = now_ms(), device_ms = 0;
@@ -363,7 +365,7 @@ int main(int argc, char **argv) {
                 continue;
             }
             if (snapshot) {
-                list = snapshot; ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,&submit));
+                list = snapshot; ++signal.point.value; pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
                 TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
             }
             TRY(ogpu_next_memory_invalidate((ogpu_next_span){readback,0,read_size})); unsigned char *pixels = rm.data;

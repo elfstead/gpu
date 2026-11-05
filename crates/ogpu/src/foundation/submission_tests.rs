@@ -844,8 +844,16 @@ fn gpu_unified_submission_unknown() {
             let mut outcomes = [SENTINEL; 3];
             FAILURE.set(code);
             assert_eq!(
-                unsafe { queue.submit_descriptions(&batches, &mut outcomes, scratch) },
-                Err(expected)
+                unsafe {
+                    crate::foundation::ogpu_next_queue_submit(
+                        ptr::from_ref(queue).cast_mut(),
+                        batches.len() as u32,
+                        batches.as_ptr(),
+                        outcomes.as_mut_ptr(),
+                        scratch,
+                    )
+                },
+                expected
             );
             all(&outcomes, expected, SUBMIT_UNKNOWN);
             assert_eq!(unsafe { &*one }.state.get(), 3);

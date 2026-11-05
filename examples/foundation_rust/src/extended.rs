@@ -1,4 +1,5 @@
 //! Public native Rust compute/image checks; no C entry points or native GPU API.
+use super::submission;
 use super::{dependency, global_barrier, gpu};
 use ogpu::foundation::types::*;
 use std::{
@@ -67,7 +68,7 @@ unsafe fn submit(
         stages: STAGE_ALL,
     };
     unsafe {
-        gpu::queue_submit(c.queue, &[list], &[], &[signal], storage.span())?;
+        submission::one(c.queue, &[list], &[], &[signal], &[], &[], storage.span())?;
         gpu::timeline_wait(c.timeline, value, 10_000_000_000)?;
         gpu::memory_invalidate(c.memory.span(0, 4096))?;
         gpu::arena_reset(c.arena)?;
@@ -88,7 +89,19 @@ const _: () = assert!(size_of::<Root>() == 16 && std::mem::offset_of!(Root, coun
 /// with copy/storage/indirect usage. Timeline starts completed at 3. Caller retains
 /// everything on error until completion is known (the executable exits instead).
 pub unsafe fn run(c: Context) -> gpu::Result<()> {
-    let mut submit_storage = Storage::new(gpu::submit_scratch_requirements(1, 0, 1)?)?;
+    let mut submit_storage = Storage::new(unsafe {
+        gpu::submit_scratch_requirements(
+            c.device,
+            &[SubmitDesc {
+                list_count: 1,
+                wait_count: 0,
+                signal_count: 1,
+                binary_wait_count: 0,
+                binary_signal_count: 0,
+                ..Default::default()
+            }],
+        )
+    }?)?;
     unsafe {
         compute(&c, &mut submit_storage)?;
         images(&c, &mut submit_storage)?;

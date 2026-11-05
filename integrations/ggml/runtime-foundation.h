@@ -84,7 +84,8 @@ struct Runtime {
             throw std::runtime_error("GGML shader profile exceeds device limits");
         q = query(OGPU_NEXT_QUERY_MEMORY_TYPES,nullptr,0,sizeof(ogpu_next_memory_type_info)); check(ogpu_next_device_query(d,&q));
         memory_types.resize(q.count); q.data = memory_types.data(); q.capacity = q.count; check(ogpu_next_device_query(d,&q));
-        ogpu_next_host_requirements req{}; check(ogpu_next_submit_scratch_requirements(1,0,1,&req));
+        ogpu_next_submit_desc counts{}; counts.list_count=1; counts.signal_count=1;
+        ogpu_next_host_requirements req{}; check(ogpu_next_submit_scratch_requirements(device.get(),1,&counts,&req));
         if (req.alignment > alignof(std::max_align_t)) throw std::runtime_error("unsupported scratch alignment");
         scratch.resize((req.size+sizeof(std::max_align_t)-1)/sizeof(std::max_align_t)); scratch_size = req.size;
         ogpu_next_timeline *t = nullptr; check(ogpu_next_timeline_create(d,0,&t)); timeline.reset(t);
@@ -149,10 +150,11 @@ struct Runtime {
         ogpu_next_list *list = nullptr; check(ogpu_next_commands_end(encoder,&list)); encoder = nullptr;
         if (value == std::numeric_limits<uint64_t>::max()) throw std::runtime_error("timeline exhausted");
         const ogpu_next_sync_point signal{{timeline.get(),++value},OGPU_NEXT_STAGE_ALL};
-        const ogpu_next_submit_desc submit{GGML_RECORD(ogpu_next_submit_desc,OGPU_NEXT_SUBMIT_DESC),1,0,1,&list,nullptr,&signal,scratch.data(),scratch_size};
-        const auto submitted = ogpu_next_queue_submit(queue,&submit);
+        const ogpu_next_submit_desc submit{1,0,1,0,0,0,&list,nullptr,&signal,nullptr,nullptr};
+        ogpu_next_submit_outcome outcome{};
+        const auto submitted = ogpu_next_queue_submit(queue,1,&submit,&outcome,{scratch.data(),scratch_size});
         // Unknown completion must never unwind borrowed allocation lifetimes.
-        if (submitted != OGPU_NEXT_OK || ogpu_next_timeline_wait(signal.point,UINT64_MAX) != OGPU_NEXT_OK) {
+        if (submitted != OGPU_NEXT_OK || outcome.acceptance != OGPU_NEXT_SUBMIT_ACCEPTED || ogpu_next_timeline_wait(signal.point,UINT64_MAX) != OGPU_NEXT_OK) {
             std::fprintf(stderr,"OGPU foundation submission/completion failed; refusing unsafe resource teardown\n"); std::abort();
         }
         // No retained references into GGML-owned allocations between callbacks.

@@ -1,16 +1,14 @@
 # C1: dependency and submission decisions
 
-Selected 2026-11-03. **Public Vulkan dependency cutover implemented 2026-11-05
-in foundation schema 5; the unified submission engine is verified privately,
-with public submission/outcomes still pending.** The
-[C records](drafts/ogpu_dependencies.h) and [Rust mirror](drafts/dependencies.rs)
-record the selected target, including submission's remaining changes. The
-[public checkpoint](minimal-core-migration.md#c2-dependency-public-cutover)
-installs independent scopes, explicit scratch and enabled-domain capabilities,
-with migrated C/direct Rust consumers and native execution/rejection evidence.
-The [submission engine checkpoint](minimal-core-migration.md#c2-unified-submission-engine)
-records mixed-batch execution, whole-call preflight and acceptance/failure tests;
-the installed submission records and signatures have not yet migrated.
+Selected 2026-11-03. **Public Vulkan dependency and submission cutovers implemented
+2026-11-05, now in foundation schema 6.** The [C records](drafts/ogpu_dependencies.h)
+and [Rust mirror](drafts/dependencies.rs) record the selected contract.
+The [dependency checkpoint](minimal-core-migration.md#c2-dependency-public-cutover)
+installs independent scopes, explicit scratch and enabled-domain capabilities.
+The [submission checkpoint](minimal-core-migration.md#c2-submission-public-cutover)
+installs one counted C/direct Rust operation, direct binary arrays, one scratch
+span and explicit acceptance outcomes. Consumers are migrated and the old paths
+are deleted. Presentation and full C2/local C3 acceptance still follow.
 
 ## Keep one dependency description, with independent scopes
 

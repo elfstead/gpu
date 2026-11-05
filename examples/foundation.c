@@ -56,11 +56,11 @@ _Static_assert(sizeof(ogpu_next_image_profile) == 48, "image profile ABI");
 _Static_assert(sizeof(ogpu_next_image_limits) == 32, "image limits ABI");
 _Static_assert(sizeof(ogpu_next_split_dependency) == 16, "split dependency ABI");
 _Static_assert(sizeof(ogpu_next_recording_desc) == 40, "recording ABI");
-_Static_assert(sizeof(ogpu_next_submit_desc) == 80, "submit ABI");
+_Static_assert(sizeof(ogpu_next_submit_desc) == 64, "submit ABI");
 _Static_assert(sizeof(ogpu_next_dependency) == 40, "dependency ABI");
 _Static_assert(sizeof(ogpu_next_memory_barrier) == 64, "memory barrier ABI");
 _Static_assert(sizeof(ogpu_next_sync_point) == 24, "sync point ABI");
-_Static_assert(offsetof(ogpu_next_submit_desc, scratch) == 64, "submit scratch ABI");
+_Static_assert(offsetof(ogpu_next_submit_desc, binary_waits) == 48, "submit scratch ABI");
 _Static_assert(offsetof(ogpu_next_dependency, global) == 16, "barrier scratch ABI");
 _Static_assert(sizeof(ogpu_next_image_desc) == 96, "image description ABI");
 _Static_assert(sizeof(ogpu_next_view_desc) == 72, "view description ABI");
@@ -286,12 +286,13 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
     }
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_host_requirements scratch_req = {0};
-    TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &scratch_req));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&scratch_req));
     REQUIRE(scratch_req.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)scratch_req.size); REQUIRE(scratch != NULL);
     ogpu_next_sync_point signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
-        1, 0, 1, &list, NULL, &signal, scratch, scratch_req.size};
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {scratch,scratch_req.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     struct Root { uint64_t address; uint32_t count, add; };
     _Static_assert(sizeof(struct Root) == 16, "device root shader layout");
     for (uint32_t replay = 0; replay < 3; ++replay) {
@@ -302,7 +303,7 @@ static int compute(ogpu_next_device *device, ogpu_next_memory_desc desc,
         memcpy((unsigned char *)mapping.data + 1024, roots, sizeof(roots));
         TRY(ogpu_next_memory_flush(all));
         signal.point.value = replay + 1;
-        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+        pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(all));
         if (statistics) {
@@ -461,14 +462,15 @@ static int descriptors(ogpu_next_device *device, ogpu_next_memory_desc host_desc
     TRY(ogpu_next_timeline_create(device, 0, &done));
     TRY(ogpu_next_timeline_create(device, 0, &gate));
     ogpu_next_host_requirements submit_req = {0};
-    TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &submit_req));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=1,.signal_count=1},&submit_req));
     REQUIRE(submit_req.alignment <= _Alignof(max_align_t));
     submit_scratch = malloc((size_t)submit_req.size); REQUIRE(submit_scratch != NULL);
     ogpu_next_sync_point wait = {{gate, 1}, OGPU_NEXT_STAGE_ALL}, signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
-        1, 1, 1, &list, &wait, &signal, submit_scratch, submit_req.size};
+    ogpu_next_submit_desc submit = {1,1,1,0,0,0,&list,&wait,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {submit_scratch,submit_req.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
     pending = 1;
-    TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+    TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0),1,&submit,&submit_outcome,submit_host));
     REQUIRE(ogpu_next_timeline_wait(signal.point, 0) == OGPU_NEXT_TIMEOUT);
     /* Binding is not whole-heap immutability. An unused slot can be updated while
      * this list is pending; reserved bytes remain untouched until reset. */
@@ -596,7 +598,7 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     TRY(ogpu_next_arena_create(device, &ad, &arena));
     TRY(ogpu_next_timeline_create(device, 0, &done));
     ogpu_next_host_requirements hr = {0}, br = {0};
-    TRY(ogpu_next_submit_scratch_requirements(1, 0, 1, &hr));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&hr));
     TRY(ogpu_next_barrier_scratch_requirements(device,1,0, 4, &br));
     REQUIRE(hr.alignment <= _Alignof(max_align_t) && br.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)hr.size); barrier_scratch = malloc((size_t)br.size);
@@ -645,8 +647,10 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder, &list));
     ogpu_next_sync_point signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC), 1, 0, 1, &list, NULL, &signal, scratch, hr.size};
-    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0), &submit));
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {scratch,hr.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, domain, 0),1,&submit,&submit_outcome,submit_host));
     TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
     TRY(ogpu_next_memory_invalidate(all));
     for (uint32_t layer = 0; layer < 2; ++layer)
@@ -721,7 +725,7 @@ static int images(ogpu_next_device *device, ogpu_next_memory_desc host_desc,
     dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ;
     common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list)); signal.point.value = 2;
-    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),&submit));
+    pending = 1; TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device,domain,0),1,&submit,&submit_outcome,submit_host));
     TRY(ogpu_next_timeline_wait(signal.point,UINT64_C(10000000000))); pending = 0;
     TRY(ogpu_next_memory_invalidate(all));
     for (uint32_t layer = 0; layer < 2; ++layer) for (uint32_t y = 0; y < 4; ++y) for (uint32_t x = 0; x < 8; ++x) {
@@ -815,7 +819,7 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
     TRY(ogpu_next_timeline_create(device, 0, &gate));
     ogpu_next_arena_desc ad = { HEADER(ogpu_next_arena_desc, OGPU_NEXT_ARENA_DESC), domain, 1, OGPU_NEXT_PRIMARY, 0 };
     TRY(ogpu_next_arena_create(device, &ad, &arena));
-    TRY(ogpu_next_submit_scratch_requirements(1, 1, 1, &req));
+    TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=1,.signal_count=1},&req));
     REQUIRE(req.alignment <= _Alignof(max_align_t));
     scratch = malloc((size_t)req.size); REQUIRE(scratch != NULL);
     TRY(ogpu_next_barrier_scratch_requirements(device,1,1, 0, &barrier_req));
@@ -848,18 +852,17 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
     /* Reserve growth preserves the already recorded list handle. */
     TRY(ogpu_next_arena_reserve(arena, 3));
     ogpu_next_sync_point signal = {{done, 1}, OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {
-        HEADER(ogpu_next_submit_desc, OGPU_NEXT_SUBMIT_DESC),
-        1, 0, 1, &list, NULL, &signal, scratch, req.size
-    };
-    submit.scratch_size = 0;
-    REQUIRE(ogpu_next_queue_submit(queue, &submit) == OGPU_NEXT_CAPACITY);
-    submit.scratch_size = req.size;
+    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    ogpu_next_host_span submit_host = {scratch,req.size};
+    ogpu_next_submit_outcome submit_outcome = {0};
+    submit_host.size = 0;
+    REQUIRE(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host) == OGPU_NEXT_CAPACITY);
+    submit_host.size = req.size;
     for (uint32_t replay = 0; replay < 3; ++replay) {
         for (uint32_t i = 0; i < 1024; ++i) ((uint32_t *)um.data)[i] = i ^ (replay * 12345);
         TRY(ogpu_next_memory_flush(u));
         signal.point.value = replay + 1;
-        pending = 1; TRY(ogpu_next_queue_submit(queue, &submit));
+        pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(r));
         for (uint32_t i = 0; i < 1024; ++i)
@@ -879,8 +882,8 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
     TRY(ogpu_next_commands_begin(arena, &rd, &encoder));
     TRY(ogpu_next_commands_end(encoder, &list));
     signal.point.value = 4;
-    pending = 1; TRY(ogpu_next_queue_submit(queue, &submit));
-    REQUIRE(ogpu_next_queue_submit(queue, &submit) == OGPU_NEXT_INVALID);
+    pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
+    REQUIRE(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host) == OGPU_NEXT_INVALID);
     TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
     /* Two truly pending executions of one simultaneous list, with a host gate.
      * Empty work avoids introducing an unrelated resource hazard between them. */
@@ -890,9 +893,9 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
     ogpu_next_sync_point wait = {{gate, 1}, OGPU_NEXT_STAGE_ALL};
     submit.wait_count = 1; submit.waits = &wait;
     signal.point.value = 5;
-    pending = 1; TRY(ogpu_next_queue_submit(queue, &submit));
+    pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
     signal.point.value = 6;
-    TRY(ogpu_next_queue_submit(queue, &submit));
+    TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
     REQUIRE(ogpu_next_timeline_wait(signal.point, 0) == OGPU_NEXT_TIMEOUT);
     TRY(ogpu_next_timeline_signal_host(wait.point));
     TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
@@ -915,7 +918,7 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
         common_barrier(encoder,&dep,&dep_scope,dep_scratch);
         TRY(ogpu_next_commands_end(encoder, &list));
         submit.wait_count = 0; submit.waits = NULL; signal.point.value = 7;
-        pending = 1; TRY(ogpu_next_queue_submit(queue, &submit));
+        pending = 1; TRY(ogpu_next_queue_submit(queue,1,&submit,&submit_outcome,submit_host));
         ad.domain = other_domain;
         TRY(ogpu_next_arena_create(device, &ad, &other_arena));
         desc.memory_type = host_type;
@@ -935,7 +938,7 @@ static int commands(ogpu_next_device *device, ogpu_next_memory_desc desc,
         TRY(ogpu_next_commands_end(encoder, &list));
         wait = (ogpu_next_sync_point){{done, 7}, OGPU_NEXT_STAGE_ALL};
         submit.wait_count = 1; submit.waits = &wait; signal.point.value = 8;
-        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, other_domain, 0), &submit));
+        TRY(ogpu_next_queue_submit(ogpu_next_device_queue(device, other_domain, 0),1,&submit,&submit_outcome,submit_host));
         TRY(ogpu_next_timeline_wait(signal.point, UINT64_C(10000000000))); pending = 0;
         TRY(ogpu_next_memory_invalidate(other_span));
         for (uint32_t i = 0; i < 1024; ++i)

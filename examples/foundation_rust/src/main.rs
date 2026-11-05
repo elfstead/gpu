@@ -2,6 +2,7 @@
 use ogpu::foundation::{rust as gpu, types::*};
 use std::{ffi::CStr, ptr};
 mod extended;
+mod submission;
 mod synchronization;
 
 fn dependency(before: u64, after: u64, src: u64, dst: u64) -> BarrierScope {
@@ -115,7 +116,17 @@ pub fn run() -> gpu::Result<()> {
         assert_eq!(gpu::commands_end(invalid), Err(INVALID));
         gpu::arena_reset(arena)?;
 
-        let scratch_req = gpu::submit_scratch_requirements(1, 0, 1)?;
+        let scratch_req = gpu::submit_scratch_requirements(
+            device,
+            &[SubmitDesc {
+                list_count: 1,
+                wait_count: 0,
+                signal_count: 1,
+                binary_wait_count: 0,
+                binary_signal_count: 0,
+                ..Default::default()
+            }],
+        )?;
         // Caller-owned, once-allocated, suitably aligned translation storage.
         assert!(scratch_req.alignment <= align_of::<u64>() as u64);
         let mut scratch = vec![0u64; scratch_req.size.div_ceil(8) as usize];
@@ -155,11 +166,13 @@ pub fn run() -> gpu::Result<()> {
             };
             // Insufficient scratch rejects before submission, preserving retry.
             assert_eq!(
-                gpu::queue_submit(
+                submission::one(
                     queue,
                     &[list],
                     &[],
                     &[signal],
+                    &[],
+                    &[],
                     HostSpan {
                         data: scratch.as_mut_ptr().cast(),
                         size: 0,
@@ -167,11 +180,13 @@ pub fn run() -> gpu::Result<()> {
                 ),
                 Err(CAPACITY)
             );
-            gpu::queue_submit(
+            submission::one(
                 queue,
                 &[list],
                 &[],
                 &[signal],
+                &[],
+                &[],
                 HostSpan {
                     data: scratch.as_mut_ptr().cast(),
                     size: scratch_req.size,
