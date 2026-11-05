@@ -77,13 +77,18 @@ pub unsafe extern "C" fn ogpu_next_split_scratch_requirements(
     out: *mut HostRequirements,
 ) -> Status {
     boundary(|| {
-        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
-        *out = unsafe {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let value = unsafe {
             rust::split_scratch_requirements(
                 rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
                 native::command_slice(waits, count)?,
             )?
         };
+        unsafe {
+            out.write(value);
+        }
         Ok(())
     })
 }
@@ -271,13 +276,18 @@ pub unsafe extern "C" fn ogpu_next_submit_scratch_requirements(
     out: *mut HostRequirements,
 ) -> Status {
     boundary(|| {
-        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
-        *out = unsafe {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let value = unsafe {
             rust::submit_scratch_requirements(
                 rust::DeviceHandle::from_raw(device.cast_mut()).ok_or(INVALID)?,
                 native::command_slice(descriptions, count)?,
             )?
         };
+        unsafe {
+            out.write(value);
+        }
         Ok(())
     })
 }
@@ -323,27 +333,25 @@ pub unsafe extern "C" fn ogpu_next_queue_submit(
 ) -> Status {
     boundary(|| {
         std::alloc::Layout::array::<SubmitOutcome>(count as usize).map_err(|_| INVALID)?;
-        let outcomes = if count == 0 {
-            &mut []
-        } else {
-            if outcomes.is_null() {
-                return Err(INVALID);
-            }
-            // Trusted aligned, writable output array, disjoint from all inputs.
-            unsafe { std::slice::from_raw_parts_mut(outcomes, count as usize) }
-        };
+        if count != 0 && outcomes.is_null() {
+            return Err(INVALID);
+        }
         let decoded = (|| unsafe {
             Ok((
-                rust::QueueHandle::from_raw(queue).ok_or(INVALID)?,
+                queue.as_ref().ok_or(INVALID)?,
                 native::command_slice(descriptions, count)?,
             ))
         })();
         match decoded {
             Ok((queue, descriptions)) => unsafe {
-                rust::queue_submit(queue, descriptions, outcomes, scratch)
+                queue.submit_descriptions_to(descriptions, outcomes, count as usize, scratch)
             },
             Err(error) => {
-                outcomes.fill(SubmitOutcome::rejected(error));
+                for i in 0..count as usize {
+                    unsafe {
+                        outcomes.add(i).write(SubmitOutcome::rejected(error));
+                    }
+                }
                 Err(error)
             }
         }

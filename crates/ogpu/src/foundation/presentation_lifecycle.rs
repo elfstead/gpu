@@ -104,7 +104,7 @@ impl Swapchain {
     pub(in crate::foundation) unsafe fn acquire_frame(
         &self,
         desc: &AcquireDesc,
-        out: &mut Frame,
+        out: *mut Frame,
     ) -> Result<(), Status> {
         let d = unsafe { &*self.device };
         enabled(d)?;
@@ -138,7 +138,9 @@ impl Swapchain {
                 d.lost.store(true, Ordering::Relaxed);
                 return Err(BACKEND_ERROR);
             }
-            *out = self.frame(index, desc);
+            unsafe {
+                out.write(self.frame(index, desc));
+            }
         }
         result
     }

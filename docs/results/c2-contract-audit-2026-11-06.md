@@ -73,3 +73,24 @@ Windows still needs native migration and acceptance of argument binding/storage,
 descriptor capabilities, dependencies and DXGI resize/presentation effects, plus
 closure of its review findings. Metal stays deferred until a Mac is available.
 Those limits do not block Linux C3 or subsequent M8 work.
+
+## C3 review follow-up: output initialization
+
+The acceptance review found output-only C adapters constructing Rust references
+to storage that callers may leave uninitialized. Rust requires an initialized
+value before forming such references; see the
+[MaybeUninit reference-initialization rule](https://doc.rust-lang.org/std/mem/union.MaybeUninit.html#method.assume_init_mut).
+Submission outcomes, acquire frames, chain info/resize/pacing results and
+submission/split scratch requirements now use raw output writes. Resize forms a
+reference only after writing the complete initial outcome. The initialized direct
+Rust submission slice and raw C output array share one implementation, with no
+temporary array, allocation or preliminary fill. Public signatures and revision
+remain unchanged; output preservation on failure is unchanged.
+
+Tests supply `MaybeUninit` storage for local rejection and actual accepted
+three-batch submission, and for the presentation/scratch output paths. CPU tests
+rise to 78; all 28 GPU library tests pass with Vulkan synchronization validation,
+and strict Clippy passes. These are contract regressions plus a source-level Rust
+validity correction, not a claim of Miri or exhaustive undefined-behavior checking.
+The memory/image requirement records remain initialized in/out records because
+their input capacity and array pointer are read by the operation.

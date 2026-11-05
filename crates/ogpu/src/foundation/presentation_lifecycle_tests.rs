@@ -384,6 +384,57 @@ fn gpu_presentation_lifecycle() {
             assert_eq!(acquire_call(&a, &acquire_desc, &mut frame), status(native));
             assert_eq!(frame, a.frame(0, &acquire_desc));
         }
+        // C output-only storage need not contain a Rust value before the call.
+        let mut fresh = std::mem::MaybeUninit::<Frame>::uninit();
+        reset(vk::VkResult_VK_SUCCESS);
+        assert_eq!(
+            api().acquire.unwrap()(
+                ptr::from_ref(&a).cast_mut(),
+                &acquire_desc,
+                fresh.as_mut_ptr()
+            ),
+            OK
+        );
+        assert_eq!(fresh.assume_init(), a.frame(0, &acquire_desc));
+        let mut info = std::mem::MaybeUninit::<ChainInfo>::uninit();
+        api().chain_info_query.unwrap()(&a, info.as_mut_ptr());
+        assert_eq!(info.assume_init(), a.info());
+        let mut resize = std::mem::MaybeUninit::<ChainResizeOutcome>::uninit();
+        assert_eq!(
+            api().chain_resize.unwrap()(
+                ptr::from_ref(&a).cast_mut(),
+                ptr::null(),
+                resize.as_mut_ptr()
+            ),
+            INVALID
+        );
+        assert_eq!(resize.assume_init().image_effect, IMAGES_UNCHANGED);
+        let mut pacing = std::mem::MaybeUninit::<PacingHandle>::uninit();
+        assert_eq!(
+            api().chain_pacing_handle.unwrap()(&a, pacing.as_mut_ptr()),
+            UNSUPPORTED
+        );
+        let mut requirements = std::mem::MaybeUninit::<HostRequirements>::uninit();
+        assert_eq!(
+            crate::foundation::ogpu_next_submit_scratch_requirements(
+                &*d,
+                0,
+                ptr::null(),
+                requirements.as_mut_ptr()
+            ),
+            OK
+        );
+        assert_eq!(requirements.assume_init().size, 0);
+        assert_eq!(
+            crate::foundation::ogpu_next_split_scratch_requirements(
+                &*d,
+                0,
+                ptr::null(),
+                requirements.as_mut_ptr()
+            ),
+            OK
+        );
+        assert_eq!(requirements.assume_init().size, 0);
         // Historical acquisition handles are not live inputs to present/abandon.
         frame.binary = ptr::dangling_mut();
         frame.fence = ptr::dangling_mut();

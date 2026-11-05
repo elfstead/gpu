@@ -289,8 +289,12 @@ unsafe extern "C" fn chain_destroy(chain: *mut Swapchain) {
     }
 }
 unsafe extern "C" fn chain_info_query(chain: *const Swapchain, out: *mut ChainInfo) {
-    if let (Some(chain), Some(out)) = (unsafe { chain.as_ref() }, unsafe { out.as_mut() }) {
-        *out = chain.info();
+    if let Some(chain) = unsafe { chain.as_ref() } {
+        if !out.is_null() {
+            unsafe {
+                out.write(chain.info());
+            }
+        }
     }
 }
 unsafe extern "C" fn chain_images(
@@ -312,15 +316,20 @@ unsafe extern "C" fn chain_resize(
 ) -> Status {
     boundary(|| {
         let chain = unsafe { chain.as_ref() }.ok_or(INVALID)?;
-        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
+        if out.is_null() {
+            return Err(INVALID);
+        }
         let info = chain.info();
-        *out = ChainResizeOutcome {
-            generation: info.generation,
-            state: info.state,
-            image_effect: IMAGES_UNCHANGED,
-        };
+        unsafe {
+            out.write(ChainResizeOutcome {
+                generation: info.generation,
+                state: info.state,
+                image_effect: IMAGES_UNCHANGED,
+            });
+        }
         let desc = unsafe { desc.as_ref() }.ok_or(INVALID)?;
-        chain.resize(desc, out)
+        // The complete value was initialized above, including on local rejection.
+        chain.resize(desc, unsafe { &mut *out })
     })
 }
 unsafe extern "C" fn chain_pacing_handle(
@@ -328,9 +337,17 @@ unsafe extern "C" fn chain_pacing_handle(
     out: *mut PacingHandle,
 ) -> Status {
     boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let mut value = PacingHandle::default();
         unsafe { chain.as_ref() }
             .ok_or(INVALID)?
-            .pacing_handle(unsafe { out.as_mut() }.ok_or(INVALID)?)
+            .pacing_handle(&mut value)?;
+        unsafe {
+            out.write(value);
+        }
+        Ok(())
     })
 }
 unsafe extern "C" fn acquire(
@@ -339,10 +356,13 @@ unsafe extern "C" fn acquire(
     out: *mut Frame,
 ) -> Status {
     boundary(|| unsafe {
+        if out.is_null() {
+            return Err(INVALID);
+        }
         chain
             .as_ref()
             .ok_or(INVALID)?
-            .acquire_frame(desc.as_ref().ok_or(INVALID)?, out.as_mut().ok_or(INVALID)?)
+            .acquire_frame(desc.as_ref().ok_or(INVALID)?, out)
     })
 }
 unsafe extern "C" fn abandon_scratch_requirements(

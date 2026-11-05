@@ -156,6 +156,28 @@ fn unbound_queue_rejects_and_writes_every_outcome() {
     );
 }
 
+#[test]
+fn c_submission_accepts_uninitialized_outcomes() {
+    let batches = [SubmitDesc::default(); 3];
+    let mut outputs = [std::mem::MaybeUninit::<SubmitOutcome>::uninit(); 3];
+    let status = unsafe {
+        crate::foundation::ogpu_next_queue_submit(
+            ptr::null_mut(),
+            3,
+            batches.as_ptr(),
+            outputs.as_mut_ptr().cast(),
+            empty_storage(),
+        )
+    };
+    assert_eq!(status, INVALID);
+    for output in outputs {
+        assert_eq!(
+            unsafe { output.assume_init() },
+            SubmitOutcome::rejected(INVALID)
+        );
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Seen {
     lists: Vec<usize>,
@@ -667,8 +689,20 @@ fn gpu_unified_submission() {
             assert!(words.iter().all(|w| *w == 0xaabbccdd));
         }
         FAILURE.set(vk::VkResult_VK_SUCCESS);
-        let mut results = [SENTINEL; 3];
-        unsafe { queue.submit_descriptions(&batches, &mut results, scratch) }.unwrap();
+        let mut fresh = [std::mem::MaybeUninit::<SubmitOutcome>::uninit(); 3];
+        assert_eq!(
+            unsafe {
+                crate::foundation::ogpu_next_queue_submit(
+                    ptr::from_ref(queue).cast_mut(),
+                    batches.len() as u32,
+                    batches.as_ptr(),
+                    fresh.as_mut_ptr().cast(),
+                    scratch,
+                )
+            },
+            OK
+        );
+        let mut results = fresh.map(|outcome| unsafe { outcome.assume_init() });
         all(&results, OK, SUBMIT_ACCEPTED);
         storage.guards();
         storage.overwrite();

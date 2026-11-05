@@ -195,14 +195,27 @@ pub(super) unsafe fn consume(lists: *const *mut List, count: u32) {
     }
 }
 impl Queue {
+    // Initialized Rust slices and C output-only storage share this one engine.
+    // No temporary array or initial fill before the final outcome writes.
     pub(in crate::foundation) unsafe fn submit_descriptions(
         &self,
         descs: &[SubmitDesc],
         outcomes: &mut [SubmitOutcome],
         storage: HostSpan,
     ) -> Result<(), Status> {
+        unsafe {
+            self.submit_descriptions_to(descs, outcomes.as_mut_ptr(), outcomes.len(), storage)
+        }
+    }
+    pub(in crate::foundation) unsafe fn submit_descriptions_to(
+        &self,
+        descs: &[SubmitDesc],
+        outcomes: *mut SubmitOutcome,
+        outcome_count: usize,
+        storage: HostSpan,
+    ) -> Result<(), Status> {
         let preflight_and_submit = || -> Result<SubmitOutcome, Status> {
-            if outcomes.len() != descs.len() {
+            if outcome_count != descs.len() {
                 return Err(INVALID);
             }
             let device = self.device.load(Ordering::Relaxed).cast_const();
@@ -246,7 +259,11 @@ impl Queue {
         // All local failures are whole-call rejections. One vkQueueSubmit2 gives
         // the same acceptance for every batch; never invent partial progress.
         let outcome = preflight_and_submit().unwrap_or_else(SubmitOutcome::rejected);
-        outcomes.fill(outcome);
+        for i in 0..outcome_count {
+            unsafe {
+                outcomes.add(i).write(outcome);
+            }
+        }
         outcome.result()
     }
 }
