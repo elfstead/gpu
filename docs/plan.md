@@ -299,8 +299,14 @@ sequence identity, set updates, whole-buffer guards and 20 rejected recordings.
 Graphics/mesh and nested-count actions have lowering and layout coverage, but
 their execution remains unverified. No host readback or command-time allocation
 is introduced; this is not a timing or full-M8 acceptance claim.
-Active after local C3: generated graphics execution and the GPU-culled scene, followed by the
-remaining advanced raster profiles and vertex/index-state token gaps. Ray tracing is
+The [first generated-graphics/culling consumer](results/m8-generated-graphics-2026-11-06.md)
+now passes on Radeon through the unchanged revision-7 API: ten fixed-executable
+submissions, explicit/integrated preprocessing, GPU compaction/count/identity and
+20,480 pixels with full-buffer guards. Graphics pipeline selection is unsupported
+locally and remains independently gated; no fallback is introduced.
+Next: generated indexed/nested-count graphics coverage and vertex/index-state token
+gaps, then remaining advanced raster profiles. Larger textured/depth and external
+consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 
 ## Parallel candidate: native DX12 on Windows

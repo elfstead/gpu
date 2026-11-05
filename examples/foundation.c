@@ -130,6 +130,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_compressed.h"
 #include "foundation_mesh.h"
 #include "foundation_generated.h"
+#include "foundation_generated_graphics.h"
 #include "foundation_split.h"
 #include "foundation_raster_storage.h"
 #include "foundation_mrt.h"
@@ -1082,7 +1083,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 44);
+    REQUIRE(argc == 47);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1102,6 +1103,7 @@ int main(int argc, char **argv) {
     for (uint32_t mode = OGPU_NEXT_ONE_SHOT; mode <= OGPU_NEXT_SIMULTANEOUS_REPLAY; ++mode)
         REQUIRE(split_execution(device, memory_desc, graphics_domain, mode) == EXIT_SUCCESS);
     REQUIRE(mesh_execution(device, memory_desc, graphics_domain, &argv[38]) == EXIT_SUCCESS);
+    REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(dual_source_execution(device,memory_desc,graphics_domain,argv[3],argv[14]) == EXIT_SUCCESS);

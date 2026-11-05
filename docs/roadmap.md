@@ -75,7 +75,7 @@ compatibility are not completed by those results.
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
-| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and justified advanced raster primitives | Active after local C3; compressed, task/mesh and initial generated-command tranches implemented; generated graphics execution, GPU-culled consumer and advanced raster remain |
+| M8 — Advanced raster and GPU-driven execution | Block compression, task/mesh, generated commands and justified advanced raster primitives | Active after local C3; compressed, task/mesh and initial generated-command tranches implemented; bounded fixed-executable generated graphics/culling now passes; indexed/nested-count coverage, richer consumer and advanced raster remain |
 | M9 — Ray tracing | Acceleration structures, ray queries, ray pipelines and shader tables | After M8 by default; shares memory/executable requirements, native validation may remain open |
 | M10 — Memory and interoperability | Mixed backing, native resource/synchronization sharing, VM/sparse memory and residency | After M9 by default; pull prerequisites into P1/M6/M8/M9 when needed |
 | M11 — Advanced compute and media | Richer launch/artifact/numerical profiles, hardware matrix consumer and video sessions | After M10 by default; compute and media are independently accepted subprofiles |
@@ -573,8 +573,12 @@ storage, explicit dependencies and separate/integrated preprocessing. Both drive
 pass GPU-produced compute choice/arguments/counts and sequence identity across
 20 submissions; malformed recordings reject before submission. Graphics/mesh and
 nested-count actions have native lowering and layout coverage, not execution
-acceptance yet. GPU-culled graphics execution is next; vertex/index-state tokens,
-richer raster interactions and performance evidence remain open.
+acceptance at that checkpoint. The [2026-11-06 generated-graphics consumer](results/m8-generated-graphics-2026-11-06.md)
+now passes fixed-executable culling/compaction, GPU counts/identity and both
+preprocessing modes on Radeon (ten submissions, 20,480 pixels, guards). Graphics
+pipeline selection is unavailable locally and independently gated. Generated
+indexed/nested-count/mesh execution, vertex/index-state tokens, richer scene/raster
+interactions and performance evidence remain open.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage

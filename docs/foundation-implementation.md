@@ -16,6 +16,8 @@ following the argument, descriptor, generated-layout, dependency and submission
 cutovers. Borrowed frames and explicit effects replace index-only acquisition and
 status-only presentation. Bounded Wayland consumers, the C2 audit and [clean local C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) pass. Remaining M8 is active, as recorded in the [working plan](plan.md).
 
+M8 continuation, 2026-11-06: [generated graphics with consumer-owned culling](results/m8-generated-graphics-2026-11-06.md) passes the fixed-executable profile on Radeon using the existing API. Graphics pipeline selection remains unavailable locally; indexed/nested-count and richer raster/scene coverage remain open.
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and
