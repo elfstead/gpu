@@ -10,6 +10,13 @@ SDK profile. Foundation packaging is default; `--legacy` adds ABI20 files explic
 This is a migration boundary, not
 two permanent runtimes. Earlier source-only receipts below describe their checkpoint.
 
+Current minimal-core revision, 2026-11-05: foundation schema 7 installs the
+[presentation lifecycle](minimal-core-presentation.md) through C and native Rust,
+following the argument, descriptor, generated-layout, dependency and submission
+cutovers. Borrowed frames and explicit effects replace index-only acquisition and
+status-only presentation. Bounded Wayland consumers pass; the full C2 audit/local C3
+remain, as recorded in the [working plan](plan.md).
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and

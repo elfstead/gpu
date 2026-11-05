@@ -1,14 +1,6 @@
 //! Thin optional C presentation table, backed by the native Rust operations.
 use super::*;
 
-unsafe fn description<'a, T>(pointer: *const T, kind: u32) -> Result<&'a T, Status> {
-    if pointer.is_null() {
-        return Err(INVALID);
-    }
-    unsafe { pointer.cast::<Record>().read() }.validate::<T>(kind)?;
-    Ok(unsafe { &*pointer })
-}
-
 /// Get the exact revision's table, without loading Vulkan or accessing a display.
 /// # Safety
 /// Out points to writable, aligned, disjoint storage of byte_size bytes. Failure
@@ -43,11 +35,17 @@ pub unsafe extern "C" fn ogpu_next_presentation_api(
             fence_poll: Some(fence_poll),
             fence_wait: Some(fence_wait),
             fence_reset: Some(fence_reset),
-            swapchain_create: Some(swapchain_create),
-            swapchain_destroy: Some(swapchain_destroy),
-            swapchain_images: Some(swapchain_images),
+            surface_win32_create: Some(surface_win32_create),
+            presentation_contract_query: Some(presentation_contract_query),
+            chain_create: Some(chain_create),
+            chain_destroy: Some(chain_destroy),
+            chain_info_query: Some(chain_info_query),
+            chain_images: Some(chain_images),
+            chain_resize: Some(chain_resize),
+            chain_pacing_handle: Some(chain_pacing_handle),
             acquire: Some(acquire),
-            release: Some(release),
+            abandon_scratch_requirements: Some(abandon_scratch_requirements),
+            abandon: Some(abandon),
             present_scratch_requirements: Some(present_scratch_requirements),
             queue_present: Some(queue_present),
         });
@@ -223,10 +221,10 @@ unsafe extern "C" fn fence_reset(fence: *mut Fence) -> Status {
     })
 }
 
-unsafe extern "C" fn swapchain_create(
-    device: *mut Device,
-    desc: *const SwapchainDesc,
-    out: *mut *mut Swapchain,
+unsafe extern "C" fn surface_win32_create(
+    adapter: *const Adapter,
+    desc: *const Win32SurfaceDesc,
+    out: *mut *mut Surface,
 ) -> Status {
     if out.is_null() {
         return INVALID;
@@ -235,23 +233,67 @@ unsafe extern "C" fn swapchain_create(
         out.write(ptr::null_mut());
     }
     boundary(|| {
-        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
-        let desc = unsafe { description(desc, SWAPCHAIN_DESC)? };
-        let chain = unsafe { rust::swapchain_create(device, desc)? };
+        let adapter = unsafe { adapter.as_ref() }.ok_or(INVALID)?;
+        let desc = unsafe { desc.cast::<Record>().as_ref() }.ok_or(INVALID)?;
+        desc.validate::<Win32SurfaceDesc>(WIN32_SURFACE_DESC)?;
+        let desc = unsafe { &*ptr::from_ref(desc).cast::<Win32SurfaceDesc>() };
+        let surface = unsafe { rust::surface_win32_create(adapter, desc)? };
         unsafe {
-            out.write(chain.as_raw());
+            out.write(surface.as_raw());
         }
         Ok(())
     })
 }
-unsafe extern "C" fn swapchain_destroy(chain: *mut Swapchain) {
+unsafe extern "C" fn presentation_contract_query(
+    adapter: *const Adapter,
+    surface: *const Surface,
+    profile: u32,
+    out: *mut PresentationContract,
+) -> Status {
+    boundary(|| {
+        if out.is_null() {
+            return Err(INVALID);
+        }
+        let adapter = unsafe { adapter.as_ref() }.ok_or(INVALID)?;
+        let surface =
+            unsafe { rust::SurfaceHandle::from_raw(surface.cast_mut()) }.ok_or(INVALID)?;
+        let value = unsafe { rust::presentation_contract_query(adapter, surface, profile)? };
+        unsafe {
+            out.write(value);
+        }
+        Ok(())
+    })
+}
+unsafe extern "C" fn chain_create(
+    device: *mut Device,
+    desc: *const Record,
+    out: *mut ChainCreateOutcome,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(ChainCreateOutcome::default());
+    }
+    boundary(|| {
+        let device = unsafe { rust::DeviceHandle::from_raw(device) }.ok_or(INVALID)?;
+        let desc = unsafe { desc.as_ref() }.ok_or(INVALID)?;
+        unsafe { rust::chain_create(device, desc, &mut *out) }
+    })
+}
+unsafe extern "C" fn chain_destroy(chain: *mut Swapchain) {
     if let Some(chain) = unsafe { rust::SwapchainHandle::from_raw(chain) } {
         unsafe {
-            rust::swapchain_destroy(chain);
+            rust::chain_destroy(chain);
         }
     }
 }
-unsafe extern "C" fn swapchain_images(
+unsafe extern "C" fn chain_info_query(chain: *const Swapchain, out: *mut ChainInfo) {
+    if let (Some(chain), Some(out)) = (unsafe { chain.as_ref() }, unsafe { out.as_mut() }) {
+        *out = chain.info();
+    }
+}
+unsafe extern "C" fn chain_images(
     chain: *const Swapchain,
     capacity: u32,
     out: *mut *mut Image,
@@ -263,72 +305,114 @@ unsafe extern "C" fn swapchain_images(
             .and_then(|chain| unsafe { chain.images(capacity, out, count) })
     })
 }
-unsafe extern "C" fn acquire(
+unsafe extern "C" fn chain_resize(
     chain: *mut Swapchain,
-    timeout: u64,
-    binary: *mut Binary,
-    fence: *mut Fence,
-    out: *mut u32,
+    desc: *const ChainResizeDesc,
+    out: *mut ChainResizeOutcome,
 ) -> Status {
     boundary(|| {
-        if out.is_null() {
-            return Err(INVALID);
-        }
-        let chain = unsafe { rust::SwapchainHandle::from_raw(chain) }.ok_or(INVALID)?;
-        let (index, suboptimal) = unsafe {
-            rust::acquire(
-                chain,
-                timeout,
-                rust::BinaryHandle::from_raw(binary),
-                rust::FenceHandle::from_raw(fence),
-            )?
+        let chain = unsafe { chain.as_ref() }.ok_or(INVALID)?;
+        let out = unsafe { out.as_mut() }.ok_or(INVALID)?;
+        let info = chain.info();
+        *out = ChainResizeOutcome {
+            generation: info.generation,
+            state: info.state,
+            image_effect: IMAGES_UNCHANGED,
         };
-        unsafe {
-            out.write(index);
-        }
-        if suboptimal {
-            Err(SUBOPTIMAL)
-        } else {
-            Ok(())
-        }
+        let desc = unsafe { desc.as_ref() }.ok_or(INVALID)?;
+        chain.resize(desc, out)
     })
 }
-unsafe extern "C" fn release(chain: *mut Swapchain, count: u32, indices: *const u32) -> Status {
+unsafe extern "C" fn chain_pacing_handle(
+    chain: *const Swapchain,
+    out: *mut PacingHandle,
+) -> Status {
     boundary(|| {
-        let chain = unsafe { rust::SwapchainHandle::from_raw(chain) }.ok_or(INVALID)?;
-        if count == 0 || indices.is_null() {
-            return Err(INVALID);
-        }
-        std::alloc::Layout::array::<u32>(count as usize).map_err(|_| INVALID)?;
-        let indices = unsafe { std::slice::from_raw_parts(indices, count as usize) };
-        unsafe { rust::release(chain, indices) }
+        unsafe { chain.as_ref() }
+            .ok_or(INVALID)?
+            .pacing_handle(unsafe { out.as_mut() }.ok_or(INVALID)?)
     })
 }
-unsafe extern "C" fn present_scratch_requirements(
-    waits: u32,
-    images: u32,
+unsafe extern "C" fn acquire(
+    chain: *mut Swapchain,
+    desc: *const AcquireDesc,
+    out: *mut Frame,
+) -> Status {
+    boundary(|| unsafe {
+        chain
+            .as_ref()
+            .ok_or(INVALID)?
+            .acquire_frame(desc.as_ref().ok_or(INVALID)?, out.as_mut().ok_or(INVALID)?)
+    })
+}
+unsafe extern "C" fn abandon_scratch_requirements(
+    device: *const Device,
+    count: u32,
     out: *mut HostRequirements,
 ) -> Status {
     boundary(|| {
         if out.is_null() {
             return Err(INVALID);
         }
-        let req = rust::present_scratch_requirements(waits, images)?;
+        let device = unsafe { rust::DeviceHandle::from_raw(device.cast_mut()) }.ok_or(INVALID)?;
+        let value = unsafe { rust::abandon_scratch_requirements(device, count)? };
         unsafe {
-            out.write(req);
+            out.write(value);
         }
         Ok(())
     })
 }
-unsafe extern "C" fn queue_present(queue: *mut Queue, desc: *const PresentDesc) -> Status {
+unsafe extern "C" fn abandon(
+    chain: *mut Swapchain,
+    count: u32,
+    frames: *const Frame,
+    scratch: HostSpan,
+    effect: *mut u32,
+) -> Status {
+    if effect.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        effect.write(FRAME_RETAINED);
+    }
+    boundary(|| unsafe {
+        let chain = chain.as_ref().ok_or(INVALID)?;
+        let frames = native::command_slice(frames, count)?;
+        chain.abandon(frames, scratch, &mut *effect)
+    })
+}
+unsafe extern "C" fn present_scratch_requirements(
+    device: *const Device,
+    waits: u32,
+    items: u32,
+    out: *mut HostRequirements,
+) -> Status {
     boundary(|| {
-        let queue = unsafe { rust::QueueHandle::from_raw(queue) }.ok_or(INVALID)?;
-        let desc = unsafe { description(desc, PRESENT_DESC)? };
-        if unsafe { rust::queue_present(queue, desc)? } {
-            Err(SUBOPTIMAL)
-        } else {
-            Ok(())
+        if out.is_null() {
+            return Err(INVALID);
         }
+        let device = unsafe { rust::DeviceHandle::from_raw(device.cast_mut()) }.ok_or(INVALID)?;
+        let value = unsafe { rust::present_scratch_requirements(device, waits, items)? };
+        unsafe {
+            out.write(value);
+        }
+        Ok(())
+    })
+}
+unsafe extern "C" fn queue_present(
+    queue: *mut Queue,
+    desc: *const PresentDesc,
+    out: *mut PresentOutcome,
+) -> Status {
+    if out.is_null() {
+        return INVALID;
+    }
+    unsafe {
+        out.write(PresentOutcome::default());
+    }
+    boundary(|| unsafe {
+        let queue = rust::QueueHandle::from_raw(queue).ok_or(INVALID)?;
+        rust::queue_present(queue, desc.as_ref().ok_or(INVALID)?, &mut *out)
     })
 }
 
@@ -352,11 +436,17 @@ mod tests {
             fence_poll: None,
             fence_wait: None,
             fence_reset: None,
-            swapchain_create: None,
-            swapchain_destroy: None,
-            swapchain_images: None,
+            surface_win32_create: None,
+            presentation_contract_query: None,
+            chain_create: None,
+            chain_destroy: None,
+            chain_info_query: None,
+            chain_images: None,
+            chain_resize: None,
+            chain_pacing_handle: None,
             acquire: None,
-            release: None,
+            abandon_scratch_requirements: None,
+            abandon: None,
             present_scratch_requirements: None,
             queue_present: None,
         };
@@ -382,13 +472,19 @@ mod tests {
             assert!(table.surface_mode_query.is_none());
             assert!(table.binary_create.is_none() && table.binary_destroy.is_none());
             assert!(table.fence_create.is_none() && table.fence_destroy.is_none());
-            assert!(table.swapchain_create.is_none() && table.swapchain_destroy.is_none());
-            assert!(
-                table.swapchain_images.is_none()
-                    && table.acquire.is_none()
-                    && table.release.is_none()
-            );
-            assert!(table.present_scratch_requirements.is_none() && table.queue_present.is_none());
+            assert!(table.surface_win32_create.is_none());
+            assert!(table.presentation_contract_query.is_none());
+            assert!(table.chain_create.is_none());
+            assert!(table.chain_destroy.is_none());
+            assert!(table.chain_info_query.is_none());
+            assert!(table.chain_images.is_none());
+            assert!(table.chain_resize.is_none());
+            assert!(table.chain_pacing_handle.is_none());
+            assert!(table.acquire.is_none());
+            assert!(table.abandon_scratch_requirements.is_none());
+            assert!(table.abandon.is_none());
+            assert!(table.present_scratch_requirements.is_none());
+            assert!(table.queue_present.is_none());
             assert!(
                 table.fence_poll.is_none()
                     && table.fence_wait.is_none()
@@ -409,11 +505,19 @@ mod tests {
         assert!(table.surface_mode_query.is_some());
         assert!(table.binary_create.is_some() && table.binary_destroy.is_some());
         assert!(table.fence_create.is_some() && table.fence_destroy.is_some());
-        assert!(table.swapchain_create.is_some() && table.swapchain_destroy.is_some());
-        assert!(
-            table.swapchain_images.is_some() && table.acquire.is_some() && table.release.is_some()
-        );
-        assert!(table.present_scratch_requirements.is_some() && table.queue_present.is_some());
+        assert!(table.surface_win32_create.is_some());
+        assert!(table.presentation_contract_query.is_some());
+        assert!(table.chain_create.is_some());
+        assert!(table.chain_destroy.is_some());
+        assert!(table.chain_info_query.is_some());
+        assert!(table.chain_images.is_some());
+        assert!(table.chain_resize.is_some());
+        assert!(table.chain_pacing_handle.is_some());
+        assert!(table.acquire.is_some());
+        assert!(table.abandon_scratch_requirements.is_some());
+        assert!(table.abandon.is_some());
+        assert!(table.present_scratch_requirements.is_some());
+        assert!(table.queue_present.is_some());
         assert!(
             table.fence_poll.is_some() && table.fence_wait.is_some() && table.fence_reset.is_some()
         );

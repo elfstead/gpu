@@ -3,10 +3,8 @@ use super::*;
 use crate::foundation::Surface;
 use commands::{scratch, slice};
 use std::{alloc::Layout, cell::Cell};
-// Temporary private engine checkpoint; remove allowance at the public cutover.
-#[allow(dead_code)]
 #[path = "presentation_lifecycle.rs"]
-mod lifecycle;
+pub(in crate::foundation) mod lifecycle;
 
 macro_rules! functions {
     ($($name:ident: $ty:ident),* $(,)?) => {
@@ -40,7 +38,6 @@ pub struct Swapchain {
     // Frozen after construction, so borrowed Image addresses never move.
     images: Vec<Image>,
     present_domains: Vec<u32>,
-    #[allow(dead_code)] // Used by the private lifecycle engine until public cutover.
     generation: u64,
     state: Cell<u32>,
 }
@@ -137,7 +134,7 @@ impl Swapchain {
         if old.is_some_and(|old| {
             old.device != ptr::from_ref(d)
                 || old.surface != ptr::from_ref(surface)
-                || old.state.get() != lifecycle::CHAIN_ACTIVE
+                || old.state.get() != CHAIN_ACTIVE
         }) {
             return Err(INVALID);
         }
@@ -274,7 +271,7 @@ impl Swapchain {
             images: Vec::new(),
             present_domains,
             generation: 1,
-            state: Cell::new(lifecycle::CHAIN_ACTIVE),
+            state: Cell::new(CHAIN_ACTIVE),
         });
         unsafe {
             chain.create_native(d, &info, old, |handle| {
@@ -294,7 +291,7 @@ impl Swapchain {
         // No fallible host work between retirement and the native create call.
         // Vulkan retires oldSwapchain even when creation fails.
         if let Some(old) = old {
-            old.state.set(lifecycle::CHAIN_RETIRED);
+            old.state.set(CHAIN_RETIRED);
         }
         d.result(unsafe {
             (self.f.vkCreateSwapchainKHR.unwrap())(d.handle, info, ptr::null(), &mut handle)
@@ -339,62 +336,6 @@ impl Swapchain {
             }
         }
         Ok(())
-    }
-    pub(in crate::foundation) unsafe fn acquire(
-        &self,
-        timeout: u64,
-        binary: *mut Binary,
-        fence: *mut Fence,
-    ) -> Result<(u32, bool), Status> {
-        let d = unsafe { &*self.device };
-        d.ready()?;
-        if self.state.get() != lifecycle::CHAIN_ACTIVE {
-            return Err(INVALID);
-        }
-        if binary.is_null() && fence.is_null() {
-            return Err(INVALID);
-        }
-        let binary = unsafe { binary.as_ref() };
-        let fence = unsafe { fence.as_ref() };
-        if binary.is_some_and(|b| b.device != self.device)
-            || fence.is_some_and(|f| f.device != self.device)
-        {
-            return Err(INVALID);
-        }
-        let mut index = u32::MAX;
-        let result = d.result(unsafe {
-            (self.f.vkAcquireNextImageKHR.unwrap())(
-                d.handle,
-                self.handle,
-                timeout,
-                binary.map_or(ptr::null_mut(), |b| b.handle),
-                fence.map_or(ptr::null_mut(), |f| f.handle),
-                &mut index,
-            )
-        });
-        match result {
-            Ok(()) | Err(SUBOPTIMAL) => {
-                if index as usize >= self.images.len() {
-                    // A successful native acquisition with an invalid index has
-                    // uncertain signals/ownership; never publish a bogus image.
-                    d.lost.store(true, Ordering::Relaxed);
-                    return Err(BACKEND_ERROR);
-                }
-                Ok((index, result == Err(SUBOPTIMAL)))
-            }
-            Err(e) => Err(e),
-        }
-    }
-    pub(in crate::foundation) fn release(&self, indices: &[u32]) -> Result<(), Status> {
-        let d = unsafe { &*self.device };
-        d.ready()?;
-        if indices.is_empty()
-            || indices.len() > u32::MAX as usize
-            || indices.iter().any(|i| *i as usize >= self.images.len())
-        {
-            return Err(INVALID);
-        }
-        d.result(unsafe { self.release_native(d, indices) })
     }
     unsafe fn release_native(&self, d: &Device, indices: &[u32]) -> vk::VkResult {
         let info = vk::VkReleaseSwapchainImagesInfoKHR {
@@ -545,43 +486,11 @@ impl Queue {
         }
         Ok((result, results))
     }
-    pub(in crate::foundation) unsafe fn present(&self, desc: &PresentDesc) -> Result<bool, Status> {
-        desc.header.validate::<PresentDesc>(PRESENT_DESC)?;
-        let d = self.present_device()?;
-        let waits = unsafe { slice(desc.waits, desc.wait_count)? };
-        let entries = unsafe { slice(desc.images, desc.image_count)? };
-        let (result, results) = unsafe {
-            self.present_native(d, waits, desc.image_count, desc.scratch, |i| {
-                let entry = &entries[i];
-                if entry.reserved != 0 {
-                    return Err(INVALID);
-                }
-                let chain = entry.swapchain.as_ref().ok_or(INVALID)?;
-                chain.present_entry(d, self.domain, entry.index, entry.fence)
-            })?
-        };
-        if !desc.results.is_null() {
-            for i in 0..entries.len() {
-                unsafe {
-                    desc.results
-                        .add(i)
-                        .write(d.result(results.add(i).read()).err().unwrap_or(OK));
-                }
-            }
-        }
-        match d.result(result) {
-            Ok(()) => Ok(false),
-            Err(SUBOPTIMAL) => Ok(true),
-            Err(e) => Err(e),
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::foundation::{ogpu_next_presentation_api, rust};
-    use std::cell::Cell;
 
     #[test]
     fn scratch_and_surface_bounds_are_explicit() {
@@ -644,266 +553,5 @@ mod tests {
             status(vk::VkResult_VK_ERROR_SURFACE_LOST_KHR),
             Err(SURFACE_LOST)
         );
-    }
-    thread_local! {
-        static RESULT: Cell<vk::VkResult> = const { Cell::new(vk::VkResult_VK_SUCCESS) };
-        static CALLS: Cell<u32> = const { Cell::new(0) };
-        static SHAPE: Cell<bool> = const { Cell::new(false) };
-    }
-    unsafe extern "C" fn destroy(
-        _: vk::VkDevice,
-        _: vk::VkSwapchainKHR,
-        _: *const vk::VkAllocationCallbacks,
-    ) {
-    }
-    unsafe extern "C" fn acquire(
-        _: vk::VkDevice,
-        _: vk::VkSwapchainKHR,
-        _: u64,
-        _: vk::VkSemaphore,
-        _: vk::VkFence,
-        index: *mut u32,
-    ) -> vk::VkResult {
-        CALLS.set(CALLS.get() + 1);
-        // Deliberately scribble an unspecified output even on failure.
-        unsafe {
-            index.write(0);
-        }
-        RESULT.get()
-    }
-    unsafe extern "C" fn release(
-        _: vk::VkDevice,
-        info: *const vk::VkReleaseSwapchainImagesInfoKHR,
-    ) -> vk::VkResult {
-        CALLS.set(CALLS.get() + 1);
-        SHAPE.set(unsafe { (*info).imageIndexCount == 1 && *(*info).pImageIndices == 0 });
-        RESULT.get()
-    }
-    unsafe extern "C" fn present(
-        _: vk::VkQueue,
-        info: *const vk::VkPresentInfoKHR,
-    ) -> vk::VkResult {
-        CALLS.set(CALLS.get() + 1);
-        let info = unsafe { &*info };
-        let fences = unsafe { &*info.pNext.cast::<vk::VkSwapchainPresentFenceInfoKHR>() };
-        SHAPE.set(
-            info.swapchainCount == 2
-                && info.waitSemaphoreCount == 1
-                && fences.swapchainCount == 2
-                && unsafe {
-                    *info.pImageIndices == 0
-                        && *info.pImageIndices.add(1) == 0
-                        && !(*info.pWaitSemaphores).is_null()
-                        && !(*fences.pFences).is_null()
-                        && (*fences.pFences.add(1)).is_null()
-                },
-        );
-        unsafe {
-            info.pResults.write(vk::VkResult_VK_SUCCESS);
-            info.pResults.add(1).write(RESULT.get());
-        }
-        RESULT.get()
-    }
-    #[test]
-    #[ignore = "requires modern Vulkan; headless injected WSI output, rejection and one-call batching checks"]
-    fn gpu_injected_swapchain_contract() {
-        let discovery = rust::discover().unwrap();
-        let adapter = rust::adapters(&discovery)
-            .iter()
-            .find(|a| rust::adapter_features(a).baseline_supported != 0)
-            .unwrap();
-        let domain = rust::adapter_queues(adapter)
-            .iter()
-            .find(|q| q.flags & GRAPHICS != 0)
-            .unwrap()
-            .domain;
-        let mut d = Device::create(
-            adapter,
-            &[QueueRequest {
-                domain,
-                count: 1,
-                priority: 1.0,
-            }],
-            0,
-        )
-        .unwrap();
-        // Only the wrapper gate is enabled: every WSI function is injected, no
-        // headless device is passed to native WSI or advertised as presentation-capable.
-        d.snapshot.features.enabled |= PRESENTATION;
-        let other = Device::create(
-            adapter,
-            &[QueueRequest {
-                domain,
-                count: 1,
-                priority: 1.0,
-            }],
-            0,
-        )
-        .unwrap();
-        let binary = Binary::create(&d).unwrap();
-        let foreign = Binary::create(&other).unwrap();
-        let fence = Fence::create(&d, false).unwrap();
-        let image_desc = ImageDesc {
-            header: Record::new::<ImageDesc>(IMAGE_DESC),
-            format: 3,
-            dimension: 2,
-            mip_count: 1,
-            layer_count: 1,
-            sample_count: 1,
-            extent: Extent { x: 8, y: 8, z: 1 },
-            usage: 18,
-            flags: 0,
-            view_formats: ptr::null(),
-            view_format_count: 0,
-            concurrent_domain_count: 0,
-            concurrent_domains: ptr::null(),
-        };
-        let chain = || Swapchain {
-            device: &*d,
-            surface: ptr::null(),
-            handle: ptr::dangling_mut(),
-            f: Functions {
-                vkCreateSwapchainKHR: None,
-                vkDestroySwapchainKHR: Some(destroy),
-                vkGetSwapchainImagesKHR: None,
-                vkAcquireNextImageKHR: Some(acquire),
-                vkReleaseSwapchainImagesKHR: Some(release),
-                vkQueuePresentKHR: Some(present),
-            },
-            images: vec![Image::from_swapchain(&d, ptr::dangling_mut(), unsafe {
-                d.prepare_image(&image_desc).unwrap()
-            })],
-            present_domains: vec![domain],
-            generation: 1,
-            state: Cell::new(lifecycle::CHAIN_ACTIVE),
-        };
-        let mut a = chain();
-        let mut b = chain();
-        let mut api = std::mem::MaybeUninit::<PresentationApi>::uninit();
-        unsafe {
-            assert_eq!(
-                ogpu_next_presentation_api(
-                    VERSION,
-                    size_of::<PresentationApi>() as u32,
-                    api.as_mut_ptr()
-                ),
-                OK
-            );
-            let api = api.assume_init();
-            let binary = ptr::from_ref(&*binary).cast_mut();
-            let foreign = ptr::from_ref(&*foreign).cast_mut();
-            let fence = ptr::from_ref(&*fence).cast_mut();
-            let mut index = 99;
-            CALLS.set(0);
-            assert_eq!(
-                api.acquire.unwrap()(&mut a, 0, foreign, fence, &mut index),
-                INVALID
-            );
-            assert_eq!(
-                api.acquire.unwrap()(&mut a, 0, ptr::null_mut(), ptr::null_mut(), &mut index),
-                INVALID
-            );
-            assert_eq!(index, 99);
-            assert_eq!(CALLS.get(), 0);
-            for (native, mapped) in [
-                (vk::VkResult_VK_TIMEOUT, TIMEOUT),
-                (vk::VkResult_VK_NOT_READY, NOT_READY),
-                (vk::VkResult_VK_ERROR_OUT_OF_DATE_KHR, OUT_OF_DATE),
-                (vk::VkResult_VK_ERROR_SURFACE_LOST_KHR, SURFACE_LOST),
-                (vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY, OUT_OF_MEMORY),
-            ] {
-                RESULT.set(native);
-                assert_eq!(
-                    api.acquire.unwrap()(&mut a, 0, binary, fence, &mut index),
-                    mapped
-                );
-                assert_eq!(index, 99);
-            }
-            RESULT.set(vk::VkResult_VK_SUBOPTIMAL_KHR);
-            assert_eq!(
-                api.acquire.unwrap()(&mut a, 0, binary, fence, &mut index),
-                SUBOPTIMAL
-            );
-            assert_eq!(index, 0);
-            RESULT.set(vk::VkResult_VK_SUCCESS);
-            assert_eq!(
-                api.acquire.unwrap()(&mut a, 0, binary, fence, &mut index),
-                OK
-            );
-            assert!(a.images[0].is_borrowed());
-            assert_eq!(
-                a.images[0].layout(STATE_PRESENT),
-                Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-            );
-            let ordinary = Image::create(&d, &image_desc).unwrap();
-            assert_eq!(ordinary.layout(STATE_PRESENT), Err(INVALID));
-            CALLS.set(0);
-            assert_eq!(api.release.unwrap()(&mut a, 1, &2), INVALID);
-            assert_eq!(CALLS.get(), 0);
-            assert_eq!(api.release.unwrap()(&mut a, 1, &0), OK);
-            assert!(SHAPE.get());
-            let waits = [binary];
-            let mut entries = [
-                PresentImage {
-                    swapchain: &mut a,
-                    index: 0,
-                    reserved: 0,
-                    fence,
-                },
-                PresentImage {
-                    swapchain: &mut b,
-                    index: 0,
-                    reserved: 1,
-                    fence: ptr::null_mut(),
-                },
-            ];
-            let req = present_scratch(1, 2).unwrap();
-            let mut storage = vec![0u64; req.size.div_ceil(8) as usize];
-            let mut results = [99; 2];
-            let mut desc = PresentDesc {
-                header: Record::new::<PresentDesc>(PRESENT_DESC),
-                wait_count: 1,
-                image_count: 2,
-                waits: waits.as_ptr(),
-                images: entries.as_ptr(),
-                results: results.as_mut_ptr(),
-                scratch: HostSpan {
-                    data: storage.as_mut_ptr().cast(),
-                    size: req.size,
-                },
-            };
-            let queue = ptr::from_ref(d.queue(domain, 0).unwrap()).cast_mut();
-            CALLS.set(0);
-            assert_eq!(api.queue_present.unwrap()(queue, &desc), INVALID);
-            assert_eq!(results, [99; 2]);
-            assert_eq!(CALLS.get(), 0);
-            entries[1].reserved = 0;
-            desc.images = entries.as_ptr();
-            desc.scratch.size = 0;
-            assert_eq!(api.queue_present.unwrap()(queue, &desc), CAPACITY);
-            assert_eq!(results, [99; 2]);
-            assert_eq!(CALLS.get(), 0);
-            desc.scratch.size = req.size;
-            for (native, mapped) in [
-                (vk::VkResult_VK_SUCCESS, OK),
-                (vk::VkResult_VK_SUBOPTIMAL_KHR, SUBOPTIMAL),
-                (vk::VkResult_VK_ERROR_OUT_OF_DATE_KHR, OUT_OF_DATE),
-                (vk::VkResult_VK_ERROR_SURFACE_LOST_KHR, SURFACE_LOST),
-                (vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY, OUT_OF_MEMORY),
-            ] {
-                CALLS.set(0);
-                RESULT.set(native);
-                assert_eq!(api.queue_present.unwrap()(queue, &desc), mapped);
-                assert_eq!(CALLS.get(), 1);
-                assert!(SHAPE.get());
-                assert_eq!(results, [OK, mapped]);
-            }
-            // Terminal native failure still marks the underlying device lost.
-            RESULT.set(vk::VkResult_VK_ERROR_DEVICE_LOST);
-            assert_eq!(api.queue_present.unwrap()(queue, &desc), DEVICE_LOST);
-            CALLS.set(0);
-            assert_eq!(api.queue_present.unwrap()(queue, &desc), DEVICE_LOST);
-            assert_eq!(CALLS.get(), 0);
-        }
     }
 }

@@ -111,7 +111,7 @@ class FrontierTests(unittest.TestCase):
         for capacity in (1,64,512):
             for strategy in f.STRATEGIES:
                 out,err,device,counts,_=self.fixture(capacity,strategy)
-                out=out.replace('Native indexed','Public indexed')+'PUBLIC_SCENE {"foundation":6,"index_bytes":4,"gpu_generated":true}\n'
+                out=out.replace('Native indexed','Public indexed')+'PUBLIC_SCENE {"foundation":7,"index_bytes":4,"gpu_generated":true}\n'
                 start,end,final=counts
                 start.update(vkDestroyCommandPool=0,vkResetCommandPool=1)
                 end.update(vkCreateCommandPool=1,vkDestroyCommandPool=0,vkResetCommandPool=9)
@@ -122,7 +122,7 @@ class FrontierTests(unittest.TestCase):
                         changed=copy.deepcopy(counts);changed[row][key]+=1
                         with self.assertRaises(ValueError):
                             f.check_log(out,err(changed),capacity,strategy,device,public=True,foundation=True)
-                for bad in (out.replace('"foundation":6','"abi":20'),out.replace('"index_bytes":4','"index_bytes":2')):
+                for bad in (out.replace('"foundation":7','"abi":20'),out.replace('"index_bytes":4','"index_bytes":2')):
                     with self.assertRaises(ValueError):
                         f.check_log(bad,err(),capacity,strategy,device,public=True,foundation=True)
 

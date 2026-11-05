@@ -1,5 +1,7 @@
 //! C records for include/ogpu_next.h. No backend types or implicit owners.
-use super::{Adapter, Device, Discovery, Queue, Timeline};
+use super::{
+    Adapter, Binary, Device, Discovery, Fence, Image, Queue, Surface, Swapchain, Timeline,
+};
 use std::ffi::{c_char, c_void};
 
 /// Backend-independent format IDs, matching the C header. An ID does not imply
@@ -22,7 +24,7 @@ pub mod image_formats {
     crate::foundation::format_catalog::format_catalog!(declare_formats);
 }
 
-pub const VERSION: u32 = 6;
+pub const VERSION: u32 = 7;
 pub type Status = i32;
 pub const OK: Status = 0;
 pub const NOT_READY: Status = 1;
@@ -194,7 +196,6 @@ pub struct MeshRequirements {
 }
 pub const WAYLAND_SURFACE_DESC: u32 = 125;
 pub const SWAPCHAIN_DESC: u32 = 127;
-pub const PRESENT_DESC: u32 = 128;
 pub const STATE_PRESENT: u32 = 8;
 pub const SURFACE_CAPABILITIES: u32 = 1000;
 pub const SURFACE_FORMATS: u32 = 1001;
@@ -278,23 +279,156 @@ pub struct SwapchainDesc {
     pub modes: *const u32,
 }
 #[repr(C)]
-#[derive(Clone, Copy)]
-pub struct PresentImage {
-    pub swapchain: *mut super::Swapchain,
-    pub index: u32,
-    pub reserved: u32,
-    pub fence: *mut super::Fence,
+#[derive(Clone, Copy, Debug)]
+pub struct Win32SurfaceDesc {
+    pub header: Record,
+    pub hwnd: *mut c_void,
 }
 #[repr(C)]
-pub struct PresentDesc {
+#[derive(Clone, Copy, Debug)]
+pub struct DxgiChainDesc {
     pub header: Record,
-    pub wait_count: u32,
+    pub surface: *mut Surface,
+    pub queue: *mut Queue,
+    pub format: u32,
+    pub extent: [u32; 2],
     pub image_count: u32,
-    pub waits: *const *mut super::Binary,
-    pub images: *const PresentImage,
-    pub results: *mut Status,
+    pub usage: u64,
+    pub swap_effect: u32,
+    pub scaling: u32,
+    pub alpha: u32,
+    pub color_space: u32,
+    pub chain_flags: u32,
+    pub maximum_frame_latency: u32,
+}
+pub const PRESENT_VULKAN: u32 = 1;
+pub const PRESENT_DXGI: u32 = 2;
+pub const PRESENTATION_WIN32: u32 = 2;
+pub const OCCLUDED: i32 = 5;
+pub const STILL_DRAWING: i32 = 6;
+pub const WIN32_SURFACE_DESC: u32 = 3000;
+pub const DXGI_CHAIN_DESC: u32 = 3001;
+pub const AVAILABILITY_SIGNALS: u32 = 1;
+pub const AVAILABILITY_QUEUE_ORDERED: u32 = 2;
+pub const PRESENT_REPLACE: u32 = 1;
+pub const PRESENT_RESIZE: u32 = 2;
+pub const PRESENT_RETIRE_FENCE: u32 = 4;
+pub const PRESENT_PACING_HANDLE: u32 = 8;
+pub const PRESENT_BINARY_WAIT: u32 = 16;
+pub const CHAIN_NONE: u32 = 0;
+pub const CHAIN_ACTIVE: u32 = 1;
+pub const CHAIN_RETIRED: u32 = 2;
+pub const CHAIN_NO_IMAGES: u32 = 3;
+pub const CHAIN_LOST: u32 = 4;
+pub const IMAGES_UNCHANGED: u32 = 0;
+pub const IMAGES_REPLACED: u32 = 1;
+pub const IMAGES_INVALIDATED: u32 = 2;
+pub const FRAME_RETAINED: u32 = 0;
+pub const FRAME_RELEASED: u32 = 1;
+pub const FRAME_UNKNOWN: u32 = 2;
+pub const EFFECT_NONE: u32 = 0;
+pub const EFFECT_ENQUEUED: u32 = 1;
+pub const EFFECT_UNKNOWN: u32 = 2;
+pub const WAITABLE_WIN32: u32 = 1;
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PresentationContract {
+    pub profile: u32,
+    pub availability: u32,
+    pub capabilities: u32,
+    pub max_present_count: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ChainInfo {
+    pub generation: u64,
+    pub state: u32,
+    pub image_count: u32,
+    pub ordered_queue: *mut Queue,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ChainCreateOutcome {
+    pub chain: *mut Swapchain,
+    pub previous_state: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ChainResizeDesc {
+    pub format: u32,
+    pub extent: [u32; 2],
+    pub image_count: u32,
+    pub chain_flags: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ChainResizeOutcome {
+    pub generation: u64,
+    pub state: u32,
+    pub image_effect: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct AcquireDesc {
+    pub timeout_ns: u64,
+    pub binary: *mut Binary,
+    pub fence: *mut Fence,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Frame {
+    pub chain: *mut Swapchain,
+    pub image: *mut Image,
+    pub generation: u64,
+    pub index: u32,
+    pub availability: u32,
+    pub ordered_queue: *mut Queue,
+    pub binary: *mut Binary,
+    pub fence: *mut Fence,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PresentItem {
+    pub frame: Frame,
+    pub retire_fence: *mut Fence,
+    pub sync_interval: u32,
+    pub native_flags: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PresentResult {
+    pub status: i32,
+    pub frame_effect: u32,
+    pub fence_effect: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PresentDesc {
+    pub wait_count: u32,
+    pub item_count: u32,
+    pub waits: *const *mut Binary,
+    pub items: *const PresentItem,
+    pub results: *mut PresentResult,
     pub scratch: HostSpan,
 }
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PresentOutcome {
+    pub work_effect: u32,
+    pub wait_effect: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PacingHandle {
+    pub kind: u32,
+    pub reserved: u32,
+    pub handle: *mut c_void,
+}
+
 /// Optional C function table. Native Rust callers use rust::presentation operations.
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -323,35 +457,43 @@ pub struct PresentationApi {
     pub fence_poll: Option<unsafe extern "C" fn(*const super::Fence) -> Status>,
     pub fence_wait: Option<unsafe extern "C" fn(*const super::Fence, u64) -> Status>,
     pub fence_reset: Option<unsafe extern "C" fn(*mut super::Fence) -> Status>,
-    pub swapchain_create: Option<
-        unsafe extern "C" fn(
-            *mut Device,
-            *const SwapchainDesc,
-            *mut *mut super::Swapchain,
-        ) -> Status,
+    pub surface_win32_create: Option<
+        unsafe extern "C" fn(*const Adapter, *const Win32SurfaceDesc, *mut *mut Surface) -> Status,
     >,
-    pub swapchain_destroy: Option<unsafe extern "C" fn(*mut super::Swapchain)>,
-    pub swapchain_images: Option<
+    pub presentation_contract_query: Option<
         unsafe extern "C" fn(
-            *const super::Swapchain,
+            *const Adapter,
+            *const Surface,
             u32,
-            *mut *mut super::Image,
-            *mut u32,
+            *mut PresentationContract,
         ) -> Status,
     >,
-    pub acquire: Option<
+    pub chain_create:
+        Option<unsafe extern "C" fn(*mut Device, *const Record, *mut ChainCreateOutcome) -> Status>,
+    pub chain_destroy: Option<unsafe extern "C" fn(*mut Swapchain)>,
+    pub chain_info_query: Option<unsafe extern "C" fn(*const Swapchain, *mut ChainInfo)>,
+    pub chain_images:
+        Option<unsafe extern "C" fn(*const Swapchain, u32, *mut *mut Image, *mut u32) -> Status>,
+    pub chain_resize: Option<
         unsafe extern "C" fn(
-            *mut super::Swapchain,
-            u64,
-            *mut super::Binary,
-            *mut super::Fence,
-            *mut u32,
+            *mut Swapchain,
+            *const ChainResizeDesc,
+            *mut ChainResizeOutcome,
         ) -> Status,
     >,
-    pub release: Option<unsafe extern "C" fn(*mut super::Swapchain, u32, *const u32) -> Status>,
+    pub chain_pacing_handle:
+        Option<unsafe extern "C" fn(*const Swapchain, *mut PacingHandle) -> Status>,
+    pub acquire:
+        Option<unsafe extern "C" fn(*mut Swapchain, *const AcquireDesc, *mut Frame) -> Status>,
+    pub abandon_scratch_requirements:
+        Option<unsafe extern "C" fn(*const Device, u32, *mut HostRequirements) -> Status>,
+    pub abandon: Option<
+        unsafe extern "C" fn(*mut Swapchain, u32, *const Frame, HostSpan, *mut u32) -> Status,
+    >,
     pub present_scratch_requirements:
-        Option<unsafe extern "C" fn(u32, u32, *mut HostRequirements) -> Status>,
-    pub queue_present: Option<unsafe extern "C" fn(*mut Queue, *const PresentDesc) -> Status>,
+        Option<unsafe extern "C" fn(*const Device, u32, u32, *mut HostRequirements) -> Status>,
+    pub queue_present:
+        Option<unsafe extern "C" fn(*mut Queue, *const PresentDesc, *mut PresentOutcome) -> Status>,
 }
 #[repr(C)]
 #[derive(Clone, Copy)]

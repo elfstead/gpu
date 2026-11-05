@@ -1,6 +1,6 @@
 //! Inject WSI only: real device/sync identities, no display or native WSI calls.
 use super::*;
-use crate::foundation::rust;
+use crate::foundation::{ogpu_next_presentation_api, rust};
 use std::cell::RefCell;
 
 #[test]
@@ -64,6 +64,80 @@ fn native_presentation_effects() {
             item_result(unknown, unknown, false).frame_effect,
             FRAME_UNKNOWN
         );
+    }
+}
+
+fn api() -> PresentationApi {
+    let mut table = std::mem::MaybeUninit::uninit();
+    unsafe {
+        assert_eq!(
+            ogpu_next_presentation_api(
+                VERSION,
+                size_of::<PresentationApi>() as u32,
+                table.as_mut_ptr()
+            ),
+            OK
+        );
+        table.assume_init()
+    }
+}
+unsafe fn present_call(
+    queue: &Queue,
+    desc: &PresentDesc,
+    out: &mut PresentOutcome,
+) -> Result<(), Status> {
+    let result =
+        unsafe { api().queue_present.unwrap()(ptr::from_ref(queue).cast_mut(), desc, out) };
+    if result == OK {
+        Ok(())
+    } else {
+        Err(result)
+    }
+}
+unsafe fn acquire_call(
+    chain: &Swapchain,
+    desc: &AcquireDesc,
+    out: &mut Frame,
+) -> Result<(), Status> {
+    let result = unsafe { api().acquire.unwrap()(ptr::from_ref(chain).cast_mut(), desc, out) };
+    if result == OK {
+        Ok(())
+    } else {
+        Err(result)
+    }
+}
+
+unsafe fn create_call(
+    d: &Device,
+    record: &Record,
+    out: &mut ChainCreateOutcome,
+) -> Result<(), Status> {
+    let result = unsafe { api().chain_create.unwrap()(ptr::from_ref(d).cast_mut(), record, out) };
+    if result == OK {
+        Ok(())
+    } else {
+        Err(result)
+    }
+}
+unsafe fn abandon_call(
+    chain: &Swapchain,
+    frames: &[Frame],
+    scratch: HostSpan,
+    effect: &mut u32,
+) -> Result<(), Status> {
+    let result = unsafe {
+        api().abandon.unwrap()(
+            ptr::from_ref(chain).cast_mut(),
+            frames.len() as u32,
+            frames.as_ptr(),
+            scratch,
+            effect,
+        )
+    };
+    if result == OK {
+        Ok(())
+    } else {
+        Err(result)
     }
 }
 
@@ -281,7 +355,7 @@ fn gpu_presentation_lifecycle() {
             (vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY, OUT_OF_MEMORY),
         ] {
             reset(native);
-            assert_eq!(a.acquire_frame(&acquire_desc, &mut frame), Err(expected));
+            assert_eq!(acquire_call(&a, &acquire_desc, &mut frame), Err(expected));
             assert_eq!(frame, sentinel);
             assert_eq!(calls(), 1);
         }
@@ -301,13 +375,13 @@ fn gpu_presentation_lifecycle() {
                 ..acquire_desc
             },
         ] {
-            assert_eq!(a.acquire_frame(&invalid, &mut frame), Err(INVALID));
+            assert_eq!(acquire_call(&a, &invalid, &mut frame), Err(INVALID));
             assert_eq!(frame, sentinel);
         }
         assert_eq!(calls(), 0);
         for native in [vk::VkResult_VK_SUCCESS, vk::VkResult_VK_SUBOPTIMAL_KHR] {
             reset(native);
-            assert_eq!(a.acquire_frame(&acquire_desc, &mut frame), status(native));
+            assert_eq!(acquire_call(&a, &acquire_desc, &mut frame), status(native));
             assert_eq!(frame, a.frame(0, &acquire_desc));
         }
         // Historical acquisition handles are not live inputs to present/abandon.
@@ -387,7 +461,7 @@ fn gpu_presentation_lifecycle() {
         ] {
             items[1].frame = bad_frame;
             desc.items = items.as_ptr();
-            assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+            assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
             assert_eq!(outcome, none);
             assert_eq!(results, [result_sentinel; 2]);
         }
@@ -396,41 +470,41 @@ fn gpu_presentation_lifecycle() {
             ..good
         };
         desc.items = items.as_ptr();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(UNSUPPORTED));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(UNSUPPORTED));
         items[1] = PresentItem {
             retire_fence: ptr::from_ref(&*foreign_fence).cast_mut(),
             ..good
         };
         desc.items = items.as_ptr();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
         items[1] = good;
         desc.items = items.as_ptr();
         desc.scratch.size = req.size - 1;
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(CAPACITY));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(CAPACITY));
         desc.scratch.size = req.size;
         desc.results = ptr::null_mut();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
         desc.results = results.as_mut_ptr();
         desc.item_count = 0;
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
         desc.item_count = 2;
         let data = desc.scratch.data;
         desc.scratch.data = data.cast::<u8>().add(1).cast();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
         desc.scratch.data = data;
         let foreign_wait = [ptr::from_ref(&*foreign_binary).cast_mut()];
         desc.waits = foreign_wait.as_ptr();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
         desc.waits = waits.as_ptr();
         let foreign_chain = chain(&foreign, domain, 3);
         items[1].frame = foreign_chain.frame(0, &acquire_desc);
         desc.items = items.as_ptr();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(INVALID));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(INVALID));
         let mut wrong_domain = chain(&d, domain, 4);
         wrong_domain.present_domains.clear();
         items[1].frame = wrong_domain.frame(0, &acquire_desc);
         desc.items = items.as_ptr();
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(UNSUPPORTED));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(UNSUPPORTED));
         items[1] = good;
         desc.items = items.as_ptr();
         assert_eq!(outcome, none);
@@ -447,7 +521,7 @@ fn gpu_presentation_lifecycle() {
         ] {
             reset(native);
             TRACE.with_borrow_mut(|t| t.item_results = Some([vk::VkResult_VK_SUCCESS, native]));
-            assert_eq!(queue.present_frames(&desc, &mut outcome), status(native));
+            assert_eq!(present_call(queue, &desc, &mut outcome), status(native));
             assert_eq!(
                 outcome,
                 PresentOutcome {
@@ -470,32 +544,26 @@ fn gpu_presentation_lifecycle() {
         }
         reset(vk::VkResult_VK_ERROR_OUT_OF_DEVICE_MEMORY);
         TRACE.with_borrow_mut(|t| t.item_results = Some([vk::VkResult_VK_ERROR_DEVICE_LOST; 2]));
-        assert_eq!(
-            queue.present_frames(&desc, &mut outcome),
-            Err(OUT_OF_MEMORY)
-        );
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(OUT_OF_MEMORY));
         assert!(!d.lost.load(Ordering::Relaxed));
         assert_eq!(results[0].frame_effect, FRAME_RETAINED);
         reset(vk::VkResult_VK_SUCCESS); // Driver leaves every pResults entry untouched.
         desc.wait_count = 0;
-        assert_eq!(
-            queue.present_frames(&desc, &mut outcome),
-            Err(BACKEND_ERROR)
-        );
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(BACKEND_ERROR));
         assert_eq!(outcome.wait_effect, EFFECT_NONE);
         assert_eq!(results[0].frame_effect, FRAME_UNKNOWN);
         assert_eq!(results[0].fence_effect, EFFECT_UNKNOWN);
         assert_eq!(results[1].fence_effect, EFFECT_NONE);
         reset(vk::VkResult_VK_ERROR_SURFACE_LOST_KHR);
         TRACE.with_borrow_mut(|t| t.item_results = Some([vk::VkResult_VK_SUCCESS; 2]));
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(SURFACE_LOST));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(SURFACE_LOST));
         // Retiring prevents acquisition, but does not revoke acquired images.
         a.state.set(CHAIN_RETIRED);
         reset(vk::VkResult_VK_SUCCESS);
-        assert_eq!(a.acquire_frame(&acquire_desc, &mut frame), Err(INVALID));
+        assert_eq!(acquire_call(&a, &acquire_desc, &mut frame), Err(INVALID));
         assert_eq!(calls(), 0);
         TRACE.with_borrow_mut(|t| t.item_results = Some([vk::VkResult_VK_SUCCESS; 2]));
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Ok(()));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Ok(()));
         let release_frames = [frame, a.frame(1, &acquire_desc)];
         let mut indices = [0u32; 2];
         let release_storage = HostSpan {
@@ -504,15 +572,18 @@ fn gpu_presentation_lifecycle() {
         };
         let mut effect = 99;
         reset(vk::VkResult_VK_SUCCESS);
-        assert_eq!(a.abandon(&[], release_storage, &mut effect), Err(INVALID));
         assert_eq!(
-            a.abandon(&[frame, good.frame], release_storage, &mut effect),
+            abandon_call(&a, &[], release_storage, &mut effect),
+            Err(INVALID)
+        );
+        assert_eq!(
+            abandon_call(&a, &[frame, good.frame], release_storage, &mut effect),
             Err(INVALID)
         );
         assert_eq!(effect, FRAME_RETAINED);
         assert_eq!(calls(), 0);
         assert_eq!(
-            a.abandon(&release_frames, release_storage, &mut effect),
+            abandon_call(&a, &release_frames, release_storage, &mut effect),
             Ok(())
         );
         assert_eq!(effect, FRAME_RELEASED);
@@ -520,7 +591,7 @@ fn gpu_presentation_lifecycle() {
         TRACE.with_borrow(|t| assert_eq!(t.indices, [0, 1]));
         reset(vk::VkResult_VK_ERROR_UNKNOWN);
         assert_eq!(
-            a.abandon(&release_frames, release_storage, &mut effect),
+            abandon_call(&a, &release_frames, release_storage, &mut effect),
             Err(BACKEND_ERROR)
         );
         assert_eq!(effect, FRAME_UNKNOWN);
@@ -561,7 +632,7 @@ fn gpu_presentation_lifecycle() {
         assert_eq!(a.pacing_handle(&mut pacing), Err(UNSUPPORTED));
         assert_eq!(pacing, saved);
         reset(vk::VkResult_VK_ERROR_DEVICE_LOST);
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(DEVICE_LOST));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(DEVICE_LOST));
         assert_eq!(
             outcome,
             PresentOutcome {
@@ -574,7 +645,7 @@ fn gpu_presentation_lifecycle() {
         assert!(d.lost.load(Ordering::Relaxed));
         assert_eq!(calls(), 1);
         results.fill(result_sentinel);
-        assert_eq!(queue.present_frames(&desc, &mut outcome), Err(DEVICE_LOST));
+        assert_eq!(present_call(queue, &desc, &mut outcome), Err(DEVICE_LOST));
         assert_eq!(outcome, none);
         assert_eq!(results, [result_sentinel; 2]);
         assert_eq!(calls(), 1);
@@ -613,7 +684,7 @@ fn gpu_presentation_replacement() {
     };
     unsafe {
         assert_eq!(
-            create(&d, &Record::new::<Record>(u32::MAX), &mut out),
+            create_call(&d, &Record::new::<Record>(u32::MAX), &mut out),
             Err(UNSUPPORTED)
         );
         assert_eq!(
@@ -625,7 +696,7 @@ fn gpu_presentation_replacement() {
             }
         );
         assert_eq!(
-            create(&d, &Record::new::<Record>(SWAPCHAIN_DESC), &mut out),
+            create_call(&d, &Record::new::<Record>(SWAPCHAIN_DESC), &mut out),
             Err(INVALID)
         );
         assert_eq!(out.previous_state, CHAIN_NONE);
@@ -633,11 +704,25 @@ fn gpu_presentation_replacement() {
         desc.header = Record::new::<SwapchainDesc>(SWAPCHAIN_DESC);
         desc.old_swapchain = ptr::from_ref(&old).cast_mut();
         reset(vk::VkResult_VK_SUCCESS);
-        assert_eq!(create(&d, &desc.header, &mut out), Err(INVALID)); // Null surface.
+        assert_eq!(create_call(&d, &desc.header, &mut out), Err(INVALID)); // Null surface.
         assert_eq!(out.previous_state, CHAIN_ACTIVE);
         assert!(out.chain.is_null());
         assert_eq!(old.info().state, CHAIN_ACTIVE);
         assert_eq!(calls(), 0);
+        let win32 = Win32SurfaceDesc {
+            header: Record::new::<Win32SurfaceDesc>(WIN32_SURFACE_DESC),
+            hwnd: ptr::dangling_mut(),
+        };
+        let mut surface = ptr::dangling_mut();
+        assert_eq!(
+            api().surface_win32_create.unwrap()(adapter, &win32, &mut surface),
+            UNSUPPORTED
+        );
+        assert!(surface.is_null());
+        let mut dxgi: DxgiChainDesc = std::mem::zeroed();
+        dxgi.header = Record::new::<DxgiChainDesc>(DXGI_CHAIN_DESC);
+        assert_eq!(create_call(&d, &dxgi.header, &mut out), Err(UNSUPPORTED));
+        assert_eq!(out, ChainCreateOutcome::default());
         for (native, enumeration, expected, destroys) in [
             (
                 vk::VkResult_VK_ERROR_OUT_OF_HOST_MEMORY,
@@ -708,7 +793,7 @@ fn gpu_presentation_replacement() {
         reset(vk::VkResult_VK_SUCCESS);
         TRACE.with_borrow_mut(|t| t.acquire_index = 99);
         assert_eq!(
-            old.acquire_frame(&acquire_desc, &mut frame),
+            acquire_call(&old, &acquire_desc, &mut frame),
             Err(BACKEND_ERROR)
         );
         assert_eq!(frame, saved);

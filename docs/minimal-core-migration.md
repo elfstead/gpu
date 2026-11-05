@@ -2,9 +2,9 @@
 
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
 The Vulkan argument, descriptor and generated-layout families are installed as
-foundation schema 6, including borrowed heap inheritance, per-entry dependencies
-and unified submission with explicit acceptance outcomes. Presentation remains
-to migrate. This document does not declare
+foundation schema 7, including borrowed heap inheritance, per-entry dependencies,
+unified submission and borrowed-frame presentation with explicit outcomes. The full
+C2 deletion/correspondence audit and local C3 remain. This document does not declare
 Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
@@ -696,11 +696,74 @@ regression also passes through the shared translator.
 These checks do not exercise a real surface contract query or native window-system
 presentation. No interactive, Windows, Metal or performance acceptance is claimed.
 
-**Next:** move the selected records and operations into the installed C table and
+**Next at that checkpoint (completed below):** move the selected records and operations into the installed C table and
 direct Rust API, add the unsupported Win32/DXGI namespace honestly on Linux, migrate
 the two-window probe/three-slot scene and SDK checks, and delete the old index-based
 wrappers and temporary private-engine dead-code allowances. Then run the C2 deletion
 and correspondence audit and local C3, including available windowed acceptance.
+
+
+## C2 presentation public cutover
+
+Implemented 2026-11-05 on `minimal-core`. Foundation revision **7** installs the
+selected P records and operations in the optional C presentation table and direct
+Rust interface. This completes C2 step 4 locally. C2's final deletion/correspondence
+review and local C3 acceptance remain; this checkpoint does not declare C2 complete.
+
+Public changes:
+
+- `chain_create` takes a profile-tagged record and reports the new chain plus the
+  previous chain's state on success or failure. `chain_info_query`, `chain_images`,
+  `chain_resize` and `chain_pacing_handle` expose the selected lifecycle without
+  an application scheduler or hidden drain.
+- `acquire` publishes a borrowed frame only on OK/SUBOPTIMAL. `abandon` accepts
+  same-chain frame values and caller scratch and reports the ownership effect.
+  `queue_present` has required item results and a mandatory batch outcome;
+  status-only/boolean success is gone. Scratch queries take the device.
+- Surface contract queries advertise the native availability and supported
+  operations/batch count. Win32/DXGI descriptions, discovery bit and result values
+  have their selected namespace. Linux rejects the unsupported platform/profile;
+  Vulkan does not simulate DXGI resize, pacing or queue-ordered availability.
+- Old `swapchain_create/destroy/images` entry names, `PresentImage`, header-tagged
+  `PresentDesc`, index-only acquire/release and boolean-present wrappers are removed.
+  Record tag 128 is retired. Private duplicate records and temporary dead-code
+  allowances are gone. There is one native acquisition/presentation implementation.
+- The two-window probe queries the live contract, uses acquired image identities,
+  checks no-effects preflight rejection, inspects all item effects and abandons an
+  unused frame after explicitly retiring its acquisition signal. The three-slot
+  scene derives retirement-fence obligations from effects and only continues on
+  known release/enqueue outcomes. Uncertain errors stop these samples without
+  reclaiming resources as though retirement were proved. Their creation helper
+  inspects old-chain state even on failure; it is application code, not a core API.
+- SDK version checks and scene report readers now expect revision 7. Versioned C
+  table negotiation, public Rust correspondence and the installed ABI inventory
+  cover the complete selected 151-operation surface.
+
+Validation on RX 5700 XT/RADV, with Vulkan validation and synchronization validation:
+
+- 77 CPU library tests, two public Rust correspondence checks and all 28 native
+  library tests pass. The former index-based C injection test is removed; the new
+  lifecycle suite exercises C-table acquisition, present, abandonment and creation
+  failures through the shared engine. Added Win32/DXGI rejection cases also pass.
+- The native Rust headless integration and all three Wayland integration tests pass:
+  surface setup, two-window lifecycle and bounded textured scene check/smoke. These
+  exercise real presentation, replacement and retirement; no new human control
+  acceptance is inferred from the automated runs.
+- 1,572 C/Rust ABI layout values, 376 C1 draft values, the full 151-operation selected
+  inventory, strict Clippy and formatting pass. The 47 graphics runner checks pass
+  across the suite and focused correction rerun; both textured handoff checks pass.
+- A relocated revision-7 C SDK passes independent compute, graphics, learned-image,
+  indexed-scene/ranges and textured-scene consumers, including source graph,
+  identity, guards/reuse and failure checks. Its first run exposed a stale version-6
+  argument in the ranges checker; using the installed revision fixes the rerun.
+- The isolated native Rust source bundle passes metadata/fresh build/link checks,
+  missing-loader/GLFW handling, headless execution and surface/present/scene runs.
+  No external GGML/libplacebo rerun or new performance comparison is claimed here.
+
+**Next:** C2 step 5: audit the whole installed contract and deletion map, replace the
+historical partial-cutover checks with an implemented-surface audit, review current
+documentation and packaging, then run/record local C3 against this coordinated
+revision. Windows/Metal validation remains separate and does not block local work.
 
 ## Verification and open native questions
 

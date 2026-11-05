@@ -1,4 +1,5 @@
 //! Application policy: three explicit frame slots, replacement and bounded oracle.
+use super::presentation::create_chain;
 use super::submission;
 use super::{query, query_mode, Window};
 use ogpu::foundation::{rust as gpu, types::*};
@@ -175,7 +176,7 @@ impl Generation {
         });
         let modes = [1];
         unsafe {
-            let chain = gpu::swapchain_create(
+            let chain = create_chain(
                 d,
                 &SwapchainDesc {
                     header: Record::new::<SwapchainDesc>(SWAPCHAIN_DESC),
@@ -198,9 +199,9 @@ impl Generation {
                 },
             )?;
             let mut count = 0;
-            gpu::swapchain_images(chain, &mut [], &mut count)?;
+            gpu::chain_images(chain, &mut [], &mut count)?;
             let mut pointers = vec![ptr::null_mut(); count as usize];
-            gpu::swapchain_images(chain, &mut pointers, &mut count)?;
+            gpu::chain_images(chain, &mut pointers, &mut count)?;
             let images: Vec<_> = pointers
                 .into_iter()
                 .map(|p| gpu::ImageHandle::from_raw(p).unwrap())
@@ -233,7 +234,7 @@ impl Generation {
             for view in self.views {
                 gpu::view_destroy(view);
             }
-            gpu::swapchain_destroy(self.chain);
+            gpu::chain_destroy(self.chain);
         }
     }
 }
@@ -653,7 +654,7 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
                 ..Default::default()
             }],
         )?);
-        let mut presentation = Scratch::new(gpu::present_scratch_requirements(1, 1)?);
+        let mut presentation = Scratch::new(gpu::present_scratch_requirements(d, 1, 1)?);
         let mut frames = Vec::new();
         for _ in 0..3 {
             frames.push(Frame::new(d, adapter, domain, generation.size, check)?);
@@ -797,19 +798,34 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
             }
             let frame = &mut frames[rendered % 3];
             checked += frame.retire(done)?;
-            let (index, suboptimal) =
-                match gpu::acquire(generation.chain, 0, Some(frame.acquire), None) {
-                    Ok(v) => v,
-                    Err(NOT_READY | TIMEOUT) => {
-                        window.wait_events();
-                        continue;
-                    }
-                    Err(OUT_OF_DATE) => {
-                        dirty = true;
-                        continue;
-                    }
-                    Err(e) => return Err(e),
-                };
+            let mut acquired_frame = ogpu::foundation::types::Frame::default();
+            let suboptimal = match gpu::acquire(
+                generation.chain,
+                &AcquireDesc {
+                    timeout_ns: 0,
+                    binary: frame.acquire.as_raw(),
+                    fence: ptr::null_mut(),
+                },
+                &mut acquired_frame,
+            ) {
+                Ok(()) => false,
+                Err(SUBOPTIMAL) => true,
+                Err(NOT_READY | TIMEOUT) => {
+                    window.wait_events();
+                    continue;
+                }
+                Err(OUT_OF_DATE) => {
+                    dirty = true;
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
+            let index = acquired_frame.index;
+            assert_eq!(acquired_frame.availability, AVAILABILITY_SIGNALS);
+            assert_eq!(
+                acquired_frame.image,
+                generation.images[index as usize].as_raw()
+            );
             let list = record_frame(
                 frame,
                 &generation,
@@ -833,32 +849,39 @@ pub unsafe fn run(mode: Mode) -> gpu::Result<()> {
             )?;
             frame.completion = value;
             let waits = [frame.ready.as_raw()];
-            let entries = [PresentImage {
-                swapchain: generation.chain.as_raw(),
-                index,
-                reserved: 0,
-                fence: frame.presented.as_raw(),
+            let entries = [PresentItem {
+                frame: acquired_frame,
+                retire_fence: frame.presented.as_raw(),
+                sync_interval: 0,
+                native_flags: 0,
             }];
+            let mut results = [PresentResult::default()];
+            let mut outcome = PresentOutcome::default();
             let present = gpu::queue_present(
                 queue,
                 &PresentDesc {
-                    header: Record::new::<PresentDesc>(PRESENT_DESC),
                     wait_count: 1,
-                    image_count: 1,
+                    item_count: 1,
                     waits: waits.as_ptr(),
-                    images: entries.as_ptr(),
-                    results: ptr::null_mut(),
+                    items: entries.as_ptr(),
+                    results: results.as_mut_ptr(),
                     scratch: presentation.span(),
                 },
+                &mut outcome,
             );
+            frame.present_pending = results[0].fence_effect == EFFECT_ENQUEUED;
             match present {
-                Ok(changed) => {
-                    dirty |= changed;
-                    frame.present_pending = true;
-                }
-                Err(OUT_OF_DATE) => {
-                    dirty = true;
-                    frame.present_pending = true;
+                Ok(()) | Err(SUBOPTIMAL | OUT_OF_DATE) => {
+                    // Reuse/replacement requires definite native retirement effects.
+                    // Unknown effects or native OOM stop this sample; never fake reuse.
+                    if outcome.work_effect != EFFECT_ENQUEUED
+                        || outcome.wait_effect != EFFECT_ENQUEUED
+                        || results[0].frame_effect != FRAME_RELEASED
+                        || !frame.present_pending
+                    {
+                        return Err(BACKEND_ERROR);
+                    }
+                    dirty |= present.is_err();
                 }
                 Err(e) => return Err(e),
             }

@@ -170,11 +170,17 @@ fn native_surface_covers_current_c_operations() {
     let _ = gpu::fence_poll;
     let _ = gpu::fence_wait;
     let _ = gpu::fence_reset;
-    let _ = gpu::swapchain_create;
-    let _ = gpu::swapchain_destroy;
-    let _ = gpu::swapchain_images;
+    let _ = gpu::chain_info_query;
+    let _ = gpu::chain_resize;
+    let _ = gpu::chain_pacing_handle;
+    let _ = gpu::presentation_contract_query;
+    let _ = gpu::surface_win32_create;
+    let _ = gpu::abandon_scratch_requirements;
+    let _ = gpu::chain_create;
+    let _ = gpu::chain_destroy;
+    let _ = gpu::chain_images;
     let _ = gpu::acquire;
-    let _ = gpu::release;
+    let _ = gpu::abandon;
     let _ = gpu::present_scratch_requirements;
     let _ = gpu::queue_present;
     let header = include_str!("../../../include/ogpu_next.h");
@@ -217,11 +223,17 @@ fn native_surface_covers_current_c_operations() {
             "fence_poll",
             "fence_wait",
             "fence_reset",
-            "swapchain_create",
-            "swapchain_destroy",
-            "swapchain_images",
+            "surface_win32_create",
+            "presentation_contract_query",
+            "chain_info_query",
+            "chain_resize",
+            "chain_pacing_handle",
+            "abandon_scratch_requirements",
+            "chain_create",
+            "chain_destroy",
+            "chain_images",
             "acquire",
-            "release",
+            "abandon",
             "present_scratch_requirements",
             "queue_present",
         ]),

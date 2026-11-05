@@ -1,35 +1,41 @@
 //! Optional native presentation setup. No window ownership or scheduling.
 use super::*;
 
-/// Create exactly the requested swapchain. Cold path; may allocate/query/retry.
+/// Create the exact native chain profile. Output always reports the previous
+/// chain state; native replacement retires it even if creation fails.
 /// # Safety
-/// Device, surface and any old swapchain are live and externally synchronized.
-/// Surface/native window/device outlive the chain. All nested arrays are readable.
-/// Once native creation is attempted, the old chain is retired even on failure.
-pub unsafe fn swapchain_create(
+/// Device, surface and old chain are live and externally synchronized. A complete
+/// record of its declared type is readable, including all nested arrays. Parents
+/// outlive the new chain. Acquired old images retain their native use permissions.
+pub unsafe fn chain_create(
     device: DeviceHandle,
-    desc: &SwapchainDesc,
-) -> Result<SwapchainHandle> {
-    Ok(SwapchainHandle(NonNull::from(Box::leak(unsafe {
-        super::super::Swapchain::create(device.get(), desc)?
-    }))))
+    desc: &Record,
+    out: &mut ChainCreateOutcome,
+) -> Result<()> {
+    unsafe { native::chain_create(device.get(), desc, out) }
 }
 /// # Safety
 /// All render, acquisition and presentation uses are retired and views destroyed.
 /// Parent device/surface remain live; destroy once. No implicit wait. All borrowed
 /// image tokens become invalid, including previously recorded references.
-pub unsafe fn swapchain_destroy(chain: SwapchainHandle) {
+pub unsafe fn chain_destroy(chain: SwapchainHandle) {
     unsafe {
         drop(Box::from_raw(chain.as_raw()));
     }
 }
-/// Query count with an empty slice, otherwise fill the whole borrowed-image array.
+/// Host snapshot, not a health poll. Does not allocate or call the native driver.
+/// # Safety
+/// Chain is live; serialize chain lifecycle and all borrowed-image access.
+pub unsafe fn chain_info_query(chain: SwapchainHandle) -> ChainInfo {
+    unsafe { chain.get() }.info()
+}
+/// Query count with an empty slice; otherwise fill the whole borrowed-image array.
 /// On CAPACITY only count changes. No allocation or native call.
 /// # Safety
-/// Chain/device are live and output storage is disjoint. Borrowed images must not
-/// be rebound; image_destroy is a no-op. Use only acquired images with ordered
-/// acquire dependencies; retire all uses/views before destroying the chain.
-pub unsafe fn swapchain_images(
+/// Chain/device are live and output is disjoint. Borrowed images are valid until
+/// invalidation/destruction, must not be rebound, and are usable only while acquired
+/// with acquisition ordered. Retire all uses/views before invalidation/destruction.
+pub unsafe fn chain_images(
     chain: SwapchainHandle,
     out: &mut [*mut super::super::Image],
     count_out: &mut u32,
@@ -40,48 +46,103 @@ pub unsafe fn swapchain_images(
             .images(count(out.len())?, out.as_mut_ptr(), count_out)
     }
 }
-/// Return (image index, suboptimal). No usable index is returned on timeout/error.
+/// Native in-place resize when advertised; Vulkan returns unchanged/UNSUPPORTED.
 /// # Safety
-/// Exclusive chain/acquire-object host access; chain is non-retired. At least one
-/// same-device unsignaled binary/fence is supplied, with no pending uses. Caller
-/// obeys native forward-progress/acquired-count limits (including infinite timeout).
-/// Success schedules signals; wait on them before using or releasing the image.
-pub unsafe fn acquire(
+/// Exclusive chain access. Retire acquisitions/GPU uses and remove dependent views,
+/// recordings and native references first. Invalidation revokes all old images even
+/// on failure, increments generation and never adds an implicit drain or rollback.
+pub unsafe fn chain_resize(
     chain: SwapchainHandle,
-    timeout_ns: u64,
-    binary: Option<BinaryHandle>,
-    fence: Option<FenceHandle>,
-) -> Result<(u32, bool)> {
-    unsafe {
-        chain.get().acquire(
-            timeout_ns,
-            binary.map_or(std::ptr::null_mut(), |b| b.as_raw()),
-            fence.map_or(std::ptr::null_mut(), |f| f.as_raw()),
-        )
+    desc: &ChainResizeDesc,
+    out: &mut ChainResizeOutcome,
+) -> Result<()> {
+    unsafe { chain.get() }.resize(desc, out)
+}
+/// Borrow the native pacing handle when advertised; failure preserves output.
+/// # Safety
+/// Chain stays live and synchronized. Caller must not close the borrowed handle;
+/// its validity ends with the chain. Waiting/event-loop policy remains caller-owned.
+pub unsafe fn chain_pacing_handle(chain: SwapchainHandle, out: &mut PacingHandle) -> Result<()> {
+    unsafe { chain.get() }.pacing_handle(out)
+}
+/// Publish a borrowed frame only on OK/SUBOPTIMAL; errors preserve output.
+/// # Safety
+/// Exclusive chain/acquire-object access; chain is active. Vulkan requires >=1 live
+/// same-device idle unsignaled binary/fence. Obey native acquired-count/forward-
+/// progress limits. Order image access after acquisition. Copies confer no new lease.
+pub unsafe fn acquire(chain: SwapchainHandle, desc: &AcquireDesc, out: &mut Frame) -> Result<()> {
+    unsafe { chain.get().acquire_frame(desc, out) }
+}
+/// # Safety
+/// Device is live with presentation enabled; no GPU or chain access is performed.
+pub unsafe fn abandon_scratch_requirements(
+    device: DeviceHandle,
+    count: u32,
+) -> Result<HostRequirements> {
+    native::abandon_requirements(unsafe { device.get() }, count)
+}
+/// End acquisitions without presenting. Effects remain meaningful on error.
+/// # Safety
+/// Exclusive chain access. Nonempty unique acquired frames all name this chain;
+/// all acquisition and device uses have completed. Scratch is writable and disjoint.
+/// Release does not consume acquisition binary signals: retire them separately.
+pub unsafe fn abandon(
+    chain: SwapchainHandle,
+    frames: &[Frame],
+    scratch: HostSpan,
+    effect: &mut u32,
+) -> Result<()> {
+    unsafe { chain.get().abandon(frames, scratch, effect) }
+}
+/// # Safety
+/// Device is live with presentation enabled; no GPU or chain access is performed.
+pub unsafe fn present_scratch_requirements(
+    device: DeviceHandle,
+    waits: u32,
+    items: u32,
+) -> Result<HostRequirements> {
+    native::present_requirements(unsafe { device.get() }, waits, items)
+}
+/// One native Vulkan batch. Read both aggregate and per-item effects, even on error.
+/// # Safety
+/// Live same-device queue/objects and readable records; exclusive queue access.
+/// Each frame is acquired, STATE_PRESENT, owned/shared for this queue; writes are
+/// ordered by the supplied binary waits. No duplicate chain/wait/non-null fence;
+/// fences are idle/unsignaled. Scratch and required per-item results are writable
+/// and disjoint from each other, inputs and output. NONE/UNKNOWN/ENQUEUED do not
+/// mean completion. Retire rendering and presentation separately. Historical
+/// acquisition pointers in frames are never dereferenced by this operation.
+pub unsafe fn queue_present(
+    queue: QueueHandle,
+    desc: &PresentDesc,
+    out: &mut PresentOutcome,
+) -> Result<()> {
+    unsafe { queue.get().present_frames(desc, out) }
+}
+/// Query native availability/capabilities, without enabling anything.
+/// # Safety
+/// Surface/native window remain live and externally synchronized with lifecycle.
+pub unsafe fn presentation_contract_query(
+    adapter: &Adapter,
+    surface: SurfaceHandle,
+    profile: u32,
+) -> Result<PresentationContract> {
+    native::presentation_contract(adapter, unsafe { surface.get() }, profile)
+}
+/// Typed platform namespace. Unsupported on the current Vulkan/Wayland mapping.
+/// # Safety
+/// A supported mapping requires the native window to remain live through surface
+/// destruction, with externally synchronized native-window/surface lifecycle.
+pub unsafe fn surface_win32_create(
+    _adapter: &Adapter,
+    desc: &Win32SurfaceDesc,
+) -> Result<SurfaceHandle> {
+    desc.header
+        .validate::<Win32SurfaceDesc>(WIN32_SURFACE_DESC)?;
+    if desc.hwnd.is_null() {
+        return Err(INVALID);
     }
-}
-/// Release acquired images without presenting or changing their layout.
-/// # Safety
-/// Exclusive chain host access. Indices are unique and acquired; all acquisition
-/// and device uses have completed. Release does not consume a binary signal:
-/// caller separately consumes it or destroys it after its signal retires.
-pub unsafe fn release(chain: SwapchainHandle, indices: &[u32]) -> Result<()> {
-    unsafe { chain.get() }.release(indices)
-}
-pub fn present_scratch_requirements(waits: u32, images: u32) -> Result<HostRequirements> {
-    native::present_scratch(waits, images)
-}
-/// Batch presentation in one native call; true means suboptimal, not failure.
-/// # Safety
-/// Live same-device queue/objects and readable records; queue access is exclusive.
-/// Each image is acquired, in STATE_PRESENT, owned by this queue family (or shared),
-/// with all writes ordered by the supplied binary waits. No duplicate swapchains,
-/// waits or non-null fences; fences are idle/unsignaled. Scratch and optional
-/// per-image results are writable, mutually disjoint and disjoint from inputs.
-/// OUT_OF_DATE/SURFACE_LOST can still enqueue waits/retirement signals; an error is
-/// not proof that nothing was submitted. Retire render and present uses separately.
-pub unsafe fn queue_present(queue: QueueHandle, desc: &PresentDesc) -> Result<bool> {
-    unsafe { queue.get().present(desc) }
+    Err(UNSUPPORTED)
 }
 
 /// Create an unsignaled native binary semaphore. No WSI enabling is required.

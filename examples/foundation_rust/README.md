@@ -156,3 +156,11 @@ minimize/restore. See [GLFW's window guide](https://www.glfw.org/docs/latest/win
 and the [scene receipt](../../docs/results/p1-interactive-scene-2026-10-16.md).
 Use the [manual acceptance checklist](../../docs/presentation-acceptance.md) to
 record actual input, resize, minimize/restore and close observations separately.
+
+The revision-7 presentation path acquires borrowed frames, uses their image identity
+and availability, and reads batch/per-item effects before retirement or reuse.
+Replacement reports the previous chain's state even on failure. The two-window
+probe checks the live native contract, one-call batching and scratch rejection,
+and abandons an unused frame with caller scratch. The three-slot scene tracks
+presentation fences from explicit effects. Errors with uncertain effects stop these
+samples without pretending their resources are reusable; recovery policy is external.

@@ -1,5 +1,11 @@
 # P1 native presentation mapping
 
+Current public lifecycle: foundation revision 7 uses the selected
+[borrowed-frame/effect contract](minimal-core-presentation.md). The original P1
+mapping and receipts below explain the native baseline; index-only acquire/release
+and status-only present signatures have been removed. C and direct Rust now share
+`chain_*`, frame acquisition, batched present outcomes and explicit abandonment.
+
 Selected 2026-10-15; scene checkpoint 2026-10-16. **Swapchain lifecycle and interactive
 scene implemented; bounded execution passes, human acceptance is partial.**
 Native Rust extraction, optional Wayland surface setup, device enabling, mode

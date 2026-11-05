@@ -112,7 +112,10 @@ mod presentation_sync;
 pub use presentation_sync::{Binary, Fence};
 #[path = "swapchain.rs"]
 mod swapchain;
-pub(in crate::foundation) use swapchain::present_scratch;
+pub(in crate::foundation) use swapchain::lifecycle::{
+    abandon_requirements, contract as presentation_contract, create as chain_create,
+    present_requirements,
+};
 pub use swapchain::Swapchain;
 
 macro_rules! functions {

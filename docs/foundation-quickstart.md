@@ -17,11 +17,19 @@ export PKG_CONFIG_PATH=/absolute/path/to/new-preview/lib/pkgconfig
 ```
 
 The manifest records both the source commit and foundation revision. Match the
-header, library and generated artifacts from that **exact commit**: revision 6
+header, library and generated artifacts from that **exact commit**: revision 7
 alone does not promise compatibility across commits. New prefixes are mandatory;
 the installer never overwrites or merges an existing installation. ABI-20 headers,
 examples and `ogpu.pc` require explicit `--legacy` installation. Foundation consumers use
 `ogpu-foundation.pc`. There is no runtime policy wrapper or fallback to ABI 20.
+
+Revision 7 replaces index-only presentation with borrowed `frame` values and explicit
+batch/per-item effects. Use the versioned presentation table or direct Rust operations
+`chain_create`, `acquire`, `queue_present` and `abandon`; scratch queries take the device.
+Creation reports old-chain retirement even on failure. Inspect effects before reusing
+frames or synchronization; a presentation error does not imply no native work occurred.
+Vulkan exposes replacement and native signal availability. The Win32/DXGI namespace
+is typed but unsupported on this implementation. See the [presentation contract](minimal-core-presentation.md).
 
 Revision 2 replaces per-shader argument metadata and separate root/inline setters.
 Create a prepared argument layout, pass it to executable creation, and call

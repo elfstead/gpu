@@ -1,10 +1,12 @@
 # C1 P: explicit presentation lifecycle
 
-Selected lifecycle design, 2026-11-03. **Not implemented.** Resolves P in the
-[minimal-core contract](minimal-core-contract.md); the
-[consolidation](minimal-core-migration.md) now closes C1. The [C sketch](drafts/ogpu_presentation.h)
-and [Rust records](drafts/presentation.rs) are uninstalled design artifacts.
-The implemented [P1 contract](presentation-contract.md) remains the runtime contract.
+Selected 2026-11-03; **Vulkan public cutover implemented 2026-11-05 in foundation
+revision 7.** Resolves P in the [minimal-core contract](minimal-core-contract.md).
+The [installed header](../include/ogpu_next.h) and direct Rust operations now expose
+this lifecycle; see the [cutover receipt](minimal-core-migration.md#c2-presentation-public-cutover).
+The [C sketch](drafts/ogpu_presentation.h) and [Rust mirror](drafts/presentation.rs)
+remain design/check artifacts. Win32/DXGI names are installed but explicitly
+unsupported on Linux. No Windows/Metal acceptance is claimed.
 
 ## Decision and scope
 
@@ -173,8 +175,7 @@ succeed. The C adapter cannot collapse an error into an OK boolean result.
 | Device loss | Failure; unresolved obligations stay unknown, never turn a completion sentinel into success |
 
 The draft adds OCCLUDED=5 and STILL_DRAWING=6 to the status vocabulary; neither is
-an OK alias nor proof of acceptance. These values are not installed SDK additions
-yet. Native diagnostic detail must also survive. Flags such as TEST/DO_NOT_SEQUENCE
+an OK alias nor proof of acceptance. Both values are installed SDK vocabulary; the Vulkan mapping does not return them. Native diagnostic detail must also survive. Flags such as TEST/DO_NOT_SEQUENCE
 that do not follow ordinary present-and-release semantics are not silently accepted: each needs its
 documented effect mapping. This draft selects the outcome vocabulary, not blanket
 support for every DXGI flag. [Vulkan queue effects][vk-present], [DXGI results][dx-present]

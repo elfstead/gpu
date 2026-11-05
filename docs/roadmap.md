@@ -71,7 +71,7 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
-| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; public unified submission/outcomes complete; private presentation lifecycle engine checked; public presentation cutover next; C2/C3 incomplete |
+| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; public unified submission/outcomes complete; public presentation/frame-loop cutover complete with bounded Wayland checks; full C2 audit/local C3 next |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
@@ -162,7 +162,7 @@ than restarting an experiment-per-feature design process.
 
 Implementation active. Follow the [concrete cutover sequence](minimal-core-migration.md#c2-implementation-sequence).
 The argument and descriptor families are implemented through public C/direct Rust,
-compiler metadata and consumers under foundation schema 6. Old argument and
+compiler metadata and consumers under foundation schema 7. Old argument and
 descriptor adapters are deleted. The [descriptor cutover](minimal-core-migration.md#c2-descriptor-public-cutover)
 includes native-unit locations and secondary heap inheritance. The
 [generated-layout cutover](minimal-core-migration.md#c2-generated-argument-layout-cutover)
@@ -173,11 +173,10 @@ C/direct Rust. Old dependency translators and nested scratch paths are deleted;
 consumers pass through the selected records. The [public submission cutover](minimal-core-migration.md#c2-submission-public-cutover)
 adds one counted C/direct Rust call, explicit acceptance outcomes, direct binary
 arrays and one scratch span. Old single/batch/binary adapters are deleted and
-consumers migrated. C2 step 3 is complete locally. Step 4's private
-[presentation lifecycle engine](minimal-core-migration.md#c2-presentation-lifecycle-engine)
-now passes headless injected WSI checks; installed schema 6 remains unchanged.
-Next: public presentation records/table/direct Rust and frame-loop migration,
-then the full C2 audit/local C3.
+consumers migrated. C2 step 4's [public presentation cutover](minimal-core-migration.md#c2-presentation-public-cutover)
+now exposes borrowed frames and explicit lifecycle effects in C/direct Rust. The
+old index-based wrappers are removed; two-window and three-slot consumers pass
+bounded Wayland checks. Next: the full C2 deletion/correspondence audit and local C3.
 C1's checked drafts remain the selected target; C2 completion is not claimed.
 
 Update the shared Rust operations, thin C adapters, Vulkan mapping,

@@ -1,137 +1,7 @@
-//! Selected C2 Vulkan presentation lifecycle, private until the public cutover.
+//! Vulkan presentation lifecycle: native effects and borrowed frame values.
 //! Frames borrow images and caller synchronization. There is no lease registry,
 //! hidden submission, host wait, per-frame allocation or duplicate/resource walk.
 use super::*;
-use std::ffi::c_void;
-
-pub(super) const PRESENT_VULKAN: u32 = 1;
-pub(super) const PRESENT_DXGI: u32 = 2;
-pub(super) const PRESENTATION_WIN32: u32 = 2;
-pub(super) const OCCLUDED: i32 = 5;
-pub(super) const STILL_DRAWING: i32 = 6;
-pub(super) const WIN32_SURFACE_DESC: u32 = 3000;
-pub(super) const DXGI_CHAIN_DESC: u32 = 3001;
-pub(super) const AVAILABILITY_SIGNALS: u32 = 1;
-pub(super) const AVAILABILITY_QUEUE_ORDERED: u32 = 2;
-pub(super) const PRESENT_REPLACE: u32 = 1;
-pub(super) const PRESENT_RESIZE: u32 = 2;
-pub(super) const PRESENT_RETIRE_FENCE: u32 = 4;
-pub(super) const PRESENT_PACING_HANDLE: u32 = 8;
-pub(super) const PRESENT_BINARY_WAIT: u32 = 16;
-pub(super) const CHAIN_NONE: u32 = 0;
-pub(super) const CHAIN_ACTIVE: u32 = 1;
-pub(super) const CHAIN_RETIRED: u32 = 2;
-pub(super) const CHAIN_NO_IMAGES: u32 = 3;
-pub(super) const CHAIN_LOST: u32 = 4;
-pub(super) const IMAGES_UNCHANGED: u32 = 0;
-pub(super) const IMAGES_REPLACED: u32 = 1;
-pub(super) const IMAGES_INVALIDATED: u32 = 2;
-pub(super) const FRAME_RETAINED: u32 = 0;
-pub(super) const FRAME_RELEASED: u32 = 1;
-pub(super) const FRAME_UNKNOWN: u32 = 2;
-pub(super) const EFFECT_NONE: u32 = 0;
-pub(super) const EFFECT_ENQUEUED: u32 = 1;
-pub(super) const EFFECT_UNKNOWN: u32 = 2;
-pub(super) const WAITABLE_WIN32: u32 = 1;
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct PresentationContract {
-    pub profile: u32,
-    pub availability: u32,
-    pub capabilities: u32,
-    pub max_present_count: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct ChainInfo {
-    pub generation: u64,
-    pub state: u32,
-    pub image_count: u32,
-    pub ordered_queue: *mut Queue,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct ChainCreateOutcome {
-    pub chain: *mut Swapchain,
-    pub previous_state: u32,
-    pub reserved: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct ChainResizeDesc {
-    pub format: u32,
-    pub extent: [u32; 2],
-    pub image_count: u32,
-    pub chain_flags: u32,
-    pub reserved: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct ChainResizeOutcome {
-    pub generation: u64,
-    pub state: u32,
-    pub image_effect: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct AcquireDesc {
-    pub timeout_ns: u64,
-    pub binary: *mut Binary,
-    pub fence: *mut Fence,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct Frame {
-    pub chain: *mut Swapchain,
-    pub image: *mut Image,
-    pub generation: u64,
-    pub index: u32,
-    pub availability: u32,
-    pub ordered_queue: *mut Queue,
-    pub binary: *mut Binary,
-    pub fence: *mut Fence,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct PresentItem {
-    pub frame: Frame,
-    pub retire_fence: *mut Fence,
-    pub sync_interval: u32,
-    pub native_flags: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct PresentResult {
-    pub status: i32,
-    pub frame_effect: u32,
-    pub fence_effect: u32,
-    pub reserved: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub(super) struct PresentDesc {
-    pub wait_count: u32,
-    pub item_count: u32,
-    pub waits: *const *mut Binary,
-    pub items: *const PresentItem,
-    pub results: *mut PresentResult,
-    pub scratch: HostSpan,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct PresentOutcome {
-    pub work_effect: u32,
-    pub wait_effect: u32,
-}
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct PacingHandle {
-    pub kind: u32,
-    pub reserved: u32,
-    pub handle: *mut c_void,
-}
-
 fn enabled(d: &Device) -> Result<(), Status> {
     d.ready()?;
     if d.snapshot.features.enabled & PRESENTATION == 0 {
@@ -139,7 +9,7 @@ fn enabled(d: &Device) -> Result<(), Status> {
     }
     Ok(())
 }
-pub(super) fn contract(
+pub(in crate::foundation) fn contract(
     adapter: &Adapter,
     surface: &Surface,
     profile: u32,
@@ -162,7 +32,7 @@ pub(super) fn contract(
 
 // Recognized complete records expose the old chain's actual state even on local
 // rejection. A short/unknown record cannot identify a previous chain safely.
-pub(super) unsafe fn create(
+pub(in crate::foundation) unsafe fn create(
     d: &Device,
     record: &Record,
     out: &mut ChainCreateOutcome,
@@ -172,6 +42,10 @@ pub(super) unsafe fn create(
         previous_state: CHAIN_NONE,
         reserved: 0,
     };
+    if record.kind == DXGI_CHAIN_DESC {
+        record.validate::<DxgiChainDesc>(DXGI_CHAIN_DESC)?;
+        return Err(UNSUPPORTED);
+    }
     if record.kind != SWAPCHAIN_DESC {
         return Err(UNSUPPORTED);
     }
@@ -187,7 +61,7 @@ pub(super) unsafe fn create(
     Ok(())
 }
 impl Swapchain {
-    pub(super) fn info(&self) -> ChainInfo {
+    pub(in crate::foundation) fn info(&self) -> ChainInfo {
         ChainInfo {
             generation: self.generation,
             state: self.state.get(),
@@ -195,7 +69,7 @@ impl Swapchain {
             ordered_queue: ptr::null_mut(),
         }
     }
-    pub(super) fn resize(
+    pub(in crate::foundation) fn resize(
         &self,
         _desc: &ChainResizeDesc,
         out: &mut ChainResizeOutcome,
@@ -208,7 +82,10 @@ impl Swapchain {
         enabled(unsafe { &*self.device })?;
         Err(UNSUPPORTED)
     }
-    pub(super) fn pacing_handle(&self, _out: &mut PacingHandle) -> Result<(), Status> {
+    pub(in crate::foundation) fn pacing_handle(
+        &self,
+        _out: &mut PacingHandle,
+    ) -> Result<(), Status> {
         enabled(unsafe { &*self.device })?;
         Err(UNSUPPORTED)
     }
@@ -224,21 +101,48 @@ impl Swapchain {
             fence: desc.fence,
         }
     }
-    pub(super) unsafe fn acquire_frame(
+    pub(in crate::foundation) unsafe fn acquire_frame(
         &self,
         desc: &AcquireDesc,
         out: &mut Frame,
     ) -> Result<(), Status> {
-        enabled(unsafe { &*self.device })?;
-        let (index, suboptimal) =
-            unsafe { self.acquire(desc.timeout_ns, desc.binary, desc.fence)? };
-        *out = self.frame(index, desc);
-        if suboptimal {
-            Err(SUBOPTIMAL)
-        } else {
-            Ok(())
+        let d = unsafe { &*self.device };
+        enabled(d)?;
+        if self.state.get() != CHAIN_ACTIVE {
+            return Err(INVALID);
         }
+        if desc.binary.is_null() && desc.fence.is_null() {
+            return Err(INVALID);
+        }
+        let binary = unsafe { desc.binary.as_ref() };
+        let fence = unsafe { desc.fence.as_ref() };
+        if binary.is_some_and(|b| b.device != self.device)
+            || fence.is_some_and(|f| f.device != self.device)
+        {
+            return Err(INVALID);
+        }
+        let mut index = u32::MAX;
+        let result = d.result(unsafe {
+            (self.f.vkAcquireNextImageKHR.unwrap())(
+                d.handle,
+                self.handle,
+                desc.timeout_ns,
+                binary.map_or(ptr::null_mut(), |b| b.handle),
+                fence.map_or(ptr::null_mut(), |f| f.handle),
+                &mut index,
+            )
+        });
+        if result.is_ok() || result == Err(SUBOPTIMAL) {
+            if index as usize >= self.images.len() {
+                // Signals/ownership are uncertain; never publish a bogus image.
+                d.lost.store(true, Ordering::Relaxed);
+                return Err(BACKEND_ERROR);
+            }
+            *out = self.frame(index, desc);
+        }
+        result
     }
+
     // Acquisition sync fields are historical identities: never dereference them.
     // Generation detects replacement of the image set, not copied/reused leases.
     fn validate_frame(&self, frame: &Frame) -> Result<u32, Status> {
@@ -254,7 +158,7 @@ impl Swapchain {
         }
         Ok(frame.index)
     }
-    pub(super) unsafe fn abandon(
+    pub(in crate::foundation) unsafe fn abandon(
         &self,
         frames: &[Frame],
         storage: HostSpan,
@@ -284,7 +188,10 @@ impl Swapchain {
         result
     }
 }
-pub(super) fn abandon_requirements(d: &Device, count: u32) -> Result<HostRequirements, Status> {
+pub(in crate::foundation) fn abandon_requirements(
+    d: &Device,
+    count: u32,
+) -> Result<HostRequirements, Status> {
     enabled(d)?;
     if count == 0 {
         return Ok(HostRequirements {
@@ -298,7 +205,7 @@ pub(super) fn abandon_requirements(d: &Device, count: u32) -> Result<HostRequire
         alignment: layout.align() as u64,
     })
 }
-pub(super) fn present_requirements(
+pub(in crate::foundation) fn present_requirements(
     d: &Device,
     waits: u32,
     items: u32,
@@ -356,7 +263,7 @@ fn item_result(aggregate: vk::VkResult, item: vk::VkResult, has_fence: bool) -> 
     }
 }
 impl Queue {
-    pub(super) unsafe fn present_frames(
+    pub(in crate::foundation) unsafe fn present_frames(
         &self,
         desc: &PresentDesc,
         out: &mut PresentOutcome,

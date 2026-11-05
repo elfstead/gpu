@@ -17,16 +17,39 @@ fn span(storage: &mut [u64]) -> HostSpan {
 unsafe fn images(chain: gpu::SwapchainHandle) -> gpu::Result<Vec<gpu::ImageHandle>> {
     let mut count = 0;
     unsafe {
-        gpu::swapchain_images(chain, &mut [], &mut count)?;
+        gpu::chain_images(chain, &mut [], &mut count)?;
     }
     let mut pointers = vec![ptr::null_mut(); count as usize];
     unsafe {
-        gpu::swapchain_images(chain, &mut pointers, &mut count)?;
+        gpu::chain_images(chain, &mut pointers, &mut count)?;
     }
     Ok(pointers
         .into_iter()
         .map(|p| unsafe { gpu::ImageHandle::from_raw(p).unwrap() })
         .collect())
+}
+
+// Application helper: inspect replacement state even on failure. This sample
+// stops on creation failure; it never assumes the old chain can still acquire.
+pub(super) unsafe fn create_chain(
+    device: gpu::DeviceHandle,
+    desc: &SwapchainDesc,
+) -> gpu::Result<gpu::SwapchainHandle> {
+    let mut out = ChainCreateOutcome::default();
+    let result = unsafe { gpu::chain_create(device, &desc.header, &mut out) };
+    if let Some(old) = unsafe { gpu::SwapchainHandle::from_raw(desc.old_swapchain) } {
+        assert_eq!(
+            out.previous_state,
+            unsafe { gpu::chain_info_query(old) }.state
+        );
+        if result.is_ok() {
+            assert_eq!(out.previous_state, CHAIN_RETIRED);
+        }
+    } else {
+        assert_eq!(out.previous_state, CHAIN_NONE);
+    }
+    result?;
+    unsafe { gpu::SwapchainHandle::from_raw(out.chain) }.ok_or(BACKEND_ERROR)
 }
 
 pub unsafe fn run() -> gpu::Result<()> {
@@ -56,6 +79,20 @@ pub unsafe fn run() -> gpu::Result<()> {
                 },
             )?
         });
+    }
+    for surface in surfaces.iter().copied() {
+        let contract =
+            unsafe { gpu::presentation_contract_query(adapter, surface, PRESENT_VULKAN)? };
+        assert_eq!(contract.availability, AVAILABILITY_SIGNALS);
+        assert_eq!(
+            contract.capabilities,
+            PRESENT_REPLACE | PRESENT_RETIRE_FENCE | PRESENT_BINARY_WAIT
+        );
+        assert!(contract.max_present_count >= 2);
+        assert_eq!(
+            unsafe { gpu::presentation_contract_query(adapter, surface, PRESENT_DXGI) },
+            Err(UNSUPPORTED)
+        );
     }
     let queue_support: Vec<SurfaceQueue> = query(adapter, surfaces[0], SURFACE_QUEUES);
     let second_support: Vec<SurfaceQueue> = query(adapter, surfaces[1], SURFACE_QUEUES);
@@ -146,8 +183,8 @@ pub unsafe fn run() -> gpu::Result<()> {
         };
         let mut bad = desc;
         bad.extent[0] = 0;
-        assert_eq!(unsafe { gpu::swapchain_create(device, &bad) }, Err(INVALID));
-        chains.push(unsafe { gpu::swapchain_create(device, &desc)? });
+        assert_eq!(unsafe { create_chain(device, &bad) }, Err(INVALID));
+        chains.push(unsafe { create_chain(device, &desc)? });
         descs.push(desc);
     }
     let mut borrowed = [unsafe { images(chains[0])? }, unsafe { images(chains[1])? }];
@@ -162,7 +199,8 @@ pub unsafe fn run() -> gpu::Result<()> {
             ..Default::default()
         }],
     )?);
-    let mut present_storage = storage(gpu::present_scratch_requirements(1, 2)?);
+    let mut abandon_storage = storage(gpu::abandon_scratch_requirements(device, 1)?);
+    let mut present_storage = storage(gpu::present_scratch_requirements(device, 1, 2)?);
     let mut barrier_storage = storage(gpu::barrier_scratch_requirements(device, 0, 0, 1)?);
     let mut value = 0;
     let full = Subresources {
@@ -177,7 +215,7 @@ pub unsafe fn run() -> gpu::Result<()> {
         let mut count = 0;
         let mut short = [ptr::dangling_mut()];
         assert_eq!(
-            gpu::swapchain_images(chains[0], &mut short, &mut count),
+            gpu::chain_images(chains[0], &mut short, &mut count),
             Err(CAPACITY)
         );
         assert_eq!(short[0], ptr::dangling_mut());
@@ -238,9 +276,23 @@ pub unsafe fn run() -> gpu::Result<()> {
                     },
                 )?;
                 for i in 0..2 {
-                    let (index, _) =
-                        gpu::acquire(chains[i], 1_000_000_000, Some(acquired[i]), None)?;
-                    let image = borrowed[i][index as usize];
+                    let mut acquired_frame = Frame::default();
+                    match gpu::acquire(
+                        chains[i],
+                        &AcquireDesc {
+                            timeout_ns: 1_000_000_000,
+                            binary: acquired[i].as_raw(),
+                            fence: ptr::null_mut(),
+                        },
+                        &mut acquired_frame,
+                    ) {
+                        Ok(()) | Err(SUBOPTIMAL) => (),
+                        Err(e) => return Err(e),
+                    }
+                    assert_eq!(acquired_frame.availability, AVAILABILITY_SIGNALS);
+                    let image =
+                        gpu::ImageHandle::from_raw(acquired_frame.image).ok_or(BACKEND_ERROR)?;
+                    assert_eq!(image, borrowed[i][acquired_frame.index as usize]);
                     let mut barrier = ImageBarrier {
                         scope: BarrierScope {
                             stages_before: STAGE_TRANSFER,
@@ -285,11 +337,11 @@ pub unsafe fn run() -> gpu::Result<()> {
                     barrier.scope.stages_after = 0;
                     dep.images = &barrier;
                     gpu::barrier(list, &dep, scratch);
-                    entries.push(PresentImage {
-                        swapchain: chains[i].as_raw(),
-                        index,
-                        reserved: 0,
-                        fence: fences[i].as_raw(),
+                    entries.push(PresentItem {
+                        frame: acquired_frame,
+                        retire_fence: fences[i].as_raw(),
+                        sync_interval: 0,
+                        native_flags: 0,
                     });
                 }
                 gpu::commands_end(list)?;
@@ -313,24 +365,46 @@ pub unsafe fn run() -> gpu::Result<()> {
                     span(&mut submit_storage),
                 )?;
                 let waits = [ready.as_raw()];
-                let mut results = [99; 2];
+                let sentinel = PresentResult {
+                    status: 99,
+                    frame_effect: 99,
+                    fence_effect: 99,
+                    reserved: 99,
+                };
+                let mut results = [sentinel; 2];
+                let mut outcome = PresentOutcome::default();
                 let mut present = PresentDesc {
-                    header: Record::new::<PresentDesc>(PRESENT_DESC),
                     wait_count: 1,
-                    image_count: 2,
+                    item_count: 2,
                     waits: waits.as_ptr(),
-                    images: entries.as_ptr(),
+                    items: entries.as_ptr(),
                     results: results.as_mut_ptr(),
                     scratch: HostSpan {
                         data: ptr::null_mut(),
                         size: 0,
                     },
                 };
-                assert_eq!(gpu::queue_present(queue, &present), Err(CAPACITY));
-                assert_eq!(results, [99; 2]);
+                assert_eq!(
+                    gpu::queue_present(queue, &present, &mut outcome),
+                    Err(CAPACITY)
+                );
+                assert_eq!(results, [sentinel; 2]);
+                assert_eq!(outcome, PresentOutcome::default());
                 present.scratch = span(&mut present_storage);
-                gpu::queue_present(queue, &present)?;
-                assert!(results.iter().all(|s| [OK, SUBOPTIMAL].contains(s)));
+                match gpu::queue_present(queue, &present, &mut outcome) {
+                    Ok(()) | Err(SUBOPTIMAL) => (),
+                    Err(e) => return Err(e),
+                }
+                assert_eq!(
+                    outcome,
+                    PresentOutcome {
+                        work_effect: EFFECT_ENQUEUED,
+                        wait_effect: EFFECT_ENQUEUED
+                    }
+                );
+                assert!(results.iter().all(|r| [OK, SUBOPTIMAL].contains(&r.status)
+                    && r.frame_effect == FRAME_RELEASED
+                    && r.fence_effect == EFFECT_ENQUEUED));
                 gpu::timeline_wait(timeline, value, 10_000_000_000)?;
                 for fence in fences {
                     gpu::fence_wait(fence, 10_000_000_000)?;
@@ -340,12 +414,19 @@ pub unsafe fn run() -> gpu::Result<()> {
             }
             // Unused acquisition: fence proves the signal completed; consume binary
             // separately, retire that wait, then release. No implicit reset in release.
-            let (index, _) = gpu::acquire(
+            let mut unused = Frame::default();
+            match gpu::acquire(
                 chains[0],
-                1_000_000_000,
-                Some(acquired[0]),
-                Some(acquisition_fence),
-            )?;
+                &AcquireDesc {
+                    timeout_ns: 1_000_000_000,
+                    binary: acquired[0].as_raw(),
+                    fence: acquisition_fence.as_raw(),
+                },
+                &mut unused,
+            ) {
+                Ok(()) | Err(SUBOPTIMAL) => (),
+                Err(e) => return Err(e),
+            }
             gpu::fence_wait(acquisition_fence, 10_000_000_000)?;
             gpu::fence_reset(acquisition_fence)?;
             value += 1;
@@ -365,13 +446,32 @@ pub unsafe fn run() -> gpu::Result<()> {
                 span(&mut submit_storage),
             )?;
             gpu::timeline_wait(timeline, value, 10_000_000_000)?;
-            assert_eq!(gpu::release(chains[0], &[u32::MAX]), Err(INVALID));
-            gpu::release(chains[0], &[index])?;
+            let mut effect = FRAME_UNKNOWN;
+            assert_eq!(
+                gpu::abandon(
+                    chains[0],
+                    &[Frame {
+                        index: u32::MAX,
+                        ..unused
+                    }],
+                    span(&mut abandon_storage),
+                    &mut effect
+                ),
+                Err(INVALID)
+            );
+            assert_eq!(effect, FRAME_RETAINED);
+            gpu::abandon(
+                chains[0],
+                &[unused],
+                span(&mut abandon_storage),
+                &mut effect,
+            )?;
+            assert_eq!(effect, FRAME_RELEASED);
             if phase == 0 {
                 for i in 0..2 {
                     descs[i].old_swapchain = chains[i].as_raw();
-                    let replacement = gpu::swapchain_create(device, &descs[i])?;
-                    gpu::swapchain_destroy(chains[i]);
+                    let replacement = create_chain(device, &descs[i])?;
+                    gpu::chain_destroy(chains[i]);
                     chains[i] = replacement;
                     descs[i].old_swapchain = ptr::null_mut();
                     borrowed[i] = images(replacement)?;
@@ -379,7 +479,7 @@ pub unsafe fn run() -> gpu::Result<()> {
             }
         }
         for chain in chains {
-            gpu::swapchain_destroy(chain);
+            gpu::chain_destroy(chain);
         }
         for fence in fences {
             gpu::fence_destroy(fence);

@@ -22,7 +22,7 @@ class InstalledSceneTests(unittest.TestCase):
         for bits in (16,32):
             for slots in (1,2):
                 for replay in (False,True):
-                    profile=dict(foundation=6,index_bytes=bits//8,gpu_generated=True)
+                    profile=dict(foundation=7,index_bytes=bits//8,gpu_generated=True)
                     generated=dict(compute_push_bytes=32,vertex_push_bytes=8)
                     frames=[dict(frame=f,slot=f%slots,generation=f//slots,phase=int(f//slots%4==1),empty=int(f//slots%4==2)) for f in range(8)]
                     summary=dict(frames=8,slots=slots,mode=8,index_bytes=bits//8,replay=int(replay),
@@ -76,12 +76,12 @@ class InstalledSceneTests(unittest.TestCase):
                 with self.assertRaises(ValueError):scene.check_logs(log(),error,bits,20)
             # The shared oracle cannot accept ABI20 logs as foundation evidence,
             # or foundation logs as the installed control.
-            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,6,foundation=True)
-            del public['abi'];public['foundation']=6
-            self.assertEqual(scene.check_logs(log(),'',bits,6,foundation=True),(device,frames))
+            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,7,foundation=True)
+            del public['abi'];public['foundation']=7
+            self.assertEqual(scene.check_logs(log(),'',bits,7,foundation=True),(device,frames))
             with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,20)
-            public['foundation']=7
-            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,6,foundation=True)
+            public['foundation']=8
+            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,7,foundation=True)
 
 
 if __name__=='__main__':unittest.main()

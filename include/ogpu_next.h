@@ -17,7 +17,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define OGPU_NEXT_VERSION 6u
+#define OGPU_NEXT_VERSION 7u
 typedef struct ogpu_next_discovery ogpu_next_discovery;
 typedef struct ogpu_next_adapter ogpu_next_adapter;
 typedef struct ogpu_next_device ogpu_next_device;
@@ -2358,7 +2358,7 @@ typedef struct ogpu_next_swapchain ogpu_next_swapchain;
 enum {
     OGPU_NEXT_PRESENTATION_WAYLAND = 1u,
     OGPU_NEXT_WAYLAND_SURFACE_DESC = 125,
-    OGPU_NEXT_SWAPCHAIN_DESC = 127, OGPU_NEXT_PRESENT_DESC = 128,
+    OGPU_NEXT_SWAPCHAIN_DESC = 127, /* 128 retired */
     OGPU_NEXT_QUERY_SURFACE_CAPABILITIES = 1000,
     OGPU_NEXT_QUERY_SURFACE_FORMATS = 1001,
     OGPU_NEXT_QUERY_SURFACE_PRESENT_MODES = 1002,
@@ -2437,7 +2437,7 @@ typedef struct ogpu_next_binary_point {
  * no unconditional rollback promise. Retired chains may still present previously
  * acquired images, but must not acquire again. Destroy never waits.
  *
- * swapchain_images: capacity=0 writes count only; short capacity writes count and
+ * chain_images: capacity=0 writes count only; short capacity writes count and
  * CAPACITY, never a partial array. Other failures preserve outputs. Returned image
  * pointers borrow the chain and stay stable until its destruction. No independent
  * backing: image_bind/dedicated memory creation reject them; image_destroy is a
@@ -2454,49 +2454,168 @@ typedef struct ogpu_next_swapchain_desc {
     uint32_t transform, alpha, present_mode, clipped, domain_count, mode_count;
     const uint32_t *domains, *modes;
 } ogpu_next_swapchain_desc;
-/* acquire: at least one binary/fence, same device, idle and unsignaled. Exclusive
- * chain/acquisition-object host access. Caller obeys native acquired-count and
- * forward-progress limits, especially for timeout_ns=UINT64_MAX. OK/SUBOPTIMAL
- * writes an acquired index and schedules native signals; all other outcomes
- * preserve index. NOT_READY/TIMEOUT do not acquire; OUT_OF_DATE/SURFACE_LOST remain
- * distinct. Wait for acquisition before accessing/releasing the image.
- * release: nonempty unique acquired indices; all acquisition and device uses
- * completed, exclusive chain access. Does not consume an acquisition binary or
- * change image layout. Consume that binary separately or destroy after retirement.
+/* Borrowed frame lifecycle. See docs/minimal-core-presentation.md for the full
+ * contract. Objects/arrays are trusted, live, externally synchronized and disjoint.
+ * Copying a frame does not acquire it again. Its historical binary/fence identities
+ * are not dereferenced by present/abandon. Generation identifies the image set.
+ * acquire publishes only on OK/SUBOPTIMAL; other results preserve its output.
+ * Vulkan requires >=1 idle same-device acquisition binary/fence and the caller must
+ * obey native forward-progress/acquired-count limits. Order access after acquisition.
+ * chain_create always reports previous_state and NULL on failure; a recognized full
+ * record preserves the old state on local rejection. Native replacement retires the
+ * old chain even on failure, but previously acquired frames may still be used.
+ * resize is capability-dependent, never drains: release old views/recordings/native
+ * references and retire uses first. Invalidation increments generation even if native
+ * resize fails. Vulkan reports UNSUPPORTED/IMAGES_UNCHANGED. info is a host snapshot.
+ * queue_present preflights the WHOLE batch, then uses one native Vulkan call. No
+ * hidden submit/wait/transition/allocation. Native present may itself block. Frames
+ * are acquired, STATE_PRESENT and owned/shared for this queue, with writes ordered
+ * by explicit waits. No duplicate chain/wait/fence; retirement fences idle/unsignaled.
+ * item_count>0; results required. Scratch, results and inputs must not overlap.
+ * Local failure writes NONE effects and preserves item results. Native call writes
+ * all results; absent data is error/UNKNOWN. Aggregate errors survive item success.
+ * OUT_OF_DATE/SURFACE_LOST still enqueue queue operations; native call-wide OOM
+ * changes no resource/synchronization state. UNKNOWN is not permission to reuse.
+ * No waits/null fence => its effect is NONE. ENQUEUED is not completion/display.
+ * A signaled Vulkan present fence retires native payloads/shared batch waits, not
+ * scanout or image reacquisition. Retire independent render/acquire uses separately.
+ * abandon accepts nonempty unique acquired frames from one chain, after acquisition
+ * and GPU uses complete. No wait, layout change or binary-signal consumption. Local
+ * rejection retains frames; success releases; unclassified native failure is UNKNOWN.
+ * The caller owns all lifetime/pending-use accounting; no acquisition registry.
  */
-typedef struct ogpu_next_present_image {
-    ogpu_next_swapchain *swapchain;
-    uint32_t index, reserved; /* reserved=0 */
-    ogpu_next_fence *fence; /* optional, idle and unsignaled */
-} ogpu_next_present_image;
-/* queue_present lowers the entire batch to ONE native present. No hot allocation,
- * hidden wait/submission, implicit ownership transfer or transition. image_count>0;
- * waits may be empty only when caller otherwise orders rendering appropriately.
- * Same-device objects, surface-supported queue; queue access externally synchronized.
- * Images must be acquired, STATE_PRESENT and owned by this queue family or shared.
- * No duplicate swapchains, binary waits or non-NULL fences. Caller tracks pending
- * state; no quadratic scan. Native present may itself block; no nonblocking promise.
- * scratch follows present_scratch_requirements(wait_count,image_count), writable
- * and disjoint from inputs/results. results may be NULL or image_count writable
- * statuses. Preflight errors preserve results and enqueue nothing. After the native
- * call, results reports per-chain statuses (BACKEND_ERROR if native left unspecified).
- * OK/SUBOPTIMAL mean queued, not displayed. OUT_OF_DATE/SURFACE_LOST may still
- * enqueue semaphore waits and fence signals; do NOT treat every error as rejection.
- * Native OOM guarantees unchanged resource/synchronization state; other unexpected
- * errors require conservative recovery, not blind reuse. Timeout is not retirement.
- * A present fence permits native payload/semaphore retirement, not scanout completion
- * or reacquisition. Any signaled fence in a batch retires its shared wait semaphores;
- * chain destruction requires all its presentation obligations plus independent
- * render/acquire uses retired. Fence omission leaves retirement proof to the caller.
- */
-typedef struct ogpu_next_present_desc {
+enum {
+    OGPU_NEXT_PRESENT_VULKAN = 1,
+    OGPU_NEXT_PRESENT_DXGI = 2,
+    OGPU_NEXT_PRESENTATION_WIN32 = 2,
+    OGPU_NEXT_WIN32_SURFACE_DESC = 3000,
+    OGPU_NEXT_DXGI_CHAIN_DESC = 3001
+};
+enum {
+    OGPU_NEXT_OCCLUDED = 5,
+    OGPU_NEXT_STILL_DRAWING = 6
+};
+enum {
+    OGPU_NEXT_AVAILABILITY_SIGNALS = 1,
+    OGPU_NEXT_AVAILABILITY_QUEUE_ORDERED = 2
+};
+enum {
+    OGPU_NEXT_PRESENT_REPLACE = 1,
+    OGPU_NEXT_PRESENT_RESIZE = 2,
+    OGPU_NEXT_PRESENT_RETIRE_FENCE = 4,
+    OGPU_NEXT_PRESENT_PACING_HANDLE = 8,
+    OGPU_NEXT_PRESENT_BINARY_WAIT = 16
+};
+enum {
+    OGPU_NEXT_CHAIN_NONE = 0,
+    OGPU_NEXT_CHAIN_ACTIVE = 1,
+    OGPU_NEXT_CHAIN_RETIRED = 2,
+    OGPU_NEXT_CHAIN_NO_IMAGES = 3,
+    OGPU_NEXT_CHAIN_LOST = 4
+};
+enum {
+    OGPU_NEXT_IMAGES_UNCHANGED = 0,
+    OGPU_NEXT_IMAGES_REPLACED = 1,
+    OGPU_NEXT_IMAGES_INVALIDATED = 2,
+    OGPU_NEXT_FRAME_RETAINED = 0,
+    OGPU_NEXT_FRAME_RELEASED = 1,
+    OGPU_NEXT_FRAME_UNKNOWN = 2,
+    OGPU_NEXT_EFFECT_NONE = 0,
+    OGPU_NEXT_EFFECT_ENQUEUED = 1,
+    OGPU_NEXT_EFFECT_UNKNOWN = 2,
+    OGPU_NEXT_WAITABLE_WIN32 = 1
+};
+
+typedef struct ogpu_next_win32_surface_desc {
     ogpu_next_record header;
-    uint32_t wait_count, image_count;
+    void *hwnd;
+} ogpu_next_win32_surface_desc;
+
+/* Native option numbers belong to DXGI, never to the Vulkan mode namespace.
+ * Exact selection: no default queue, image count, mode or latency policy.
+ */
+typedef struct ogpu_next_dxgi_chain_desc {
+    ogpu_next_record header;
+    ogpu_next_surface *surface;
+    ogpu_next_queue *queue;
+    uint32_t format, extent[2], image_count;
+    uint64_t usage;
+    uint32_t swap_effect, scaling, alpha, color_space;
+    uint32_t chain_flags, maximum_frame_latency;
+} ogpu_next_dxgi_chain_desc;
+
+typedef struct ogpu_next_presentation_contract {
+    uint32_t profile, availability, capabilities, max_present_count;
+} ogpu_next_presentation_contract;
+
+typedef struct ogpu_next_chain_info {
+    uint64_t generation;
+    uint32_t state, image_count;
+    ogpu_next_queue *ordered_queue; /* non-NULL only for QUEUE_ORDERED */
+} ogpu_next_chain_info;
+
+typedef struct ogpu_next_chain_create_outcome {
+    ogpu_next_swapchain *chain; /* NULL on failure */
+    uint32_t previous_state, reserved;
+} ogpu_next_chain_create_outcome;
+
+typedef struct ogpu_next_chain_resize_desc {
+    uint32_t format, extent[2], image_count;
+    uint32_t chain_flags, reserved;
+} ogpu_next_chain_resize_desc;
+
+typedef struct ogpu_next_chain_resize_outcome {
+    uint64_t generation;
+    uint32_t state, image_effect;
+} ogpu_next_chain_resize_outcome;
+
+typedef struct ogpu_next_acquire_desc {
+    uint64_t timeout_ns;
+    ogpu_next_binary *binary;
+    ogpu_next_fence *fence;
+} ogpu_next_acquire_desc;
+
+/* Borrowed value, no allocation or reference count; copying confers no new lease.
+ * Availability objects are caller-provided, never invented by acquisition.
+ */
+typedef struct ogpu_next_frame {
+    ogpu_next_swapchain *chain;
+    ogpu_next_image *image;
+    uint64_t generation;
+    uint32_t index, availability;
+    ogpu_next_queue *ordered_queue;
+    ogpu_next_binary *binary;
+    ogpu_next_fence *fence;
+} ogpu_next_frame;
+
+typedef struct ogpu_next_present_item {
+    ogpu_next_frame frame;
+    ogpu_next_fence *retire_fence;
+    uint32_t sync_interval, native_flags; /* DXGI only; zero on Vulkan */
+} ogpu_next_present_item;
+
+typedef struct ogpu_next_present_result {
+    ogpu_next_status status;
+    uint32_t frame_effect, fence_effect, reserved;
+} ogpu_next_present_result;
+
+typedef struct ogpu_next_present_desc {
+    uint32_t wait_count, item_count;
     ogpu_next_binary *const *waits;
-    const ogpu_next_present_image *images;
-    ogpu_next_status *results;
+    const ogpu_next_present_item *items;
+    ogpu_next_present_result *results; /* required, item_count entries */
     ogpu_next_host_span scratch;
 } ogpu_next_present_desc;
+
+typedef struct ogpu_next_present_outcome {
+    uint32_t work_effect, wait_effect;
+} ogpu_next_present_outcome;
+
+typedef struct ogpu_next_pacing_handle {
+    uint32_t kind, reserved;
+    void *handle; /* borrowed; chain closes it, caller must not */
+} ogpu_next_pacing_handle;
+
 typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*discovery_create)(uint32_t platforms, ogpu_next_discovery **);
     ogpu_next_status (*adapter_support)(const ogpu_next_adapter *, ogpu_next_presentation_support *);
@@ -2511,13 +2630,21 @@ typedef struct ogpu_next_presentation_functions {
     ogpu_next_status (*fence_poll)(const ogpu_next_fence *);
     ogpu_next_status (*fence_wait)(const ogpu_next_fence *, uint64_t timeout_ns);
     ogpu_next_status (*fence_reset)(ogpu_next_fence *);
-    ogpu_next_status (*swapchain_create)(ogpu_next_device *, const ogpu_next_swapchain_desc *, ogpu_next_swapchain **);
-    void (*swapchain_destroy)(ogpu_next_swapchain *);
-    ogpu_next_status (*swapchain_images)(const ogpu_next_swapchain *, uint32_t capacity, ogpu_next_image **, uint32_t *count);
-    ogpu_next_status (*acquire)(ogpu_next_swapchain *, uint64_t timeout_ns, ogpu_next_binary *, ogpu_next_fence *, uint32_t *index);
-    ogpu_next_status (*release)(ogpu_next_swapchain *, uint32_t count, const uint32_t *indices);
-    ogpu_next_status (*present_scratch_requirements)(uint32_t waits, uint32_t images, ogpu_next_host_requirements *);
-    ogpu_next_status (*queue_present)(ogpu_next_queue *, const ogpu_next_present_desc *);
+    ogpu_next_status (*surface_win32_create)(const ogpu_next_adapter *, const ogpu_next_win32_surface_desc *, ogpu_next_surface **);
+    ogpu_next_status (*presentation_contract_query)(const ogpu_next_adapter *, const ogpu_next_surface *, uint32_t profile, ogpu_next_presentation_contract *);
+
+    ogpu_next_status (*chain_create)(ogpu_next_device *, const ogpu_next_record *, ogpu_next_chain_create_outcome *);
+    void (*chain_destroy)(ogpu_next_swapchain *);
+    void (*chain_info_query)(const ogpu_next_swapchain *, ogpu_next_chain_info *);
+
+    ogpu_next_status (*chain_images)(const ogpu_next_swapchain *, uint32_t capacity, ogpu_next_image **, uint32_t *count);
+    ogpu_next_status (*chain_resize)(ogpu_next_swapchain *, const ogpu_next_chain_resize_desc *, ogpu_next_chain_resize_outcome *);
+    ogpu_next_status (*chain_pacing_handle)(const ogpu_next_swapchain *, ogpu_next_pacing_handle *);
+    ogpu_next_status (*acquire)(ogpu_next_swapchain *, const ogpu_next_acquire_desc *, ogpu_next_frame *);
+    ogpu_next_status (*abandon_scratch_requirements)(const ogpu_next_device *, uint32_t count, ogpu_next_host_requirements *);
+    ogpu_next_status (*abandon)(ogpu_next_swapchain *, uint32_t count, const ogpu_next_frame *, ogpu_next_host_span scratch, uint32_t *frame_effect);
+    ogpu_next_status (*present_scratch_requirements)(const ogpu_next_device *, uint32_t waits, uint32_t items, ogpu_next_host_requirements *);
+    ogpu_next_status (*queue_present)(ogpu_next_queue *, const ogpu_next_present_desc *, ogpu_next_present_outcome *);
 } ogpu_next_presentation_functions;
 ogpu_next_status ogpu_next_presentation_api(uint32_t version, uint32_t byte_size, ogpu_next_presentation_functions *);
 #ifdef __cplusplus

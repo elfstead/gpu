@@ -14,7 +14,7 @@ frames, native availability, explicit outcome effects and replacement/resize lif
 scopes and consolidate submission. The [consolidated migration](minimal-core-migration.md)
 covers every installed operation, cross-family records and the ordered C2 cutover.
 The [C2 argument cutover](minimal-core-migration.md#c2-argument-public-cutover) is complete
-on Vulkan: foundation schema 6 exposes prepared layouts and one argument updater
+on Vulkan: foundation schema 7 exposes prepared layouts and one argument updater
 through C and direct Rust, with migrated compiler artifacts and consumers. The old
 argument adapters are deleted. The [public descriptor cutover](minimal-core-migration.md#c2-descriptor-public-cutover)
 is also complete: C/Rust heap locations, native shape/requirements queries and
@@ -27,11 +27,12 @@ limits. Old shared-stage/nested-scratch paths are removed and consumers migrated
 The [public submission cutover](minimal-core-migration.md#c2-submission-public-cutover)
 is complete: one counted C/direct Rust operation, explicit per-batch acceptance,
 direct binary arrays and one caller scratch span. Superseded submission paths are
-deleted and consumers migrated. The [presentation lifecycle engine](minimal-core-migration.md#c2-presentation-lifecycle-engine)
-now implements borrowed frames, effects and replacement retirement privately,
-sharing the existing Vulkan lowering. Headless injected WSI checks pass; the public
-C/Rust presentation and frame-loop cutover is next, followed by the full C2
-audit/local C3. Installed schema 6 is unchanged by this engine checkpoint.
+deleted and consumers migrated. The [public presentation cutover](minimal-core-migration.md#c2-presentation-public-cutover)
+is complete locally: borrowed frames, native availability, creation/resize state and
+batch/per-item effects are shared by C and direct Rust. Old index-based wrappers are
+removed; the two-window probe and three-slot scene use the selected contract and
+pass bounded Wayland checks. Next is the full C2 deletion/correspondence audit and
+local C3. C2/C3 as a whole are not yet marked complete.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
