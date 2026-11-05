@@ -3,7 +3,9 @@
 Selected 2026-11-03. **C1's foundation contract is complete; implementation is C2.**
 The Vulkan argument, descriptor and generated-layout families are installed as
 foundation schema 5, including borrowed heap inheritance and per-entry dependencies.
-Unified submission/outcomes and presentation remain to migrate. This document does not declare Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
+The unified submission engine is implemented and tested privately; its public
+cutover and presentation remain to migrate. This document does not declare
+Windows/Metal acceptance or complete the later M8–M11 hardware coverage.
 
 ## Authoritative surface
 
@@ -524,10 +526,64 @@ C consumers, the isolated native Rust consumer, and the independent GGML and
 libplacebo GPU handoffs pass. Native Rust presentation sources compile; interactive
 presentation was not rerun for this cutover.
 
-**Next:** unify single/batch/binary submission, move its translation into one caller
+**Next at that checkpoint:** unify single/batch/binary submission, move its translation into one caller
 scratch span, expose per-batch acceptance outcomes and delete the superseded paths.
 Then migrate presentation and run the full C2 audit/local C3. No Windows/Metal,
 new generated-graphics coverage or performance measurement is claimed here.
+
+## C2 unified submission engine
+
+Implemented 2026-11-05 on Vulkan/Linux. The selected flat `SubmitDesc` and
+`SubmitOutcome` records are private pending the coordinated public cutover.
+Installed C/direct Rust remain at schema **5**, with their existing submission
+signatures. This checkpoint does not complete C2 step 3.
+
+- One counted engine takes descriptions, caller outcome storage and one scratch
+  span. Scratch contains every native batch header and nested list/wait/signal
+  array. The counts/flags-only requirements pass does not read nested arrays or
+  handles; it checks timeline/binary count addition and layout arithmetic.
+  Empty calls require no storage and still check the device's live state.
+- Every batch is translated and validated before one `vkQueueSubmit2`, preserving
+  batch boundaries, list identity and independent timeline/binary stage scopes.
+  No host allocation, automatic signal, retained receipt, duplicate scan or
+  resource-lifetime walk is added. Scratch may be overwritten immediately after
+  the call. Asynchronous resource and synchronization obligations remain explicit.
+- Every local rejection writes REJECTED with the error to all supplied outcomes.
+  Native success writes ACCEPTED; it does not prove completion. Native host/device
+  OOM writes REJECTED and leaves one-shots retryable under Vulkan's specific
+  [unchanged-state guarantee](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html).
+  Other native failures write UNKNOWN for the whole call: Vulkan gives no finer
+  batch acceptance proof. The engine consumes uncertain one-shots and poisons the
+  device, protecting reusable lists from retry too. A later locally rejected call
+  does not retire any earlier UNKNOWN use.
+- The installed single/batch/binary paths now adapt their records into this same
+  native translator and error classifier. The previous translator and classifier
+  bodies are deleted. Old public records, linked binary parsing, scratch queries
+  and entry-point wrappers remain only until the public migration; two narrow
+  dead-code allowances cover the private engine entry points in normal builds.
+
+**Evidence:** 78 CPU tests and all 27 native GPU tests pass on RX 5700 XT
+(RADV/Mesa 26.2.5), with no synchronization-validation errors. New tests capture
+all native headers and nested arrays inside the one scratch span. They verify a
+three-batch call with one-shot/reusable lists, mixed timeline/binary dependencies,
+independent scopes and synchronization-only work; an empty batch and binary-only
+batch also execute. Scratch guards, immediate overwrite, GPU output/guard checks
+and replay with changed input pass. Late invalid records, foreign objects,
+secondary/unended lists, unsupported/HOST scopes, malformed arrays, flags and
+insufficient/misaligned scratch reject without a native prefix or one-shot
+consumption. Both native OOM codes remain retryable. Injected device loss, unknown
+and validation failure produce UNKNOWN for every batch, then reject retries
+without another native call. The complete existing C foundation fixture and
+strict Clippy pass. The 147-operation surface inventory and all 376 draft
+C/Rust layout/constant comparisons pass; the installed ABI is unchanged.
+
+**Next:** move these selected records into the installed header/Rust types, expose
+the single counted submit/requirements operations and migrate all consumers to
+one scratch span and explicit outcomes. Delete the old single/batch/binary
+wrappers, binary extension parser/record, nested scratch planners, temporary
+record adapter and dead-code allowances together. Test C-boundary output handling
+and installed consumers during that cutover. Presentation and the full C2
+audit/local C3 follow. No Windows/Metal acceptance or new timing result is claimed.
 
 ## Verification and open native questions
 

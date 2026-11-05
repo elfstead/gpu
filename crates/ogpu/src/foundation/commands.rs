@@ -10,6 +10,8 @@ pub(super) mod dependencies;
 mod secondary;
 #[path = "splits.rs"]
 mod splits;
+#[path = "submissions.rs"]
+mod submissions;
 pub(in crate::foundation) use dependencies::{
     barrier_requirements as barrier_scratch, split_requirements as split_scratch,
 };
@@ -1428,110 +1430,32 @@ impl Queue {
         d: &Device,
         desc: &SubmitDesc,
     ) -> Result<vk::VkSubmitInfo2, Status> {
-        let device = ptr::from_ref(d);
         SubmitDesc::validate_header(desc.header)?;
         let binary = unsafe { binary_submission(&desc.header)? };
-        let wait_count = desc
-            .wait_count
-            .checked_add(binary.map_or(0, |b| b.wait_count))
-            .ok_or(INVALID)?;
-        let signal_count = desc
-            .signal_count
-            .checked_add(binary.map_or(0, |b| b.signal_count))
-            .ok_or(INVALID)?;
-        let (binary_waits, binary_signals) = match binary {
-            Some(b) => unsafe {
-                (
-                    slice(b.waits, b.wait_count)?,
-                    slice(b.signals, b.signal_count)?,
-                )
-            },
-            None => (&[][..], &[][..]),
+        let selected = submissions::SubmitDesc {
+            list_count: desc.list_count,
+            wait_count: desc.wait_count,
+            signal_count: desc.signal_count,
+            binary_wait_count: binary.map_or(0, |b| b.wait_count),
+            binary_signal_count: binary.map_or(0, |b| b.signal_count),
+            flags: 0,
+            lists: desc.lists,
+            waits: desc.waits,
+            signals: desc.signals,
+            binary_waits: binary.map_or(ptr::null(), |b| b.waits),
+            binary_signals: binary.map_or(ptr::null(), |b| b.signals),
         };
-        let lists = unsafe { slice(desc.lists, desc.list_count)? };
-        let waits = unsafe { slice(desc.waits, desc.wait_count)? };
-        let signals = unsafe { slice(desc.signals, desc.signal_count)? };
-        let (_, wait_offset, signal_offset) =
-            submit_layout(desc.list_count, wait_count, signal_count)?;
-        let storage = scratch(
-            desc.scratch,
-            desc.scratch_size,
-            submit_scratch(desc.list_count, wait_count, signal_count)?,
-        )?;
-        let commands = storage.cast::<vk::VkCommandBufferSubmitInfo>();
-        // wrapping_add permits NULL for zero-size scratch; those pointers aren't accessed.
-        let native_waits = storage
-            .wrapping_add(wait_offset)
-            .cast::<vk::VkSemaphoreSubmitInfo>();
-        let native_signals = storage
-            .wrapping_add(signal_offset)
-            .cast::<vk::VkSemaphoreSubmitInfo>();
-        for (i, pointer) in lists.iter().enumerate() {
-            let list = unsafe { pointer.as_ref() }.ok_or(INVALID)?;
-            if list.device != device
-                || list.domain != self.domain
-                || list.state.get() != 2
-                || list.level != 0
-            {
-                return Err(INVALID);
-            }
-            let info = vk::VkCommandBufferSubmitInfo {
-                sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                commandBuffer: list.command,
-                deviceMask: 0,
-                ..Default::default()
-            };
-            unsafe {
-                commands.add(i).write(info);
-            }
+        unsafe {
+            submissions::translate(
+                self,
+                d,
+                &selected,
+                HostSpan {
+                    data: desc.scratch,
+                    size: desc.scratch_size,
+                },
+            )
         }
-        for (points, binaries, target) in [
-            (waits, binary_waits, native_waits),
-            (signals, binary_signals, native_signals),
-        ] {
-            for (i, point) in points.iter().enumerate() {
-                let timeline = unsafe { point.point.timeline.as_ref() }.ok_or(INVALID)?;
-                if timeline.device != device {
-                    return Err(INVALID);
-                }
-                let info = vk::VkSemaphoreSubmitInfo {
-                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                    semaphore: timeline.handle,
-                    value: point.point.value,
-                    stageMask: stages(d, self.domain, point.stages, true)?,
-                    ..Default::default()
-                };
-                unsafe {
-                    target.add(i).write(info);
-                }
-            }
-            for (i, point) in binaries.iter().enumerate() {
-                let binary = unsafe { point.binary.as_ref() }.ok_or(INVALID)?;
-                if binary.device != device {
-                    return Err(INVALID);
-                }
-                let info = vk::VkSemaphoreSubmitInfo {
-                    sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                    semaphore: binary.handle,
-                    value: 0,
-                    stageMask: stages(d, self.domain, point.stages, true)?,
-                    ..Default::default()
-                };
-                unsafe {
-                    target.add(points.len() + i).write(info);
-                }
-            }
-        }
-        Ok(vk::VkSubmitInfo2 {
-            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            commandBufferInfoCount: desc.list_count,
-            pCommandBufferInfos: commands,
-            waitSemaphoreInfoCount: wait_count,
-            pWaitSemaphoreInfos: native_waits,
-            signalSemaphoreInfoCount: signal_count,
-            pSignalSemaphoreInfos: native_signals,
-            ..Default::default()
-        })
     }
     unsafe fn submit_native(
         &self,
@@ -1539,33 +1463,11 @@ impl Queue {
         count: u32,
         infos: *const vk::VkSubmitInfo2,
     ) -> Result<(), Status> {
-        // SAFETY: validated records; caller owns queue exclusion, pending/lifetime
-        // rules, timeline order and scratch. No allocation or wait in this path.
-        let result = unsafe {
-            d.result((d.f.vkQueueSubmit2.unwrap())(
-                self.handle,
-                count,
-                infos,
-                ptr::null_mut(),
-            ))
-        };
-        if let Err(error) = result {
-            if error != OUT_OF_MEMORY {
-                d.lost.store(true, Ordering::Relaxed);
-            }
-            return Err(error);
-        }
-        Ok(())
+        unsafe { submissions::submit_native(self, d, count, infos) }.result()
     }
 }
 unsafe fn consume_submit(desc: &SubmitDesc) {
-    // Only called after translation validated every list and native submission succeeded.
-    for i in 0..desc.list_count as usize {
-        let list = unsafe { &**desc.lists.add(i) };
-        if list.mode == 1 {
-            list.state.set(3);
-        }
-    }
+    unsafe { submissions::consume(desc.lists, desc.list_count) };
 }
 
 #[cfg(test)]

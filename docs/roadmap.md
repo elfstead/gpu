@@ -71,7 +71,7 @@ compatibility are not completed by those results.
 | M5 — Substantial ML consumer | One specified transformer block and one quantized linear variant through a broader GGML subset | Complete: [clean SDK acceptance and cost/error/storage observations](m5-results.md); no general LLM or matrix-acceleration claim |
 | Foundation-contract consolidation | Native strategy, ownership/safety and remaining-gap dispositions | Complete: [review](core-contract-review.md); not blanket performance or stabilization approval |
 | P1 — Native Rust and interactive graphics | Shared Rust core with thin C adapters, standalone Rust consumer, optional Linux presentation and interactive scene | Native Rust, swapchain lifecycle, textured three-slot scene and isolated packaging pass; [human acceptance partial](presentation-plan.md), resume/minimize/restore unverified |
-| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; unified submission/outcomes next; C2/C3 incomplete |
+| C1–C3 — Minimal composable foundation revision | Derive the minimal contract, revise runtime/tooling/consumers together, then accept available native mappings | C1 selected/consolidated; C2 [public argument cutover complete](minimal-core-migration.md#c2-argument-public-cutover) on Vulkan 2026-11-03; public descriptor/secondary cutover complete 2026-11-05; generated argument layouts complete; public dependency cutover complete; unified submission engine verified, public cutover next; C2/C3 incomplete |
 | M6 — Mixed-workload Metal parity | Foundation migration, learned-image/heap consumers, generated interfaces and P1 interactive presentation | [Native mapping proposed](m6-native-mapping.md); implementation deferred until a Mac is available |
 | DX12 candidate — Parallel native backend | Correct native Windows mapping of the selected foundation and compute/offscreen/presentation acceptance | Implemented candidate with reported Windows scene execution; [review corrections](dx12-review-handoff-2026-10-30.md) and C1 contract decisions remain before acceptance/merge |
 | M7 — Experimental release and adoption | Versioned source/install workflow, contract audit, reproducible consumer acceptance | Ongoing packaging track; first [checkpoint](release-checkpoint.md) complete; refresh with new capabilities, publication/adoption separate |
@@ -170,8 +170,10 @@ also passes native compute execution with explicit layouts and address tokens.
 The [public dependency cutover](minimal-core-migration.md#c2-dependency-public-cutover)
 exposes independent scopes, one caller scratch span and enabled-domain limits in
 C/direct Rust. Old dependency translators and nested scratch paths are deleted;
-consumers pass through the selected records. Next: unified submission/outcomes,
-then presentation.
+consumers pass through the selected records. The [unified submission engine](minimal-core-migration.md#c2-unified-submission-engine)
+now passes native mixed-batch execution, scratch and acceptance checks; installed
+submission adapters share its translator and classifier. Next: its public
+C/Rust/consumer cutover, then presentation.
 C1's checked drafts remain the selected target; C2 completion is not claimed.
 
 Update the shared Rust operations, thin C adapters, Vulkan mapping,

@@ -24,8 +24,10 @@ is complete: explicit borrowed argument layouts, native address tokens, cold
 mapping checks and equivalent-layout execution pass locally. The [public dependency cutover](minimal-core-migration.md#c2-dependency-public-cutover)
 is complete: C/direct Rust use per-entry scopes, explicit shared scratch and enabled-domain
 limits. Old shared-stage/nested-scratch paths are removed and consumers migrated.
-Unified submission and explicit acceptance outcomes are next, followed by presentation
-and the full C2 audit/local C3.
+The [unified submission engine](minimal-core-migration.md#c2-unified-submission-engine)
+now passes native mixed-batch execution and acceptance/failure checks; existing
+submission adapters share its translator. Its public C/Rust/consumer cutover is
+next, followed by presentation and the full C2 audit/local C3.
 
 Execution is Vulkan/Linux first on `minimal-core`, based on `master` at `2374635`.
 Carry the design/review documents without the DX12 implementation. Use that branch
