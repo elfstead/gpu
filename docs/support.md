@@ -9,7 +9,9 @@ Revision 10 adds [native multiview](multiview.md): feature/limit queries,
 pipeline/render/secondary masks and layered D32 execution pass locally. The
 [receipt](results/m8-multiview-2026-11-06.md) separates complete native timestamp
 readback from the installed validation layer's incomplete timestamp tracking.
-Color/MSAA/generated and physical mesh-multiview acceptance remain open.
+Clean revision-10 C/GGML/libplacebo and isolated Rust/Wayland SDK acceptance also
+passes at `2f316e6`. Color/MSAA/generated and physical mesh-multiview acceptance
+remain open.
 
 Revision 9 implements [counted feature selection](feature-selection.md) across
 C, native Rust and generated artifacts. Its local source/ABI, Vulkan and

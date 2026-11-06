@@ -322,8 +322,9 @@ Revision 10 implements [native multiview](multiview.md), including independently
 enabled support, limits, pipeline/render/inheritance masks, compiler requirements,
 sparse/offset array-layer checks and rejections. The [local receipt](results/m8-multiview-2026-11-06.md)
 records primary/secondary replay, the timestamp validation-layer limitation and
-remaining color/MSAA/generated/mesh acceptance. Complete clean revision-10 SDK
-acceptance, then continue with shading rate, tile-local/pass-continuation and remaining
+remaining color/MSAA/generated/mesh acceptance. Clean revision-10 C/GGML/libplacebo
+and isolated native Rust/Wayland SDK acceptance passes at `2f316e6`.
+Next implement shading rate, followed by tile-local/pass-continuation and remaining
 tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.

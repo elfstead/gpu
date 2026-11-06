@@ -592,6 +592,7 @@ now passes alongside source/ABI and local Vulkan regression.
 Revision 10 now implements [multiview](multiview.md): explicit native enabling,
 physical limits, pipeline/render/inheritance masks, shader requirements and
 [local sparse/offset-layer correctness](results/m8-multiview-2026-11-06.md).
+The clean revision-10 C and native Rust SDK checks also pass at `2f316e6`.
 Color/MSAA/resolve, generated/mesh multiview and corrected-layer full timestamp
 validation remain acceptance work. Next implement shading-rate, then
 tile-local/pass-continuation and remaining tessellation/geometry profiles.

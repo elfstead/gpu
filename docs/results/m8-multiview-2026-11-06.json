@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "source_revision": "2f316e6d96428f240fa9eb5066a39b11da36a6f3",
+  "source_dirty": false,
+  "foundation_revision": 10,
+  "runtime_sha256": "7a74ba437fcf4d4ba7970cb64c4a39c433ce17f368700d8a824363750b1cf211",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "sdk_acceptance": "complete: relocated C/GGML/libplacebo and isolated native Rust/Wayland",
+  "multiview": {
+    "submissions": 12,
+    "checked_depth_values": 4608,
+    "masks": [
+      5,
+      10,
+      8
+    ],
+    "view_first_layer": 1,
+    "view_layer_count": 4,
+    "image_layers": 6,
+    "validated_timestamp_readback": "first active-view slot only",
+    "complete_timestamp_readback": "passes without validation layer",
+    "full_timestamp_array_validation": "open: VVL 1.4.357 tracks only first timestamp slot",
+    "unverified": [
+      "color",
+      "multisample/resolve",
+      "generated multiview",
+      "physical mesh multiview",
+      "other hardware"
+    ]
+  },
+  "validation_layer": "1.4.357",
+  "synchronization_validation": true,
+  "windows": "unaccepted",
+  "metal": "deferred",
+  "logs": {
+    "installation": {
+      "path": "/tmp/m8-mv-install.log",
+      "sha256": "2018ec40e41206a5900b524d3a3981143420ef671dc70ee396e401b279f91b7b",
+      "result": "pass"
+    },
+    "installed_c": {
+      "path": "/tmp/m8-mv-sdk-c.log",
+      "sha256": "0cf5b487a8ae14eea9a4fa090ec974bb13bc7abb354c80dcae27608ea9bfdae9",
+      "result": "pass"
+    },
+    "installed_rust": {
+      "path": "/tmp/m8-mv-sdk-rust.log",
+      "sha256": "fda876df358b66a0068d56f7fd8975fd03d2a11d9552b3748c0b6d6b3014a842",
+      "result": "pass"
+    },
+    "installed_surface": {
+      "path": "/tmp/m8-mv-sdk-surface.log",
+      "sha256": "ebfc7a0aa1d5a0942ef31c7e1e6a90c948e328f6c1355a5446e73565efdfc84e",
+      "result": "pass"
+    },
+    "host": {
+      "path": "/tmp/m8-mv-host.log",
+      "sha256": "9a82525c30df70138dfcf5ff57ccdb60fb8355c542264890297de6ff7035f126",
+      "result": "pass"
+    },
+    "native_gpu": {
+      "path": "/tmp/m8-mv-gpu-rust.log",
+      "sha256": "d0d712cd7d99612c6445bdd0269973655652587745ce48e474f6721235aed6ae",
+      "result": "pass"
+    },
+    "public_c_validated": {
+      "path": "/tmp/m8-mv-gpu.log",
+      "sha256": "82fb450fd2010a436c7de8ca60089515d9c32d372e29791100248baf88329ce2",
+      "result": "pass"
+    },
+    "public_c_all_timestamp_slots_without_layer": {
+      "path": "/tmp/m8-mv-timestamps-native.log",
+      "sha256": "7a9abb8fac5ff7f1fe49464e101e47484f9a1b52a4319e3355a96e4885627b5f",
+      "result": "pass"
+    },
+    "clippy": {
+      "path": "/tmp/m8-mv-clippy.log",
+      "sha256": "40361d52443fa6e5dbced61384b92f186e8bf084ce16d44d6c84a20684f84f59",
+      "result": "pass"
+    },
+    "native_rust_consumer_clippy": {
+      "path": "/tmp/m8-mv-rust-consumer.log",
+      "sha256": "a03077b9a5fe9333f4b8d1a76a49e3ef10dcbe25e44d0f12cdc6a1bb74e5376b",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/m8-mv-abi.log",
+      "sha256": "5cf86fcaf1727c817452574b7fef3b5c6c4f572b902c61619f04a5dbc3e0a8d2",
+      "result": "pass"
+    },
+    "bindings": {
+      "path": "/tmp/m8-mv-bindings-check.log",
+      "sha256": "1eff2d6231edb3450490a2b369983606b3259c2af8f0fe078ca94ed5d9643104",
+      "result": "pass"
+    },
+    "shaders": {
+      "path": "/tmp/m8-mv-shaders-check.log",
+      "sha256": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+      "result": "pass"
+    },
+    "compute_compiler": {
+      "path": "/tmp/m8-mv-compute-compiler.log",
+      "sha256": "1228022cef006be64452ed8388bcb1e4b9d821e6d58dccd550e435e0a6008ef3",
+      "result": "pass"
+    },
+    "graphics_compiler": {
+      "path": "/tmp/m8-mv-compiler.log",
+      "sha256": "4e384fd7986ea0a5bca1bbb564a7dbdc4e53b9393aa18ac4f69190110456c88e",
+      "result": "pass"
+    },
+    "scene_checkers": {
+      "path": "/tmp/m8-mv-scene.log",
+      "sha256": "d0207ab506eb3bfb8ae263773301dfc5db708a92fde3999c30539762ea16a0b7",
+      "result": "pass"
+    },
+    "installer_checkers": {
+      "path": "/tmp/m8-mv-installer-unit.log",
+      "sha256": "793474b97775e0c1a27bbd7904b866e9cb141ea78af89b8d39bbbc28a25bbc46",
+      "result": "pass"
+    },
+    "textured_checkers": {
+      "path": "/tmp/m8-mv-handoff-unit.log",
+      "sha256": "c8ddde1080140ceef11bf295dcb143cf7db176f26f2e11c0bb697acc5a7a1840",
+      "result": "pass"
+    }
+  }
+}

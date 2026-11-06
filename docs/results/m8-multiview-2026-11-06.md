@@ -34,7 +34,16 @@ Linux x86-64, Radeon RX 5700 XT, RADV/Mesa 26.2.5, loader 1.4.363, validation la
   consumers/version gates migrate to revision 10; historical receipts keep their
   original versions.
 
-Clean SDK acceptance is the next check after the implementation commit.
+Clean SDK acceptance passes at `2f316e6d96428f240fa9eb5066a39b11da36a6f3`.
+The manifest reports foundation 10, `source_dirty=false`, no legacy/default Cargo
+features and runtime SHA-256
+`7a74ba437fcf4d4ba7970cb64c4a39c433ce17f368700d8a824363750b1cf211`.
+All six relocated C example families, pinned GGML (transformer/quantized plus both
+full-dataset MNIST precision modes), pinned libplacebo, and isolated native Rust
+headless/Wayland checks pass. Installed source graphs, runtime identity, expected
+failures and exact library exports pass. The adjacent JSON records log hashes.
+These consumers establish revision-10 compatibility; the new multiview execution
+oracle is the public C fixture described above.
 
 ## Timestamp validation discrepancy
 
@@ -75,6 +84,12 @@ cargo xtask foundation-compiler --check
 cargo xtask foundation-graphics-compiler --check
 VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 cargo xtask foundation
 env -u VK_INSTANCE_LAYERS -u VK_LAYER_VALIDATE_SYNC OGPU_FOUNDATION_MULTIVIEW_ALL_TIMESTAMPS=1 cargo xtask foundation
+python3 tools/install.py --prefix /tmp/ogpu-m8-2f316e6-sdk
+python3 tools/test-foundation-install.py --prefix /tmp/ogpu-m8-2f316e6-sdk \
+  --ggml-source target/ggml-source --ggml-data target/ggml-data \
+  --libplacebo-source target/libplacebo-source \
+  --vulkan-registry vendor/Vulkan-Headers/registry/vk.xml
+python3 tools/test-rust-install.py --prefix /tmp/ogpu-m8-2f316e6-sdk --presentation
 ```
 
 This is correctness/structural-lowering evidence, not native performance parity.
