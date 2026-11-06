@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
             auto primary = read_words(stem.string() + (pass.compute ? ".comp.spv" : ".frag.spv"));
             const auto metadata = pass.compute ? compute_metadata(primary.data(), primary.size(), pass.values) : shader_metadata{};
             ogpu_next_shader_requirements requirements{RECORD(ogpu_next_shader_requirements, OGPU_NEXT_SHADER_REQUIREMENTS),
-                {0}, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
+                {}, {metadata.local[0], metadata.local[1], metadata.local[2]}, metadata.shared};
             const uint32_t bytes = pass.compute ? pass.push : 8;
             const ogpu_next_argument_field field{0,bytes,OGPU_NEXT_ARGUMENT_INLINE,0,
                 pass.compute ? OGPU_NEXT_STAGE_COMPUTE : OGPU_NEXT_STAGE_VERTEX | OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
             const ogpu_next_executable_desc desc{RECORD(ogpu_next_executable_desc, OGPU_NEXT_EXECUTABLE_DESC),
                 pass.compute ? OGPU_NEXT_EXECUTABLE_COMPUTE : OGPU_NEXT_EXECUTABLE_GRAPHICS,
                 pass.compute ? 1u : 2u, shaders, pass.compute ? nullptr : &graphics.header,
-                pass.compute ? UINT64_C(0) : OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR, &requirements.header, nullptr, 0, 0};
+                pass.compute ? UINT64_C(0) : uint64_t(OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR), &requirements.header, nullptr, 0, 0};
             ogpu_next_executable *raw = nullptr;
             check(ogpu_next_executable_create(device.get(), &desc, layout, &raw));
             Owner<ogpu_next_executable, ogpu_next_executable_destroy> executable(raw, ogpu_next_executable_destroy);
