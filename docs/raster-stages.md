@@ -27,7 +27,7 @@ the executable, not to the attachment inheritance contract.
 The existing topology values now also cover triangle fan, line/triangle
 adjacency lists and strips, and patches. Adjacency requires GEOMETRY enabling;
 shader input compatibility is caller proof. Restart is supported for strips and
-fan, not lists or patches in this profile. Fixed rasterizer discard still permits
+fan; lists and patches additionally need their [restart enables](raster-controls.md). Fixed rasterizer discard still permits
 pre-raster work and requires omission of fragment. Ordinary depth-only graphics
 without fragment remains available. Task/mesh pipelines are a separate native
 stage family and cannot mix with vertex/tessellation/geometry stages.
@@ -35,8 +35,8 @@ stage family and cannot mix with vertex/tessellation/geometry stages.
 TESSELLATION_MULTIVIEW and GEOMETRY_MULTIVIEW are separate enables requiring the
 matching base feature and MULTIVIEW. A nonzero pipeline view mask with these stages
 requires the corresponding enable. TESSELLATION_GEOMETRY_POINT_SIZE separately
-permits explicit point-size writes of one. The native largePoints feature is not
-enabled by this profile; values other than one are not accepted caller input.
+permits explicit point-size writes. Values other than one additionally require
+[LARGE_POINTS](raster-controls.md); enabling either feature does not imply the other.
 Shader output mode and interface validity remain compiler/caller obligations. Storage writes/atomics in these stages
 use the existing VERTEX_STORES_ATOMICS native feature, which covers the pre-raster
 pipeline. Numeric, atomic-type, output-layer and shading-rate requirements remain
@@ -96,8 +96,9 @@ fan/restart, quad/isoline tessellation, alternative spacing and unequal input/ou
 patch sizes remains unverified. So do secondary, generated, local-read, shading-rate
 combinations, per-stage storage writes and advanced subgroup
 execution. Discovery/enabling and representation are not acceptance of all those
-combinations. Large points, transform feedback/geometry streams and dynamic patch-size policy
-are not implemented by this change; include them in the remaining M8 coverage audit. Metal/DX12 mappings remain unaccepted.
+combinations. [Large points and the raster/fetch controls](raster-controls.md) are
+now implemented. Transform feedback/geometry streams and dynamic patch-size policy
+remain in the M8 coverage audit. Metal/DX12 mappings remain unaccepted.
 
 The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
 composes these stages with generated indexed geometry, texture heaps and mip

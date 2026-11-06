@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "raster_controls.rs"]
+mod raster_controls;
+
 #[path = "raster_stages.rs"]
 mod raster_stages;
 
@@ -307,6 +310,7 @@ pub(super) fn snapshot(
     let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
     let mut raster_stage_limits = RasterStageLimits::default();
+    let mut raster_control_limits = RasterControlLimits::default();
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -435,6 +439,27 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
         raster_stage_limits = raster_stages::limits(&properties.properties.limits);
+        raster_control_limits = RasterControlLimits {
+            point_size_range: properties.properties.limits.pointSizeRange,
+            point_size_granularity: properties.properties.limits.pointSizeGranularity,
+            max_vertex_divisor: local_properties.maxVertexAttribDivisor,
+            nonzero_first_instance: local_properties.supportsNonZeroFirstInstance,
+            polygon_mode_point_size: local_properties.polygonModePointSize,
+        };
+        features.available |= raster_controls::snapshot(instance, physical, &f)?;
+        for (value, bit) in [
+            (root.features.largePoints, LARGE_POINTS),
+            (v14.vertexAttributeInstanceRateDivisor, VERTEX_DIVISOR),
+            (
+                v14.vertexAttributeInstanceRateZeroDivisor,
+                VERTEX_ZERO_DIVISOR,
+            ),
+        ] {
+            if value != 0 {
+                features.available |= bit;
+            }
+        }
+
         if v14.dynamicRenderingLocalRead != 0 {
             features.available |= LOCAL_READ;
         }
@@ -738,6 +763,7 @@ pub(super) fn snapshot(
         generated_limits,
         local_read_limits,
         raster_stage_limits,
+        raster_control_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -900,6 +926,8 @@ impl Device {
         let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
             maintenance5: 1,
+            vertexAttributeInstanceRateDivisor: u32::from(enabled & VERTEX_DIVISOR != 0),
+            vertexAttributeInstanceRateZeroDivisor: u32::from(enabled & VERTEX_ZERO_DIVISOR != 0),
             dynamicRenderingLocalRead: u32::from(enabled & LOCAL_READ != 0),
             pNext: ptr::from_mut(&mut heaps).cast(),
             ..Default::default()
@@ -970,6 +998,7 @@ impl Device {
             depthBiasClamp: u32::from(enabled & DEPTH_BIAS_CLAMP != 0),
             fillModeNonSolid: u32::from(enabled & NON_SOLID_FILL != 0),
             wideLines: u32::from(enabled & WIDE_LINES != 0),
+            largePoints: u32::from(enabled & LARGE_POINTS != 0),
             depthBounds: u32::from(enabled & DEPTH_BOUNDS != 0),
             sampleRateShading: u32::from(enabled & SAMPLE_SHADING != 0),
             alphaToOne: u32::from(enabled & ALPHA_TO_ONE != 0),
@@ -990,6 +1019,12 @@ impl Device {
             c"VK_KHR_device_address_commands".as_ptr(),
             c"VK_KHR_shader_untyped_pointers".as_ptr(),
         ];
+        if enabled & DEPTH_CLIP != 0 {
+            extensions.push(c"VK_EXT_depth_clip_enable".as_ptr());
+        }
+        if enabled & (LIST_RESTART | PATCH_RESTART) != 0 {
+            extensions.push(c"VK_EXT_primitive_topology_list_restart".as_ptr());
+        }
         if enabled & UNIFIED_IMAGES != 0 {
             extensions.push(c"VK_KHR_unified_image_layouts".as_ptr());
         }
@@ -1019,6 +1054,10 @@ impl Device {
         } else {
             ptr::from_ref(&draw_parameters).cast()
         };
+        let mut raster_controls = raster_controls::Native::new(enabled);
+        let previous = raster_controls
+            .link(previous.cast_mut(), enabled)
+            .cast_const();
         let mesh = vk::VkPhysicalDeviceMeshShaderFeaturesEXT {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
             pNext: previous.cast_mut(),

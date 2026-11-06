@@ -3,6 +3,12 @@
 //! Extending/changing private storage does not change any public record.
 use super::types::*;
 pub(super) type FeatureBits = u128;
+pub(super) const LARGE_POINTS: FeatureBits = 1 << 73;
+pub(super) const DEPTH_CLIP: FeatureBits = 1 << 74;
+pub(super) const VERTEX_DIVISOR: FeatureBits = 1 << 75;
+pub(super) const VERTEX_ZERO_DIVISOR: FeatureBits = 1 << 76;
+pub(super) const LIST_RESTART: FeatureBits = 1 << 77;
+pub(super) const PATCH_RESTART: FeatureBits = 1 << 78;
 pub(super) const TESSELLATION: FeatureBits = 1 << 68;
 pub(super) const GEOMETRY: FeatureBits = 1 << 69;
 pub(super) const TESSELLATION_MULTIVIEW: FeatureBits = 1 << 70;
@@ -91,7 +97,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
         if id == 0 {
             return Err(INVALID);
         }
-        if id > 73 {
+        if id > 79 {
             return Err(UNSUPPORTED);
         }
         mask |= 1u128 << (id - 1);
@@ -99,7 +105,7 @@ pub(super) fn encode(ids: &[u32]) -> Result<FeatureBits, Status> {
     Ok(mask)
 }
 pub(super) fn decode(mask: FeatureBits) -> Vec<u32> {
-    (1..=73)
+    (1..=79)
         .filter(|id| mask & (1u128 << (id - 1)) != 0)
         .collect()
 }
@@ -163,7 +169,7 @@ mod tests {
     #[test]
     fn unknown_and_zero_ids_are_rejected_without_truncation() {
         assert_eq!(encode(&[0]), Err(INVALID));
-        for id in [74, 128, u32::MAX] {
+        for id in [80, 128, u32::MAX] {
             assert_eq!(encode(&[feature_ids::RASTER, id]), Err(UNSUPPORTED));
         }
     }

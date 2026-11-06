@@ -138,6 +138,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_depth.h"
 #include "foundation_local_read.h"
 #include "foundation_raster_stages.h"
+#include "foundation_raster_controls.h"
 #include "foundation_multiview.h"
 #include "foundation_blend.h"
 #include "foundation_float_atomics.h"
@@ -1011,10 +1012,10 @@ int main(int argc, char **argv) {
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
             FIXTURE_FEATURES(foundation_features(fixture_mask(features.available))) };
         uint32_t selected_ids[128];
-        REQUIRE(desc.required_features.count+3 <= 128);
+        REQUIRE(desc.required_features.count <= 128);
         memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
         for (uint32_t f=0; f<features.available.count; ++f)
-            if (features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) selected_ids[desc.required_features.count++]=features.available.ids[f];
+            if ((features.available.ids[f]>=OGPU_NEXT_FEATURE_LOCAL_READ && features.available.ids[f]<=OGPU_NEXT_FEATURE_GEOMETRY) || (features.available.ids[f]>=OGPU_NEXT_FEATURE_LARGE_POINTS && features.available.ids[f]<=OGPU_NEXT_FEATURE_PATCH_RESTART)) { REQUIRE(desc.required_features.count<128);selected_ids[desc.required_features.count++]=features.available.ids[f]; }
         desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
@@ -1093,7 +1094,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 59);
+    REQUIRE(argc == 65);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1117,6 +1118,7 @@ int main(int argc, char **argv) {
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 1) == EXIT_SUCCESS);
     REQUIRE(local_read_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[49]) == EXIT_SUCCESS);
     REQUIRE(raster_stages_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[52]) == EXIT_SUCCESS);
+    REQUIRE(raster_controls_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[59]) == EXIT_SUCCESS);
     REQUIRE(multiview_execution(device,memory_desc,graphics_domain,argv[48]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);

@@ -64,9 +64,8 @@ fn raster_options(
     {
         return Err(INVALID);
     }
-    // List restart and independent depth clipping are separate, unimplemented profiles.
-    if o.primitive_restart != 0 && !matches!(topology, 2 | 4 | 5 | 7 | 9) {
-        return Err(UNSUPPORTED);
+    if o.primitive_restart != 0 {
+        raster_controls::restart(topology, features)?;
     }
     for (needed, bit) in [
         (o.depth_clamp != 0, DEPTH_CLAMP),
@@ -257,12 +256,14 @@ pub(super) unsafe fn prepare(
     let options = if state.raster_options.is_null() {
         RasterOptions::default()
     } else {
-        unsafe { *record::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
+        unsafe { *local_read::parent::<RasterOptions>(state.raster_options, RASTER_OPTIONS)? }
     };
     if mesh_pipeline && options.primitive_restart != 0 {
         return Err(INVALID);
     }
     raster_options(&options, d.snapshot.features.enabled, p, state.topology)?;
+    let depth_clip =
+        unsafe { raster_controls::depth_clip(options.header.next, d.snapshot.features.enabled)? };
     let rate = if desc.dynamic_state & DYNAMIC_SHADING_RATE != 0 || state.shading_rate.is_null() {
         ShadingRateState::default()
     } else {
@@ -357,10 +358,11 @@ pub(super) unsafe fn prepare(
     let front = stencil(&state.stencil_front)?;
     let back = stencil(&state.stencil_back)?;
     samples(state.samples, sample_mask)?;
+    let mut vertex_divisors = Vec::new();
     let (vertex_bindings, vertex_attributes) = if state.vertex_input.is_null() {
         (Vec::new(), Vec::new())
     } else {
-        let input = unsafe { record::<VertexInput>(state.vertex_input, VERTEX_INPUT)? };
+        let input = unsafe { local_read::parent::<VertexInput>(state.vertex_input, VERTEX_INPUT)? };
         if input.binding_count > p.max_vertex_bindings
             || input.attribute_count > p.max_vertex_attributes
         {
@@ -369,6 +371,14 @@ pub(super) unsafe fn prepare(
         let bindings = unsafe { array(input.bindings, input.binding_count)? };
         let attributes = unsafe { array(input.attributes, input.attribute_count)? };
         vertex_layout(p, bindings, attributes)?;
+        vertex_divisors = unsafe {
+            raster_controls::divisors(
+                input.header.next,
+                bindings,
+                d.snapshot.features.enabled,
+                &d.snapshot.raster_control_limits,
+            )?
+        };
         let mut native_bindings = Vec::new();
         let mut native_attributes = Vec::new();
         native_bindings
@@ -634,7 +644,19 @@ pub(super) unsafe fn prepare(
             pSpecializationInfo: &specs[i],
         });
     }
+    let native_divisors = vk::VkPipelineVertexInputDivisorStateCreateInfo {
+        sType:
+            vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO,
+        vertexBindingDivisorCount: vertex_divisors.len() as u32,
+        pVertexBindingDivisors: vertex_divisors.as_ptr(),
+        ..Default::default()
+    };
     let vertex = vk::VkPipelineVertexInputStateCreateInfo {
+        pNext: if vertex_divisors.is_empty() {
+            ptr::null()
+        } else {
+            ptr::from_ref(&native_divisors).cast()
+        },
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         vertexBindingDescriptionCount: vertex_bindings.len() as u32,
         pVertexBindingDescriptions: vertex_bindings.as_ptr(),
@@ -655,6 +677,9 @@ pub(super) unsafe fn prepare(
         ..Default::default()
     };
     let raster = vk::VkPipelineRasterizationStateCreateInfo {
+        pNext: depth_clip
+            .as_ref()
+            .map_or(ptr::null(), |v| ptr::from_ref(v).cast()),
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         depthClampEnable: options.depth_clamp,
         rasterizerDiscardEnable: options.discard,
@@ -1002,7 +1027,7 @@ mod tests {
         };
         for topology in 0..=4 {
             assert_eq!(
-                raster_options(&restart, FeatureBits::MAX, &p, topology),
+                raster_options(&restart, 0, &p, topology),
                 if matches!(topology, 2 | 4) {
                     Ok(())
                 } else {

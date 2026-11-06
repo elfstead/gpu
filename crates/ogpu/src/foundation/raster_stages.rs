@@ -253,6 +253,12 @@ mod tests {
                 snapshot,
             };
             for bit in [
+                LARGE_POINTS,
+                DEPTH_CLIP,
+                VERTEX_DIVISOR,
+                VERTEX_ZERO_DIVISOR,
+                LIST_RESTART,
+                PATCH_RESTART,
                 TESSELLATION,
                 GEOMETRY,
                 TESSELLATION_GEOMETRY_POINT_SIZE,

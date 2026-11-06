@@ -26,15 +26,16 @@ automatically checked.
 
 ## Implementation sequence before M9
 
-The remaining implementation work is not just more permutations of tests:
+The remaining implementation work is not just more permutations of tests. The
+first control batch is now implemented; its unavailable patch-restart profile
+remains execution debt:
 
-1. **Complete the existing raster/fetch controls.** Add independently queried
-   native large points, independent depth clipping, vertex instance divisors and
-   list/patch restart. Report physical limits and preserve direct state lowering.
-   Current PointSize=1, coupled clamp/clip, divisor-one and strip/fan-only restart
-   restrictions are missing hardware profiles, not intended universal API policy.
-   Audit the already implemented dynamic stride path at the same time; do not add
-   another vertex binding mechanism.
+1. **Existing raster/fetch controls — implemented.** [Large points, independent
+   depth clipping, instance divisors and list/patch restart](raster-controls.md)
+   now have independent enabling, physical limits and direct lowering. Ten native
+   profiles pass, including existing dynamic stride with non-unit/zero divisors
+   and nonzero first instance. Patch restart is unsupported on the local GPU and
+   remains explicitly unverified. No alternative vertex binding mechanism added.
 2. **Expose the remaining distinct raster mechanisms.** Design one coherent batch
    for conservative rasterization, line rasterization/stipple, provoking vertex,
    depth clip convention and programmable sample positions, with native queries,

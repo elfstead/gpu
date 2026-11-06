@@ -45,6 +45,7 @@ fn fixture() -> Snapshot {
         generated_limits: GeneratedLimits::default(),
         local_read_limits: LocalReadLimits::default(),
         raster_stage_limits: RasterStageLimits::default(),
+        raster_control_limits: RasterControlLimits::default(),
         shading_rate_limits: ShadingRateLimits::default(),
         shading_rates: Vec::new(),
         formats: vec![],

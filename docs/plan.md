@@ -352,10 +352,12 @@ composes the stages with texture heaps, mip/filtering, depth, blending, scissors
 and continuation. [Installed acceptance](results/m8-advanced-textured-2026-11-06.md)
 records five profiles and the unchanged baseline consumer. The [M8 coverage
 audit](m8-coverage.md) separates missing native mechanisms from validation debt.
-Next implement the existing raster/fetch control batch: large points, independent
-depth clipping, vertex instance divisors and list/patch restart. Further distinct
-raster controls, geometry capture and contract/composition consolidation follow
-before M9 ray tracing. M6 remains incomplete until native development is possible.
+The [raster/fetch control batch](raster-controls.md) now implements large points,
+independent depth clipping, instance divisors and list/patch restart. Ten local
+profiles pass; native patch restart remains unavailable. Next implement the
+distinct raster mechanisms: conservative rasterization, line/stipple controls,
+provoking vertex, depth clip convention and sample positions. Geometry capture
+and contract/composition consolidation follow before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows
 

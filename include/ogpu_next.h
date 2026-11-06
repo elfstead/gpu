@@ -226,6 +226,13 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_ATTACHMENT_SHADING_RATE UINT32_C(66)
 #define OGPU_NEXT_FEATURE_MESH_PRIMITIVE_SHADING_RATE UINT32_C(67)
 #define OGPU_NEXT_FEATURE_LOCAL_READ UINT32_C(68)
+#define OGPU_NEXT_FEATURE_LARGE_POINTS UINT32_C(74)
+#define OGPU_NEXT_FEATURE_DEPTH_CLIP UINT32_C(75)
+#define OGPU_NEXT_FEATURE_VERTEX_DIVISOR UINT32_C(76)
+#define OGPU_NEXT_FEATURE_VERTEX_ZERO_DIVISOR UINT32_C(77)
+#define OGPU_NEXT_FEATURE_LIST_RESTART UINT32_C(78)
+#define OGPU_NEXT_FEATURE_PATCH_RESTART UINT32_C(79)
+
 
 #define OGPU_NEXT_FEATURE_RASTER UINT32_C(1)
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT32_C(2)
@@ -1463,8 +1470,8 @@ void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint3
 
 /* Optional native tessellation/geometry stages; see docs/raster-stages.md.
  * Enables are independent. *_MULTIVIEW also requires the matching base stage and
- * MULTIVIEW. TESSELLATION_GEOMETRY_POINT_SIZE permits explicit PointSize=1 writes
- * by tessellation/geometry; largePoints is not enabled in this profile. Caller
+ * MULTIVIEW. TESSELLATION_GEOMETRY_POINT_SIZE permits explicit point-size writes
+ * by tessellation/geometry; values other than one also require LARGE_POINTS. Caller
  * proves output-mode/interface requirements.
  * QUERY_RASTER_STAGE_LIMITS reports physical limits, not selected enables. */
 #define OGPU_NEXT_FEATURE_TESSELLATION UINT32_C(69)
@@ -1775,6 +1782,38 @@ enum {
  * No shader emulation, extra pass or implicit attachment read transition.
  */
 enum { OGPU_NEXT_POLYGON_FILL = 0, OGPU_NEXT_POLYGON_LINE = 1, OGPU_NEXT_POLYGON_POINT = 2 };
+#define OGPU_NEXT_QUERY_RASTER_CONTROL_LIMITS UINT32_C(24)
+#define OGPU_NEXT_DEPTH_CLIP_STATE UINT32_C(134)
+#define OGPU_NEXT_VERTEX_DIVISORS UINT32_C(135)
+typedef struct ogpu_next_raster_control_limits {
+    float point_size_range[2], point_size_granularity;
+    uint32_t max_vertex_divisor, nonzero_first_instance, polygon_mode_point_size;
+} ogpu_next_raster_control_limits;
+typedef struct ogpu_next_depth_clip_state {
+    ogpu_next_record header;
+    uint32_t enable, reserved;
+} ogpu_next_depth_clip_state;
+/* Optional raster_options.header.next; next=NULL, reserved=0, enable=0/1.
+ * Requires DEPTH_CLIP even when enable=0. Controls Z clipping independently of
+ * depth_clamp; absence preserves the native coupled clamp/clip default. */
+typedef struct ogpu_next_vertex_divisor { uint32_t binding, divisor; } ogpu_next_vertex_divisor;
+typedef struct ogpu_next_vertex_divisors {
+    ogpu_next_record header;
+    uint32_t count, reserved;
+    const ogpu_next_vertex_divisor *entries;
+} ogpu_next_vertex_divisors;
+/* Optional vertex_input.header.next; next=NULL, reserved=0. Unique entries name
+ * declared INSTANCE-rate bindings. Omitted bindings use divisor one. Divisor>1
+ * needs VERTEX_DIVISOR; zero needs VERTEX_ZERO_DIVISOR independently. Each divisor
+ * must fit max_vertex_divisor. Native fetch index is firstInstance + floor(local
+ * instance/divisor); zero fetches firstInstance for every instance. If the physical
+ * nonzero_first_instance property is zero, draws with any divisor!=1 must use
+ * firstInstance=0, including indirect/generated records: a TRUSTED caller rule.
+ * No shader patching, expanded instance data or per-draw inspection.
+ * Limits are physical, not enabled features. PointSize!=1 needs LARGE_POINTS;
+ * shader writes must be positive; native range clamping and granularity apply.
+ * polygon_mode_point_size reports whether polygon POINT uses shader point size.
+ */
 typedef struct ogpu_next_raster_options {
     ogpu_next_record header;
     uint32_t primitive_restart, depth_clamp, discard, polygon_mode;
@@ -1795,9 +1834,9 @@ typedef struct ogpu_next_raster_options {
  * equivalent to NULL (zero width is invalid; zero sample mask suppresses coverage).
  * Restart is available for line/triangle strips (including adjacency) and triangle
  * fans, using the fixed all-ones index value for the bound index type.
- * List/patch restart is a separate future profile.
- * DEPTH_CLAMP enables clamping and disables Z clipping; independent depth clipping
- * is not exposed. Nonzero bias clamp needs DEPTH_BIAS_CLAMP even with bias disabled.
+ * List topologies additionally require LIST_RESTART; PATCHES requires PATCH_RESTART.
+ * DEPTH_CLAMP enables clamping and, without DEPTH_CLIP_STATE, disables Z clipping.
+ * DEPTH_CLIP_STATE on header.next controls clipping independently. Nonzero bias clamp needs DEPTH_BIAS_CLAMP even with bias disabled.
  * Non-fill modes, non-unit width, bounds testing, sample shading and alpha-to-one
  * need NON_SOLID_FILL/WIDE_LINES/DEPTH_BOUNDS/SAMPLE_SHADING/ALPHA_TO_ONE respectively.
  * Non-unit width must fit the reported range; native granularity/rounding applies.
@@ -1831,9 +1870,10 @@ typedef struct ogpu_next_vertex_input {
  * allowed. Limits and native vertex-format support are checked during preparation.
  * Strides are static, including zero and overlapping records; attribute extent is
  * not artificially constrained to stride. Rate is per vertex or per instance with
- * divisor one. Shader input types/locations and native fetch alignment are caller
- * contracts. Metadata is borrowed only during preparation. Additional divisors and
- * dynamic input descriptions are not enabled. Dynamic stride uses
+ * divisor one unless VERTEX_DIVISORS is supplied on header.next. Shader input
+ * types/locations and native fetch alignment are caller contracts. Metadata is
+ * borrowed only during preparation. Dynamic input descriptions are not enabled;
+ * dynamic stride uses
  * DYNAMIC_VERTEX_STRIDE and VERTEX_BIND_STRIDE; no repack or shader rewriting.
  */
 /* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, canonical order:
@@ -1876,13 +1916,13 @@ typedef struct ogpu_next_vertex_input {
  * pairs still require matching formats. Depth/stencil format=0 versus absent view
  * is similarly relaxed. No inferred transitions, attachment allocation or remap.
  * Additional static raster/sample controls use raster_options. Custom
- * sample locations and independent depth clipping remain unimplemented profiles.
+ * sample locations remain an unimplemented profile.
  * Both vertex pulling and native vertex fetch are available. Topologies include
  * TRIANGLE_FAN, line/triangle list/strip ADJACENCY and PATCHES. Adjacency requires
  * GEOMETRY enabling; patch lists require the paired tessellation stages/state.
- * Primitive restart is available for strips/fan, not lists/patches in this profile.
- * Vertex point output uses PointSize=1; tessellation/geometry point-size writes
- * require TESSELLATION_GEOMETRY_POINT_SIZE and must be 1 (largePoints is not enabled).
+ * Primitive restart is available for strips/fan; lists/patches need their enables.
+ * PointSize defaults to one when not written. Values other than one require
+ * LARGE_POINTS; tessellation/geometry writes also need TESSELLATION_GEOMETRY_POINT_SIZE.
  * Storage writes
  * before rasterization use VERTEX_STORES_ATOMICS, fragment writes its own enable.
  * Missing profiles are UNSUPPORTED, not emulated.

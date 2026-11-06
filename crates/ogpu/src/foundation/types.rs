@@ -101,6 +101,12 @@ pub mod feature_ids {
     pub const TESSELLATION_MULTIVIEW: u32 = 71;
     pub const GEOMETRY_MULTIVIEW: u32 = 72;
     pub const TESSELLATION_GEOMETRY_POINT_SIZE: u32 = 73;
+    pub const LARGE_POINTS: u32 = 74;
+    pub const DEPTH_CLIP: u32 = 75;
+    pub const VERTEX_DIVISOR: u32 = 76;
+    pub const VERTEX_ZERO_DIVISOR: u32 = 77;
+    pub const LIST_RESTART: u32 = 78;
+    pub const PATCH_RESTART: u32 = 79;
 }
 /// Borrowed feature IDs. Input storage lives through its host call. Query output
 /// storage lives through the queried adapter/discovery or device lifetime.
@@ -1884,4 +1890,38 @@ pub struct TessellationState {
     pub header: Record,
     pub patch_control_points: u32,
     pub domain_origin: u32,
+}
+
+pub const RASTER_CONTROL_LIMITS: u32 = 24;
+pub const DEPTH_CLIP_STATE: u32 = 134;
+pub const VERTEX_DIVISORS: u32 = 135;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct RasterControlLimits {
+    pub point_size_range: [f32; 2],
+    pub point_size_granularity: f32,
+    pub max_vertex_divisor: u32,
+    pub nonzero_first_instance: u32,
+    pub polygon_mode_point_size: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DepthClipState {
+    pub header: Record,
+    pub enable: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct VertexDivisor {
+    pub binding: u32,
+    pub divisor: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct VertexDivisors {
+    pub header: Record,
+    pub count: u32,
+    pub reserved: u32,
+    pub entries: *const VertexDivisor,
 }

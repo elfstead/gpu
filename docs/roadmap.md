@@ -621,8 +621,10 @@ heaps/mips/filtering, depth, blending, scissors and continuation. The [clean ins
 passes 180 frames at 257×193 and 640×360, including continuation and independent
 CPU/reference checks. The [M8 coverage audit](m8-coverage.md) schedules the remaining native
 raster/fetch controls, distinct raster mechanisms, geometry capture/dynamic patch
-state, and contract/composition consolidation before M9. Next implement the first
-control batch; native combinations and general stage-interface tooling remain
+state, and contract/composition consolidation before M9. The [first control batch](raster-controls.md) now implements large points,
+independent clipping, divisors and list/patch restart; ten supported profiles pass
+locally, with patch restart still unavailable. Next implement the distinct raster
+mechanisms batch. Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);

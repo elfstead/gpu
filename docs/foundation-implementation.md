@@ -50,6 +50,12 @@ adds texture/depth/blend/continuation composition through the unchanged API.
 The [remaining M8 audit](m8-coverage.md) schedules missing raster/fetch controls
 and distinct mechanisms separately from native combination/tooling evidence.
 
+M8 raster/fetch controls, 2026-11-06: [large points, independent depth clipping,
+instance divisors and list/patch restart](raster-controls.md) add independent
+features, a physical limits query and cold state records. Ten local profiles pass,
+including zero/non-unit divisors with dynamic stride and nonzero first instance.
+Patch restart is implemented but locally unsupported; no new draw path is added.
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and

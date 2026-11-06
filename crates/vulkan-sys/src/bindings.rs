@@ -11025,6 +11025,71 @@ impl Default for VkPipelineCreateFlags2CreateInfo {
     }
 }
 #[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct VkVertexInputBindingDivisorDescription {
+    pub binding: u32,
+    pub divisor: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkVertexInputBindingDivisorDescription",
+    ][::std::mem::size_of::<VkVertexInputBindingDivisorDescription>() - 8usize];
+    [
+        "Alignment of VkVertexInputBindingDivisorDescription",
+    ][::std::mem::align_of::<VkVertexInputBindingDivisorDescription>() - 4usize];
+    [
+        "Offset of field: VkVertexInputBindingDivisorDescription::binding",
+    ][::std::mem::offset_of!(VkVertexInputBindingDivisorDescription, binding) - 0usize];
+    [
+        "Offset of field: VkVertexInputBindingDivisorDescription::divisor",
+    ][::std::mem::offset_of!(VkVertexInputBindingDivisorDescription, divisor) - 4usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineVertexInputDivisorStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub vertexBindingDivisorCount: u32,
+    pub pVertexBindingDivisors: *const VkVertexInputBindingDivisorDescription,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineVertexInputDivisorStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineVertexInputDivisorStateCreateInfo>() - 32usize];
+    [
+        "Alignment of VkPipelineVertexInputDivisorStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineVertexInputDivisorStateCreateInfo>() - 8usize];
+    [
+        "Offset of field: VkPipelineVertexInputDivisorStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineVertexInputDivisorStateCreateInfo, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineVertexInputDivisorStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineVertexInputDivisorStateCreateInfo, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineVertexInputDivisorStateCreateInfo::vertexBindingDivisorCount",
+    ][::std::mem::offset_of!(
+        VkPipelineVertexInputDivisorStateCreateInfo, vertexBindingDivisorCount
+    ) - 16usize];
+    [
+        "Offset of field: VkPipelineVertexInputDivisorStateCreateInfo::pVertexBindingDivisors",
+    ][::std::mem::offset_of!(
+        VkPipelineVertexInputDivisorStateCreateInfo, pVertexBindingDivisors
+    ) - 24usize];
+};
+impl Default for VkPipelineVertexInputDivisorStateCreateInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkRenderingAttachmentLocationInfo {
     pub sType: VkStructureType,
@@ -13224,6 +13289,89 @@ impl Default for VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR {
         }
     }
 }
+pub type VkPipelineRasterizationDepthClipStateCreateFlagsEXT = VkFlags;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceDepthClipEnableFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub depthClipEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceDepthClipEnableFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDeviceDepthClipEnableFeaturesEXT>() - 24usize];
+    [
+        "Alignment of VkPhysicalDeviceDepthClipEnableFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDeviceDepthClipEnableFeaturesEXT>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClipEnableFeaturesEXT::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClipEnableFeaturesEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClipEnableFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClipEnableFeaturesEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceDepthClipEnableFeaturesEXT::depthClipEnable",
+    ][::std::mem::offset_of!(VkPhysicalDeviceDepthClipEnableFeaturesEXT, depthClipEnable)
+        - 16usize];
+};
+impl Default for VkPhysicalDeviceDepthClipEnableFeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineRasterizationDepthClipStateCreateInfoEXT {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub flags: VkPipelineRasterizationDepthClipStateCreateFlagsEXT,
+    pub depthClipEnable: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineRasterizationDepthClipStateCreateInfoEXT",
+    ][::std::mem::size_of::<VkPipelineRasterizationDepthClipStateCreateInfoEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPipelineRasterizationDepthClipStateCreateInfoEXT",
+    ][::std::mem::align_of::<VkPipelineRasterizationDepthClipStateCreateInfoEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationDepthClipStateCreateInfoEXT::sType",
+    ][::std::mem::offset_of!(VkPipelineRasterizationDepthClipStateCreateInfoEXT, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineRasterizationDepthClipStateCreateInfoEXT::pNext",
+    ][::std::mem::offset_of!(VkPipelineRasterizationDepthClipStateCreateInfoEXT, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineRasterizationDepthClipStateCreateInfoEXT::flags",
+    ][::std::mem::offset_of!(VkPipelineRasterizationDepthClipStateCreateInfoEXT, flags)
+        - 16usize];
+    [
+        "Offset of field: VkPipelineRasterizationDepthClipStateCreateInfoEXT::depthClipEnable",
+    ][::std::mem::offset_of!(
+        VkPipelineRasterizationDepthClipStateCreateInfoEXT, depthClipEnable
+    ) - 20usize];
+};
+impl Default for VkPipelineRasterizationDepthClipStateCreateInfoEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkTensorARM_T {
@@ -14687,6 +14835,56 @@ const _: () = {
     ) - 60usize];
 };
 impl Default for VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub primitiveTopologyListRestart: VkBool32,
+    pub primitiveTopologyPatchListRestart: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT",
+    ][::std::mem::size_of::<VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT>()
+        - 24usize];
+    [
+        "Alignment of VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT",
+    ][::std::mem::align_of::<VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT>()
+        - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT::sType",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT, sType
+    ) - 0usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT::pNext",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT, pNext
+    ) - 8usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT::primitiveTopologyListRestart",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT,
+        primitiveTopologyListRestart
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT::primitiveTopologyPatchListRestart",
+    ][::std::mem::offset_of!(
+        VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT,
+        primitiveTopologyPatchListRestart
+    ) - 20usize];
+};
+impl Default for VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {
