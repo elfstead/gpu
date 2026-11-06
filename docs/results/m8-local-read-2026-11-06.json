@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "source_revision": "64e098857185d0ddadd1645e26d4098a31a61920",
+  "source_dirty": false,
+  "foundation_revision": 11,
+  "runtime_sha256": "bf210310468cc24c5ec5f92a00f827de75624b40563f2eaed78f7eac8a39ffcb",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation_layer": "1.4.357",
+  "synchronization_validation": true,
+  "validation_errors": 0,
+  "existing_raster_unused_output_warnings": 4,
+  "sdk_acceptance": "complete: relocated C/GGML/libplacebo, isolated native Rust/Wayland, local-read consumer against installed release library",
+  "local_read": {
+    "native_limits": {
+      "max_inputs": 8388606,
+      "depth_stencil": true,
+      "multisample": true
+    },
+    "submissions": 8,
+    "attachment_pixels_checked": 1024,
+    "storage_values_checked": 512,
+    "layouts": [
+      "GENERAL",
+      "LOCAL_READ"
+    ],
+    "dependencies": [
+      "global BY_REGION",
+      "memory/image BY_REGION"
+    ],
+    "guards": true,
+    "serial_replay": true,
+    "executable_rejections": 4,
+    "recording_rejections": 16,
+    "independent_enable_rejection": "pass",
+    "generated_compiler_metadata": "not implemented; explicit raw-artifact metadata used",
+    "remaining_acceptance": "../local-read.md#verification-still-needed"
+  },
+  "host_library_tests": 92,
+  "rust_correspondence_tests": 2,
+  "native_library_tests": 30,
+  "windows": "unaccepted",
+  "metal": "deferred",
+  "performance_parity": "not measured",
+  "logs": {
+    "host": {
+      "path": "/tmp/m8-local-host.log",
+      "sha256": "4614fefa48505d7a63352819283bb78d94fd43c188c9fa45beed0bc6ed9eecbf",
+      "result": "pass"
+    },
+    "native_gpu": {
+      "path": "/tmp/m8-local-gpu.log",
+      "sha256": "9e8f5f9ea0a98455f28f5b9230b2d6dc93b65b61645f921381a51909c2601c61",
+      "result": "pass"
+    },
+    "public_c_validated": {
+      "path": "/tmp/m8-local-c.log",
+      "sha256": "7c5018daf75f2ae91b4fd375a1389e20e46d692326fc6386baed1771a4edeec7",
+      "result": "pass"
+    },
+    "core_clippy": {
+      "path": "/tmp/m8-local-clippy.log",
+      "sha256": "5b44004802639b68caab0d1a5c6d20ea62c52daac6e62c07516f9ee3445a14c8",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/m8-local-abi.log",
+      "sha256": "0b9a4668bec4e13e51e28e40613ba42a338d3b11507a9a173023988f3872eb8f",
+      "result": "pass"
+    },
+    "surface": {
+      "path": "/tmp/m8-local-surface.log",
+      "sha256": "3927e8dfd21ed136c83008770a964c62e536185cefcaec4349a2161818f9bf49",
+      "result": "pass"
+    },
+    "bindings": {
+      "path": "/tmp/m8-local-bindings.log",
+      "sha256": "8d43f4f0ac7bc852a5bd1e295bb8c24737fbf296e3aa1006451c738380d8acde",
+      "result": "pass"
+    },
+    "shaders": {
+      "path": "/tmp/m8-local-shaders-check.log",
+      "sha256": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+      "result": "pass"
+    },
+    "compute_compiler": {
+      "path": "/tmp/m8-local-compiler.log",
+      "sha256": "21f391bb023c504dfe26e40d71ed5b8ff65caf1d35bc6eb2cfded0c668713cef",
+      "result": "pass"
+    },
+    "graphics_compiler": {
+      "path": "/tmp/m8-local-graphics-compiler.log",
+      "sha256": "b8c61ba6b806f0292e372b8935a144dc202d6845734beff80d77d20f66cb0b83",
+      "result": "pass"
+    },
+    "split_flags": {
+      "path": "/tmp/m8-local-split-flags.log",
+      "sha256": "6b7493f7ea855895f3c137c24b323223e2b2a0d5b25338173b41c00c789a1e6b",
+      "result": "pass"
+    },
+    "installation": {
+      "path": "/tmp/m8-local-install.log",
+      "sha256": "97d3b9c7a20abfb8f41126247afaaa40ca536d6d7cce874fe2f61b79e9366b0c",
+      "result": "pass"
+    },
+    "installed_c": {
+      "path": "/tmp/m8-local-sdk-c.log",
+      "sha256": "eb0d02cc6683d7adcde758b3fc984746e7293680f32950c86536a71a62bc7a54",
+      "result": "pass"
+    },
+    "installed_rust": {
+      "path": "/tmp/m8-local-sdk-rust.log",
+      "sha256": "1d78c5fc2513a8fb1f18117aeb123e4753b15cbb1f6f563b06d3a2ff20821365",
+      "result": "pass"
+    },
+    "installed_surface": {
+      "path": "/tmp/m8-local-sdk-surface.log",
+      "sha256": "40d4ccde0c64dd919f32be84c5f553474b1c701ed6fa0aba77483db1c2c9ff84",
+      "result": "pass"
+    },
+    "installed_release_local_read": {
+      "path": "/tmp/m8-local-sdk-public-c.log",
+      "sha256": "96e82fc15df33223e8aeea11fa5b466654358b68d4c64e78a3a7ff2d7f7062fb",
+      "result": "pass"
+    }
+  }
+}

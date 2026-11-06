@@ -30,6 +30,7 @@ both properties without a second operation. [Native per-dependency scopes][vk-ba
 | Global stage/access entry | Core. Pointer-reachable resources and aliases need visibility without an allocation registry or a resource list. |
 | Resource/range entry | Capability-dependent core in the same description. Identifies bounded visibility/cache scope and exclusive ownership endpoints. Global visibility cannot communicate that identity. |
 | Image state/subresource entry | Core where native state changes require it. A global barrier cannot transition a presentable image or initialize a new image interpretation. |
+| Framebuffer-region dependency | Capability-dependent core. Preserve same-region attachment/storage ordering without forcing a render break or global cross-pixel dependency. Existing barrier entries carry BY_REGION/VIEW_LOCAL; no subpass graph. |
 | Split endpoints | Capability-dependent core. Capture a producer scope before independent work and consume it afterward; a single barrier position cannot express that schedule. |
 | Exclusive/concurrent sharing | Keep explicit native resource policy. Forcing concurrent sharing cannot transfer an existing exclusive resource or express an external ownership boundary. |
 | Stage-scoped queue wait/signal | Capability-dependent core. A fragment-only dependency must not silently block independent vertex work; narrower signal scope is not whole-list completion. |
@@ -191,3 +192,13 @@ This does not validate native execution of the revised signatures.
 [vk-set]: https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdSetEvent2.html
 [vk-submit]: https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit2.html
 [dx-barriers]: https://microsoft.github.io/DirectX-Specs/d3d/D3D12EnhancedBarriers.html
+
+## M8 local-read extension
+
+The [implemented local-read profile](local-read.md) extends ordinary barriers with
+BY_REGION/VIEW_LOCAL and allows framebuffer-stage dependencies inside rendering.
+The existing per-entry execution/access scopes and caller scratch remain intact.
+It does not expand split-event scope: those commands still require flags zero and
+run outside rendering. The application proves pixel/view locality, matching image
+state and shader access. Native layout/ownership transitions remain outside the
+render instance. No dependency graph or attachment registry is introduced.

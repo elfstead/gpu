@@ -339,7 +339,9 @@ input-attachment root/heap bindings and in-render region dependencies. The
 [Radeon consumer](results/m8-local-read-2026-11-06.md) passes color plus same-pixel
 storage reads with both native layouts and global/resource barriers. Depth/MSAA,
 secondary/multiview combinations and generated compiler handoff remain acceptance
-work. Next implement remaining tessellation/geometry profiles. Larger textured/depth and external
+work. Clean C/GGML/libplacebo and isolated native Rust/Wayland SDK acceptance
+passes at `64e0988`, including the new consumer against the installed release
+runtime. Next implement remaining tessellation/geometry profiles. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 

@@ -1,6 +1,6 @@
 # M8 framebuffer-local read acceptance
 
-2026-11-06, foundation revision 11. The [contract](../local-read.md) adds local-read
+2026-11-06, foundation revision 11. Implementation `64e098857185d0ddadd1645e26d4098a31a61920`. The [contract](../local-read.md) adds local-read
 feature discovery/enabling, output/input mappings, preparation-time input attachment
 bindings, explicit LOCAL_READ image state and framebuffer-region dependencies.
 Existing public record layouts are unchanged. There is no subpass graph or implicit
@@ -67,3 +67,17 @@ cargo xtask foundation-graphics-compiler --check
 cargo test --offline --no-default-features -p ogpu --lib -- --ignored --test-threads=1 --nocapture
 cargo xtask foundation
 ```
+
+## Clean installed acceptance
+
+Installed from the clean implementation commit above (`source_dirty=false`) into
+`/tmp/ogpu-m8-64e0988-sdk`. The release runtime SHA-256 is
+`bf210310468cc24c5ec5f92a00f827de75624b40563f2eaed78f7eac8a39ffcb`.
+Relocated public C consumers, pinned GGML (including transformer/quantized and
+full-dataset precision modes), pinned libplacebo, and isolated native Rust/Wayland
+checks pass. The new local-read C fixture also passes against that installed
+public header and optimized library. Installed surface audit passes. Human
+interaction and native features absent on this GPU are not newly accepted.
+
+Exact log paths and hashes are in the [machine-readable receipt](m8-local-read-2026-11-06.json).
+The follow-up documentation commit changes no runtime or artifact code.
