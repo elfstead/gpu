@@ -80,7 +80,9 @@ class InstalledSceneTests(unittest.TestCase):
             del public['abi'];public['foundation']=9
             self.assertEqual(scene.check_logs(log(),'',bits,9,foundation=True),(device,frames))
             with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,20)
-            public['foundation']+=1
+            public['foundation']=8
+            with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,8,foundation=True)
+            public['foundation']=scene.FOUNDATION_REVISION+1
             with self.assertRaises(ValueError):scene.check_logs(log(),'',bits,9,foundation=True)
 
 

@@ -13,6 +13,8 @@ import oracle
 HERE=Path(__file__).resolve().parent
 
 
+FOUNDATION_REVISION = 9
+
 def require(value,message):
     if not value:raise ValueError(message)
 
@@ -25,6 +27,7 @@ def rows(text,prefix):
 
 
 def check_logs(stdout,stderr,bits,abi,foundation=False):
+    if foundation: require(abi==FOUNDATION_REVISION,'unsupported foundation revision')
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require('Public indexed/depth frames drained; CPU oracle must independently accept outputs' in stdout,'missing drain gate')
     profile={'foundation':abi} if foundation else {'abi':abi}
@@ -56,7 +59,7 @@ def check_reuse(stdout,stderr,device,bits,mode,slots,replay,width,height):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'reuse validation failure')
     require('Public scene reuse drained and checked' in stdout,'reuse did not drain')
     require(rows(stdout,'DEVICE ')==[device],'reuse device mismatch')
-    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=9,index_bytes=bits//8,gpu_generated=True)],'wrong reuse profile')
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=FOUNDATION_REVISION,index_bytes=bits//8,gpu_generated=True)],'wrong reuse profile')
     require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated reuse profile')
     frames=[dict(frame=f,slot=f%slots,generation=f//slots,phase=int(f//slots%4==1),empty=int(f//slots%4==2)) for f in range(8)]
     require(rows(stdout,'REUSE_FRAME ')==frames,'reuse frame/slot/generation mismatch')
@@ -82,7 +85,7 @@ def main(foundation=False):
         version=int(subprocess.check_output([pkg,'--variable='+('ogpu_foundation' if foundation else 'ogpu_abi'),package],text=True))
         report['foundation' if foundation else 'abi']=version
         if foundation:
-            require(version==8,'unsupported foundation revision')
+            require(version==FOUNDATION_REVISION,'unsupported foundation revision')
             libdir=Path(subprocess.check_output([pkg,'--variable=libdir',package],text=True).strip())
             report['sdk']=dict(revision=report['revision'],runtime_sha256=digest(libdir/'libogpu.so'))
             report['reuse_runs']=[]
