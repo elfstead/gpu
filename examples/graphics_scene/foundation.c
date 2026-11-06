@@ -62,6 +62,9 @@ _Static_assert(SCENE_RASTER_BYTES>=8 && SCENE_RASTER_BYTES<=4096 && SCENE_RASTER
 #endif
 #endif
 #endif
+#ifdef SCENE_ADVANCED_RASTER
+#include <advanced_textured.generated.h>
+#endif
 #define HEADER(type,kind) {kind,OGPU_NEXT_VERSION,sizeof(type),0,NULL}
 #define NEED(x) do { if (!(x)) { fprintf(stderr,"line %d: %s\n",__LINE__,#x); return 0; } } while (0)
 #define GPU(x) do { ogpu_next_status status_=(x); if(status_!=OGPU_NEXT_OK) { \
@@ -174,6 +177,11 @@ static int context(Scene *s,const char *directory) {
 #endif
 #endif
 #endif
+#ifdef SCENE_ADVANCED_RASTER
+    NEED(required.count+2<=32);
+    if(scene_advanced_mode>=2)feature_storage[required.count++]=OGPU_NEXT_FEATURE_TESSELLATION;
+    if(scene_advanced_mode==1 || scene_advanced_mode>=3)feature_storage[required.count++]=OGPU_NEXT_FEATURE_GEOMETRY;
+#endif
     ogpu_next_device_desc dd={HEADER(ogpu_next_device_desc,OGPU_NEXT_DEVICE_DESC),&request,1,0,required};
     GPU(ogpu_next_device_create(adapter,&dd,&s->device)); s->queue=ogpu_next_device_queue(s->device,s->domain,0); NEED(s->queue);
     printf("DEVICE {\"vendor\":%u,\"device\":%u,\"api\":[%u,%u,%u]}\n",info.vendor_id,info.device_id,
@@ -247,6 +255,10 @@ static int context(Scene *s,const char *directory) {
 #endif
     ogpu_next_argument_field compute_field={0,compute_bytes,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_COMPUTE,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
     ogpu_next_argument_field raster_field={0,raster_bytes,OGPU_NEXT_ARGUMENT_INLINE,0,OGPU_NEXT_STAGE_VERTEX|OGPU_NEXT_STAGE_FRAGMENT,OGPU_NEXT_ARGUMENT_DIRECT,OGPU_NEXT_ARGUMENT_DIRECT};
+#ifdef SCENE_ADVANCED_RASTER
+    if(scene_advanced_mode>=2)raster_field.stages|=OGPU_NEXT_STAGE_TESS_CONTROL|OGPU_NEXT_STAGE_TESS_EVALUATION;
+    if(scene_advanced_mode==1 || scene_advanced_mode>=3)raster_field.stages|=OGPU_NEXT_STAGE_GEOMETRY;
+#endif
     ogpu_next_argument_layout_desc compute_layout={OGPU_NEXT_ARGUMENT_COMPUTE,compute_bytes,1,0,&compute_field};
     ogpu_next_argument_layout_desc raster_layout={OGPU_NEXT_ARGUMENT_GRAPHICS,raster_bytes,1,0,&raster_field};
     GPU(ogpu_next_argument_layout_create(s->device,&compute_layout,&s->compute_arguments));
@@ -270,6 +282,16 @@ static int context(Scene *s,const char *directory) {
 #endif
     ed.kind=OGPU_NEXT_EXECUTABLE_GRAPHICS; ed.shader_count=2; ed.shaders=&shaders[1]; ed.static_state=&gs.header;
     ed.dynamic_state=OGPU_NEXT_DYNAMIC_VIEWPORT_SCISSOR;
+#ifdef SCENE_ADVANCED_RASTER
+    ogpu_next_shader advanced[5];unsigned count=0;advanced[count++]=shaders[1];
+    if(scene_advanced_mode>=2){advanced[count++]=advanced_hull_shader();advanced[count++]=advanced_domain_shader();}
+    if(scene_advanced_mode==1 || scene_advanced_mode>=3)advanced[count++]=advanced_geometry_shader();
+    advanced[count++]=shaders[2];ed.shaders=advanced;ed.shader_count=count;
+    ogpu_next_shader_requirements advanced_requirements=scene_pair_requirements;
+    advanced_requirements.features=required;ed.requirements=&advanced_requirements.header;
+    ogpu_next_tessellation_state tess={HEADER(ogpu_next_tessellation_state,OGPU_NEXT_TESSELLATION_STATE),3,OGPU_NEXT_DOMAIN_UPPER_LEFT};
+    if(scene_advanced_mode>=2){gs.topology=OGPU_NEXT_PATCHES;gs.header.next=&tess.header;}
+#endif
 #ifdef SCENE_TEXTURE_CONSUMER
     for(unsigned i=0;i<2;++i) {
         gs.depth_test=gs.depth_write=i==0;

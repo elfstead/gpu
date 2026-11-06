@@ -16,8 +16,8 @@ def require(value,message):
     if not value: raise ValueError(message)
 
 
-def run(command,quiet=False,**kwargs):
-    p = subprocess.run(command,text=True,capture_output=True,timeout=300,**kwargs)
+def run(command,quiet=False,timeout=300,**kwargs):
+    p = subprocess.run(command,text=True,capture_output=True,timeout=timeout,**kwargs)
     if not quiet: print(p.stdout,end="",flush=True)
     print(p.stderr,end="",file=sys.stderr,flush=True)
     require(p.returncode == 0,f"command failed: {command}")
@@ -29,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prefix",type=Path,required=True)
     parser.add_argument("--no-gpu",action="store_true")
+    parser.add_argument("--consumer",action="append",choices=("compute","graphics","learned-image","indexed-scene","indexed-ranges","textured-scene","advanced-raster"),help="check only selected installed consumers (repeatable)")
     parser.add_argument("--shader-check",action="store_true")
     parser.add_argument("--ggml-source",type=Path,help="also build/check the independent pinned GGML consumer")
     parser.add_argument("--ggml-data",type=Path,help="optional extracted MNIST data for full GGML inference")
@@ -75,7 +76,7 @@ def main():
     if manifest.get('default_api')=='foundation' and not manifest['legacy_sdk']:
         absent=subprocess.run([pkg,'--exists','ogpu'],env=env,capture_output=True,text=True,timeout=30)
         require(absent.returncode!=0,'foundation-only package exposed legacy pkg-config name')
-    for label in ("compute","graphics","learned-image","indexed-scene","indexed-ranges","textured-scene"):
+    for label in args.consumer or ("compute","graphics","learned-image","indexed-scene","indexed-ranges","textured-scene","advanced-raster"):
         app = temporary / ("independent "+label)
         shutil.copytree(prefix / ("share/ogpu/examples/foundation-"+label),app)
         run([sys.executable,"-B","build.py"],cwd=app,env=env)
@@ -92,7 +93,7 @@ def main():
             require(all(line.split()[-1].startswith('ogpu_next_') for line in symbols.splitlines()
                         if line.split() and line.split()[-1].startswith('ogpu_')),'foundation consumer imported legacy API')
         missing = dict(env,OGPU_VULKAN_LIBRARY="/deliberately-missing-ogpu-loader.so")
-        scripted = label in ("learned-image","indexed-scene","indexed-ranges","textured-scene")
+        scripted = label in ("learned-image","indexed-scene","indexed-ranges","textured-scene","advanced-raster")
         command = [sys.executable,"-B","run.py"] if scripted else ["./consumer"]
         failed = subprocess.run(command,cwd=app,env=missing,capture_output=True,text=True,timeout=60)
         require(failed.returncode != 0,"missing loader succeeded")
@@ -101,17 +102,20 @@ def main():
             receipt = json.loads(reports[0].read_text())
             require(not receipt["complete"] and receipt.get("error") and not receipt["runs"],"false success after missing loader")
         if not args.no_gpu:
-            run(command,cwd=app,env=env)
+            run(command,cwd=app,env=env,timeout=1800 if label=="advanced-raster" else 300)
             if scripted:
                 complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
-                require(len(complete) == 1 and len(complete[0]["runs"]) == (9 if label=="indexed-ranges" else 2),"missing completed handoff receipt")
+                require(len(complete) == 1 and len(complete[0]["runs"]) == (9 if label=="indexed-ranges" else 10 if label=="advanced-raster" else 2),"missing completed handoff receipt")
                 if label=="indexed-scene":require(len(complete[0]["reuse_runs"])==32,"missing replay matrix")
-                if label=="textured-scene":require(all(len(r['checks'])==18 for r in complete[0]['runs']),'missing textured cases')
+                if label in ("textured-scene","advanced-raster"):require(all(len(r['checks'])==18 for r in complete[0]['runs']),'missing textured cases')
                 if label=="indexed-ranges":
                     require(len(complete[0]['baseline'])==1 and len(complete[0]['baseline'][0]['checks'])==30
                             and len(complete[0]['reuse_runs'])==48,'missing range baseline/replay matrix')
                 require(complete[0]["sdk"]["revision"] == manifest["revision"] and
                         complete[0]["sdk"]["runtime_sha256"] == manifest["files_sha256"]["lib/libogpu.so"],"handoff identity mismatch")
+        if args.shader_check and label=="advanced-raster":
+            run([sys.executable,"-B","advanced_shaders.py","--check"],cwd=app,
+                env=dict(env,SLANGC=os.getenv("SLANGC","slangc")))
         if args.shader_check and label in ("compute","graphics"):
             shader_env = dict(env,SLANGC=os.getenv("SLANGC","slangc"))
             if label == "compute":
@@ -233,7 +237,7 @@ def main():
         if not args.no_gpu:
             command = [sys.executable,"-B","run.py"]
             if args.ggml_data: command += ["--data-dir",str(args.ggml_data.resolve())]
-            run(command,cwd=app,env=env)
+            run(command,cwd=app,env=env,timeout=1800 if label=="advanced-raster" else 300)
             complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
             require(len(complete) == 1 and len(complete[0]["runs"]) == (4 if args.ggml_data else 2),"incomplete GGML acceptance")
             require(complete[0]["sdk"]["revision"] == manifest["revision"] and

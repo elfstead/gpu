@@ -615,9 +615,15 @@ physical limits, patch/origin state, adjacency and shared argument/stage scopes.
 adjacency and tessellated/combined pipelines with changed-data replay and statistics.
 Clean C/GGML/libplacebo, isolated native Rust/Wayland and installed-release raster
 consumer checks pass at `385e215`.
-Next integrate advanced raster into a textured/depth consumer and audit remaining
-M8 feature dispositions; native combinations and generated compiler handoff remain
-explicit acceptance work before calling the milestone complete.
+The [textured advanced-raster consumer](../tools/sdk/foundation-advanced/README.md)
+now integrates geometry/tessellation with generated indexed geometry, texture
+heaps/mips/filtering, depth, blending, scissors and continuation. The initial
+257×193 five-profile matrix passes locally; clean installed acceptance is tracked
+separately. The [M8 coverage audit](m8-coverage.md) schedules the remaining native
+raster/fetch controls, distinct raster mechanisms, geometry capture/dynamic patch
+state, and contract/composition consolidation before M9. Next implement the first
+control batch; native combinations and general stage-interface tooling remain
+explicit acceptance work rather than blanket milestone completion.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage

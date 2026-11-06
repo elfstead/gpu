@@ -94,15 +94,20 @@ silently emulate these stages with CPU work or multiple draws.
 Positive drawing with multiview, point output/explicit point size, line adjacency,
 fan/restart, quad/isoline tessellation, alternative spacing and unequal input/output
 patch sizes remains unverified. So do secondary, generated, local-read, shading-rate
-and continuation combinations, per-stage storage writes and advanced subgroup
+combinations, per-stage storage writes and advanced subgroup
 execution. Discovery/enabling and representation are not acceptance of all those
 combinations. Large points, transform feedback/geometry streams and dynamic patch-size policy
 are not implemented by this change; include them in the remaining M8 coverage audit. Metal/DX12 mappings remain unaccepted.
 
-Next M8 work integrates the advanced raster profiles into a textured/depth consumer
-and audits the remaining raster feature dispositions before moving to M9. The
-existing bounded fixtures remain useful native reference cases rather than being
-promoted to blanket M8 completion.
+The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
+composes these stages with generated indexed geometry, texture heaps and mip
+sampling, depth, blending, scissors and render continuation. The initial five
+profiles pass at 257×193, including exact tessellation versus tessellation/geometry
+and uninterrupted versus suspended image agreement. The existing CPU oracle
+handles nearest-filter ties explicitly; no runtime lowering change was needed.
+Installed acceptance is recorded separately. The [M8 audit](m8-coverage.md)
+schedules remaining native profiles and composition/tooling work before M9;
+these bounded fixtures do not imply blanket M8 completion.
 
 Native validity is checked against the pinned Vulkan registry. Shader syntax is
 based on Slang's [stage conversion documentation](https://docs.shader-slang.org/en/stable/coming-from-glsl.html);
