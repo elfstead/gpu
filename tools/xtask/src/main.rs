@@ -320,6 +320,19 @@ fn foundation_shaders(root: &Path, check: bool) -> Result {
         return Err("Foundation shader reproduction requires Slang 2026.14.1".into());
     }
     for (name, entry, stage, suffix) in [
+        ("foundation-local-read", "vertexMain", "vertex", "vert"),
+        (
+            "foundation-local-read",
+            "produce",
+            "fragment",
+            "produce.frag",
+        ),
+        (
+            "foundation-local-read",
+            "consume",
+            "fragment",
+            "consume.frag",
+        ),
         ("foundation-compute", "transform", "compute", "comp"),
         ("foundation-arguments", "mappedArguments", "compute", "comp"),
         ("foundation-heaps", "consume", "compute", "comp"),
@@ -765,7 +778,7 @@ fn main() -> Result {
         Some("baseline") if args.len() == 1 => baseline(&root),
         Some("mock") if args.len() == 1 => mock(&root),
         Some("compute") if args.len() == 1 => compute(&root),
-Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag", "foundation-layer.vert", "foundation-float-atomics.buffer-add.comp", "foundation-float-atomics.shared-add.comp", "foundation-float-atomics.buffer-minmax.comp", "foundation-float-atomics.shared-minmax.comp", "foundation-float-atomics.buffer-exchange.comp", "foundation-float-atomics.shared-exchange.comp", "foundation-float64-atomics.buffer-add.comp", "foundation-float64-atomics.shared-add.comp", "foundation-float64-atomics.buffer-minmax.comp", "foundation-float64-atomics.shared-minmax.comp", "foundation-float64-atomics.buffer-exchange.comp", "foundation-float64-atomics.shared-exchange.comp", "foundation-matrix.comp", "foundation-integer-dot.comp", "foundation-float16-atomics.buffer-add.comp", "foundation-float16-atomics.shared-add.comp", "foundation-float16-atomics.buffer-minmax.comp", "foundation-float16-atomics.shared-minmax.comp", "foundation-float16-atomics.buffer-exchange.comp", "foundation-float16-atomics.shared-exchange.comp", "foundation-cube.comp", "foundation-compressed.comp", "foundation-mesh.mesh", "foundation-mesh.task", "foundation-mesh.payload.mesh", "foundation-mesh.frag", "foundation-generated.produce.comp", "foundation-generated.consume.comp", "foundation-generated-graphics.produce.comp", "foundation-generated-graphics.vert", "foundation-generated-graphics.frag", "foundation-generated-graphics.fetch.vert", "foundation-multiview.vert"]),
+Some("foundation") if args.len() == 1 => c_execution(&root, "foundation", &["foundation-compute.comp", "foundation-heaps.comp", "foundation-graphics.vert", "foundation-graphics.frag", "foundation-vertex-fetch.vert", "foundation-numerics.comp", "foundation-atomics.comp", "foundation-subgroups.comp", "foundation-raster-storage.vert", "foundation-raster-storage.frag", "foundation-raster-storage.read.vert", "foundation-raster-storage.read.frag", "foundation-mrt.frag", "foundation-dual-source.frag", "foundation-layer.vert", "foundation-float-atomics.buffer-add.comp", "foundation-float-atomics.shared-add.comp", "foundation-float-atomics.buffer-minmax.comp", "foundation-float-atomics.shared-minmax.comp", "foundation-float-atomics.buffer-exchange.comp", "foundation-float-atomics.shared-exchange.comp", "foundation-float64-atomics.buffer-add.comp", "foundation-float64-atomics.shared-add.comp", "foundation-float64-atomics.buffer-minmax.comp", "foundation-float64-atomics.shared-minmax.comp", "foundation-float64-atomics.buffer-exchange.comp", "foundation-float64-atomics.shared-exchange.comp", "foundation-matrix.comp", "foundation-integer-dot.comp", "foundation-float16-atomics.buffer-add.comp", "foundation-float16-atomics.shared-add.comp", "foundation-float16-atomics.buffer-minmax.comp", "foundation-float16-atomics.shared-minmax.comp", "foundation-float16-atomics.buffer-exchange.comp", "foundation-float16-atomics.shared-exchange.comp", "foundation-cube.comp", "foundation-compressed.comp", "foundation-mesh.mesh", "foundation-mesh.task", "foundation-mesh.payload.mesh", "foundation-mesh.frag", "foundation-generated.produce.comp", "foundation-generated.consume.comp", "foundation-generated-graphics.produce.comp", "foundation-generated-graphics.vert", "foundation-generated-graphics.frag", "foundation-generated-graphics.fetch.vert", "foundation-multiview.vert", "foundation-local-read.vert", "foundation-local-read.produce.frag", "foundation-local-read.consume.frag"]),
         Some("foundation-shaders") if args.len() == 1 => foundation_shaders(&root, false),
         Some("foundation-shaders") if args.len() == 2 && args[1] == "--check" => foundation_shaders(&root, true),
         Some("batch") if args.len() == 1 => batch(&root),

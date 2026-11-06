@@ -622,11 +622,17 @@ impl Image {
             7 if usage & (4 | 32 | 128) != 0 && aspects != 1 => {
                 Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
             }
+            STATE_LOCAL_READ if usage & (8 | 16 | 32 | 128) != 0 => {
+                if unsafe { &*self.device }.snapshot.features.enabled & LOCAL_READ == 0 {
+                    return Err(UNSUPPORTED);
+                }
+                Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ)
+            }
             STATE_SHADING_RATE if usage & IMAGE_SHADING_RATE != 0 => {
                 Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR)
             }
             STATE_PRESENT if self.borrowed => Ok(vk::VkImageLayout_VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
-            _ => Err(if state <= STATE_SHADING_RATE {
+            _ => Err(if state <= STATE_LOCAL_READ {
                 INVALID
             } else {
                 UNSUPPORTED
@@ -1064,6 +1070,7 @@ impl View {
         let image = unsafe { &*self.image };
         let required = if aspect != 1 { 32 } else { 16 };
         image.command_handle(device, domain, required)?;
+        image.layout(a.state)?;
         let p = &image.prepared.desc;
         let r = self.info.subresourceRange;
         let c = self.info.components;
@@ -1093,12 +1100,12 @@ impl View {
                 _ => 0,
             };
             if supported & aspect == 0
-                || !matches!(a.state, 1 | 6 | 7)
+                || !matches!(a.state, 1 | 6 | 7 | STATE_LOCAL_READ)
                 || (a.state == 7 && a.load_op == 1)
             {
                 return Err(INVALID);
             }
-        } else if r.aspectMask != 1 || !matches!(a.state, 1 | 5) {
+        } else if r.aspectMask != 1 || !matches!(a.state, 1 | 5 | STATE_LOCAL_READ) {
             return Err(INVALID);
         }
         Ok(self.handle)
@@ -1121,7 +1128,7 @@ impl View {
             return Err(UNSUPPORTED);
         }
         if self.info.format != source.info.format
-            || (aspect != 1 && !matches!(a.resolve_state, 1 | 6))
+            || (aspect != 1 && !matches!(a.resolve_state, 1 | 6 | STATE_LOCAL_READ))
         {
             return Err(INVALID);
         }
@@ -1271,8 +1278,8 @@ impl View {
         };
         if self.usage.usage & required == 0
             || !self.info.subresourceRange.aspectMask.is_power_of_two()
-            || (kind == 2 && state != 1)
-            || (kind != 2 && !matches!(state, 1 | 4 | 7))
+            || (kind == 2 && !matches!(state, 1 | STATE_LOCAL_READ))
+            || (kind != 2 && !matches!(state, 1 | 4 | 7 | STATE_LOCAL_READ))
         {
             return Err(INVALID);
         }

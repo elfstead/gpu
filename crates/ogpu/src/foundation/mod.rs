@@ -64,6 +64,7 @@ struct Snapshot {
     integer_dot: IntegerDotInfo,
     mesh_limits: MeshLimits,
     generated_limits: GeneratedLimits,
+    local_read_limits: LocalReadLimits,
     shading_rate_limits: ShadingRateLimits,
     shading_rates: Vec<ShadingRate>,
     formats: Vec<FormatInfo>,
@@ -143,6 +144,7 @@ impl Snapshot {
                 DEPENDENCY_LIMITS if self.features.device_scope != 0 => {
                     copy_out(query, &self.dependency_limits)
                 }
+                LOCAL_READ_LIMITS => copy_out(query, std::slice::from_ref(&self.local_read_limits)),
                 SHADING_RATE_LIMITS => {
                     copy_out(query, std::slice::from_ref(&self.shading_rate_limits))
                 }

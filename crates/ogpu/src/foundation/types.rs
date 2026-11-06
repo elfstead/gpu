@@ -95,6 +95,7 @@ pub mod feature_ids {
     pub const PRIMITIVE_SHADING_RATE: u32 = 65;
     pub const ATTACHMENT_SHADING_RATE: u32 = 66;
     pub const MESH_PRIMITIVE_SHADING_RATE: u32 = 67;
+    pub const LOCAL_READ: u32 = 68;
 }
 /// Borrowed feature IDs. Input storage lives through its host call. Query output
 /// storage lives through the queried adapter/discovery or device lifetime.
@@ -1782,4 +1783,55 @@ pub struct ShadingRateLimits {
     pub with_fragment_shader_interlock: u32,
     pub with_custom_sample_locations: u32,
     pub strict_multiply_combiner: u32,
+}
+
+// Optional native dynamic-rendering local reads. Arrays borrow caller storage.
+pub const LOCAL_READ_LIMITS: u32 = 22;
+pub const RENDER_MAPPING: u32 = 132;
+pub const STATE_LOCAL_READ: u32 = 10;
+pub const INPUT_ATTACHMENT_READ: u64 = 1 << 24;
+pub const DEPENDENCY_BY_REGION: u32 = 1;
+pub const DEPENDENCY_VIEW_LOCAL: u32 = 2;
+pub const ATTACHMENT_UNUSED: u32 = u32::MAX;
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct LocalReadLimits {
+    pub max_inputs: u32,
+    pub depth_stencil: u32,
+    pub multisample: u32,
+    pub reserved: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RenderLocations {
+    pub color_count: u32,
+    pub reserved: u32,
+    pub locations: *const u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RenderInputs {
+    pub color_count: u32,
+    pub reserved: u32,
+    pub colors: *const u32,
+    pub depth: *const u32,
+    pub stencil: *const u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct InputAttachmentBinding {
+    pub space: u32,
+    pub binding: u32,
+    pub root_offset: u32,
+    pub array_stride: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct RenderMapping {
+    pub header: Record,
+    pub locations: *const RenderLocations,
+    pub inputs: *const RenderInputs,
+    pub binding_count: u32,
+    pub reserved: u32,
+    pub bindings: *const InputAttachmentBinding,
 }

@@ -103,6 +103,8 @@
     "ogpu_next_set_depth_write",
     "ogpu_next_set_front_face",
     "ogpu_next_set_graphics_state",
+    "ogpu_next_set_render_inputs",
+    "ogpu_next_set_render_locations",
     "ogpu_next_set_shading_rate",
     "ogpu_next_set_stencil_compare_mask",
     "ogpu_next_set_stencil_ops",
@@ -318,7 +320,15 @@
     "OGPU_NEXT_SHADING_RATE_MUL": "SHADING_RATE_MUL",
     "OGPU_NEXT_RENDER_SECONDARY": "RENDER_SECONDARY",
     "OGPU_NEXT_RENDER_SUSPENDING": "RENDER_SUSPENDING",
-    "OGPU_NEXT_RENDER_RESUMING": "RENDER_RESUMING"
+    "OGPU_NEXT_RENDER_RESUMING": "RENDER_RESUMING",
+    "OGPU_NEXT_QUERY_LOCAL_READ_LIMITS": "LOCAL_READ_LIMITS",
+    "OGPU_NEXT_RENDER_MAPPING": "RENDER_MAPPING",
+    "OGPU_NEXT_STATE_LOCAL_READ": "STATE_LOCAL_READ",
+    "OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ": "INPUT_ATTACHMENT_READ",
+    "OGPU_NEXT_DEPENDENCY_BY_REGION": "DEPENDENCY_BY_REGION",
+    "OGPU_NEXT_DEPENDENCY_VIEW_LOCAL": "DEPENDENCY_VIEW_LOCAL",
+    "OGPU_NEXT_ATTACHMENT_UNUSED": "ATTACHMENT_UNUSED",
+    "OGPU_NEXT_FEATURE_LOCAL_READ": "feature_ids::LOCAL_READ"
   },
   "retired_identifiers": [
     "ogpu_next_set_inline",

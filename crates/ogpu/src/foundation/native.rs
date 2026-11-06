@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "local_read.rs"]
+mod local_read;
+
 #[path = "shading_rate.rs"]
 mod shading_rate;
 
@@ -205,6 +208,8 @@ functions! {
     vkCmdDispatchIndirect: PFN_vkCmdDispatchIndirect,
     vkCreateGraphicsPipelines: PFN_vkCreateGraphicsPipelines,
     vkCmdBeginRendering: PFN_vkCmdBeginRendering,
+    vkCmdSetRenderingAttachmentLocations: PFN_vkCmdSetRenderingAttachmentLocations,
+    vkCmdSetRenderingInputAttachmentIndices: PFN_vkCmdSetRenderingInputAttachmentIndices,
     vkCmdEndRendering: PFN_vkCmdEndRendering,
     vkCmdSetViewport: PFN_vkCmdSetViewport,
     vkCmdSetScissor: PFN_vkCmdSetScissor,
@@ -298,6 +303,7 @@ pub(super) fn snapshot(
     let mut memory_limits = MemoryLimits::default();
     let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
+    let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
     let mut subgroup_limits = SubgroupLimits::default();
@@ -410,15 +416,32 @@ pub(super) fn snapshot(
             pNext: ptr::from_mut(&mut maintenance3).cast(),
             ..Default::default()
         };
+        let mut local_properties = vk::VkPhysicalDeviceVulkan14Properties {
+            sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_PROPERTIES,
+            pNext: ptr::from_mut(&mut maintenance4).cast(),
+            ..Default::default()
+        };
         let mut properties = vk::VkPhysicalDeviceProperties2 {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-            pNext: ptr::from_mut(&mut maintenance4).cast(),
+            pNext: ptr::from_mut(&mut local_properties).cast(),
             ..Default::default()
         };
         unsafe {
             (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
+        if v14.dynamicRenderingLocalRead != 0 {
+            features.available |= LOCAL_READ;
+        }
+        local_read_limits = LocalReadLimits {
+            max_inputs: properties
+                .properties
+                .limits
+                .maxPerStageDescriptorInputAttachments,
+            depth_stencil: local_properties.dynamicRenderingLocalReadDepthStencilAttachments,
+            multisample: local_properties.dynamicRenderingLocalReadMultisampledAttachments,
+            reserved: 0,
+        };
         features.baseline_supported = u32::from(v14.maintenance5 != 0 && v13.maintenance4 != 0);
         if multiview.multiview != 0 {
             features.available |= MULTIVIEW;
@@ -719,6 +742,7 @@ pub(super) fn snapshot(
         integer_dot,
         mesh_limits,
         generated_limits,
+        local_read_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -881,6 +905,7 @@ impl Device {
         let mut v14 = vk::VkPhysicalDeviceVulkan14Features {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES,
             maintenance5: 1,
+            dynamicRenderingLocalRead: u32::from(enabled & LOCAL_READ != 0),
             pNext: ptr::from_mut(&mut heaps).cast(),
             ..Default::default()
         };

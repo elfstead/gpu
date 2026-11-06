@@ -96,3 +96,6 @@ scratch!(render_scratch_requirements, render_scratch);
 scratch!(vertex_scratch_requirements, vertex_scratch);
 
 record!(fn set_shading_rate(list, state: &ShadingRateState) |e| e.shading_rate(state));
+
+record!(fn set_render_locations(list, state: &RenderLocations) |e| e.render_locations(state));
+record!(fn set_render_inputs(list, state: &RenderInputs) |e| e.render_inputs(state));

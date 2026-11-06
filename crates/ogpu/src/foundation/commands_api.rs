@@ -953,3 +953,28 @@ pub unsafe extern "C" fn ogpu_next_set_shading_rate(
         encode(encoder, |e| e.shading_rate(state.as_ref().ok_or(INVALID)?));
     }
 }
+
+/// # Safety
+/// Exclusive live encoder and readable mapping arrays; caller proves native state compatibility.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_render_locations(
+    encoder: *mut List,
+    state: *const RenderLocations,
+) {
+    unsafe {
+        encode(encoder, |e| {
+            e.render_locations(state.as_ref().ok_or(INVALID)?)
+        });
+    }
+}
+/// # Safety
+/// Exclusive live encoder and readable mapping arrays; caller proves native state compatibility.
+#[no_mangle]
+pub unsafe extern "C" fn ogpu_next_set_render_inputs(
+    encoder: *mut List,
+    state: *const RenderInputs,
+) {
+    unsafe {
+        encode(encoder, |e| e.render_inputs(state.as_ref().ok_or(INVALID)?));
+    }
+}

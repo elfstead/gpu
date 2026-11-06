@@ -141,7 +141,10 @@ fn scratch_covers_all_arrays_without_reading_nested_inputs() {
         let (headers, _) = split_headers(3).unwrap();
         assert!(all.size() >= headers.size() + 3 * l.size());
         assert_eq!(all.align(), l.align().max(headers.align()));
-        let bad = Dependency { flags: 1, ..dep };
+        let bad = Dependency {
+            flags: DEPENDENCY_BY_REGION,
+            ..dep
+        };
         assert!(matches!(
             unsafe {
                 split_layout(&[
@@ -629,7 +632,7 @@ fn gpu_dependency_entries() {
             Err(INVALID)
         );
         assert_eq!(
-            unsafe { list.barrier(&Dependency { flags: 1, ..dep }, storage.span()) },
+            unsafe { list.barrier(&Dependency { flags: 4, ..dep }, storage.span()) },
             Err(UNSUPPORTED)
         );
         assert_eq!(BARRIERS.with_borrow(Vec::len), 1); // No valid prefix leaked.
@@ -654,7 +657,7 @@ fn gpu_dependency_entries() {
         let mut out = ptr::dangling_mut();
         let calls = BARRIERS.with_borrow(Vec::len);
         unsafe {
-            api::ogpu_next_barrier(rejected, &Dependency { flags: 1, ..dep }, storage.span());
+            api::ogpu_next_barrier(rejected, &Dependency { flags: 4, ..dep }, storage.span());
         }
         assert_eq!(
             unsafe { api::ogpu_next_commands_end(rejected, &mut out) },

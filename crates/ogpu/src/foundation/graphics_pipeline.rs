@@ -140,7 +140,8 @@ pub(super) unsafe fn prepare(
         return Err(UNSUPPORTED);
     }
     let cache = unsafe { ExecutableCache::optional(d, desc.cache)? };
-    let mut state = unsafe { *record::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
+    let mut state =
+        unsafe { *local_read::parent::<GraphicsState>(desc.static_state, GRAPHICS_STATE)? };
     features::view_mask(
         d.snapshot.features.enabled,
         &d.snapshot.graphics_limits,
@@ -214,6 +215,8 @@ pub(super) unsafe fn prepare(
         }
         None
     };
+    let mut local_mapping =
+        unsafe { local_read::prepare(d, state.header.next, state.color_count, Some(layout))? };
     let p = &d.snapshot.graphics_limits;
     let options = if state.raster_options.is_null() {
         RasterOptions::default()
@@ -578,6 +581,12 @@ pub(super) unsafe fn prepare(
             },
         )?);
     }
+    if !local_mapping.bindings.is_empty() {
+        let i = shaders.iter().position(|s| s.stage == 16).ok_or(INVALID)?;
+        mappings[i].mappingCount =
+            u32::try_from(local_mapping.bindings.len()).map_err(|_| INVALID)?;
+        mappings[i].pMappings = local_mapping.bindings.as_ptr();
+    }
     for (i, shader) in shaders.iter().enumerate() {
         stages.push(vk::VkPipelineShaderStageCreateInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -721,7 +730,7 @@ pub(super) unsafe fn prepare(
     };
     let info = vk::VkGraphicsPipelineCreateInfo {
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        pNext: ptr::from_ref(&rendering).cast(),
+        pNext: local_mapping.link(ptr::from_ref(&rendering).cast()),
         stageCount: shader_count,
         pStages: stages.as_ptr(),
         pVertexInputState: if mesh_pipeline { ptr::null() } else { &vertex },

@@ -109,6 +109,8 @@ fn native_surface_covers_current_c_operations() {
         set_front_face,
         set_graphics_state,
         set_shading_rate,
+        set_render_locations,
+        set_render_inputs,
         set_arguments,
         argument_layout_create,
         argument_layout_destroy,

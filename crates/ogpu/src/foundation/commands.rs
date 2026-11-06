@@ -70,6 +70,7 @@ pub struct List {
     graphics: Cell<*const Executable>,
     rendering: Cell<bool>,
     view_mask: Cell<u32>,
+    render_colors: Cell<u32>,
     viewport_set: Cell<bool>,
     index_count: Cell<Option<u64>>,
     active_queries: [Cell<Option<ActiveQuery>>; 2],
@@ -156,6 +157,7 @@ impl Arena {
                 graphics: Cell::new(ptr::null()),
                 rendering: Cell::new(false),
                 view_mask: Cell::new(0),
+                render_colors: Cell::new(0),
                 viewport_set: Cell::new(false),
                 index_count: Cell::new(None),
                 active_queries: [const { Cell::new(None) }; 2],
@@ -240,6 +242,10 @@ impl Arena {
         if continuation {
             stages(d, self.domain, 24, false)?;
         }
+        let render_colors = prepared
+            .rendering
+            .as_ref()
+            .map_or(0, |r| r.colorAttachmentCount);
         let inheritance = prepared.link();
         let mut flags = match desc.replay_mode {
             1 => vk::VkCommandBufferUsageFlagBits_VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
@@ -263,6 +269,7 @@ impl Arena {
         slot.continuation = continuation;
         slot.rendering.set(slot.continuation);
         slot.view_mask.set(view_mask);
+        slot.render_colors.set(render_colors);
         slot.secondary_contents.set(false);
         slot.inherited_occlusion = inheritance.occlusionQueryEnable;
         slot.inherited_query_flags = inheritance.queryFlags;
@@ -404,7 +411,7 @@ fn stages(d: &Device, domain: u32, mask: u64, semaphore: bool) -> Result<u64, St
     )
 }
 fn access(mask: u64, stages: u64) -> Result<u64, Status> {
-    if mask & !((1 << 24) - 1) != 0 {
+    if mask & !((1 << 25) - 1) != 0 {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
@@ -436,6 +443,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         1 | PREPROCESS_STAGE,
         1 | PREPROCESS_STAGE,
         1 | GRAPHICS_SCOPE | SHADING_RATE_STAGE,
+        1 | GRAPHICS_SCOPE | 16,
     ];
     let bits = [
         vk::VK_ACCESS_2_MEMORY_READ_BIT,
@@ -462,6 +470,7 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         vk::VK_ACCESS_2_COMMAND_PREPROCESS_READ_BIT_EXT,
         vk::VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT,
         vk::VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR,
+        vk::VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
     ];
     let mut value = 0;
     for (i, bit) in bits.iter().enumerate() {
@@ -840,6 +849,7 @@ impl List {
             d.begin_render(self.command, self.domain, desc)?;
         }
         self.view_mask.set(desc.view_mask);
+        self.render_colors.set(desc.color_count);
         self.rendering.set(true);
         self.secondary_contents.set(desc.flags & 1 != 0);
         Ok(())
@@ -889,6 +899,36 @@ impl List {
         }
         .unwrap();
         unsafe { command(self.command, faces, value) };
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn render_locations(
+        &self,
+        state: &RenderLocations,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        if !self.rendering.get() || self.secondary_contents.get() {
+            return Err(INVALID);
+        }
+        let info = unsafe { local_read::locations(d, state, self.render_colors.get())? };
+        unsafe {
+            d.f.vkCmdSetRenderingAttachmentLocations
+                .ok_or(UNSUPPORTED)?(self.command, &info);
+        }
+        Ok(())
+    }
+    pub(in crate::foundation) unsafe fn render_inputs(
+        &self,
+        state: &RenderInputs,
+    ) -> Result<(), Status> {
+        let d = self.recording()?;
+        if !self.rendering.get() || self.secondary_contents.get() {
+            return Err(INVALID);
+        }
+        let info = unsafe { local_read::inputs(d, state, self.render_colors.get())? };
+        unsafe {
+            d.f.vkCmdSetRenderingInputAttachmentIndices
+                .ok_or(UNSUPPORTED)?(self.command, &info);
+        }
         Ok(())
     }
     pub(in crate::foundation) fn shading_rate(
@@ -1838,7 +1878,7 @@ mod tests {
         assert_eq!(access(64, 256), Ok(vk::VK_ACCESS_2_HOST_READ_BIT));
         assert_eq!(access(8, 0), Err(INVALID));
         assert_eq!(access(16, 2), Err(INVALID));
-        assert_eq!(access(1 << 24, 1), Err(UNSUPPORTED));
+        assert_eq!(access(1 << 25, 1), Err(UNSUPPORTED));
         assert_eq!(
             access(1 << 16, 4),
             Ok(vk::VK_ACCESS_2_RESOURCE_HEAP_READ_BIT_EXT)

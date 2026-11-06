@@ -43,6 +43,7 @@ fn fixture() -> Snapshot {
         integer_dot: IntegerDotInfo::default(),
         mesh_limits: MeshLimits::default(),
         generated_limits: GeneratedLimits::default(),
+        local_read_limits: LocalReadLimits::default(),
         shading_rate_limits: ShadingRateLimits::default(),
         shading_rates: Vec::new(),
         formats: vec![],

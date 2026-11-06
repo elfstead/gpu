@@ -136,6 +136,7 @@ static ogpu_next_status heap_requirements_for(ogpu_next_device *device, uint32_t
 #include "foundation_raster_storage.h"
 #include "foundation_mrt.h"
 #include "foundation_depth.h"
+#include "foundation_local_read.h"
 #include "foundation_multiview.h"
 #include "foundation_blend.h"
 #include "foundation_float_atomics.h"
@@ -1008,6 +1009,12 @@ int main(int argc, char **argv) {
         /* One real queue from every available domain, no implicit substitution. */
         ogpu_next_device_desc desc = { HEADER(ogpu_next_device_desc, OGPU_NEXT_DEVICE_DESC), requests, count, 0,
             FIXTURE_FEATURES(foundation_features(fixture_mask(features.available))) };
+        uint32_t selected_ids[128];
+        REQUIRE(desc.required_features.count+1 <= 128);
+        memcpy(selected_ids,desc.required_features.ids,desc.required_features.count*sizeof(*selected_ids));
+        for (uint32_t f=0; f<features.available.count; ++f)
+            if (features.available.ids[f]==OGPU_NEXT_FEATURE_LOCAL_READ) selected_ids[desc.required_features.count++]=OGPU_NEXT_FEATURE_LOCAL_READ;
+        desc.required_features.ids=selected_ids;
         TRY(ogpu_next_device_create(adapter, &desc, &device));
         REQUIRE(format_capabilities(adapter, device) == EXIT_SUCCESS);
         for (uint32_t j = 0; j < count; ++j) {
@@ -1085,7 +1092,7 @@ int main(int argc, char **argv) {
     TRY(ogpu_next_timeline_poll(timeline, &value)); REQUIRE(value == 4);
     REQUIRE(commands(device, memory_desc, queues, queue_count, types, type_count, compatible, requirements.compatible_type_count) == EXIT_SUCCESS);
     REQUIRE(images(device, memory_desc, queues, queue_count) == EXIT_SUCCESS);
-    REQUIRE(argc == 49);
+    REQUIRE(argc == 52);
     uint32_t compute_domain = UINT32_MAX;
     for (uint32_t i = 0; i < queue_count; ++i)
         if (queues[i].count && (queues[i].flags & OGPU_NEXT_QUEUE_COMPUTE)) { compute_domain = queues[i].domain; break; }
@@ -1107,6 +1114,7 @@ int main(int argc, char **argv) {
     REQUIRE(mesh_execution(device, memory_desc, graphics_domain, &argv[38]) == EXIT_SUCCESS);
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 0) == EXIT_SUCCESS);
     REQUIRE(generated_graphics(device, memory_desc, graphics_domain, &argv[44], 1) == EXIT_SUCCESS);
+    REQUIRE(local_read_execution(device,memory_desc,graphics_domain,(const char *const *)&argv[49]) == EXIT_SUCCESS);
     REQUIRE(multiview_execution(device,memory_desc,graphics_domain,argv[48]) == EXIT_SUCCESS);
     REQUIRE(blit_execution(device, memory_desc, graphics_domain) == EXIT_SUCCESS);
     REQUIRE(format_matrix(device, memory_desc, graphics_domain) == EXIT_SUCCESS);

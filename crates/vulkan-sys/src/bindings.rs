@@ -10572,6 +10572,26 @@ pub type PFN_vkCmdSetStencilOp = ::std::option::Option<
         compareOp: VkCompareOp,
     ),
 >;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT: VkPipelineRobustnessBufferBehavior = 0;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED: VkPipelineRobustnessBufferBehavior = 1;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS: VkPipelineRobustnessBufferBehavior = 2;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2: VkPipelineRobustnessBufferBehavior = 3;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT: VkPipelineRobustnessBufferBehavior = 0;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED_EXT: VkPipelineRobustnessBufferBehavior = 1;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT: VkPipelineRobustnessBufferBehavior = 2;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_2_EXT: VkPipelineRobustnessBufferBehavior = 3;
+pub const VkPipelineRobustnessBufferBehavior_VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_MAX_ENUM: VkPipelineRobustnessBufferBehavior = 2147483647;
+pub type VkPipelineRobustnessBufferBehavior = ::std::os::raw::c_uint;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT: VkPipelineRobustnessImageBehavior = 0;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED: VkPipelineRobustnessImageBehavior = 1;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS: VkPipelineRobustnessImageBehavior = 2;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_2: VkPipelineRobustnessImageBehavior = 3;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT_EXT: VkPipelineRobustnessImageBehavior = 0;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED_EXT: VkPipelineRobustnessImageBehavior = 1;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_EXT: VkPipelineRobustnessImageBehavior = 2;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_ROBUST_IMAGE_ACCESS_2_EXT: VkPipelineRobustnessImageBehavior = 3;
+pub const VkPipelineRobustnessImageBehavior_VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_MAX_ENUM: VkPipelineRobustnessImageBehavior = 2147483647;
+pub type VkPipelineRobustnessImageBehavior = ::std::os::raw::c_uint;
 pub type VkBufferUsageFlags2 = VkFlags64;
 pub type VkBufferUsageFlagBits2 = VkFlags64;
 pub const VK_BUFFER_USAGE_2_PREPROCESS_BUFFER_BIT_EXT: VkBufferUsageFlagBits2 = 2147483648;
@@ -10717,6 +10737,181 @@ impl Default for VkPhysicalDeviceVulkan14Features {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct VkPhysicalDeviceVulkan14Properties {
+    pub sType: VkStructureType,
+    pub pNext: *mut ::std::os::raw::c_void,
+    pub lineSubPixelPrecisionBits: u32,
+    pub maxVertexAttribDivisor: u32,
+    pub supportsNonZeroFirstInstance: VkBool32,
+    pub maxPushDescriptors: u32,
+    pub dynamicRenderingLocalReadDepthStencilAttachments: VkBool32,
+    pub dynamicRenderingLocalReadMultisampledAttachments: VkBool32,
+    pub earlyFragmentMultisampleCoverageAfterSampleCounting: VkBool32,
+    pub earlyFragmentSampleMaskTestBeforeSampleCounting: VkBool32,
+    pub depthStencilSwizzleOneSupport: VkBool32,
+    pub polygonModePointSize: VkBool32,
+    pub nonStrictSinglePixelWideLinesUseParallelogram: VkBool32,
+    pub nonStrictWideLinesUseParallelogram: VkBool32,
+    pub blockTexelViewCompatibleMultipleLayers: VkBool32,
+    pub maxCombinedImageSamplerDescriptorCount: u32,
+    pub fragmentShadingRateClampCombinerInputs: VkBool32,
+    pub defaultRobustnessStorageBuffers: VkPipelineRobustnessBufferBehavior,
+    pub defaultRobustnessUniformBuffers: VkPipelineRobustnessBufferBehavior,
+    pub defaultRobustnessVertexInputs: VkPipelineRobustnessBufferBehavior,
+    pub defaultRobustnessImages: VkPipelineRobustnessImageBehavior,
+    pub copySrcLayoutCount: u32,
+    pub pCopySrcLayouts: *mut VkImageLayout,
+    pub copyDstLayoutCount: u32,
+    pub pCopyDstLayouts: *mut VkImageLayout,
+    pub optimalTilingLayoutUUID: [u8; 16usize],
+    pub identicalMemoryTypeRequirements: VkBool32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPhysicalDeviceVulkan14Properties",
+    ][::std::mem::size_of::<VkPhysicalDeviceVulkan14Properties>() - 144usize];
+    [
+        "Alignment of VkPhysicalDeviceVulkan14Properties",
+    ][::std::mem::align_of::<VkPhysicalDeviceVulkan14Properties>() - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::sType",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, sType) - 0usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::pNext",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, pNext) - 8usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::lineSubPixelPrecisionBits",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, lineSubPixelPrecisionBits
+    ) - 16usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::maxVertexAttribDivisor",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, maxVertexAttribDivisor)
+        - 20usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::supportsNonZeroFirstInstance",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, supportsNonZeroFirstInstance
+    ) - 24usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::maxPushDescriptors",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, maxPushDescriptors)
+        - 28usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::dynamicRenderingLocalReadDepthStencilAttachments",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties,
+        dynamicRenderingLocalReadDepthStencilAttachments
+    ) - 32usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::dynamicRenderingLocalReadMultisampledAttachments",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties,
+        dynamicRenderingLocalReadMultisampledAttachments
+    ) - 36usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::earlyFragmentMultisampleCoverageAfterSampleCounting",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties,
+        earlyFragmentMultisampleCoverageAfterSampleCounting
+    ) - 40usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::earlyFragmentSampleMaskTestBeforeSampleCounting",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties,
+        earlyFragmentSampleMaskTestBeforeSampleCounting
+    ) - 44usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::depthStencilSwizzleOneSupport",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, depthStencilSwizzleOneSupport
+    ) - 48usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::polygonModePointSize",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, polygonModePointSize)
+        - 52usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::nonStrictSinglePixelWideLinesUseParallelogram",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, nonStrictSinglePixelWideLinesUseParallelogram
+    ) - 56usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::nonStrictWideLinesUseParallelogram",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, nonStrictWideLinesUseParallelogram
+    ) - 60usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::blockTexelViewCompatibleMultipleLayers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, blockTexelViewCompatibleMultipleLayers
+    ) - 64usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::maxCombinedImageSamplerDescriptorCount",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, maxCombinedImageSamplerDescriptorCount
+    ) - 68usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::fragmentShadingRateClampCombinerInputs",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, fragmentShadingRateClampCombinerInputs
+    ) - 72usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::defaultRobustnessStorageBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, defaultRobustnessStorageBuffers
+    ) - 76usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::defaultRobustnessUniformBuffers",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, defaultRobustnessUniformBuffers
+    ) - 80usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::defaultRobustnessVertexInputs",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, defaultRobustnessVertexInputs
+    ) - 84usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::defaultRobustnessImages",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, defaultRobustnessImages)
+        - 88usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::copySrcLayoutCount",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, copySrcLayoutCount)
+        - 92usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::pCopySrcLayouts",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, pCopySrcLayouts)
+        - 96usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::copyDstLayoutCount",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, copyDstLayoutCount)
+        - 104usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::pCopyDstLayouts",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, pCopyDstLayouts)
+        - 112usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::optimalTilingLayoutUUID",
+    ][::std::mem::offset_of!(VkPhysicalDeviceVulkan14Properties, optimalTilingLayoutUUID)
+        - 120usize];
+    [
+        "Offset of field: VkPhysicalDeviceVulkan14Properties::identicalMemoryTypeRequirements",
+    ][::std::mem::offset_of!(
+        VkPhysicalDeviceVulkan14Properties, identicalMemoryTypeRequirements
+    ) - 136usize];
+};
+impl Default for VkPhysicalDeviceVulkan14Properties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct VkBufferUsageFlags2CreateInfo {
     pub sType: VkStructureType,
     pub pNext: *const ::std::os::raw::c_void,
@@ -10783,6 +10978,112 @@ impl Default for VkPipelineCreateFlags2CreateInfo {
         }
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderingAttachmentLocationInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub colorAttachmentCount: u32,
+    pub pColorAttachmentLocations: *const u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRenderingAttachmentLocationInfo",
+    ][::std::mem::size_of::<VkRenderingAttachmentLocationInfo>() - 32usize];
+    [
+        "Alignment of VkRenderingAttachmentLocationInfo",
+    ][::std::mem::align_of::<VkRenderingAttachmentLocationInfo>() - 8usize];
+    [
+        "Offset of field: VkRenderingAttachmentLocationInfo::sType",
+    ][::std::mem::offset_of!(VkRenderingAttachmentLocationInfo, sType) - 0usize];
+    [
+        "Offset of field: VkRenderingAttachmentLocationInfo::pNext",
+    ][::std::mem::offset_of!(VkRenderingAttachmentLocationInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkRenderingAttachmentLocationInfo::colorAttachmentCount",
+    ][::std::mem::offset_of!(VkRenderingAttachmentLocationInfo, colorAttachmentCount)
+        - 16usize];
+    [
+        "Offset of field: VkRenderingAttachmentLocationInfo::pColorAttachmentLocations",
+    ][::std::mem::offset_of!(
+        VkRenderingAttachmentLocationInfo, pColorAttachmentLocations
+    ) - 24usize];
+};
+impl Default for VkRenderingAttachmentLocationInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkRenderingInputAttachmentIndexInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub colorAttachmentCount: u32,
+    pub pColorAttachmentInputIndices: *const u32,
+    pub pDepthInputAttachmentIndex: *const u32,
+    pub pStencilInputAttachmentIndex: *const u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkRenderingInputAttachmentIndexInfo",
+    ][::std::mem::size_of::<VkRenderingInputAttachmentIndexInfo>() - 48usize];
+    [
+        "Alignment of VkRenderingInputAttachmentIndexInfo",
+    ][::std::mem::align_of::<VkRenderingInputAttachmentIndexInfo>() - 8usize];
+    [
+        "Offset of field: VkRenderingInputAttachmentIndexInfo::sType",
+    ][::std::mem::offset_of!(VkRenderingInputAttachmentIndexInfo, sType) - 0usize];
+    [
+        "Offset of field: VkRenderingInputAttachmentIndexInfo::pNext",
+    ][::std::mem::offset_of!(VkRenderingInputAttachmentIndexInfo, pNext) - 8usize];
+    [
+        "Offset of field: VkRenderingInputAttachmentIndexInfo::colorAttachmentCount",
+    ][::std::mem::offset_of!(VkRenderingInputAttachmentIndexInfo, colorAttachmentCount)
+        - 16usize];
+    [
+        "Offset of field: VkRenderingInputAttachmentIndexInfo::pColorAttachmentInputIndices",
+    ][::std::mem::offset_of!(
+        VkRenderingInputAttachmentIndexInfo, pColorAttachmentInputIndices
+    ) - 24usize];
+    [
+        "Offset of field: VkRenderingInputAttachmentIndexInfo::pDepthInputAttachmentIndex",
+    ][::std::mem::offset_of!(
+        VkRenderingInputAttachmentIndexInfo, pDepthInputAttachmentIndex
+    ) - 32usize];
+    [
+        "Offset of field: VkRenderingInputAttachmentIndexInfo::pStencilInputAttachmentIndex",
+    ][::std::mem::offset_of!(
+        VkRenderingInputAttachmentIndexInfo, pStencilInputAttachmentIndex
+    ) - 40usize];
+};
+impl Default for VkRenderingInputAttachmentIndexInfo {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+pub type PFN_vkCmdSetRenderingAttachmentLocations = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pLocationInfo: *const VkRenderingAttachmentLocationInfo,
+    ),
+>;
+pub type PFN_vkCmdSetRenderingInputAttachmentIndices = ::std::option::Option<
+    unsafe extern "C" fn(
+        commandBuffer: VkCommandBuffer,
+        pInputAttachmentIndexInfo: *const VkRenderingInputAttachmentIndexInfo,
+    ),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct VkSurfaceKHR_T {

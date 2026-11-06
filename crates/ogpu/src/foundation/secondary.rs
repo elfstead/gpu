@@ -43,6 +43,7 @@ fn attachment_format(d: &Device, format: u32, aspect: u32) -> Result<vk::VkForma
 #[derive(Default)]
 pub(super) struct PreparedInheritance {
     pub native: vk::VkCommandBufferInheritanceInfo,
+    mapping: local_read::PreparedMapping,
     pub rendering: Option<vk::VkCommandBufferInheritanceRenderingInfo>,
     resource: Option<vk::VkBindHeapInfoEXT>,
     sampler: Option<vk::VkBindHeapInfoEXT>,
@@ -59,6 +60,7 @@ impl PreparedInheritance {
             .rendering
             .as_ref()
             .map_or(ptr::null(), |r| ptr::from_ref(r).cast());
+        self.native.pNext = self.mapping.link(self.native.pNext);
         if self.heap_mask() != 0 {
             self.heaps = vk::VkCommandBufferInheritanceDescriptorHeapInfoEXT {
                 sType: vk::VkStructureType_VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_DESCRIPTOR_HEAP_INFO_EXT,
@@ -121,7 +123,9 @@ pub(super) unsafe fn inheritance(
     if enabled & RASTER == 0 {
         return Err(UNSUPPORTED);
     }
-    let r = unsafe { executable_record::<RenderInheritance>(input.rendering, RENDER_INHERITANCE)? };
+    let r =
+        unsafe { local_read::parent::<RenderInheritance>(input.rendering, RENDER_INHERITANCE)? };
+    prepared.mapping = unsafe { local_read::prepare(d, r.header.next, r.color_count, None)? };
     features::view_mask(enabled, &d.snapshot.graphics_limits, r.view_mask)?;
     if r.reserved != 0 || r.color_count > d.snapshot.graphics_limits.max_colors {
         return Err(UNSUPPORTED);

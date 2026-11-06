@@ -227,7 +227,9 @@ impl Device {
             info.resolveImageView =
                 resolve.attachment_resolve(self, domain, desc, a, view, aspect)?;
             info.resolveMode = a.resolve_mode;
-            info.resolveImageLayout = if a.resolve_state == 1 {
+            info.resolveImageLayout = if a.resolve_state == STATE_LOCAL_READ {
+                vk::VkImageLayout_VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ
+            } else if a.resolve_state == 1 {
                 vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL
             } else if aspect == 1 {
                 vk::VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -236,6 +238,7 @@ impl Device {
             };
         }
         info.imageLayout = match a.state {
+            STATE_LOCAL_READ => vk::VkImageLayout_VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ,
             1 => vk::VkImageLayout_VK_IMAGE_LAYOUT_GENERAL,
             5 => vk::VkImageLayout_VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             6 => vk::VkImageLayout_VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,

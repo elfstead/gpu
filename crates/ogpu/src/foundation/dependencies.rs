@@ -62,7 +62,7 @@ pub(in crate::foundation) fn barrier_requirements(
     Ok(requirements(layout(globals, memory, images)?.0))
 }
 fn entry_layout(dep: &Dependency) -> Result<Layout, Status> {
-    if dep.flags != 0 {
+    if dep.flags & !(DEPENDENCY_BY_REGION | DEPENDENCY_VIEW_LOCAL) != 0 {
         return Err(UNSUPPORTED);
     }
     Ok(layout(dep.global_count, dep.memory_count, dep.image_count)?.0)
@@ -77,6 +77,9 @@ unsafe fn split_layout(waits: &[SplitDependency]) -> Result<Layout, Status> {
     let (mut result, _) = split_headers(u32::try_from(waits.len()).map_err(|_| INVALID)?)?;
     for wait in waits {
         let dep = unsafe { wait.dependency.as_ref() }.ok_or(INVALID)?;
+        if dep.flags != 0 {
+            return Err(UNSUPPORTED);
+        }
         result = result.extend(entry_layout(dep)?).map_err(|_| INVALID)?.0;
     }
     Ok(result.pad_to_align())
@@ -106,6 +109,51 @@ fn scope(
         dstAccessMask: scoped_access(d, domain, s.access_after, s.stages_after)?,
         ..Default::default()
     })
+}
+
+fn local_context(
+    enabled: FeatureBits,
+    inside: bool,
+    secondary_contents: bool,
+    views: u32,
+    flags: u32,
+) -> Result<(), Status> {
+    if flags & !(DEPENDENCY_BY_REGION | DEPENDENCY_VIEW_LOCAL) != 0 {
+        return Err(UNSUPPORTED);
+    }
+    if inside {
+        if enabled & LOCAL_READ == 0 {
+            return Err(UNSUPPORTED);
+        }
+        if secondary_contents || (views.count_ones() > 1 && flags & DEPENDENCY_VIEW_LOCAL == 0) {
+            return Err(INVALID);
+        }
+    } else if flags & DEPENDENCY_VIEW_LOCAL != 0 {
+        return Err(INVALID);
+    }
+    Ok(())
+}
+fn local_stages(s: BarrierScope, flags: u32) -> Result<(), Status> {
+    const FRAMEBUFFER: u64 = 16 | 64 | 128 | EARLY_SCOPE | LATE_SCOPE;
+    if (s.stages_before | s.stages_after) & !FRAMEBUFFER != 0
+        || (s.stages_before != 0 && flags & DEPENDENCY_BY_REGION == 0)
+    {
+        return Err(INVALID);
+    }
+    Ok(())
+}
+fn local_scope(
+    d: &Device,
+    domain: u32,
+    s: BarrierScope,
+    split: bool,
+    inside: bool,
+    flags: u32,
+) -> Result<vk::VkMemoryBarrier2, Status> {
+    if inside {
+        local_stages(s, flags)?;
+    }
+    scope(d, domain, s, split)
 }
 
 // Preserve native buffer identity/range and exclusive ownership endpoints.
@@ -159,7 +207,18 @@ impl List {
         storage: HostSpan,
         split: bool,
     ) -> Result<vk::VkDependencyInfo, Status> {
-        let d = self.outside_render()?;
+        let d = self.recording()?;
+        if split && dep.flags != 0 {
+            return Err(UNSUPPORTED);
+        }
+        let inside = self.rendering.get();
+        local_context(
+            d.snapshot.features.enabled,
+            inside,
+            self.secondary_contents.get(),
+            self.view_mask.get(),
+            dep.flags,
+        )?;
         let allocation = entry_layout(dep)?;
         let base = scratch(storage.data, storage.size, requirements(allocation))?;
         let (_, memory_offset, image_offset) =
@@ -176,14 +235,24 @@ impl List {
             .enumerate()
         {
             unsafe {
-                globals.add(i).write(scope(d, self.domain, *entry, split)?);
+                globals.add(i).write(local_scope(
+                    d,
+                    self.domain,
+                    *entry,
+                    split,
+                    inside,
+                    dep.flags,
+                )?);
             }
         }
         for (i, entry) in unsafe { slice(dep.memory, dep.memory_count)? }
             .iter()
             .enumerate()
         {
-            let s = scope(d, self.domain, entry.scope, split)?;
+            let s = local_scope(d, self.domain, entry.scope, split, inside, dep.flags)?;
+            if inside && entry.source_domain != entry.destination_domain {
+                return Err(INVALID);
+            }
             let mut native = unsafe {
                 buffer_barrier(
                     d,
@@ -205,7 +274,14 @@ impl List {
             .iter()
             .enumerate()
         {
-            let s = scope(d, self.domain, entry.scope, split)?;
+            let s = local_scope(d, self.domain, entry.scope, split, inside, dep.flags)?;
+            if inside
+                && (entry.old_state != entry.new_state
+                    || entry.discard != 0
+                    || entry.source_domain != entry.destination_domain)
+            {
+                return Err(INVALID);
+            }
             let image = unsafe { entry.image.as_ref() }.ok_or(INVALID)?;
             let mut native = image.barrier(d, self.domain, entry)?;
             native.srcStageMask = s.srcStageMask;
@@ -218,6 +294,7 @@ impl List {
         }
         Ok(vk::VkDependencyInfo {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            dependencyFlags: dep.flags,
             memoryBarrierCount: dep.global_count,
             pMemoryBarriers: if dep.global_count == 0 {
                 ptr::null()
@@ -244,7 +321,7 @@ impl List {
         dep: &Dependency,
         storage: HostSpan,
     ) -> Result<(), Status> {
-        let d = self.outside_render()?;
+        let d = self.recording()?;
         let info = unsafe { self.translate_entries(dep, storage, false)? };
         if dep.global_count != 0 || dep.memory_count != 0 || dep.image_count != 0 {
             unsafe {
@@ -311,3 +388,32 @@ impl List {
 #[cfg(test)]
 #[path = "dependency_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod local_tests {
+    use super::*;
+    #[test]
+    fn framebuffer_dependency_contract() {
+        assert_eq!(local_context(0, true, false, 0, 1), Err(UNSUPPORTED));
+        assert_eq!(local_context(LOCAL_READ, true, true, 0, 1), Err(INVALID));
+        assert_eq!(local_context(LOCAL_READ, true, false, 5, 1), Err(INVALID));
+        assert_eq!(local_context(LOCAL_READ, true, false, 8, 1), Ok(()));
+        assert_eq!(local_context(LOCAL_READ, true, false, 5, 3), Ok(()));
+        assert_eq!(local_context(LOCAL_READ, false, false, 0, 2), Err(INVALID));
+        assert_eq!(local_context(0, false, false, 0, 1), Ok(()));
+        let mut s = BarrierScope {
+            stages_before: 64,
+            stages_after: 16,
+            access_before: 0,
+            access_after: 0,
+        };
+        assert_eq!(local_stages(s, 1), Ok(()));
+        assert_eq!(local_stages(s, 0), Err(INVALID));
+        for stage in [1, 2, 4, 8, GRAPHICS_SCOPE, SHADING_RATE_STAGE] {
+            s.stages_before = stage;
+            assert_eq!(local_stages(s, 1), Err(INVALID));
+        }
+        s.stages_before = 0;
+        assert_eq!(local_stages(s, 0), Ok(()));
+    }
+}

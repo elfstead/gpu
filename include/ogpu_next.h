@@ -225,6 +225,7 @@ ogpu_next_status ogpu_next_image_limits_query(const ogpu_next_device *, const og
 #define OGPU_NEXT_FEATURE_PRIMITIVE_SHADING_RATE UINT32_C(65)
 #define OGPU_NEXT_FEATURE_ATTACHMENT_SHADING_RATE UINT32_C(66)
 #define OGPU_NEXT_FEATURE_MESH_PRIMITIVE_SHADING_RATE UINT32_C(67)
+#define OGPU_NEXT_FEATURE_LOCAL_READ UINT32_C(68)
 
 #define OGPU_NEXT_FEATURE_RASTER UINT32_C(1)
 #define OGPU_NEXT_FEATURE_FLOAT16 UINT32_C(2)
@@ -1457,6 +1458,64 @@ typedef struct ogpu_next_launch {
 void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
 void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
 
+/* Optional native dynamic-rendering local reads (LOCAL_READ enable).
+ * LIMITS returns immutable physical support, not selected device enables.
+ * max_inputs bounds input indices; depth_stencil/multisample are independent
+ * Boolean support for those reads. Shader/attachment compatibility is caller proof.
+ * LOCAL_READ is an explicit layout, not automatic dependency or feedback ordering.
+ * See docs/local-read.md for native mapping and remaining acceptance. */
+#define OGPU_NEXT_QUERY_LOCAL_READ_LIMITS 22u
+#define OGPU_NEXT_RENDER_MAPPING 132u
+#define OGPU_NEXT_STATE_LOCAL_READ 10u
+#define OGPU_NEXT_ACCESS_INPUT_ATTACHMENT_READ UINT64_C(16777216)
+#define OGPU_NEXT_DEPENDENCY_BY_REGION 1u
+#define OGPU_NEXT_DEPENDENCY_VIEW_LOCAL 2u
+#define OGPU_NEXT_ATTACHMENT_UNUSED UINT32_MAX
+typedef struct ogpu_next_local_read_limits {
+    uint32_t max_inputs, depth_stencil, multisample, reserved;
+} ogpu_next_local_read_limits;
+typedef struct ogpu_next_render_locations {
+    uint32_t color_count, reserved;
+    const uint32_t *locations; /* attachment slot -> output location; NULL = identity */
+} ogpu_next_render_locations;
+typedef struct ogpu_next_render_inputs {
+    uint32_t color_count, reserved;
+    /* Color slots -> shader input indices; NULL colors = identity.
+     * NULL depth/stencil means an input WITHOUT InputAttachmentIndex decoration;
+     * a pointer to ATTACHMENT_UNUSED disables that aspect. Depth/stencil may share
+     * an index; colors must be unique and disjoint from them. */
+    const uint32_t *colors, *depth, *stencil;
+} ogpu_next_render_inputs;
+/* Fragment shader input attachment at compiler space/binding. root_offset is a
+ * four-aligned byte offset in the existing argument layout, containing a uint32
+ * resource-heap location. array_stride is the location-unit step between elements
+ * (zero is valid). Vulkan uses byte locations; stride must be image-descriptor
+ * aligned. Caller proves actual root value/array bounds, descriptor kind/layout,
+ * matching attachment/view and shader interface. No runtime descriptor synthesis.
+ * Compiler resource classification may include or omit NonWritable. */
+typedef struct ogpu_next_input_attachment_binding {
+    uint32_t space, binding, root_offset, array_stride;
+} ogpu_next_input_attachment_binding;
+/* The sole permitted header.next on graphics_state and render_inheritance.
+ * Its own header.next is NULL. locations/inputs may be NULL for native defaults.
+ * Bindings are preparation-only on graphics_state; inheritance binding_count=0.
+ * Nonzero binding_count requires bindings; space/binding pairs must be unique.
+ * Arrays/records borrow caller storage only through creation/recording.
+ * All reserved fields are zero; non-UNUSED color locations/indices are unique. */
+typedef struct ogpu_next_render_mapping {
+    ogpu_next_record header;
+    const ogpu_next_render_locations *locations;
+    const ogpu_next_render_inputs *inputs;
+    uint32_t binding_count, reserved;
+    const ogpu_next_input_attachment_binding *bindings;
+} ogpu_next_render_mapping;
+/* Inside rendering only, including render-continuation secondary lists; primary
+ * SECONDARY contents cannot use these setters. color_count must match the current
+ * scope. Pipeline, current mapping, secondary inheritance and shader indices must
+ * agree at use; caller proves this. No per-draw comparison or retained arrays. */
+void ogpu_next_set_render_locations(ogpu_next_encoder *, const ogpu_next_render_locations *);
+void ogpu_next_set_render_inputs(ogpu_next_encoder *, const ogpu_next_render_inputs *);
+
 /* Independent PIPELINE/PRIMITIVE/ATTACHMENT_SHADING_RATE feature enables; none
  * implies another. MESH_PRIMITIVE_SHADING_RATE also requires MESH_SHADER and
  * PRIMITIVE_SHADING_RATE. Physical limits/tuples are identical on adapter/device;
@@ -1872,8 +1931,8 @@ typedef struct ogpu_next_draw_desc {
  * Each draw TRUSTS matching pipeline/attachment formats, counts, samples and
  * depth/stencil write permission; shader output types and accesses must match. No per-draw
  * attachment scan/resource registry. Begin/end nesting, missing pipeline/viewport
- * and invalid command scope poison the list. Transfers, dispatch and generic
- * barriers are outside rendering only in this profile; local dependencies follow.
+ * and invalid command scope poison the list. Transfers/dispatch are outside
+ * rendering. LOCAL_READ permits explicit framebuffer-region barriers inside.
  * Graphics/compute bind points are independent. Viewport/scissor and byte state
  * persist across compatible binds/scopes, reset to undefined by command begin.
  * Dynamic viewport allows negative height and reversed depth endpoints within
@@ -2304,7 +2363,13 @@ typedef struct ogpu_next_dependency {
  * caller proves old_state and consistent state at execution/replay. discard=1
  * discards contents via UNDEFINED; it does NOT remove synchronization obligations.
  * new_state cannot be UNDEFINED. Depth/stencil combined formats currently require
- * both aspects in transitions (separate-layout enabling follows). flags=0.
+ * both aspects in transitions (separate-layout enabling follows).
+ * flags may include BY_REGION and VIEW_LOCAL. VIEW_LOCAL requires rendering.
+ * Inside rendering requires LOCAL_READ and inline command contents: only FRAGMENT,
+ * COLOR, DEPTH/EARLY_DEPTH/LATE_DEPTH stages, BY_REGION for nonzero source scopes,
+ * VIEW_LOCAL with multiple views. No layout change, discard or ownership transfer.
+ * Bound attachment images in image barriers must use GENERAL or LOCAL_READ;
+ * caller proves binding and same-region access legality (no attachment registry).
  */
 ogpu_next_status ogpu_next_barrier_scratch_requirements(const ogpu_next_device *, uint32_t global_count, uint32_t memory_count, uint32_t image_count, ogpu_next_host_requirements *);
 void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_next_host_span scratch);
@@ -2314,7 +2379,8 @@ void ogpu_next_barrier(ogpu_next_encoder *, const ogpu_next_dependency *, ogpu_n
  * Objects are not arena-local: endpoints may be recorded independently, but every
  * acquire must follow its matching release on the SAME native queue in submission
  * order. This is not a timeline, cross-queue wait, or general GPU-address semaphore.
- * Compute/graphics domains only, outside rendering, no HOST scope. Primary and
+ * Compute/graphics domains only, outside rendering, no HOST scope, dependency flags=0.
+ * Primary and
  * standalone secondary lists are allowed. Release and acquire dependencies must
  * match exactly (stages/accesses/ranges/layouts/ownership/flags and array order;
  * host addresses/scratch may differ). Caller proves matching and valid sequencing;

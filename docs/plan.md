@@ -333,8 +333,13 @@ Clean revision-11 C/GGML/libplacebo and isolated native Rust/Wayland SDK checks
 pass at `8a57dc4`, with source and runtime identity recorded in the receipt.
 [Pass continuation](render-continuation.md) now implements native suspend/resume
 through existing flags and ordered submission lists, with [local D32/MSAA/resolve
-acceptance](results/m8-render-continuation-2026-11-06.md). Next implement tile-local/input-
-attachment reads, then remaining tessellation/geometry profiles. Larger textured/depth and external
+acceptance](results/m8-render-continuation-2026-11-06.md).
+[Framebuffer-local reads](local-read.md) now implement explicit input/output mappings,
+input-attachment root/heap bindings and in-render region dependencies. The
+[Radeon consumer](results/m8-local-read-2026-11-06.md) passes color plus same-pixel
+storage reads with both native layouts and global/resource barriers. Depth/MSAA,
+secondary/multiview combinations and generated compiler handoff remain acceptance
+work. Next implement remaining tessellation/geometry profiles. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 

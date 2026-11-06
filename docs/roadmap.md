@@ -601,8 +601,13 @@ host/compiler and regression checks; this GPU has no native shading-rate inputs,
 so positive rendering acceptance remains open. Clean revision-11 C/GGML/libplacebo
 and native Rust/Wayland SDK acceptance passes at `8a57dc4`. [Pass continuation](render-continuation.md) now implements native suspend/resume
 through existing flags and ordered submission lists, with [local D32/MSAA/resolve
-acceptance](results/m8-render-continuation-2026-11-06.md). Next implement tile-local/input-
-attachment reads, then remaining tessellation/geometry profiles.
+acceptance](results/m8-render-continuation-2026-11-06.md).
+[Framebuffer-local reads](local-read.md) now implement explicit input/output mappings,
+input-attachment root/heap bindings and in-render region dependencies. The
+[Radeon consumer](results/m8-local-read-2026-11-06.md) passes color plus same-pixel
+storage reads with both native layouts and global/resource barriers. Depth/MSAA,
+secondary/multiview combinations and generated compiler handoff remain acceptance
+work. Next implement remaining tessellation/geometry profiles.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage
