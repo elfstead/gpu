@@ -61,7 +61,7 @@ impl Device {
         desc: &RenderDesc,
     ) -> Result<(), Status> {
         desc.header.validate::<RenderDesc>(RENDER_DESC)?;
-        if desc.flags & !1 != 0 {
+        if desc.flags & !(RENDER_SECONDARY | RENDER_SUSPENDING | RENDER_RESUMING) != 0 {
             return Err(UNSUPPORTED);
         }
         let limits = &self.snapshot.graphics_limits;
@@ -159,11 +159,8 @@ impl Device {
             pNext: shading
                 .as_ref()
                 .map_or(ptr::null(), |s| ptr::from_ref(s).cast()),
-            flags: if desc.flags & 1 != 0 {
-                vk::VkRenderingFlagBits_VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
-            } else {
-                0
-            },
+            // These bits preserve the native continuation and contents choices.
+            flags: desc.flags,
             renderArea: vk::VkRect2D {
                 offset: vk::VkOffset2D {
                     x: desc.x,

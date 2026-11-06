@@ -29,6 +29,11 @@ and compiler requirements. [Local checks](results/m8-shading-rate-2026-11-06.md)
 for supported regressions and unavailable-feature rejection; native shading-rate
 rendering remains unaccepted on this GPU.
 
+M8 continuation, 2026-11-06: [native render-pass suspension/resumption](render-continuation.md)
+uses existing C/Rust flags and ordered lists. [D32/MSAA/resolve checks](results/m8-render-continuation-2026-11-06.md)
+pass for one/two/three-list patterns with changed-root replay and synchronization
+validation. Tile-local/input-attachment reads are next.
+
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The
 [contract review](core-contract-review.md) records retained native strategies and

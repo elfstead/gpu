@@ -3,14 +3,20 @@
  * 5/negative clamped bias, 6/unclamped bias, 7/shader-selected layers through an
  * offset array view; 8..11/four-sample depth resolves; 12..14/combined depth/stencil
  * resolves consumed by stencil-tested occlusion; 15..19/dynamic depth-test,
- * depth-write, compare, cull and front-face. Every list replays changed roots. */
+ * depth-write, compare, cull and front-face; 20/suspend-resume in one list,
+ * 21/two lists, 22/three lists including a resume+suspend middle segment;
+ * 23..25/the same split patterns with four-sample depth resolve and source discard.
+ * Every list replays changed roots. */
 static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, uint32_t domain,
                            const char *vertex_path, uint32_t mode) {
     ogpu_next_argument_layout *arguments = NULL;
     int result = EXIT_FAILURE, pending = 0;
     uint32_t layered = mode == 7, layers = layered ? 3 : 1;
+    uint32_t continuing = mode >= 20, list_count = mode >= 23 ? mode-22 : mode >= 21 ? mode-19 : 1;
+    uint32_t continuation_resolve = mode >= 23;
+    ogpu_next_list *segments[3] = {NULL};
     uint32_t stencil_resolve = mode >= 12 && mode <= 14;
-    uint32_t resolving = mode >= 8 && mode <= 14, resolve_mode = stencil_resolve ? (mode == 12 ? 1 : 1u << (mode-11)) : resolving ? 1u << (mode-8) : 0;
+    uint32_t resolving = (mode >= 8 && mode <= 14) || continuation_resolve, resolve_mode = continuation_resolve ? 1 : stencil_resolve ? (mode == 12 ? 1 : 1u << (mode-11)) : resolving ? 1u << (mode-8) : 0;
     FILE *file = NULL; void *code = NULL, *bs = NULL, *ss = NULL;
     ogpu_next_executable *pipeline = NULL, *bounded = NULL;
     ogpu_next_executable *probe = NULL; ogpu_next_query_pool *occlusion = NULL;
@@ -112,10 +118,10 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         TRY(ogpu_next_view_create(target,&vd,&target_view));
     }
     ogpu_next_host_requirements br = {0}, sr = {0};
-    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=1,.wait_count=0,.signal_count=1},&sr));
+    TRY(ogpu_next_barrier_scratch_requirements(device,1,0,1,&br)); TRY(ogpu_next_submit_scratch_requirements(device,1,&(ogpu_next_submit_desc){.list_count=list_count,.wait_count=0,.signal_count=1},&sr));
     REQUIRE(br.alignment <= _Alignof(max_align_t) && sr.alignment <= _Alignof(max_align_t));
     bs = malloc((size_t)br.size); ss = malloc((size_t)sr.size); REQUIRE(bs && ss);
-    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,1,OGPU_NEXT_PRIMARY,0};
+    ogpu_next_arena_desc ad = {HEADER(ogpu_next_arena_desc,OGPU_NEXT_ARENA_DESC),domain,list_count,OGPU_NEXT_PRIMARY,0};
     TRY(ogpu_next_arena_create(device,&ad,&arena));
     ogpu_next_recording_desc rd = {HEADER(ogpu_next_recording_desc,OGPU_NEXT_RECORDING_DESC),OGPU_NEXT_SERIAL_REPLAY,OGPU_NEXT_PRIMARY,NULL};
     ogpu_next_encoder *encoder = NULL; ogpu_next_list *list = NULL; TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
@@ -148,10 +154,27 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     }
     ogpu_next_attachment stencil = attachment;
     if (stencil_resolve) render.stencil = &stencil;
+    if (continuing) render.flags = OGPU_NEXT_RENDER_SUSPENDING;
     ogpu_next_render_begin(encoder,&render); ogpu_next_bind_executable(encoder,pipeline);
     ogpu_next_viewport_state vp = {HEADER(ogpu_next_viewport_state,OGPU_NEXT_VIEWPORT_STATE),0,0,8,8,0,1,0,0,4,8};
     ogpu_next_draw_desc draw = {3,1,0,0,0};
     for (uint32_t half = 0; half < 2; ++half) {
+        if (continuing && half) {
+            ogpu_next_render_end(encoder);
+            if (list_count > 1) {
+                TRY(ogpu_next_commands_end(encoder,&segments[0]));
+                TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+            }
+            if (list_count == 3) {
+                render.flags = OGPU_NEXT_RENDER_RESUMING | OGPU_NEXT_RENDER_SUSPENDING;
+                ogpu_next_render_begin(encoder,&render); ogpu_next_render_end(encoder);
+                TRY(ogpu_next_commands_end(encoder,&segments[1]));
+                TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+            }
+            render.flags = OGPU_NEXT_RENDER_RESUMING;
+            ogpu_next_render_begin(encoder,&render);
+            ogpu_next_bind_executable(encoder,pipeline);
+        }
         vp.scissor_x = half ? (mode == 0 ? 0 : 4) : 0; vp.scissor_width = half && mode == 0 ? 8 : 4;
         if (resolving) { vp.scissor_x = 0; vp.scissor_width = 8; ogpu_next_bind_executable(encoder,half ? bounded : pipeline); }
         if (mode == 15) ogpu_next_set_depth_test(encoder,half);
@@ -194,7 +217,8 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
     dep_scope.access_before = OGPU_NEXT_ACCESS_COPY_WRITE; dep_scope.access_after = OGPU_NEXT_ACCESS_HOST_READ; common_barrier(encoder,&dep,&dep_scope,dep_scratch);
     TRY(ogpu_next_commands_end(encoder,&list)); TRY(ogpu_next_timeline_create(device,0,&done));
     ogpu_next_sync_point signal = {{done,1},OGPU_NEXT_STAGE_ALL};
-    ogpu_next_submit_desc submit = {1,0,1,0,0,0,&list,NULL,&signal,NULL,NULL};
+    segments[list_count-1] = list;
+    ogpu_next_submit_desc submit = {list_count,0,1,0,0,0,segments,NULL,&signal,NULL,NULL};
     ogpu_next_host_span submit_host = {ss,sr.size};
     ogpu_next_submit_outcome submit_outcome = {0};
     for (uint32_t replay = 0; replay < 2; ++replay) {
@@ -217,7 +241,7 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         } else for (uint32_t layer = 0; layer < layers; ++layer) for (uint32_t y = 0; y < 8; ++y) for (uint32_t x = 0; x < 8; ++x) {
             float expected = depths[x >= 4], actual = ((float *)((char *)map.data+512))[layer*64+y*8+x];
             if (layered) expected = layer == 0 ? 0.5f : layer-1 == ((x >= 4) ^ replay) ? expected : 1;
-            if (resolving) expected = mode == 8 ? depths[0] : mode == 9 ? (depths[0]+depths[1])*0.5f
+            if (resolving) expected = mode == 8 || continuation_resolve ? depths[0] : mode == 9 ? (depths[0]+depths[1])*0.5f
                 : mode == 10 ? (depths[0] < depths[1] ? depths[0] : depths[1]) : (depths[0] > depths[1] ? depths[0] : depths[1]);
             if (mode == 1) expected = expected < 0 ? 0 : 1;
             if (mode == 2) expected = 1;
@@ -234,6 +258,11 @@ static int depth_execution(ogpu_next_device *device, ogpu_next_memory_desc md, u
         REQUIRE(memcmp(map.data,roots,sizeof(roots)) == 0);
         for (uint64_t i = sizeof(roots); i < md.size; ++i)
             if (!(i >= 512 && i < 512+(stencil_resolve ? 16 : 256*layers))) REQUIRE(((unsigned char *)map.data)[i] == 0xa5);
+    }
+    if (mode == 20) {
+        TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));
+        render.flags = 8; ogpu_next_render_begin(encoder,&render); list = NULL;
+        REQUIRE(ogpu_next_commands_end(encoder,&list) == OGPU_NEXT_UNSUPPORTED && list == NULL);
     }
     if (mode == 8) for (uint32_t bad = 0; bad < 9; ++bad) {
         TRY(ogpu_next_arena_reset(arena)); TRY(ogpu_next_commands_begin(arena,&rd,&encoder));

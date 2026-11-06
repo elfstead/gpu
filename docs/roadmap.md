@@ -599,8 +599,10 @@ with independent enables, limits/tuples, static/dynamic state, attachment use an
 compiler requirements. [Local evidence](results/m8-shading-rate-2026-11-06.md) covers
 host/compiler and regression checks; this GPU has no native shading-rate inputs,
 so positive rendering acceptance remains open. Clean revision-11 C/GGML/libplacebo
-and native Rust/Wayland SDK acceptance passes at `8a57dc4`. Next implement tile-local/pass-
-continuation and remaining tessellation/geometry profiles.
+and native Rust/Wayland SDK acceptance passes at `8a57dc4`. [Pass continuation](render-continuation.md) now implements native suspend/resume
+through existing flags and ordered submission lists, with [local D32/MSAA/resolve
+acceptance](results/m8-render-continuation-2026-11-06.md). Next implement tile-local/input-
+attachment reads, then remaining tessellation/geometry profiles.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage

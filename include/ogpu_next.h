@@ -1792,7 +1792,7 @@ typedef struct ogpu_next_render_desc {
     ogpu_next_host_span scratch;
     const ogpu_next_shading_rate_attachment *shading_rate;
 } ogpu_next_render_desc;
-enum { OGPU_NEXT_RENDER_SECONDARY = 1 };
+enum { OGPU_NEXT_RENDER_SECONDARY = 1, OGPU_NEXT_RENDER_SUSPENDING = 2, OGPU_NEXT_RENDER_RESUMING = 4 };
 typedef struct ogpu_next_viewport_state {
     ogpu_next_record header;
     float x, y, width, height, min_depth, max_depth;
@@ -1815,8 +1815,24 @@ typedef struct ogpu_next_draw_desc {
  * Queries begun inside multiview and timestamp writes consume popcount(view_mask)
  * consecutive pool slots. Sum occlusion/statistics results across these slots;
  * their distribution is native-defined. Queries cannot enclose multiview scopes.
- * flags=0 selects inline commands; RENDER_SECONDARY selects secondary execution
- * in a primary scope and disallows inline draws. Nested execution is unsupported.
+ * Without RENDER_SECONDARY, commands are inline. RENDER_SECONDARY selects
+ * secondary execution in a primary scope and disallows inline draws. Nested
+ * execution is unsupported. RENDER_SUSPENDING makes render_end suspend this pass;
+ * RENDER_RESUMING makes render_begin resume it. Both may be set for middle segments.
+ * Load operations occur only on the initial segment; store/resolve only on final
+ * end. Do NOT replace CLEAR with LOAD on resume: native rendering parameters must
+ * match across segments except these three flags (host scratch addresses may differ).
+ * All segments execute in order in ONE submit_desc batch. No action/synchronization
+ * command or unrelated render pass may execute between suspend and resume, even
+ * across list boundaries. Ordinary state-setting commands are permitted. Separate
+ * submit_desc entries in one queue_submit call are different batches and cannot
+ * be used to continue a pass. Caller proves matching parameters and ordering,
+ * including composed secondary lists; the runtime retains no pass description,
+ * resource graph or cross-list continuation registry. No implicit barrier, store,
+ * reload, wait or intermediate allocation is inserted. Ending a list after a
+ * suspending render_end is legal; ending while render scope is open remains invalid.
+ * Each list supplies its own executable, arguments, heaps and dynamic state as
+ * usual. Continuation preserves attachments, not command state across lists.
  * samples is one supported count and must match all non-resolve attachments.
  * Views are 2D/array with identity component mapping,
  * one mip, with sufficient extent/layers and attachment usage. Null color/depth
@@ -1837,7 +1853,7 @@ typedef struct ogpu_next_draw_desc {
  * AVERAGE for normalized/float formats, SAMPLE_ZERO for integer formats. These
  * attachment modes differ from standalone RESOLVE_NATIVE_COLOR. Source samples>1;
  * destination has one sample, identical view format, sufficient extent/layers,
- * COLOR_ATTACHMENT usage and GENERAL/COLOR_ATTACHMENT state. It resolves at scope
+ * COLOR_ATTACHMENT usage and GENERAL/COLOR_ATTACHMENT state. It resolves at the final non-suspending
  * end, independently of source STORE/DISCARD; no temporary image or transition.
  * Depth/stencil resolves select one supported bit from graphics_limits'
  * depth_resolve_modes/stencil_resolve_modes, with identical source/target format,

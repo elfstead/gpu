@@ -331,7 +331,10 @@ real capability queries/rejections and existing Vulkan regressions. The local GP
 exposes no native shading-rate input; positive rendering acceptance stays open.
 Clean revision-11 C/GGML/libplacebo and isolated native Rust/Wayland SDK checks
 pass at `8a57dc4`, with source and runtime identity recorded in the receipt.
-Next implement tile-local/pass-continuation and remaining tessellation/geometry coverage. Larger textured/depth and external
+[Pass continuation](render-continuation.md) now implements native suspend/resume
+through existing flags and ordered submission lists, with [local D32/MSAA/resolve
+acceptance](results/m8-render-continuation-2026-11-06.md). Next implement tile-local/input-
+attachment reads, then remaining tessellation/geometry profiles. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 

@@ -1114,7 +1114,7 @@ int main(int argc, char **argv) {
     for (uint32_t mode = 0; mode <= 6; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[15],7) == EXIT_SUCCESS);
-    for (uint32_t mode = 15; mode <= 19; ++mode)
+    for (uint32_t mode = 15; mode <= 25; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
     for (uint32_t mode = 8; mode < 15; ++mode)
         REQUIRE(depth_execution(device,memory_desc,graphics_domain,argv[3],mode) == EXIT_SUCCESS);
