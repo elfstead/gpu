@@ -18,7 +18,7 @@ require,digest,rows=scene.require,scene.digest,scene.rows
 def profile(stdout,stderr,device,capacity):
     require('Validation Error:' not in stdout+stderr and 'SYNC-HAZARD' not in stdout+stderr,'validation failure')
     require(rows(stdout,'DEVICE ')==[device],'range device mismatch')
-    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=7,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
+    require(rows(stdout,'PUBLIC_SCENE ')==[dict(foundation=8,index_bytes=4,gpu_generated=True)],'wrong foundation profile')
     require(rows(stdout,'GENERATED_SCENE ')==[dict(compute_push_bytes=32,vertex_push_bytes=8)],'wrong generated range profile')
     require(rows(stdout,'DRAW_IDENTITY_FEATURES ')==[dict(shaderDrawParameters=True)],'missing draw identity')
     features=rows(stdout,'FRONTIER_FEATURES ')
