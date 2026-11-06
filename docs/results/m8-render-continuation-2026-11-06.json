@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "source_revision": "57dd79924286f17c701432e57ca19a67a705afe9",
+  "source_dirty": false,
+  "foundation_revision": 11,
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation_layer": "1.4.357",
+  "synchronization_validation": true,
+  "implementation": "two render flags; existing records, begin/end and ordered submit lists",
+  "continuation": {
+    "fixture": "examples/foundation_depth.h modes 20-25",
+    "patterns": [
+      "one list",
+      "two primary lists",
+      "three primary lists with resuming+suspending middle segment"
+    ],
+    "profiles": [
+      "D32 single sample",
+      "D32 four samples with SAMPLE_ZERO resolve and source discard"
+    ],
+    "replays_per_case": 2,
+    "submissions": 12,
+    "checked_depth_values": 768,
+    "input_and_guard_checks": "pass",
+    "unknown_flag_rejection": "pass",
+    "unverified": [
+      "color/stencil",
+      "secondary-list compositions",
+      "multiview",
+      "shading-rate combinations",
+      "other devices/backends"
+    ]
+  },
+  "host_library_tests": 89,
+  "rust_correspondence_tests": 2,
+  "surface": {
+    "operations": 152,
+    "records": 131,
+    "constants": 164,
+    "values": 1211
+  },
+  "installed_sdk": "not rerun for this additive flag change; prior clean shading-rate SDK receipt describes its own commit",
+  "performance_parity": "not measured",
+  "cross_list_legality": "caller proof; no runtime matching/ordering registry",
+  "logs": {
+    "host": {
+      "path": "/tmp/m8-cont-host.log",
+      "sha256": "44ec41cf42453be4f0e3614fa797696563bb2973383736670bfa0df84727a127",
+      "result": "pass"
+    },
+    "core_clippy": {
+      "path": "/tmp/m8-cont-clippy.log",
+      "sha256": "ac55dec7935aed142167a76576bb835f5b9d9ee2fceae206c89cd23c4462e633",
+      "result": "pass"
+    },
+    "surface": {
+      "path": "/tmp/m8-cont-surface.log",
+      "sha256": "2b59b7e566212d3f08dc50cc628901fdafe78e9f27e40dd9fad3ce8fde7ac24a",
+      "result": "pass"
+    },
+    "native_public_c": {
+      "path": "/tmp/m8-cont-c.log",
+      "sha256": "1fe9eee3aa2775aaea154750ba17d58f435e9500d65de7d1e7b8b9348c7df603",
+      "result": "pass"
+    }
+  }
+}

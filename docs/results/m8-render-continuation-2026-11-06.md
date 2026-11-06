@@ -1,6 +1,7 @@
 # M8 native render-pass continuation
 
-2026-11-06. The [continuation contract](../render-continuation.md) adds suspend and
+2026-11-06. Implementation commit `57dd79924286f17c701432e57ca19a67a705afe9`.
+The [continuation contract](../render-continuation.md) adds suspend and
 resume flags to existing C/Rust render descriptions. Record layouts and foundation
 revision 11 are unchanged. One native render flag word carries the choice; no pass
 object, resource retention, hidden synchronization or additional submit is added.
@@ -37,7 +38,10 @@ VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation VK_LAYER_VALIDATE_SYNC=1 cargo xt
 ```
 
 Use the pinned toolchain and local loader/ICD/layer paths. Logs are recorded in the
-adjacent JSON. This is native correctness/structural-lowering evidence, not measured
+[adjacent JSON](m8-render-continuation-2026-11-06.json). Installed SDK integration
+checks were not repeated for this additive flag change; the preceding shading-rate
+SDK receipt identifies its own exact source commit. This is native
+correctness/structural-lowering evidence, not measured
 performance parity. Cross-list parameter matching and same-batch legality remain
 caller proof; no runtime rejection guarantee is inferred for malformed chains.
 Color/stencil, secondary composition, multiview, shading-rate and other hardware/
