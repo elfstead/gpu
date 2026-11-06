@@ -41,7 +41,9 @@ remains execution debt:
    depth clip convention and programmable sample positions, with native queries,
    optional state records and only the required recording operations. Sample
    position compatibility with depth contents must be explicit. Inventory the
-   pinned registry's extension-specific raster formats in this batch. Do not claim
+   pinned registry's extension-specific raster formats in this batch. Include
+   native dynamic clip/raster controls and vertex-input/divisor descriptions in the
+   existing dynamic-state model, without draw-time synthesis. Do not claim
    support merely because a similar shader algorithm can be written.
 3. **Resolve geometry capture and dynamic patch state.** Transform feedback,
    geometry streams and associated counters/queries need their own native

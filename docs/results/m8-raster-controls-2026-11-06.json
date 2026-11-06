@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-11-06",
+  "foundation_revision": 11,
+  "implementation": "f7fe40aebf0a4b2606bb06e82fad7ec82104aedd",
+  "source_dirty": false,
+  "runtime_sha256": "143e323ba8447b63e1e6bc28c1b736d6019dfea6f5c6f314125c084746f3336c",
+  "header_sha256": "2e50b3a6f7fadfa79caff52196e818ccb442d79fcca109f0b2f27eae4cbb9f01",
+  "checks": {
+    "host_tests": 100,
+    "native_rust_correspondence_tests": 2,
+    "native_library_tests": 31,
+    "clippy": "pass",
+    "abi_values": 2194,
+    "surface": {
+      "operations": 154,
+      "records": 142,
+      "constants": 194,
+      "values": 1315
+    },
+    "bindings": "reproduce",
+    "shader_artifacts": "reproduce and validate",
+    "native_controls": {
+      "profiles": 10,
+      "submissions": 20,
+      "pixels": 1280,
+      "rejected_preparations": 6
+    },
+    "new_control_validation_errors": 0,
+    "new_control_validation_warnings": 0,
+    "full_c_fixture_validation_errors": 0,
+    "full_c_fixture_preexisting_unused_output_warnings": 4,
+    "installed_public_c": "compute, graphics, 36 textured frames, source graph/runtime resolution/missing-loader rejection",
+    "installed_optimized_fixture": "full C regression including new control cases",
+    "native_rust": "isolated build, correspondence, missing loader and headless execution"
+  },
+  "unsupported_native": [
+    "PATCH_RESTART"
+  ],
+  "unverified": [
+    "patch restart execution",
+    "point/line/adjacency list restart execution",
+    "other-stage point output",
+    "polygon point mode",
+    "secondary/generated/multiview combinations",
+    "Metal/DX12",
+    "performance parity"
+  ],
+  "unimplemented_followup": [
+    "dynamic clip/raster controls",
+    "dynamic vertex input/divisor descriptions"
+  ],
+  "evidence": {
+    "/tmp/ogpu-m8-raster-controls-sdk/share/ogpu/manifest.json": "1b733dc055f384124e05ce97a1d7a6072575961015c54f886cd2e42b705a0e57",
+    "/tmp/m8-raster-controls-host.log": "538c1c4bed20bd4568fc3b41484aa7b832f3662ba2ec5a0a43a41b5b84979f68",
+    "/tmp/m8-raster-controls-gpu.log": "6480bcc604c55fd5cf031f837e50c87cb757ed62d3633f34d8543da3a897f05e",
+    "/tmp/m8-raster-controls-native.log": "5d54b3477c98ec7c42069042a46f3c8b1ad09f55292dcd3c61ac12cf5bafa192",
+    "/tmp/m8-raster-controls-clippy.log": "09e4268a395bda455d930d6e09b19cdc0756a4d817b4b0511b51332a7b5c8b8e",
+    "/tmp/m8-raster-controls-abi.log": "5b5a29b198dbea31e51459b867038fa418f7b49a9e1881cdbf1b96652018f3b4",
+    "/tmp/m8-raster-controls-surface.log": "c5fbe877705f02ab4b50591dca6f9122cd4b5e026f01315a19242fefcf63b068",
+    "/tmp/m8-raster-controls-bindings.log": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+    "/tmp/m8-raster-controls-shaders.log": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+    "/tmp/m8-raster-controls-install.log": "4d0ca7114c144c94ca6ed24929dd0ceb8bceef0779d697acae840675179b89a7",
+    "/tmp/m8-raster-controls-sdk.log": "3d73bfefc31a10d12cb244d4ab2e81e93397d31242dc17ee7b9c48ff9b8604a8",
+    "/tmp/m8-raster-controls-rust-sdk.log": "59f0c2975183ef270ea32447827888574e50fed96ef5448e1d14039b3473ffa4",
+    "/tmp/m8-raster-controls-installed-fixture.log": "fdcd0dbac35ffb2299bafc7636a51e58b1e4cfd02e71c2b9219640897f9d67c7",
+    "/tmp/m8-raster-controls-installed-surface.log": "19c115e7920ddfe2dadd06eee7b81f23f5a912e6ecc1640415deebdca89fdc36",
+    "/tmp/ogpu-foundation-external-m76nhnp4/independent textured-scene/run-8zbuhn6o/report.json": "7cd9cc9dbd2dba6245615b52726494a7f4379bc199c374a9592660d72a8eb5f0",
+    "/tmp/ogpu-rust-external-khfu2u5s/report.json": "e1b4ebc65d214ea940bcd2c8416cc652bb0e60022f0c23312dca592757373b5d"
+  }
+}

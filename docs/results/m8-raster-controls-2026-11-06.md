@@ -58,4 +58,20 @@ cargo test --offline --no-default-features -p ogpu --lib -- --ignored --test-thr
 cargo xtask foundation
 ```
 
-Clean installed acceptance is recorded separately after the implementation commit.
+## Clean installed acceptance
+
+Implementation `f7fe40aebf0a4b2606bb06e82fad7ec82104aedd`, installed with
+`source_dirty=false` into `/tmp/ogpu-m8-raster-controls-sdk`. Release runtime SHA-256:
+`143e323ba8447b63e1e6bc28c1b736d6019dfea6f5c6f314125c084746f3336c`.
+
+The full public C fixture, including all ten supported control profiles, passes
+against the installed public header and optimized runtime. Independent relocated
+compute/graphics consumers and all 36 textured-scene frames pass with source graph,
+linked runtime identity and missing-loader checks. The isolated native Rust source
+bundle builds, checks correspondence and executes its headless consumer; it links
+below the C boundary. The installed export/surface audit also passes.
+
+The [machine-readable receipt](m8-raster-controls-2026-11-06.json) records exact
+identities and evidence hashes. No new Wayland/human interaction, GGML/libplacebo
+or external backend acceptance is claimed by these selected regressions. Remaining
+M8 work follows the [updated coverage audit](../m8-coverage.md).

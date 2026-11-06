@@ -623,7 +623,8 @@ CPU/reference checks. The [M8 coverage audit](m8-coverage.md) schedules the rema
 raster/fetch controls, distinct raster mechanisms, geometry capture/dynamic patch
 state, and contract/composition consolidation before M9. The [first control batch](raster-controls.md) now implements large points,
 independent clipping, divisors and list/patch restart; ten supported profiles pass
-locally, with patch restart still unavailable. Next implement the distinct raster
+locally, with patch restart still unavailable. [Clean installed acceptance](results/m8-raster-controls-2026-11-06.md)
+passes C/native Rust and the optimized fixture. Next implement the distinct raster
 mechanisms batch. Native combinations and general stage-interface tooling remain
 explicit acceptance work rather than blanket milestone completion.
 
