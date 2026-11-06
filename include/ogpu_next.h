@@ -1793,8 +1793,9 @@ typedef struct ogpu_next_raster_options {
  * booleans are 0/1; floats finite, line_width>0, bounds ordered within [0,1],
  * min_sample_shading in [0,1]. Supply explicit defaults: a zeroed record is NOT
  * equivalent to NULL (zero width is invalid; zero sample mask suppresses coverage).
- * Restart is available for LINE_STRIP/TRIANGLE_STRIP, using the fixed all-ones
- * index value for the bound index type. List restart is a separate future profile.
+ * Restart is available for line/triangle strips (including adjacency) and triangle
+ * fans, using the fixed all-ones index value for the bound index type.
+ * List/patch restart is a separate future profile.
  * DEPTH_CLAMP enables clamping and disables Z clipping; independent depth clipping
  * is not exposed. Nonzero bias clamp needs DEPTH_BIAS_CLAMP even with bias disabled.
  * Non-fill modes, non-unit width, bounds testing, sample shading and alpha-to-one
@@ -1831,8 +1832,9 @@ typedef struct ogpu_next_vertex_input {
  * Strides are static, including zero and overlapping records; attribute extent is
  * not artificially constrained to stride. Rate is per vertex or per instance with
  * divisor one. Shader input types/locations and native fetch alignment are caller
- * contracts. Metadata is borrowed only during preparation. Additional divisor and
- * dynamic input/stride profiles are not enabled; no repack or shader rewriting.
+ * contracts. Metadata is borrowed only during preparation. Additional divisors and
+ * dynamic input descriptions are not enabled. Dynamic stride uses
+ * DYNAMIC_VERTEX_STRIDE and VERTEX_BIND_STRIDE; no repack or shader rewriting.
  */
 /* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, canonical order:
  * VERTEX, optional paired TESS_CONTROL/TESS_EVALUATION, optional GEOMETRY, optional

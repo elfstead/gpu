@@ -45,8 +45,10 @@ M8 raster stages, 2026-11-06: [tessellation and geometry](raster-stages.md) add
 independent enables, physical limits, explicit patch state, adjacency and native
 stage scopes to existing executable/argument/draw mechanisms. [Local acceptance](results/m8-raster-stages-2026-11-06.md)
 passes six modes, changed-data replay, pipeline statistics and malformed-preparation
-rejection. An integrated textured/depth consumer and remaining M8 coverage audit
-come next; this is not acceptance of every advanced raster combination.
+rejection. The [advanced textured consumer](results/m8-advanced-textured-2026-11-06.md)
+adds texture/depth/blend/continuation composition through the unchanged API.
+The [remaining M8 audit](m8-coverage.md) schedules missing raster/fetch controls
+and distinct mechanisms separately from native combination/tooling evidence.
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

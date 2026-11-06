@@ -81,10 +81,15 @@ Copy any of these entire directories to an application directory outside the rep
 - `share/ogpu/examples/foundation-textured-scene`: generated indexed geometry,
   mipmapped sampling, restricted views, filtering, transparency, depth and
   viewport/scissor changes with an independent pixel/geometry/guard oracle.
+- `share/ogpu/examples/foundation-advanced-raster`: the textured scene with geometry,
+  tessellation and suspend/resume profiles. Requires native tessellation and
+  geometry; its fixed shader artifacts are included.
 
 Run `python3 build.py` in the copied directory. Run `./consumer` for compute or
 graphics; run `python3 run.py` for learned-image, indexed-scene, indexed-ranges or
-textured-scene acceptance. Textured-scene covers six A/B/A cases at both 257x193
+textured-scene or advanced-raster acceptance. Advanced-raster checks five profiles
+(180 frames); see its README for interpolation-boundary comparison rules.
+Textured-scene covers six A/B/A cases at both 257x193
 and 640x360; `--scale` adds 720p. Its checked generated shaders are supplied, so
 its normal build/run does not need a shader compiler or native Vulkan headers.
 Indexed-scene checks 30 fresh frames per index width plus 32 reset/replay cases

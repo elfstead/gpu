@@ -347,11 +347,15 @@ physical limits, patch/origin state, adjacency and shared argument/stage scopes.
 adjacency and tessellated/combined pipelines with changed-data replay and statistics.
 Clean C/GGML/libplacebo, isolated native Rust/Wayland and installed-release raster
 consumer checks pass at `385e215`.
-Next integrate advanced raster into a textured/depth consumer and audit remaining
-M8 feature dispositions; native combinations and generated compiler handoff remain
-explicit acceptance work before calling the milestone complete. Larger textured/depth and external
-consumer coverage remain separate from the bounded procedural grid. Ray tracing is
-M9. M6 remains incomplete and can resume when native development is possible.
+The [advanced textured consumer](../tools/sdk/foundation-advanced/README.md) now
+composes the stages with texture heaps, mip/filtering, depth, blending, scissors
+and continuation. [Installed acceptance](results/m8-advanced-textured-2026-11-06.md)
+records five profiles and the unchanged baseline consumer. The [M8 coverage
+audit](m8-coverage.md) separates missing native mechanisms from validation debt.
+Next implement the existing raster/fetch control batch: large points, independent
+depth clipping, vertex instance divisors and list/patch restart. Further distinct
+raster controls, geometry capture and contract/composition consolidation follow
+before M9 ray tracing. M6 remains incomplete until native development is possible.
 
 ## Parallel candidate: native DX12 on Windows
 

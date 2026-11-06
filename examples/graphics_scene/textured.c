@@ -121,6 +121,13 @@ static void textured_pass(Textured *t,unsigned mode,int overlay) {
     ogpu_next_set_arguments(s->encoder, s->raster_arguments, 0, sizeof(root), &root);
     for(unsigned i=0;i<(overlay ? 1u : 2u);++i) {
         ogpu_next_indirect draw={span(s,DRAWS,GUARD+20*i,20),20,1,{0}}; ogpu_next_draw_indexed_indirect(s->encoder,&draw);
+#ifdef SCENE_ADVANCED_RASTER
+        if(scene_advanced_mode==4 && !overlay && i==0) {
+            ogpu_next_render_end(s->encoder);
+            rd.flags=OGPU_NEXT_RENDER_RESUMING;
+            ogpu_next_render_begin(s->encoder,&rd);
+        }
+#endif
     }
     ogpu_next_render_end(s->encoder);
 }

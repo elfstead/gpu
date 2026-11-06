@@ -237,7 +237,7 @@ def main():
         if not args.no_gpu:
             command = [sys.executable,"-B","run.py"]
             if args.ggml_data: command += ["--data-dir",str(args.ggml_data.resolve())]
-            run(command,cwd=app,env=env,timeout=1800 if label=="advanced-raster" else 300)
+            run(command,cwd=app,env=env)
             complete = [json.loads(p.read_text()) for p in app.glob("run-*/report.json") if json.loads(p.read_text())["complete"]]
             require(len(complete) == 1 and len(complete[0]["runs"]) == (4 if args.ggml_data else 2),"incomplete GGML acceptance")
             require(complete[0]["sdk"]["revision"] == manifest["revision"] and
