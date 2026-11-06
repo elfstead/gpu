@@ -242,7 +242,9 @@ pub fn run() {
     // Feature enabling is ordinary device creation, before any native window.
     // No presentation queue is implicitly selected; this setup-only device runs
     // no GPU work and can be destroyed immediately.
-    assert!(gpu::adapter_features(adapter).available.contains(&feature_ids::PRESENTATION));
+    assert!(gpu::adapter_features(adapter)
+        .available
+        .contains(&feature_ids::PRESENTATION));
     let queue = gpu::adapter_queues(adapter)
         .iter()
         .find(|q| q.flags & 2 != 0)
@@ -265,7 +267,9 @@ pub fn run() {
         };
         unsafe { gpu::device_query(device.0, &mut q) }.unwrap();
         assert_eq!(unsafe { info.enabled.as_slice() }.unwrap(), features);
-        assert!(unsafe { info.available.as_slice() }.unwrap().contains(&feature_ids::PRESENTATION));
+        assert!(unsafe { info.available.as_slice() }
+            .unwrap()
+            .contains(&feature_ids::PRESENTATION));
         drop(device);
     }
     let window = Window::create();
@@ -378,7 +382,9 @@ pub fn run() {
     assert_eq!(q.count, 91);
     let headless = gpu::discover().unwrap();
     let other = &gpu::adapters(&headless)[0];
-    assert!(!gpu::adapter_features(other).available.contains(&feature_ids::PRESENTATION));
+    assert!(!gpu::adapter_features(other)
+        .available
+        .contains(&feature_ids::PRESENTATION));
     let headless_queue = gpu::adapter_queues(other)
         .iter()
         .find(|q| q.flags & 2 != 0)

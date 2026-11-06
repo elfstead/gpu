@@ -461,7 +461,7 @@ impl Texture {
             ];
             let mut heaps = Vec::new();
             let mut bindings = Vec::new();
-            for i in 0..2 {
+            for (i, shape) in shapes.iter().enumerate() {
                 let mut request = HeapRequest {
                     kind: i as u32 + 1,
                     storage: HEAP_MEMORY,
@@ -475,7 +475,7 @@ impl Texture {
                 };
                 request.capacity = request.capacity.min(isize::MAX as u64);
                 let req = gpu::heap_requirements_query(d, &request)?;
-                let payload = shapes[i].size;
+                let payload = shape.size;
                 let offset = payload.div_ceil(req.reserved_alignment) * req.reserved_alignment;
                 request.capacity = offset + req.reserved_size;
                 let heap = Buffer::new(

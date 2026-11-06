@@ -110,7 +110,12 @@ pub unsafe fn run() -> gpu::Result<()> {
         .ok_or(UNSUPPORTED)?
         .domain;
     let mut required = vec![feature_ids::PRESENTATION];
-    if gpu::adapter_features(adapter).available.contains(&feature_ids::UNIFIED_IMAGES) { required.push(feature_ids::UNIFIED_IMAGES); }
+    let unified = gpu::adapter_features(adapter)
+        .available
+        .contains(&feature_ids::UNIFIED_IMAGES);
+    if unified {
+        required.push(feature_ids::UNIFIED_IMAGES);
+    }
     let device = gpu::device_create(
         adapter,
         &[QueueRequest {
