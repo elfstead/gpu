@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "source_revision": "05849f1262276b18d7e15de1ffec20b45554d5fe",
+  "source_dirty": false,
+  "c_acceptance_revision": "9958934e81142c742ace46623550fd4fefff9be8",
+  "rust_acceptance_revision": "05849f1262276b18d7e15de1ffec20b45554d5fe",
+  "identical_c_sdk_files": 137,
+  "foundation_revision": 9,
+  "runtime_sha256": "ffe2554089a0a4ea7a15c1aa25f8741389d197625e7c885503576764e22243d0",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation": true,
+  "synchronization_validation": true,
+  "sdk_acceptance": "complete for declared component revisions",
+  "multiview": "not implemented",
+  "windows": "unaccepted",
+  "metal": "deferred",
+  "logs": {
+    "installed_c": {
+      "path": "/tmp/m8-r9-final-installed-c.log",
+      "sha256": "1352a72facab0121b92f482bbdb8c3f10bbc8bfe727410bd60c851f1bc330fb9",
+      "result": "pass"
+    },
+    "installed_rust": {
+      "path": "/tmp/m8-r9-final-installed-rust.log",
+      "sha256": "5bad778ad0d6e7123abda212bc25cd8f0f5bb3e30ff6d828f2af2dc99930c08e",
+      "result": "pass"
+    },
+    "installed_surface": {
+      "path": "/tmp/m8-r9-rust-surface.log",
+      "sha256": "fbbf4ff1ffc625108d93b00e812af481b23a12acd6012b22109b066be980d03b",
+      "result": "pass"
+    },
+    "c_installation": {
+      "path": "/tmp/m8-r9-final-install.log",
+      "sha256": "014001f52298e28b7f788792c0cbfc5ffd8ced74f71eff2ccca62164809162b9",
+      "result": "pass"
+    },
+    "rust_installation": {
+      "path": "/tmp/m8-r9-rust-install.log",
+      "sha256": "6d76c77d999be8594f20144579c8b1d617bd34f3c2d671490e8e243c09ded275",
+      "result": "pass"
+    },
+    "c_sdk_identity": {
+      "path": "/tmp/m8-r9-c-sdk-identity.json",
+      "sha256": "f77d24ff632600803ad54771d4ad05107f50bf084006eaabbbd6869de6a77f80",
+      "result": "pass"
+    },
+    "native_gpu": {
+      "path": "/tmp/m9-features-native.log",
+      "sha256": "40b1171d4f1d0e896821404f0db48a234665d0ed4d531e65f1e2e141b6affaa4",
+      "result": "pass"
+    },
+    "public_c": {
+      "path": "/tmp/m9-features-gpu.log",
+      "sha256": "a1ee885c6facabfeba91dff80fb29538d06892e9eba570eb32a1217a9228eb33",
+      "result": "pass"
+    },
+    "host": {
+      "path": "/tmp/m9-features-host.log",
+      "sha256": "66496ce5c639d0125a2deea03ab8377c7187ccb495416c8bfb313290871727fc",
+      "result": "pass"
+    },
+    "clippy": {
+      "path": "/tmp/m9-features-clippy.log",
+      "sha256": "cec2a69d97fe0214ec800d364b25b5c5bc0390e48b7ae53a312f603a3484b807",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/m9-features-abi.log",
+      "sha256": "b484c612a3e630f0af51a67f759a49757e2d3e1bd2f719cb7b6fe7c33af62df0",
+      "result": "pass"
+    },
+    "compute_compiler": {
+      "path": "/tmp/m9-features-compiler.log",
+      "sha256": "49beaa06c916a8f6d724a828e20b56fe9233f1fb6cfb015e2c7f2823f0462c24",
+      "result": "pass"
+    },
+    "graphics_compiler": {
+      "path": "/tmp/m9-features-graphics-compiler.log",
+      "sha256": "da33b9c323a10f6fa25b96834902711cd186a33d3f60fbf156cdeaebf1525aa5",
+      "result": "pass"
+    },
+    "generated_scene": {
+      "path": "/tmp/m8-r9-generated-scene.log",
+      "sha256": "1ede1b75c09ecc3b129e8d505c718f7a38970dd55c4c42d24354d79a3297a450",
+      "result": "pass"
+    },
+    "generated_learned": {
+      "path": "/tmp/m8-r9-generated-learned.log",
+      "sha256": "c36ad5b4f2044cf8d098109f029fc683048f731ff6f39e1e7754dba647173e43",
+      "result": "pass"
+    },
+    "generated_textured": {
+      "path": "/tmp/m8-r9-generated-textured.log",
+      "sha256": "56506b94fa9706ed324170372e2b092d38416f933e06bb055c9a4c6b85df3cc6",
+      "result": "pass"
+    },
+    "scene_checkers": {
+      "path": "/tmp/m8-r9-scene-tests-final.log",
+      "sha256": "5e947181feee74666938e76e903e7d25a7e563ab1d9a7bba7e3eed4bf155470b",
+      "result": "pass"
+    },
+    "textured_checkers": {
+      "path": "/tmp/m9-features-textured-tests.log",
+      "sha256": "042eea520d0d808da61040510b06a6076b7041f980114a6e0a36793fca1ed0e1",
+      "result": "pass"
+    },
+    "installer_tests": {
+      "path": "/tmp/m9-features-installer-tests.log",
+      "sha256": "ee231bf16b0f0ebbf5413a1f50b3d47b3303c80bf35d728393c1172ef256874f",
+      "result": "pass"
+    },
+    "surface_parser_tests": {
+      "path": "/tmp/m9-features-surface-tests.log",
+      "sha256": "fe008aab760eb03ccac7578e2b84665b1b50b0d7f855b17a0c7a8d039435b658",
+      "result": "pass"
+    },
+    "standalone_rust_clippy": {
+      "path": "/tmp/m8-r9-rust-consumer-clippy.log",
+      "sha256": "b83841aca598b64936d1e4e3f4ce435fc5d67b60a858d327644e6e31c130a127",
+      "result": "pass"
+    },
+    "ggml_cpp_syntax": {
+      "path": "/tmp/m8-r9-ggml-cpp.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "pass"
+    },
+    "libplacebo_cpp_syntax": {
+      "path": "/tmp/m8-r9-libplacebo-cpp.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "pass"
+    }
+  }
+}

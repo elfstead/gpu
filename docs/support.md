@@ -6,9 +6,10 @@ distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
 Revision 9 implements [counted feature selection](feature-selection.md) across
-C, native Rust and generated artifacts. Its local source/ABI and Vulkan checks
-pass; clean SDK acceptance is recorded separately once run. It does not add
-multiview or broaden native hardware acceptance.
+C, native Rust and generated artifacts. Its local source/ABI, Vulkan and
+[clean C/Rust SDK checks](results/m8-feature-selection-2026-11-06.md) pass,
+including GGML/libplacebo and isolated Rust/Wayland. It does not add multiview
+or broaden native hardware acceptance.
 
 Revision 8 added [generated vertex/index state and explicit vertex stride](results/m8-generated-buffer-state-2026-11-06.md), verified locally under Vulkan validation. The [clean revision-8 SDK](results/m8-revision8-sdk-2026-11-06.md) passes relocated C/GGML/libplacebo and isolated native Rust/Wayland checks at `b5414e5`. Revision-7 evidence below remains identified by its historical commit.
 
@@ -33,7 +34,7 @@ not imply FP16 arithmetic, subgroup or matrix support. See the
 [SDK guide](foundation-quickstart.md), [implemented surface](foundation-implementation.md)
 and [contract dispositions](core-contract-review.md) for exact contracts and gaps.
 
-[Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) at `fc11fda` covers the public contract, native execution, bounded Wayland and isolated C/native Rust SDKs, including pinned GGML/libplacebo consumers. Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5, now refreshed for revision 8 above. Earlier receipts also used llvmpipe
+[Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) at `fc11fda` covers the public contract, native execution, bounded Wayland and isolated C/native Rust SDKs, including pinned GGML/libplacebo consumers. Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5, now refreshed for revision 9 above. Earlier receipts also used llvmpipe
 26.2.1; those are historical software evidence, not a fresh revision-7 run. M4 and M5 pass their declared scope. The full C fixture passes on Radeon;
 llvmpipe retains the explicit combined-depth/stencil-copy exclusion and the
 historical native-reproduced counted-to-fixed failure. Software is not another

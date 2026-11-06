@@ -76,8 +76,9 @@ Source checks cover C/Rust records, every feature constant, current operation
 signatures, malformed/unknown/duplicate lists, snapshot lifetime independence,
 generated compute/graphics metadata, and existing feature dependency rejection.
 Local Radeon execution covers the existing device/feature tests and full C fixture.
-The installed consumer and Rust/Wayland acceptance receipt must identify the exact
-clean commit. Windows/Metal foundation acceptance remains open; no new backend
+[Installed C and Rust/Wayland acceptance](results/m8-feature-selection-2026-11-06.md)
+now passes; the receipt identifies both clean commits and unchanged C artifact
+identity after the final Rust-consumer fix. Windows/Metal foundation acceptance remains open; no new backend
 execution or global performance claim follows from this representation change.
 
 Next: multiview, including independently requested native enabling, limits,

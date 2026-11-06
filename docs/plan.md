@@ -315,11 +315,13 @@ Foundation revision 9 now implements [counted feature-ID selection](feature-sele
 across discovery, device requests, shader requirements and generated interfaces.
 C and native Rust migrate together; the implementation encoding is private and
 recording retains direct checks. Source/ABI and local Vulkan regression pass;
-clean installed-consumer acceptance is the next check for this revision.
-Then implement multiview using independently enabled native support and explicit
+[clean installed-consumer acceptance](results/m8-feature-selection-2026-11-06.md)
+now passes for C/GGML/libplacebo and native Rust/Wayland. The receipt distinguishes
+the two clean acceptance commits and verifies unchanged C artifact identity.
+Next implement multiview using independently enabled native support and explicit
 render/pipeline/inheritance masks, with array-layer pixel and rejection coverage.
-Then continue with shading rate,
-tile-local/pass-continuation and remaining tessellation/geometry coverage. Larger textured/depth and external
+Continue with shading rate, tile-local/pass-continuation and remaining
+tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.
 
