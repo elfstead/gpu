@@ -87,7 +87,7 @@ impl Drop for QueryPool {
     }
 }
 
-pub(super) fn controls(kind: u32, enabled: u64, flags: u32) -> Result<u32, Status> {
+pub(super) fn controls(kind: u32, enabled: FeatureBits, flags: u32) -> Result<u32, Status> {
     if flags & !1 != 0 {
         return Err(UNSUPPORTED);
     }

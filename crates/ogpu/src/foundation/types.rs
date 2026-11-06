@@ -674,7 +674,7 @@ pub const QUERY_LIMITS: u32 = 10;
 pub const QUERY_POOL_DESC: u32 = 117;
 pub const EXECUTABLE_CACHE_DESC: u32 = 118;
 pub const VERTEX_INPUT: u32 = 119;
-pub(super) fn validate_feature_dependencies(required: u64) -> Result<(), Status> {
+pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(), Status> {
     if required & MESH_MULTIVIEW != 0
         && required & (MULTIVIEW | MESH_SHADER) != (MULTIVIEW | MESH_SHADER)
     {

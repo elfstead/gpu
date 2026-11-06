@@ -74,7 +74,7 @@ fn destination(span: HostSpan, size: u64) -> Result<vk::VkHostAddressRangeEXT, S
 fn sampler(
     desc: &SamplerDesc,
     limits: &NativeDescriptorProperties,
-    enabled: u64,
+    enabled: FeatureBits,
 ) -> Result<vk::VkSamplerCreateInfo, Status> {
     desc.header.validate::<SamplerDesc>(SAMPLER_DESC)?;
     if desc.min_filter > 1

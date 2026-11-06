@@ -69,7 +69,7 @@ pub(super) fn snapshot(
     instance: &Instance,
     physical: vk::VkPhysicalDevice,
     f: &Functions,
-) -> Result<(u64, Vec<MatrixTuple>), Status> {
+) -> Result<(FeatureBits, Vec<MatrixTuple>), Status> {
     if !instance
         .supports_extension(physical, c"VK_KHR_cooperative_matrix")
         .map_err(loader_error)?

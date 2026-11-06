@@ -375,7 +375,7 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
-fn stage_features(enabled: u64, mask: u64) -> Result<(), Status> {
+fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
     if mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
         || mask & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
         || mask & PREPROCESS_STAGE != 0 && enabled & GENERATED_COMMANDS == 0

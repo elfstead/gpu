@@ -7,7 +7,11 @@ use super::*;
 
 // Cold capability derivation uses exactly the validators used at recording and
 // submission. Scope bits describe representability, not measured concurrency.
-pub(in crate::foundation) fn limits(domain: u32, flags: u32, enabled: u64) -> DependencyLimits {
+pub(in crate::foundation) fn limits(
+    domain: u32,
+    flags: u32,
+    enabled: FeatureBits,
+) -> DependencyLimits {
     let mut supported = 0;
     for bit in 0..23 {
         let scope = 1 << bit;

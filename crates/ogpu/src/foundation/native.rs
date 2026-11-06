@@ -627,7 +627,7 @@ pub(super) fn snapshot(
     if features.available & RASTER != 0 {
         features.available |= mesh_features
             & if features.available & MULTIVIEW != 0 {
-                u64::MAX
+                FeatureBits::MAX
             } else {
                 !MESH_MULTIVIEW
             };
@@ -753,7 +753,7 @@ impl Device {
     pub(super) fn create(
         adapter: &Adapter,
         requests: &[QueueRequest],
-        enabled: u64,
+        enabled: FeatureBits,
     ) -> Result<Box<Self>, Status> {
         if enabled & PRESENTATION != 0 && !adapter.instance.wayland_enabled() {
             return Err(UNSUPPORTED);

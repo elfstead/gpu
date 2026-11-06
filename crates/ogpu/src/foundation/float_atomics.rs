@@ -1,18 +1,18 @@
 //! Exact operation/domain enabling. No shader lowering or numerical policy.
 use super::*;
 
-pub(super) const FP16: u64 = BUFFER_FLOAT16_ATOMICS
+pub(super) const FP16: FeatureBits = BUFFER_FLOAT16_ATOMICS
     | BUFFER_FLOAT16_ATOMIC_ADD
     | BUFFER_FLOAT16_ATOMIC_MIN_MAX
     | SHARED_FLOAT16_ATOMICS
     | SHARED_FLOAT16_ATOMIC_ADD
     | SHARED_FLOAT16_ATOMIC_MIN_MAX;
-pub(super) const FLOAT2: u64 = FP16
+pub(super) const FLOAT2: FeatureBits = FP16
     | BUFFER_FLOAT32_ATOMIC_MIN_MAX
     | SHARED_FLOAT32_ATOMIC_MIN_MAX
     | BUFFER_FLOAT64_ATOMIC_MIN_MAX
     | SHARED_FLOAT64_ATOMIC_MIN_MAX;
-pub(super) const ALL: u64 = BUFFER_FLOAT32_ATOMICS
+pub(super) const ALL: FeatureBits = BUFFER_FLOAT32_ATOMICS
     | BUFFER_FLOAT32_ATOMIC_ADD
     | SHARED_FLOAT32_ATOMICS
     | SHARED_FLOAT32_ATOMIC_ADD
@@ -25,7 +25,7 @@ pub(super) const ALL: u64 = BUFFER_FLOAT32_ATOMICS
 pub(super) fn available(
     a: &vk::VkPhysicalDeviceShaderAtomicFloatFeaturesEXT,
     b: &vk::VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT,
-) -> u64 {
+) -> FeatureBits {
     [
         (b.shaderBufferFloat16Atomics, BUFFER_FLOAT16_ATOMICS),
         (b.shaderBufferFloat16AtomicAdd, BUFFER_FLOAT16_ATOMIC_ADD),
@@ -70,7 +70,7 @@ pub(super) fn available(
 }
 
 pub(super) fn requested(
-    enabled: u64,
+    enabled: FeatureBits,
 ) -> (
     vk::VkPhysicalDeviceShaderAtomicFloatFeaturesEXT,
     vk::VkPhysicalDeviceShaderAtomicFloat2FeaturesEXT,
@@ -107,7 +107,7 @@ mod tests {
     use super::*;
     #[test]
     fn enabling_keeps_float_atomic_domains_and_operations_independent() {
-        for selection in 0u64..262144 {
+        for selection in 0u128..262144 {
             let enabled = ((selection & 4095) << 33) | ((selection >> 12) << 49);
             let (a, b) = requested(enabled | INT64 | FLOAT64 | FLOAT16);
             assert_eq!(available(&a, &b), enabled);

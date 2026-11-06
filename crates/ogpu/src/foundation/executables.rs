@@ -69,7 +69,7 @@ unsafe fn requirements(d: &Device, req: &ShaderRequirements) -> Result<(), Statu
     }
     Ok(())
 }
-fn compile_flags(enabled: u64, flags: u32, reserved: u32) -> Result<u64, Status> {
+fn compile_flags(enabled: FeatureBits, flags: u32, reserved: u32) -> Result<u64, Status> {
     if flags & !3 != 0
         || reserved != 0
         || (flags & 1 != 0 && enabled & CACHE_CONTROL == 0)
@@ -384,7 +384,7 @@ mod tests {
             0,
         );
     }
-    fn check_numerical_profile(bytes: &[u8], entry: &CStr, all: u64, shared_memory: u32) {
+    fn check_numerical_profile(bytes: &[u8], entry: &CStr, all: FeatureBits, shared_memory: u32) {
         let instance = Arc::new(Instance::new().unwrap());
         let code: Vec<u32> = bytes
             .chunks_exact(4)
@@ -448,15 +448,15 @@ mod tests {
             // Exercise each independent bit and each otherwise-complete profile
             // missing one required bit, not merely a device with everything disabled.
             let profiles = [0, all].into_iter().chain(
-                (0..64)
-                    .map(|n| 1u64 << n)
+                (0..128)
+                    .map(|n| 1u128 << n)
                     .filter(|bit| all & bit != 0)
                     .flat_map(|bit| [bit, all & !bit]),
             );
             // Float operations are independent even within the same width/domain.
             let profiles = profiles.chain(
-                (0..64)
-                    .map(|n| 1u64 << n)
+                (0..128)
+                    .map(|n| 1u128 << n)
                     .filter(|bit| all & float_atomics::ALL != 0 && bit & float_atomics::ALL != 0),
             );
             for enabled in profiles {

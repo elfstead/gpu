@@ -64,7 +64,7 @@ impl ArgumentLayout {
         desc: &ArgumentLayoutDesc,
         fields: &[ArgumentField],
         max_push: u64,
-        enabled: u64,
+        enabled: FeatureBits,
         uniform_alignment: u64,
     ) -> Result<Self, Status> {
         if desc.flags != 0 {

@@ -117,7 +117,7 @@ pub(super) fn snapshot(
     instance: &Instance,
     physical: vk::VkPhysicalDevice,
     f: &Functions,
-) -> Result<(u64, GeneratedLimits), Status> {
+) -> Result<(FeatureBits, GeneratedLimits), Status> {
     if !instance
         .supports_extension(physical, c"VK_EXT_device_generated_commands")
         .map_err(loader_error)?
@@ -202,7 +202,7 @@ pub struct GeneratedLayout {
 }
 fn layout_contract(
     p: &GeneratedLimits,
-    enabled: u64,
+    enabled: FeatureBits,
     argument_bytes: u64,
     desc: &GeneratedLayoutDesc,
     tokens: &[GeneratedToken],

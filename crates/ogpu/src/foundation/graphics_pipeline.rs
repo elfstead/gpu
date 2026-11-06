@@ -31,7 +31,7 @@ impl Default for RasterOptions {
 }
 fn raster_options(
     o: &RasterOptions,
-    features: u64,
+    features: FeatureBits,
     p: &GraphicsLimits,
     topology: u32,
 ) -> Result<(), Status> {
@@ -920,7 +920,7 @@ mod tests {
         };
         for topology in 0..=4 {
             assert_eq!(
-                raster_options(&restart, u64::MAX, &p, topology),
+                raster_options(&restart, FeatureBits::MAX, &p, topology),
                 if matches!(topology, 2 | 4) {
                     Ok(())
                 } else {
@@ -1000,7 +1000,10 @@ mod tests {
                 ..base
             },
         ] {
-            assert_eq!(raster_options(&options, u64::MAX, &p, 3), Err(INVALID));
+            assert_eq!(
+                raster_options(&options, FeatureBits::MAX, &p, 3),
+                Err(INVALID)
+            );
         }
         assert_eq!(
             raster_options(

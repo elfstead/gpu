@@ -36,7 +36,7 @@ pub(super) unsafe fn prepare(
 
 fn validate(
     limits: &SubgroupLimits,
-    enabled: u64,
+    enabled: FeatureBits,
     stage: u64,
     local: [u32; 3],
     state: &SubgroupState,

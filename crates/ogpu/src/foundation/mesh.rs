@@ -38,7 +38,7 @@ pub(super) fn snapshot(
     instance: &Instance,
     physical: vk::VkPhysicalDevice,
     f: &Functions,
-) -> Result<(u64, MeshLimits), Status> {
+) -> Result<(FeatureBits, MeshLimits), Status> {
     if !instance
         .supports_extension(physical, c"VK_EXT_mesh_shader")
         .map_err(loader_error)?
@@ -139,7 +139,7 @@ pub(super) fn groups(limits: &MeshWorkgroupLimits, groups: [u32; 3]) -> Result<(
 
 pub(super) unsafe fn requirements(
     p: &MeshLimits,
-    enabled: u64,
+    enabled: FeatureBits,
     stages: u64,
     r: &MeshRequirements,
 ) -> Result<(), Status> {
