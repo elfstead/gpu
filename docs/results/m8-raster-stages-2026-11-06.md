@@ -1,6 +1,6 @@
 # M8 tessellation and geometry acceptance
 
-2026-11-06, foundation revision 11. The [contract](../raster-stages.md) adds independent
+2026-11-06, foundation revision 11. Implementation `385e215df10480ad18a5d0f5c69797de5870af17`. The [contract](../raster-stages.md) adds independent
 native stage/multiview/point-size enables, physical limits, patch state and topology
 coverage. Existing public layouts and operations are unchanged; the existing draw,
 argument, dependency and query mechanisms carry the new stages.
@@ -70,3 +70,18 @@ cargo xtask foundation-graphics-compiler --check
 cargo test --offline --no-default-features -p ogpu --lib -- --ignored --test-threads=1 --nocapture
 cargo xtask foundation
 ```
+
+## Clean installed acceptance
+
+Installed from the clean implementation commit above (`source_dirty=false`) into
+`/tmp/ogpu-m8-385e215-sdk`. Release runtime SHA-256:
+`1b86e9093f29602e5a669f79b7ba74d45fdf3bd62f1d17554ddcfffb044d2674`.
+Relocated public C consumers, pinned GGML (transformer/quantized and full-dataset
+precision modes), pinned libplacebo and isolated native Rust/Wayland checks pass.
+The full public C fixture, including the new raster stages, also passes against
+the installed public header and optimized library. Installed surface audit passes.
+Human interaction and unavailable native feature combinations are not newly accepted.
+
+The [machine-readable receipt](m8-raster-stages-2026-11-06.json) records log paths
+and hashes. Follow-up changes record evidence and clarify the existing PointSize=1
+restriction in comments/documentation; they change no runtime, layout or artifact.

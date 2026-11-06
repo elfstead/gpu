@@ -613,6 +613,8 @@ runtime. [Tessellation/geometry](raster-stages.md) now implement independent ena
 physical limits, patch/origin state, adjacency and shared argument/stage scopes.
 [Native acceptance](results/m8-raster-stages-2026-11-06.md) passes ordinary,
 adjacency and tessellated/combined pipelines with changed-data replay and statistics.
+Clean C/GGML/libplacebo, isolated native Rust/Wayland and installed-release raster
+consumer checks pass at `385e215`.
 Next integrate advanced raster into a textured/depth consumer and audit remaining
 M8 feature dispositions; native combinations and generated compiler handoff remain
 explicit acceptance work before calling the milestone complete.

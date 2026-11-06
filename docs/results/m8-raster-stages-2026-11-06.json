@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "source_revision": "385e215df10480ad18a5d0f5c69797de5870af17",
+  "source_dirty": false,
+  "foundation_revision": 11,
+  "runtime_sha256": "1b86e9093f29602e5a669f79b7ba74d45fdf3bd62f1d17554ddcfffb044d2674",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation_layer": "1.4.357",
+  "synchronization_validation": true,
+  "validation_errors": 0,
+  "existing_raster_unused_output_warnings": 4,
+  "sdk_acceptance": "complete: relocated C/GGML/libplacebo, isolated native Rust/Wayland, raster-stage consumer against installed release library",
+  "raster_stages": {
+    "native_limits": {
+      "max_patch_size": 32,
+      "max_generation_level": 64,
+      "geometry_output_vertices": 256,
+      "geometry_invocations": 32
+    },
+    "submissions": 12,
+    "rgba8_pixels_checked": 768,
+    "pipeline_modes": 6,
+    "executable_rejections": 7,
+    "evaluation_invocations_at_levels_2_and_4": [
+      7,
+      21
+    ],
+    "geometry_primitives_after_tessellation_at_levels_2_and_4": [
+      6,
+      24
+    ],
+    "control_patches_per_draw": 1,
+    "draw_paths": [
+      "direct",
+      "indexed",
+      "indirect"
+    ],
+    "domain_origins": [
+      "upper-left",
+      "lower-left"
+    ],
+    "origin_winding_distinguished": false,
+    "guards": true,
+    "changed_data_serial_replay": true,
+    "independent_enable_and_argument_visibility_rejection": "pass",
+    "generated_compiler_metadata": "not implemented; explicit raw-artifact metadata used",
+    "remaining_acceptance": "../raster-stages.md#remaining-verification-and-scope"
+  },
+  "host_library_tests": 97,
+  "rust_correspondence_tests": 2,
+  "native_library_tests": 31,
+  "windows": "unaccepted",
+  "metal": "deferred",
+  "performance_parity": "not measured",
+  "logs": {
+    "host": {
+      "path": "/tmp/m8-stages-host.log",
+      "sha256": "13a7795c7ecbf34b70a5a1ad856a4eed032dda29a7356c84af6b8ba7206275d2",
+      "result": "pass"
+    },
+    "native_gpu": {
+      "path": "/tmp/m8-stages-gpu.log",
+      "sha256": "12f346623923edbb1c40b1c172f99b43a33246f45e3ba13bcae541622acc632c",
+      "result": "pass"
+    },
+    "public_c_validated": {
+      "path": "/tmp/m8-stages-c.log",
+      "sha256": "9a28a98182be00d899d1a31da50a8e192bb4c67ae8e4015b1c3c78015c8f3b1d",
+      "result": "pass"
+    },
+    "core_clippy": {
+      "path": "/tmp/m8-stages-clippy.log",
+      "sha256": "8de7b18d6128716c436b0ee95d7900a74eca9722a4e9a4363535bf2f1a079f4a",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/m8-stages-abi.log",
+      "sha256": "db55b2ddabd81909fb033f712c4c9849f08fdddcdf2a40a5b17dab0f528f2f6c",
+      "result": "pass"
+    },
+    "surface": {
+      "path": "/tmp/m8-stages-surface.log",
+      "sha256": "ca836cb9b1456189ca75e4a0fef8ad019ab9f3d82b5355057555107a2b5a8e1c",
+      "result": "pass"
+    },
+    "bindings": {
+      "path": "/tmp/m8-stages-bindings.log",
+      "sha256": "1a84cc1cd396a4fd9a4db018c47f41e81aae3cb35497fa474e1fdd55588820df",
+      "result": "pass"
+    },
+    "shaders": {
+      "path": "/tmp/m8-stages-shaders-check.log",
+      "sha256": "2d8644eab134db2ee1d407379fdf5f389a2d9c6036db19134dea9c634cdc067a",
+      "result": "pass"
+    },
+    "compute_compiler": {
+      "path": "/tmp/m8-stages-compiler.log",
+      "sha256": "0fa2819daeb862984488dfde76e39a1063e145c51f04703e0df413ee0acb1430",
+      "result": "pass"
+    },
+    "graphics_compiler": {
+      "path": "/tmp/m8-stages-graphics-compiler.log",
+      "sha256": "4a91f217d94e3fb4e8490028caf111277829af058b6c005f26b26bc91f938dd8",
+      "result": "pass"
+    },
+    "installation": {
+      "path": "/tmp/m8-stages-install.log",
+      "sha256": "2818d201a5b71dda3a7cc6b50c2119e020c9eaa3732ec24311ee0e807c1db602",
+      "result": "pass"
+    },
+    "installed_c": {
+      "path": "/tmp/m8-stages-sdk-c.log",
+      "sha256": "5e79c48c3fced58cbe5916fe98fbc205425e76268b1aaf8034d8f626520b0033",
+      "result": "pass"
+    },
+    "installed_rust": {
+      "path": "/tmp/m8-stages-sdk-rust.log",
+      "sha256": "94141f599a0e599579011a5e345ee9a2e42491f4d4a83cb6a22452bded0b08f0",
+      "result": "pass"
+    },
+    "installed_surface": {
+      "path": "/tmp/m8-stages-sdk-surface.log",
+      "sha256": "6e8cdb54d5b80576a7fa7a11694394ea82c5f59cb87f8166a3d4715246367968",
+      "result": "pass"
+    },
+    "installed_release_raster_stages": {
+      "path": "/tmp/m8-stages-sdk-public-c.log",
+      "sha256": "5eaf4614f88804fc8a8caa52c39b498bf30b2aeec3d07a3f5311882cab703ee5",
+      "result": "pass"
+    }
+  }
+}

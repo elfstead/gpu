@@ -1463,8 +1463,9 @@ void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint3
 
 /* Optional native tessellation/geometry stages; see docs/raster-stages.md.
  * Enables are independent. *_MULTIVIEW also requires the matching base stage and
- * MULTIVIEW. TESSELLATION_GEOMETRY_POINT_SIZE permits explicit PointSize writes
- * by tessellation/geometry; caller proves output-mode/interface requirements.
+ * MULTIVIEW. TESSELLATION_GEOMETRY_POINT_SIZE permits explicit PointSize=1 writes
+ * by tessellation/geometry; largePoints is not enabled in this profile. Caller
+ * proves output-mode/interface requirements.
  * QUERY_RASTER_STAGE_LIMITS reports physical limits, not selected enables. */
 #define OGPU_NEXT_FEATURE_TESSELLATION UINT32_C(69)
 #define OGPU_NEXT_FEATURE_GEOMETRY UINT32_C(70)
@@ -1879,7 +1880,8 @@ typedef struct ogpu_next_vertex_input {
  * GEOMETRY enabling; patch lists require the paired tessellation stages/state.
  * Primitive restart is available for strips/fan, not lists/patches in this profile.
  * Vertex point output uses PointSize=1; tessellation/geometry point-size writes
- * require TESSELLATION_GEOMETRY_POINT_SIZE and obey native limits. Storage writes
+ * require TESSELLATION_GEOMETRY_POINT_SIZE and must be 1 (largePoints is not enabled).
+ * Storage writes
  * before rasterization use VERTEX_STORES_ATOMICS, fragment writes its own enable.
  * Missing profiles are UNSUPPORTED, not emulated.
  * Omitting FRAGMENT still rasterizes and runs fixed depth/stencil tests and writes.

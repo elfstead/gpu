@@ -35,8 +35,9 @@ stage family and cannot mix with vertex/tessellation/geometry stages.
 TESSELLATION_MULTIVIEW and GEOMETRY_MULTIVIEW are separate enables requiring the
 matching base feature and MULTIVIEW. A nonzero pipeline view mask with these stages
 requires the corresponding enable. TESSELLATION_GEOMETRY_POINT_SIZE separately
-permits explicit point-size writes; shader output mode and point-size validity
-remain native compiler/caller obligations. Storage writes/atomics in these stages
+permits explicit point-size writes of one. The native largePoints feature is not
+enabled by this profile; values other than one are not accepted caller input.
+Shader output mode and interface validity remain compiler/caller obligations. Storage writes/atomics in these stages
 use the existing VERTEX_STORES_ATOMICS native feature, which covers the pre-raster
 pipeline. Numeric, atomic-type, output-layer and shading-rate requirements remain
 independent; none is inferred or silently enabled.
@@ -95,8 +96,8 @@ fan/restart, quad/isoline tessellation, alternative spacing and unequal input/ou
 patch sizes remains unverified. So do secondary, generated, local-read, shading-rate
 and continuation combinations, per-stage storage writes and advanced subgroup
 execution. Discovery/enabling and representation are not acceptance of all those
-combinations. Transform feedback/geometry streams and dynamic patch-size policy
-are not implemented by this change. Metal/DX12 mappings remain unaccepted.
+combinations. Large points, transform feedback/geometry streams and dynamic patch-size policy
+are not implemented by this change; include them in the remaining M8 coverage audit. Metal/DX12 mappings remain unaccepted.
 
 Next M8 work integrates the advanced raster profiles into a textured/depth consumer
 and audits the remaining raster feature dispositions before moving to M9. The
