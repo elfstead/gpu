@@ -5,7 +5,7 @@ explicitly opt-in with `--legacy`. Pin a full source revision. The table below
 distinguishes implementation scope from native validation; it is not a list of
 all hardware that might work.
 
-Current revision 8 adds [generated vertex/index state and explicit vertex stride](results/m8-generated-buffer-state-2026-11-06.md), verified locally under Vulkan validation. Revision-7 clean SDK evidence below remains identified by its historical commit.
+Current revision 8 adds [generated vertex/index state and explicit vertex stride](results/m8-generated-buffer-state-2026-11-06.md), verified locally under Vulkan validation. The [clean revision-8 SDK](results/m8-revision8-sdk-2026-11-06.md) passes relocated C/GGML/libplacebo and isolated native Rust/Wayland checks at `b5414e5`. Revision-7 evidence below remains identified by its historical commit.
 
 ## Default Linux/Vulkan foundation
 
@@ -28,7 +28,7 @@ not imply FP16 arithmetic, subgroup or matrix support. See the
 [SDK guide](foundation-quickstart.md), [implemented surface](foundation-implementation.md)
 and [contract dispositions](core-contract-review.md) for exact contracts and gaps.
 
-[Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) at `fc11fda` covers the public contract, native execution, bounded Wayland and isolated C/native Rust SDKs, including pinned GGML/libplacebo consumers. Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5 for revision 7. Earlier receipts also used llvmpipe
+[Clean C3 acceptance](results/c3-linux-acceptance-2026-11-06.md) at `fc11fda` covers the public contract, native execution, bounded Wayland and isolated C/native Rust SDKs, including pinned GGML/libplacebo consumers. Current local foundation evidence uses Radeon RX 5700 XT/RADV 26.2.5, now refreshed for revision 8 above. Earlier receipts also used llvmpipe
 26.2.1; those are historical software evidence, not a fresh revision-7 run. M4 and M5 pass their declared scope. The full C fixture passes on Radeon;
 llvmpipe retains the explicit combined-depth/stencil-copy exclusion and the
 historical native-reproduced counted-to-fixed failure. Software is not another

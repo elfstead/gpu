@@ -309,7 +309,15 @@ The [buffer-state token follow-up](results/m8-generated-buffer-state-2026-11-06.
 now implements native vertex/index tokens and explicit vertex stride in foundation
 revision 8, with 96 total graphics submissions and 196,608 checked pixels. C/Rust
 bindings, SDK revision checks and the installed contract audit migrate together.
-Next: advanced raster profiles, starting with multiview, followed by shading rate,
+[Clean revision-8 SDK acceptance](results/m8-revision8-sdk-2026-11-06.md) passes for
+relocated C, pinned GGML/libplacebo and isolated native Rust/Wayland consumers.
+Next batch: remove the fixed feature-selection ceiling, then implement multiview.
+The public `ogpu_next_features` mask has 61 assigned bits and only three free;
+remaining raster/ray/memory/media coverage cannot fit it. Prefer one counted
+feature-ID query/request model, with the runtime representation private, and
+migrate device enabling plus shader requirements together. Preserve independent
+native enables and keep selection work cold; do not bundle unrelated features or
+add command-time feature searches. Then continue with shading rate,
 tile-local/pass-continuation and remaining tessellation/geometry coverage. Larger textured/depth and external
 consumer coverage remain separate from the bounded procedural grid. Ray tracing is
 M9. M6 remains incomplete and can resume when native development is possible.

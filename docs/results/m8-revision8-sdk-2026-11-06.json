@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "source_revision": "b5414e541f87c3cd40cb2c04616c6c58ea617eab",
+  "source_dirty": false,
+  "foundation_revision": 8,
+  "runtime_sha256": "e9fb2e417312782d24bc7ce9b174a0640ee5e35d581d51cf1c4534b609013c0e",
+  "backend": "Vulkan/Linux",
+  "device": "AMD Radeon RX 5700 XT (RADV NAVI10)",
+  "driver": "Mesa 26.2.5",
+  "validation": true,
+  "synchronization_validation": true,
+  "sdk_acceptance": "complete",
+  "graphics_pipeline_selection": "unverified",
+  "generated_mesh": "unverified",
+  "dxgi_index_input": "unverified",
+  "windows": "unaccepted",
+  "metal": "deferred",
+  "logs": {
+    "installed_c": {
+      "path": "/tmp/m8-r8-final-installed-c.log",
+      "sha256": "06e89fb30b6c50ac73ff1a427fee2851a9a420362a52d29010c2331a3f962ad4",
+      "result": "pass"
+    },
+    "installed_rust": {
+      "path": "/tmp/m8-r8-final-installed-rust.log",
+      "sha256": "c52a0871fd348388c834a1332495403bb1ace977e08b832d6bcbced1156185f4",
+      "result": "pass"
+    },
+    "installed_surface": {
+      "path": "/tmp/m8-r8-final-surface.log",
+      "sha256": "b7e00d54b60ba072ed5f558e49d8d9c609bc8ee1cb2616bdbc62df4972cb0619",
+      "result": "pass"
+    },
+    "installation": {
+      "path": "/tmp/m8-r8-final-install.log",
+      "sha256": "90adfcd0a7997f04b51fa94f8724413d366b96506587a1d72c4bf275434e4a70",
+      "result": "pass"
+    },
+    "native_gpu": {
+      "path": "/tmp/m8-state-native-final.log",
+      "sha256": "ed5e63f222f0ff7d45faac299574f936d25f39f3c85856c8bb245a4a05fa48bb",
+      "result": "pass"
+    },
+    "public_c": {
+      "path": "/tmp/m8-state-gpu-final.log",
+      "sha256": "d26057e2e351696be0d104cb661c03bfbde08f8e7887c99661ae9f97e7d75c2d",
+      "result": "pass"
+    },
+    "host": {
+      "path": "/tmp/m8-state-host.log",
+      "sha256": "b95e6a7e91190988c5de7d5d1380e5dbd3647edb5e2561a6ceafd503948f8f6a",
+      "result": "pass"
+    },
+    "abi": {
+      "path": "/tmp/m8-state-abi.log",
+      "sha256": "1725784135f0f596f0261f23799d1c7bb0107d5d90d70798df086aeb95716e8c",
+      "result": "pass"
+    },
+    "scene_checkers": {
+      "path": "/tmp/m8-r8-scene-tests-final.log",
+      "sha256": "7dbb55c3246e687df5f67e401f98aae3808f0baf1c1bd26489de36e1115b41b8",
+      "result": "pass"
+    },
+    "textured_checkers": {
+      "path": "/tmp/m8-r8-textured-tests-final.log",
+      "sha256": "dc713b1064397931b842de365bdf04b314a0d9dc84ebd970a870c7134b7a43ae",
+      "result": "pass"
+    }
+  }
+}

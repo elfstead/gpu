@@ -85,8 +85,8 @@ Radeon RX 5700 XT, RADV/Mesa 26.2.5, Vulkan and synchronization validation enabl
 Reproduce using `cargo test --offline --no-default-features -p ogpu`, the ignored
 GPU tests with `--test-threads=1`, `cargo xtask foundation`,
 `cargo xtask foundation-shaders --check`, `cargo xtask abi` and
-`python3 tools/check-foundation-surface.py`. Clean installed-SDK acceptance will
-be recorded separately after this implementation checkpoint is committed.
+`python3 tools/check-foundation-surface.py`. [Clean installed-SDK acceptance](m8-revision8-sdk-2026-11-06.md) now passes at
+`b5414e5`, including all selected C, GGML/libplacebo and isolated Rust/Wayland consumers.
 
 ## Remaining work
 

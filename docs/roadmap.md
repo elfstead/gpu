@@ -582,9 +582,14 @@ selection remains unavailable locally and independently gated. Generated mesh
 execution, richer scene/raster interactions and performance evidence remain open.
 The [revision-8 buffer-state token tranche](results/m8-generated-buffer-state-2026-11-06.md)
 adds GPU-selected vertex/index bindings and explicit static/dynamic vertex stride;
-96 combined graphics submissions and 196,608 pixels pass locally. Advanced raster
-is next, beginning with multiview, then shading-rate, tile-local/pass-continuation
-and remaining tessellation/geometry profiles.
+96 combined graphics submissions and 196,608 pixels pass locally. Before adding
+more raster feature bits, the next batch must replace the fixed feature-selection
+ceiling: 61 of 64 public bits are assigned. The proposed direction is one counted
+feature-ID query/request representation across discovery, device enabling and
+shader requirements, with native enables independent and implementation storage
+private. This is a prerequisite, not a claim that the new representation exists.
+Then implement multiview, shading-rate, tile-local/pass-continuation and remaining
+tessellation/geometry profiles.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage
