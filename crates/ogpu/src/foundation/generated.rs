@@ -89,6 +89,18 @@ pub(super) fn native_stages(stages: u64) -> u32 {
         (8, vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT),
         (16, vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT),
         (
+            TESS_CONTROL_STAGE,
+            vk::VkShaderStageFlagBits_VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+        ),
+        (
+            TESS_EVALUATION_STAGE,
+            vk::VkShaderStageFlagBits_VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+        ),
+        (
+            GEOMETRY_STAGE,
+            vk::VkShaderStageFlagBits_VK_SHADER_STAGE_GEOMETRY_BIT,
+        ),
+        (
             MESH_STAGE,
             vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_EXT,
         ),
@@ -102,16 +114,25 @@ pub(super) fn native_stages(stages: u64) -> u32 {
         r | if stages & bit != 0 { native } else { 0 }
     })
 }
-fn public_stages(stages: u32) -> u64 {
-    [4, 8, 16, MESH_STAGE, TASK_STAGE]
-        .into_iter()
-        .fold(0, |r, bit| {
-            r | if stages & native_stages(bit) != 0 {
-                bit
-            } else {
-                0
-            }
-        })
+pub(super) fn public_stages(stages: u32) -> u64 {
+    [
+        4,
+        8,
+        16,
+        MESH_STAGE,
+        TASK_STAGE,
+        TESS_CONTROL_STAGE,
+        TESS_EVALUATION_STAGE,
+        GEOMETRY_STAGE,
+    ]
+    .into_iter()
+    .fold(0, |r, bit| {
+        r | if stages & native_stages(bit) != 0 {
+            bit
+        } else {
+            0
+        }
+    })
 }
 pub(super) fn snapshot(
     instance: &Instance,
@@ -220,7 +241,7 @@ fn layout_contract(
         return Err(UNSUPPORTED);
     }
     let compute = desc.stages == 4;
-    let vertex = matches!(desc.stages, 8 | 24);
+    let vertex = raster_stages::traditional(desc.stages);
     let mesh = matches!(desc.stages, MESH_STAGE)
         || desc.stages == MESH_STAGE | 16
         || desc.stages == MESH_STAGE | TASK_STAGE
@@ -236,6 +257,7 @@ fn layout_contract(
     {
         return Err(UNSUPPORTED);
     }
+    raster_stages::enables(enabled, desc.stages, 0)?;
     let action = tokens.last().unwrap().kind;
     if !matches!(action, 4..=10)
         || compute && action != 4
@@ -806,8 +828,10 @@ mod tests {
         tokens[1].kind = 1;
         assert_eq!(check(&desc, &tokens), Err(UNSUPPORTED));
         assert_eq!(
-            public_stages(native_stages(28 | MESH_STAGE | TASK_STAGE)),
-            28 | MESH_STAGE | TASK_STAGE
+            public_stages(native_stages(
+                28 | MESH_STAGE | TASK_STAGE | raster_stages::TESS_STAGES | GEOMETRY_STAGE
+            )),
+            28 | MESH_STAGE | TASK_STAGE | raster_stages::TESS_STAGES | GEOMETRY_STAGE
         );
     }
     #[test]

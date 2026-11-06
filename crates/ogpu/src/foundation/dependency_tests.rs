@@ -85,11 +85,25 @@ fn capabilities_follow_native_queue_and_feature_scopes() {
             GRAPHICS,
             RASTER,
             KNOWN_SCOPES
-                & !(256 | 4 | MESH_STAGE | TASK_STAGE | PREPROCESS_STAGE | SHADING_RATE_STAGE),
+                & !(256
+                    | 4
+                    | MESH_STAGE
+                    | TASK_STAGE
+                    | PREPROCESS_STAGE
+                    | SHADING_RATE_STAGE
+                    | TESS_CONTROL_STAGE
+                    | TESS_EVALUATION_STAGE
+                    | GEOMETRY_STAGE),
         ),
         (
             GRAPHICS | COMPUTE,
-            RASTER | MESH_SHADER | TASK_SHADER | GENERATED_COMMANDS | ATTACHMENT_SHADING_RATE,
+            RASTER
+                | MESH_SHADER
+                | TASK_SHADER
+                | GENERATED_COMMANDS
+                | ATTACHMENT_SHADING_RATE
+                | TESSELLATION
+                | GEOMETRY,
             KNOWN_SCOPES & !256,
         ),
     ] {

@@ -96,6 +96,11 @@ pub mod feature_ids {
     pub const ATTACHMENT_SHADING_RATE: u32 = 66;
     pub const MESH_PRIMITIVE_SHADING_RATE: u32 = 67;
     pub const LOCAL_READ: u32 = 68;
+    pub const TESSELLATION: u32 = 69;
+    pub const GEOMETRY: u32 = 70;
+    pub const TESSELLATION_MULTIVIEW: u32 = 71;
+    pub const GEOMETRY_MULTIVIEW: u32 = 72;
+    pub const TESSELLATION_GEOMETRY_POINT_SIZE: u32 = 73;
 }
 /// Borrowed feature IDs. Input storage lives through its host call. Query output
 /// storage lives through the queried adapter/discovery or device lifetime.
@@ -692,6 +697,13 @@ pub(super) fn validate_feature_dependencies(required: FeatureBits) -> Result<(),
     if required & MESH_PRIMITIVE_SHADING_RATE != 0
         && required & (MESH_SHADER | PRIMITIVE_SHADING_RATE)
             != (MESH_SHADER | PRIMITIVE_SHADING_RATE)
+    {
+        return Err(INVALID);
+    }
+    if required & TESSELLATION_MULTIVIEW != 0
+        && required & (TESSELLATION | MULTIVIEW) != (TESSELLATION | MULTIVIEW)
+        || required & GEOMETRY_MULTIVIEW != 0
+            && required & (GEOMETRY | MULTIVIEW) != (GEOMETRY | MULTIVIEW)
     {
         return Err(INVALID);
     }
@@ -1834,4 +1846,42 @@ pub struct RenderMapping {
     pub binding_count: u32,
     pub reserved: u32,
     pub bindings: *const InputAttachmentBinding,
+}
+
+pub const TESS_CONTROL_STAGE: u64 = 1 << 24;
+pub const TESS_EVALUATION_STAGE: u64 = 1 << 25;
+pub const GEOMETRY_STAGE: u64 = 1 << 26;
+pub const RASTER_STAGE_LIMITS: u32 = 23;
+pub const TESSELLATION_STATE: u32 = 133;
+pub const TRIANGLE_FAN: u32 = 5;
+pub const LINES_ADJACENCY: u32 = 6;
+pub const LINE_STRIP_ADJACENCY: u32 = 7;
+pub const TRIANGLES_ADJACENCY: u32 = 8;
+pub const TRIANGLE_STRIP_ADJACENCY: u32 = 9;
+pub const PATCHES: u32 = 10;
+pub const DOMAIN_UPPER_LEFT: u32 = 0;
+pub const DOMAIN_LOWER_LEFT: u32 = 1;
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RasterStageLimits {
+    pub max_generation_level: u32,
+    pub max_patch_size: u32,
+    pub control_input_components: u32,
+    pub control_output_components: u32,
+    pub patch_output_components: u32,
+    pub control_total_output_components: u32,
+    pub evaluation_input_components: u32,
+    pub evaluation_output_components: u32,
+    pub geometry_invocations: u32,
+    pub geometry_input_components: u32,
+    pub geometry_output_components: u32,
+    pub geometry_output_vertices: u32,
+    pub geometry_total_output_components: u32,
+}
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct TessellationState {
+    pub header: Record,
+    pub patch_control_points: u32,
+    pub domain_origin: u32,
 }

@@ -1,0 +1,307 @@
+//! Native pre-raster stages and cold extension parsing. No generated geometry,
+//! patch expansion, shader reflection or extra draw path.
+use super::*;
+pub(super) const TESS_STAGES: u64 = TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE;
+const TRADITIONAL: u64 = 8 | 16 | TESS_STAGES | GEOMETRY_STAGE;
+pub(super) fn traditional(stages: u64) -> bool {
+    stages & 8 != 0 && stages & !TRADITIONAL == 0 && matches!(stages & TESS_STAGES, 0 | TESS_STAGES)
+}
+pub(super) fn enables(enabled: FeatureBits, stages: u64, views: u32) -> Result<(), Status> {
+    if stages & TESS_STAGES != 0 && enabled & TESSELLATION == 0
+        || stages & GEOMETRY_STAGE != 0 && enabled & GEOMETRY == 0
+        || views != 0 && stages & TESS_STAGES != 0 && enabled & TESSELLATION_MULTIVIEW == 0
+        || views != 0 && stages & GEOMETRY_STAGE != 0 && enabled & GEOMETRY_MULTIVIEW == 0
+    {
+        return Err(UNSUPPORTED);
+    }
+    Ok(())
+}
+#[derive(Default)]
+pub(super) struct Extensions {
+    pub mapping: Option<RenderMapping>,
+    pub tessellation: Option<TessellationState>,
+}
+/// At most one of each known extension, in either order. Parent validation
+/// preserves size/version/flags rules while parsing each next pointer here.
+pub(super) unsafe fn extensions(mut p: *const Record) -> Result<Extensions, Status> {
+    let mut result = Extensions::default();
+    let mut count = 0;
+    while !p.is_null() {
+        count += 1;
+        if count > 2 {
+            return Err(INVALID);
+        }
+        let header = unsafe { &*p };
+        match header.kind {
+            RENDER_MAPPING => {
+                if result.mapping.is_some() {
+                    return Err(INVALID);
+                }
+                let mut mapping =
+                    unsafe { *local_read::parent::<RenderMapping>(p, RENDER_MAPPING)? };
+                mapping.header.next = ptr::null();
+                result.mapping = Some(mapping);
+            }
+            TESSELLATION_STATE => {
+                if result.tessellation.is_some() {
+                    return Err(INVALID);
+                }
+                result.tessellation = Some(unsafe {
+                    *local_read::parent::<TessellationState>(p, TESSELLATION_STATE)?
+                });
+            }
+            _ => return Err(UNSUPPORTED),
+        }
+        p = header.next;
+    }
+    Ok(result)
+}
+pub(super) fn tessellation(
+    stages: u64,
+    topology: u32,
+    state: Option<TessellationState>,
+    limits: &RasterStageLimits,
+) -> Result<Option<TessellationState>, Status> {
+    let has_tess = stages & TESS_STAGES != 0;
+    if has_tess != (topology == PATCHES) || has_tess != state.is_some() {
+        return Err(INVALID);
+    }
+    if let Some(s) = state {
+        if s.patch_control_points == 0 || s.domain_origin > 1 {
+            return Err(INVALID);
+        }
+        if s.patch_control_points > limits.max_patch_size {
+            return Err(UNSUPPORTED);
+        }
+    }
+    Ok(state)
+}
+pub(super) fn limits(p: &vk::VkPhysicalDeviceLimits) -> RasterStageLimits {
+    RasterStageLimits {
+        max_generation_level: p.maxTessellationGenerationLevel,
+        max_patch_size: p.maxTessellationPatchSize,
+        control_input_components: p.maxTessellationControlPerVertexInputComponents,
+        control_output_components: p.maxTessellationControlPerVertexOutputComponents,
+        patch_output_components: p.maxTessellationControlPerPatchOutputComponents,
+        control_total_output_components: p.maxTessellationControlTotalOutputComponents,
+        evaluation_input_components: p.maxTessellationEvaluationInputComponents,
+        evaluation_output_components: p.maxTessellationEvaluationOutputComponents,
+        geometry_invocations: p.maxGeometryShaderInvocations,
+        geometry_input_components: p.maxGeometryInputComponents,
+        geometry_output_components: p.maxGeometryOutputComponents,
+        geometry_output_vertices: p.maxGeometryOutputVertices,
+        geometry_total_output_components: p.maxGeometryTotalOutputComponents,
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn stage_sets_preserve_pairing_and_independent_enables() {
+        for stages in [
+            8,
+            24,
+            8 | GEOMETRY_STAGE,
+            24 | GEOMETRY_STAGE,
+            8 | TESS_STAGES,
+            24 | TESS_STAGES,
+            24 | TESS_STAGES | GEOMETRY_STAGE,
+        ] {
+            assert!(traditional(stages));
+        }
+        for stages in [
+            0,
+            16,
+            4,
+            8 | TESS_CONTROL_STAGE,
+            8 | TESS_EVALUATION_STAGE,
+            8 | MESH_STAGE,
+        ] {
+            assert!(!traditional(stages));
+        }
+        assert_eq!(enables(GEOMETRY, 8 | GEOMETRY_STAGE, 0), Ok(()));
+        assert_eq!(enables(TESSELLATION, 8 | TESS_STAGES, 0), Ok(()));
+        assert_eq!(enables(GEOMETRY, 8 | TESS_STAGES, 0), Err(UNSUPPORTED));
+        assert_eq!(
+            enables(TESSELLATION, 8 | GEOMETRY_STAGE, 0),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            enables(GEOMETRY | MULTIVIEW, 8 | GEOMETRY_STAGE, 1),
+            Err(UNSUPPORTED)
+        );
+        assert_eq!(
+            enables(
+                GEOMETRY | MULTIVIEW | GEOMETRY_MULTIVIEW,
+                8 | GEOMETRY_STAGE,
+                1
+            ),
+            Ok(())
+        );
+    }
+    #[test]
+    fn patch_state_is_explicit_and_bounded() {
+        let p = RasterStageLimits {
+            max_patch_size: 32,
+            ..Default::default()
+        };
+        let s = TessellationState {
+            header: Record::new::<TessellationState>(TESSELLATION_STATE),
+            patch_control_points: 3,
+            domain_origin: 0,
+        };
+        assert!(tessellation(8 | TESS_STAGES, PATCHES, Some(s), &p).is_ok());
+        for (stages, topology, state) in [
+            (8, PATCHES, Some(s)),
+            (8 | TESS_STAGES, 3, Some(s)),
+            (8 | TESS_STAGES, PATCHES, None),
+            (8, 3, Some(s)),
+        ] {
+            assert!(matches!(
+                tessellation(stages, topology, state, &p),
+                Err(INVALID)
+            ));
+        }
+        assert!(matches!(
+            tessellation(
+                8 | TESS_STAGES,
+                PATCHES,
+                Some(TessellationState {
+                    patch_control_points: 33,
+                    ..s
+                }),
+                &p
+            ),
+            Err(UNSUPPORTED)
+        ));
+    }
+    #[test]
+    fn extension_chain_accepts_both_orders_rejects_duplicates_cycles_and_unknown() {
+        let mut t = TessellationState {
+            header: Record::new::<TessellationState>(TESSELLATION_STATE),
+            patch_control_points: 3,
+            domain_origin: 1,
+        };
+        let mut m = RenderMapping {
+            header: Record::new::<RenderMapping>(RENDER_MAPPING),
+            locations: ptr::null(),
+            inputs: ptr::null(),
+            binding_count: 0,
+            reserved: 0,
+            bindings: ptr::null(),
+        };
+        t.header.next = &m.header;
+        assert!(unsafe { extensions(&t.header) }
+            .unwrap()
+            .mapping
+            .unwrap()
+            .header
+            .next
+            .is_null());
+        t.header.next = ptr::null();
+        m.header.next = &t.header;
+        assert!(unsafe { extensions(&m.header) }
+            .unwrap()
+            .tessellation
+            .is_some());
+        t.header.next = &m.header;
+        assert!(!t.header.next.is_null());
+        assert!(matches!(unsafe { extensions(&m.header) }, Err(INVALID)));
+        let unknown = Record::new::<Record>(u32::MAX);
+        assert!(matches!(unsafe { extensions(&unknown) }, Err(UNSUPPORTED)));
+    }
+    #[test]
+    fn multiview_enables_do_not_imply_their_prerequisites() {
+        for (sub, base) in [
+            (TESSELLATION_MULTIVIEW, TESSELLATION),
+            (GEOMETRY_MULTIVIEW, GEOMETRY),
+        ] {
+            assert_eq!(validate_feature_dependencies(sub), Err(INVALID));
+            assert_eq!(validate_feature_dependencies(sub | base), Err(INVALID));
+            assert_eq!(
+                validate_feature_dependencies(sub | base | MULTIVIEW | RASTER),
+                Ok(())
+            );
+        }
+    }
+    #[test]
+    #[ignore = "requires modern Vulkan; independent tessellation/geometry feature enables and argument visibility"]
+    fn gpu_raster_stage_feature_contract() {
+        let instance = Arc::new(Instance::new().unwrap());
+        let mut checked = false;
+        for physical in instance.physical_devices().unwrap() {
+            let snapshot = super::super::snapshot(&instance, physical).unwrap();
+            if snapshot.features.baseline_supported == 0 {
+                continue;
+            }
+            let Some(q) = snapshot
+                .queues
+                .iter()
+                .find(|q| q.flags & GRAPHICS != 0 && q.count != 0)
+            else {
+                continue;
+            };
+            let request = [QueueRequest {
+                domain: q.domain,
+                count: 1,
+                priority: 0.5,
+            }];
+            let available = snapshot.features.available;
+            let adapter = Adapter {
+                instance: instance.clone(),
+                physical,
+                snapshot,
+            };
+            for bit in [
+                TESSELLATION,
+                GEOMETRY,
+                TESSELLATION_GEOMETRY_POINT_SIZE,
+                TESSELLATION | MULTIVIEW | TESSELLATION_MULTIVIEW,
+                GEOMETRY | MULTIVIEW | GEOMETRY_MULTIVIEW,
+            ] {
+                let required = RASTER | bit;
+                let result = Device::create(&adapter, &request, required);
+                if required & !available != 0 {
+                    assert!(matches!(result, Err(UNSUPPORTED)));
+                    continue;
+                }
+                let d = result.unwrap();
+                assert_eq!(d.snapshot.features.enabled, required);
+                assert_eq!(
+                    d.snapshot.raster_stage_limits,
+                    adapter.snapshot.raster_stage_limits
+                );
+                for (stage, feature) in [
+                    (TESS_CONTROL_STAGE, TESSELLATION),
+                    (TESS_EVALUATION_STAGE, TESSELLATION),
+                    (GEOMETRY_STAGE, GEOMETRY),
+                ] {
+                    let field = ArgumentField {
+                        offset: 0,
+                        size: 8,
+                        kind: ARGUMENT_INLINE,
+                        address_alignment: 0,
+                        stages: stage,
+                        space: ARGUMENT_DIRECT,
+                        binding: ARGUMENT_DIRECT,
+                    };
+                    let desc = ArgumentLayoutDesc {
+                        execution_class: ARGUMENT_GRAPHICS,
+                        byte_size: 8,
+                        field_count: 1,
+                        flags: 0,
+                        fields: &field,
+                    };
+                    let result = unsafe { ArgumentLayout::create(&d, &desc) };
+                    if required & feature == 0 {
+                        assert!(matches!(result, Err(UNSUPPORTED)));
+                    } else {
+                        assert!(result.is_ok());
+                    }
+                }
+            }
+            checked = true;
+        }
+        assert!(checked, "no compatible physical device");
+    }
+}

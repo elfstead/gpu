@@ -39,7 +39,14 @@ output/input mappings, root/heap input-attachment bindings and in-render region
 dependencies. [Color plus same-pixel storage acceptance](results/m8-local-read-2026-11-06.md)
 passes on Radeon with GENERAL/LOCAL_READ and global/resource barriers. No hidden
 pass break or descriptor synthesis is added. Depth/MSAA, secondary/multiview and
-compiler-generated binding handoff remain unverified. Tessellation/geometry is next.
+compiler-generated binding handoff remain unverified.
+
+M8 raster stages, 2026-11-06: [tessellation and geometry](raster-stages.md) add
+independent enables, physical limits, explicit patch state, adjacency and native
+stage scopes to existing executable/argument/draw mechanisms. [Local acceptance](results/m8-raster-stages-2026-11-06.md)
+passes six modes, changed-data replay, pipeline statistics and malformed-preparation
+rejection. An integrated textured/depth consumer and remaining M8 coverage audit
+come next; this is not acceptance of every advanced raster combination.
 
 Current consolidation, 2026-10-13: [M4 offscreen](textured-scene-plan.md#clean-m4-offscreen-acceptance)
 and [M5 transformer/quantized linear](m5-results.md) are complete. The

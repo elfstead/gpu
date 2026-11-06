@@ -369,7 +369,8 @@ typedef struct ogpu_next_float_controls {
  * barrier. Shader memory scopes/semantics, convergence and inter-dispatch hazards
  * are caller/compiler contracts. Floating-point atomics are a separate profile.
  * VERTEX_STORES_ATOMICS and FRAGMENT_STORES_ATOMICS independently enable storage
- * writes/atomics in their shader stages; they do not enable RASTER, additional
+ * writes/atomics before rasterization (VERTEX includes tessellation/geometry/mesh)
+ * and in FRAGMENT, respectively; they do not enable RASTER, additional
  * stages, 64-bit/floating atomics or a storage-image format. Artifacts declare the
  * required features; OGPU does not scan/rewrite shaders. Caller owns address validity,
  * synchronization and native invocation semantics (including duplicated vertex
@@ -828,7 +829,8 @@ void ogpu_next_commands_cancel(ogpu_next_encoder *);
  * VERTEX means vertex shader only, not fixed-function input. DEPTH combines
  * EARLY_DEPTH/LATE_DEPTH; VERTEX_INPUT combines INDEX_INPUT/VERTEX_FETCH.
  * Aggregate scopes are choices, never automatically added to narrower scopes.
- * Except COMPUTE/VERTEX/FRAGMENT/MESH/TASK, these are synchronization-only bits. */
+ * COMPUTE/VERTEX/FRAGMENT/MESH/TASK/TESS_CONTROL/TESS_EVALUATION/GEOMETRY
+ * are shader stages too; the remaining bits are synchronization-only. */
 #define OGPU_NEXT_STAGE_TRANSFER UINT64_C(2)
 #define OGPU_NEXT_STAGE_COMPUTE UINT64_C(4)
 #define OGPU_NEXT_STAGE_VERTEX UINT64_C(8)
@@ -1336,8 +1338,8 @@ typedef struct ogpu_next_subgroup_state {
 } ogpu_next_subgroup_state;
 /* Optional per-shader SUBGROUP_STATE; NULL leaves native defaults. operations is
  * the artifact's required operation-group mask, checked against subgroup_limits
- * and stage support. Query stage masks represent COMPUTE/VERTEX/FRAGMENT/MESH/TASK
- * only. QUAD in vertex/mesh/task requires quad_all_stages. No lane-to-invocation mapping is
+ * and stage support. Query masks include every implemented shader stage.
+ * QUAD outside compute/fragment requires quad_all_stages. No lane-to-invocation mapping is
  * promised. Lane participation/convergence and actual opcode/type requirements
  * remain compiler/caller contracts, not inferred by runtime SPIR-V reflection.
  * required_size=0 preserves native default; otherwise an exact supported power of
@@ -1458,6 +1460,58 @@ typedef struct ogpu_next_launch {
 void ogpu_next_dispatch(ogpu_next_encoder *, const ogpu_next_launch *);
 void ogpu_next_dispatch_indirect(ogpu_next_encoder *, ogpu_next_span args, uint32_t dynamic_shared_bytes);
 
+
+/* Optional native tessellation/geometry stages; see docs/raster-stages.md.
+ * Enables are independent. *_MULTIVIEW also requires the matching base stage and
+ * MULTIVIEW. TESSELLATION_GEOMETRY_POINT_SIZE permits explicit PointSize writes
+ * by tessellation/geometry; caller proves output-mode/interface requirements.
+ * QUERY_RASTER_STAGE_LIMITS reports physical limits, not selected enables. */
+#define OGPU_NEXT_FEATURE_TESSELLATION UINT32_C(69)
+#define OGPU_NEXT_FEATURE_GEOMETRY UINT32_C(70)
+#define OGPU_NEXT_FEATURE_TESSELLATION_MULTIVIEW UINT32_C(71)
+#define OGPU_NEXT_FEATURE_GEOMETRY_MULTIVIEW UINT32_C(72)
+#define OGPU_NEXT_FEATURE_TESSELLATION_GEOMETRY_POINT_SIZE UINT32_C(73)
+#define OGPU_NEXT_STAGE_TESS_CONTROL UINT64_C(16777216)
+#define OGPU_NEXT_STAGE_TESS_EVALUATION UINT64_C(33554432)
+#define OGPU_NEXT_STAGE_GEOMETRY UINT64_C(67108864)
+#define OGPU_NEXT_QUERY_RASTER_STAGE_LIMITS UINT32_C(23)
+#define OGPU_NEXT_TESSELLATION_STATE UINT32_C(133)
+#define OGPU_NEXT_TRIANGLE_FAN UINT32_C(5)
+#define OGPU_NEXT_LINES_ADJACENCY UINT32_C(6)
+#define OGPU_NEXT_LINE_STRIP_ADJACENCY UINT32_C(7)
+#define OGPU_NEXT_TRIANGLES_ADJACENCY UINT32_C(8)
+#define OGPU_NEXT_TRIANGLE_STRIP_ADJACENCY UINT32_C(9)
+#define OGPU_NEXT_PATCHES UINT32_C(10)
+#define OGPU_NEXT_DOMAIN_UPPER_LEFT UINT32_C(0)
+#define OGPU_NEXT_DOMAIN_LOWER_LEFT UINT32_C(1)
+typedef struct ogpu_next_raster_stage_limits {
+    uint32_t max_generation_level;
+    uint32_t max_patch_size;
+    uint32_t control_input_components;
+    uint32_t control_output_components;
+    uint32_t patch_output_components;
+    uint32_t control_total_output_components;
+    uint32_t evaluation_input_components;
+    uint32_t evaluation_output_components;
+    uint32_t geometry_invocations;
+    uint32_t geometry_input_components;
+    uint32_t geometry_output_components;
+    uint32_t geometry_output_vertices;
+    uint32_t geometry_total_output_components;
+} ogpu_next_raster_stage_limits;
+/* Required only for paired TESS_CONTROL/TESS_EVALUATION with PATCHES topology.
+ * patch_control_points is input patch size, 1..max_patch_size, not shader output
+ * patch size. domain_origin is UPPER_LEFT/LOWER_LEFT. Other tessellation modes,
+ * output counts, interfaces and geometry input/output modes are in the artifact;
+ * caller/compiler proves limits and inter-stage/topology compatibility.
+ * Chain on graphics_state.header.next, at most once, optionally with one
+ * RENDER_MAPPING in either order. Unknown/duplicate/cyclic chains reject.
+ * No dynamic patch-size policy, CPU geometry expansion or per-draw stage scan. */
+typedef struct ogpu_next_tessellation_state {
+    ogpu_next_record header;
+    uint32_t patch_control_points, domain_origin;
+} ogpu_next_tessellation_state;
+
 /* Optional native dynamic-rendering local reads (LOCAL_READ enable).
  * LIMITS returns immutable physical support, not selected device enables.
  * max_inputs bounds input indices; depth_stencil/multisample are independent
@@ -1496,8 +1550,9 @@ typedef struct ogpu_next_render_inputs {
 typedef struct ogpu_next_input_attachment_binding {
     uint32_t space, binding, root_offset, array_stride;
 } ogpu_next_input_attachment_binding;
-/* The sole permitted header.next on graphics_state and render_inheritance.
- * Its own header.next is NULL. locations/inputs may be NULL for native defaults.
+/* On graphics_state.header.next, optionally chained with TESSELLATION_STATE;
+ * one of each, in either order. On render_inheritance this is the sole extension
+ * and its own header.next must be NULL. locations/inputs may be NULL for defaults.
  * Bindings are preparation-only on graphics_state; inheritance binding_count=0.
  * Nonzero binding_count requires bindings; space/binding pairs must be unique.
  * Arrays/records borrow caller storage only through creation/recording.
@@ -1746,7 +1801,7 @@ typedef struct ogpu_next_raster_options {
  * Non-unit width must fit the reported range; native granularity/rounding applies.
  * Bounds testing uses the existing stored depth, not incoming fragment depth;
  * with no depth attachment the native test passes. Discard suppresses rasterization,
- * not vertex work; discard pipelines supply only VERTEX (no FRAGMENT shader).
+ * not pre-raster work; discard pipelines omit FRAGMENT.
  * Static discard requires zero color/depth formats. It can execute in an attached
  * render scope when UNUSED_ATTACHMENTS is enabled; otherwise use attachmentless scopes.
  * Attached static discard currently supports single-sample scopes only; native
@@ -1778,8 +1833,11 @@ typedef struct ogpu_next_vertex_input {
  * contracts. Metadata is borrowed only during preparation. Additional divisor and
  * dynamic input/stride profiles are not enabled; no repack or shader rewriting.
  */
-/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, VERTEX followed
- * by optional FRAGMENT (FRAGMENT must be absent when discard is enabled), static_state=GRAPHICS_STATE,
+/* Graphics preparation: RASTER must be enabled. kind=GRAPHICS, canonical order:
+ * VERTEX, optional paired TESS_CONTROL/TESS_EVALUATION, optional GEOMETRY, optional
+ * FRAGMENT (absent with discard). Stage features must be enabled independently;
+ * with nonzero view_mask the matching *_MULTIVIEW enables are also required.
+ * static_state=GRAPHICS_STATE,
  * dynamic_state includes DYNAMIC_VIEWPORT_SCISSOR and any selected supported
  * optional bits (graphics_limits.dynamic_states). requirements local_size/shared_memory=0.
  * The executable borrows one graphics argument layout; fields carry shader visibility.
@@ -1816,8 +1874,13 @@ typedef struct ogpu_next_vertex_input {
  * is similarly relaxed. No inferred transitions, attachment allocation or remap.
  * Additional static raster/sample controls use raster_options. Custom
  * sample locations and independent depth clipping remain unimplemented profiles.
- * Both vertex pulling and native vertex fetch are available. Points require shader
- * PointSize=1; vertex/fragment storage writes require their independent features.
+ * Both vertex pulling and native vertex fetch are available. Topologies include
+ * TRIANGLE_FAN, line/triangle list/strip ADJACENCY and PATCHES. Adjacency requires
+ * GEOMETRY enabling; patch lists require the paired tessellation stages/state.
+ * Primitive restart is available for strips/fan, not lists/patches in this profile.
+ * Vertex point output uses PointSize=1; tessellation/geometry point-size writes
+ * require TESSELLATION_GEOMETRY_POINT_SIZE and obey native limits. Storage writes
+ * before rasterization use VERTEX_STORES_ATOMICS, fragment writes its own enable.
  * Missing profiles are UNSUPPORTED, not emulated.
  * Omitting FRAGMENT still rasterizes and runs fixed depth/stencil tests and writes.
  * It is useful for depth-only passes and occlusion, not equivalent to discard.

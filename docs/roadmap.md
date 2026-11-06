@@ -609,7 +609,13 @@ storage reads with both native layouts and global/resource barriers. Depth/MSAA,
 secondary/multiview combinations and generated compiler handoff remain acceptance
 work. Clean C/GGML/libplacebo and isolated native Rust/Wayland SDK acceptance
 passes at `64e0988`, including the new consumer against the installed release
-runtime. Next implement remaining tessellation/geometry profiles.
+runtime. [Tessellation/geometry](raster-stages.md) now implement independent enables,
+physical limits, patch/origin state, adjacency and shared argument/stage scopes.
+[Native acceptance](results/m8-raster-stages-2026-11-06.md) passes ordinary,
+adjacency and tessellated/combined pipelines with changed-data replay and statistics.
+Next integrate advanced raster into a textured/depth consumer and audit remaining
+M8 feature dispositions; native combinations and generated compiler handoff remain
+explicit acceptance work before calling the milestone complete.
 
 **Deliver:** task/mesh executable stages and direct/indirect/count launch paths (initial tranche above);
 explicit GPU-generated command layouts, executable selection, preparation/storage

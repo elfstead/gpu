@@ -43,8 +43,10 @@ index. A null depth/stencil pointer denotes an input with no InputAttachmentInde
 decoration; a pointer to ATTACHMENT_UNUSED disables that aspect.
 
 Put a `RenderMapping` on `GraphicsState.header.next` for executable preparation,
-or on `RenderInheritance.header.next` for secondary recording inheritance. It is
-the only extension accepted at those points and its own next pointer is null.
+or on `RenderInheritance.header.next` for secondary recording inheritance.
+On graphics state it may be chained with one TessellationState, in either order;
+unknown/duplicate/cyclic chains reject. On render inheritance it remains the only
+extension and its own next pointer is null.
 The two recording setters update output locations and input indices independently.
 Counts must match the current render scope. The application proves agreement
 between executable, current mapping, shader, attachments and secondary inheritance

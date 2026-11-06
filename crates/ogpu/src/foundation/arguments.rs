@@ -3,7 +3,16 @@
 use super::*;
 use std::ffi::c_void;
 
-const SHADER_STAGES: [u64; 5] = [4, 8, 16, TASK_STAGE, MESH_STAGE];
+const SHADER_STAGES: [u64; 8] = [
+    4,
+    8,
+    16,
+    TASK_STAGE,
+    MESH_STAGE,
+    TESS_CONTROL_STAGE,
+    TESS_EVALUATION_STAGE,
+    GEOMETRY_STAGE,
+];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct AddressField {
@@ -20,7 +29,7 @@ pub struct ArgumentLayout {
     pub(super) device: *const Device,
     pub(super) execution_class: u32,
     byte_size: u32,
-    mappings: [Vec<vk::VkDescriptorSetAndBindingMappingEXT>; 5],
+    mappings: [Vec<vk::VkDescriptorSetAndBindingMappingEXT>; 8],
     addresses: Vec<AddressField>,
     boundaries: Vec<Boundary>,
     sequence_fields: Vec<u32>,
@@ -74,6 +83,16 @@ impl ArgumentLayout {
             ARGUMENT_COMPUTE => 4,
             ARGUMENT_GRAPHICS if enabled & RASTER != 0 => {
                 8 | 16
+                    | if enabled & TESSELLATION != 0 {
+                        TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE
+                    } else {
+                        0
+                    }
+                    | if enabled & GEOMETRY != 0 {
+                        GEOMETRY_STAGE
+                    } else {
+                        0
+                    }
                     | if enabled & TASK_SHADER != 0 {
                         TASK_STAGE
                     } else {

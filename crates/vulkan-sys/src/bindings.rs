@@ -6919,6 +6919,12 @@ pub type PFN_vkCmdClearDepthStencilImage = ::std::option::Option<
         pRanges: *const VkImageSubresourceRange,
     ),
 >;
+pub const VkTessellationDomainOrigin_VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT: VkTessellationDomainOrigin = 0;
+pub const VkTessellationDomainOrigin_VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT: VkTessellationDomainOrigin = 1;
+pub const VkTessellationDomainOrigin_VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT_KHR: VkTessellationDomainOrigin = 0;
+pub const VkTessellationDomainOrigin_VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT_KHR: VkTessellationDomainOrigin = 1;
+pub const VkTessellationDomainOrigin_VK_TESSELLATION_DOMAIN_ORIGIN_MAX_ENUM: VkTessellationDomainOrigin = 2147483647;
+pub type VkTessellationDomainOrigin = ::std::os::raw::c_uint;
 pub type VkSubgroupFeatureFlags = VkFlags;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_MASK_BIT: VkMemoryAllocateFlagBits = 1;
 pub const VkMemoryAllocateFlagBits_VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT: VkMemoryAllocateFlagBits = 2;
@@ -7389,6 +7395,46 @@ const _: () = {
     ) - 24usize];
 };
 impl Default for VkPhysicalDeviceMaintenance3Properties {
+    fn default() -> Self {
+        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
+        unsafe {
+            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
+            s.assume_init()
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VkPipelineTessellationDomainOriginStateCreateInfo {
+    pub sType: VkStructureType,
+    pub pNext: *const ::std::os::raw::c_void,
+    pub domainOrigin: VkTessellationDomainOrigin,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    [
+        "Size of VkPipelineTessellationDomainOriginStateCreateInfo",
+    ][::std::mem::size_of::<VkPipelineTessellationDomainOriginStateCreateInfo>()
+        - 24usize];
+    [
+        "Alignment of VkPipelineTessellationDomainOriginStateCreateInfo",
+    ][::std::mem::align_of::<VkPipelineTessellationDomainOriginStateCreateInfo>()
+        - 8usize];
+    [
+        "Offset of field: VkPipelineTessellationDomainOriginStateCreateInfo::sType",
+    ][::std::mem::offset_of!(VkPipelineTessellationDomainOriginStateCreateInfo, sType)
+        - 0usize];
+    [
+        "Offset of field: VkPipelineTessellationDomainOriginStateCreateInfo::pNext",
+    ][::std::mem::offset_of!(VkPipelineTessellationDomainOriginStateCreateInfo, pNext)
+        - 8usize];
+    [
+        "Offset of field: VkPipelineTessellationDomainOriginStateCreateInfo::domainOrigin",
+    ][::std::mem::offset_of!(
+        VkPipelineTessellationDomainOriginStateCreateInfo, domainOrigin
+    ) - 16usize];
+};
+impl Default for VkPipelineTessellationDomainOriginStateCreateInfo {
     fn default() -> Self {
         let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
         unsafe {

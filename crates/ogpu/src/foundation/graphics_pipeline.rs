@@ -65,7 +65,7 @@ fn raster_options(
         return Err(INVALID);
     }
     // List restart and independent depth clipping are separate, unimplemented profiles.
-    if o.primitive_restart != 0 && !matches!(topology, 2 | 4) {
+    if o.primitive_restart != 0 && !matches!(topology, 2 | 4 | 5 | 7 | 9) {
         return Err(UNSUPPORTED);
     }
     for (needed, bit) in [
@@ -110,23 +110,39 @@ impl Drop for Module<'_> {
     }
 }
 pub(super) fn graphics_stages(shaders: &[Shader]) -> Result<u64, Status> {
-    let mut stages = [0; 3];
-    if shaders.len() > stages.len() {
+    let order = [
+        8,
+        TESS_CONTROL_STAGE,
+        TESS_EVALUATION_STAGE,
+        GEOMETRY_STAGE,
+        16,
+    ];
+    let mut storage = [0; 5];
+    if shaders.len() > storage.len() {
         return Err(UNSUPPORTED);
     }
-    for (stage, shader) in stages.iter_mut().zip(shaders) {
-        *stage = u64::from(shader.stage);
+    for (s, v) in storage.iter_mut().zip(shaders) {
+        *s = u64::from(v.stage);
     }
-    let stages = &stages[..shaders.len()];
+    let stages = &storage[..shaders.len()];
+    let mask = stages.iter().fold(0, |a, b| a | b);
+    if raster_stages::traditional(mask)
+        && stages
+            .iter()
+            .copied()
+            .eq(order.into_iter().filter(|s| mask & s != 0))
+    {
+        return Ok(mask);
+    }
     match stages {
-        [8] | [8, 16] => Ok(stages.iter().copied().fold(0, |a, b| a | b)),
         [MESH_STAGE]
         | [MESH_STAGE, 16]
         | [TASK_STAGE, MESH_STAGE]
-        | [TASK_STAGE, MESH_STAGE, 16] => Ok(stages.iter().copied().fold(0, |a, b| a | b)),
+        | [TASK_STAGE, MESH_STAGE, 16] => Ok(mask),
         _ => Err(UNSUPPORTED),
     }
 }
+
 pub(super) unsafe fn prepare(
     d: &Device,
     desc: &ExecutableDesc,
@@ -169,7 +185,7 @@ pub(super) unsafe fn prepare(
             stencil.compare = 0;
         }
     }
-    if !(1..=3).contains(&desc.shader_count) {
+    if !(1..=5).contains(&desc.shader_count) {
         return Err(UNSUPPORTED);
     }
     let shaders = unsafe { array(desc.shaders, desc.shader_count)? };
@@ -180,6 +196,8 @@ pub(super) unsafe fn prepare(
     {
         return Err(UNSUPPORTED);
     }
+    raster_stages::enables(d.snapshot.features.enabled, stage_mask, state.view_mask)?;
+    let extensions = unsafe { raster_stages::extensions(state.header.next)? };
     let mesh_pipeline = stage_mask & MESH_STAGE != 0;
     if mesh_pipeline
         && state.view_mask != 0
@@ -215,8 +233,26 @@ pub(super) unsafe fn prepare(
         }
         None
     };
-    let mut local_mapping =
-        unsafe { local_read::prepare(d, state.header.next, state.color_count, Some(layout))? };
+    let tessellation = raster_stages::tessellation(
+        stage_mask,
+        state.topology,
+        extensions.tessellation,
+        &d.snapshot.raster_stage_limits,
+    )?;
+    if matches!(state.topology, 6..=9) && d.snapshot.features.enabled & GEOMETRY == 0 {
+        return Err(UNSUPPORTED);
+    }
+    let mut local_mapping = unsafe {
+        local_read::prepare(
+            d,
+            extensions
+                .mapping
+                .as_ref()
+                .map_or(ptr::null(), |m| &m.header),
+            state.color_count,
+            Some(layout),
+        )?
+    };
     let p = &d.snapshot.graphics_limits;
     let options = if state.raster_options.is_null() {
         RasterOptions::default()
@@ -256,7 +292,7 @@ pub(super) unsafe fn prepare(
     if options.discard != 0 && (state.color_count != 0 || state.depth_format != 0) {
         return Err(UNSUPPORTED);
     }
-    if state.topology > 4
+    if state.topology > PATCHES
         || state.cull > 3
         || state.front_face > 1
         || state.depth_test > 1
@@ -592,13 +628,7 @@ pub(super) unsafe fn prepare(
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             flags: subgroup_states[i].0,
             pNext: ptr::from_ref(&mappings[i]).cast(),
-            stage: match u64::from(shader.stage) {
-                8 => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT,
-                16 => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT,
-                MESH_STAGE => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_EXT,
-                TASK_STAGE => vk::VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_EXT,
-                _ => unreachable!(),
-            },
+            stage: generated::native_stages(u64::from(shader.stage)),
             module: modules[i].handle,
             pName: shader.entry,
             pSpecializationInfo: &specs[i],
@@ -728,7 +758,22 @@ pub(super) unsafe fn prepare(
         depthAttachmentFormat: if has_depth { depth_format } else { 0 },
         stencilAttachmentFormat: if has_stencil { depth_format } else { 0 },
     };
+    let domain = vk::VkPipelineTessellationDomainOriginStateCreateInfo {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO,
+        domainOrigin: tessellation.map_or(0,|s| s.domain_origin), ..Default::default()
+    };
+    let tess = vk::VkPipelineTessellationStateCreateInfo {
+        sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+        pNext: ptr::from_ref(&domain).cast(),
+        patchControlPoints: tessellation.map_or(0, |s| s.patch_control_points),
+        ..Default::default()
+    };
     let info = vk::VkGraphicsPipelineCreateInfo {
+        pTessellationState: if tessellation.is_some() {
+            &tess
+        } else {
+            ptr::null()
+        },
         sType: vk::VkStructureType_VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         pNext: local_mapping.link(ptr::from_ref(&rendering).cast()),
         stageCount: shader_count,

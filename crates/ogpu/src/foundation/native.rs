@@ -24,6 +24,9 @@ use std::{
     },
 };
 
+#[path = "raster_stages.rs"]
+mod raster_stages;
+
 #[path = "local_read.rs"]
 mod local_read;
 
@@ -303,6 +306,7 @@ pub(super) fn snapshot(
     let mut memory_limits = MemoryLimits::default();
     let mut descriptor_properties = NativeDescriptorProperties::default();
     let mut execution_limits = ExecutionLimits::default();
+    let mut raster_stage_limits = RasterStageLimits::default();
     let mut local_read_limits = LocalReadLimits::default();
     let mut graphics_limits = GraphicsLimits::default();
     let mut query_limits = QueryLimits::default();
@@ -430,6 +434,7 @@ pub(super) fn snapshot(
             (f.vkGetPhysicalDeviceFeatures2.unwrap())(physical, &mut root);
             (f.vkGetPhysicalDeviceProperties2.unwrap())(physical, &mut properties);
         }
+        raster_stage_limits = raster_stages::limits(&properties.properties.limits);
         if v14.dynamicRenderingLocalRead != 0 {
             features.available |= LOCAL_READ;
         }
@@ -465,29 +470,7 @@ pub(super) fn snapshot(
         float_controls = float_snapshot(&v12_properties);
         integer_dot = integer_dot::snapshot(&dot_properties);
         cache_uuid = properties.properties.pipelineCacheUUID;
-        let stages = |native: u32| {
-            (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_COMPUTE_BIT != 0 {
-                4
-            } else {
-                0
-            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_VERTEX_BIT != 0 {
-                8
-            } else {
-                0
-            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_FRAGMENT_BIT != 0 {
-                16
-            } else {
-                0
-            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_MESH_BIT_EXT != 0 {
-                MESH_STAGE
-            } else {
-                0
-            }) | (if native & vk::VkShaderStageFlagBits_VK_SHADER_STAGE_TASK_BIT_EXT != 0 {
-                TASK_STAGE
-            } else {
-                0
-            })
-        };
+        let stages = generated::public_stages;
         subgroup_limits = SubgroupLimits {
             default_size: subgroup.subgroupSize,
             min_size: subgroup_control.minSubgroupSize,
@@ -605,6 +588,17 @@ pub(super) fn snapshot(
                 INDIRECT_FIRST_INSTANCE,
             ),
             (root.features.independentBlend, INDEPENDENT_BLEND),
+            (root.features.tessellationShader, TESSELLATION),
+            (root.features.geometryShader, GEOMETRY),
+            (
+                root.features.shaderTessellationAndGeometryPointSize,
+                TESSELLATION_GEOMETRY_POINT_SIZE,
+            ),
+            (
+                multiview.multiviewTessellationShader,
+                TESSELLATION_MULTIVIEW,
+            ),
+            (multiview.multiviewGeometryShader, GEOMETRY_MULTIVIEW),
             (root.features.imageCubeArray, CUBE_ARRAY),
             (root.features.logicOp, LOGIC_OP),
             (root.features.dualSrcBlend, DUAL_SOURCE_BLEND),
@@ -743,6 +737,7 @@ pub(super) fn snapshot(
         mesh_limits,
         generated_limits,
         local_read_limits,
+        raster_stage_limits,
         shading_rate_limits,
         shading_rates,
         memory_budget_supported: instance
@@ -946,8 +941,9 @@ impl Device {
         let mut multiview = vk::VkPhysicalDeviceMultiviewFeatures {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
             multiview: u32::from(enabled & MULTIVIEW != 0),
+            multiviewTessellationShader: u32::from(enabled & TESSELLATION_MULTIVIEW != 0),
+            multiviewGeometryShader: u32::from(enabled & GEOMETRY_MULTIVIEW != 0),
             pNext: ptr::from_mut(&mut v12).cast(),
-            ..Default::default()
         };
         let mut storage16 = vk::VkPhysicalDevice16BitStorageFeatures {
             sType: vk::VkStructureType_VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
@@ -963,6 +959,11 @@ impl Device {
             imageCubeArray: u32::from(enabled & CUBE_ARRAY != 0),
             drawIndirectFirstInstance: u32::from(enabled & INDIRECT_FIRST_INSTANCE != 0),
             independentBlend: u32::from(enabled & INDEPENDENT_BLEND != 0),
+            tessellationShader: u32::from(enabled & TESSELLATION != 0),
+            geometryShader: u32::from(enabled & GEOMETRY != 0),
+            shaderTessellationAndGeometryPointSize: u32::from(
+                enabled & TESSELLATION_GEOMETRY_POINT_SIZE != 0,
+            ),
             logicOp: u32::from(enabled & LOGIC_OP != 0),
             dualSrcBlend: u32::from(enabled & DUAL_SOURCE_BLEND != 0),
             depthClamp: u32::from(enabled & DEPTH_CLAMP != 0),

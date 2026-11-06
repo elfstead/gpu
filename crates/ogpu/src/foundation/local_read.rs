@@ -5,7 +5,7 @@ use super::*;
 use std::ffi::c_void;
 
 /// Validate the parent record while admitting only the separately parsed mapping.
-/// The caller must call `prepare` on its next pointer before native use.
+/// The caller must parse and validate the admitted next chain before native use.
 pub(super) unsafe fn parent<'a, T>(p: *const Record, kind: u32) -> Result<&'a T, Status> {
     let header = unsafe { p.as_ref() }.ok_or(INVALID)?;
     Record {

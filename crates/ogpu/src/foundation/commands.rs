@@ -321,7 +321,7 @@ const BLIT_SCOPE: u64 = 65536;
 const INPUT_SCOPE: u64 = 131072;
 const GRAPHICS_SCOPE: u64 = 262144;
 const PRE_RASTER_SCOPE: u64 = 524288;
-const KNOWN_SCOPES: u64 = (1 << 24) - 1;
+const KNOWN_SCOPES: u64 = (1 << 27) - 1;
 const RASTER_SCOPES: u64 = 8
     | 16
     | 64
@@ -335,7 +335,10 @@ const RASTER_SCOPES: u64 = 8
     | PRE_RASTER_SCOPE
     | MESH_STAGE
     | TASK_STAGE
-    | SHADING_RATE_STAGE;
+    | SHADING_RATE_STAGE
+    | TESS_CONTROL_STAGE
+    | TESS_EVALUATION_STAGE
+    | GEOMETRY_STAGE;
 
 fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u64, Status> {
     if mask & !KNOWN_SCOPES != 0 {
@@ -379,13 +382,18 @@ fn stage_mask(flags: u32, raster: bool, mask: u64, semaphore: bool) -> Result<u6
         vk::VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT,
         vk::VK_PIPELINE_STAGE_2_COMMAND_PREPROCESS_BIT_EXT,
         vk::VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
+        vk::VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT,
+        vk::VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT,
+        vk::VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT,
     ];
     Ok(bits.iter().enumerate().fold(0, |v, (i, bit)| {
         v | if mask & (1 << i) != 0 { *bit } else { 0 }
     }))
 }
 fn stage_features(enabled: FeatureBits, mask: u64) -> Result<(), Status> {
-    if mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
+    if mask & (TESS_CONTROL_STAGE | TESS_EVALUATION_STAGE) != 0 && enabled & TESSELLATION == 0
+        || mask & GEOMETRY_STAGE != 0 && enabled & GEOMETRY == 0
+        || mask & MESH_STAGE != 0 && enabled & MESH_SHADER == 0
         || mask & TASK_STAGE != 0 && enabled & TASK_SHADER == 0
         || mask & PREPROCESS_STAGE != 0 && enabled & GENERATED_COMMANDS == 0
         || mask & SHADING_RATE_STAGE != 0 && enabled & ATTACHMENT_SHADING_RATE == 0
@@ -415,7 +423,17 @@ fn access(mask: u64, stages: u64) -> Result<u64, Status> {
         return Err(UNSUPPORTED);
     }
     // ALL_COMMANDS covers GPU, not host accesses. Generic read/write require a scope.
-    let shaders = 1 | 4 | 8 | 16 | GRAPHICS_SCOPE | PRE_RASTER_SCOPE | MESH_STAGE | TASK_STAGE;
+    let shaders = 1
+        | 4
+        | 8
+        | 16
+        | GRAPHICS_SCOPE
+        | PRE_RASTER_SCOPE
+        | MESH_STAGE
+        | TASK_STAGE
+        | TESS_CONTROL_STAGE
+        | TESS_EVALUATION_STAGE
+        | GEOMETRY_STAGE;
     let transfer_read = 1 | 2 | COPY_SCOPE | RESOLVE_SCOPE | BLIT_SCOPE;
     let depth = 1 | 128 | EARLY_SCOPE | LATE_SCOPE | GRAPHICS_SCOPE;
     let allowed = [
@@ -596,7 +614,18 @@ impl List {
         stage_features(d.snapshot.features.enabled, scope)?;
         let p = match scope {
             4 => self.executable.get(),
-            value if value != 0 && value & !(8 | 16 | MESH_STAGE | TASK_STAGE) == 0 => {
+            value
+                if value != 0
+                    && value
+                        & !(8
+                            | 16
+                            | MESH_STAGE
+                            | TASK_STAGE
+                            | TESS_CONTROL_STAGE
+                            | TESS_EVALUATION_STAGE
+                            | GEOMETRY_STAGE)
+                        == 0 =>
+            {
                 self.graphics.get()
             }
             _ => return Err(UNSUPPORTED),
@@ -1459,6 +1488,35 @@ fn indirect_record_size(stride: u32, count: u32, record: u32) -> Result<u64, Sta
 #[cfg(test)]
 mod tests {
     #[test]
+    fn native_raster_stage_scopes_preserve_shader_access_and_enables() {
+        for (stage, native, feature) in [
+            (
+                TESS_CONTROL_STAGE,
+                vk::VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT,
+                TESSELLATION,
+            ),
+            (
+                TESS_EVALUATION_STAGE,
+                vk::VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT,
+                TESSELLATION,
+            ),
+            (
+                GEOMETRY_STAGE,
+                vk::VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT,
+                GEOMETRY,
+            ),
+        ] {
+            assert_eq!(stage_features(0, stage), Err(UNSUPPORTED));
+            assert_eq!(stage_features(feature, stage), Ok(()));
+            assert_eq!(stage_mask(GRAPHICS, true, stage, false), Ok(native));
+            assert_eq!(stage_mask(COMPUTE, false, stage, false), Err(UNSUPPORTED));
+            assert_eq!(
+                access(1 << 19, stage),
+                Ok(vk::VK_ACCESS_2_SHADER_STORAGE_READ_BIT)
+            );
+        }
+    }
+    #[test]
     fn indirect_ranges_preserve_native_stride_rules() {
         use super::*;
         assert_eq!(indirect_record_size(0, 1, 12), Ok(12));
@@ -1832,7 +1890,7 @@ mod tests {
             stage_mask(TRANSFER, false, COPY_SCOPE | CLEAR_SCOPE, false),
             Ok(vk::VK_PIPELINE_STAGE_2_COPY_BIT | vk::VK_PIPELINE_STAGE_2_CLEAR_BIT)
         );
-        assert_eq!(stage_mask(GRAPHICS, true, 1 << 24, false), Err(UNSUPPORTED));
+        assert_eq!(stage_mask(GRAPHICS, true, 1 << 27, false), Err(UNSUPPORTED));
         assert_eq!(stage_mask(COMPUTE, false, 256, true), Err(INVALID));
         assert_eq!(access(512, 8), Err(INVALID));
         assert_eq!(access(1024, 8), Err(INVALID));
